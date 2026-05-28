@@ -14,6 +14,56 @@ export const LegacyPromotion = () => {
     const code = legacySubscriptions?.stripePromotionCode;
     const [isCopied, setIsCopied] = useState(false);
 
+    // Real revenue path: clipboard delivers the 1-month-free Pro promo code
+    // to the user's paste buffer. If `navigator.clipboard.writeText` rejects
+    // (permission denied, non-secure context, browser without the API) the
+    // toast must reflect failure — a false "Copied" leaves the user
+    // believing the code is on their clipboard while nothing actually was.
+    // Fall back to a programmatic textarea+execCommand copy so the user
+    // still gets the code on browsers that block the async API.
+    const fallbackCopy = (value: string): boolean => {
+        if (typeof document === 'undefined') return false;
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        let ok = false;
+        try {
+            ok = document.execCommand('copy');
+        } catch {
+            ok = false;
+        }
+        document.body.removeChild(textarea);
+        return ok;
+    };
+
+    const handleCopy = async () => {
+        if (!code) return;
+        let copied = false;
+        try {
+            await navigator.clipboard.writeText(code);
+            copied = true;
+        } catch (err) {
+            console.warn('[legacy-promotion] clipboard write failed; falling back', err);
+            copied = fallbackCopy(code);
+        }
+        if (copied) {
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 3000);
+            toast.success('Copied to clipboard');
+        } else {
+            toast.error('Could not copy code', {
+                description: 'Select and copy it manually from the panel.',
+            });
+        }
+    };
+
     return (
         <AnimatePresence>
             {code && (
@@ -39,12 +89,7 @@ export const LegacyPromotion = () => {
                         <Button
                             size="sm"
                             className="rounded-md bg-blue-500 text-white transition-all duration-300 hover:bg-blue-600"
-                            onClick={() => {
-                                navigator.clipboard.writeText(code);
-                                setIsCopied(true);
-                                setTimeout(() => setIsCopied(false), 3000);
-                                toast.success('Copied to clipboard');
-                            }}
+                            onClick={() => void handleCopy()}
                         >
                             {isCopied ? (
                                 <Icons.Check className="h-4 w-4" />

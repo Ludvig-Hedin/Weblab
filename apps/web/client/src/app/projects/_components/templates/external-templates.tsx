@@ -64,7 +64,7 @@ interface ExternalTemplateCardProps {
 }
 
 function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardProps) {
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { redirectToSignIn } = useAuthContext();
     const router = useRouter();
 
     const detailsHref = `${Routes.PROJECT_TEMPLATES}/${template.id}`;
@@ -73,7 +73,7 @@ function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardPro
     const handleUseTemplate = async () => {
         if (!user?._id) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, creatingHref);
-            setIsAuthModalOpen(true);
+            redirectToSignIn();
             return;
         }
         // Navigate immediately — progress is shown on the creating page.

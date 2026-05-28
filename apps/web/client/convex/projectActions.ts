@@ -80,11 +80,15 @@ export const captureScreenshot = action({
             }
 
             const frameUrl = defaultBranch.frames[0]?.url ?? null;
-            // Fallback to the CSB convention when the frame URL hasn't been
-            // resolved yet. Port 3000 is the Next.js default; non-Next projects
-            // should have a frame URL set by the time the dashboard backfills,
-            // so this fallback is the worst case.
-            const url = frameUrl ?? `https://${defaultBranch.sandboxId}-3000.csb.app`;
+            // CodeSandbox was archived 2026-05-24; the previous `csb.app`
+            // fallback now resolves to a 404 every time the frame URL
+            // isn't populated. Without a real preview URL we cannot
+            // generate a screenshot — skip cleanly instead of scraping a
+            // 404 page and persisting a broken image.
+            if (!frameUrl) {
+                return { success: true as const, skipped: 'no_preview_url' as const };
+            }
+            const url = frameUrl;
 
             // Firecrawl REST API — direct fetch, no SDK dependency.
             const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {

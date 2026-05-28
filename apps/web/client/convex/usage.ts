@@ -79,7 +79,9 @@ async function freePlanUsage(
         .collect();
 
     const lastDayCount = monthRecords.filter(
-        (r) => r.timestamp >= dayStart && r.timestamp < now,
+        // Match the outer index bound `.lte('timestamp', now)` so a record
+        // written at exactly `now` (rare but reachable) isn't undercounted.
+        (r) => r.timestamp >= dayStart && r.timestamp <= now,
     ).length;
 
     return {
@@ -230,7 +232,9 @@ async function pickRateLimitForDeduction(
         .query('rateLimits')
         .withIndex('by_user_time', (q) => q.eq('userId', userId).lte('startedAt', now))
         .collect();
-    const valid = candidates.filter((r) => r.endedAt >= now && r.left > 0);
+    // `> now` (strict) matches `proPlanUsage`'s display gate — at the exact
+    // endedAt ms the bucket is expired and must not deduct credits.
+    const valid = candidates.filter((r) => r.endedAt > now && r.left > 0);
     if (valid.length === 0) return null;
     // Deduct from the bucket with the most carry-over (= oldest credits)
     // first. Stable tie-break by id keeps multi-row concurrent updates

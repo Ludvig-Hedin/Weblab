@@ -25,7 +25,7 @@ function PlanPageInner() {
     const prompt = searchParams.get('prompt') ?? '';
     const user = useQuery(api.users.me, {});
     const createManager = useCreateManager();
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { redirectToSignIn } = useAuthContext();
 
     const { messages, isStreaming, stop, sendMessage } = usePlanChat();
     const [sentInitial, setSentInitial] = useState(false);
@@ -70,11 +70,11 @@ function PlanPageInner() {
             setCreateError('No project was returned. Try again.');
             setIsCreating(false);
         } catch (err) {
-            // Session expired between page load and click — re-open the
-            // auth modal instead of surfacing a confusing 'NOT_AUTHENTICATED'
-            // error message (matches the pattern in `/projects/creating`).
+            // Session expired between page load and click — bounce to
+            // /sign-in. /projects/* doesn't mount <AuthModal />, so a
+            // full-page redirect is the only way to recover.
             if (isNotAuthenticatedError(err)) {
-                setIsAuthModalOpen(true);
+                redirectToSignIn();
                 setIsCreating(false);
                 return;
             }

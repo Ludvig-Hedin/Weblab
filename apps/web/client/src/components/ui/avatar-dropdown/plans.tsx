@@ -34,7 +34,7 @@ export const UsageSection = observer((_props: { open: boolean }) => {
         usage && usage.limitCount > 0 ? (usage.usageCount / usage.limitCount) * 100 : 0;
 
     const handleGetMoreCredits = () => {
-        state.isSubscriptionModalOpen = true;
+        state.setIsSubscriptionModalOpen(true);
     };
 
     const getSubscriptionChangeMessage = () => {

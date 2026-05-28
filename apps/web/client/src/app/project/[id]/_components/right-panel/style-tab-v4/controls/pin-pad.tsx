@@ -179,8 +179,14 @@ function SideCell({ side, value, onCommit, glyph, inputRef, style }: SideCellPro
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={(e) => {
                     const next = e.currentTarget.value.trim();
-                    if (next === '' && value !== 'auto' && value !== '') onCommit('auto');
-                    else if (next !== value) onCommit(next);
+                    if (next === '') {
+                        // Empty means "auto". Don't clobber an already-auto /
+                        // empty cell with '' when the user blurs without
+                        // editing — only convert a real value to auto.
+                        if (value !== 'auto' && value !== '') onCommit('auto');
+                        return;
+                    }
+                    if (next !== value) onCommit(next);
                 }}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {

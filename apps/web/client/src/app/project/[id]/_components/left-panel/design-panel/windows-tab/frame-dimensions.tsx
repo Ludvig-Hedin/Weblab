@@ -24,14 +24,15 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
     const editorEngine = useEditorEngine();
     const frameData = editorEngine.frames.get(frameId);
 
-    if (!frameData) {
-        return <p className="text-foreground-primary text-small">Frame not found</p>;
-    }
-
+    // Hooks must run unconditionally on every render — React tracks them by
+    // call order. Reading `frameData?.frame.dimension` with safe defaults lets
+    // us declare hooks first and surface the "Frame not found" empty state
+    // below without violating the Rules of Hooks if `frameData` flips between
+    // renders (e.g. frame deleted while this panel is open).
     const [metadata, setMetadata] = useState<WindowMetadata>(() =>
         computeWindowMetadata(
-            frameData.frame.dimension.width.toString(),
-            frameData.frame.dimension.height.toString(),
+            (frameData?.frame.dimension.width ?? 0).toString(),
+            (frameData?.frame.dimension.height ?? 0).toString(),
         ),
     );
 
@@ -46,6 +47,10 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
         }
         return 'Custom:Custom';
     });
+
+    if (!frameData) {
+        return <p className="text-foreground-primary text-small">Frame not found</p>;
+    }
 
     const updateFrame = (width: number, height: number) => {
         const roundedWidth = Math.round(width);

@@ -67,7 +67,7 @@ function CreatingContent() {
 
     const user = useQuery(api.users.me, {});
     const isLoadingUser = user === undefined;
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { redirectToSignIn } = useAuthContext();
     const createManager = useCreateManager();
 
     const [phase, setPhase] = useState<Phase>('waiting-auth');
@@ -101,9 +101,9 @@ function CreatingContent() {
                 LocalForageKeys.RETURN_URL,
                 window.location.pathname + window.location.search,
             );
-            setIsAuthModalOpen(true);
+            redirectToSignIn();
         }
-    }, [isLoadingUser, user?._id, setIsAuthModalOpen]);
+    }, [isLoadingUser, user?._id, redirectToSignIn]);
 
     // ── Start creation once we have a user ───────────────────────────────────
     useEffect(() => {
@@ -142,14 +142,14 @@ function CreatingContent() {
                 router.push(`${Routes.PROJECT}/${project.id}`);
             } catch (err) {
                 // Session expired between the auth gate above and the
-                // mutate call — re-open the auth modal instead of showing
-                // a confusing 'NOT_AUTHENTICATED' error message.
+                // mutate call — bounce to /sign-in. This page doesn't mount
+                // <AuthModal />, so a full-page redirect is the only recovery.
                 if (isNotAuthenticatedError(err)) {
                     void localforage.setItem(
                         LocalForageKeys.RETURN_URL,
                         window.location.pathname + window.location.search,
                     );
-                    setIsAuthModalOpen(true);
+                    redirectToSignIn();
                     setPhase('waiting-auth');
                     hasStarted.current = false;
                     return;
@@ -161,7 +161,7 @@ function CreatingContent() {
         };
 
         void run();
-    }, [user?._id, template, createManager, router, setIsAuthModalOpen]);
+    }, [user?._id, template, createManager, router, redirectToSignIn]);
 
     // ── Derived state ────────────────────────────────────────────────────────
     const currentStepIndex =

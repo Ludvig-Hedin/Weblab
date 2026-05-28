@@ -22,6 +22,11 @@ export interface DiscoveredComponent {
 // the most common React component export patterns. For a more robust solution,
 // add @weblab/parser as a server dependency.
 
+// TODO(bug-hunt 2026-05-28, F-501): doesn't allow `async` between `export`
+// and `function`, so Next.js App Router server components like
+// `export async function HeroSection()` are silently dropped from results.
+// Fix: `/export\s+(?:async\s+)?function\s+([A-Z]...)/gm`. DEFAULT_FUNCTION_RE
+// below has the same gap.
 const NAMED_FUNCTION_RE = /export\s+function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
 // Matches both plain and typed arrow components:
 //   export const Foo = () => ...
@@ -140,6 +145,11 @@ async function scanDirectory(dir: string, projectRoot: string): Promise<Discover
             return;
         }
         for (const entry of entries) {
+            // TODO(bug-hunt 2026-05-28, F-501): no symlink-cycle guard. A
+            // project containing `src/loop -> ../..` causes infinite recursion
+            // → V8 stack overflow on the Fastify server. Add
+            // `if (entry.isSymbolicLink()) continue;` before the
+            // `isDirectory()` branch.
             if (entry.isDirectory()) {
                 if (!SKIP_DIRS.has(entry.name)) await walk(join(current, entry.name));
             } else if (['.tsx', '.jsx'].includes(extname(entry.name))) {

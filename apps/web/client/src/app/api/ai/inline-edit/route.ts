@@ -113,14 +113,14 @@ export async function POST(req: NextRequest) {
     try {
         body = InlineEditBodySchema.parse(await req.json()) as InlineEditBody;
     } catch (error) {
-        const message = error instanceof z.ZodError ? error.issues[0]?.message : 'Invalid JSON';
-        return new Response(
-            JSON.stringify({ error: message ?? 'Invalid request body', code: 400 }),
-            {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            },
-        );
+        // Mirror /api/chat: don't echo zod issue messages — they describe the
+        // shape of the rejected input and can leak slices of it. Log full
+        // detail server-side; return a fixed 400 to the client.
+        console.warn('[inline-edit] invalid request body', error);
+        return new Response(JSON.stringify({ error: 'Invalid request body', code: 400 }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
 
     if (!body.instruction?.trim() || !body.selection?.trim()) {

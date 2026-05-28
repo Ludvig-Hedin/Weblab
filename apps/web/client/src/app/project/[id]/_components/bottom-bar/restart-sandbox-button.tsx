@@ -212,6 +212,12 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
             }
 
             if (abortController.signal.aborted) {
+                // Reset UI state on abort — without this the button stays
+                // stuck in the `restarting` spinner (and thus permanently
+                // `disabled`) until the component remounts.
+                setRestarting(false);
+                setRestartElapsedSec(0);
+                restartGraceUntilRef.current = null;
                 return;
             }
             restartAbortRef.current = null;

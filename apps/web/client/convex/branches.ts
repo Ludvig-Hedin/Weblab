@@ -258,6 +258,17 @@ export const _insertBranchWithFrames = internalMutation({
             .query('canvases')
             .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
             .first();
+        if (!canvas) {
+            // Every project is seeded with a canvas row at insert time. If
+            // we reach this point with no canvas, the project is in a
+            // corrupted state and an editor that opens the branch would
+            // render a blank, unusable surface. Fail loud so the caller
+            // can recover (re-seed / surface the error) instead of
+            // silently returning a branch with zero frames.
+            throw new Error(
+                `NOT_FOUND: canvas missing for project ${args.projectId} — cannot seed frames`,
+            );
+        }
         if (canvas) {
             const defaultFrames = [
                 { name: 'Desktop', width: 1440, height: 900, order: 0 },

@@ -4,6 +4,7 @@ import type { Branch } from '@weblab/models';
 import { BranchTabValue, LeftPanelTabValue } from '@weblab/models';
 import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
 
@@ -36,6 +37,14 @@ export function BranchControls({
             onClose?.();
         } catch (error) {
             console.error('Failed to fork branch:', error);
+            // Surface the failure — branch fork is currently #disabled on
+            // Vercel Sandbox (TODO(sandbox-fork)); a silent console-only
+            // failure made the menu item look dead.
+            toast.error(
+                error instanceof Error && error.message
+                    ? error.message
+                    : 'Branch fork is not available yet.',
+            );
         } finally {
             setIsForking(false);
         }
@@ -51,6 +60,11 @@ export function BranchControls({
             onClose?.();
         } catch (error) {
             console.error('Failed to create blank sandbox:', error);
+            toast.error(
+                error instanceof Error && error.message
+                    ? error.message
+                    : 'Could not create a blank sandbox.',
+            );
         } finally {
             setIsCreatingBlank(false);
         }

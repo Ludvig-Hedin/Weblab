@@ -8,6 +8,7 @@ import { CodeBlock } from '@weblab/ui/ai-elements';
 import { Button } from '@weblab/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
 import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 import { cn, getTruncatedFileName } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
@@ -50,12 +51,16 @@ const CollapsibleCodeBlockComponent = ({
     isStream,
     branchId,
     showApply,
+    applied,
 }: CollapsibleCodeBlockProps) => {
     const editorEngine = useEditorEngine();
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const [applying, setApplying] = useState(false);
-    const [applyDone, setApplyDone] = useState(false);
+    // Seed from the persisted `applied` flag so an already-applied file
+    // shows "Applied" on remount/scroll — otherwise it always reads "Apply"
+    // until the user clicks again (which would re-write the same content).
+    const [applyDone, setApplyDone] = useState(applied);
     const { preview, truncated } = useMemo(() => getStreamingPreview(content), [content]);
 
     useEffect(() => {
@@ -64,20 +69,38 @@ const CollapsibleCodeBlockComponent = ({
         }
     }, [isStream]);
 
-    const copyToClipboard = () => {
-        void navigator.clipboard.writeText(content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const copyToClipboard = async () => {
+        try {
+            await navigator.clipboard.writeText(content);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Failed to copy';
+            toast.error(message);
+        }
     };
 
     const applyFile = async () => {
         setApplying(true);
         try {
-            await editorEngine.activeSandbox?.writeFile(path, content);
+            const sandbox = editorEngine.activeSandbox;
+            if (!sandbox) {
+                // Optional-chaining the write would silently resolve to
+                // `undefined` and flip the button to "Applied" without
+                // writing anything. Surface the missing-sandbox case.
+                toast.error('No active sandbox to apply to');
+                return;
+            }
+            await sandbox.writeFile(path, content);
             setApplyDone(true);
             setTimeout(() => setApplyDone(false), 2500);
         } catch (e) {
+            // Surface the failure to the user — silently console.error'ing
+            // left the button reading "Apply" again with no signal that the
+            // write actually failed.
+            const message = e instanceof Error ? e.message : 'Failed to apply file';
             console.error('Failed to apply file:', e);
+            toast.error(message);
         } finally {
             setApplying(false);
         }
@@ -193,7 +216,7 @@ const CollapsibleCodeBlockComponent = ({
                                                 size="sm"
                                                 variant="ghost"
                                                 className="text-foreground-secondary hover:text-foreground h-7 px-2 font-sans select-none"
-                                                onClick={copyToClipboard}
+                                                onClick={() => void copyToClipboard()}
                                             >
                                                 {copied ? (
                                                     <>

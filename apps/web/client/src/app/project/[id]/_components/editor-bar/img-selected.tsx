@@ -5,6 +5,7 @@ import React, { memo } from 'react';
 import { Border } from './dropdowns/border';
 import { ColorBackground } from './dropdowns/color-background';
 import { Height } from './dropdowns/height';
+import { ImgFit } from './dropdowns/img-fit';
 import { Margin } from './dropdowns/margin';
 import { Padding } from './dropdowns/padding';
 import { Radius } from './dropdowns/radius';
@@ -26,16 +27,13 @@ export const IMG_SELECTED_GROUPS = [
         label: 'Layout',
         components: [<Padding />, <Margin />],
     },
-    // {
-    //     key: 'image',
-    //     label: 'Image',
-    //     components: [<ImgFit />, <ImageBackground />],
-    // },
-    // {
-    //     key: 'opacity',
-    //     label: 'Opacity',
-    //     components: [<Opacity />],
-    // },
+    {
+        key: 'image',
+        label: 'Image',
+        // ImageBackground is a no-op stub (no onClick / state) — omitted
+        // until it actually edits the image. ImgFit drives `object-fit`.
+        components: [<ImgFit />],
+    },
 ];
 
 const MUST_EXTEND_GROUPS = [

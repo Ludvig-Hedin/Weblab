@@ -13,8 +13,10 @@ type CommentFilter = 'open' | 'resolved';
 
 function formatRelativeTime(date: Date | string): string {
     const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return '';
     const now = new Date();
     const diff = now.getTime() - d.getTime();
+    if (diff < 0) return 'just now';
     const minutes = Math.floor(diff / 60000);
     if (minutes < 1) return 'just now';
     if (minutes < 60) return `${minutes}m ago`;

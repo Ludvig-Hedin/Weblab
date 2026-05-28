@@ -38,14 +38,198 @@ later without re-discovering the context.
 
 ## Open
 
-### F-134 — invalid Convex ID format crashes settings/access page (same gap as F-131)
+### F-558 — `userActions.remove` deletes Clerk identity before cascade can fail; orphan PII on partial-fail
+
+- **Discovered:** 2026-05-28 (validate-feature F-510..F-565 deep bug-hunt)
+- **Where:** [apps/web/client/convex/userActions.ts:42-49](apps/web/client/convex/userActions.ts#L42)
+- **Symptom:** Account-delete UI calls Clerk `deleteUser` first, then `internal.internal.cascade.deleteUserCascade`. If the cascade mutation throws (Convex read-limit, transient network, schema validator), the Clerk identity is already gone but every Convex `users` row + all FK'd PII (workspaceMembers, projectMembers, providerConnections, hostingProviderConnections, subscriptions, rateLimits, usageRecords, aiUsageEvents, cursors, skills, deployments, projectInvitations, userCanvases, projectOfflinePins, feedbacks) remains.
+- **Root cause:** Deliberate "Clerk-first" ordering per the docstring at line 13-18 ("Delete the Clerk identity FIRST so a partial failure cannot leave a re-signinable orphan"). Trade-off prioritizes auth invariant (no re-sign-in into a half-deleted account) over PII completeness, but no retry / dead-letter queue catches the orphaned-Convex case.
+- **Next step:** After `deleteClerkIdentity` succeeds, wrap `deleteUserCascade` in a retry loop (3 attempts with exponential backoff) and, on terminal failure, write a row to a new `pendingUserDeletions` table that a cron sweeps until cascade succeeds. Alternative: split cascade into smaller bounded mutations (per-table chunks) so no single mutation hits the 16k read limit on heavy users.
+- **Risk if ignored:** GDPR exposure on any partial-failure delete; admin `/admin/usage` dashboard surfaces a "deleted user" row indefinitely; cascade re-run by hand requires a DB engineer.
+- **Tags:** `#bug` `#privacy` `#convex` `#tech-debt`
+
+### F-510 / F-563 — Convex `_generated/api.d.ts` is checked-in but stale (missing `layoutGuideStyles`)
+
+- **Discovered:** 2026-05-28 (validate-feature F-510..F-565 deep bug-hunt)
+- **Where:** [apps/web/client/convex/_generated/api.d.ts](apps/web/client/convex/_generated/api.d.ts), drift introduced by [apps/web/client/convex/layoutGuideStyles.ts](apps/web/client/convex/layoutGuideStyles.ts)
+- **Symptom:** Running `bunx convex codegen` against the live deployment regenerates `_generated/api.d.ts` with two new lines re-exporting `layoutGuideStyles`. The committed copy on `main` is missing those lines, so any client code that does `api.layoutGuideStyles.list()` (or similar) will fail TypeScript compilation against the checked-in generated file until codegen is re-run.
+- **Root cause:** Latent — no production consumer of `api.layoutGuideStyles.*` exists yet (verified by `grep`), so CI hasn't caught it. The first commit that adds a consumer will break TS until someone re-runs codegen.
+- **Next step:** Run `bunx convex codegen` from `apps/web/client/`, then `git add apps/web/client/convex/_generated/api.d.ts && git commit -m "chore(convex): refresh _generated for layoutGuideStyles"`. Also add an `F-566` row to [docs/feature-catalog.md](docs/feature-catalog.md) section 25 (and matching `T-566` to [docs/test-plan.md](docs/test-plan.md)) per the Change Protocol — the module is on disk but not catalogued.
+- **Risk if ignored:** First PR that imports `api.layoutGuideStyles` will fail CI; reviewer will have to ask "did you re-run codegen?" instead of the diff being clean.
+- **Tags:** `#docs` `#dx` `#convex`
+
+### F-335 — Aborted restart leaves the button spinner stuck forever
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/restart-sandbox-button.tsx:214](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L214)
+- **Symptom:** User clicks Restart Sandbox once → cancels (unmounts mid-restart or grace-window expires) → button stays in `restarting=true` spinner state, `restartElapsedSec` keeps the last value, `restartGraceUntilRef.current` keeps the future timestamp. The button is permanently disabled (`disabled={... || restarting}`) until the component remounts.
+- **Root cause:** `if (abortController.signal.aborted) return;` exits early without calling `setRestarting(false)` / `setRestartElapsedSec(0)` / `restartGraceUntilRef.current = null`.
+- **Next step:** mirror the cleanup block from the success path before the `return`.
+- **Risk if ignored:** any abort path (route change during restart, sibling sandbox change, manual cancel) bricks the bottom-bar restart UI; user must reload the page.
+- **Tags:** `#bug` `#editor` `#bottom-bar`
+
+### F-313 ImgSelected toolbar variant is dead code — never dispatched
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/editor-bar/index.tsx:23-57](apps/web/client/src/app/project/[id]/_components/editor-bar/index.tsx#L23) + [editor-bar/img-selected.tsx](apps/web/client/src/app/project/[id]/_components/editor-bar/img-selected.tsx)
+- **Symptom:** Selecting an `<img>` element shows the generic `DivSelected` toolbar — the image-specific controls (`src`, `alt`, `fit`, `bg`) listed in catalog F-313 never render.
+- **Root cause:** `TAG_TYPES[IMG]: []` is empty and `editor-bar/index.tsx` never imports `ImgSelected`. The `// TODO: Add img and video tag support` comment acknowledges the gap. `getSelectedTag` falls through to `TAG_CATEGORIES.DIV` for `<img>`.
+- **Next step:** import `ImgSelected`, populate `TAG_TYPES[IMG] = ['img']`, branch `if (selectedTag === IMG) return <ImgSelected ... />` in `getTopBar()`. Update [docs/feature-catalog.md](docs/feature-catalog.md) row F-313 either to `#disabled` (with `TODO(img-toolbar)`) or to remove the deceptive "img quick-edit" claim until the dispatch lands.
+- **Risk if ignored:** catalog lies; QA can't tell whether F-313 is shipped. Test row T-310 ("Select different element types → Correct variant renders") will fail when an `<img>` is selected.
+- **Tags:** `#bug` `#editor` `#editor-bar` `#catalog-drift`
+
+### F-361 — `forkBranch` / `createBlankSandbox` swallow errors to console, no user feedback
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/branch/branch-controls.tsx:29-57](apps/web/client/src/app/project/[id]/_components/branch/branch-controls.tsx#L29)
+- **Symptom:** Per catalog, F-361 is `#disabled` on Vercel Sandbox (`TODO(sandbox-fork)`). T-361 expects "clear error per `TODO(sandbox-fork)`". Reality: `forkBranch` and `createBlankSandbox` both `catch (error) { console.error(...); }`. The user sees the dropdown close + the spinner reset; no toast, no inline error, nothing.
+- **Root cause:** Error handling is `console.error`-only. The `#disabled` contract isn't enforced at the UI surface.
+- **Next step:** replace each `console.error` with `toast.error(...)` falling back to a fixed string when the upstream Convex error has no `message`. Use the existing `'Branch fork is not available on Vercel Sandbox yet.'` copy from the `TODO(sandbox-fork)` note.
+- **Risk if ignored:** user thinks the button is dead; reports a "nothing happens" bug; T-361 keeps failing.
+- **Tags:** `#bug` `#editor` `#branch` `#disabled-contract`
+
+### F-333 — ErrorsConsole keys errors by `branchId + content` → duplicate keys
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/errors-console.tsx:205](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx#L205)
+- **Symptom:** Two identical error strings on the same branch (very common during HMR — `Module not found: 'foo'` repeated) → React warning "Each child in a list should have a unique key" + the second occurrence shares the first's reconciled state (CopyButton "Copied" tick bleeds across rows).
+- **Root cause:** `key={\`${error.branchId}-${error.content}\`}` is not unique under repeat errors.
+- **Next step:** add `error.id` to `ParsedError` upstream (uuid per parse) and key by that. As a quick fix: `key={\`${error.branchId}-${idx}-${hashOfContent}\`}` using `useId` or the index.
+- **Risk if ignored:** subtle UI state leaks between rows; React warning fatigue masks future real warnings.
+- **Tags:** `#bug` `#editor` `#bottom-bar`
+
+### F-333 — `CopyButton` setTimeout not cleared on unmount
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/errors-console.tsx:66-72](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx#L66)
+- **Symptom:** Close the errors popover within 1.5s of clicking Copy → React fires `setCopied(false)` on an unmounted component → "Can't perform a React state update on an unmounted component" warning + held closure.
+- **Next step:** store timeout id in a `useRef` and clear it in a cleanup effect; or migrate the copy-flash UX to a `useEffect` driven by `copied` state.
+- **Tags:** `#bug` `#editor` `#bottom-bar`
+
+### F-301 — `formatRelativeTime` returns `"NaNm ago"` on invalid date
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/right-panel/comments-tab/index.tsx:14-25](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L14)
+- **Symptom:** If `comment.createdAt` arrives as malformed string (Convex serialization edge case), `new Date(...).getTime()` is `NaN` → time label renders `"NaNm ago"`.
+- **Root cause:** no `Number.isNaN(d.getTime())` guard, no future-date guard either (negative `diff`).
+- **Next step:** `if (Number.isNaN(d.getTime())) return ''; if (diff < 0) return 'in the future';`. Better yet, swap to `Intl.RelativeTimeFormat`.
+- **Risk if ignored:** broken time label across the comment list whenever the upstream serialization changes.
+- **Tags:** `#bug` `#editor` `#comments`
+
+### F-360 — Invite-member toast leaks raw Convex error message
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/members/invite-member-input.tsx:35-37](apps/web/client/src/app/project/[id]/_components/members/invite-member-input.tsx#L35)
+- **Symptom:** When `api.projectInvitationActions.create` throws, the raw `error.message` is shown in the toast description. Convex errors can include stack frames, table names, and request IDs.
+- **Root cause:** `description: error instanceof Error ? error.message : String(error)` — verbatim pass-through.
+- **Next step:** map known error codes (`USER_ALREADY_INVITED`, `INVALID_EMAIL`, `NO_INVITE_CAP`, …) to user-readable strings; only show raw `message` in `NODE_ENV !== 'production'`.
+- **Risk if ignored:** internal API names + request IDs visible to end users on every error; unprofessional + small info leak.
+- **Tags:** `#bug` `#editor` `#members` `#error-handling`
+
+### F-360 — Invite-member email not normalized client-side (trim + lowercase)
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/members/invite-member-input.tsx:27-32](apps/web/client/src/app/project/[id]/_components/members/invite-member-input.tsx#L27)
+- **Symptom:** `"  Foo@Bar.COM  "` is sent verbatim → server-side dedupe may store it as a different invitation than `foo@bar.com` → pending-invites list shows both rows.
+- **Next step:** `inviteeEmail: email.trim().toLowerCase()` before the mutation call. Verify server canonicalizes too.
+- **Tags:** `#bug` `#editor` `#members`
+
+### F-402 — NonProjectSettingsModal missing `'use client'`, ARIA, focus trap
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/non-project.tsx:1, 104-167](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L1)
+- **Symptom (latent):** file uses `useEffect` / `addEventListener` / `observer` / `useStateManager` but doesn't start with `'use client'`. Today every caller is already a client component, so it works; the moment a server component tries to render `<NonProjectSettingsModal />` Next.js refuses. **Symptom (active):** modal has no `role="dialog"`, no `aria-modal`, no focus trap, no initial focus, no focus return — keyboard users tab into the page behind the modal, screen readers don't announce it as a dialog.
+- **Next step:** (a) prepend `'use client';`. (b) replace hand-rolled `motion.div` shell with `Dialog` from `@weblab/ui/dialog` (Radix gives focus trap + ARIA + ESC + overlay click for free). Keep slide animation via Radix `forceMount` + existing motion variants.
+- **Risk if ignored:** a11y bug (real users today) + latent build break (future regression).
+- **Tags:** `#bug` `#editor` `#modal` `#a11y` `#settings`
+
+### F-402 — Settings modal backdrop click closes mid-edit without confirmation
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/non-project.tsx:100](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L100)
+- **Symptom:** Backdrop click handler dismisses the modal unconditionally. A user typing in an AI/GitHub/Editor tab loses unsaved input on a stray click.
+- **Next step:** add `isDirty` state to `useStateManager` settings; gate close with a confirm dialog when any tab is dirty.
+- **Tags:** `#bug` `#editor` `#modal` `#ux`
+
+### F-318 — `useDropdownControl` effect omits `isOpen` from deps → stale closure race
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/editor-bar/hooks/use-dropdown-manager.tsx:137-143](apps/web/client/src/app/project/[id]/_components/editor-bar/hooks/use-dropdown-manager.tsx#L137)
+- **Symptom:** Two rapidly-opened dropdowns can leave one stuck open even though the manager thinks it's closed. The reproducer is racy and hard to catch in QA — most users will dismiss-and-retry rather than report.
+- **Root cause:** `useEffect` compares `shouldBeOpen !== isOpen` but only depends on `[openDropdownId, id, isOverflow]`. Stale closure when `isOpen` changes via `handleOpenChange` without one of those deps changing.
+- **Next step:** add `isOpen` to deps (acceptable — sync direction is openDropdownId → isOpen, not the reverse, so no loop) OR move `isOpen` into a ref read inside the effect.
+- **Risk if ignored:** sporadic "the picker won't close" reports the team won't be able to reproduce.
+- **Tags:** `#bug` `#editor` `#editor-bar` `#hook`
+
+### F-300 — `activeBranch.id` accessed without null guard (Interactions tab)
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [list-view.tsx:96 + 106](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96) + [timeline-editor.tsx:60](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60)
+- **Symptom:** `const branchId = editorEngine.branches.activeBranch.id;` — during branch switch `activeBranch` is transiently `null` → TypeError uncaught.
+- **Next step:** `const branchId = editorEngine.branches.activeBranch?.id; if (!branchId) return;` in all three sites.
+- **Tags:** `#bug` `#editor` `#interactions`
+
+### F-300 — Interactions tab couples to deprecated `style-tab-v2`
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [list-view.tsx:11](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L11) and [timeline-editor.tsx:23](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L23) import from `../style-tab-v2/sections/*`.
+- **Symptom:** Catalog row F-262 tags `style-tab-v2` as `#deprecated`. Whoever deletes it will silently break F-300.
+- **Next step:** lift `Section` and `ElementHeaderSection` into a shared `right-panel/_shared/` directory; update both imports.
+- **Tags:** `#tech-debt` `#editor` `#cross-feature-coupling`
+
+### F-300..F-402 — Pervasive raw `<button>` + hardcoded English
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** (representative) [comments-tab/index.tsx:63-84, 99-133](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L63), [errors-console.tsx:76-90](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx#L76), [restart-sandbox-button.tsx:254](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L254), [terminal-area.tsx:132, 160](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L132), [preview-theme-toggle.tsx:54](apps/web/client/src/app/project/[id]/_components/bottom-bar/preview-theme-toggle.tsx#L54), [timeline-editor.tsx:252](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L252)
+- **Symptom:** Raw `<button>` elements with bespoke Tailwind utility classes (color, radius, height overrides) where canonical `<Button>` from `@weblab/ui/button` is required. Also hardcoded English strings throughout (e.g. `'Open'`, `'Resolved'`, `'Toggle Terminal'`, `'Sandbox restarted successfully'`, `'Forking...'`, `'Remove?'`, `'Settings'`).
+- **Root cause:** CLAUDE.md button-enforcement + i18n rules not consistently applied during these features' build-out.
+- **Next step:** sweep in one PR per feature: replace each raw `<button>` with the appropriate `<Button>` variant (add new variants to `@weblab/ui/button` rather than per-call className overrides), and lift every English string into `apps/web/client/messages/*` under `editor.panels.edit.tabs.*` keys.
+- **Risk if ignored:** non-English locales render English; design-system audit will keep flagging the same files.
+- **Tags:** `#tech-debt` `#design-system` `#i18n` `#button-enforcement`
+
+### F-334 — Preview theme toggle `postMessage` uses wildcard targetOrigin
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/preview-theme-toggle.tsx:33](apps/web/client/src/app/project/[id]/_components/bottom-bar/preview-theme-toggle.tsx#L33)
+- **Code:** `frame.contentWindow?.postMessage({ type: THEME_MESSAGE_TYPE, theme }, '*');`
+- **Symptom:** Theme broadcast goes to every iframe regardless of origin. For sandboxed iframes that load arbitrary user code, `'*'` is the wrong default — anyone listening for `'weblab:preview-theme'` gets a free signal that they're embedded in Weblab.
+- **Next step:** track the expected sandbox origin per frame; pass it as the second arg. Same-origin sandbox iframes can use `'/'` (same-origin only).
+- **Tags:** `#bug` `#editor` `#security` `#defense-in-depth`
+
+### F-332 — Terminal theme update doesn't `refresh()` xterm buffer
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/terminal.tsx:91-96](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal.tsx#L91)
+- **Symptom:** Toggling app theme while a terminal has existing output keeps the old colors in the buffer; only new writes use the new theme.
+- **Next step:** after `xterm.options.theme = …`, call `terminalSession.xterm.refresh(0, terminalSession.xterm.rows - 1)`.
+- **Tags:** `#bug` `#editor` `#terminal`
+
+### F-360 — MemberRow avatar `alt={initials}` is meaningless to screen readers
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/members/member-row.tsx:68](apps/web/client/src/app/project/[id]/_components/members/member-row.tsx#L68)
+- **Symptom:** `<AvatarImage src={user.avatarUrl} alt={initials} />` — screen readers announce `"V B"` instead of the actual member name.
+- **Next step:** `alt={displayName}` OR `alt=""` (decorative, with name covered by sibling text).
+- **Tags:** `#bug` `#editor` `#a11y` `#members`
+
+### F-313 — Editor-bar `restart-sandbox-button.tsx` comment cites CodeSandbox
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/restart-sandbox-button.tsx:14-17](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L14)
+- **Symptom:** Comment says `"Real cold-boot times run 30–60s on CodeSandbox"`. CSB was archived 2026-05-24 (CLAUDE.md). Misleads future readers — Vercel Sandbox cold boots are typically 5–15s; the 60s ceiling is over-provisioned.
+- **Next step:** rewrite the comment for Vercel Sandbox; consider reducing the ceiling to 30s with a separate slow-path warning toast.
+- **Tags:** `#docs` `#brand-leak` `#editor`
+
+### F-134 — invalid Convex ID on settings/access shows generic boundary error (not invalid-id)
 
 - **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Severity:** LOW (downgraded 2026-05-28 after tracing — **not a hard crash / white-screen**).
 - **Where:** [apps/web/client/src/app/project/[id]/settings/access/page.tsx:35](apps/web/client/src/app/project/[id]/settings/access/page.tsx#L35)
-- **Symptom:** `const projectId = params.id as Id<'projects'>;` is an unchecked cast. When the route is hit with a non-Convex ID (e.g. `/project/abc/settings/access`), every `useQuery`/`useMutation` call below throws `ArgumentValidationError` and the whole component unmounts via the error boundary (`/project/[id]/error.tsx`). Same root pattern as F-131 — see that backlog entry.
-- **Next step:** before calling `useQuery(api.projects.get, ...)`, validate the id shape (Convex IDs are length-32 strings, but the safe check is "let the query 'skip' and treat a thrown validation error as `invalid-id`"). Render the same `ProjectLoadError variant="invalid-id"` used elsewhere. Coordinate with the F-131 fix so both share one helper.
-- **Risk if ignored:** any user landing on a typo'd / share-link / stale-bookmark URL hits the generic crash screen instead of "that project ID is malformed".
-- **Tags:** `#bug` `#auth-gated` `#convex`
+- **Symptom:** `const projectId = params.id as Id<'projects'>;` is an unchecked cast. A non-Convex id (e.g. `/project/abc/settings/access`) makes the client `useQuery` throw `ArgumentValidationError`. **This is caught by the parent `/project/[id]/error.tsx` boundary**, which renders "We couldn't open this project" + a "Back to projects" escape. So the user is not stranded — they just get a generic message rather than the dedicated "Invalid project ID" copy.
+- **Why not fixed this pass:** the natural fix (validate id shape before the hook) is risky — Convex exposes no client-side `Id` validator, and a hand-rolled regex (`length === 32`, charset) would risk rejecting **valid** ids if Convex's id format ever changes, which is strictly worse than the current graceful fallback. The server-component F-131 fix could be reused only if settings/access were converted to fetch server-side first.
+- **Next step (low priority):** when the F-131 `classifyProjectLoadError` helper is mature, give settings/access its own segment `error.tsx` that runs the same classifier on `error.message` and renders `ProjectLoadError variant="invalid-id"` for validator errors. Pure additive, no fragile up-front regex.
+- **Risk if ignored:** a typo'd settings deep-link shows "couldn't open this project" instead of "invalid link". Minor copy mismatch; user always has an escape button.
+- **Tags:** `#ux` `#auth-gated` `#convex` `#low`
 
 ### F-125 — `<iframe>` template preview missing `sandbox` attribute
 
@@ -56,14 +240,35 @@ later without re-discovering the context.
 - **Risk if ignored:** if `previewUrl` ever becomes user-controlled (e.g. user-submitted templates), this is a stored-XSS / clickjacking vector. Even with static data, an upstream demo host serving malicious JS can pivot through the frame.
 - **Tags:** `#security` `#defense-in-depth` `#auth-gated`
 
-### F-126 — Figma card lands on a non-functional wizard despite `#disabled` tag
+### F-120..F-135 import/create surface dead-ends at sandbox provisioning (Figma, Local, Templates, Prompt)
 
-- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
-- **Where:** [apps/web/client/src/app/projects/import/page.tsx:13-15](apps/web/client/src/app/projects/import/page.tsx#L13-L15)
-- **Symptom:** Import hub renders three equal cards (local / GitHub / Figma). The Figma card routes to `/projects/import/figma`, which renders the 3-step wizard. F-129 is tagged `#disabled` in [docs/feature-catalog.md](docs/feature-catalog.md) — users are expected to see "currently unavailable" copy (T-127), but they instead see a working-looking wizard that stubs out on the final step.
-- **Next step:** either (a) hide the Figma card behind the same flag that disables the backend, or (b) overlay a "Coming soon" badge + `disabled` state on the card so clicks no-op or show a toast. Pair with deletion of `import/figma/page.tsx` when the flow is permanently retired.
-- **Risk if ignored:** users complete OAuth + frame selection and then get an opaque error at finalize — wasted intent, support tickets.
-- **Tags:** `#bug` `#ux` `#auth-gated`
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135). **Corrected scope** from the
+  original "Figma card despite #disabled" framing — the dead-end is **not
+  Figma-specific**.
+- **Where:** every create/import path that needs a sandbox:
+  [import/figma/_context/index.tsx:89](apps/web/client/src/app/projects/import/figma/_context/index.tsx#L89) (`forkSandbox` throws),
+  [import/local/_context/index.tsx:146](apps/web/client/src/app/projects/import/local/_context/index.tsx#L146) (`forkSandbox` throws),
+  [components/store/create/manager.ts](apps/web/client/src/components/store/create/manager.ts) (`startCreate` / `startPublicGitHubTemplate` throw `UNAVAILABLE_MESSAGE`).
+- **Symptom:** the import hub shows three equal cards (local / GitHub / Figma). All of
+  them — plus prompt-create and template-create — walk the user through a real-looking
+  wizard and then throw at the **finalize / provisioning** step. Figma's PAT path is
+  genuinely intended to work (only the OAuth *callback* is `#disabled` per
+  [callback/figma/page.tsx](apps/web/client/src/app/callback/figma/page.tsx)); the
+  wizard stubs out at `forkSandbox`, identical to local import.
+- **Root cause:** this is the tracked `TODO(sandbox-port)` — the legacy `api.sandbox.*`
+  tRPC routes have no Convex equivalents yet — compounded by the **Vercel 402 blocker**
+  (see that backlog entry). Gating one card (Figma) would be inconsistent and mask the
+  real, broader gap.
+- **Next step:** do NOT band-aid individual cards. Land the sandbox-port (or the
+  snapshot-resume fast path via `VERCEL_BLANK_SNAPSHOT_ID`) so all paths provision, OR —
+  if create stays disabled for a release — gate **all** sandbox-dependent entry points
+  behind one flag and show a single consistent "create is temporarily unavailable" state
+  (the prompt hero already does this via `UNAVAILABLE_MESSAGE`). Track under the existing
+  sandbox-port / Vercel-402 entries.
+- **Risk if ignored:** users complete a multi-step wizard (local folder pick / Figma frame
+  select / template choose) and get an opaque error at the last step — wasted intent across
+  every create surface, not just Figma.
+- **Tags:** `#bug` `#ux` `#auth-gated` `#sandbox` `#tracked`
 
 ### F-134 — no client-side email validation before invite send
 
@@ -110,23 +315,13 @@ later without re-discovering the context.
 - **Risk if ignored:** ~50KB posthog-js shipped on every landing/login/marketing surface for visitors who never consent. Privacy and performance regression.
 - **Tags:** `#tech-debt` `#perf` `#privacy` `#telemetry`
 
-### F-453 — Cookie consent read only at mount; no runtime re-init
+### ~~F-453 — Cookie consent read only at mount; no runtime re-init~~ FALSE ALARM (resolved 2026-05-28)
 
-- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
-- **Where:** [apps/web/client/src/components/telemetry-provider.tsx:53-101](apps/web/client/src/components/telemetry-provider.tsx#L53-L101)
-- **Symptom:** `hasCookieConsent()` is invoked once inside `useEffect([])`. If the user clicks "Accept" on the cookie-consent banner AFTER the provider mounts (the common path), telemetry never initializes until the next full page reload. PostHog identify / Gleap feedback widget unavailable mid-session.
-- **Next step:** in the cookie-consent banner, dispatch `window.dispatchEvent(new Event('weblab:consent-accepted'))` on accept. In telemetry-provider, add a listener that bumps a `consentVersion` state — include it in the init effect's deps so the gated branch can re-run.
-- **Risk if ignored:** users who accept consent mid-session never get identified — analytics undercounts active signed-in users; feedback widget never opens.
-- **Tags:** `#bug` `#telemetry` `#ux`
+- **Resolved:** `apps/web/client/src/app/_components/cookie-consent.tsx:52-56` calls `window.location.reload()` inside `onAccept`. The next mount runs the init effect with the consent cookie present, so SDKs DO initialize on accept. No code change needed.
 
-### F-451 — Pricing table CTA flickers for signed-in users while query loads
+### ~~F-451 — Pricing table CTA flickers for signed-in users while query loads~~ FIXED (2026-05-28)
 
-- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
-- **Where:** [apps/web/client/src/components/ui/pricing-table/index.tsx:26-33](apps/web/client/src/components/ui/pricing-table/index.tsx#L26-L33)
-- **Symptom:** `isUnauthenticated={!user}` treats `user === undefined` (Convex query loading) as anonymous. Signed-in visitor lands on `/pricing` and briefly sees "Get Started Free" / "Get started" — buttons that, when clicked in that window, open the auth modal instead of starting checkout. Resolves to "Current plan" once query lands.
-- **Next step:** distinguish loading from anonymous — `const isLoading = hasAuthCookie === true && user === undefined; const isUnauthenticated = hasAuthCookie === false;` Pass an explicit `isLoading` prop to FreeCard / ProCard or render a Skeleton wrapper during load.
-- **Risk if ignored:** signed-in user clicks a CTA in the flicker window → unexpected auth modal → confusion.
-- **Tags:** `#bug` `#ui` `#billing`
+- **Resolved:** `pricing-table/index.tsx` now distinguishes `authResolving` (null cookie OR loading user) from `isUnauthenticated`. Passes `isAuthLoading` prop to FreeCard + ProCard. CTAs render a disabled loading spinner while auth is resolving so the signed-in visitor cannot accidentally trigger the auth modal during the flicker window.
 
 ### F-452 — Avatar dropdown Convex queries fire unconditionally
 
@@ -137,14 +332,9 @@ later without re-discovering the context.
 - **Risk if ignored:** defensive layer missing; first leak surfaces as a console flood when someone embeds the avatar somewhere new.
 - **Tags:** `#tech-debt` `#auth-gated`
 
-### F-450 — Legacy promotion clipboard handler shows false success
+### ~~F-450 — Legacy promotion clipboard handler shows false success~~ FIXED (2026-05-28)
 
-- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
-- **Where:** [apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx:42-47](apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx#L42-L47)
-- **Symptom:** `void navigator.clipboard.writeText(code)` is fire-and-forget. `toast.success('Copied to clipboard')` fires synchronously regardless of the clipboard promise. Permission-denied / unavailable clipboard API delivers a "Copied" toast while nothing was actually copied.
-- **Next step:** convert the handler to `async`, `await` the write inside try/catch, toast.error on rejection. Same pattern as the F-205 `top-bar/publish/dropdown/url.tsx` fix in CODE_REVIEW_BACKLOG.md.
-- **Risk if ignored:** user clicks "Copy", believes the promo code was copied, paste fails. Real revenue path — promo code unlocks 1 month free Pro.
-- **Tags:** `#bug` `#billing` `#ux`
+- **Resolved:** Handler is now async with try/catch on `navigator.clipboard.writeText`. On reject, falls back to a programmatic `document.execCommand('copy')` via a hidden textarea. Toast reflects real outcome — `toast.success('Copied to clipboard')` only on confirmed write, `toast.error('Could not copy code')` with a "select and copy manually" hint if both paths fail. Promo code revenue path no longer at risk.
 
 ### F-450 — `legacy-promotion.tsx` imports from `framer-motion` while siblings use `motion/react`
 
@@ -279,14 +469,15 @@ later without re-discovering the context.
 - **Risk if ignored:** stale promo banners silently extend; low blast radius today.
 - **Tags:** `#bug` `#billing` `#defensive`
 
-### F-471 / F-474 — `code` field on 501 response is a string; client only handles numeric codes
+### F-471 / F-474 — `code` field on 501 response is a string while the rest of the API uses numbers
 
 - **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Re-checked:** 2026-05-28 (user-stopping-bug fix pass) — **not user-stopping after all.**
 - **Where:** [apps/web/client/src/app/api/chat/route.ts:306](apps/web/client/src/app/api/chat/route.ts#L306), [apps/web/client/src/app/api/ai/inline-edit/route.ts:182](apps/web/client/src/app/api/ai/inline-edit/route.ts#L182), [apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/error-message.tsx:27](apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/error-message.tsx#L27)
-- **Symptom:** `/api/chat` and `/api/ai/inline-edit` return `code: 'cli_provider_routing_not_implemented'` (string) with HTTP 501 when a CLI-only provider is selected on hosted web. Everywhere else `code` is a number (`401`, `402`, `400`). The client error-message component only branches on `parsed.code === 402`; the string code falls through to a generic "unexpected error" message.
-- **Next step:** standardize on a number (e.g. `501`) and surface the underlying intent via the `error` text, OR rename the field (`code` → number, `errorCode` → string identifier) and have the client handle both shapes.
-- **Risk if ignored:** users who pick a CLI provider on hosted web get a generic error instead of "use the desktop app" guidance.
-- **Tags:** `#bug` `#ux`
+- **Reality:** the client `error-message.tsx` falls through any non-402 case to `errorMessage = parsed.error || chatError.toString();`, so the helpful "Provider X routing is not yet implemented on hosted web. Use the desktop app for CLI providers." text DOES render correctly. The mismatch is API consistency hygiene, not a broken user flow.
+- **Next step (low priority):** still worth standardizing the field shape (`code: number`, optional `errorCode: string`) so the client can branch deliberately rather than rely on fall-through.
+- **Risk if ignored:** none today; brittle if the client component grows additional branches.
+- **Tags:** `#tech-debt` `#api-consistency`
 
 ### F-471 — Non-EDIT chat types skip the atomic usage increment
 
@@ -308,14 +499,15 @@ later without re-discovering the context.
 - **Risk if ignored:** quota bypass under load — small but consistent revenue leak.
 - **Tags:** `#bug` `#billing` `#concurrency`
 
-### F-472 — Background summarizer charges credit every time client fires
+### ~~F-472 — Background summarizer charges credit every time client fires~~ FIXED (2026-05-28)
 
 - **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
-- **Where:** [apps/web/client/src/app/api/chat/summarize/route.ts:146-156](apps/web/client/src/app/api/chat/summarize/route.ts#L146)
-- **Symptom:** `useConversationSummarizer` fires this route during typing / mid-stream. No server-side debounce — a buggy or malicious client can drain its own quota plus burn LLM spend.
-- **Next step:** server-side rate-limit per `conversationId` (e.g. one summary per N user messages since last summary), OR remove metering for summarization and cap absolute spend via Convex.
-- **Risk if ignored:** quota & cost amplification proportional to client misbehavior; one client bug page = N× OpenRouter bill.
-- **Tags:** `#bug` `#billing`
+- **Resolved:** 2026-05-28 (user-stopping-bug fix pass)
+- **Where:** [apps/web/client/src/app/api/chat/summarize/route.ts](apps/web/client/src/app/api/chat/summarize/route.ts)
+- **Fix:** Added two cheap server-side gates in front of the LLM call:
+  1. Same-tip skip — read `conversations.getSummary` and 204 immediately if `upToMessageId` already matches the last incoming message id.
+  2. Per-process cooldown — `Map<conversationId, number>` with 60s minimum interval; redundant fires within the window 204 without charging the user.
+- **Caveat:** the cooldown is in-process; multi-replica deployments could still fire once per replica per cooldown window. That is acceptable today and far below the unbounded burst the buggy/malicious client could previously generate.
 
 ### F-475 — Tab-complete metering is fire-and-forget AFTER generation
 
@@ -335,14 +527,12 @@ later without re-discovering the context.
 - **Risk if ignored:** unbounded Whisper / OpenRouter spend under abuse; documented in code as "not a replacement for distributed rate limiting" but ops cap is the only safety net today.
 - **Tags:** `#bug` `#billing` `#infra`
 
-### F-471 — Chat path: `aiUsageEvents.insert` + `replaceConversationMessages` awaited inside `onFinish` with no timeout
+### ~~F-471 — Chat path: `aiUsageEvents.insert` + `replaceConversationMessages` awaited inside `onFinish` with no timeout~~ FIXED (2026-05-28)
 
 - **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
-- **Where:** [apps/web/client/src/app/api/chat/route.ts:434-458](apps/web/client/src/app/api/chat/route.ts#L434), 512-519
-- **Symptom:** If Convex stalls, the chat response close hangs because the SDK awaits these from `onFinish`.
-- **Next step:** wrap each in `Promise.race` with a 5–10s timeout; on timeout, log + best-effort fire-and-forget. The user-visible stream is already complete.
-- **Risk if ignored:** sporadic stuck connections; visible as "AI never finishes" in UI.
-- **Tags:** `#bug` `#reliability`
+- **Resolved:** 2026-05-28 (user-stopping-bug fix pass)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts](apps/web/client/src/app/api/chat/route.ts)
+- **Fix:** Added `runWithTimeout()` helper (8s) wrapping both `fetchMutation(api.messages.replaceConversationMessages, …)` and `built.finalizeUsage(…)` inside `onFinish`. On timeout the helper resolves `undefined` and logs `[chat] <label> exceeded …ms; closing stream and continuing best-effort` so the response can close even when Convex stalls. Persistence becomes best-effort under degraded backend conditions, which is the right tradeoff: users no longer see a finished bubble that "never completes."
 
 ### F-471 — Chat: client-supplied `messages` array has no schema on shape
 
@@ -589,31 +779,18 @@ later without re-discovering the context.
   features to a stub thinking it works; bloats `AppRouter` type.
 - **Tags:** `#tech-debt` `#sandbox`
 
-### F-131 — invalid project ID maps to "unknown" variant instead of "invalid-id"
+### ~~F-131 — invalid project ID maps to "unknown" variant instead of "invalid-id"~~ FIXED (2026-05-28)
 
-- **Discovered:** 2026-05-26 (validate-feature F-120..F-135 run)
-- **Where:** [apps/web/client/src/app/project/[id]/page.tsx:113-148](apps/web/client/src/app/project/[id]/page.tsx#L113-L148)
-- **Symptom:** signed-in user visits `/project/abc` (any string that is not a
-  valid Convex `Id<"projects">`); server logs
-  `ArgumentValidationError: Value does not match validator. Path: .projectId`
-  and the page renders `OfflineEditorBootstrap` with
-  `fallbackVariant="unknown"`. T-128 in [docs/test-plan.md](docs/test-plan.md)
-  expects a **variant-specific** error (`not-found`, `unauthorized`, or
-  `invalid`).
-- **Root cause:** catch block at lines 132-140 maps via substring match on
-  `forbidden|unauth|session|not found|not_found`. The Convex
-  `ArgumentValidationError` message matches none of those. The dedicated
-  `invalid-id` branch at line 75 only fires for the literal string
-  `projectId === 'undefined'`.
-- **Next step:** add a branch matching
-  `/does not match validator|argumentvalidationerror|invalid id/i` →
-  `'invalid'`. Confirm `ProjectLoadError`'s variant set includes `'invalid'`
-  (currently has `'unauthorized' | 'forbidden' | 'not-found' | 'unknown' |
-  'invalid-id'` — pick the right name and keep it consistent).
-- **Risk if ignored:** users hitting a malformed deep-link see a generic
-  "something went wrong" instead of "that project ID is malformed", masking
-  bad-link bugs in upstream callers.
-- **Tags:** `#bug` `#auth-gated` `#editor`
+- **Resolution:** Extracted the catch-block classification into a pure
+  `classifyProjectLoadError(message)` helper
+  ([apps/web/client/src/app/project/[id]/_adapters/classify-load-error.ts](apps/web/client/src/app/project/[id]/_adapters/classify-load-error.ts))
+  that checks `does not match validator` / `argumentvalidationerror` **first**,
+  returning the existing `invalid-id` variant. `page.tsx` now short-circuits
+  to `<ProjectLoadError variant="invalid-id" />` for malformed ids and skips
+  the pointless offline-cache lookup. Verified by
+  `classify-load-error.test.ts` (12 cases incl. invalid-id precedence over a
+  co-occurring "not found" substring). Was: malformed id → `unknown` variant
+  leaked the raw validator string in a `<pre>`.
 
 ### F-122 — unauth bounce sends user to `/w/new` instead of `/sign-in`
 
@@ -705,4 +882,16 @@ later without re-discovering the context.
 
 ## Resolved
 
-_None yet — move closed entries here with the resolution date and PR/commit._
+### 2026-05-28 — User-stopping fixes from F-300..F-402 bug-hunt
+
+Fixed in this session (code-level verified: `bun typecheck` exit 0, scoped lint 0 errors). Frontend re-validation still blocked by the Vercel hobby-plan 402 (project create), so these are logic-traced + type-checked, not yet clicked through the editor.
+
+- **F-335** restart button stuck after abort — [restart-sandbox-button.tsx:214](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L214). Added `setRestarting(false)` + `setRestartElapsedSec(0)` + `restartGraceUntilRef.current = null` before the abort `return`.
+- **F-300** `activeBranch.id` null crash (3 sites) — [list-view.tsx:96+106](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96), [timeline-editor.tsx:60](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60). Switched to `activeBranch?.id` + early-return / persist guard.
+- **F-318** dropdown stale-closure (picker stuck open) — [use-dropdown-manager.tsx:143](apps/web/client/src/app/project/[id]/_components/editor-bar/hooks/use-dropdown-manager.tsx#L143). Added `isOpen` to effect deps (no loop — setState only fires when they disagree).
+- **F-313** ImgSelected unreachable — [editor-bar/index.tsx](apps/web/client/src/app/project/[id]/_components/editor-bar/index.tsx) (imported + `TAG_TYPES[IMG]=['img']` + dispatch branch) and [img-selected.tsx](apps/web/client/src/app/project/[id]/_components/editor-bar/img-selected.tsx) (wired functional `ImgFit` / object-fit control; deliberately omitted the no-op `ImageBackground` stub). `<img>` now gets a real image-specific toolbar.
+- **F-361** fork / createBlankSandbox silent fail — [branch-controls.tsx:37+52](apps/web/client/src/app/project/[id]/_components/branch/branch-controls.tsx#L37). Added `toast.error(...)` in both catch blocks (honors the `#disabled` "clear error" contract).
+- **F-402** missing `'use client'` (latent build break) — [non-project.tsx:1](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L1).
+- **F-301** `formatRelativeTime` → `"NaNm ago"` — [comments-tab/index.tsx:16](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L16). Added `Number.isNaN` + negative-diff guards.
+
+**Still Open (intentionally deferred — cosmetic or broad, NOT user-stopping):** F-402 backdrop-close dirty-check + ARIA/focus-trap (broad — needs Radix Dialog swap + state-manager `isDirty`); F-333 duplicate keys / CopyButton timeout; F-360 error-leak / email-normalize; F-334 wildcard postMessage; F-332 xterm refresh; pervasive raw-`<button>` + i18n sweep; ImageBackground dead stub; F-313 catalog row should note object-fit-only scope.

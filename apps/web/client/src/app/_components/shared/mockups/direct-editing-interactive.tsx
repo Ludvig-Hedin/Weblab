@@ -62,14 +62,16 @@ function DraggableElement({
         e.preventDefault();
         if (!elementRef.current) return;
         const rect = elementRef.current.getBoundingClientRect();
+        const canvasEl = elementRef.current.closest('.canvas-container') as HTMLElement | null;
+        const canvasRect = canvasEl?.getBoundingClientRect();
         setIsResizing(true);
         setResizeOrigin({
             mouseX: e.clientX,
             mouseY: e.clientY,
             width: rect.width,
             height: rect.height,
-            left: rect.left,
-            top: rect.top,
+            left: rect.left - (canvasRect?.left ?? 0),
+            top: rect.top - (canvasRect?.top ?? 0),
             corner,
         });
         document.body.style.cursor =
@@ -81,15 +83,36 @@ function DraggableElement({
         const handleMouseMove = (e: MouseEvent) => {
             const dx = e.clientX - resizeOrigin.mouseX;
             const dy = e.clientY - resizeOrigin.mouseY;
-            let scaleDelta;
-            if (resizeOrigin.corner === 'top-left' || resizeOrigin.corner === 'bottom-right') {
-                scaleDelta = Math.max(dx, dy);
-            } else {
-                scaleDelta = Math.max(-dx, dy);
-            }
-            const newWidth = Math.max(24, resizeOrigin.width + scaleDelta);
+            // Sign per corner: which direction grows width/height for that handle.
+            const widthSign =
+                resizeOrigin.corner === 'top-right' || resizeOrigin.corner === 'bottom-right'
+                    ? 1
+                    : -1;
+            const heightSign =
+                resizeOrigin.corner === 'bottom-left' || resizeOrigin.corner === 'bottom-right'
+                    ? 1
+                    : -1;
+            // Proportional resize — pick the axis the user is dragging most along.
+            const propX = (widthSign * dx) / resizeOrigin.width;
+            const propY = (heightSign * dy) / resizeOrigin.height;
+            const scale = Math.max(propX, propY);
+            const newWidth = Math.max(24, resizeOrigin.width * (1 + scale));
             const newHeight = Math.max(24, newWidth / aspectRatioRef.current);
             setSize({ width: newWidth, height: newHeight });
+
+            // Anchor the opposite corner — when resizing from top/left, the
+            // element grows up/left, so shift its inline position to keep
+            // the opposite corner pinned in place.
+            if (elementRef.current) {
+                const dw = newWidth - resizeOrigin.width;
+                const dh = newHeight - resizeOrigin.height;
+                const newLeft = widthSign === -1 ? resizeOrigin.left - dw : resizeOrigin.left;
+                const newTop = heightSign === -1 ? resizeOrigin.top - dh : resizeOrigin.top;
+                elementRef.current.style.left = `${newLeft}px`;
+                elementRef.current.style.top = `${newTop}px`;
+                elementRef.current.style.right = 'auto';
+                elementRef.current.style.transform = 'none';
+            }
         };
         const handleMouseUp = () => {
             setIsResizing(false);

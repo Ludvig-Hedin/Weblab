@@ -17,27 +17,29 @@ import { vujahdayScript } from '../../../fonts';
 
 export type DesignMockupStep = 'pricing' | 'hero' | 'restyle' | null;
 
+export type DesignMockupOverrides = {
+    heroTitle?: string;
+    starterPrice?: number;
+    proAccent?: string;
+};
+
 interface DesignMockupProps {
     step?: DesignMockupStep;
     accent?: string;
+    overrides?: DesignMockupOverrides;
+    theme?: 'light' | 'dark';
 }
 
-const NAV_LINKS = ['Product', 'Pricing', 'Docs', 'Blog'];
+const NAV_LINKS = ['Product', 'Pricing', 'Docs'];
 
-const LOGO_WORDS = ['DOOMCO', 'HENCH/AI', 'LAIR&CO', 'VILE/CO', 'BANE'];
-
-const STATS = [
-    { value: '12k+', label: 'masterminds plotting' },
-    { value: '99.9%', label: 'lair uptime' },
-    { value: '2 min', label: 'to first deploy' },
-];
+const LOGO_WORDS = ['DOOMCO', 'HENCH/AI', 'LAIR&CO', 'VILE/CO'];
 
 const TIERS = [
     {
         name: 'Starter',
         price: 0,
         sub: 'For solo villains.',
-        feats: ['1 lair', 'Community plotting', 'Basic schemes', '500 deploys/mo'],
+        feats: ['1 lair', 'Community plotting', 'Basic schemes'],
     },
     {
         name: 'Pro',
@@ -47,7 +49,6 @@ const TIERS = [
             'Unlimited lairs',
             'Priority hench-support',
             'Advanced AI plotting',
-            'Custom domains',
             'Audit log',
         ],
         featured: true,
@@ -56,43 +57,77 @@ const TIERS = [
         name: 'Enterprise',
         price: 49,
         sub: 'For evil empires.',
-        feats: ['Org seats', 'SLA & SSO', 'Dedicated CSM', 'Private cloud'],
+        feats: ['Org seats', 'SLA & SSO', 'Private cloud'],
     },
 ];
 
-export function DesignMockup({ step = null, accent }: DesignMockupProps = {}) {
+export function DesignMockup({
+    step = null,
+    accent,
+    overrides,
+    theme = 'light',
+}: DesignMockupProps = {}) {
     const heroLarge = step === 'hero';
     const pricingPulse = step === 'pricing';
     const cardsAccent = step === 'restyle';
     const accentBorder = accent ?? 'border-teal-400';
+    const heroTitle = overrides?.heroTitle ?? 'The lair builder';
+    const starterPrice = overrides?.starterPrice ?? 0;
+    const proAccentOverride = overrides?.proAccent;
+    const isDark = theme === 'dark';
 
     return (
-        <div className="flex h-140 w-140 flex-col overflow-hidden rounded-sm bg-[#FCFCFA] text-neutral-900">
+        <div
+            className={cn(
+                'flex h-140 w-140 flex-col overflow-hidden rounded-sm transition-colors duration-300',
+                isDark ? 'bg-neutral-950 text-neutral-100' : 'bg-[#FCFCFA] text-neutral-900',
+            )}
+        >
             {/* Nav */}
-            <div className="flex h-9 shrink-0 items-center justify-between border-b border-neutral-200/80 bg-white/80 px-4 backdrop-blur-md">
+            <div
+                className={cn(
+                    'flex h-8 shrink-0 items-center justify-between border-b px-4 backdrop-blur-md',
+                    isDark
+                        ? 'border-neutral-800 bg-neutral-900/80'
+                        : 'border-neutral-200/80 bg-white/80',
+                )}
+            >
                 <div className="flex items-center gap-1.5">
-                    <div className="flex h-4 w-4 items-center justify-center rounded-sm bg-neutral-900">
+                    <div
+                        className={cn(
+                            'flex h-3.5 w-3.5 items-center justify-center rounded-sm',
+                            isDark ? 'bg-neutral-100' : 'bg-neutral-900',
+                        )}
+                    >
                         <span
                             className={cn(
-                                'text-[10px] leading-none text-white',
+                                'text-[9px] leading-none',
+                                isDark ? 'text-neutral-900' : 'text-white',
                                 vujahdayScript.className,
                             )}
                         >
                             V
                         </span>
                     </div>
-                    <span className="text-[10px] font-semibold tracking-tight">Villainterest</span>
-                    <span className="ml-1 rounded-sm bg-neutral-100 px-1 py-px text-[7px] font-medium tracking-wide text-neutral-500 uppercase">
-                        Beta
-                    </span>
+                    <span className="text-[9px] font-semibold tracking-tight">Villainterest</span>
                 </div>
-                <div className="flex items-center gap-4 text-[9px] text-neutral-500">
+                <div
+                    className={cn(
+                        'flex items-center gap-4 text-[8.5px]',
+                        isDark ? 'text-neutral-400' : 'text-neutral-500',
+                    )}
+                >
                     {NAV_LINKS.map((l) => (
                         <span
                             key={l}
                             className={cn(
-                                'cursor-pointer hover:text-neutral-900',
-                                l === 'Pricing' && pricingPulse && 'font-medium text-neutral-900',
+                                'cursor-pointer',
+                                isDark ? 'hover:text-neutral-100' : 'hover:text-neutral-900',
+                                l === 'Pricing' &&
+                                    pricingPulse &&
+                                    (isDark
+                                        ? 'font-medium text-neutral-100'
+                                        : 'font-medium text-neutral-900'),
                             )}
                         >
                             {l}
@@ -100,11 +135,25 @@ export function DesignMockup({ step = null, accent }: DesignMockupProps = {}) {
                     ))}
                 </div>
                 <div className="flex items-center gap-1">
-                    <button className="rounded px-1.5 py-0.5 text-[9px] text-neutral-600 hover:bg-neutral-100">
+                    <button
+                        className={cn(
+                            'rounded px-1.5 py-0.5 text-[8.5px]',
+                            isDark
+                                ? 'text-neutral-300 hover:bg-neutral-800'
+                                : 'text-neutral-600 hover:bg-neutral-100',
+                        )}
+                    >
                         Sign in
                     </button>
-                    <button className="rounded-md bg-neutral-900 px-2 py-1 text-[9px] font-medium text-white shadow-sm hover:bg-neutral-700">
-                        Get started →
+                    <button
+                        className={cn(
+                            'rounded-md px-1.5 py-0.5 text-[8.5px] font-medium',
+                            isDark
+                                ? 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200'
+                                : 'bg-neutral-900 text-white hover:bg-neutral-700',
+                        )}
+                    >
+                        Get started
                     </button>
                 </div>
             </div>
@@ -112,59 +161,98 @@ export function DesignMockup({ step = null, accent }: DesignMockupProps = {}) {
             {/* Hero */}
             <div
                 className={cn(
-                    'relative flex flex-col items-center overflow-hidden bg-gradient-to-b from-neutral-50 via-white to-white px-6 pt-7 pb-6 transition-all duration-500',
-                    heroLarge && 'pt-9 pb-8',
+                    'relative flex flex-col items-center overflow-hidden px-6 pt-6 pb-5 transition-all duration-500',
+                    isDark
+                        ? 'bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-950'
+                        : 'bg-gradient-to-b from-neutral-50 via-white to-white',
+                    heroLarge && 'pt-8 pb-7',
                 )}
             >
-                {/* Subtle dot grid — adds texture without screaming */}
                 <div
-                    className="pointer-events-none absolute inset-0 opacity-[0.04]"
+                    className="pointer-events-none absolute inset-0"
                     style={{
-                        backgroundImage: 'radial-gradient(circle, #000 0.8px, transparent 0.8px)',
+                        backgroundImage: `radial-gradient(circle, ${isDark ? '#fff' : '#000'} 0.8px, transparent 0.8px)`,
                         backgroundSize: '14px 14px',
+                        opacity: isDark ? 0.06 : 0.04,
                     }}
                 />
                 <h1
                     className={cn(
-                        'relative mb-2.5 text-center font-semibold tracking-[-0.028em] text-neutral-900 transition-all duration-500',
-                        heroLarge ? 'text-[38px] leading-[0.92]' : 'text-[28px] leading-[1.02]',
+                        'relative mb-2 text-center font-semibold tracking-[-0.028em] transition-all duration-500',
+                        isDark ? 'text-neutral-100' : 'text-neutral-900',
+                        heroLarge ? 'text-[34px] leading-[0.95]' : 'text-[26px] leading-[1.04]',
                     )}
                 >
-                    The lair builder
+                    {heroTitle}
                     <br />
                     <span
                         className={cn(
-                            'font-normal text-neutral-700 italic',
+                            'font-normal italic',
+                            isDark ? 'text-neutral-300' : 'text-neutral-700',
                             vujahdayScript.className,
                         )}
                     >
                         for masterminds
                     </span>
                 </h1>
-                <p className="relative mb-3.5 max-w-[300px] text-center text-[10px] leading-[1.5] text-neutral-500">
-                    Plot, build, and deploy evil schemes with AI. Built for the villains who
-                    actually ship — not the ones still drafting their monologue.
+                <p
+                    className={cn(
+                        'relative mb-3 max-w-[280px] text-center text-[9.5px] leading-[1.45]',
+                        isDark ? 'text-neutral-400' : 'text-neutral-500',
+                    )}
+                >
+                    Plot, build, and deploy evil schemes with AI. For the villains who ship —
+                    not the ones still drafting their monologue.
                 </p>
                 <div className="relative flex items-center gap-1.5">
-                    <button className="rounded-full bg-neutral-900 px-3 py-1.5 text-[10px] font-medium text-white shadow-md hover:bg-neutral-700">
+                    <button
+                        className={cn(
+                            'rounded-full px-2.5 py-1 text-[9px] font-medium shadow-sm',
+                            isDark
+                                ? 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200'
+                                : 'bg-neutral-900 text-white hover:bg-neutral-700',
+                        )}
+                    >
                         Start scheming
                     </button>
-                    <button className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-[10px] text-neutral-700 hover:bg-neutral-50">
-                        Watch demo →
+                    <button
+                        className={cn(
+                            'rounded-full border px-2.5 py-1 text-[9px]',
+                            isDark
+                                ? 'border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800'
+                                : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
+                        )}
+                    >
+                        Watch demo
                     </button>
                 </div>
             </div>
 
-            {/* Logo strip — proof-by-association without the slop */}
-            <div className="flex shrink-0 items-center gap-4 border-y border-neutral-100 bg-white px-6 py-2">
-                <span className="font-mono text-[7px] tracking-widest whitespace-nowrap text-neutral-400 uppercase">
+            {/* Logo strip */}
+            <div
+                className={cn(
+                    'flex shrink-0 items-center gap-3 border-y px-6 py-1.5',
+                    isDark
+                        ? 'border-neutral-800 bg-neutral-900/60'
+                        : 'border-neutral-100 bg-white',
+                )}
+            >
+                <span
+                    className={cn(
+                        'font-mono text-[6.5px] tracking-widest whitespace-nowrap uppercase',
+                        isDark ? 'text-neutral-500' : 'text-neutral-400',
+                    )}
+                >
                     Trusted by
                 </span>
                 <div className="flex flex-1 items-center justify-between opacity-60">
                     {LOGO_WORDS.map((n) => (
                         <span
                             key={n}
-                            className="font-serif text-[10px] font-semibold tracking-tight text-neutral-700"
+                            className={cn(
+                                'font-serif text-[9px] font-semibold tracking-tight',
+                                isDark ? 'text-neutral-300' : 'text-neutral-700',
+                            )}
                         >
                             {n}
                         </span>
@@ -172,127 +260,205 @@ export function DesignMockup({ step = null, accent }: DesignMockupProps = {}) {
                 </div>
             </div>
 
-            {/* Stats band */}
-            <div className="grid shrink-0 grid-cols-3 divide-x divide-neutral-100 border-b border-neutral-100 bg-white">
-                {STATS.map((s) => (
-                    <div key={s.label} className="flex flex-col items-center justify-center py-3">
-                        <span className="text-[16px] font-semibold tracking-tight text-neutral-900">
-                            {s.value}
-                        </span>
-                        <span className="text-[7px] tracking-wide text-neutral-500 uppercase">
-                            {s.label}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
             {/* Pricing */}
             <div
                 className={cn(
-                    'relative flex-1 border-t border-neutral-100 bg-neutral-50 px-6 py-4 transition-all',
-                    pricingPulse && 'bg-amber-50/70',
+                    'relative flex-1 border-t px-5 py-4 transition-all',
+                    isDark
+                        ? 'border-neutral-800 bg-neutral-900'
+                        : 'border-neutral-100 bg-neutral-50',
+                    pricingPulse && (isDark ? 'bg-amber-900/20' : 'bg-amber-50/70'),
                 )}
             >
-                <div className="mb-2.5 flex items-baseline justify-between">
+                <div className="mb-3 flex items-baseline justify-between">
                     <div className="flex items-baseline gap-2">
-                        <h2 className="text-[13px] font-semibold tracking-tight text-neutral-900">
+                        <h2
+                            className={cn(
+                                'text-[12px] font-semibold tracking-tight',
+                                isDark ? 'text-neutral-100' : 'text-neutral-900',
+                            )}
+                        >
                             Simple pricing
                         </h2>
-                        <span className="text-[8px] text-neutral-500">
-                            Pick a plan — change anytime.
+                        <span
+                            className={cn(
+                                'text-[7.5px]',
+                                isDark ? 'text-neutral-400' : 'text-neutral-500',
+                            )}
+                        >
+                            Change anytime.
                         </span>
                     </div>
-                    <div className="flex items-center gap-0.5 rounded-full border border-neutral-200 bg-white p-0.5 text-[7px]">
-                        <span className="rounded-full bg-neutral-900 px-1.5 py-0.5 font-medium text-white">
+                    <div
+                        className={cn(
+                            'flex items-center gap-0.5 rounded-full border p-0.5 text-[7px]',
+                            isDark
+                                ? 'border-neutral-700 bg-neutral-800'
+                                : 'border-neutral-200 bg-white',
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                'rounded-full px-1.5 py-0.5 font-medium',
+                                isDark
+                                    ? 'bg-neutral-100 text-neutral-900'
+                                    : 'bg-neutral-900 text-white',
+                            )}
+                        >
                             Monthly
                         </span>
-                        <span className="px-1.5 py-0.5 text-neutral-500">Yearly</span>
+                        <span
+                            className={cn(
+                                'px-1.5 py-0.5',
+                                isDark ? 'text-neutral-400' : 'text-neutral-500',
+                            )}
+                        >
+                            Yearly
+                        </span>
                     </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                    {TIERS.map((t) => (
-                        <div
-                            key={t.name}
-                            className={cn(
-                                'relative flex flex-col rounded-lg border p-2.5 transition-all',
-                                t.featured
-                                    ? 'border-neutral-900 bg-neutral-900 text-white shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)]'
-                                    : cardsAccent
-                                      ? cn('bg-white', accentBorder)
-                                      : 'border-neutral-200 bg-white',
-                            )}
-                        >
-                            {t.featured && (
-                                <span className="absolute -top-1.5 left-2.5 rounded-sm bg-amber-500 px-1 py-px font-mono text-[6px] font-medium tracking-widest text-white uppercase shadow-sm">
-                                    Most popular
-                                </span>
-                            )}
-                            <span
+                    {TIERS.map((t) => {
+                        const displayPrice = t.name === 'Starter' ? starterPrice : t.price;
+                        const proBorder =
+                            t.featured && proAccentOverride
+                                ? proAccentOverride
+                                : null;
+                        return (
+                            <div
+                                key={t.name}
                                 className={cn(
-                                    'text-[9px] font-semibold',
-                                    t.featured && 'text-white',
+                                    'relative flex flex-col rounded-lg border p-2 transition-all',
+                                    t.featured
+                                        ? cn(
+                                              isDark
+                                                  ? 'bg-neutral-100 text-neutral-900 shadow-[0_6px_20px_-8px_rgba(0,0,0,0.8)]'
+                                                  : 'bg-neutral-900 text-white shadow-[0_6px_20px_-8px_rgba(0,0,0,0.45)]',
+                                              proBorder ??
+                                                  (isDark
+                                                      ? 'border-neutral-100'
+                                                      : 'border-neutral-900'),
+                                          )
+                                        : cardsAccent
+                                          ? cn(
+                                                isDark ? 'bg-neutral-800' : 'bg-white',
+                                                accentBorder,
+                                            )
+                                          : isDark
+                                            ? 'border-neutral-800 bg-neutral-800/60'
+                                            : 'border-neutral-200 bg-white',
                                 )}
                             >
-                                {t.name}
-                            </span>
-                            <span
-                                className={cn(
-                                    'mb-1.5 text-[7px]',
-                                    t.featured ? 'text-neutral-400' : 'text-neutral-500',
+                                {t.featured && (
+                                    <span className="absolute -top-1.5 left-2 rounded-sm bg-amber-500 px-1 py-px font-mono text-[6px] font-medium tracking-widest text-white uppercase shadow-sm">
+                                        Most popular
+                                    </span>
                                 )}
-                            >
-                                {t.sub}
-                            </span>
-                            <div className="mb-2 flex items-baseline gap-0.5">
                                 <span
                                     className={cn(
-                                        'text-[20px] font-semibold tracking-tight',
-                                        t.featured && 'text-white',
+                                        'text-[9px] font-semibold',
+                                        t.featured
+                                            ? isDark
+                                                ? 'text-neutral-900'
+                                                : 'text-white'
+                                            : isDark
+                                              ? 'text-neutral-100'
+                                              : 'text-neutral-900',
                                     )}
                                 >
-                                    ${t.price}
+                                    {t.name}
                                 </span>
                                 <span
                                     className={cn(
-                                        'text-[8px]',
-                                        t.featured ? 'text-neutral-400' : 'text-neutral-500',
+                                        'mb-1.5 text-[7px]',
+                                        t.featured
+                                            ? isDark
+                                                ? 'text-neutral-500'
+                                                : 'text-neutral-400'
+                                            : isDark
+                                              ? 'text-neutral-400'
+                                              : 'text-neutral-500',
                                     )}
                                 >
-                                    /mo
+                                    {t.sub}
                                 </span>
-                            </div>
-                            <ul className="mb-2 flex-1 space-y-1">
-                                {t.feats.map((f) => (
-                                    <li
-                                        key={f}
+                                <div className="mb-1.5 flex items-baseline gap-0.5">
+                                    <span
                                         className={cn(
-                                            'flex items-start gap-1 text-[8px] leading-tight',
-                                            t.featured ? 'text-neutral-300' : 'text-neutral-600',
+                                            'text-[17px] font-semibold tracking-tight transition-all',
+                                            t.featured
+                                                ? isDark
+                                                    ? 'text-neutral-900'
+                                                    : 'text-white'
+                                                : isDark
+                                                  ? 'text-neutral-100'
+                                                  : 'text-neutral-900',
                                         )}
                                     >
-                                        <span
+                                        ${displayPrice}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'text-[8px]',
+                                            t.featured
+                                                ? isDark
+                                                    ? 'text-neutral-500'
+                                                    : 'text-neutral-400'
+                                                : isDark
+                                                  ? 'text-neutral-400'
+                                                  : 'text-neutral-500',
+                                        )}
+                                    >
+                                        /mo
+                                    </span>
+                                </div>
+                                <ul className="mb-2 flex-1 space-y-0.5">
+                                    {t.feats.map((f) => (
+                                        <li
+                                            key={f}
                                             className={cn(
-                                                t.featured ? 'text-amber-400' : 'text-neutral-400',
+                                                'flex items-start gap-1 text-[7.5px] leading-snug',
+                                                t.featured
+                                                    ? isDark
+                                                        ? 'text-neutral-700'
+                                                        : 'text-neutral-300'
+                                                    : isDark
+                                                      ? 'text-neutral-300'
+                                                      : 'text-neutral-600',
                                             )}
                                         >
-                                            ✓
-                                        </span>
-                                        <span>{f}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                            <button
-                                className={cn(
-                                    'w-full rounded-md py-1 text-[8px] font-medium transition-colors',
-                                    t.featured
-                                        ? 'bg-white text-neutral-900 hover:bg-neutral-100'
-                                        : 'border border-neutral-300 text-neutral-700 hover:bg-neutral-50',
-                                )}
-                            >
-                                {t.featured ? 'Start free trial' : 'Choose plan'}
-                            </button>
-                        </div>
-                    ))}
+                                            <span
+                                                className={cn(
+                                                    t.featured
+                                                        ? 'text-amber-500'
+                                                        : isDark
+                                                          ? 'text-neutral-500'
+                                                          : 'text-neutral-400',
+                                                )}
+                                            >
+                                                ✓
+                                            </span>
+                                            <span>{f}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <button
+                                    className={cn(
+                                        'w-full rounded-md py-1 text-[7.5px] font-medium transition-colors',
+                                        t.featured
+                                            ? isDark
+                                                ? 'bg-neutral-900 text-white hover:bg-neutral-800'
+                                                : 'bg-white text-neutral-900 hover:bg-neutral-100'
+                                            : isDark
+                                              ? 'border border-neutral-700 text-neutral-300 hover:bg-neutral-700'
+                                              : 'border border-neutral-300 text-neutral-700 hover:bg-neutral-50',
+                                    )}
+                                >
+                                    {t.featured ? 'Start free trial' : 'Choose plan'}
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

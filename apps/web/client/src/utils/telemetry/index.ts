@@ -1,12 +1,13 @@
-import posthog from 'posthog-js';
-
 // Utility to clear client-side telemetry identities on logout.
-// Safe to call even if Gleap is not installed; uses dynamic import.
+// Safe to call even if PostHog/Gleap aren't loaded; both use dynamic import
+// so neither SDK is pulled into the critical-path bundle pre-consent.
 export async function resetTelemetry(): Promise<void> {
     try {
-        posthog.reset();
+        const mod = await import('posthog-js');
+        const posthog = mod.default ?? mod;
+        posthog?.reset();
     } catch {
-        // ignore
+        // ignore if PostHog isn't loaded
     }
     try {
         const mod = await import('gleap');

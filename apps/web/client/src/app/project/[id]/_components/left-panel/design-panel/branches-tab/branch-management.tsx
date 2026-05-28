@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
@@ -24,6 +24,8 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
     const [newName, setNewName] = useState(branch.name);
     const [isForking, setIsForking] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    // Dedupe latch for handleRename (wired to both Enter and blur).
+    const renameInFlightRef = useRef(false);
     const isActiveBranch = editorEngine.branches.activeBranch.id === branch.id;
     const isOnlyBranch = editorEngine.branches.allBranches.length === 1;
 
@@ -33,12 +35,20 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
     };
 
     const handleRename = async () => {
+        // handleRename is wired to BOTH onKeyDown(Enter) and onBlur. Pressing
+        // Enter calls setIsRenaming(false), which unmounts the focused input
+        // and fires a native blur → handleRename again. The name guard below
+        // can miss the dedupe because `branch.name` may not have updated from
+        // the Convex round-trip yet, so a ref-based in-flight latch is the
+        // reliable guard against a duplicate mutation + toast.
+        if (renameInFlightRef.current) return;
         if (newName.trim() === branch.name || !newName.trim()) {
             setIsRenaming(false);
             setNewName(branch.name);
             return;
         }
 
+        renameInFlightRef.current = true;
         try {
             await editorEngine.branches.updateBranch(branch.id, {
                 name: newName.trim(),
@@ -52,6 +62,8 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
             });
             setNewName(branch.name);
             setIsRenaming(false);
+        } finally {
+            renameInFlightRef.current = false;
         }
     };
 
@@ -103,11 +115,17 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                 branchId: branch.id as Id<'branches'>,
             });
 
+            // Drop the branch from the local MobX collection BEFORE switching.
+            // If `switchToBranch` throws, the Convex row is already gone, so we
+            // must not leave a stale branch the user can no longer interact
+            // with. Local cleanup first guarantees the list stays consistent
+            // with the backend even when the subsequent switch fails.
+            editorEngine.branches.removeBranch(branch.id);
+
             if (switchTargetId) {
                 await editorEngine.branches.switchToBranch(switchTargetId);
             }
 
-            editorEngine.branches.removeBranch(branch.id);
             toast.success('Branch deleted successfully');
             handleClose();
         } catch (error) {

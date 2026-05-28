@@ -37,11 +37,19 @@ const FREE_TIER = {
 export const FreeCard = ({
     delay,
     isUnauthenticated = false,
+    isAuthLoading = false,
     onSignupClick,
     variant = 'card',
 }: {
     delay: number;
     isUnauthenticated?: boolean;
+    /**
+     * True while the `users.me` query is still resolving. When true the
+     * CTA renders a disabled loading affordance instead of "Get Started
+     * Free" / "Current plan", so a signed-in visitor can't click into the
+     * wrong flow during the flicker window.
+     */
+    isAuthLoading?: boolean;
     onSignupClick?: () => void;
     variant?: 'card' | 'flat';
 }) => {
@@ -86,6 +94,14 @@ export const FreeCard = ({
     };
 
     const buttonContent = () => {
+        if (isAuthLoading) {
+            return (
+                <div className="flex items-center gap-2">
+                    <Icons.Shadow className="h-4 w-4 animate-spin" />
+                </div>
+            );
+        }
+
         if (isCheckingOut) {
             return (
                 <div className="flex items-center gap-2">
@@ -111,10 +127,11 @@ export const FreeCard = ({
     };
 
     const handleButtonClick = () => {
+        if (isAuthLoading) return;
         if (isUnauthenticated && onSignupClick) {
             onSignupClick();
         } else {
-            handleDowngradeToFree();
+            void handleDowngradeToFree();
         }
     };
 
@@ -131,6 +148,7 @@ export const FreeCard = ({
                         size="lg"
                         onClick={handleButtonClick}
                         disabled={
+                            isAuthLoading ||
                             isCheckingOut ||
                             (!isUnauthenticated && (isFree || isScheduledCancellation))
                         }
@@ -187,6 +205,7 @@ export const FreeCard = ({
                         variant="outline"
                         onClick={handleButtonClick}
                         disabled={
+                            isAuthLoading ||
                             isCheckingOut ||
                             (!isUnauthenticated && (isFree || isScheduledCancellation))
                         }

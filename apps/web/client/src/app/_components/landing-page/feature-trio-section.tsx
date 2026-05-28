@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
@@ -90,7 +90,7 @@ function MacChrome({
             <div
                 className={cn(
                     'relative flex shrink-0 items-center border-b border-black/[0.05] px-2.5 py-2 dark:border-white/[0.06]',
-                    glass && 'bg-white/80 backdrop-blur-[24px] dark:bg-[#161617]/80',
+                    glass && 'bg-white/80 backdrop-blur-[24px] dark:bg-[#161617]',
                 )}
             >
                 <div className="flex items-center gap-[5px]">
@@ -206,7 +206,7 @@ function TerminalVisual() {
                                     'flex items-center gap-1.5',
                                     line.kind === 'head' && 'text-black/80 dark:text-white/85',
                                     line.kind === 'mute' && 'text-black/45 dark:text-white/45',
-                                    line.kind === 'ok' && 'text-[color:var(--foreground-brand)]',
+                                    line.kind === 'ok' && 'text-foreground-success',
                                 )}
                             >
                                 {line.text}
@@ -239,6 +239,7 @@ const MODELS: { name: string; key: ModelKey; Icon: React.ComponentType<{ classNa
 function ModelsVisual() {
     const [active, setActive] = useState<ModelKey>('opus');
     const [paused, setPaused] = useState(false);
+    const [typed, setTyped] = useState('');
 
     useEffect(() => {
         if (paused) return;
@@ -255,32 +256,45 @@ function ModelsVisual() {
 
     return (
         <div
-            className="flex w-[300px] flex-col items-stretch gap-2"
+            className="flex w-[300px] translate-y-4 flex-col items-stretch"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
             {/* Composer */}
             <div
                 className={cn(
-                    'rounded-[12px] border px-2 py-2 shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)]',
+                    'relative z-10 rounded-[12px] border px-2 py-2 shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)]',
                     'border-black/[0.06] bg-white',
                     'dark:border-white/[0.08] dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]',
                 )}
             >
-                <div className="mb-2 text-[11px] text-black/35 dark:text-white/35">
-                    Ask Weblab to build anything
-                </div>
+                <input
+                    type="text"
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                    onFocus={() => setPaused(true)}
+                    onBlur={() => setPaused(false)}
+                    placeholder="Ask Weblab to build anything"
+                    className={cn(
+                        'mb-2 w-full bg-transparent px-1.5 text-[11px] outline-none',
+                        'text-black/85 placeholder:text-black/35',
+                        'dark:text-white/90 dark:placeholder:text-white/35',
+                    )}
+                />
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-black/55 dark:text-white/55">
-                            <span aria-hidden className="text-[10px] leading-none">
+                        <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-black/65 dark:text-white/65">
+                            <span
+                                aria-hidden
+                                className="inline-flex h-3 w-3 items-center justify-center text-[13px] leading-none"
+                            >
                                 ∞
-                            </span>{' '}
+                            </span>
                             Build
                             <Icons.ChevronDown className="h-2.5 w-2.5" />
                         </span>
                         <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-black/65 dark:text-white/65">
-                            <activeModel.Icon className="h-3 w-3" />
+                            <activeModel.Icon className="h-2.5 w-2.5" />
                             {activeModel.name}
                             <Icons.ChevronDown className="h-2.5 w-2.5" />
                         </span>
@@ -291,12 +305,12 @@ function ModelsVisual() {
                 </div>
             </div>
 
-            {/* Dropdown — anchored under the Opus chip, ~60% width of composer */}
+            {/* Dropdown — anchored just below the model chip, overlapping composer bottom */}
             <div
                 className={cn(
-                    'ml-[44px] w-[176px] rounded-[12px] border p-1 shadow-[0_8px_24px_-10px_rgba(0,0,0,0.22)]',
-                    'border-black/[0.06] bg-white',
-                    'dark:border-white/[0.08] dark:bg-[#1C1C1D] dark:shadow-[0_8px_24px_-10px_rgba(0,0,0,0.6)]',
+                    'relative z-20 -mt-1 ml-[15px] w-[176px] rounded-[12px] border p-1',
+                    'border-black/[0.08] bg-white shadow-[0_12px_32px_-12px_rgba(0,0,0,0.28)]',
+                    'dark:border-white/[0.1] dark:bg-[#1C1C1D] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)]',
                 )}
             >
                 {MODELS.map((m) => {
@@ -362,28 +376,31 @@ function ModelsVisual() {
 
 const AI_RUNS = [
     {
+        tab: 'Add pricing',
         prompt: 'Add a pricing section with 3 tiers',
         reply: "I'll create a Pricing component and add it to the homepage.",
         thought: '5s',
         explored: '3 files',
         tools: [
-            { kind: 'Created' as const, file: 'Pricing.tsx' },
-            { kind: 'Edited' as const, file: 'Home.tsx' },
+            { kind: 'Created' as const, file: 'Pricing.tsx', add: 86, del: 0 },
+            { kind: 'Edited' as const, file: 'Home.tsx', add: 12, del: 2 },
         ],
     },
     {
+        tab: 'Hero size',
         prompt: 'Make the hero headline larger',
         reply: 'Bumping the h1 to text-7xl with tighter leading.',
         thought: '3s',
         explored: '2 files',
-        tools: [{ kind: 'Edited' as const, file: 'Hero.tsx' }],
+        tools: [{ kind: 'Edited' as const, file: 'Hero.tsx', add: 4, del: 2 }],
     },
     {
+        tab: 'Teal accent',
         prompt: 'Style the cards with a teal accent',
         reply: 'Applying border-teal-300 to the Card component on hover.',
         thought: '2s',
         explored: '1 file',
-        tools: [{ kind: 'Edited' as const, file: 'Card.tsx' }],
+        tools: [{ kind: 'Edited' as const, file: 'Card.tsx', add: 6, del: 3 }],
     },
 ];
 
@@ -397,6 +414,9 @@ type AiPhase =
     | 'hold';
 
 export function AiAssistantVisual() {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const inView = useInView(wrapperRef, { once: true, amount: 0.45 });
+    const [hasStarted, setHasStarted] = useState(false);
     const [runIdx, setRunIdx] = useState(0);
     const [phase, setPhase] = useState<AiPhase>('typing');
     const [promptLen, setPromptLen] = useState(0);
@@ -406,7 +426,19 @@ export function AiAssistantVisual() {
     const run = AI_RUNS[runIdx]!;
 
     useEffect(() => {
-        if (paused) return;
+        if (inView) setHasStarted(true);
+    }, [inView]);
+
+    const pickRun = (idx: number) => {
+        if (idx === runIdx) return;
+        setRunIdx(idx);
+        setPromptLen(0);
+        setReplyLen(0);
+        setPhase('typing');
+    };
+
+    useEffect(() => {
+        if (!hasStarted || paused) return;
 
         if (phase === 'typing') {
             if (promptLen < run.prompt.length) {
@@ -449,7 +481,7 @@ export function AiAssistantVisual() {
             }, 2000);
             return () => clearTimeout(id);
         }
-    }, [phase, promptLen, replyLen, paused, run.prompt, run.reply]);
+    }, [phase, promptLen, replyLen, paused, hasStarted, run.prompt, run.reply]);
 
     const composerText =
         phase === 'typing'
@@ -469,83 +501,40 @@ export function AiAssistantVisual() {
     const showAiReply = phase === 'ai-typing' || phase === 'tool-call' || phase === 'hold';
     const showToolCalls = phase === 'tool-call' || phase === 'hold';
 
-    const firstFile = run.tools[0]?.file ?? '';
-
     return (
         <div
+            ref={wrapperRef}
             className="relative w-full max-w-[300px]"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            {/* Floating chip — file created */}
-            <AnimatePresence>
-                {showToolCalls && (
-                    <motion.div
-                        key={`f1-${runIdx}`}
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                        className={cn(
-                            'absolute -top-4 -left-4 z-10 flex items-center gap-2 rounded-full px-2.5 py-1.5 text-[10px] shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)]',
-                            'bg-white text-black/85',
-                            'dark:bg-[#1F1F20] dark:text-white/90',
-                        )}
-                    >
-                        <span className="font-mono font-medium">{firstFile}</span>
-                        <span className="text-black/45 dark:text-white/45">Created</span>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Floating chip — diff summary */}
-            <AnimatePresence>
-                {showAiReply && phase !== 'ai-typing' && (
-                    <motion.div
-                        key={`f2-${runIdx}`}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                        className={cn(
-                            'absolute -right-4 -bottom-4 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-[10px] shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)]',
-                            'bg-white text-black/85',
-                            'dark:bg-[#1F1F20] dark:text-white/90',
-                        )}
-                    >
-                        <span className="font-medium">Home.tsx</span>
-                        <span className="text-emerald-600 dark:text-emerald-400">+24</span>
-                        <span className="text-rose-500 dark:text-rose-400">-2</span>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             <MacChrome label="Weblab" glass className="h-[440px]">
-                {/* Tabs row */}
+                {/* Tabs row — click to swap which chat is active. */}
                 <div
                     className={cn(
-                        'flex shrink-0 items-center gap-1 border-b border-black/[0.05] px-1.5 py-0.5 dark:border-white/[0.06]',
-                        'bg-white/80 backdrop-blur-[24px] dark:bg-[#161617]/80',
+                        'flex shrink-0 items-center gap-0.5 border-b border-black/[0.05] px-1 py-0.5 dark:border-white/[0.06]',
+                        'bg-white/80 backdrop-blur-[24px] dark:bg-[#161617]',
                     )}
                 >
-                    {[
-                        { label: 'Add pricing section', active: true },
-                        { label: 'Add dark mode', active: false },
-                        { label: 'Translate to en', active: false },
-                    ].map((t) => (
-                        <div
-                            key={t.label}
-                            className={cn(
-                                'inline-flex h-6 items-center gap-1 rounded-[6px] px-1.5 text-[9px] whitespace-nowrap',
-                                t.active
-                                    ? 'bg-black/[0.06] text-black/85 dark:bg-white/[0.08] dark:text-white/90'
-                                    : 'text-black/45 dark:text-white/45',
-                            )}
-                        >
-                            {t.label}
-                            <Icons.CrossS className="h-2 w-2 opacity-60" />
-                        </div>
-                    ))}
+                    {AI_RUNS.map((r, idx) => {
+                        const active = idx === runIdx;
+                        return (
+                            <button
+                                key={r.tab}
+                                type="button"
+                                onClick={() => pickRun(idx)}
+                                className={cn(
+                                    'inline-flex h-5 items-center gap-1 rounded-[5px] px-1.5 text-[9px] whitespace-nowrap transition-colors',
+                                    active
+                                        ? 'bg-black/[0.06] text-black/85 dark:bg-white/[0.08] dark:text-white/90'
+                                        : 'text-black/45 hover:bg-black/[0.04] hover:text-black/75 dark:text-white/45 dark:hover:bg-white/[0.05] dark:hover:text-white/75',
+                                )}
+                            >
+                                {r.tab}
+                                <Icons.CrossS className="h-2 w-2 opacity-60" />
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Body — messages grow, composer pinned at bottom (never jumps) */}
@@ -665,17 +654,24 @@ export function AiAssistantVisual() {
                                                     delay: i * 0.14,
                                                     ease: [0.22, 1, 0.36, 1],
                                                 }}
-                                                className="flex items-center justify-between gap-2 rounded-[8px] bg-black/[0.04] px-2.5 py-1.5 dark:bg-white/[0.05]"
+                                                className="flex items-center justify-between gap-1.5 rounded-[6px] bg-black/[0.04] px-2 py-1 dark:bg-white/[0.05]"
                                             >
-                                                <span className="text-[10px]">
-                                                    <span className="mr-1.5 font-medium text-black/50 dark:text-white/50">
+                                                <span className="flex min-w-0 items-center gap-1.5 text-[9.5px]">
+                                                    <span className="font-medium text-black/50 dark:text-white/50">
                                                         {tool.kind}
                                                     </span>
-                                                    <span className="font-mono text-black/85 dark:text-white/85">
+                                                    <span className="truncate font-mono text-black/85 dark:text-white/85">
                                                         {tool.file}
                                                     </span>
                                                 </span>
-                                                <Icons.Check className="h-2.5 w-2.5 text-black/50 dark:text-white/50" />
+                                                <span className="flex shrink-0 items-center gap-1 font-mono text-[9px] tabular-nums">
+                                                    <span className="text-emerald-600 dark:text-emerald-400">
+                                                        +{tool.add}
+                                                    </span>
+                                                    <span className="text-rose-500 dark:text-rose-400">
+                                                        −{tool.del}
+                                                    </span>
+                                                </span>
                                             </motion.div>
                                         ))}
                                     </motion.div>
@@ -731,20 +727,14 @@ export function AiAssistantVisual() {
                                     <Icons.Image className="h-3 w-3 text-black/40 dark:text-white/40" />
                                     <Icons.Microphone className="h-3 w-3 text-black/40 dark:text-white/40" />
                                     <span
-                                        className="flex h-5 w-5 items-center justify-center rounded-full transition-colors duration-200"
-                                        style={{
-                                            backgroundColor: sendActive
-                                                ? '#000'
-                                                : 'rgba(0,0,0,0.07)',
-                                        }}
+                                        className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black"
                                         aria-hidden
                                     >
-                                        <Icons.ArrowRight
-                                            className="h-2.5 w-2.5 transition-colors duration-200"
-                                            style={{
-                                                color: sendActive ? '#fff' : 'rgba(0,0,0,0.28)',
-                                            }}
-                                        />
+                                        {sendActive ? (
+                                            <Icons.ArrowRight className="h-2.5 w-2.5" />
+                                        ) : (
+                                            <Icons.Stop className="h-2 w-2" />
+                                        )}
                                     </span>
                                 </div>
                             </div>
@@ -835,7 +825,7 @@ function TokensVisual() {
                             />
                             <span
                                 className={cn(
-                                    'relative flex-1 truncate font-mono text-[10.5px]',
+                                    'relative truncate font-mono text-[10.5px]',
                                     isActive
                                         ? 'text-black dark:text-white'
                                         : 'text-black/65 dark:text-white/65',
@@ -843,12 +833,12 @@ function TokensVisual() {
                             >
                                 {token.name}
                             </span>
-                            <span className="text-foreground-tertiary relative font-mono text-[9.5px] tabular-nums">
-                                {token.hex}
-                            </span>
                             {isActive && (
                                 <span className="bg-foreground-brand relative h-1.5 w-1.5 shrink-0 rounded-full" />
                             )}
+                            <span className="text-foreground-tertiary relative ml-auto font-mono text-[9.5px] tabular-nums">
+                                {token.hex}
+                            </span>
                         </button>
                     );
                 })}
@@ -900,7 +890,7 @@ export function FeatureTrioSection() {
                         eyebrow={tTerm('eyebrow')}
                         title={tTrio('terminal.title')}
                         body={tTrio('terminal.body')}
-                        bgSrc={FEATURE_BACKDROP_SRCS.pearl}
+                        bgSrc={FEATURE_BACKDROP_SRCS.sky}
                     />
                 </div>
                 <div className="md:col-span-4">

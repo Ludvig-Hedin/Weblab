@@ -56,11 +56,15 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
         }
         let cancelled = false;
         const posthogKey = env.NEXT_PUBLIC_POSTHOG_KEY;
-        if (posthogKey) {
+        if (posthogKey && !posthogClient) {
+            // Guard the module-level singleton against double init across
+            // HMR / Suspense remounts. posthog-js warns ("PostHog was already
+            // initialized") on repeat .init() calls; the guard keeps the dev
+            // console clean and avoids re-arming feature-flag listeners.
             void (async () => {
                 try {
                     const mod = await import('posthog-js');
-                    if (cancelled) return;
+                    if (cancelled || posthogClient) return;
                     posthogClient = mod.default ?? mod;
                     posthogClient.init(posthogKey, {
                         api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -73,7 +77,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
                     console.warn('PostHog init failed', e);
                 }
             })();
-        } else {
+        } else if (!posthogKey) {
             if (!hasWarnedMissingPostHogKey) {
                 console.warn('PostHog key is not set, skipping initialization');
                 hasWarnedMissingPostHogKey = true;
@@ -81,12 +85,14 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
         }
 
         const gleapKey = env.NEXT_PUBLIC_GLEAP_API_KEY;
-        if (gleapKey) {
+        if (gleapKey && !gleapSingleton) {
+            // Same double-init guard for Gleap. .initialize() can register
+            // duplicate event listeners otherwise.
             void (async () => {
                 try {
                     // Dynamic import to avoid hard dependency when not installed
                     const mod = await import('gleap');
-                    if (cancelled) return;
+                    if (cancelled || gleapSingleton) return;
                     gleapSingleton = mod.default ?? mod;
                     gleapSingleton.initialize(gleapKey);
                     if (!cancelled) setClientsRevision((n) => n + 1);

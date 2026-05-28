@@ -96,8 +96,11 @@ export async function POST(req: NextRequest) {
     try {
         body = TabCompleteBodySchema.parse(await req.json()) as TabCompleteBody;
     } catch (error) {
-        const message = error instanceof z.ZodError ? error.issues[0]?.message : 'Invalid JSON';
-        return new Response(JSON.stringify({ error: message ?? 'Invalid request body' }), {
+        // Mirror /api/chat: don't echo zod issue messages — they describe the
+        // shape of the rejected input and can leak slices of it. Log full
+        // detail server-side; return a fixed 400 to the client.
+        console.warn('[tab-complete] invalid request body', error);
+        return new Response(JSON.stringify({ error: 'Invalid request body' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
         });

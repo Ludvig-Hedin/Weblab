@@ -102,12 +102,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (!response.ok) {
-            const message = await safeReadError(response);
-            console.error('[transcribe] upstream error', response.status, message);
-            return jsonError(
-                response.status >= 500 ? 502 : response.status,
-                `Transcription failed: ${message}`,
-            );
+            // Log the raw upstream message for ops; never echo provider
+            // phrasing back to the client (could leak internal model names
+            // or quota detail). Return a fixed, status-bucketed string.
+            const upstreamMessage = await safeReadError(response);
+            console.error('[transcribe] upstream error', response.status, upstreamMessage);
+            const status = response.status >= 500 ? 502 : response.status;
+            return jsonError(status, 'Transcription failed. Please try again.');
         }
 
         const data = (await response.json()) as TranscriptionResponse;

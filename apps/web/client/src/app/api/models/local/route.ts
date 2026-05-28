@@ -14,8 +14,11 @@ interface OllamaTagsResponse {
     }>;
 }
 
-function formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
+function formatBytes(bytes: number | undefined): string {
+    // Ollama's `/api/tags` occasionally omits `size` for partially-downloaded
+    // models. Without this guard `bytes / (1024 ** 3)` is NaN, which becomes
+    // the literal string "NaN GB" in the UI dropdown.
+    if (!bytes || !Number.isFinite(bytes) || bytes <= 0) return '0 B';
     const gb = bytes / (1024 * 1024 * 1024);
     if (gb >= 1) return `${gb.toFixed(1)} GB`;
     const mb = bytes / (1024 * 1024);

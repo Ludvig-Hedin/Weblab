@@ -66,6 +66,9 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const [open, setOpen] = useState(false);
 
     const handleSignOut = async () => {
+        // Close the dropdown immediately so the user has visual confirmation
+        // that sign-out is in progress while the async cleanup runs.
+        setOpen(false);
         // Reset MobX modal flags so settings/subscription dialogs from the
         // previous account don't leak across the sign-out boundary.
         stateManager.setIsSettingsModalOpen(false);
@@ -91,11 +94,19 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
             console.warn('[avatar-dropdown] failed to clear offline state on sign-out', err);
         }
         // `clerkSignOut` is a no-op in supabase mode (see useSafeClerk).
-        await signOutEverywhere(isClerkMode() ? () => clerkSignOut() : undefined);
-        // Hard-navigate. A soft router.push would keep the React Query
-        // cache (incl. user.get) populated, leaving the navbar showing
-        // the avatar even after the session cookies were cleared.
-        window.location.assign(getSignInUrlClient());
+        // Wrap in try/finally so a thrown Clerk sign-out still hard-navigates
+        // to the sign-in route — otherwise the user is stranded with cleared
+        // local state but a stale signed-in UI.
+        try {
+            await signOutEverywhere(isClerkMode() ? () => clerkSignOut() : undefined);
+        } catch (err) {
+            console.warn('[avatar-dropdown] sign-out failed; forcing navigation anyway', err);
+        } finally {
+            // Hard-navigate. A soft router.push would keep the React Query
+            // cache (incl. user.get) populated, leaving the navbar showing
+            // the avatar even after the session cookies were cleared.
+            window.location.assign(getSignInUrlClient());
+        }
     };
 
     const handleOpenSubscription = () => {

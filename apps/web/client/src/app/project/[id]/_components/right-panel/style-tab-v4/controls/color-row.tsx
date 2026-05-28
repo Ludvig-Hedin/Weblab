@@ -46,13 +46,15 @@ interface ParsedColor {
 /** Convert hsl(h, s%, l%[, a]) → hex via DOM canvas. */
 function cssColorToHex(value: string): { hex: string; alpha: number } | null {
     if (typeof document === 'undefined') return null;
+    // Use a fresh detached element + getComputedStyle for browser-native parsing.
+    // The probe MUST be removed even if `getComputedStyle` throws, otherwise the
+    // probe leaks into the DOM. Move the removal into a finally block so the
+    // cleanup runs on every exit path.
+    const probe = document.createElement('span');
     try {
-        // Use a fresh detached element + getComputedStyle for browser-native parsing.
-        const probe = document.createElement('span');
         probe.style.color = value;
         document.body.appendChild(probe);
         const resolved = window.getComputedStyle(probe).color;
-        document.body.removeChild(probe);
         if (!resolved) return null;
         const m = /^rgba?\(([^)]+)\)$/.exec(resolved);
         if (!m?.[1]) return null;
@@ -67,6 +69,8 @@ function cssColorToHex(value: string): { hex: string; alpha: number } | null {
         };
     } catch {
         return null;
+    } finally {
+        if (probe.parentNode) probe.parentNode.removeChild(probe);
     }
 }
 
@@ -158,9 +162,22 @@ export function ColorRow({
         if (cleaned === hex) return;
         // When the user types something hex-shaped, normalise to hex; otherwise
         // commit the raw value verbatim so var(--token) / named colors round-trip.
-        if (/^[0-9A-F]{3}$|^[0-9A-F]{6}$|^[0-9A-F]{8}$/.test(cleaned)) {
+        if (/^[0-9A-F]{3}$/.test(cleaned)) {
+            // Expand 3-digit shorthand to 6-digit before appending alpha,
+            // otherwise `#F00` + alpha 50 = `#F0080` (5 chars, invalid CSS).
+            const expanded = cleaned
+                .split('')
+                .map((c) => c + c)
+                .join('');
+            const next = buildHexWithAlpha(expanded, alphaDraft);
+            if (next) onCommit(next);
+        } else if (/^[0-9A-F]{6}$/.test(cleaned)) {
             const next = buildHexWithAlpha(cleaned, alphaDraft);
             if (next) onCommit(next);
+        } else if (/^[0-9A-F]{8}$/.test(cleaned)) {
+            // 8-digit input already embeds alpha — don't re-append alphaDraft
+            // (that would produce a 10-char string and an invalid color).
+            onCommit(`#${cleaned}`);
         } else if (nextHex.trim() !== value) {
             onCommit(nextHex.trim());
         }
@@ -169,7 +186,12 @@ export function ColorRow({
     const commitAlpha = (nextAlpha: number) => {
         const clamped = Math.max(0, Math.min(100, nextAlpha));
         if (clamped === alpha) return;
-        const next = buildHexWithAlpha(hexDraft, clamped);
+        // Only build a hex+alpha when we actually have a parsed hex. For raw
+        // `var(--token)` / named-color values, alpha would produce garbage
+        // like `#var(--accent)80`, so skip the commit (alpha-on-token is a
+        // separate UX problem — out of scope for this control).
+        if (!hex) return;
+        const next = buildHexWithAlpha(hex, clamped);
         if (next) onCommit(next);
     };
 
@@ -224,7 +246,14 @@ export function ColorRow({
                 value={hexDraft}
                 spellCheck={false}
                 placeholder={mixed ? 'Mixed' : undefined}
-                onChange={(e) => setHexDraft(e.target.value.replace(/^#/, '').toUpperCase())}
+                onChange={(e) => {
+                    // Only uppercase when the input still looks hex-shaped.
+                    // Raw `var(--token)` / named-color values are case-sensitive
+                    // (`--accent` ≠ `--ACCENT`), so blanket uppercase would
+                    // silently break them on commit.
+                    const v = e.target.value.replace(/^#/, '');
+                    setHexDraft(/^[0-9a-fA-F]{0,8}$/.test(v) ? v.toUpperCase() : v);
+                }}
                 onBlur={() => commitHex(hexDraft)}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -233,7 +262,11 @@ export function ColorRow({
                         e.currentTarget.blur();
                     } else if (e.key === 'Escape') {
                         e.preventDefault();
-                        setHexDraft(hex);
+                        // Restore the same value the draft was seeded with —
+                        // for raw `var(--token)` / named colors `hex` is '',
+                        // so falling through to `raw` keeps the original.
+                        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+                        setHexDraft(hex || raw || '');
                         e.currentTarget.blur();
                     }
                 }}
@@ -253,8 +286,16 @@ export function ColorRow({
                     inputMode="numeric"
                     value={alphaDraft}
                     onChange={(e) => {
-                        const n = Number.parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
-                        setAlphaDraft(Number.isNaN(n) ? 0 : n);
+                        const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                        if (cleaned === '') {
+                            // Empty input on blur would commit alpha 0
+                            // (fully transparent) — treat field-clear as
+                            // "no change" instead of snapping to 0.
+                            setAlphaDraft(alpha);
+                            return;
+                        }
+                        const n = Number.parseInt(cleaned, 10);
+                        setAlphaDraft(Number.isNaN(n) ? alpha : n);
                     }}
                     onBlur={() => commitAlpha(alphaDraft)}
                     onKeyDown={(e) => {

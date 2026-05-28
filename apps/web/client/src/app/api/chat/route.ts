@@ -145,6 +145,40 @@ const MAX_MESSAGES = 200;
 const MAX_MESSAGE_BYTES = 16 * 1024;
 const MAX_TOTAL_MESSAGE_BYTES = 1 * 1024 * 1024;
 
+// Upper bound on a single Convex round-trip inside `onFinish`. AI SDK awaits
+// `onFinish` before closing the response, so an unbounded Convex hang held
+// the stream open indefinitely and surfaced as "chat never completes" in the
+// UI even after the model had emitted its last token. 8s is enough headroom
+// for a healthy mutation/insert pair (typical < 200ms) without keeping the
+// user staring at a finished bubble.
+const CONVEX_FINISH_TIMEOUT_MS = 8_000;
+
+async function runWithTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    label: string,
+): Promise<T | undefined> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race<T | undefined>([
+            promise,
+            new Promise<undefined>((resolve) => {
+                timer = setTimeout(() => {
+                    console.warn(
+                        `[chat] ${label} exceeded ${timeoutMs}ms; closing stream and continuing best-effort`,
+                    );
+                    resolve(undefined);
+                }, timeoutMs);
+            }),
+        ]);
+    } catch (err) {
+        console.warn(`[chat] ${label} rejected`, err);
+        return undefined;
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
 function getSerializedBytes(value: unknown): number {
     return new TextEncoder().encode(JSON.stringify(value)).length;
 }
@@ -222,18 +256,19 @@ export async function POST(req: NextRequest) {
     }
 }
 
-export const streamResponse = async (req: NextRequest, userId: string) => {
+const streamResponse = async (req: NextRequest, userId: string) => {
     let parsedBody: z.infer<typeof ChatRequestBodySchema>;
     try {
         parsedBody = ChatRequestBodySchema.parse(await req.json());
-    } catch (err: any) {
-        return new Response(
-            JSON.stringify({
-                error: err instanceof Error ? err.message : 'Invalid request body',
-                code: 400,
-            }),
-            { status: 400, headers: { 'Content-Type': 'application/json' } },
-        );
+    } catch (err: unknown) {
+        // Don't echo zod issue messages — they can include slices of the
+        // client-supplied input. The client sees a fixed string; the full
+        // zod error is logged server-side for debugging.
+        console.warn('[chat] invalid request body', err);
+        return new Response(JSON.stringify({ error: 'Invalid request body', code: 400 }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
     const messages = parsedBody.messages as ChatMessage[];
     const { chatType, conversationId, projectId } = parsedBody;
@@ -351,8 +386,14 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
 
         // Parallel context fetches. Everything below this point can run
         // concurrently — none depend on each other's results.
+        // Mem0 is best-effort: a flaky vector store must not take down chat.
+        // Without this catch, a rejection here propagates through Promise.all
+        // and kills the whole turn.
         const memoriesPromise = memoryQueryText
-            ? searchMemories(memoryQueryText, userId)
+            ? searchMemories(memoryQueryText, userId).catch((err: unknown) => {
+                  console.warn('[chat] memory search failed; continuing without', err);
+                  return [];
+              })
             : Promise.resolve([]);
         const skillsPromise = loadSkillSummaries({
             userId,
@@ -509,13 +550,23 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                     .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
                     .map((msg) => toDbMessage(msg, conversationId));
 
-                await fetchMutation(
-                    api.messages.replaceConversationMessages,
-                    {
-                        conversationId: conversationId as Id<'conversations'>,
-                        messages: messagesToStore as never,
-                    },
-                    { token: convexToken },
+                // Bound every Convex-blocking await inside onFinish. If Convex
+                // stalls, the previous code held the stream open indefinitely
+                // and the chat appeared to "never finish" in the UI even
+                // though the LLM had already delivered the last token. A
+                // timeout here lets the response close; persistence is
+                // best-effort and the failure is logged for ops.
+                await runWithTimeout(
+                    fetchMutation(
+                        api.messages.replaceConversationMessages,
+                        {
+                            conversationId: conversationId as Id<'conversations'>,
+                            messages: messagesToStore as never,
+                        },
+                        { token: convexToken },
+                    ),
+                    CONVEX_FINISH_TIMEOUT_MS,
+                    'replaceConversationMessages',
                 );
 
                 const responseMetadata = responseMessage.metadata as
@@ -524,13 +575,17 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                 const toolCallCount = (responseMessage?.parts ?? []).filter((p) =>
                     p.type?.startsWith('tool-'),
                 ).length;
-                await built.finalizeUsage({
-                    usage: responseMetadata?.usage,
-                    providerMetadata: responseMetadata?.providerMetadata,
-                    toolCallCount,
-                    messageId: responseMessage?.id,
-                    sink: usageSink,
-                });
+                await runWithTimeout(
+                    built.finalizeUsage({
+                        usage: responseMetadata?.usage,
+                        providerMetadata: responseMetadata?.providerMetadata,
+                        toolCallCount,
+                        messageId: responseMessage?.id,
+                        sink: usageSink,
+                    }),
+                    CONVEX_FINISH_TIMEOUT_MS,
+                    'finalizeUsage',
+                );
 
                 // Fire-and-forget: extract facts and store them in Mem0.
                 addMemoriesFromConversation(finalMessages, userId, projectId ?? '').catch((err) => {

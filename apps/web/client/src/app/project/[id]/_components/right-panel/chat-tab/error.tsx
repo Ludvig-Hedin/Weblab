@@ -45,7 +45,11 @@ export const ErrorSection = observer(({ isStreaming, onSendMessage }: ErrorSecti
     useEffect(() => {
         const handler = () => {
             if (isStreaming || errorCount === 0) return;
-            editorEngine.chat.consumeFixErrorsRequest();
+            // Respect the consume guard (same as the pendingFixErrorsRequest
+            // effect below). Without it, an event + a pending-flag firing for
+            // the same user action could each call sendFixError → a duplicate
+            // "fix errors" message (wasted AI spend + double reply).
+            if (!editorEngine.chat.consumeFixErrorsRequest()) return;
             sendFixError();
         };
         window.addEventListener(FIX_ERRORS_EVENT, handler);

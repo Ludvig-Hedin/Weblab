@@ -109,15 +109,19 @@ async function verifyStripeSignature(
     headerValue: string,
     secret: string,
 ): Promise<boolean> {
-    const parts = Object.fromEntries(
-        headerValue
-            .split(',')
-            .map((p) => p.trim().split('='))
-            .filter((kv): kv is [string, string] => kv.length === 2),
-    );
-    const timestamp = parts.t;
-    const signature = parts.v1;
-    if (!timestamp || !signature) return false;
+    // Stripe sends multiple `v1=` entries during signing-secret rotation
+    // (e.g. `t=…,v1=oldSig,v1=newSig`). Collect every key/value pair into
+    // a list and accept the request if ANY `v1` signature matches the
+    // current secret — otherwise rotation would brick the webhook for any
+    // request whose matching signature happens to be listed second.
+    const pairs = headerValue
+        .split(',')
+        .map((p) => p.trim().split('='))
+        .filter((kv): kv is [string, string] => kv.length === 2);
+
+    const timestamp = pairs.find((kv) => kv[0] === 't')?.[1];
+    const signatures = pairs.filter((kv) => kv[0] === 'v1').map((kv) => kv[1]);
+    if (!timestamp || signatures.length === 0) return false;
 
     const ts = Number(timestamp);
     if (!Number.isFinite(ts)) return false;
@@ -137,13 +141,17 @@ async function verifyStripeSignature(
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
 
-    // Constant-time comparison.
-    if (macHex.length !== signature.length) return false;
-    let diff = 0;
-    for (let i = 0; i < macHex.length; i++) {
-        diff |= macHex.charCodeAt(i) ^ signature.charCodeAt(i);
+    // Constant-time compare against EVERY supplied `v1` signature. Stripe sends
+    // both old + new during secret rotation; accept the first that matches.
+    for (const signature of signatures) {
+        if (macHex.length !== signature.length) continue;
+        let diff = 0;
+        for (let i = 0; i < macHex.length; i++) {
+            diff |= macHex.charCodeAt(i) ^ signature.charCodeAt(i);
+        }
+        if (diff === 0) return true;
     }
-    return diff === 0;
+    return false;
 }
 
 http.route({
@@ -232,6 +240,12 @@ http.route({
             cancelAt: sub.cancel_at ?? undefined,
         };
 
+        // TODO(bug-hunt 2026-05-28, F-491): no event-id (`evt.id`) dedupe.
+        // Stripe retries deliveries on 5xx (and may double-deliver even on
+        // 2xx). `_handleSubUpdated` upgrade/renewal branches insert new
+        // `rateLimits` rows on every call — replay grants duplicate credits.
+        // Fix: add a `stripeEventLog` table keyed by `evt.id`, insert+early-
+        // return on conflict.
         try {
             switch (event.type) {
                 case 'customer.subscription.created':

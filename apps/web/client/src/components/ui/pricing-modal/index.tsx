@@ -62,7 +62,7 @@ export const SubscriptionModal = observer(() => {
                         <div className="bg-background/50 absolute inset-0" />
                         <Button
                             variant="ghost"
-                            onClick={() => (state.isSubscriptionModalOpen = false)}
+                            onClick={() => state.setIsSubscriptionModalOpen(false)}
                             className="text-foreground-secondary fixed top-8 right-10"
                         >
                             <Icons.CrossL className="h-4 w-4" />

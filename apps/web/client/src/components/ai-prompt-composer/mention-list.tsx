@@ -43,8 +43,11 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
                         const item = items[selectedIndex];
                         if (item) {
                             command(item);
+                            return true;
                         }
-                        return true;
+                        // No match to select — let the editor handle Enter
+                        // (newline / submit) instead of swallowing the keypress.
+                        return false;
                     }
                     return false;
                 },

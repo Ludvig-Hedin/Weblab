@@ -119,10 +119,16 @@ export const list = query({
             .withIndex('by_user', (q) => q.eq('userId', user._id))
             .collect();
 
+        // Fetch all project docs in parallel — serial `ctx.db.get` for users
+        // with N memberships costs N sequential round-trips.
+        const filteredMemberships = excludeProjectId
+            ? memberships.filter((m) => m.projectId !== excludeProjectId)
+            : memberships;
+        const fetched = await Promise.all(
+            filteredMemberships.map((m) => ctx.db.get(m.projectId)),
+        );
         const projects: Doc<'projects'>[] = [];
-        for (const m of memberships) {
-            if (excludeProjectId && m.projectId === excludeProjectId) continue;
-            const project = await ctx.db.get(m.projectId);
+        for (const project of fetched) {
             if (!project) continue;
             if (workspaceId && project.workspaceId !== workspaceId) continue;
             projects.push(project);
@@ -770,10 +776,26 @@ export const update = mutation({
             rest.name = trimmed;
         }
 
+        // `runtimeMetadata` is typed `v.any()` for forward-compat with future
+        // sandbox-provider shapes. To prevent a partial patch (e.g. just
+        // `{ cloud: { previewUrl } }`) from wiping `framework`, merge against
+        // the existing value rather than overwriting it.
+        let runtimeMetadataPatch: unknown;
+        if (rest.runtimeMetadata !== undefined) {
+            const existing = await ctx.db.get(projectId);
+            const existingMeta = (existing?.runtimeMetadata ?? {}) as Record<string, unknown>;
+            const incoming = (rest.runtimeMetadata ?? {}) as Record<string, unknown>;
+            runtimeMetadataPatch = { ...existingMeta, ...incoming };
+            delete (rest as Record<string, unknown>).runtimeMetadata;
+        }
+
         const patch: Partial<Doc<'projects'>> = { updatedAt: Date.now() };
         for (const [k, value] of Object.entries(rest)) {
             if (value === undefined) continue;
             (patch as Record<string, unknown>)[k] = value === null ? undefined : value;
+        }
+        if (runtimeMetadataPatch !== undefined) {
+            (patch as Record<string, unknown>).runtimeMetadata = runtimeMetadataPatch;
         }
         await ctx.db.patch(projectId, patch);
         return (await ctx.db.get(projectId))!;

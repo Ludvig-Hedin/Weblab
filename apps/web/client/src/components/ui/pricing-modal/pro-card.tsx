@@ -36,11 +36,19 @@ const PRO_FEATURES = [
 export const ProCard = ({
     delay,
     isUnauthenticated = false,
+    isAuthLoading = false,
     onSignupClick,
     variant = 'card',
 }: {
     delay: number;
     isUnauthenticated?: boolean;
+    /**
+     * True while the `users.me` query is still resolving. When true the
+     * CTA renders a disabled loading affordance instead of "Get started"
+     * / "Upgrade", so a signed-in visitor can't be redirected into the
+     * auth modal during the flicker window.
+     */
+    isAuthLoading?: boolean;
     onSignupClick?: () => void;
     variant?: 'card' | 'flat';
 }) => {
@@ -203,6 +211,14 @@ export const ProCard = ({
     }, [subscription?.price.key]);
 
     const buttonContent = () => {
+        if (isAuthLoading) {
+            return (
+                <div className="flex items-center gap-2">
+                    <Icons.Shadow className="h-4 w-4 animate-spin" />
+                </div>
+            );
+        }
+
         if (isCheckingOut) {
             return (
                 <div className="flex items-center gap-2">
@@ -232,6 +248,7 @@ export const ProCard = ({
     };
 
     const handleButtonClick = () => {
+        if (isAuthLoading) return;
         if (isUnauthenticated && onSignupClick) {
             onSignupClick();
         } else {
@@ -324,7 +341,11 @@ export const ProCard = ({
                     <Button
                         size="lg"
                         onClick={handleButtonClick}
-                        disabled={isCheckingOut || (!isUnauthenticated && !isNewTierSelected)}
+                        disabled={
+                            isAuthLoading ||
+                            isCheckingOut ||
+                            (!isUnauthenticated && !isNewTierSelected)
+                        }
                     >
                         {buttonContent()}
                     </Button>
@@ -377,7 +398,11 @@ export const ProCard = ({
                     <Button
                         className="w-full"
                         onClick={handleButtonClick}
-                        disabled={isCheckingOut || (!isUnauthenticated && !isNewTierSelected)}
+                        disabled={
+                            isAuthLoading ||
+                            isCheckingOut ||
+                            (!isUnauthenticated && !isNewTierSelected)
+                        }
                     >
                         {buttonContent()}
                     </Button>

@@ -1,5 +1,86 @@
 # Code Review Backlog
 
+## Broken-Feature Fix Pass — 2026-05-27 — promoted flagged items that STOP users
+
+Promoted the user-flow-BREAKING subset out of "Needs human review" and fixed
+them. Skipped purely cosmetic / edge items (listed under Deferred). Each fix:
+`bun typecheck` exit 0; `claude-review` on touched files → final `{"issues":[]}`.
+
+### Auto-fixed (10 — all break or wedge a real user flow)
+
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:124` —
+  **Empty files could never be opened.** The `loadedContent` effect bailed on
+  `!loadedContent`; a zero-byte file resolves to `''` (falsy), so no tab was
+  ever created. `useFile` returns `content: null` while loading and the real
+  value (incl `''`) once loaded — switched the guard to `loadedContent == null`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:563` —
+  **Deleting an open file left an orphaned tab** whose EditorView pointed at a
+  path that no longer existed; Save / read-back / dirty-check then silently
+  failed. After `deleteFile` resolves, close every opened file equal to `path`
+  or under `${path}/`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/branches-tab/branch-management.tsx:99` —
+  **Branch deletion could strand a ghost branch.** If `switchToBranch` threw
+  after the Convex `remove` mutation succeeded, the local MobX `removeBranch`
+  never ran. Moved local cleanup before the switch so the list always matches
+  the backend.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/branches-tab/branch-management.tsx:35` —
+  **Branch rename fired the mutation twice.** `handleRename` is wired to both
+  Enter and blur; Enter → `setIsRenaming(false)` unmounts the input → blur →
+  rename again (the name guard misses because `branch.name` hasn't round-tripped
+  yet). Added a `renameInFlightRef` latch.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-input/index.tsx:238` —
+  **Suggestion Enter committed twice.** The global keydown handler called
+  `handleEnterSelection()` in the `if` condition AND again in the body —
+  double-select/advance. Call once, reuse the result.
+- `apps/web/client/src/components/ai-prompt-composer/mention-list.tsx:42` &
+  `apps/web/client/src/components/ai-prompt-composer/slash-list.tsx:40` —
+  **Enter was swallowed when the picker had no results.** Both returned `true`
+  on Enter even with zero items, so TipTap treated the key as handled and the
+  user couldn't insert a newline / submit while an empty `@`/`/` popup was
+  open. Return `false` when no item resolves.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/pin-pad.tsx:180` —
+  **Blurring an unmodified `auto` offset cell clobbered it to `''`.** Empty
+  draft + existing `auto`/`''` now no-ops instead of committing `''`.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/error.tsx:46` —
+  **"Fix errors" could send twice.** The event-listener effect ignored
+  `consumeFixErrorsRequest()`'s return while the flag effect respected it; an
+  event + pending-flag racing for the same action sent a duplicate chat
+  message (wasted AI spend + double reply). Made the listener respect the
+  consume guard too.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/index.tsx:127` —
+  **`getPendingRequest` fired with a blank projectId on engine boot** (empty
+  string cast to `Id<'projects'>`). Guarded with the Convex `'skip'` sentinel
+  until `editorEngine.projectId` is set.
+
+### Deferred (real but NOT user-stopping — left in backlog, not fixed this pass)
+
+Per the "focus on broken features that stop users, not nitty-gritty" directive:
+
+- `right-panel/index.tsx:~190` — first-creation wider chat panel width never
+  applies (`isFirstCreation` is `undefined` at mount because it's read from an
+  async `useQuery`; the `useState` initializer + mount-only restore both see
+  `false`). Cosmetic: panel is the normal width during scaffold instead of
+  the wider one. Fix = drive width from `isFirstCreation` via an effect.
+- `style-tab-v4/sections/layout.tsx:154` — H/V padding/margin fields show only
+  the left/top side and overwrite an asymmetric per-side override on commit.
+  This is expected H/V-field semantics; only bites a user who edits H/V after
+  setting asymmetric sides via the popover.
+- `style-tab-v4/controls/mode-number-cell.tsx:63` — `CSS_TO_KEYWORD['100%'] =
+  'fill'` makes a literal `100%` width unrepresentable. Edge.
+- `style-tab-v4/sections/effects.tsx:166` + `transforms.tsx:45` — auto-open/close
+  `customOpen` overrides the user's manual toggle when the effect count crosses
+  zero. Annoyance, not a block.
+- `style-tab-v2/sections/spacing.tsx:100` — `setAll` writes 4 props as 4 undo
+  entries (v2 fallback regression vs v3/v4 batch). Undo granularity only.
+- `style-tab-v2|v3/controls/text-field.tsx` + `variables-panel/index.tsx:122` —
+  stale-draft commit-on-blur / prop-sync wipes in-progress input only under a
+  concurrent external update of the same value (rare multi-client edit).
+
+### Validation
+
+- `bun typecheck` → exit 0 after every fix.
+- `claude-review` re-run on the touched files → final `{"issues":[]}`.
+
 ## Deep Hunt Round 2 — 2026-05-27 — reviewer pass on Round 1 edits
 
 Round 1 deep bug-hunt landed 10 auto-fixes across left-panel / right-panel /
@@ -307,21 +388,24 @@ Two-pass `/bug-hunt` over `apps/web/client/src/components/ui/pricing-modal/`,
   outside the async closure (to skip work) and re-checked after `import`
   resolves (to win the race between two concurrent remounts).
 
-### Needs human review (7 issues)
+### Auto-fixed in second pass (4 user-blocking issues)
 
-- **`telemetry-provider.tsx:9`** — `import { PostHogProvider as PHProvider } from 'posthog-js/react'` is a **static** import. File comment claims "Dynamic import for posthog-js keeps the SDK out of the critical-path bundle on landing/login/dashboard until cookie consent fires" — but this static line pulls the posthog-js React adapter (which pulls posthog-js itself) into the bundle anyway. Verified live: `/pricing` cold load fetches `node_modules_posthog-js_*.js` from `_next/static/chunks` even with `weblab.consent` cookie absent. Fix: lazy-load `PHProvider` via `const PHProvider = lazy(() => import('posthog-js/react').then(m => ({ default: m.PostHogProvider })))`, wrap consumer in `<Suspense>`. Out of `<3 files` scope for this pass.
+- **`pricing-table/index.tsx:26-33`** — flicker fix shipped. Distinguishes `authResolving` (`hasAuthCookie === null` OR `hasAuthCookie === true && user === undefined`) from `isUnauthenticated`. Passes new `isAuthLoading` prop to FreeCard + ProCard; both render disabled loading spinner so signed-in users cannot accidentally trigger the auth modal during the users.me-resolving window. Real bug closed (was: click in flicker window → auth modal instead of checkout).
+- **`pricing-modal/legacy-promotion.tsx`** — async handler with try/catch on `navigator.clipboard.writeText` + `document.execCommand('copy')` fallback. Toast.success only on confirmed write; toast.error with "select and copy manually" hint if both fail. Real revenue path closed (was: false "Copied" toast on permission-denied → user pastes nothing → loses 1-month-free Pro promo code).
+- **`avatar-dropdown/index.tsx:68`** — `handleSignOut` now calls `setOpen(false)` at the start so the dropdown closes immediately while async localforage clear + Clerk sign-out run. UX polish.
+- **`telemetry-provider.tsx` consent re-init** — DROPPED (false alarm): `cookie-consent.tsx:54` calls `window.location.reload()` inside `onAccept`. Next mount runs the init effect with consent present → SDKs initialize. No code change needed.
 
-- **`telemetry-provider.tsx:53-101`** — cookie consent is read **once** at mount via `useEffect([])`. If the user accepts consent after the provider mounts (the cookie-consent banner is a sibling component, so this is the common path), telemetry never initializes until the next full page reload. The pathname effect on line 178 fires, but it only triggers `softReInitialize` after `gleapSingleton` exists — chicken-and-egg. Fix: listen for a `weblab:consent-accepted` custom event (or poll `document.cookie` on focus) and re-run the init effect.
+### Still Needs human review (5 issues — not user-blocking)
 
-- **`pricing-table/index.tsx:26,32`** — `isUnauthenticated={!user}` treats `user === undefined` (Convex query loading) as unauthenticated. Signed-in visitor on `/pricing` sees "Get Started Free" / "Get started" briefly before query lands and flips to "Current plan". Fix: distinguish loading from anonymous — `const isLoading = hasAuthCookie === true && user === undefined; const isUnauthenticated = hasAuthCookie === false`. Pass loading skeleton to FreeCard / ProCard.
+- **`telemetry-provider.tsx:9`** — `import { PostHogProvider as PHProvider } from 'posthog-js/react'` is a **static** import. File comment claims "Dynamic import for posthog-js keeps the SDK out of the critical-path bundle on landing/login/dashboard until cookie consent fires" — but this static line pulls the posthog-js React adapter (which pulls posthog-js itself) into the bundle anyway. Verified live: `/pricing` cold load fetches `node_modules_posthog-js_*.js` from `_next/static/chunks` even with `weblab.consent` cookie absent. Fix: lazy-load `PHProvider` via `const PHProvider = lazy(() => import('posthog-js/react').then(m => ({ default: m.PostHogProvider })))`, wrap consumer in `<Suspense>`. Bundle perf, not user-blocking.
 
-- **`avatar-dropdown/index.tsx:53`**, **`avatar-dropdown/plans.tsx:19,20`** — `useQuery(api.users.me, {})`, `useQuery(api.subscriptions.get, {})`, `useQuery(api.usage.get, {})` all fire **unconditionally**. Parent routes correctly gate the avatar render behind `isSignedIn` so this is currently safe, but the components have no defensive auth-cookie gate of their own. If they ever mount in an unauthenticated context (Storybook, design-system page, marketing surface), Convex returns 401 / floods console. Fix: mirror the `useHasAuthCookie() === true ? {} : 'skip'` pattern from `useSubscription` and `telemetry-provider`.
+- **`avatar-dropdown/index.tsx:53`**, **`avatar-dropdown/plans.tsx:19,20`** — `useQuery(api.users.me, {})`, `useQuery(api.subscriptions.get, {})`, `useQuery(api.usage.get, {})` all fire **unconditionally**. Parent routes correctly gate the avatar render behind `isSignedIn` so this is currently safe, but the components have no defensive auth-cookie gate of their own. If they ever mount in an unauthenticated context (Storybook, design-system page, marketing surface), Convex returns 401 / floods console. Fix: mirror the `useHasAuthCookie() === true ? {} : 'skip'` pattern from `useSubscription` and `telemetry-provider`. Defense-in-depth, not user-blocking.
 
 - **`avatar-dropdown/plans.tsx:28-31`** — three `@typescript-eslint/no-unsafe-enum-comparison` warnings: `product?.type === ProductType.FREE/PRO`. `product` is `subscription?.product ?? FREE_PRODUCT_CONFIG`. `FREE_PRODUCT_CONFIG.type` is the string literal `'free'` from `@weblab/stripe`; `subscription.product.type` flows through Convex (loses enum brand). Runtime-safe, lint-noisy. Fix: declare `FREE_PRODUCT_CONFIG.type` as `ProductType` in `@weblab/stripe`, or narrow at the boundary in plans.tsx with `as ProductType`.
 
-- **`pricing-modal/legacy-promotion.tsx:1-6`** — imports `motion` and `AnimatePresence` from `framer-motion` while the rest of the pricing UI imports from `motion/react`. Mixed deps means two animation libs ship to the bundle for one feature. Fix: switch this file to `motion/react` to match `index.tsx`, `free-card.tsx`, `pro-card.tsx`, `enterprise-card.tsx`.
+- **`pricing-modal/legacy-promotion.tsx:1-6`** — imports `motion` and `AnimatePresence` from `framer-motion` while the rest of the pricing UI imports from `motion/react`. Mixed deps means two animation libs ship to the bundle for one feature. Fix: switch this file to `motion/react` to match `index.tsx`, `free-card.tsx`, `pro-card.tsx`, `enterprise-card.tsx`. Bundle perf.
 
-- **`pricing-modal/legacy-promotion.tsx:42-47`** — false success toast on clipboard reject. `navigator.clipboard.writeText(code)` is fire-and-forget (now wrapped in `void`), but `toast.success('Copied to clipboard')` fires synchronously before the promise resolves. Clipboard permission-denied or unavailable-API paths show "Copied" while nothing was copied. Fix: convert handler to `async`, `await` the write inside try/catch, toast.error on rejection. Same pattern as the F-205 publish/dropdown/url fix in the 2026-05-28 backlog above.
+- **`pro-card.tsx:83-85`** — `if (!PRO_PRODUCT_CONFIG.prices.length) throw new Error('No pro tiers found')` throws during render. If the constant is ever empty (build misconfig, stripped tree), the entire pricing modal + table crashes to the error boundary. Currently always populated. Fix sketch: replace with an empty-state render (`<div>Pricing temporarily unavailable</div>`) and log to telemetry.
 
 ### Out-of-scope console errors (pre-existing, not in our 4 files — track separately)
 
@@ -2401,3 +2485,98 @@ Deep recursion through `apps/web/client/src/app/project/[id]/_components/right-p
 ### Validation (right-panel deep pass)
 
 - `bun typecheck` → exit 0 after fixes.
+
+## Bug Hunt — 2026-05-28 (user-blocking sweep on backlog)
+
+User asked to fix what actually breaks users — skip the nitty-gritty.
+Walked through the entire "Remaining backlog" section, verified each via
+direct read, applied only bounded fixes for user-blocking items.
+
+### FIXED this pass (10)
+
+- `apps/web/client/convex/subscriptionActions.ts:187-204` — **Upgrade /
+  downgrade aborted if Stripe schedule already released.** Wrapped
+  `subscriptionSchedules.release` in try/catch that swallows
+  `invalid_request_error` and lets the upgrade/downgrade proceed.
+  Mirrors `releaseSubscriptionSchedule` at line 335.
+- `apps/web/client/convex/domainActionsDb.ts:209-256` + `:338-377` —
+  **Duplicate `projectCustomDomains` rows on re-verify.**
+  `_verificationMarkVerified` and `_insertOwnedProjectDomain` now look
+  up via `by_domain_project` and patch existing rows instead of
+  blindly inserting. Stops `customGet`'s `.first()` from surfacing
+  stale URLs in production.
+- `apps/web/client/convex/projects.ts:760-795` —
+  **`runtimeMetadata` patch wiped `framework`.** Update mutation now
+  reads the existing metadata and shallow-merges incoming keys so a
+  partial patch (e.g. `{ cloud: { previewUrl } }`) preserves
+  `framework`. Static-html branches no longer regress to Next.js
+  scaffolder.
+- `apps/web/client/convex/projects.ts:106-141` — **`list` query did
+  serial `ctx.db.get` per membership.** Replaced the for-loop with
+  `Promise.all` over filtered memberships; users with 200 projects no
+  longer pay 200 sequential round-trips on every workspace render.
+- `apps/web/client/convex/presence.ts:79-105` — **`leave` threw on
+  deleted-project race.** Swallow NOT_FOUND / FORBIDDEN as no-op so
+  normal navigation flows don't surface error toasts.
+- `apps/web/client/convex/internal/cleanup.ts` —
+  **`purgeStaleCursors` unbounded collect.** Capped to `take(1000)`
+  per tick, wrapped each delete in try/catch so a single bad row
+  doesn't stop the batch. Returns `hadMore` for cron self-pacing.
+- `apps/web/client/convex/branches.ts:261-272` —
+  **`_insertBranchWithFrames` silently returned 0 frames if canvas
+  missing.** Throw NOT_FOUND so the caller surfaces a real error
+  instead of opening an empty, unusable branch.
+- `apps/web/client/convex/messages.ts:90-110` — **`upsert` silently
+  inserted a NEW row on stale `message.id` (cascade race).** Throw
+  NOT_FOUND so the client clears its cache instead of rendering
+  duplicate messages.
+- `apps/web/client/convex/publishActions.ts:162-176` —
+  **`provider.destroy()` in `finally` could mask the original deploy
+  error.** Wrapped destroy in try/catch + warn log; outer catch
+  surfaces the real failure to the user.
+- `apps/web/client/convex/projectActions.ts:82-94` — **Dead `csb.app`
+  fallback URL** (post-CodeSandbox-removal). Skip cleanly with
+  `{ skipped: 'no_preview_url' }` instead of scraping a 404 and
+  persisting a broken screenshot.
+
+### Verified NOT a bug
+
+- `apps/web/client/convex/lib/stripeWebhook.ts:308-326` — Agent claim
+  that unrelated `customer.subscription.updated` events silently clear
+  `scheduledAction`: verified false. Stripe sends the full subscription
+  object on every update; if a schedule is active the event's
+  `schedule` field is populated → handler takes the
+  `subscriptionScheduleId is present` branch, not the clear branch.
+
+### Still on backlog (architectural / not user-blocking)
+
+- Stripe webhook event-id idempotency — needs new `stripeEventLog`
+  table + schema migration.
+- `lib/stripeWebhook.ts` pro-rated upgrade math, `_clearScheduleChange`
+  filter-scan, stale `stripeSubscriptionItemId` patch in existing-row
+  branch.
+- `subscriptionActions.ts:216` invented `scheduledChangeAt` fallback;
+  `:243-251` not_authenticated vs missing_email UX.
+- `domainActionsDb.ts` defense-in-depth `requireCap` on write sites
+  (defended upstream); `simpleParseDomain` ccTLD parse (already in
+  agent-memory).
+- `cmsCollections.ts:207-217` cascade misses contextual
+  `current-field` / `page-item-field` bindings — requires page→
+  collection resolution, multi-file refactor.
+- `cmsActions.ts` source list existence oracle + silent initial-sync
+  error.
+- `internal/cascade.ts` orphan team workspaces on user-delete.
+- `workspaces.ts:541` unverified-email accept (Clerk-side mitigated).
+- `projectInvitations.ts` accept race, casing dup, legacy role
+  fallback.
+- `storage.getFileUrl` global namespace (in-file TODO).
+- `aiUsageEvents`/`branchActions`/`projects` perf nits.
+- `deployments._update` returns null on error — caller doesn't check.
+- `pageAccess.ts:99` PBKDF2 100k vs OWASP 600k.
+
+### Validation (user-blocking sweep)
+
+- `bun typecheck` → exit 0
+- `bunx convex codegen --typecheck disable` → exit 0
+- All edits confined to single-file scopes; no schema migration
+  needed.

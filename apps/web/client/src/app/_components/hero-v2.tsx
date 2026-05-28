@@ -75,12 +75,14 @@ export function HeroV2() {
     // to opening the auth modal when there's no user, so we don't need to
     // pre-fetch identity until the visitor signs in.
     const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { redirectToSignIn } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
     const handleGetStarted = () => {
         if (!user?._id) {
-            setIsAuthModalOpen(true);
+            // CTA with no in-flight state — full-page bounce to /sign-in
+            // instead of an AuthModal flash before navigation.
+            redirectToSignIn();
             return;
         }
         router.push(Routes.NEW_PROJECT);

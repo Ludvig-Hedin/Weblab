@@ -734,7 +734,7 @@
         "stillQuestions": "Still have questions?",
         "getStarted": "Get started",
         "srTitle": "Weblab Frequently Asked Questions",
-        "srBody": "Weblab is an AI-powered visual editor for frontend development. It connects to existing React and Next.js codebases and lets teams design with real components. AI is constrained to your design system, preventing brand drift. Changes become mergeable pull requests. Weblab supports React-based frameworks (Next.js, Vite, Remix, Astro, TanStack Start, and static HTML), all major styling approaches (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS), and component libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). It's open source under Apache 2.0.",
+        "srBody": "Weblab is an AI-powered visual editor for frontend development. It connects to existing React, Next.js, and plain HTML codebases — and can also generate brand-new projects from scratch with AI. AI is constrained to your design system, preventing brand drift. Changes become mergeable pull requests. Weblab ships scaffolders for Next.js 15 (Tailwind v4) and static HTML today, with Vite, Remix, Astro, and TanStack Start on the roadmap. It supports all major styling approaches (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS) and component libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). The desktop app loads your local codebase and pairs with your own AI coding agent such as Claude Code. It's open source under Apache 2.0.",
         "sections": {
             "about": {
                 "title": "About Weblab",
@@ -772,13 +772,25 @@
                 "q4": {
                     "question": "How do I get changes into production?",
                     "answer": "Changes you make in Weblab become real code changes in your repository. When you're ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation. The code is production-ready because it uses your actual components."
+                },
+                "q5": {
+                    "question": "Can I create a website from scratch with AI?",
+                    "answer": "Yes. You don't need an existing codebase to use Weblab. From the dashboard, hit \"Start blank\" to scaffold a fresh Next.js or static HTML project, then build it out using the AI chat and visual canvas in the editor — generate pages, drop in sections, refine layout and copy. Prompt-based project bootstrapping and GitHub template imports are on the roadmap."
+                },
+                "q6": {
+                    "question": "What AI models can I use?",
+                    "answer": "Weblab is model-agnostic. Choose between Claude Opus 4.7 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, and Kimi K2.6 — or run local models via Ollama on the desktop app. You can also bring your own API key. Reasoning effort is configurable per chat, from Fast to Deep."
+                },
+                "q7": {
+                    "question": "Does Weblab keep version history?",
+                    "answer": "Yes. Every change is tracked. The revisions panel shows the full edit history with the AI message or visual change that produced each revision. You can preview, restore, or branch from any prior state, and the underlying Git history stays clean."
                 }
             },
             "compatibility": {
                 "title": "Technical Compatibility",
                 "q1": {
                     "question": "What frontend frameworks does Weblab support?",
-                    "answer": "Weblab supports React-based frameworks: Next.js, Vite, Remix, Astro, TanStack Start, and static HTML. We're built on a Babel JSX/TSX parser optimized for the React ecosystem."
+                    "answer": "Today Weblab ships scaffolders for Next.js 15 (with Tailwind v4 and Turbopack) and plain HTML static sites. You can also connect any existing React codebase. Vite, Remix, Astro, and TanStack Start support is on the roadmap. We're built on a Babel JSX/TSX parser optimized for the React ecosystem."
                 },
                 "q2": {
                     "question": "What CSS and styling approaches does Weblab support?",
@@ -795,6 +807,14 @@
                 "q5": {
                     "question": "How does Weblab integrate with GitHub?",
                     "answer": "Weblab connects directly to your GitHub repository. Changes you make are tracked as real code changes. When you're ready to ship, Weblab creates a pull request with your changes that engineers can review, comment on, and merge using their normal workflow."
+                },
+                "q6": {
+                    "question": "Do you support plain HTML and static sites?",
+                    "answer": "Yes. Weblab ships a static HTML scaffolder out of the box — ideal for landing pages, portfolios, and marketing sites that don't need a framework. The visual editor and AI work the same way on static HTML as on React projects, so you get the full Weblab experience without spinning up a build pipeline."
+                },
+                "q7": {
+                    "question": "Where does my code run — cloud or desktop?",
+                    "answer": "Both. The hosted cloud version runs your projects in a secure cloud sandbox, so you can edit from anywhere with no local setup. The desktop app loads your existing local codebase and runs the dev server on your machine — useful when you want to keep code local or pair Weblab with your own AI coding agent like Claude Code (Codex, Cursor, and Gemini coming)."
                 }
             },
             "workflow": {
@@ -809,11 +829,19 @@
                 },
                 "q3": {
                     "question": "How does Weblab work with Claude Code or other AI coding tools?",
-                    "answer": "Weblab complements AI coding tools like Claude Code. Claude Code is great for building in the terminal, and Weblab adds the visual layer designers need. Use Claude Code to scaffold components, then use Weblab to visually iterate and refine. Changes from both tools merge into the same codebase."
+                    "answer": "The Weblab desktop app loads your local codebase and runs alongside Claude Code today, with Codex, Cursor, and Gemini support rolling out. You edit visually in Weblab while your AI agent works on the same files in the terminal — pairing visual control with autonomous code generation. You let the agent do the heavy lifting and step in with the canvas when you want pixel-level control."
                 },
                 "q4": {
                     "question": "Can I share my work with stakeholders who don't use Weblab?",
                     "answer": "Yes. Since Weblab works with real code, you can share your work directly as you created it on the canvas. Stakeholders see real, working UI, not static mockups that might not match the final product."
+                },
+                "q5": {
+                    "question": "What's free and what's paid?",
+                    "answer": "Weblab is open source under Apache 2.0 — you can self-host the whole thing for free from GitHub. The hosted cloud version has a free Basic plan with daily AI credits, and paid Pro, Launch, and Scale plans that unlock unlimited AI, custom domains, the \"Built with Weblab\" watermark removal, and team features. See the pricing page for the full breakdown."
+                },
+                "q6": {
+                    "question": "Can I deploy to a custom domain?",
+                    "answer": "Yes. Pro plans include one free custom domain hosted by Weblab — deploy directly from the dashboard. You can also export the code to GitHub and deploy anywhere you already host."
                 }
             },
             "company": {
@@ -2317,13 +2345,6 @@
             "headingSideBySide": "Side-by-side",
             "subhead": "Everything in one canvas. No tabs, no handoffs, no translation losses.",
             "cta": "Start building",
-            "brandVisual": {
-                "tokens": "Tokens",
-                "background": "Background",
-                "foreground": "Foreground",
-                "brand": "Brand",
-                "onBrand": "All proposals on-brand"
-            },
             "layersTitle": "Layers",
             "revisionToday": "Today",
             "revisionCurrent": "Current",
@@ -2348,10 +2369,10 @@
                     "title": "Your real components",
                     "paragraph": "Reuse your existing design system: buttons, cards, navs. Live components, not screenshots."
                 },
-                "brand": {
-                    "subtitle": "Tokens",
-                    "title": "Your colors and tokens, one panel",
-                    "paragraph": "Browse every design token in your project, across colors, typography, and spacing, and apply them with a click. Every change stays on-brand."
+                "cms": {
+                    "subtitle": "CMS",
+                    "title": "Content lives next to your design",
+                    "paragraph": "Manage posts, pages, and collections in one tidy panel. Edit a field and the canvas updates — no separate dashboard, no copy-paste."
                 },
                 "structure": {
                     "subtitle": "Structure",
@@ -2390,6 +2411,18 @@
                     "question": "Do I need to know how to code?",
                     "answer": "No. Designers use a visual canvas with familiar tools. Real code runs underneath, so you don't need to touch it unless you want to."
                 },
+                "htmlSites": {
+                    "question": "Can I build plain HTML websites?",
+                    "answer": "Yes. {appName} ships a static-HTML scaffolder for landing pages, portfolios, and marketing sites — no framework required."
+                },
+                "fromScratch": {
+                    "question": "Can I create a website from scratch with AI?",
+                    "answer": "Yes. Hit \"Start blank\" to scaffold a fresh project, then use the AI chat in the editor to generate pages, sections, and styles. No existing codebase needed."
+                },
+                "desktopAndOwnAI": {
+                    "question": "Can I use {appName} with my own AI coder?",
+                    "answer": "Yes. The desktop app loads your local codebase and runs alongside your AI coding agent — design visually in {appName} while Claude Code does the heavy lifting in your terminal. Codex, Cursor, and Gemini support is rolling out."
+                },
                 "collaborate": {
                     "question": "Can my team collaborate?",
                     "answer": "Yes. Share your canvas, leave spatial comments, and work together in real-time. Changes sync to code and can be submitted as PRs for engineers to review."
@@ -2400,7 +2433,7 @@
                 },
                 "free": {
                     "question": "Is there a free version of {appName}?",
-                    "answer": "Yes, {appName} can be self-hosted for free on GitHub. For the hosted cloud version, please contact our team."
+                    "answer": "Yes. {appName} is open source under Apache 2.0 — self-host the whole thing free from GitHub. The hosted cloud version has a free Basic plan with daily AI credits, plus paid plans for unlimited AI and custom domains."
                 },
                 "ownership": {
                     "question": "Who owns the code?",

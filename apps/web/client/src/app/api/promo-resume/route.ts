@@ -6,6 +6,7 @@ import { fetchAction } from 'convex/nextjs';
 
 import { getBannerById } from '@/lib/promo-banners';
 import { Routes } from '@/utils/constants';
+import { isStripeCheckoutUrl } from './helpers';
 
 /**
  * Post-login resume endpoint for the promo banner flow.
@@ -53,7 +54,15 @@ export async function GET(req: NextRequest) {
             { token: token ?? undefined },
         );
         if ('redirectUrl' in result && result.redirectUrl) {
-            return NextResponse.redirect(result.redirectUrl, { status: 303 });
+            // Pin the 303 target to Stripe-owned hosts. Today
+            // `startPromoCheckout` returns a Stripe Checkout URL, but if any
+            // future change ever surfaces a user-influenced URL through this
+            // action, an unguarded redirect would become an open-redirect
+            // off the Weblab domain.
+            if (isStripeCheckoutUrl(result.redirectUrl)) {
+                return NextResponse.redirect(result.redirectUrl, { status: 303 });
+            }
+            console.warn('[promo-resume] refused non-Stripe redirect target', result.redirectUrl);
         }
     } catch (error) {
         console.error('[promo-resume] startPromoCheckout failed', error);

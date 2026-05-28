@@ -25,7 +25,7 @@ export function ExternalTemplateActions({
     className,
 }: ExternalTemplateActionsProps) {
     const user = useQuery(api.users.me, {});
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { redirectToSignIn } = useAuthContext();
     const router = useRouter();
 
     const creatingHref = `${Routes.PROJECT_CREATING}?templateId=${template.id}`;
@@ -33,7 +33,7 @@ export function ExternalTemplateActions({
     const handleUseTemplate = async () => {
         if (!user?._id) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, creatingHref);
-            setIsAuthModalOpen(true);
+            redirectToSignIn();
             return;
         }
         // Navigate immediately — progress is shown on the creating page.

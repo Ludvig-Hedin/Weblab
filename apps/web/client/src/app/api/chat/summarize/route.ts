@@ -18,6 +18,27 @@ const MAX_MESSAGES = 200;
 const MAX_MESSAGE_BYTES = 16 * 1024;
 const MAX_TOTAL_BYTES = 1 * 1024 * 1024;
 
+// Per-conversation cooldown for the background summarizer. The client fires
+// this route during typing / mid-stream; without a gate each keystroke would
+// burn another credit + OpenRouter call. 60s lines up with how fast a
+// human-paced chat actually pushes new tokens.
+const SUMMARIZE_COOLDOWN_MS = 60_000;
+// Memory guard for the in-process cooldown map. If the process serves more
+// than this many distinct conversations between prunes, sweep entries older
+// than the cooldown window.
+const SUMMARY_FIRES_PRUNE_THRESHOLD = 2_000;
+
+const recentSummaryFires = new Map<string, number>();
+
+function pruneSummaryFiresIfLarge(now: number): void {
+    if (recentSummaryFires.size < SUMMARY_FIRES_PRUNE_THRESHOLD) return;
+    for (const [conversationId, firedAt] of recentSummaryFires) {
+        if (now - firedAt > SUMMARIZE_COOLDOWN_MS) {
+            recentSummaryFires.delete(conversationId);
+        }
+    }
+}
+
 /**
  * Background summarization endpoint.
  *
@@ -87,10 +108,16 @@ export async function POST(req: NextRequest) {
         );
     }
     {
+        // Count UTF-8 bytes (not UTF-16 code units) so multibyte content
+        // (emoji, CJK) is bounded by the same byte budget as /api/chat. JS
+        // `string.length` undercounts UTF-8 by up to 3× for CJK and 2× for
+        // surrogate-pair emoji, which would let crafted payloads bypass the
+        // MAX_MESSAGE_BYTES cap as measured by OpenRouter token billing.
+        const encoder = new TextEncoder();
         let totalBytes = 0;
         for (const m of parsed.messages) {
-            const serialized = JSON.stringify(m);
-            if (serialized.length > MAX_MESSAGE_BYTES) {
+            const messageBytes = encoder.encode(JSON.stringify(m)).length;
+            if (messageBytes > MAX_MESSAGE_BYTES) {
                 return new Response(
                     JSON.stringify({
                         error: `message exceeds ${MAX_MESSAGE_BYTES} bytes`,
@@ -99,7 +126,7 @@ export async function POST(req: NextRequest) {
                     { status: 400, headers: { 'Content-Type': 'application/json' } },
                 );
             }
-            totalBytes += serialized.length;
+            totalBytes += messageBytes;
             if (totalBytes > MAX_TOTAL_BYTES) {
                 return new Response(
                     JSON.stringify({
@@ -130,6 +157,44 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json' },
         });
     }
+
+    // Drop redundant fires BEFORE charging the user. The client-side
+    // `useConversationSummarizer` runs on every keystroke once the context
+    // window crosses 50%, so without a server-side gate a single typing
+    // session can burn dozens of credits from the user's daily quota and
+    // surface as an unexpected "credit limit exceeded" toast next turn.
+    //
+    // Two cheap gates, in order of selectivity:
+    //   1. Same-tip check — if `conversations.getSummary` already covers the
+    //      last message id in the payload, the LLM was already invoked for
+    //      this exact tip. Skip.
+    //   2. Per-process cooldown — even when the tip moves message-by-message,
+    //      cap to one summary per conversation per `SUMMARIZE_COOLDOWN_MS`.
+    //      Map is process-local; replicas don't share state. That's
+    //      acceptable: the worst case under fan-out is N replicas × 1 fire
+    //      per cooldown window, vs the unbounded burst the client can
+    //      generate today.
+    const lastMessage = parsed.messages[parsed.messages.length - 1] as { id?: string } | undefined;
+    const lastMessageId = lastMessage?.id;
+
+    if (lastMessageId) {
+        const existingSummary = await fetchQuery(
+            api.conversations.getSummary,
+            { conversationId: parsed.conversationId as Id<'conversations'> },
+            { token: ownershipToken },
+        ).catch(() => null);
+        if (existingSummary?.upToMessageId === lastMessageId) {
+            return new Response(null, { status: 204 });
+        }
+    }
+
+    const now = Date.now();
+    const lastFireAt = recentSummaryFires.get(parsed.conversationId) ?? 0;
+    if (now - lastFireAt < SUMMARIZE_COOLDOWN_MS) {
+        return new Response(null, { status: 204 });
+    }
+    recentSummaryFires.set(parsed.conversationId, now);
+    pruneSummaryFiresIfLarge(now);
 
     let usageRecord: {
         usageRecordId: string | undefined;

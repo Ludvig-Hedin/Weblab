@@ -102,7 +102,18 @@ export function PlanQuestionCard({
             {submitted && (
                 <div className="text-foreground-tertiary text-mini mt-2 flex items-center gap-1">
                     <Icons.CheckCircled className="h-3 w-3" />
-                    <span>Answered: {Array.from(selected).join(', ')}</span>
+                    {/*
+                     * `selected` is local state, only populated by user clicks
+                     * in this session. When the message comes back as answered
+                     * after a refresh / from history, `selected` is empty and
+                     * the previous "Answered: ..." rendered as "Answered: ".
+                     * Show "Answered" alone when we can't reproduce the labels.
+                     */}
+                    <span>
+                        {selected.size > 0
+                            ? `Answered: ${Array.from(selected).join(', ')}`
+                            : 'Answered'}
+                    </span>
                 </div>
             )}
         </div>

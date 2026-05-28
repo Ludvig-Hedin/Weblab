@@ -259,8 +259,11 @@ const ToolCallDisplayComponent = ({
                 key={toolPart.toolCallId}
                 content={'bunx tsc --noEmit'}
                 isStream={isStream}
-                defaultStdOut={(result?.success ? '✅ Typecheck passed!' : result?.error) ?? null}
-                defaultStdErr={error ?? null}
+                // On failure, send the (ANSI-stripped) error to stderr only —
+                // sending it to BOTH stdout and stderr (previous behavior) made
+                // the same error render twice in the output panel.
+                defaultStdOut={result?.success ? '✅ Typecheck passed!' : null}
+                defaultStdErr={result?.success ? null : (error || null)}
             />
         );
     }

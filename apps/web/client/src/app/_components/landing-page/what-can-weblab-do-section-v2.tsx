@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -176,121 +176,111 @@ function ComponentsVisual() {
     );
 }
 
-function BrandVisual() {
-    const colorTokens: {
-        name: string;
-        hex: string;
-        swatch: string;
-        active?: boolean;
-    }[] = [
-        { name: 'background', hex: '#131314', swatch: 'bg-background' },
-        {
-            name: 'background-secondary',
-            hex: '#1F1F1F',
-            swatch: 'bg-background-secondary',
-        },
-        { name: 'foreground', hex: '#F9F9F9', swatch: 'bg-foreground' },
-        {
-            name: 'foreground-secondary',
-            hex: '#E8E8E8/60',
-            swatch: 'bg-foreground-secondary',
-        },
-        {
-            name: 'foreground-brand',
-            hex: '#0F9BFF',
-            swatch: 'bg-foreground-brand',
-            active: true,
-        },
+function CmsVisual() {
+    type Status = 'Published' | 'Draft' | 'Scheduled';
+    const entries: { title: string; status: Status; updated: string }[] = [
+        { title: 'Launching Weblab CMS', status: 'Published', updated: '2h' },
+        { title: 'Design tokens, explained', status: 'Published', updated: '1d' },
+        { title: 'How we built the canvas', status: 'Draft', updated: '3d' },
+        { title: 'Q3 roadmap', status: 'Scheduled', updated: '5d' },
+        { title: 'Hiring designers', status: 'Draft', updated: '1w' },
     ];
-    const typeTokens: {
-        name: string;
-        sample: string;
-        meta: string;
-        mono?: boolean;
-    }[] = [
-        { name: 'Inter', sample: 'Aa', meta: 'Sans · 16/24' },
-        { name: 'Berkeley Mono', sample: 'Aa', meta: 'Mono · 13/20', mono: true },
-    ];
+    const cycle = useAmbientCycle(entries.length, 2200);
     return (
-        <div className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]">
-            {/* Header */}
+        <div
+            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+            onMouseEnter={cycle.onMouseEnter}
+            onMouseLeave={cycle.onMouseLeave}
+        >
             <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-                <div className="text-style-tagline">Tokens</div>
+                <div className="flex items-center gap-2">
+                    <span className="text-style-tagline">Posts</span>
+                    <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
+                        {entries.length}
+                    </span>
+                </div>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
-
-            {/* Colors */}
-            <div className="flex flex-col gap-0.5 p-1.5">
-                <div className="text-style-tagline mb-1 px-3 pt-1">Colors</div>
-                {colorTokens.map((token) => (
-                    <div
-                        key={token.name}
-                        className={cn(
-                            'group/token relative flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors duration-150',
-                            token.active
-                                ? 'bg-foreground-primary/[0.06] ring-foreground-primary/10 ring-1 ring-inset'
-                                : 'hover:bg-foreground-primary/[0.03]',
-                        )}
-                    >
-                        <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                            <span
-                                className={cn(
-                                    'ring-foreground-primary/15 h-3.5 w-3.5 rounded-[3px] ring-1 ring-inset',
-                                    token.swatch,
-                                )}
-                            />
-                        </span>
-                        <span
-                            className={cn(
-                                'flex-1 truncate font-mono text-[10.5px] font-light',
-                                token.active
-                                    ? 'text-foreground-primary'
-                                    : 'text-foreground-secondary',
-                            )}
+            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
+                {entries.map((entry, idx) => {
+                    const isActive = idx === cycle.index;
+                    return (
+                        <button
+                            key={entry.title}
+                            type="button"
+                            onClick={() => cycle.setIndex(idx)}
+                            className="group/row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150"
                         >
-                            {token.name}
-                        </span>
-                        <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
-                            {token.hex}
-                        </span>
-                        {token.active && (
-                            <span
-                                className="bg-foreground-brand ml-1 h-1.5 w-1.5 shrink-0 rounded-full"
-                                aria-hidden
-                            />
-                        )}
-                    </div>
-                ))}
-            </div>
-
-            {/* Typography */}
-            <div className="flex flex-col gap-0.5 border-t border-black/[0.05] p-1.5 dark:border-white/[0.06]">
-                <div className="text-style-tagline mb-1 px-3 pt-1">Typography</div>
-                {typeTokens.map((token) => (
-                    <div
-                        key={token.name}
-                        className="hover:bg-foreground-primary/[0.03] flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors duration-150"
-                    >
-                        <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                            {isActive && (
+                                <motion.span
+                                    layoutId="cms-active"
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 380,
+                                        damping: 34,
+                                        mass: 0.45,
+                                    }}
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
+                                    aria-hidden
+                                />
+                            )}
+                            <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                                <Icons.File
+                                    className={cn(
+                                        'h-3.5 w-3.5 transition-colors duration-150',
+                                        isActive
+                                            ? 'text-foreground-secondary'
+                                            : 'text-foreground-tertiary',
+                                    )}
+                                />
+                            </span>
                             <span
                                 className={cn(
-                                    'border-foreground-primary/10 bg-background-secondary text-foreground-primary inline-flex h-5 w-5 items-center justify-center rounded-[3px] border text-[11px] leading-none',
-                                    token.mono && 'font-mono',
+                                    'text-small relative flex-1 truncate font-light tracking-tight transition-colors duration-150',
+                                    isActive
+                                        ? 'text-foreground-primary'
+                                        : 'text-foreground-secondary',
                                 )}
                             >
-                                {token.sample}
+                                {entry.title}
                             </span>
-                        </span>
-                        <span className="text-foreground-secondary flex-1 text-[11px] font-light tracking-tight">
-                            {token.name}
-                        </span>
-                        <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
-                            {token.meta}
-                        </span>
-                    </div>
-                ))}
+                            <CmsStatusDot status={entry.status} />
+                            <span className="text-foreground-tertiary text-mini relative w-6 text-right font-mono tabular-nums">
+                                {entry.updated}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
         </div>
+    );
+}
+
+function CmsStatusDot({ status }: { status: 'Published' | 'Draft' | 'Scheduled' }) {
+    if (status === 'Published') {
+        return (
+            <span
+                role="img"
+                className="bg-foreground-brand relative h-1.5 w-1.5 shrink-0 rounded-full"
+                aria-label="Published"
+            />
+        );
+    }
+    if (status === 'Scheduled') {
+        return (
+            <span
+                role="img"
+                className="border-foreground-primary/30 relative h-1.5 w-1.5 shrink-0 rounded-full border"
+                aria-label="Scheduled"
+            />
+        );
+    }
+    return (
+        <span
+            role="img"
+            className="bg-foreground-primary/20 relative h-1.5 w-1.5 shrink-0 rounded-full"
+            aria-label="Draft"
+        />
     );
 }
 
@@ -517,201 +507,475 @@ function RevisionVisual() {
     );
 }
 
-// ─── Code Panel — Xcode-style editor with typewriter animation ───────────
+// ─── Code Panel — Figma-parity editor (228:17230) with token-reveal animation
 
 type CodeTok = {
-    t: 'kw' | 'str' | 'jsx' | 'attr' | 'fn' | 'text' | 'punct' | 'ws';
+    t:
+        | 'kw'
+        | 'str'
+        | 'quote'
+        | 'text'
+        | 'tag'
+        | 'attr'
+        | 'punct'
+        | 'brace'
+        | 'jsxvar'
+        | 'destr'
+        | 'destrvar'
+        | 'ws';
     v: string;
 };
 
-// Theme-aware code-token colors via CSS vars. Light = Xcode, dark = VS Dark.
 const CODE_TOKEN_VARS: Record<CodeTok['t'], string> = {
     kw: 'var(--code-kw)',
     str: 'var(--code-str)',
-    jsx: 'var(--code-jsx)',
-    attr: 'var(--code-attr)',
-    fn: 'var(--code-fn)',
+    quote: 'var(--code-quote)',
     text: 'var(--code-text)',
+    tag: 'var(--code-tag)',
+    attr: 'var(--code-attr)',
     punct: 'var(--code-punct)',
-    ws: 'var(--code-text)',
+    brace: 'var(--code-brace)',
+    jsxvar: 'var(--code-jsxvar)',
+    destr: 'var(--code-destr)',
+    destrvar: 'var(--code-destrvar)',
+    ws: 'inherit',
 };
 
 const HOME_TOKENS: CodeTok[] = [
-    { t: 'str', v: '"use client"' },
-    { t: 'punct', v: ';' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: 'use client' },
+    { t: 'quote', v: '"' },
+    { t: 'text', v: ';' },
     { t: 'ws', v: '\n\n' },
+
     { t: 'kw', v: 'import' },
-    { t: 'ws', v: ' ' },
-    { t: 'text', v: 'React' },
-    { t: 'punct', v: ', { ' },
-    { t: 'text', v: 'useState' },
-    { t: 'punct', v: ' } ' },
+    { t: 'text', v: ' React, { useState } ' },
     { t: 'kw', v: 'from' },
     { t: 'ws', v: ' ' },
-    { t: 'str', v: '"react"' },
-    { t: 'punct', v: ';' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: 'react' },
+    { t: 'quote', v: '"' },
+    { t: 'text', v: ';' },
     { t: 'ws', v: '\n' },
+
     { t: 'kw', v: 'import' },
-    { t: 'ws', v: ' ' },
-    { t: 'text', v: 'Navigation' },
-    { t: 'ws', v: ' ' },
+    { t: 'text', v: ' Navigation ' },
     { t: 'kw', v: 'from' },
     { t: 'ws', v: ' ' },
-    { t: 'str', v: '"./Navigation"' },
-    { t: 'punct', v: ';' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: './Navigation' },
+    { t: 'quote', v: '"' },
+    { t: 'text', v: ';' },
     { t: 'ws', v: '\n' },
+
     { t: 'kw', v: 'import' },
-    { t: 'ws', v: ' ' },
-    { t: 'text', v: 'SupportChat' },
-    { t: 'ws', v: ' ' },
+    { t: 'text', v: ' SupportChat ' },
     { t: 'kw', v: 'from' },
     { t: 'ws', v: ' ' },
-    { t: 'str', v: '"./SupportChat"' },
-    { t: 'punct', v: ';' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: './SupportChat' },
+    { t: 'quote', v: '"' },
+    { t: 'text', v: ';' },
     { t: 'ws', v: '\n\n' },
+
     { t: 'kw', v: 'export default function' },
     { t: 'ws', v: ' ' },
-    { t: 'fn', v: 'Dashboard' },
-    { t: 'punct', v: '() {' },
+    { t: 'destr', v: 'Dashboard() {' },
     { t: 'ws', v: '\n  ' },
+
     { t: 'kw', v: 'const' },
     { t: 'ws', v: ' ' },
-    { t: 'punct', v: '[' },
-    { t: 'text', v: 'activeTab' },
-    { t: 'punct', v: ', ' },
-    { t: 'text', v: 'setActiveTab' },
-    { t: 'punct', v: '] = ' },
-    { t: 'fn', v: 'useState' },
-    { t: 'punct', v: '(' },
-    { t: 'str', v: '"support"' },
-    { t: 'punct', v: ');' },
+    { t: 'destr', v: '[' },
+    { t: 'destrvar', v: 'activeTab' },
+    { t: 'destr', v: ', ' },
+    { t: 'destrvar', v: 'setActiveTab' },
+    { t: 'destr', v: '] ' },
+    { t: 'text', v: '= ' },
+    { t: 'destr', v: 'useState(' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: 'support' },
+    { t: 'quote', v: '"' },
+    { t: 'destr', v: ');' },
     { t: 'ws', v: '\n\n  ' },
+
     { t: 'kw', v: 'return' },
     { t: 'ws', v: ' ' },
-    { t: 'punct', v: '(' },
+    { t: 'destr', v: '(' },
     { t: 'ws', v: '\n    ' },
+
     { t: 'punct', v: '<' },
-    { t: 'jsx', v: 'div' },
+    { t: 'tag', v: 'div' },
     { t: 'ws', v: ' ' },
     { t: 'attr', v: 'className' },
-    { t: 'punct', v: '=' },
-    { t: 'str', v: '"flex h-[600px] border rounded-lg overflow-hidden"' },
+    { t: 'text', v: '=' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: 'flex h-[600px] border rounded-lg overflow-hidden' },
+    { t: 'quote', v: '"' },
     { t: 'punct', v: '>' },
     { t: 'ws', v: '\n      ' },
+
     { t: 'punct', v: '<' },
-    { t: 'jsx', v: 'Chat' },
+    { t: 'tag', v: 'div' },
     { t: 'ws', v: ' ' },
-    { t: 'punct', v: '/>' },
-    { t: 'ws', v: '\n    ' },
-    { t: 'punct', v: '</' },
-    { t: 'jsx', v: 'div' },
+    { t: 'attr', v: 'className' },
+    { t: 'text', v: '=' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: 'w-64 border-r' },
+    { t: 'quote', v: '"' },
     { t: 'punct', v: '>' },
-    { t: 'ws', v: '\n  );' },
-    { t: 'ws', v: '\n}' },
+    { t: 'ws', v: '\n       ' },
+
+    { t: 'punct', v: '<' },
+    { t: 'tag', v: 'Navigation' },
+    { t: 'ws', v: ' ' },
+    { t: 'attr', v: 'activeTab' },
+    { t: 'text', v: '=' },
+    { t: 'brace', v: '{' },
+    { t: 'jsxvar', v: 'activeTab' },
+    { t: 'brace', v: '}' },
+    { t: 'ws', v: ' ' },
+    { t: 'attr', v: 'onSelectTab' },
+    { t: 'text', v: '=' },
+    { t: 'brace', v: '{' },
+    { t: 'jsxvar', v: 'setActiveTab' },
+    { t: 'brace', v: '}' },
+    { t: 'punct', v: ' />' },
+    { t: 'ws', v: '\n      ' },
+
+    { t: 'punct', v: '</' },
+    { t: 'tag', v: 'div' },
+    { t: 'punct', v: '>' },
+    { t: 'ws', v: '\n      ' },
+
+    { t: 'punct', v: '<' },
+    { t: 'tag', v: 'div' },
+    { t: 'ws', v: ' ' },
+    { t: 'attr', v: 'className' },
+    { t: 'text', v: '=' },
+    { t: 'quote', v: '"' },
+    { t: 'str', v: 'w-80 border-l' },
+    { t: 'quote', v: '"' },
+    { t: 'punct', v: '>' },
+    { t: 'ws', v: '\n        ' },
+
+    { t: 'punct', v: '<' },
+    { t: 'tag', v: 'Chat' },
+    { t: 'punct', v: ' />' },
+    { t: 'ws', v: '\n      ' },
+
+    { t: 'punct', v: '</' },
+    { t: 'tag', v: 'div' },
+    { t: 'punct', v: '>' },
+    { t: 'ws', v: '\n    ' },
+
+    { t: 'punct', v: '</' },
+    { t: 'tag', v: 'div' },
+    { t: 'punct', v: '>' },
+    { t: 'ws', v: '\n  ' },
+
+    { t: 'destr', v: ');' },
+    { t: 'ws', v: '\n' },
+    { t: 'destr', v: '}' },
 ];
 
-const TOTAL_CHARS = HOME_TOKENS.reduce((sum, tok) => sum + tok.v.length, 0);
+function escapeHtmlChars(s: string) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// `animateFromIndex` — only spans at/after this index get the fade-in keyframe.
+// The loop rebuilds the whole innerHTML each tick, so animating every span would
+// re-trigger the fade on all prior tokens (whole-block flicker). Animating only the
+// newest token keeps the reveal clean — each glyph fades in exactly once.
+function buildTokenHtml(count: number, opts: { animateFromIndex: number; withCaret: boolean }) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        const tok = HOME_TOKENS[i]!;
+        if (tok.t === 'ws') {
+            html += escapeHtmlChars(tok.v);
+            continue;
+        }
+        const color = CODE_TOKEN_VARS[tok.t];
+        const anim =
+            i >= opts.animateFromIndex
+                ? 'animation:code-token-in .24s cubic-bezier(.25,.46,.45,.94) both;'
+                : '';
+        html += `<span style="color:${color};white-space:pre;${anim}">${escapeHtmlChars(tok.v)}</span>`;
+    }
+    if (opts.withCaret) {
+        const isComplete = count >= HOME_TOKENS.length;
+        const caretAnim = isComplete
+            ? 'animation:code-caret-blink 1s steps(1) infinite;'
+            : '';
+        html += `<span aria-hidden="true" contenteditable="false" data-caret="true" style="display:inline-block;width:1.5px;height:14px;background:var(--code-caret);vertical-align:middle;transform:translateY(2px);margin-left:1px;${caretAnim}"></span>`;
+    }
+    return html;
+}
 
 function CodePanelVisual() {
-    const [charCount, setCharCount] = useState(0);
-    const [paused, setPaused] = useState(false);
+    const [interactive, setInteractive] = useState(false);
+    const [selPos, setSelPos] = useState<{ top: number; left: number } | null>(null);
+    const preRef = useRef<HTMLPreElement | null>(null);
+    const revealedRef = useRef(0);
+    const pausedRef = useRef(false);
+    const interactiveRef = useRef(false);
+    const timeoutRef = useRef<number | null>(null);
+    const total = HOME_TOKENS.length;
+
+    // Imperative animation — drives pre.innerHTML directly so React never re-renders the
+    // editable surface. After the first user interaction the loop stops and the DOM is
+    // owned by the browser (contentEditable edits survive subsequent React re-renders).
+    const renderTokens = useCallback(
+        (animateLast: boolean) => {
+            const pre = preRef.current;
+            if (!pre) return;
+            pre.innerHTML = buildTokenHtml(revealedRef.current, {
+                // Animate only the just-revealed token; everything before it is static.
+                animateFromIndex: animateLast ? revealedRef.current - 1 : revealedRef.current,
+                withCaret: true,
+            });
+        },
+        [],
+    );
+
+    const scheduleNext = useCallback(() => {
+        if (interactiveRef.current || pausedRef.current) return;
+        // Clear any in-flight timer so resume-after-pause can't double-schedule.
+        if (timeoutRef.current !== null) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        const idx = revealedRef.current;
+        if (idx >= total) {
+            timeoutRef.current = window.setTimeout(() => {
+                if (interactiveRef.current || pausedRef.current) return;
+                revealedRef.current = 0;
+                renderTokens(false);
+                scheduleNext();
+            }, 4500);
+            return;
+        }
+        const delay = HOME_TOKENS[idx]?.t === 'ws' ? 24 : 52;
+        timeoutRef.current = window.setTimeout(() => {
+            if (interactiveRef.current || pausedRef.current) return;
+            revealedRef.current = idx + 1;
+            renderTokens(true);
+            scheduleNext();
+        }, delay);
+    }, [total, renderTokens]);
 
     useEffect(() => {
-        if (paused) return;
-        if (charCount < TOTAL_CHARS) {
-            const id = setTimeout(() => setCharCount((c) => c + 1), 14);
-            return () => clearTimeout(id);
-        }
-        const id = setTimeout(() => setCharCount(0), 4200);
-        return () => clearTimeout(id);
-    }, [charCount, paused]);
+        renderTokens(false);
+        scheduleNext();
+        return () => {
+            if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+        };
+    }, [renderTokens, scheduleNext]);
 
-    let consumed = 0;
-    const fragments: React.ReactNode[] = [];
-    for (let i = 0; i < HOME_TOKENS.length; i++) {
-        const tok = HOME_TOKENS[i]!;
-        const start = consumed;
-        const end = consumed + tok.v.length;
-        if (start >= charCount) break;
-        const slice = end <= charCount ? tok.v : tok.v.slice(0, charCount - start);
-        fragments.push(
-            <span key={i} style={{ color: CODE_TOKEN_VARS[tok.t] }}>
-                {slice}
-            </span>,
-        );
-        consumed = end;
-    }
-    const typing = charCount < TOTAL_CHARS;
+    // On enter-interactive: stop animation, render full content without caret, focus pre.
+    useEffect(() => {
+        if (!interactive) return;
+        const pre = preRef.current;
+        if (!pre) return;
+        if (timeoutRef.current !== null) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        pre.innerHTML = buildTokenHtml(total, { animateFromIndex: total, withCaret: false });
+        pre.focus({ preventScroll: true });
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+    }, [interactive, total]);
+
+    useEffect(() => {
+        function onSelChange() {
+            const pre = preRef.current;
+            const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+            if (!pre || !sel || sel.rangeCount === 0 || sel.isCollapsed) {
+                setSelPos(null);
+                return;
+            }
+            const range = sel.getRangeAt(0);
+            if (!pre.contains(range.commonAncestorContainer)) {
+                setSelPos(null);
+                return;
+            }
+            const rect = range.getBoundingClientRect();
+            if (rect.width === 0 && rect.height === 0) {
+                setSelPos(null);
+                return;
+            }
+            const preRect = pre.getBoundingClientRect();
+            setSelPos({
+                top: rect.top - preRect.top,
+                left: rect.left + rect.width / 2 - preRect.left,
+            });
+        }
+        document.addEventListener('selectionchange', onSelChange);
+        return () => document.removeEventListener('selectionchange', onSelChange);
+    }, []);
+
+    const enterInteractive = () => {
+        if (interactiveRef.current) return;
+        interactiveRef.current = true;
+        setInteractive(true);
+    };
+
+    const dismissSelection = () => {
+        if (typeof window !== 'undefined') window.getSelection()?.removeAllRanges();
+        setSelPos(null);
+    };
+
+    const onPanelEnter = () => {
+        pausedRef.current = true;
+    };
+    const onPanelLeave = () => {
+        pausedRef.current = false;
+        // Resume the typing loop — pause alone dead-ends the timer chain.
+        if (!interactiveRef.current) scheduleNext();
+    };
 
     return (
         <div
-            className="w-full max-w-sm"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
+            className="w-full max-w-[560px]"
+            onMouseEnter={onPanelEnter}
+            onMouseLeave={onPanelLeave}
         >
             <div
                 className={cn(
-                    'overflow-hidden rounded-[12px] border shadow-[0_10px_40px_-12px_rgba(0,0,0,0.25)]',
-                    // Light: Xcode cream
-                    'border-black/[0.06] bg-[#fbf6ed]',
-                    // Dark: VS Code-style
-                    'dark:border-0 dark:bg-[#1E1E1F]',
+                    'overflow-hidden rounded-[10px]',
+                    'shadow-[0_28px_70px_-12px_rgba(0,0,0,0.14),0_14px_32px_-8px_rgba(0,0,0,0.1),0_0_0_1px_rgba(38,37,30,0.1)]',
+                    'bg-[rgba(250,250,250,0.5)] backdrop-blur-[12px]',
+                    'dark:bg-[rgba(28,28,29,0.55)]',
+                    'dark:shadow-[0_28px_70px_-12px_rgba(0,0,0,0.45),0_14px_32px_-8px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)]',
                 )}
                 style={
                     {
-                        '--code-kw': '#AD3DA4',
-                        '--code-str': '#D12F1B',
-                        '--code-jsx': '#1F8E48',
-                        '--code-attr': '#B85800',
-                        '--code-fn': '#5C7BA1',
-                        '--code-text': '#1F2024',
-                        '--code-punct': '#4A4A4A',
+                        '--code-kw': '#b3003f',
+                        '--code-str': '#aa52a2',
+                        '--code-quote': '#9e94d5',
+                        '--code-text': 'rgba(20,20,20,0.92)',
+                        '--code-tag': '#1f8a65',
+                        '--code-attr': '#6049b3',
+                        '--code-punct': 'rgba(20,20,20,0.68)',
+                        '--code-brace': '#427986',
+                        '--code-jsxvar': '#c08532',
+                        '--code-destr': '#db704b',
+                        '--code-destrvar': '#206595',
+                        '--code-caret': '#26251e',
                     } as React.CSSProperties
                 }
             >
                 <style>{`
                   .dark .code-panel-root {
-                    --code-kw: #C586C0;
-                    --code-str: #CE9178;
-                    --code-jsx: #4EC9B0;
-                    --code-attr: #9CDCFE;
-                    --code-fn: #DCDCAA;
-                    --code-text: #D4D4D4;
-                    --code-punct: #808080;
+                    --code-kw: #c586c0;
+                    --code-str: #ce9178;
+                    --code-quote: #ce9178;
+                    --code-text: rgba(229,229,229,0.92);
+                    --code-tag: #4ec9b0;
+                    --code-attr: #9cdcfe;
+                    --code-punct: rgba(229,229,229,0.55);
+                    --code-brace: #dcdcaa;
+                    --code-jsxvar: #dcdcaa;
+                    --code-destr: #569cd6;
+                    --code-destrvar: #9cdcfe;
+                    --code-caret: rgba(255,255,255,0.85);
                   }
+                  @keyframes code-caret-blink {
+                    0%, 50% { opacity: 1; }
+                    50.01%, 100% { opacity: 0; }
+                  }
+                  @keyframes code-token-in {
+                    from { opacity: 0; filter: blur(2px); }
+                    to { opacity: 1; filter: blur(0); }
+                  }
+                  .code-panel-root pre::selection { background: rgba(38,37,30,0.18); }
+                  .code-panel-root pre *::selection { background: rgba(38,37,30,0.18); }
+                  .dark .code-panel-root pre::selection { background: rgba(86,156,214,0.32); }
+                  .dark .code-panel-root pre *::selection { background: rgba(86,156,214,0.32); }
                 `}</style>
                 <div className="code-panel-root">
-                    {/* Title bar */}
-                    <div className="relative flex items-center border-b border-black/[0.06] px-2.5 py-2 dark:border-white/[0.06]">
-                        <div className="flex items-center gap-[5px]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
-                            <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
-                            <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
+                    {/* Title bar — 28px */}
+                    <div className="relative flex h-7 items-center justify-between border-b border-[rgba(38,37,30,0.1)] pr-3 pl-2 dark:border-white/[0.08]">
+                        <div className="flex items-center gap-1.5">
+                            <span className="size-2.5 rounded-full bg-[rgba(38,37,30,0.2)] dark:bg-white/[0.22]" />
+                            <span className="size-2.5 rounded-full bg-[rgba(38,37,30,0.2)] dark:bg-white/[0.22]" />
+                            <span className="size-2.5 rounded-full bg-[rgba(38,37,30,0.2)] dark:bg-white/[0.22]" />
                         </div>
-                        <span className="absolute left-1/2 -translate-x-1/2 text-[9.5px] font-medium text-[#3a3a3a]/70 dark:text-white/55">
+                        <span className="absolute left-1/2 -translate-x-1/2 text-[12px] leading-[16px] text-[#26251e]/70 dark:text-white/70">
                             Weblab
                         </span>
                     </div>
-                    {/* Tab bar — tighter, no vertical padding above tabs */}
-                    <div className="flex items-end gap-0.5 border-b border-black/[0.06] bg-[#f1ebe0] px-1.5 pt-0.5 dark:border-white/[0.06] dark:bg-[#161617]">
-                        <div className="-mb-px flex items-center gap-1.5 rounded-t-[6px] bg-[#fbf6ed] px-2.5 py-0.5 text-[10px] font-medium text-[#2a2a2a] dark:bg-[#1E1E1F] dark:text-white/85">
+                    {/* Tab bar — 30px */}
+                    <div className="relative flex h-[30px] items-stretch border-b border-[rgba(38,37,30,0.1)] dark:border-white/[0.08]">
+                        <div className="flex items-center gap-2 border-r border-[rgba(38,37,30,0.1)] bg-[#f7f7f4] px-3 text-[12px] leading-[16px] text-[#26251e] dark:border-white/[0.08] dark:bg-[#1c1c1d] dark:text-white/90">
                             Home.tsx
-                            <Icons.CrossS className="h-2 w-2 text-[#2a2a2a]/40 dark:text-white/40" />
+                            <Icons.CrossS className="h-2.5 w-2.5 text-[#26251e]/40 dark:text-white/40" />
                         </div>
-                        <div className="px-2.5 py-0.5 text-[10px] text-[#2a2a2a]/50 dark:text-white/40">
+                        <div className="flex items-center gap-2 border-r border-[rgba(38,37,30,0.1)] px-3 text-[12px] leading-[16px] text-[#26251e]/60 dark:border-white/[0.08] dark:text-white/50">
                             Chat.tsx
                         </div>
                     </div>
-                    {/* Code body */}
-                    <pre className="min-h-[280px] px-4 py-3 font-mono text-[10px] leading-[1.55] whitespace-pre-wrap text-[var(--code-text)]">
-                        {fragments}
-                        {typing && (
-                            <span
-                                className="ml-0.5 inline-block h-2.5 w-[1.5px] translate-y-[1px] animate-pulse bg-[#2a2a2a] dark:bg-white/85"
-                                aria-hidden
-                            />
+                    {/* Code body — DOM is owned imperatively after first interaction so
+                        contentEditable edits survive React re-renders. */}
+                    <div className="relative">
+                        <pre
+                            ref={preRef}
+                            className="relative min-h-[380px] cursor-text bg-[#f7f7f4] px-7 pt-3 pb-4 font-mono text-[12px] leading-[20px] whitespace-pre-wrap text-[var(--code-text)] outline-none dark:bg-[#1c1c1d]"
+                            contentEditable
+                            suppressContentEditableWarning
+                            spellCheck={false}
+                            onMouseDown={enterInteractive}
+                            onFocus={enterInteractive}
+                            onKeyDown={enterInteractive}
+                        >
+                            {/* DOM is owned by imperative useEffect — keep this body empty so
+                                React never reconciles children into the editable surface. */}
+                        </pre>
+                        {selPos && (
+                            <div
+                                contentEditable={false}
+                                className="pointer-events-none absolute z-20"
+                                style={{
+                                    top: Math.max(4, selPos.top - 38),
+                                    left: selPos.left,
+                                    transform: 'translateX(-50%)',
+                                }}
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                <div className="pointer-events-auto flex items-stretch overflow-hidden rounded-[8px] border border-[rgba(38,37,30,0.12)] bg-[rgba(250,250,250,0.95)] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25),0_2px_8px_-2px_rgba(0,0,0,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-[rgba(28,28,29,0.95)] dark:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.5)]">
+                                    <button
+                                        type="button"
+                                        onClick={dismissSelection}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 transition-colors hover:bg-[rgba(38,37,30,0.06)] dark:hover:bg-white/[0.06]"
+                                    >
+                                        <span className="text-[11px] leading-[14px] font-medium whitespace-nowrap text-[#26251e] dark:text-white/90">
+                                            Add to Chat
+                                        </span>
+                                        <span className="text-[10.5px] leading-[14px] text-[#26251e]/45 dark:text-white/40">
+                                            ⌘L
+                                        </span>
+                                    </button>
+                                    <span className="my-1 w-px self-stretch bg-[rgba(38,37,30,0.12)] dark:bg-white/10" />
+                                    <button
+                                        type="button"
+                                        onClick={dismissSelection}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 transition-colors hover:bg-[rgba(38,37,30,0.06)] dark:hover:bg-white/[0.06]"
+                                    >
+                                        <span className="text-[11px] leading-[14px] font-medium whitespace-nowrap text-[#26251e] dark:text-white/90">
+                                            Quick Edit
+                                        </span>
+                                        <span className="text-[10.5px] leading-[14px] text-[#26251e]/45 dark:text-white/40">
+                                            ⌘K
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
                         )}
-                    </pre>
+                    </div>
                 </div>
             </div>
         </div>
@@ -723,7 +987,7 @@ const FEATURE_KEYS = [
     'canvas',
     'code',
     'components',
-    'brand',
+    'cms',
     'structure',
     'history',
 ] as const;
@@ -737,7 +1001,7 @@ const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = 
     ),
     code: <CodePanelVisual />,
     components: <ComponentsVisual />,
-    brand: <BrandVisual />,
+    cms: <CmsVisual />,
     structure: <LayersVisual />,
     history: <RevisionVisual />,
 };
@@ -747,7 +1011,7 @@ const BACKDROPS: Record<(typeof FEATURE_KEYS)[number], string> = {
     canvas: '/assets/landing/feature-backdrops/sky.webp',
     code: '/assets/landing/feature-backdrops/sand.webp',
     components: '/assets/landing/feature-backdrops/mist.webp',
-    brand: '/assets/landing/feature-backdrops/ivory.webp',
+    cms: '/assets/landing/feature-backdrops/ivory.webp',
     structure: '/assets/landing/feature-backdrops/sand.webp',
     history: '/assets/landing/feature-backdrops/sky.webp',
 };

@@ -235,13 +235,14 @@ export const ChatInput = observer(
 
         useEffect(() => {
             const handleGlobalKeyDown = (e: KeyboardEvent) => {
+                // Call once and reuse the result — invoking handleEnterSelection
+                // a second time inside the body would commit/advance the
+                // suggestion twice (double-select).
                 if (e.key === 'Enter' && suggestionRef.current?.handleEnterSelection()) {
                     e.preventDefault();
                     e.stopPropagation();
                     // Stop the event from bubbling to the canvas
                     e.stopImmediatePropagation();
-                    // Handle the suggestion selection
-                    suggestionRef.current.handleEnterSelection();
                 }
             };
 

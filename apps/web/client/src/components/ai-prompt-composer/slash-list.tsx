@@ -41,8 +41,11 @@ export const SlashList = forwardRef<SlashListRef, SlashListProps>(({ items, comm
                     const item = items[selectedIndex];
                     if (item) {
                         command(item);
+                        return true;
                     }
-                    return true;
+                    // No command to select — let the editor handle Enter
+                    // (newline / submit) instead of swallowing the keypress.
+                    return false;
                 }
                 return false;
             },

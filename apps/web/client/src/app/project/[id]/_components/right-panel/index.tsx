@@ -124,9 +124,15 @@ const writeStored = (key: string, value: string): void => {
 export const RightPanel = observer(() => {
     const editorEngine = useEditorEngine();
     const t = useTranslations();
-    const creationRequest = useQuery(api.projectCreateRequests.getPendingRequest, {
-        projectId: editorEngine.projectId as Id<'projects'>,
-    });
+    // Guard the empty-projectId boot window: `useQuery` with a blank id cast
+    // to `Id<'projects'>` would fire an invalid query during engine init.
+    // 'skip' until the engine has a real projectId (Convex 'skip' sentinel).
+    const creationRequest = useQuery(
+        api.projectCreateRequests.getPendingRequest,
+        editorEngine.projectId
+            ? { projectId: editorEngine.projectId as Id<'projects'> }
+            : 'skip',
+    );
     const isFirstCreation = !!creationRequest;
     const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
     // Initialize with SSR-safe defaults so the server-rendered HTML matches the

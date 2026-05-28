@@ -8,6 +8,15 @@ import { requireCap } from './lib/permissions';
 
 // Convex port of apps/web/client/src/server/api/routers/comment/reply.ts.
 
+// Cap user-supplied reply length so any single reply row stays well below the
+// 1MB Convex doc limit and the `comments.list` enriched payload stays bounded.
+const MAX_REPLY_BYTES = 10_000;
+const assertContentSize = (content: string) => {
+    if (new TextEncoder().encode(content).length > MAX_REPLY_BYTES) {
+        throw new Error(`BAD_REQUEST: content exceeds ${MAX_REPLY_BYTES} bytes`);
+    }
+};
+
 const loadReply = async (
     ctx: QueryCtx | MutationCtx,
     replyId: Id<'commentReplies'>,
@@ -31,6 +40,7 @@ export const create = mutation({
         if (content.trim().length === 0) {
             throw new Error('BAD_REQUEST: content empty');
         }
+        assertContentSize(content);
         const comment = await ctx.db.get(commentId);
         if (!comment) throw new Error('NOT_FOUND: comment');
         const { user } = await requireCap(ctx, 'project.comment', {
@@ -56,6 +66,7 @@ export const update = mutation({
         if (content.trim().length === 0) {
             throw new Error('BAD_REQUEST: content empty');
         }
+        assertContentSize(content);
         const { reply, comment } = await loadReply(ctx, replyId);
         const { user } = await requireCap(ctx, 'project.comment', {
             projectId: comment.projectId,

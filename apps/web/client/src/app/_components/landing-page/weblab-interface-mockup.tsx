@@ -6,7 +6,7 @@ import { Icons } from '@weblab/ui/icons';
 import { NodeIcon } from '@weblab/ui/node-icon';
 import { cn } from '@weblab/ui/utils';
 
-import type { DesignMockupStep } from './design-mockup/design-mockup';
+import type { DesignMockupOverrides, DesignMockupStep } from './design-mockup/design-mockup';
 import { DesignMockup, DesignMockupMobile } from './design-mockup/design-mockup';
 
 type TabId =
@@ -168,83 +168,24 @@ interface MockLayer {
 }
 
 const INITIAL_LAYERS: MockLayer[] = [
-    {
-        id: 'root',
-        name: 'Home Page',
-        tagName: 'DIV',
-        level: 0,
-        isInstance: false,
-    },
-    {
-        id: 'nav',
-        name: 'Top Navigation',
-        tagName: 'COMPONENT',
-        level: 1,
-        isInstance: false,
-    },
-    {
-        id: 'hero',
-        name: 'Hero',
-        tagName: 'COMPONENT',
-        level: 1,
-        isInstance: false,
-    },
-    {
-        id: 'grid',
-        name: 'Image Grid',
-        tagName: 'DIV',
-        level: 1,
-        isInstance: false,
-    },
-    {
-        id: 'card-1',
-        name: 'Image Card 1',
-        tagName: 'COMPONENT',
-        level: 2,
-        isInstance: false,
-    },
-    {
-        id: 'card-2',
-        name: 'Image Card 2',
-        tagName: 'COMPONENT',
-        level: 2,
-        isInstance: false,
-    },
-    {
-        id: 'card-3',
-        name: 'Image Card 3',
-        tagName: 'COMPONENT',
-        level: 2,
-        isInstance: false,
-    },
-    {
-        id: 'card-4',
-        name: 'Image Card 4',
-        tagName: 'COMPONENT',
-        level: 2,
-        isInstance: false,
-    },
-    {
-        id: 'card-5',
-        name: 'Image Card 5',
-        tagName: 'COMPONENT',
-        level: 2,
-        isInstance: false,
-    },
-    {
-        id: 'card-6',
-        name: 'Image Card 6',
-        tagName: 'COMPONENT',
-        level: 2,
-        isInstance: false,
-    },
-    {
-        id: 'footer',
-        name: 'Footer',
-        tagName: 'COMPONENT',
-        level: 1,
-        isInstance: false,
-    },
+    { id: 'root', name: 'Home Page', tagName: 'DIV', level: 0, isInstance: false },
+    { id: 'nav', name: 'Top Navigation', tagName: 'COMPONENT', level: 1, isInstance: true },
+    { id: 'nav-logo', name: 'Logo', tagName: 'DIV', level: 2, isInstance: false },
+    { id: 'nav-links', name: 'Nav Links', tagName: 'DIV', level: 2, isInstance: false },
+    { id: 'nav-cta', name: 'Get started', tagName: 'BUTTON', level: 2, isInstance: false },
+    { id: 'hero', name: 'Hero', tagName: 'COMPONENT', level: 1, isInstance: true },
+    { id: 'hero-title', name: 'Headline', tagName: 'H1', level: 2, isInstance: false },
+    { id: 'hero-sub', name: 'Subhead', tagName: 'P', level: 2, isInstance: false },
+    { id: 'hero-cta-row', name: 'CTA Row', tagName: 'DIV', level: 2, isInstance: false },
+    { id: 'hero-cta-primary', name: 'Start scheming', tagName: 'BUTTON', level: 3, isInstance: false },
+    { id: 'hero-cta-secondary', name: 'Watch demo', tagName: 'BUTTON', level: 3, isInstance: false },
+    { id: 'logos', name: 'Logo Strip', tagName: 'DIV', level: 1, isInstance: false },
+    { id: 'pricing', name: 'Pricing', tagName: 'COMPONENT', level: 1, isInstance: true },
+    { id: 'card-starter', name: 'Starter', tagName: 'COMPONENT', level: 2, isInstance: true },
+    { id: 'card-pro', name: 'Pro', tagName: 'COMPONENT', level: 2, isInstance: true },
+    { id: 'card-pro-price', name: '$12 / mo', tagName: 'SPAN', level: 3, isInstance: false },
+    { id: 'card-enterprise', name: 'Enterprise', tagName: 'COMPONENT', level: 2, isInstance: true },
+    { id: 'footer', name: 'Footer', tagName: 'COMPONENT', level: 1, isInstance: true },
 ];
 
 const PAGES = [
@@ -1565,6 +1506,184 @@ function useChatSequence(onCanvasEffect: (effect: CanvasEffect) => void): ChatSe
     return { messages, composerText, composerTyping };
 }
 
+function StyleSection({
+    title,
+    icon,
+    children,
+    defaultOpen = true,
+}: {
+    title: string;
+    icon: keyof typeof Icons;
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+}) {
+    const [open, setOpen] = useState(defaultOpen);
+    const Icon = Icons[icon];
+    return (
+        <div className="border-border-bar/50 border-b last:border-b-0">
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                className="text-foreground-secondary hover:text-foreground flex w-full items-center justify-between px-2.5 py-1.5 text-[10px] font-medium tracking-wide uppercase transition-colors"
+            >
+                <span className="flex items-center gap-1.5">
+                    <Icon className="text-foreground-tertiary h-3 w-3" />
+                    {title}
+                </span>
+                <Icons.ChevronDown
+                    className={cn(
+                        'text-foreground-tertiary h-3 w-3 transition-transform',
+                        !open && '-rotate-90',
+                    )}
+                />
+            </button>
+            {open && <div className="flex flex-col gap-1.5 px-2.5 pb-3">{children}</div>}
+        </div>
+    );
+}
+
+function StyleField({
+    label,
+    value,
+    mono,
+    swatch,
+    trailing,
+}: {
+    label: string;
+    value: string;
+    mono?: boolean;
+    swatch?: string;
+    trailing?: string;
+}) {
+    return (
+        <div className="border-border bg-background-secondary/60 flex h-7 items-center gap-1.5 rounded px-2 text-[11px]">
+            {swatch && <div className={cn('ring-border h-3 w-3 rounded-sm ring-1', swatch)} />}
+            <span className="text-foreground-tertiary w-9 shrink-0 text-[10px]">{label}</span>
+            <span
+                className={cn(
+                    'text-foreground flex-1 truncate text-right',
+                    mono && 'font-mono',
+                )}
+            >
+                {value}
+            </span>
+            {trailing && (
+                <span className="text-foreground-tertiary text-[10px]">{trailing}</span>
+            )}
+        </div>
+    );
+}
+
+function StylePanel({ selectedLayer }: { selectedLayer?: MockLayer }) {
+    return (
+        <div className="flex flex-1 flex-col overflow-y-auto">
+            <div className="border-border-bar/50 flex items-center gap-2 border-b px-2.5 py-2">
+                <NodeIcon
+                    iconClass="w-3.5 h-3.5 shrink-0"
+                    tagName={selectedLayer?.tagName ?? 'COMPONENT'}
+                />
+                <span className="text-foreground truncate text-xs">
+                    {selectedLayer?.name ?? 'Hero'}
+                </span>
+                <span className="text-foreground-tertiary ml-auto font-mono text-[9px]">
+                    {selectedLayer?.tagName ?? 'COMPONENT'}
+                </span>
+            </div>
+            <StyleSection title="Layout" icon="Layout">
+                <div className="grid grid-cols-2 gap-1.5">
+                    <StyleField label="W" value="1280" />
+                    <StyleField label="H" value="auto" />
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                    {(['Row', 'Col', 'Grid'] as const).map((d, i) => (
+                        <button
+                            key={d}
+                            type="button"
+                            className={cn(
+                                'border-border bg-background-secondary/60 hover:bg-background-secondary text-foreground-secondary flex h-7 items-center justify-center rounded text-[10px]',
+                                i === 1 && 'text-foreground bg-background-bar-active',
+                            )}
+                        >
+                            {d}
+                        </button>
+                    ))}
+                </div>
+            </StyleSection>
+            <StyleSection title="Spacing" icon="Frame">
+                <div className="grid grid-cols-2 gap-1.5">
+                    <StyleField label="Pad" value="32 · 24" />
+                    <StyleField label="Gap" value="12" />
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                    <StyleField label="Mx" value="auto" />
+                    <StyleField label="My" value="0" />
+                </div>
+            </StyleSection>
+            <StyleSection title="Fill" icon="Brand">
+                <StyleField
+                    label="Color"
+                    value="#4F46E5"
+                    mono
+                    swatch="bg-foreground-brand"
+                    trailing="100%"
+                />
+                <button
+                    type="button"
+                    className="text-foreground-tertiary hover:text-foreground flex h-6 items-center gap-1 px-1 text-[10px]"
+                >
+                    <Icons.Plus className="h-2.5 w-2.5" />
+                    Add layer
+                </button>
+            </StyleSection>
+            <StyleSection title="Border" icon="Square">
+                <div className="grid grid-cols-2 gap-1.5">
+                    <StyleField label="Width" value="1" />
+                    <StyleField label="Radius" value="12" />
+                </div>
+                <StyleField
+                    label="Color"
+                    value="#1F1F22"
+                    mono
+                    swatch="bg-neutral-900"
+                />
+            </StyleSection>
+            <StyleSection title="Typography" icon="TextAlignLeft">
+                <StyleField label="Font" value="Inter · 600" />
+                <div className="grid grid-cols-2 gap-1.5">
+                    <StyleField label="Size" value="14" />
+                    <StyleField label="Line" value="1.4" />
+                </div>
+                <div className="grid grid-cols-4 gap-1">
+                    {(['L', 'C', 'R', 'J'] as const).map((a, i) => (
+                        <button
+                            key={a}
+                            type="button"
+                            className={cn(
+                                'border-border bg-background-secondary/60 hover:bg-background-secondary text-foreground-secondary flex h-6 items-center justify-center rounded text-[10px]',
+                                i === 1 && 'text-foreground bg-background-bar-active',
+                            )}
+                        >
+                            {a}
+                        </button>
+                    ))}
+                </div>
+            </StyleSection>
+            <StyleSection title="Effects" icon="Sparkles" defaultOpen={false}>
+                <StyleField label="Shadow" value="md · 30%" />
+                <StyleField label="Blur" value="0" />
+                <StyleField label="Opacity" value="100" trailing="%" />
+            </StyleSection>
+            <StyleSection title="Position" icon="Layers" defaultOpen={false}>
+                <div className="grid grid-cols-2 gap-1.5">
+                    <StyleField label="X" value="0" />
+                    <StyleField label="Y" value="0" />
+                </div>
+                <StyleField label="Z" value="auto" />
+            </StyleSection>
+        </div>
+    );
+}
+
 export function WeblabInterfaceMockup() {
     const [isVisible, setIsVisible] = useState(false);
     useEffect(() => {
@@ -1576,7 +1695,7 @@ export function WeblabInterfaceMockup() {
     const [activeMode, setActiveMode] = useState<ModeId>('design');
     const [layers, setLayers] = useState<MockLayer[]>(INITIAL_LAYERS);
     const [hoveredLayer, setHoveredLayer] = useState<string | null>(null);
-    const [selectedLayer, setSelectedLayer] = useState<string>('card-1');
+    const [selectedLayer, setSelectedLayer] = useState<string>('hero-title');
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -1586,12 +1705,34 @@ export function WeblabInterfaceMockup() {
     const [zoomPct, setZoomPct] = useState(75);
     const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('dark');
     const [leftPanelPinned, setLeftPanelPinned] = useState(true);
-    const [comments, setComments] = useState<{ id: number; x: number; y: number; text: string }[]>(
-        () => [
-            { id: Date.now(), x: 32, y: 38, text: 'Make this image larger' },
-            { id: Date.now() + 1, x: 72, y: 22, text: 'Great heading, love it!' },
-        ],
-    );
+    const [comments, setComments] = useState<
+        {
+            id: number;
+            x: number;
+            y: number;
+            text: string;
+            author?: string;
+            authorColor?: string;
+            typingTo?: number;
+        }[]
+    >(() => [
+        {
+            id: 1001,
+            x: 18,
+            y: 16,
+            text: 'Make this headline bigger',
+            author: 'Mira',
+            authorColor: 'bg-pink-500',
+        },
+        {
+            id: 1002,
+            x: 72,
+            y: 22,
+            text: 'Love the new italic — keep it',
+            author: 'Kai',
+            authorColor: 'bg-purple-500',
+        },
+    ]);
     const [openCommentId, setOpenCommentId] = useState<number | null>(null);
     const [restyleColor, setRestyleColor] = useState<(typeof RESTYLE_COLORS)[number]['id']>('teal');
     const [showSaved, setShowSaved] = useState(false);
@@ -1632,6 +1773,8 @@ export function WeblabInterfaceMockup() {
             return CHAT_MODELS[(i + 1) % CHAT_MODELS.length] ?? CHAT_MODELS[0]!;
         });
     const [chatComposerMode, setChatComposerMode] = useState<'Build' | 'Ask' | 'Plan'>('Build');
+    const [modeMenuOpen, setModeMenuOpen] = useState(false);
+    const [modelMenuOpen, setModelMenuOpen] = useState(false);
     const [imageAttached, setImageAttached] = useState(false);
     const [voiceRecording, setVoiceRecording] = useState(false);
     const [undoKey, setUndoKey] = useState(0);
@@ -1669,23 +1812,75 @@ export function WeblabInterfaceMockup() {
         },
     ]);
 
-    // Collaborative selection — cycles every 4.2s through 3 regions of the
-    // website mockup. Each target is "owned" by a teammate cursor; while
-    // active, that cursor snaps to the selection's bottom-right handle to
-    // sell the illusion that they actually clicked the element. Other
-    // cursors keep wandering via the waypoint animation.
-    const SELECTION_TARGETS = useRef([
-        { id: 'hero', ownerId: 'm', x: 24, y: 14, w: 52, h: 18 },
-        { id: 'pro-card', ownerId: 'k', x: 36, y: 72, w: 28, h: 24 },
-        { id: 'starter-card', ownerId: 's', x: 6, y: 72, w: 28, h: 24 },
+    // Collaborative actions — only the Hero is "resized" by the active
+    // teammate (Mira). Other teammates instead make non-disruptive edits
+    // (Kai recolors the Pro card border, Sam tweaks the Starter price).
+    // The owner cursor snaps to the target element so it reads as a
+    // deliberate, natural collaborative edit instead of a constantly
+    // dancing resize handle.
+    type CollabAction =
+        | { kind: 'resize'; id: string; ownerId: string; x: number; y: number; w: number; h: number }
+        | {
+              kind: 'recolor';
+              id: string;
+              ownerId: string;
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+              proAccent: string;
+          }
+        | {
+              kind: 'edit-text';
+              id: string;
+              ownerId: string;
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+              starterPrice: number;
+          };
+    const COLLAB_ACTIONS = useRef<CollabAction[]>([
+        { kind: 'resize', id: 'hero', ownerId: 'm', x: 22, y: 12, w: 56, h: 22 },
+        {
+            kind: 'recolor',
+            id: 'pro-card',
+            ownerId: 'k',
+            x: 36,
+            y: 70,
+            w: 28,
+            h: 26,
+            proAccent: 'border-purple-400',
+        },
+        {
+            kind: 'edit-text',
+            id: 'starter-card',
+            ownerId: 's',
+            x: 6,
+            y: 70,
+            w: 28,
+            h: 26,
+            starterPrice: 5,
+        },
     ]).current;
-    const [activeSelectionIdx, setActiveSelectionIdx] = useState(0);
+    const [activeActionIdx, setActiveActionIdx] = useState(0);
     useEffect(() => {
         const id = setInterval(() => {
-            setActiveSelectionIdx((i) => (i + 1) % SELECTION_TARGETS.length);
-        }, 4200);
+            setActiveActionIdx((i) => (i + 1) % COLLAB_ACTIONS.length);
+        }, 4800);
         return () => clearInterval(id);
-    }, [SELECTION_TARGETS.length]);
+    }, [COLLAB_ACTIONS.length]);
+    const activeCollabAction = COLLAB_ACTIONS[activeActionIdx];
+
+    // Mockup overrides — driven both by chat effects and live collab actions.
+    const mockupOverrides: DesignMockupOverrides = {
+        ...(activeCollabAction?.kind === 'recolor'
+            ? { proAccent: activeCollabAction.proAccent }
+            : {}),
+        ...(activeCollabAction?.kind === 'edit-text'
+            ? { starterPrice: activeCollabAction.starterPrice }
+            : {}),
+    };
 
     // Drives the SaaS landing-page mockup — current chat round highlights
     // the section being edited (pricing pulses, hero scales up, cards get
@@ -1717,11 +1912,11 @@ export function WeblabInterfaceMockup() {
                 setRestyleColor('brand');
                 triggerSaved();
             } else if (effect === 'hero') {
-                setSelectedLayer('hero');
+                setSelectedLayer('hero-title');
                 setRestyleColor('amber');
                 triggerSaved();
             } else if (effect === 'restyle') {
-                setSelectedLayer('grid');
+                setSelectedLayer('card-pro');
                 setRestyleColor('teal');
                 triggerSaved();
             }
@@ -1814,19 +2009,68 @@ export function WeblabInterfaceMockup() {
         return () => timers.forEach(clearInterval);
     }, []);
 
+    // Live typing comment — Sam writes a comment in real time, then it
+    // settles into the comment list. Loops so the canvas always feels
+    // alive without spawning endless bubbles.
     useEffect(() => {
-        const id = setTimeout(() => {
+        const fullText = "Bump the 'Choose plan' button up a touch";
+        let cancelled = false;
+        let charTimer: ReturnType<typeof setInterval> | null = null;
+        let restartTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const start = () => {
+            if (cancelled) return;
+            const id = Date.now();
             setComments((prev) => [
                 ...prev,
                 {
-                    id: Date.now(),
-                    x: 48,
-                    y: 62,
-                    text: 'This button needs more padding',
+                    id,
+                    x: 50,
+                    y: 86,
+                    text: '',
+                    author: 'Sam',
+                    authorColor: 'bg-blue-500',
+                    typingTo: fullText.length,
                 },
             ]);
-        }, 8000);
-        return () => clearTimeout(id);
+            setOpenCommentId(id);
+            let i = 0;
+            charTimer = setInterval(() => {
+                if (cancelled) return;
+                i += 1;
+                setComments((prev) =>
+                    prev.map((c) =>
+                        c.id === id ? { ...c, text: fullText.slice(0, i) } : c,
+                    ),
+                );
+                if (i >= fullText.length && charTimer) {
+                    clearInterval(charTimer);
+                    charTimer = null;
+                    // Settle: drop typing flag, then auto-close after pause.
+                    setComments((prev) =>
+                        prev.map((c) => (c.id === id ? { ...c, typingTo: undefined } : c)),
+                    );
+                    restartTimer = setTimeout(() => {
+                        if (cancelled) return;
+                        setOpenCommentId((cur) => (cur === id ? null : cur));
+                        // Long pause, then remove + start a new round.
+                        restartTimer = setTimeout(() => {
+                            if (cancelled) return;
+                            setComments((prev) => prev.filter((c) => c.id !== id));
+                            start();
+                        }, 6000);
+                    }, 2400);
+                }
+            }, 55);
+        };
+
+        const initial = setTimeout(start, 5200);
+        return () => {
+            cancelled = true;
+            clearTimeout(initial);
+            if (charTimer) clearInterval(charTimer);
+            if (restartTimer) clearTimeout(restartTimer);
+        };
     }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -1995,117 +2239,154 @@ export function WeblabInterfaceMockup() {
                             </span>
                         </div>
                     )}
-                    <DesignMockup step={currentStep} accent={selectedRestyle.className} />
-                    {/* Comments anchored to the artboard so they pan/zoom with it. */}
-                    {comments.map((c) => (
-                        <div
-                            key={c.id}
-                            style={{ left: `${c.x}%`, top: `${c.y}%` }}
-                            className="pointer-events-auto absolute z-20 -translate-x-1/2 -translate-y-full"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenCommentId((id) => (id === c.id ? null : c.id));
+                    <DesignMockup
+                        step={currentStep}
+                        accent={selectedRestyle.className}
+                        overrides={mockupOverrides}
+                        theme={previewTheme}
+                    />
+                    {/* Comments anchored to the artboard so they pan/zoom
+                        with it. Bubble opens on hover (or while a teammate
+                        is typing); click acts as pin. */}
+                    {comments.map((c) => {
+                        const isTyping = typeof c.typingTo === 'number';
+                        const isOpen = openCommentId === c.id;
+                        const bubbleColor = c.authorColor ?? 'bg-foreground-brand';
+                        return (
+                            <div
+                                key={c.id}
+                                style={{ left: `${c.x}%`, top: `${c.y}%` }}
+                                className="pointer-events-auto absolute z-20 -translate-x-1/2 -translate-y-full"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseEnter={() => setOpenCommentId(c.id)}
+                                onMouseLeave={() => {
+                                    if (!isTyping) {
+                                        setOpenCommentId((id) => (id === c.id ? null : id));
+                                    }
                                 }}
-                                className="bg-foreground-brand text-background hover:bg-foreground-brand/90 flex h-6 w-6 items-center justify-center rounded-full rounded-bl-none shadow-lg ring-2 ring-white/20"
-                                aria-label="Comment"
                             >
-                                <Icons.ChatBubble className="h-3 w-3" />
-                            </button>
-                            {openCommentId === c.id && (
-                                <div className="border-border bg-background-chrome absolute top-7 left-0 z-50 w-44 rounded-md border p-2 shadow-xl">
-                                    <p className="text-foreground text-[11px]">{c.text}</p>
-                                    <div className="mt-1.5 flex items-center justify-between">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setComments((arr) =>
-                                                    arr.filter((x) => x.id !== c.id),
-                                                );
-                                                setOpenCommentId(null);
-                                            }}
-                                            className="text-foreground-tertiary hover:text-foreground text-[10px]"
-                                        >
-                                            Resolve
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setOpenCommentId(null);
-                                            }}
-                                            className="text-foreground-tertiary hover:text-foreground text-[10px]"
-                                        >
-                                            Close
-                                        </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenCommentId((id) => (id === c.id ? null : c.id));
+                                    }}
+                                    className={cn(
+                                        'text-background flex h-6 w-6 items-center justify-center rounded-full rounded-bl-none shadow-lg ring-2 ring-white/20 transition-transform hover:scale-105',
+                                        bubbleColor,
+                                    )}
+                                    aria-label={`Comment from ${c.author ?? 'You'}`}
+                                >
+                                    {isTyping ? (
+                                        <span className="flex items-center gap-0.5">
+                                            <span className="h-1 w-1 animate-pulse rounded-full bg-white" />
+                                            <span
+                                                className="h-1 w-1 animate-pulse rounded-full bg-white"
+                                                style={{ animationDelay: '120ms' }}
+                                            />
+                                            <span
+                                                className="h-1 w-1 animate-pulse rounded-full bg-white"
+                                                style={{ animationDelay: '240ms' }}
+                                            />
+                                        </span>
+                                    ) : (
+                                        <Icons.ChatBubble className="h-3 w-3" />
+                                    )}
+                                </button>
+                                {(isOpen || isTyping) && (
+                                    <div className="border-border bg-background-chrome absolute top-7 left-0 z-50 w-48 rounded-md border p-2 shadow-xl">
+                                        <div className="mb-1 flex items-center gap-1.5">
+                                            <span
+                                                className={cn(
+                                                    'h-3 w-3 rounded-full',
+                                                    bubbleColor,
+                                                )}
+                                            />
+                                            <span className="text-foreground text-[10px] font-medium">
+                                                {c.author ?? 'You'}
+                                            </span>
+                                            <span className="text-foreground-tertiary ml-auto text-[9px]">
+                                                {isTyping ? 'typing…' : 'just now'}
+                                            </span>
+                                        </div>
+                                        <p className="text-foreground-secondary text-[11px] leading-snug">
+                                            {c.text}
+                                            {isTyping && (
+                                                <span className="bg-foreground/70 ml-0.5 inline-block h-3 w-px animate-pulse align-middle" />
+                                            )}
+                                        </p>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    {/* Active collaborative selection — outlined region
-                        with 4 resize handles, color of the owning cursor.
-                        Cycles between hero/Pro card/Starter card every
-                        4.2s; the owner cursor snaps to the bottom-right
-                        handle below. */}
-                    {(() => {
-                        const target = SELECTION_TARGETS[activeSelectionIdx];
-                        if (!target) return null;
-                        const owner = presence.find((p) => p.id === target.ownerId);
+                                )}
+                            </div>
+                        );
+                    })}
+                    {/* Active collaborative action — only the resize kind
+                        renders the four-handle selection box on the Hero.
+                        Recolor/edit-text actions show a subtle outline +
+                        the owner cursor on the target, so changes read as
+                        a natural edit instead of a moving resize box. */}
+                    {activeCollabAction && (() => {
+                        const action = activeCollabAction;
+                        const owner = presence.find((p) => p.id === action.ownerId);
                         if (!owner) return null;
+                        const isResize = action.kind === 'resize';
                         return (
                             <div
                                 className="pointer-events-none absolute z-[15]"
                                 style={{
-                                    left: `${target.x}%`,
-                                    top: `${target.y}%`,
-                                    width: `${target.w}%`,
-                                    height: `${target.h}%`,
+                                    left: `${action.x}%`,
+                                    top: `${action.y}%`,
+                                    width: `${action.w}%`,
+                                    height: `${action.h}%`,
                                     transition:
                                         'left 0.55s cubic-bezier(0.22, 1, 0.36, 1), top 0.55s cubic-bezier(0.22, 1, 0.36, 1), width 0.55s cubic-bezier(0.22, 1, 0.36, 1), height 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
                                 }}
                             >
                                 <div
                                     className={cn(
-                                        'absolute inset-0 rounded-[2px] border-[1.5px]',
+                                        'absolute inset-0 rounded-[2px]',
+                                        isResize ? 'border-[1.5px]' : 'border-[1px] border-dashed opacity-70',
                                         owner.border,
                                     )}
                                 />
-                                {[
-                                    { left: 0, top: 0 },
-                                    { left: '100%', top: 0 },
-                                    { left: 0, top: '100%' },
-                                    { left: '100%', top: '100%' },
-                                ].map((c, i) => (
-                                    <div
-                                        key={i}
-                                        className={cn(
-                                            'absolute h-1.5 w-1.5 rounded-sm border border-white shadow-sm',
-                                            owner.bg,
-                                        )}
-                                        style={{
-                                            left: c.left,
-                                            top: c.top,
-                                            transform: 'translate(-50%, -50%)',
-                                        }}
-                                    />
-                                ))}
+                                {isResize &&
+                                    [
+                                        { left: 0, top: 0 },
+                                        { left: '100%', top: 0 },
+                                        { left: 0, top: '100%' },
+                                        { left: '100%', top: '100%' },
+                                    ].map((c, i) => (
+                                        <div
+                                            key={i}
+                                            className={cn(
+                                                'absolute h-1.5 w-1.5 rounded-sm border border-white shadow-sm',
+                                                owner.bg,
+                                            )}
+                                            style={{
+                                                left: c.left,
+                                                top: c.top,
+                                                transform: 'translate(-50%, -50%)',
+                                            }}
+                                        />
+                                    ))}
                             </div>
                         );
                     })()}
                     {/* Live collaborator cursors — fake presence. Active
-                        owner cursor snaps to the selection's bottom-right
-                        handle; others keep wandering. */}
+                        owner cursor snaps to its action target; others keep
+                        wandering via waypoints. */}
                     {presence.map((p) => {
-                        const target = SELECTION_TARGETS[activeSelectionIdx];
-                        const isOwner = target?.ownerId === p.id;
-                        const x = isOwner && target ? target.x + target.w : p.x;
-                        const y = isOwner && target ? target.y + target.h : p.y;
+                        const action = activeCollabAction;
+                        const isOwner = action?.ownerId === p.id;
+                        const isResize = isOwner && action?.kind === 'resize';
+                        const x = isOwner && action ? action.x + action.w : p.x;
+                        const y =
+                            isOwner && action
+                                ? isResize
+                                    ? action.y + action.h
+                                    : action.y + action.h / 2
+                                : p.y;
                         return (
                             <div
                                 key={p.id}
@@ -2459,27 +2740,57 @@ export function WeblabInterfaceMockup() {
                 <div className="h-full w-56">
                     <div className="bg-background-chrome border-border-bar flex h-full w-full flex-col items-stretch overflow-hidden border-r backdrop-blur-2xl">
                         <div className="border-border-bar/60 flex h-9 items-center justify-between border-b px-2.5">
-                            <span className="text-foreground text-[11px] font-medium">
+                            <span className="text-foreground flex items-center gap-1.5 text-[11px] font-medium">
                                 {TAB_DEFS.find((t) => t.id === activeTab)?.label}
+                                {activeTab === 'layers' && (
+                                    <span className="text-foreground-tertiary text-[9px] tabular-nums">
+                                        {layers.length}
+                                    </span>
+                                )}
                             </span>
-                            <button
-                                type="button"
-                                onClick={() => setLeftPanelPinned((v) => !v)}
-                                aria-label={leftPanelPinned ? 'Unpin panel' : 'Pin panel'}
-                                className={cn(
-                                    'flex h-6 w-6 items-center justify-center rounded-md transition-colors',
-                                    leftPanelPinned
-                                        ? 'bg-background-bar-active text-foreground'
-                                        : 'text-foreground-tertiary hover:bg-background-secondary hover:text-foreground',
-                                )}
-                            >
-                                {leftPanelPinned ? (
-                                    <Icons.PinFilled className="h-3 w-3" />
-                                ) : (
-                                    <Icons.Pin className="h-3 w-3" />
-                                )}
-                            </button>
+                            <div className="flex items-center gap-0.5">
+                                <button
+                                    type="button"
+                                    aria-label="Filter"
+                                    className="text-foreground-tertiary hover:bg-background-secondary hover:text-foreground flex h-6 w-6 items-center justify-center rounded-md"
+                                >
+                                    <Icons.MagnifyingGlass className="h-3 w-3" />
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label="Add"
+                                    className="text-foreground-tertiary hover:bg-background-secondary hover:text-foreground flex h-6 w-6 items-center justify-center rounded-md"
+                                >
+                                    <Icons.Plus className="h-3 w-3" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setLeftPanelPinned((v) => !v)}
+                                    aria-label={leftPanelPinned ? 'Unpin panel' : 'Pin panel'}
+                                    className={cn(
+                                        'flex h-6 w-6 items-center justify-center rounded-md transition-colors',
+                                        leftPanelPinned
+                                            ? 'bg-background-bar-active text-foreground'
+                                            : 'text-foreground-tertiary hover:bg-background-secondary hover:text-foreground',
+                                    )}
+                                >
+                                    {leftPanelPinned ? (
+                                        <Icons.PinFilled className="h-3 w-3" />
+                                    ) : (
+                                        <Icons.Pin className="h-3 w-3" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
+                        {activeTab === 'layers' && (
+                            <div className="border-border-bar/40 flex items-center gap-1 border-b px-2.5 py-1.5 text-[10px]">
+                                <span className="text-foreground-tertiary">Home</span>
+                                <Icons.ChevronDown className="text-foreground-tertiary h-2.5 w-2.5 -rotate-90" />
+                                <span className="text-foreground-secondary truncate">
+                                    {selectedLayerData?.name ?? 'Hero'}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex-1 overflow-y-auto p-1.5">
                             {activeTab === 'layers' && (
                                 <div className="flex flex-col gap-0.5">
@@ -2490,6 +2801,9 @@ export function WeblabInterfaceMockup() {
                                         const isDragging = dragIndex === index;
                                         const isDragOver =
                                             dragOverIndex === index && dragIndex !== null;
+                                        const hasChildren =
+                                            layers[index + 1] !== undefined &&
+                                            layers[index + 1]!.level > layer.level;
                                         return (
                                             <div
                                                 key={layer.id}
@@ -2505,7 +2819,7 @@ export function WeblabInterfaceMockup() {
                                                     setActiveRightTab('style');
                                                 }}
                                                 className={cn(
-                                                    'flex h-5.5 cursor-grab items-center rounded px-1.5 text-xs transition-colors select-none active:cursor-grabbing',
+                                                    'group flex h-5.5 cursor-grab items-center rounded px-1 text-xs transition-colors select-none active:cursor-grabbing',
                                                     isSelected &&
                                                         'bg-foreground-brand/90 text-background-primary',
                                                     !isSelected &&
@@ -2525,12 +2839,28 @@ export function WeblabInterfaceMockup() {
                                                 )}
                                                 style={{ userSelect: 'none' }}
                                             >
-                                                <div style={{ width: `${layer.level * 12}px` }} />
+                                                <div style={{ width: `${layer.level * 10}px` }} />
+                                                {hasChildren ? (
+                                                    <Icons.ChevronDown className="mr-0.5 h-2.5 w-2.5 shrink-0 opacity-70" />
+                                                ) : (
+                                                    <span className="mr-0.5 inline-block h-2.5 w-2.5 shrink-0" />
+                                                )}
                                                 <NodeIcon
                                                     iconClass="w-3 h-3 mr-1.5 shrink-0"
                                                     tagName={layer.tagName}
                                                 />
                                                 <span className="truncate">{layer.name}</span>
+                                                {layer.isInstance && (
+                                                    <span
+                                                        className={cn(
+                                                            'ml-auto h-1.5 w-1.5 shrink-0 rounded-full',
+                                                            isSelected
+                                                                ? 'bg-background-primary/70'
+                                                                : 'bg-purple-400/70',
+                                                        )}
+                                                        title="Instance"
+                                                    />
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -2562,29 +2892,75 @@ export function WeblabInterfaceMockup() {
                                 </div>
                             )}
                             {activeTab === 'components' && (
-                                <div className="grid grid-cols-2 gap-1.5">
-                                    {COMPONENT_CHIPS.map((c) => (
-                                        <button
-                                            key={c}
-                                            className="bg-background-secondary/60 hover:bg-background-secondary border-border text-foreground-secondary hover:text-foreground flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-[0.5px] p-1 text-[10px] transition-colors"
-                                        >
-                                            <Icons.Component className="h-3.5 w-3.5" />
-                                            {c}
-                                        </button>
-                                    ))}
+                                <div className="flex flex-col gap-2">
+                                    <div className="border-border bg-background-secondary/40 flex h-6 items-center gap-1.5 rounded-md border px-2">
+                                        <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+                                        <span className="text-foreground-tertiary text-[10px]">
+                                            Search components
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div className="text-foreground-tertiary mb-1 px-1 text-[9px] font-medium tracking-wide uppercase">
+                                            Project · {COMPONENT_CHIPS.length}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            {COMPONENT_CHIPS.map((c) => (
+                                                <button
+                                                    key={c}
+                                                    className="bg-background-secondary/60 hover:bg-background-secondary border-border text-foreground-secondary hover:text-foreground flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-[0.5px] p-1 text-[10px] transition-colors"
+                                                >
+                                                    <Icons.Component className="text-purple-400 h-3.5 w-3.5" />
+                                                    {c}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             {activeTab === 'insert' && (
-                                <div className="flex flex-col gap-1">
-                                    {['Frame', 'Text', 'Image', 'Button'].map((label) => (
-                                        <button
-                                            key={label}
-                                            className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex h-6 items-center gap-2 rounded px-2 text-xs"
-                                        >
-                                            <Icons.Plus className="h-3 w-3" />
-                                            {label}
-                                        </button>
-                                    ))}
+                                <div className="flex flex-col gap-2">
+                                    <div>
+                                        <div className="text-foreground-tertiary mb-1 px-1 text-[9px] font-medium tracking-wide uppercase">
+                                            Primitives
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1">
+                                            {[
+                                                { label: 'Frame', icon: 'Frame' as const },
+                                                { label: 'Text', icon: 'TextAlignLeft' as const },
+                                                { label: 'Image', icon: 'Image' as const },
+                                                { label: 'Button', icon: 'Plus' as const },
+                                            ].map((item) => {
+                                                const Icon = Icons[item.icon];
+                                                return (
+                                                    <button
+                                                        key={item.label}
+                                                        className="border-border bg-background-secondary/60 hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-[0.5px] text-[10px]"
+                                                    >
+                                                        <Icon className="h-3.5 w-3.5" />
+                                                        {item.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-foreground-tertiary mb-1 px-1 text-[9px] font-medium tracking-wide uppercase">
+                                            Layout
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            {['Section', 'Container', 'Grid', 'Stack'].map(
+                                                (l) => (
+                                                    <button
+                                                        key={l}
+                                                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex h-6 items-center gap-2 rounded px-1.5 text-[11px]"
+                                                    >
+                                                        <Icons.Layout className="h-3 w-3" />
+                                                        {l}
+                                                    </button>
+                                                ),
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             {activeTab === 'search' && (
@@ -2816,54 +3192,7 @@ export function WeblabInterfaceMockup() {
                         </div>
                         {activeRightTab === 'chat' && <ScriptedChat messages={chatMessages} />}
                         {activeRightTab === 'style' && (
-                            <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
-                                <div className="flex items-center gap-2">
-                                    <NodeIcon
-                                        iconClass="w-3.5 h-3.5 shrink-0"
-                                        tagName={selectedLayerData?.tagName ?? 'COMPONENT'}
-                                    />
-                                    <span className="text-foreground truncate text-xs">
-                                        {selectedLayerData?.name ?? 'Hero'}
-                                    </span>
-                                    <span className="text-foreground-tertiary ml-auto text-[10px]">
-                                        {selectedLayerData?.tagName ?? 'COMPONENT'}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px]">
-                                        Layout
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1 text-[11px]">
-                                            <span className="text-foreground-tertiary">W</span>
-                                            <span className="text-foreground">1280</span>
-                                        </div>
-                                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1 text-[11px]">
-                                            <span className="text-foreground-tertiary">H</span>
-                                            <span className="text-foreground">auto</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px]">Fill</div>
-                                    <div className="border-border bg-background-secondary/60 flex items-center gap-2 rounded px-2 py-1.5 text-[11px]">
-                                        <div className="bg-foreground-brand ring-border h-3.5 w-3.5 rounded ring-1" />
-                                        <span className="text-foreground font-mono">#4F46E5</span>
-                                        <span className="text-foreground-tertiary ml-auto">
-                                            100%
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px]">
-                                        Typography
-                                    </div>
-                                    <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                                        <span className="text-foreground-tertiary">Font</span>
-                                        <span className="text-foreground">Inter · 600</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <StylePanel selectedLayer={selectedLayerData} />
                         )}
                         {activeRightTab === 'comments' && (
                             <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-2">
@@ -2914,8 +3243,8 @@ export function WeblabInterfaceMockup() {
                                 >
                                     {/* Context pill row */}
                                     <div className="flex flex-wrap items-center gap-1 px-2 pt-1.5">
-                                        <span className="border-border bg-background-secondary/70 text-foreground-secondary flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px]">
-                                            <Icons.File className="h-2.5 w-2.5" />
+                                        <span className="border-foreground-brand/30 bg-foreground-brand/15 text-foreground flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px]">
+                                            <Icons.File className="text-foreground-brand h-2.5 w-2.5" />
                                             Hero.tsx
                                             <button
                                                 type="button"
@@ -2969,43 +3298,136 @@ export function WeblabInterfaceMockup() {
                                     {/* Bottom controls — mirrors real composer */}
                                     <div className="flex w-full items-center justify-between gap-1 px-1.5 pt-0.5 pb-1.5">
                                         <div className="flex min-w-0 items-center gap-0.5">
-                                            <button
-                                                type="button"
-                                                aria-label="Mode menu"
-                                                onClick={() =>
-                                                    setChatComposerMode((m) =>
-                                                        m === 'Build'
-                                                            ? 'Ask'
-                                                            : m === 'Ask'
-                                                              ? 'Plan'
-                                                              : 'Build',
-                                                    )
-                                                }
-                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px]"
-                                            >
-                                                {chatComposerMode === 'Build' && (
-                                                    <Icons.Build className="h-3 w-3" />
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    aria-label="Mode menu"
+                                                    onClick={() => {
+                                                        setModeMenuOpen((v) => !v);
+                                                        setModelMenuOpen(false);
+                                                    }}
+                                                    onBlur={() =>
+                                                        setTimeout(
+                                                            () => setModeMenuOpen(false),
+                                                            120,
+                                                        )
+                                                    }
+                                                    className={cn(
+                                                        'text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px]',
+                                                        modeMenuOpen &&
+                                                            'bg-background-tertiary text-foreground-primary',
+                                                    )}
+                                                >
+                                                    {chatComposerMode === 'Build' && (
+                                                        <Icons.Build className="h-3 w-3" />
+                                                    )}
+                                                    {chatComposerMode === 'Ask' && (
+                                                        <Icons.Ask className="h-3 w-3" />
+                                                    )}
+                                                    {chatComposerMode === 'Plan' && (
+                                                        <Icons.Plan className="h-3 w-3" />
+                                                    )}
+                                                    <span>{chatComposerMode}</span>
+                                                    <Icons.ChevronDown className="h-2.5 w-2.5" />
+                                                </button>
+                                                {modeMenuOpen && (
+                                                    <div className="border-border bg-background-chrome absolute bottom-full left-0 z-50 mb-1 flex w-[140px] flex-col rounded-md border p-1 shadow-xl">
+                                                        {(['Build', 'Ask', 'Plan'] as const).map(
+                                                            (m) => {
+                                                                const ModeIcon =
+                                                                    m === 'Build'
+                                                                        ? Icons.Build
+                                                                        : m === 'Ask'
+                                                                          ? Icons.Ask
+                                                                          : Icons.Plan;
+                                                                const active =
+                                                                    chatComposerMode === m;
+                                                                return (
+                                                                    <button
+                                                                        key={m}
+                                                                        type="button"
+                                                                        onMouseDown={() => {
+                                                                            setChatComposerMode(m);
+                                                                            setModeMenuOpen(false);
+                                                                        }}
+                                                                        className={cn(
+                                                                            'hover:bg-background-bar-active flex items-center gap-2 rounded-sm px-2 py-1 text-left text-[11px]',
+                                                                            active
+                                                                                ? 'text-foreground-primary'
+                                                                                : 'text-foreground-secondary',
+                                                                        )}
+                                                                    >
+                                                                        <ModeIcon className="h-3 w-3" />
+                                                                        <span className="flex-1">
+                                                                            {m}
+                                                                        </span>
+                                                                        {active && (
+                                                                            <Icons.Check className="text-foreground-brand h-3 w-3" />
+                                                                        )}
+                                                                    </button>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </div>
                                                 )}
-                                                {chatComposerMode === 'Ask' && (
-                                                    <Icons.Ask className="h-3 w-3" />
+                                            </div>
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    aria-label="Model"
+                                                    onClick={() => {
+                                                        setModelMenuOpen((v) => !v);
+                                                        setModeMenuOpen(false);
+                                                    }}
+                                                    onBlur={() =>
+                                                        setTimeout(
+                                                            () => setModelMenuOpen(false),
+                                                            120,
+                                                        )
+                                                    }
+                                                    className={cn(
+                                                        'text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 min-w-0 items-center gap-1 rounded-md px-1.5 text-[11px]',
+                                                        modelMenuOpen &&
+                                                            'bg-background-tertiary text-foreground-primary',
+                                                    )}
+                                                >
+                                                    <span className="max-w-[64px] truncate">
+                                                        {chatModelLabel}
+                                                    </span>
+                                                    <Icons.ChevronDown className="h-2.5 w-2.5 shrink-0" />
+                                                </button>
+                                                {modelMenuOpen && (
+                                                    <div className="border-border bg-background-chrome absolute bottom-full left-0 z-50 mb-1 flex w-[160px] flex-col rounded-md border p-1 shadow-xl">
+                                                        {CHAT_MODELS.map((m) => {
+                                                            const active = chatModelLabel === m;
+                                                            return (
+                                                                <button
+                                                                    key={m}
+                                                                    type="button"
+                                                                    onMouseDown={() => {
+                                                                        setChatModelLabel(m);
+                                                                        setModelMenuOpen(false);
+                                                                    }}
+                                                                    className={cn(
+                                                                        'hover:bg-background-bar-active flex items-center gap-2 rounded-sm px-2 py-1 text-left text-[11px]',
+                                                                        active
+                                                                            ? 'text-foreground-primary'
+                                                                            : 'text-foreground-secondary',
+                                                                    )}
+                                                                >
+                                                                    <Icons.Sparkles className="text-foreground-tertiary h-3 w-3" />
+                                                                    <span className="flex-1 truncate">
+                                                                        {m}
+                                                                    </span>
+                                                                    {active && (
+                                                                        <Icons.Check className="text-foreground-brand h-3 w-3" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 )}
-                                                {chatComposerMode === 'Plan' && (
-                                                    <Icons.Plan className="h-3 w-3" />
-                                                )}
-                                                <span>{chatComposerMode}</span>
-                                                <Icons.ChevronDown className="h-2.5 w-2.5" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Model"
-                                                onClick={cycleModel}
-                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 min-w-0 items-center gap-1 rounded-md px-1.5 text-[11px]"
-                                            >
-                                                <span className="max-w-[64px] truncate">
-                                                    {chatModelLabel}
-                                                </span>
-                                                <Icons.ChevronDown className="h-2.5 w-2.5 shrink-0" />
-                                            </button>
+                                            </div>
                                             <button
                                                 type="button"
                                                 aria-label="Attach image"

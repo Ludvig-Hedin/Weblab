@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { requireCap } from './lib/permissions';
 
@@ -79,7 +80,19 @@ export const listActive = query({
 export const leave = mutation({
     args: { projectId: v.id('projects') },
     handler: async (ctx, { projectId }) => {
-        const { user } = await requireCap(ctx, 'project.view', { projectId });
+        // `leave` races project deletion / membership revocation — the
+        // heartbeat client may fire after the project (and its cursors)
+        // are already gone. Swallow NOT_FOUND from `requireCap` rather
+        // than surfacing a noisy toast on normal navigation flows.
+        let user: { _id: Id<'users'> };
+        try {
+            const result = await requireCap(ctx, 'project.view', { projectId });
+            user = result.user;
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (/\bNOT_FOUND\b/.test(msg) || /\bFORBIDDEN\b/.test(msg)) return;
+            throw err;
+        }
         const existing = await ctx.db
             .query('cursors')
             .withIndex('by_project_user', (q) =>

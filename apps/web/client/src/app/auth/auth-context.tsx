@@ -1,18 +1,30 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 
 // Post-migration shim. The original AuthContext orchestrated Supabase OAuth
 // modals (handleLogin / handleDevLogin). Clerk replaces all of that with its
-// own UI at /sign-in, so the only surface we still need is
-// `setIsAuthModalOpen(true)` — call sites use it to gate an action behind
-// auth. We redirect to /sign-in instead of opening a modal.
+// own UI at /sign-in. Two auth-gate primitives remain:
+//   - `setIsAuthModalOpen(true)` — opens the in-page AuthModal so a non-authed
+//     user can sign in without losing in-flight context (e.g. a typed prompt).
+//     The modal renders Clerk's auth form inline; the surrounding state stays
+//     mounted.
+//   - `redirectToSignIn()` — full-page bounce to `/sign-in?returnUrl=…`. Use
+//     for CTA buttons like "Get started" where there's no in-flight state to
+//     preserve, and on routes that don't mount `<AuthModal />`.
+//
+// Previously, `setIsAuthModalOpen(true)` did both — opened the modal AND
+// pushed to /sign-in — so users saw the modal flash for a frame before the
+// navigation took over. These are now separate calls.
 
 interface AuthContextValue {
     isAuthModalOpen: boolean;
     setIsAuthModalOpen: (open: boolean) => void;
+    redirectToSignIn: (returnUrl?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -21,26 +33,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-    const setOpen = (open: boolean) => {
-        setIsAuthModalOpen(open);
-        if (open) {
-            // Bounce to Clerk's sign-in instead of opening a custom modal.
-            // returnUrl is built from the current pathname + search so the user
+    const redirectToSignIn = useCallback(
+        (returnUrl?: string) => {
+            // Build returnUrl from the current pathname + search so the user
             // lands back where they were (with query params intact, e.g.
             // `/projects?filter=foo`) after sign-in. Hash is intentionally
             // dropped because the server-side `redirect(returnUrl)` doesn't
             // preserve hashes anyway.
-            const returnUrl =
-                typeof window !== 'undefined'
+            const resolved =
+                returnUrl ??
+                (typeof window !== 'undefined'
                     ? `${window.location.pathname}${window.location.search}`
-                    : '/';
-            const params = new URLSearchParams({ returnUrl });
-            router.push(`/sign-in?${params.toString()}`);
-        }
-    };
+                    : '/');
+            router.push(getSignInUrlClient(resolved));
+        },
+        [router],
+    );
 
     return (
-        <AuthContext.Provider value={{ isAuthModalOpen, setIsAuthModalOpen: setOpen }}>
+        <AuthContext.Provider value={{ isAuthModalOpen, setIsAuthModalOpen, redirectToSignIn }}>
             {children}
         </AuthContext.Provider>
     );
@@ -49,11 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuthContext(): AuthContextValue {
     const ctx = useContext(AuthContext);
     if (!ctx) {
-        // Allow standalone use (e.g. storybook) — fall back to a no-op so the
+        // Allow standalone use (e.g. storybook) — fall back to no-ops so the
         // import doesn't crash outside the provider.
         return {
             isAuthModalOpen: false,
             setIsAuthModalOpen: () => undefined,
+            redirectToSignIn: () => undefined,
         };
     }
     return ctx;

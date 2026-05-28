@@ -49,11 +49,35 @@ interface CheckoutSessionLike {
 // 1. Resolve caller → user record (with optional stripeCustomerId).
 // 2. If no Stripe customer yet, create one and persist via internalMutation.
 // 3. Create a Stripe Checkout Session for the requested price.
+//
+// TODO(bug-hunt 2026-05-28, F-491): no active-subscription guard. Double-click
+// or two-tab race lets the same user complete two Checkout Sessions → two
+// `customer.subscription.created` events → two `subscriptions` rows with
+// status='active'. Downstream `_findActiveSubscriptionForCaller` then does
+// `.unique()` on `by_user_status` and throws, locking the user out of the
+// billing portal entirely. Fix: call `_findActiveSubscriptionForCaller` first
+// and throw `ALREADY_SUBSCRIBED` if a row exists. Mirrors the guard already
+// present in `startPromoCheckout`.
 export const checkout = action({
     args: { priceId: v.string() },
     handler: async (ctx, { priceId }): Promise<CheckoutSessionLike> => {
         const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
         if (!caller) throw new Error('UNAUTHORIZED');
+
+        // Prevent the double-click race: if the caller already holds an active
+        // subscription, refuse a second Checkout Session. Without this guard,
+        // two near-simultaneous calls each create a Stripe Checkout Session →
+        // two `customer.subscription.created` events → two `subscriptions`
+        // rows with status='active'. Downstream `_findActiveSubscriptionForCaller`
+        // uses `.unique()` on `by_user_status` and throws, locking the user
+        // out of the billing portal. Mirrors `startPromoCheckout`.
+        const existingActive = await ctx.runQuery(
+            internal.lib.stripeWebhook._findActiveSubscriptionForCaller,
+            { userId: caller.id as Id<'users'> },
+        );
+        if (existingActive) {
+            throw new Error('ALREADY_SUBSCRIBED');
+        }
 
         const stripe = getStripe();
 
@@ -153,8 +177,23 @@ export const update = action({
 
         const stripe = getStripe();
 
+        // Releasing a schedule that Stripe already reports as `released` throws
+        // `invalid_request_error`. Tolerate that — the next branches still apply
+        // the upgrade/downgrade. Mirrors `releaseSubscriptionSchedule` at the
+        // bottom of this file.
         if (owned.stripeSubscriptionScheduleId) {
-            await stripe.subscriptionSchedules.release(owned.stripeSubscriptionScheduleId);
+            try {
+                await stripe.subscriptionSchedules.release(
+                    owned.stripeSubscriptionScheduleId,
+                );
+            } catch (err) {
+                const code = (err as { code?: string } | null)?.code;
+                if (code !== 'invalid_request_error') throw err;
+                console.warn(
+                    '[subscriptionActions.update] schedule already released',
+                    owned.stripeSubscriptionScheduleId,
+                );
+            }
         }
 
         const isUpgrade =
@@ -226,6 +265,11 @@ export const startPromoCheckout = action({
         { promotionCode },
     ): Promise<{ errorCode: string } | { redirectUrl: string }> => {
         const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        // TODO(bug-hunt 2026-05-28, F-491): conflates two states. If `caller`
+        // is null, the user is genuinely unauthenticated; if `caller` is set
+        // but `email` is missing, the user IS authenticated and just lacks an
+        // email on their Clerk profile. Surface a `missing_email` error code
+        // instead of the misleading `not_authenticated`.
         if (!caller?.email) {
             return { errorCode: 'not_authenticated' };
         }

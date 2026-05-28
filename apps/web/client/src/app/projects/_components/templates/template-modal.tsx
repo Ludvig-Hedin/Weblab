@@ -61,7 +61,7 @@ export function TemplateModal({
         projectId: templateProject.id as Id<'projects'>,
         onlyDefault: true,
     });
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { redirectToSignIn } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
     const router = useRouter();
 
@@ -69,7 +69,7 @@ export function TemplateModal({
         const userId = user?._id ?? user?.id;
         if (!userId) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
-            setIsAuthModalOpen(true);
+            redirectToSignIn();
             return;
         }
 

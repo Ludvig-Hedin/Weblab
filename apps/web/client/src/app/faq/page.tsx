@@ -10,9 +10,9 @@ import { WebsiteLayout } from '../_components/website-layout';
 
 const SECTIONS = [
     { anchor: 'about-weblab', key: 'about', count: 4 },
-    { anchor: 'features', key: 'features', count: 4 },
-    { anchor: 'compatibility', key: 'compatibility', count: 5 },
-    { anchor: 'workflow', key: 'workflow', count: 4 },
+    { anchor: 'features', key: 'features', count: 7 },
+    { anchor: 'compatibility', key: 'compatibility', count: 7 },
+    { anchor: 'workflow', key: 'workflow', count: 6 },
     { anchor: 'company', key: 'company', count: 3 },
 ] as const;
 

@@ -63,10 +63,19 @@ export function ProviderSetupDialog({
 }) {
     const [copied, setCopied] = useState<string | null>(null);
 
-    const copy = (cmd: string) => {
-        void navigator.clipboard.writeText(cmd);
-        setCopied(cmd);
-        setTimeout(() => setCopied((current) => (current === cmd ? null : current)), 1500);
+    const copy = async (cmd: string) => {
+        // Await the clipboard write so a rejection (permission denied,
+        // insecure context, missing API) doesn't show a false "Copied"
+        // indicator. Matches the same fix made on top-bar/publish/dropdown/url.tsx.
+        try {
+            await navigator.clipboard.writeText(cmd);
+            setCopied(cmd);
+            setTimeout(() => setCopied((current) => (current === cmd ? null : current)), 1500);
+        } catch {
+            // Surface nothing — the Copy button stays in its idle state so
+            // the user can retry. We deliberately don't toast here because
+            // the dialog has its own self-contained UX.
+        }
     };
 
     const isInstall = status.kind === 'install';
@@ -102,7 +111,7 @@ export function ProviderSetupDialog({
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => copy(h.command)}
+                                        onClick={() => void copy(h.command)}
                                     >
                                         {copied === h.command ? 'Copied' : 'Copy'}
                                     </Button>

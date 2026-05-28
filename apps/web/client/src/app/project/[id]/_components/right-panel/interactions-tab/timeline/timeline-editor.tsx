@@ -57,9 +57,11 @@ export const TimelineEditorPlaceholder = observer(function TimelineEditor({
         );
     }
 
-    const branchId = editorEngine.branches.activeBranch.id;
+    const branchId = editorEngine.branches.activeBranch?.id;
 
     const persist = (next: Interaction) => {
+        // Guard against a transient null activeBranch (mid branch-switch).
+        if (!branchId) return;
         void editorEngine.interactions.updateInteraction(
             { ...next, updatedAt: Date.now() },
             branchId,

@@ -122,7 +122,11 @@ export const CodeTab = memo(
 
         // React to loadedContent changes - build local EditorFile and manage opened files
         useEffect(() => {
-            if (!selectedFilePath || !loadedContent) return;
+            // `useFile` returns `content: null` while loading/error and the real
+            // value (including `''` for a genuinely empty file) once loaded.
+            // Guard on `== null` so a zero-byte file can still be opened — a
+            // `!loadedContent` check conflated empty-but-loaded with loading.
+            if (!selectedFilePath || loadedContent == null) return;
 
             const seq = ++processFileSeqRef.current;
             const targetPath = selectedFilePath;
@@ -406,6 +410,12 @@ export const CodeTab = memo(
             }
         };
 
+        // TODO(bug-hunt-deep): `isDirty` is async (hashes file content). If the
+        // user rapid-fire closes the same file twice, or the component unmounts
+        // before resolution, the late `.then` callback can still drive
+        // `closeFileInternal` / open the unsaved dialog against state that has
+        // already moved on. Suggested fix: store a "closing" set in a ref so we
+        // ignore late resolutions for paths already closed/dismissed.
         const closeLocalFile = useCallback(
             (filePath: string) => {
                 const fileToClose = openedEditorFiles.find((f) => pathsEqual(f.path, filePath));
@@ -561,7 +571,25 @@ export const CodeTab = memo(
                 return checkPath(entry);
             });
 
-            toast.promise(branchData.codeEditor.deleteFile(path), {
+            const deletion = branchData.codeEditor.deleteFile(path);
+            // Close any open tab for the deleted file (or any descendant of a
+            // deleted directory). Otherwise the tab's EditorView keeps pointing
+            // at a path that no longer exists on disk and Save / read-back /
+            // dirty-check all silently fail.
+            void deletion
+                .then(() => {
+                    const prefix = `${path}/`;
+                    const orphaned = openedEditorFilesRef.current
+                        .map((f) => f.path)
+                        .filter((p) => pathsEqual(p, path) || p.startsWith(prefix));
+                    orphaned.forEach((p) => closeFileInternal(p));
+                })
+                .catch(() => {
+                    // Delete failed — toast.promise surfaces the error; leave
+                    // the tabs open so the user doesn't lose unsaved work.
+                });
+
+            toast.promise(deletion, {
                 loading: `Deleting ${fileName}...`,
                 success: `${isDirectory ? 'Folder' : 'File'} "${fileName}" deleted`,
                 error: (error) =>

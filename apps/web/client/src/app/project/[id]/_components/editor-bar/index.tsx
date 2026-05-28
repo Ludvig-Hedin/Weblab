@@ -11,6 +11,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { DivSelected } from './div-selected';
 import { FrameSelected } from './frame-selected';
 import { DropdownManagerProvider } from './hooks/use-dropdown-manager';
+import { ImgSelected } from './img-selected';
 import { TextSelected } from './text-selected';
 
 enum TAG_CATEGORIES {
@@ -51,8 +52,8 @@ const TAG_TYPES: Record<TAG_CATEGORIES, string[]> = {
         'q',
     ],
     [TAG_CATEGORIES.DIV]: ['div'],
-    // TODO: Add img and video tag support
-    [TAG_CATEGORIES.IMG]: [],
+    [TAG_CATEGORIES.IMG]: ['img'],
+    // TODO: Add video tag support (dispatch falls through to DivSelected)
     [TAG_CATEGORIES.VIDEO]: [],
 } as const;
 
@@ -85,6 +86,9 @@ export const EditorBar = observer(({ availableWidth }: { availableWidth?: number
         }
         if (selectedTag === TAG_CATEGORIES.TEXT) {
             return <TextSelected availableWidth={availableWidth} />;
+        }
+        if (selectedTag === TAG_CATEGORIES.IMG) {
+            return <ImgSelected availableWidth={availableWidth} />;
         }
         return <DivSelected availableWidth={availableWidth} />;
     };

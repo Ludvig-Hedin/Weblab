@@ -93,7 +93,8 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
     };
 
     const addPageTrigger = async (kind: TriggerKind) => {
-        const branchId = editorEngine.branches.activeBranch.id;
+        const branchId = editorEngine.branches.activeBranch?.id;
+        if (!branchId) return;
         const interaction = makeInteraction({
             triggerKind: kind,
             sourceIxId: null,
@@ -103,7 +104,8 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
     };
 
     const deleteInteraction = async (id: string) => {
-        const branchId = editorEngine.branches.activeBranch.id;
+        const branchId = editorEngine.branches.activeBranch?.id;
+        if (!branchId) return;
         await editorEngine.interactions.removeInteraction(id, branchId);
     };
 

@@ -51,6 +51,15 @@ export function buildFileMentionExtension(config: MentionConfig) {
 
                     onUpdate(props) {
                         if (!component || !popupEl) return;
+
+                        // Re-show if a prior Escape hid the popup but the user
+                        // kept typing in the same suggestion session. Mirrors
+                        // the slash-commands extension — destroying the
+                        // renderer here stranded the session invisible until
+                        // the trigger char was retyped. onExit performs the
+                        // real teardown.
+                        popupEl.style.display = '';
+
                         component.updateProps({
                             items: props.items as MentionItem[],
                             command: (item: MentionItem) => {
@@ -66,10 +75,10 @@ export function buildFileMentionExtension(config: MentionConfig) {
                     onKeyDown(props) {
                         if (!component || !popupEl) return false;
                         if (props.event.key === 'Escape') {
-                            popupEl.remove();
-                            component.destroy();
-                            popupEl = undefined;
-                            component = undefined;
+                            // Hide (don't destroy) so the menu can reappear if
+                            // the user keeps typing. Real teardown happens in
+                            // onExit when the suggestion session ends.
+                            popupEl.style.display = 'none';
                             return true;
                         }
                         return component.ref?.onKeyDown({ event: props.event }) ?? false;

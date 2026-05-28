@@ -140,7 +140,11 @@ export const useDropdownControl = ({
             setIsOpen(shouldBeOpen);
             onOpenChangeRef.current?.(shouldBeOpen);
         }
-    }, [openDropdownId, id, isOverflow]);
+        // `isOpen` MUST be in deps: the manager (`openDropdownId`) is the
+        // source of truth and `isOpen` mirrors it. Omitting `isOpen` left a
+        // stale read so a dropdown could stay open after the manager closed
+        // it. No loop risk — when the two agree, no setState fires.
+    }, [openDropdownId, id, isOverflow, isOpen]);
 
     return {
         isOpen,

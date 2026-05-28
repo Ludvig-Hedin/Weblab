@@ -18,7 +18,16 @@ export const DeviceSettings = observer(({ frameId }: { frameId: string }) => {
             console.error('No frame view found');
             return;
         }
-        frameData.view.getTheme().then((theme) => setTheme(theme));
+        // `getTheme` is async; if `frameData` flips or the component unmounts
+        // before it resolves, the resolution can call setState on a stale
+        // (or different-frame) component. Guard with a cancellation flag.
+        let cancelled = false;
+        frameData.view.getTheme().then((next) => {
+            if (!cancelled) setTheme(next);
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [frameData]);
 
     if (!frameData) {

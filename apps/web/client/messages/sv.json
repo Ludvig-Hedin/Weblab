@@ -2351,13 +2351,6 @@
             "headingSideBySide": "Sida vid sida",
             "subhead": "Allt på en canvas. Inga flikar, ingen överlämning, ingen översättning som tappar bort något.",
             "cta": "Börja bygga",
-            "brandVisual": {
-                "tokens": "Tokens",
-                "background": "Bakgrund",
-                "foreground": "Förgrund",
-                "brand": "Varumärke",
-                "onBrand": "Alla förslag följer varumärket"
-            },
             "layersTitle": "Lager",
             "revisionToday": "Idag",
             "revisionCurrent": "Aktuell",
@@ -2382,10 +2375,10 @@
                     "title": "Dina riktiga komponenter",
                     "paragraph": "Återanvänd ditt befintliga designsystem – knappar, kort, navigationer. Levande komponenter, inte skärmdumpar."
                 },
-                "brand": {
-                    "subtitle": "Varumärke",
-                    "title": "Skyddsräcken för designsystemet",
-                    "paragraph": "Dina tokens förblir dina tokens. AI-förslagen respekterar dina färger, typografi och avstånd."
+                "cms": {
+                    "subtitle": "CMS",
+                    "title": "Innehållet lever bredvid din design",
+                    "paragraph": "Hantera inlägg, sidor och samlingar i en prydlig panel. Ändra ett fält och canvasen uppdateras – ingen separat dashboard, ingen copy-paste."
                 },
                 "structure": {
                     "subtitle": "Struktur",

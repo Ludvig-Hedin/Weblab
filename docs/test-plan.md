@@ -361,7 +361,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 
 | ID | Targets | Scope | How | Pass | Status |
 |---|---|---|---|---|---|
-| T-470 | F-470 | U | `GET /api/health` | `{ ok: true }` | `[ ]` |
+| T-470 | F-470 | U | `GET /api/health` | `{ ok: true }` | `[x]` |
 | T-471 | F-471, F-522, F-523, F-624 | I | POST chat | Stream returns; messages persisted; `aiUsageEvents` row | `[ ]` |
 | T-472 | F-472 | I | POST summarize | 204; `conversations.setSummary` invoked | `[ ]` |
 | T-473 | F-473 | I | GET image by id | Per-user cache isolation; 404 on miss | `[ ]` |
@@ -371,6 +371,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-477 | F-477, F-724 | I | POST email-capture with + without N8N env | Captured either way; forwarded when env set | `[ ]` |
 | T-478 | F-478, F-716 | I | GET local models with non-loopback URL | SSRF guard rejects | `[ ]` |
 | T-479 | F-479, F-555, F-720 | E (test mode) | GET promo-resume | Routes to checkout or `/pricing` based on subscription | `[ ]` |
+| T-770 | F-479 | U | `isStripeCheckoutUrl` helper guard | Accepts Stripe https hosts; rejects look-alike domains, non-https, malformed URLs | `[x]` |
 
 ---
 

@@ -17,19 +17,32 @@ export const PricingTable = () => {
     const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
     const { setIsAuthModalOpen } = useAuthContext();
 
+    // Distinguish "loading" from "anonymous". Without this, a signed-in
+    // visitor sees "Get Started Free" / "Get started" CTAs during the
+    // brief window before `users.me` resolves — and clicking them in that
+    // window opens the auth modal instead of starting checkout. Treat the
+    // visitor as anonymous only after we either confirmed no auth cookie
+    // (false) or finished loading the user (defined). The `null` SSR /
+    // first-paint window and the `cookie-present-but-query-loading` window
+    // both fall through to the auth-loading branch.
+    const authResolving = hasAuthCookie === null || (hasAuthCookie === true && user === undefined);
+    const isUnauthenticated = hasAuthCookie === false || (user === null && !authResolving);
+
     return (
         <div className="w-full">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <FreeCard
                     delay={0.1}
                     variant="flat"
-                    isUnauthenticated={!user}
+                    isUnauthenticated={isUnauthenticated}
+                    isAuthLoading={authResolving}
                     onSignupClick={() => setIsAuthModalOpen(true)}
                 />
                 <ProCard
                     delay={0.2}
                     variant="flat"
-                    isUnauthenticated={!user}
+                    isUnauthenticated={isUnauthenticated}
+                    isAuthLoading={authResolving}
                     onSignupClick={() => setIsAuthModalOpen(true)}
                 />
                 <EnterpriseCard delay={0.3} variant="flat" />

@@ -93,10 +93,23 @@ export async function POST(request: Request) {
             authHeaders[headerName] = headerValue;
         }
 
-        const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: authHeaders,
-        });
+        // Bound the upstream call. Without this an unresponsive n8n instance
+        // hangs the Node event loop indefinitely — a single stuck request
+        // can pile up and exhaust the per-process connection pool while
+        // marketing visitors retry the form.
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+        let response: Response;
+        try {
+            response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: authHeaders,
+                signal: controller.signal,
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
             throw new Error(`Webhook failed with status: ${response.status}`);

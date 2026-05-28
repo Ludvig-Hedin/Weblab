@@ -37,6 +37,7 @@ import type * as hostingConnections from "../hostingConnections.js";
 import type * as http from "../http.js";
 import type * as internal_cascade from "../internal/cascade.js";
 import type * as internal_cleanup from "../internal/cleanup.js";
+import type * as layoutGuideStyles from "../layoutGuideStyles.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_cmsAdapters from "../lib/cmsAdapters.js";
@@ -119,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "internal/cascade": typeof internal_cascade;
   "internal/cleanup": typeof internal_cleanup;
+  layoutGuideStyles: typeof layoutGuideStyles;
   "lib/audit": typeof lib_audit;
   "lib/auth": typeof lib_auth;
   "lib/cmsAdapters": typeof lib_cmsAdapters;

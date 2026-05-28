@@ -160,7 +160,17 @@ export const run = action({
                     });
                 }
             } finally {
-                await provider.destroy();
+                // `provider.destroy()` is teardown — never let it mask the
+                // original deploy error that the outer `catch` needs to log
+                // and surface to the user.
+                try {
+                    await provider.destroy();
+                } catch (destroyErr) {
+                    console.warn(
+                        '[publishActions.run] provider.destroy() failed',
+                        destroyErr,
+                    );
+                }
             }
 
             await ctx.runMutation(internal.deployments._update, {

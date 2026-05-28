@@ -99,6 +99,13 @@ export const upsert = mutation({
                 await ctx.db.patch(message.id, normalized);
                 return (await ctx.db.get(message.id))!;
             }
+            // Client passed a `message.id` that no longer resolves — most
+            // commonly because the row was cascade-deleted (conversation
+            // truncate / project unshare race). Refusing the upsert keeps
+            // the client cache consistent: silently inserting a NEW row
+            // with a fresh id would let the client render the original
+            // (now-deleted) id alongside the new row as a duplicate.
+            throw new Error('NOT_FOUND: message');
         }
         const id = await ctx.db.insert('messages', normalized);
         return (await ctx.db.get(id))!;

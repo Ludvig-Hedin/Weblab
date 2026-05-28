@@ -191,7 +191,13 @@ export const CodeEditor = observer(
             });
 
             if (navigationTarget && isActive) {
-                // Delay navigation to ensure document is fully loaded
+                // TODO(bug-hunt-deep): This `setTimeout` is never cleared. If the
+                // editor is destroyed between the schedule and the 100ms fire
+                // (file closed, branch switched, tab removed), `handleNavigation`
+                // calls `editor.dispatch` on a destroyed view. CodeMirror tolerates
+                // it today (no-op) but is not contractually safe. Suggested fix:
+                // capture the timer id and clear it from a cleanup callback or
+                // from `closeFileInternal` where we already destroy the view.
                 setTimeout(() => {
                     handleNavigation(editor, navigationTarget);
                 }, 100);
