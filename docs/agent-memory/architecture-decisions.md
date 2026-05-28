@@ -18,6 +18,34 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-28 — Convex prod deploys go through CI (GitHub Action), not the Railway Docker build
+
+Decision: Production Convex (`rapid-crab-113`) is deployed by a dedicated GitHub
+Action (`.github/workflows/convex-deploy-production.yml`) running `convex deploy`
+with a `CONVEX_DEPLOY_KEY` repo secret — on push to main touching `convex/**` and
+on manual dispatch. The Railway Docker image build stays frontend-only (`next build`).
+
+Context: A whole class of "auth broke after the Clerk+Convex migration" symptoms
+traced to prod Convex being **empty** — the Railway build only ran `next build`,
+nothing ever ran `convex deploy` for prod, and `package.json`'s `convex:deploy`
+script was `convex dev --once` (targets the *dev* deployment). So every backend
+change shipped to dev only; prod had no functions, no schema, no `auth.config.ts`
+⇒ "No auth provider found matching the given token" + `users:me` Server Error.
+
+Alternatives considered: (a) bake `convex deploy --cmd 'bun run build'` into the
+Dockerfile — rejected: Railway passes build vars as ARGs (would leak the deploy
+key into image history/logs), BuildKit secret-mount support on Railway is
+unverified, and a broken build step would take down the frontend too. (b) Keep it
+manual — rejected: that's the status quo that caused the outage.
+
+Rationale: Decoupling backend deploy from the frontend image keeps each failure
+domain independent, reuses the repo's existing CI-deploys-backend pattern
+(`supabase-push-staging.yml`), and keeps the deploy key in GitHub secrets (never
+in an image layer). Frontend `NEXT_PUBLIC_CONVEX_URL` stays pinned in Railway to
+the stable prod deployment URL.
+Status: Active. Requires `CONVEX_DEPLOY_KEY` (production) added as a GitHub repo
+secret to function.
+
 ## 2026-05-24 — Clerk + Convex as the primary auth + backend (Supabase + tRPC retired)
 
 Decision: All new backend code lives in Convex (`apps/web/client/convex/`).

@@ -38,6 +38,26 @@ later without re-discovering the context.
 
 ## Open
 
+### Confirm Railway `NEXT_PUBLIC_CONVEX_URL` = prod Convex (`rapid-crab-113`)
+
+- **Discovered:** 2026-05-28 (prod Google-login crash investigation)
+- **Where:** Railway web-client service build vars (Dockerfile ARG `NEXT_PUBLIC_CONVEX_URL`)
+- **Symptom:** Could not verify which Convex deployment the live bundle targets — Railway login token expired (`railway login` needed) and the URL sits in a lazy-loaded JS chunk the sandbox probe couldn't reach.
+- **Root cause:** n/a (verification gap). Diagnosis strongly implies prod points at `rapid-crab-113` (only an empty deployment produces *both* console errors, and dev `avid-gnat-539` is not empty), but it is unconfirmed.
+- **Next step:** `railway login`, then read the web-client service var. Must equal `https://rapid-crab-113.convex.cloud`. If it's the dev URL (`avid-gnat-539`), that's a second bug — repoint it and redeploy. While there, sanity-check `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is the `pk_live_*` prod key.
+- **Risk if ignored:** If prod actually points at dev Convex, login still fails after the prod deploy (prod Clerk token rejected by dev's issuer).
+- **Tags:** `#infra` `#auth` `#convex`
+
+### React error #418 (hydration) on /sign-in — confirm resolved post-fix
+
+- **Discovered:** 2026-05-28 (prod Google-login crash investigation)
+- **Where:** `apps/web/client/src/app/sign-in/**` (rendered with Clerk + Convex providers)
+- **Symptom:** Console `Minified React error #418` (hydration text-content mismatch) on the sign-in page during the failed login.
+- **Root cause:** Unverified. Most likely secondary — the thrown `users:me` Convex Server Error crashing mid-hydration — and should disappear now that prod Convex is deployed. Could also be an independent SSR/client mismatch.
+- **Next step:** After confirming live login works, reload /sign-in and check the console. If #418 persists, run the dev build (non-minified React) to get the real component + reproduce.
+- **Risk if ignored:** Possible flicker / hydration warning on the auth page; low user impact if the underlying query no longer throws.
+- **Tags:** `#bug` `#auth` `#frontend`
+
 ### F-558 — `userActions.remove` deletes Clerk identity before cascade can fail; orphan PII on partial-fail
 
 - **Discovered:** 2026-05-28 (validate-feature F-510..F-565 deep bug-hunt)

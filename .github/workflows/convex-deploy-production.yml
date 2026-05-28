@@ -1,0 +1,47 @@
+name: Deploy Convex to Production
+
+# Pushes Convex functions, schema, and auth.config.ts to the PRODUCTION Convex
+# deployment (rapid-crab-113). Without this, the Railway image build only runs
+# `next build` and never deploys the backend — leaving prod Convex empty, which
+# breaks Clerk auth ("No auth provider found matching the given token") and every
+# query ("Could not find function ..."). See docs/agent-memory/feature-log.md.
+#
+# Requires a repository secret CONVEX_DEPLOY_KEY containing a *production* deploy
+# key (Convex dashboard → project "weblab" → Settings → Production → Deploy keys).
+# `convex deploy` targets the deployment that key belongs to, so no deployment
+# name is hardcoded here.
+
+on:
+    # Auto-deploy backend changes when they land on main.
+    push:
+        branches: [main]
+        paths:
+            - 'apps/web/client/convex/**'
+            - '.github/workflows/convex-deploy-production.yml'
+    # Manual trigger for ad-hoc redeploys / first run.
+    workflow_dispatch:
+
+# Never run two prod deploys at once; cancel an in-flight run if a newer commit lands.
+concurrency:
+    group: convex-deploy-production
+    cancel-in-progress: false
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        env:
+            CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Deploy Convex (production)
+              working-directory: apps/web/client
+              run: bunx convex deploy --yes

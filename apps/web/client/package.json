@@ -18,7 +18,8 @@
     "scripts": {
         "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; next dev --turbo --port 3000",
         "convex:dev": "convex dev",
-        "convex:deploy": "convex dev --once",
+        "convex:dev:once": "convex dev --once",
+        "convex:deploy": "convex deploy --yes",
         "convex:codegen": "convex codegen",
         "lint": "eslint . --max-warnings 5000",
         "format": "eslint --fix .",

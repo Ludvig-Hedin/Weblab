@@ -16,6 +16,16 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-28 — Prod Google login crash root-caused: prod Convex was never deployed
+Author: Claude Opus 4.7
+Area: Convex deploy pipeline / `apps/web/client/convex` / `apps/web/client/src/app/projects`
+Summary: Google sign-in on weblab.build crashed ("This page couldn't load") with console errors `No auth provider found matching the given token` + `[CONVEX Q(users:me)] Server Error`. Root cause: the **production** Convex deployment (`rapid-crab-113`) was completely empty — no functions, no schema, no `auth.config.ts` had ever been pushed to it. The dev deployment (`avid-gnat-539`) had everything because devs run `convex dev` locally, but nothing in CI/Docker ever ran `convex deploy` for prod, and the `convex:deploy` npm script was mislabeled (`convex dev --once`, which targets dev). Empty prod deployment ⇒ no auth provider registered (every Clerk token rejected) AND `users:me` doesn't exist (query throws a Server Error that Convex's `useQuery` re-throws into the framework crash screen). Both console errors collapse to that one cause.
+
+Fixes: (1) ran `convex deploy` to push functions+schema+auth.config to prod `rapid-crab-113` — verified `users:me` now returns null cleanly and issuer = `https://clerk.weblab.build`. (2) `package.json`: `convex:deploy` → `convex deploy --yes` (real prod), added `convex:dev:once` for the old one-shot dev behavior. (3) New GitHub Action `convex-deploy-production.yml` auto-deploys Convex to prod on push to main touching `convex/**` (+ manual dispatch), mirroring `supabase-push-staging.yml`. Needs repo secret `CONVEX_DEPLOY_KEY` (manual). (4) Added `app/projects/error.tsx` segment boundary so a future backend blip degrades to a retry UI instead of the bare framework crash (the `/projects` pages call `useQuery(api.users.me, {})` with no fallback).
+Unverified: React error #418 (hydration) on /sign-in — likely secondary to the thrown query; logged to BACKLOG to confirm after the prod fix is validated live. Railway `NEXT_PUBLIC_CONVEX_URL` not yet confirmed = prod (Railway login expired) — see BACKLOG.
+Files: `apps/web/client/package.json`, `.github/workflows/convex-deploy-production.yml`, `apps/web/client/src/app/projects/error.tsx`
+Links: deploy = `rapid-crab-113.convex.cloud`
+
 ## 2026-05-28 — Desktop auth: route email through handoff + CAPTCHA mount + prefill
 Author: Claude Opus 4.7
 Area: `apps/web/client/src/app/sign-in`
