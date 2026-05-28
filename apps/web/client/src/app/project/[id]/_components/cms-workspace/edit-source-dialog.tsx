@@ -57,6 +57,12 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
     const [testStatus, setTestStatus] = useState<
         { ok: true } | { ok: false; reason: string } | null
     >(null);
+    // Monotonic request id, mirrors connect-source-dialog.tsx. Without it,
+    // a user could click Test, edit credentials while the request is in
+    // flight, and the late result would set `testStatus={ ok: true }` for
+    // the OLD creds. The Save button (gated on `testStatus?.ok === true`)
+    // would then accept untested credentials.
+    const testReqRef = useRef(0);
 
     // Seed once per (open × sourceId). After init, a background refetch
     // (Convex realtime / window focus) must NOT overwrite the user's
@@ -93,6 +99,7 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
             toast.error('Source not loaded yet — try again in a moment');
             return;
         }
+        const reqId = ++testReqRef.current;
         setTestStatus(null);
         setIsTesting(true);
         try {
@@ -111,16 +118,27 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
                           projectId: projectId as Id<'projects'>,
                           sourceId: sourceId as Id<'cmsSources'>,
                       });
+            if (reqId !== testReqRef.current) return; // stale — user edited creds mid-test
             setTestStatus(result);
             if (!result.ok) toast.error(result.reason);
             else toast.success('Connection works');
         } catch (err) {
+            if (reqId !== testReqRef.current) return;
             const reason = err instanceof Error ? err.message : 'Connection test failed';
             setTestStatus({ ok: false, reason });
             toast.error(reason);
         } finally {
-            setIsTesting(false);
+            if (reqId === testReqRef.current) setIsTesting(false);
         }
+    };
+
+    // Invalidate any in-flight test + cached success state whenever the
+    // user edits a cred field, toggles `rotate`, or switches between
+    // testing new vs stored creds — otherwise Save could persist creds
+    // that were never validated against the remote.
+    const invalidatePendingTest = () => {
+        testReqRef.current += 1;
+        setTestStatus(null);
     };
 
     const handleSave = async () => {
@@ -176,7 +194,14 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
                             <input
                                 type="checkbox"
                                 checked={rotate}
-                                onChange={(e) => setRotate(e.target.checked)}
+                                onChange={(e) => {
+                                    // Invalidate any cached `testStatus={ok:true}`
+                                    // — toggling rotate flips between testing
+                                    // the new creds vs the stored creds, so
+                                    // the prior result is no longer relevant.
+                                    invalidatePendingTest();
+                                    setRotate(e.target.checked);
+                                }}
                             />
                             Replace credentials
                         </label>
@@ -200,12 +225,17 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
                                             type={isSecret(key) ? 'password' : 'text'}
                                             autoComplete="off"
                                             value={creds[key] ?? ''}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                // Invalidate any cached "ok" so
+                                                // Save can't accept untested
+                                                // creds (mirrors connect-
+                                                // source-dialog.tsx).
+                                                invalidatePendingTest();
                                                 setCreds((prev) => ({
                                                     ...prev,
                                                     [key]: e.target.value,
-                                                }))
-                                            }
+                                                }));
+                                            }}
                                         />
                                     </div>
                                 ))}
@@ -238,7 +268,20 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
                         >
                             Test connection
                         </Button>
-                        <Button onClick={() => void handleSave()} disabled={isUpdating}>
+                        <Button
+                            onClick={() => void handleSave()}
+                            disabled={
+                                isUpdating ||
+                                // When the user is rotating creds with at least
+                                // one non-blank value, require a passing test
+                                // before allowing Save. Otherwise the new creds
+                                // get persisted without ever validating against
+                                // the remote — mirrors the connect-source gate.
+                                (rotate &&
+                                    Object.values(creds).some((v) => v && v.trim() !== '') &&
+                                    testStatus?.ok !== true)
+                            }
+                        >
                             Save
                         </Button>
                     </div>

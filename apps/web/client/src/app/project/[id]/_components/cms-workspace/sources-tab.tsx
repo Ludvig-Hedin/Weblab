@@ -75,6 +75,14 @@ export const SourcesTab = observer(() => {
                 prune,
             });
             // Convex live queries auto-revalidate — no manual invalidate needed.
+            // TODO(bug-hunt): result.perCollection[].error is currently
+            // dropped. If one of N mapped collections fails (adapter
+            // rejection, network error, missing remote ref), the user
+            // sees a green "written: 0" success toast and no indication
+            // that part of the sync failed. Surface failed-collection
+            // count and the first error message in the toast — or
+            // switch to a richer "Synced X, Y failed (click to view)"
+            // notification with per-collection breakdown.
             const prunedSuffix = result.pruned > 0 ? ` (${result.pruned} pruned)` : '';
             toast.success(
                 `${t(transKeys.cms.sources.refreshDonePrefix)} ${result.written} ${t(transKeys.cms.sources.refreshDoneSuffix)}${prunedSuffix}`,
@@ -137,17 +145,26 @@ export const SourcesTab = observer(() => {
             impactKnown = false;
         }
         const { collectionCount, itemCount } = impact;
+        // The server (convex/cmsSources.ts:remove) refuses deletion while
+        // ANY collection still references this source — short-circuit
+        // before opening the confirm dialog so the UI copy doesn't
+        // promise a destructive action that will fail. The previous flow
+        // showed "X collections will lose their sync link" then surfaced
+        // a server error toast on click, leaving the user confused about
+        // what actually happened.
+        if (impactKnown && collectionCount > 0) {
+            toast.error(
+                `Cannot delete: ${collectionCount} ${
+                    collectionCount === 1 ? 'collection' : 'collections'
+                } still use this source. Delete or reassign them first.`,
+            );
+            return;
+        }
         const description = !impactKnown
             ? t(transKeys.cms.sources.deleteConfirm)
-            : collectionCount === 0
-              ? `No collections currently use this source. ${itemCount} ${
-                    itemCount === 1 ? 'item remains' : 'items remain'
-                } locally (already saved). This cannot be undone.`
-              : `${collectionCount} ${
-                    collectionCount === 1 ? 'collection' : 'collections'
-                } will lose their sync link. ${itemCount} ${
-                    itemCount === 1 ? 'item remains' : 'items remain'
-                } locally (already saved). This cannot be undone.`;
+            : `No collections currently use this source. ${itemCount} ${
+                  itemCount === 1 ? 'item remains' : 'items remain'
+              } locally (already saved). This cannot be undone.`;
 
         const ok = await confirm({
             title: `Delete “${source.name}”?`,

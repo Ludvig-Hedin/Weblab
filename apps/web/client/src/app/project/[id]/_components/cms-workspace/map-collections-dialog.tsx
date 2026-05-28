@@ -104,6 +104,14 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, remote]);
 
+    // TODO(bug-hunt): convex/cmsActions.ts sourceMapCollections runs an
+    // initial sync inside a try/catch that only console.error's the
+    // failure server-side. The UI sees this action resolve successfully
+    // even when zero items were synced. Worst case the user maps a
+    // source, gets a green "mapped" toast, and the items list stays
+    // empty with no indication of why. Server should return the
+    // SyncResult shape (or {success, syncFailed}) and this dialog
+    // should surface partial-failure copy.
     const handleConfirm = async () => {
         if (!sourceId) return;
         type Mapping = Parameters<typeof mapCollectionsAction>[0]['mappings'][number];
@@ -231,11 +239,15 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
 };
 
 function slugify(name: string): string {
-    return (
-        name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '')
-            .slice(0, 64) || 'collection'
-    );
+    // Trim trailing dashes AFTER the length cap — slicing to 64 chars in the
+    // middle of a sequence like "foo-bar-baz-…" can leave a trailing `-`,
+    // which the server regex in convex/cmsCollections.ts validateSlug
+    // (^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$) rejects.
+    const out = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 64)
+        .replace(/-+$/g, '');
+    return out || 'collection';
 }

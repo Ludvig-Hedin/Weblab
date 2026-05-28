@@ -114,6 +114,16 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
             toast.error(t(transKeys.cms.routing.pickFieldFirst));
             return;
         }
+        // TODO(bug-hunt): convex/cmsCollectionPages.ts upsert() only
+        // validates matchFieldKey length (1-64), not that the key
+        // actually exists in the collection's fields. cmsFields.remove
+        // doesn't touch cmsCollectionPages either, so deleting a field
+        // that's referenced as matchFieldKey leaves a stale page
+        // registration where URL → item resolution silently fails (no
+        // item ever matches the missing key). Either validate
+        // existence server-side at upsert, OR cascade-clear matchFieldKey
+        // (to '' or the first remaining field) when fields.remove drops
+        // the key it points at.
         setIsUpserting(true);
         try {
             await upsertMutation({

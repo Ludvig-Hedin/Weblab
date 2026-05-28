@@ -443,14 +443,22 @@ function InlineFieldEditor({
         try {
             if (mode === 'create') {
                 const rawKey = key.trim();
-                // Manual keys must follow the same charset as auto-generated
-                // ones — otherwise downstream template expressions and ORM
-                // lookups that assume [a-z0-9_] choke on the raw string.
-                if (rawKey && !/^[a-z0-9_]+$/.test(rawKey)) {
-                    toast.error('Key may only contain a–z, 0–9, or _');
+                // Match the server regex in convex/cmsFields.ts
+                // (FIELD_KEY_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/) — UI is stricter
+                // on case (we lowercase auto-generated keys) but must enforce
+                // the same leading-char rule, otherwise a user-typed `1foo`
+                // passes the UI check and the mutation rejects with the
+                // generic server error toast.
+                if (rawKey && !/^[a-z_][a-z0-9_]*$/.test(rawKey)) {
+                    toast.error(
+                        'Key must start with a letter or underscore and contain only a–z, 0–9, or _',
+                    );
                     return;
                 }
-                const finalKey = rawKey || slugifyKey(name);
+                // Server caps keys at 64 chars; truncate auto-generated keys
+                // so a long name doesn't produce a too-long slug that the
+                // server rejects.
+                const finalKey = (rawKey || slugifyKey(name)).slice(0, 64);
                 if (!finalKey) {
                     // The name passed the trim() guard but slugifyKey
                     // produced empty (only stripped chars: punctuation, CJK,
@@ -636,10 +644,12 @@ function slugifyKey(input: string): string {
     // Many template/ORM systems require identifiers to start with a letter
     // or underscore — prefix when the auto-generated key would lead with a
     // digit so server-side validation doesn't reject the user's submission.
+    // Cap at 64 chars to match convex/cmsFields.ts FIELD_KEY length limit.
     return input
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9_]+/g, '_')
         .replace(/^_+|_+$/g, '')
-        .replace(/^(\d)/, '_$1');
+        .replace(/^(\d)/, '_$1')
+        .slice(0, 64);
 }

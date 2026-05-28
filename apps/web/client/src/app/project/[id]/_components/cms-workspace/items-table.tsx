@@ -44,18 +44,31 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     const { confirm, dialog: confirmDialog } = useConfirm();
     const t = useTranslations();
 
-    // Reset selection + search when the user switches collections — otherwise
-    // the bulk-delete bar would carry stale ids from the previous collection
-    // and operate on a phantom set.
+    // Reset selection + search + open editors when the user switches
+    // collections — otherwise the bulk-delete bar would carry stale ids
+    // from the previous collection, and an open ItemEditor sheet would
+    // remain mounted holding the prior collection's itemId / field
+    // shape. Worst case: clicking Save in "create" mode would insert an
+    // item with the wrong collection in the parent context.
     useEffect(() => {
         setSelectedIds(new Set());
         setSearch('');
+        setEditingId(null);
+        setCreating(false);
+        setRoutingOpen(false);
     }, [collection.id]);
 
     // Convex live queries auto-revalidate — no useUtils equivalent needed.
     const deleteMutation = useMutation(api.cmsItems.remove);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // TODO(bug-hunt): convex/cmsItems.ts list() caps at 100 items by
+    // default (max 500). UI doesn't pass `limit`, so for collections
+    // with > 100 items: (a) count badge shows 100 even though there
+    // are more, (b) client-side search silently misses items beyond
+    // the slice, (c) the preview-item Select in the header is also
+    // truncated. Need pagination (load-more or virtualized) and a
+    // separate `count` query so the badge is accurate.
     const itemsData = useQuery(api.cmsItems.list, {
         projectId: projectId as Id<'projects'>,
         collectionId: collection.id as Id<'cmsCollections'>,

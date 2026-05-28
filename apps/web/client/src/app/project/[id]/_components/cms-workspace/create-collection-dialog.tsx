@@ -48,15 +48,27 @@ export const CreateCollectionDialog = observer(() => {
     }, [open]);
 
     const slugFromName = (n: string): string =>
+        // Cap at 64 to match convex/cmsCollections.ts validateSlug (1-64
+        // chars). Trim trailing dash after slice so the server regex
+        // (must end with [a-z0-9]) still accepts the truncated value.
         n
             .trim()
             .toLowerCase()
             .replace(/[^a-z0-9-]+/g, '-')
-            .replace(/^-+|-+$/g, '');
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 64)
+            .replace(/-+$/g, '');
 
     const handleCreate = async () => {
         if (!projectId) return;
-        const finalSlug = slug.trim() || slugFromName(name);
+        // User-typed slug also gets trimmed and length-capped so we surface
+        // a friendly error instead of relying on the generic server toast.
+        const trimmedTypedSlug = slug.trim();
+        if (trimmedTypedSlug.length > 64) {
+            toast.error('Slug must be 64 characters or fewer');
+            return;
+        }
+        const finalSlug = trimmedTypedSlug || slugFromName(name);
         if (!name.trim() || !finalSlug) {
             toast.error(t(transKeys.cms.collections.create.nameRequired));
             return;

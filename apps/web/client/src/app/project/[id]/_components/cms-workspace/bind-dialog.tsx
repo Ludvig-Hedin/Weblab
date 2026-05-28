@@ -154,6 +154,24 @@ export const BindDialog = observer(() => {
         return bindings?.find((b) => b.oid === oid) ?? null;
     }, [bindings, oid]);
 
+    // TODO(bug-hunt): mode detection reads `editorEngine.elements.selected[0]`
+    // and re-runs whenever the canvas selection changes (dep on
+    // `selected[0]?.domId`). If the user opens the bind dialog on
+    // element A then clicks element B in the canvas, the dialog's
+    // `mode` reflects B's role while `oid` (used by handleSave) still
+    // targets A. Saving in that state can persist a REPEAT/CURRENT_FIELD
+    // binding onto an element that isn't actually a list/list-descendant.
+    // Fix options: close the dialog when selected element changes away
+    // from the target oid, OR thread oid through the detection (resolve
+    // element by oid instead of using `selected[0]`).
+    // TODO(bug-hunt): pre-fill at REPEAT / FIRST_FIELD branch (~line 277)
+    // only reads sort + limit. Existing `filters` and `filterMode` on
+    // the binding are NOT loaded into local state — handleSave then
+    // constructs the new binding without them and the upsert mutation
+    // overwrites the whole payload, silently dropping any previously-
+    // saved filters. No other UI currently writes filters but the
+    // server `vBindingPayload` allows them; defensive merge or full
+    // round-trip preservation would prevent future data loss.
     // Detect the element's role on dialog open. Async because the iframe
     // call is over Penpal.
     useEffect(() => {

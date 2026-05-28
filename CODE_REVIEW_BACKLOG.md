@@ -1,5 +1,121 @@
 # Code Review Backlog
 
+## Bug Hunt — 2026-05-28 — F-380..F-392 deeper pass (CMS workspace, round 2)
+
+Second `/bug-hunt` over `apps/web/client/src/app/project/[id]/_components/cms-workspace/` (13 files, F-380..F-392). This pass crossed the UI ↔ Convex boundary — read every `cmsCollections`, `cmsItems`, `cmsFields`, `cmsBindings`, `cmsSources`, `cmsCollectionPages`, `cmsActions` module to compare contracts. `bun typecheck` exit 0; touched-file `bunx eslint` clean.
+
+### Auto-fixed (7 issues)
+
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/fields-tab.tsx:443` —
+  UI manual-key validator was `/^[a-z0-9_]+$/`, which permits a leading
+  digit. Server `FIELD_KEY_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/` rejects.
+  User-typed `1foo` passed UI then triggered the generic "Field key
+  must start with a letter or underscore…" server toast. Updated UI
+  regex to `^[a-z_][a-z0-9_]*$` (case clamped to lowercase by the slug
+  helper; rule is "start with letter or underscore"). Surfaced a
+  clearer client-side error message.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/fields-tab.tsx:440` —
+  `slugifyKey` and the manual-key path didn't cap at 64 chars. Server
+  rejects anything longer. Added `.slice(0, 64)` to both paths.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/create-collection-dialog.tsx:50` —
+  `slugFromName` didn't cap at 64 (server `validateSlug` 1-64). Added
+  length cap + trailing-dash trim so the slice doesn't leave the slug
+  ending in `-` (server regex requires alphanumeric end). Surfaced a
+  clearer "Slug must be 64 characters or fewer" error when the user
+  typed an oversized slug directly.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/map-collections-dialog.tsx:233` —
+  Existing `slugify` capped at 64 but the slice could leave a trailing
+  dash (e.g. `foo-bar-…-` truncated mid-separator). Server regex
+  `^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$` rejects. Added trailing-dash
+  trim after the slice.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/items-table.tsx:50` —
+  Collection-switch effect cleared `selectedIds` + `search` but left
+  `editingId` / `creating` / `routingOpen` alone. If the user opened
+  an ItemEditor on collection X then switched to collection Y in the
+  sidebar, the sheet stayed mounted holding X's itemId / values — and
+  in "create" mode, clicking Save would have inserted an item under
+  the wrong collection (the ItemEditor's `collection` prop already
+  reflected Y by then). Added clears for all three states.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/sources-tab.tsx:115` —
+  Delete dialog promised destruction when `collectionCount > 0`, but
+  the server `cmsSources.remove` mutation explicitly refuses deletion
+  while any collection still references the source. User saw the
+  confirm copy "X collection(s) will lose their sync link" then got a
+  "Cannot delete: X collection(s) still use this source" toast after
+  clicking Delete. Now short-circuits with the same error toast
+  before opening the confirm — UI and server agree on the contract.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/edit-source-dialog.tsx` —
+  Two related fixes for the rotate-credentials path: (a) added the
+  monotonic `testReqRef` invalidation pattern from
+  `connect-source-dialog.tsx` so a late `Test connection` result
+  can't set `testStatus={ ok: true }` for credentials the user has
+  since edited; (b) extended the Save button gate to require a
+  passing test whenever `rotate` is on with at least one non-blank
+  cred. Previously the user could click Test → type new values →
+  click Save and persist credentials that were never validated.
+
+### Needs human review (6 issues, flagged with TODO(bug-hunt) comments)
+
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/items-table.tsx:59` —
+  `convex/cmsItems.ts list()` caps the result at 100 items by default
+  (max 500). UI never passes `limit`, so for collections with > 100
+  items: (a) the header count badge says "100" regardless of actual
+  size, (b) client-side search silently misses items past the slice,
+  (c) the preview-item Select picker is also truncated. Worst case a
+  user can't find their own data. Need pagination (load-more or
+  virtualized) and a separate count query so the badge tells the truth.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/sources-tab.tsx:62` —
+  `sourceSync` returns `SyncResult.perCollection[].error` for every
+  collection that failed to sync. `handleSync` drops these errors —
+  only `result.written` + `result.pruned` are surfaced. If 2 of 3
+  collections fail, the user sees a green success toast with
+  `written: <items from the one that worked>`. Surface failed-collection
+  count + the first error message.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/map-collections-dialog.tsx:107` —
+  `cmsActions.sourceMapCollections` runs the post-mapping initial sync
+  inside a `try { … } catch (err) { console.error(...) }` block, so
+  sync failures are visible only in server logs. The action resolves
+  successfully and the dialog toasts "mapped". User maps a source,
+  gets the green toast, and the items list stays empty with zero
+  on-screen explanation. Server should return the sync result (or a
+  `syncFailed` flag) and the UI should distinguish "mapped + items
+  loaded" from "mapped but sync failed — try Refresh".
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/bind-dialog.tsx:159` —
+  Mode detection reads `editorEngine.elements.selected[0]` and re-runs
+  whenever the canvas selection changes (dep on `selected[0]?.domId`).
+  If the user opens the bind dialog on element A then clicks element
+  B in the canvas, the dialog's `mode` reflects B while `oid` (used
+  by handleSave) still targets A. Save can persist a REPEAT /
+  CURRENT_FIELD binding onto an element that isn't a list /
+  list-descendant. Fix: close the dialog when selected element
+  diverges from `oid`, or resolve the element by `oid` directly
+  instead of reading `selected[0]`.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/bind-dialog.tsx:277` —
+  Pre-fill for REPEAT / FIRST_FIELD only reads `sort` + `limit`.
+  Existing `filters` / `filterMode` on the binding are NOT loaded into
+  local state, so handleSave then builds the new binding without them
+  and the upsert overwrites the whole payload — silently dropping any
+  previously saved filters. No other UI writes filters today, but
+  `vBindingPayload` allows them; defensive round-trip preservation
+  would prevent regressions when filter UI lands.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/routing-dialog.tsx:106` —
+  `convex/cmsCollectionPages.ts upsert()` only validates
+  `matchFieldKey` length (1-64), not existence in the collection's
+  fields. `cmsFields.remove` doesn't touch `cmsCollectionPages`
+  either. Deleting a field that's referenced as `matchFieldKey` leaves
+  a stale page registration: URL → item resolution silently fails
+  because no item ever matches the missing key. Fix: validate
+  existence server-side at upsert AND cascade-clear / repoint
+  `matchFieldKey` on field removal.
+
+### Dead state (low priority)
+
+- `apps/web/client/src/components/store/editor/state/index.ts:49` —
+  `cmsEditingItemId` (+ setter) and `cmsRoutingDialogOpen` (+ setter)
+  are written but never read by any cms-workspace UI. items-table.tsx
+  manages editing state in local React state; routing-dialog.tsx
+  takes `open` as a prop. Dead code; delete to avoid future confusion.
+
 ## Bug Hunt — 2026-05-28 — Desktop auth (sign-in, handoff, redeem, clerk-bridge)
 
 Scope: `apps/desktop/{main.js,preload.js}`, `apps/web/client/src/app/sign-in/**`, `apps/web/client/src/utils/auth/**`. Tools: `bun typecheck` exit 0; `bunx eslint` scoped files clean. Observed runtime errors during preview testing via `mcp__Claude_Preview__preview_logs`.
