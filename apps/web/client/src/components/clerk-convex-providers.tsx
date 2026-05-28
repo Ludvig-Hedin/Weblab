@@ -73,7 +73,24 @@ export function ClerkConvexProviders({ children }: { children: ReactNode }) {
     const convexClient = getConvexClient(convexUrl);
 
     return (
-        <ClerkProvider publishableKey={clerkPublishableKey}>
+        <ClerkProvider
+            publishableKey={clerkPublishableKey}
+            // Pin Clerk to the app's own in-app auth pages. Without these,
+            // a Clerk *production* instance with a custom Account Portal
+            // domain (accounts.weblab.build) treats the Account Portal as
+            // canonical: after an OAuth round-trip <AuthenticateWithRedirect-
+            // Callback> finishes the handshake, asks Clerk "navigate where?",
+            // gets the Account Portal URL, and the in-app /sign-in/sso-callback
+            // route hangs on a blank screen; a manual reload then bounces to
+            // accounts.weblab.build/sign-in. The NEXT_PUBLIC_CLERK_*_URL
+            // values only exist as t3-env *defaults* — Clerk's SDK reads raw
+            // process.env and never sees them unless they're real deploy
+            // vars, so pass them explicitly here.
+            signInUrl={env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+            signUpUrl={env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+            signInFallbackRedirectUrl={env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}
+            signUpFallbackRedirectUrl={env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}
+        >
             <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
                 <UnauthedConvexResume client={convexClient} />
                 <ConvexAuthBridge />
