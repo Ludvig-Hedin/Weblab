@@ -87,24 +87,34 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
     };
 
     const redirectToInstallation = async (redirectUrl?: string) => {
+        // Open the tab synchronously to preserve the user-gesture. window.open
+        // called *after* an await is treated as non-user-initiated and gets
+        // blocked by Safari/strict popup blockers.
+        const newWindow = window.open('about:blank', '_blank');
+        if (!newWindow) {
+            setError('A popup was blocked. Please allow popups for this site and try again.');
+            return;
+        }
+        setError(null);
         try {
             const result = await generateInstallationUrl({
                 redirectUrl,
             });
 
             if (result?.url) {
-                const newWindow = window.open(result.url, '_blank');
-                if (!newWindow) {
-                    setError(
-                        'A popup was blocked. Please allow popups for this site and try again.',
-                    );
-                    return;
-                }
+                newWindow.location.href = result.url;
                 pollDeadlineRef.current = Date.now() + INSTALL_POLL_DEADLINE_MS;
                 setIsConnecting(true);
+            } else {
+                newWindow.close();
+                setError('Could not generate the GitHub installation link. Please try again.');
             }
         } catch (err) {
+            // Was previously swallowed (console-only) — the import modal showed
+            // no feedback when URL generation failed (e.g. missing GitHub env).
+            newWindow.close();
             console.error('Error generating GitHub App installation URL:', err);
+            setError('Could not generate the GitHub installation link. Please try again.');
         }
     };
 

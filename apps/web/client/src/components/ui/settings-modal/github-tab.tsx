@@ -12,13 +12,9 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { toast } from '@weblab/ui/sonner';
 
+import type { GitHubRepo } from './github-tab.utils';
 import { Routes } from '@/utils/constants';
-
-type GitHubRepo = {
-    id: number;
-    full_name: string;
-    private: boolean;
-};
+import { sortRepos } from './github-tab.utils';
 
 type GitHubOrg = {
     login: string;
@@ -79,7 +75,7 @@ export const GitHubTab = () => {
                 ]);
                 if (cancelled) return;
                 setOrgs(fetchedOrgs ?? []);
-                setRepos(fetchedRepos ?? []);
+                setRepos(sortRepos(fetchedRepos ?? []));
             } catch {
                 if (!cancelled) {
                     setOrgs([]);
@@ -93,6 +89,24 @@ export const GitHubTab = () => {
             cancelled = true;
         };
     }, [installationId, getOrgs, getReposWithApp]);
+
+    // Re-check on tab focus so a connection completed in the popup is reflected
+    // here without a manual page refresh. Silent (no spinner) to avoid flicker.
+    useEffect(() => {
+        const onFocus = () => {
+            void (async () => {
+                try {
+                    const id = await checkInstallation({});
+                    setInstallationId(id);
+                    setInstallationError(null);
+                } catch {
+                    // Keep prior state on a transient re-check failure.
+                }
+            })();
+        };
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [checkInstallation]);
 
     const isConnected = !!installationId;
     const hasQueryError = !!installationError;
@@ -181,7 +195,11 @@ export const GitHubTab = () => {
                 ) : isConnected ? (
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                            <Badge className="border-success bg-background-success text-foreground-success">
+                            <Badge
+                                variant="outline"
+                                className="border-foreground-success/30 bg-foreground-success/10 text-foreground-success gap-1.5"
+                            >
+                                <span className="bg-foreground-success size-1.5 rounded-full" />
                                 Connected
                             </Badge>
                             {orgs?.[0] && (
@@ -235,6 +253,7 @@ export const GitHubTab = () => {
                                     className="text-destructive hover:text-destructive"
                                     onClick={() => setConfirmingDisconnect(true)}
                                 >
+                                    <Icons.LinkNone className="mr-1.5 h-3.5 w-3.5" />
                                     Disconnect GitHub
                                 </Button>
                             </div>
