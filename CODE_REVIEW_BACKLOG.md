@@ -1825,6 +1825,35 @@ publish-vercel) or a latent edge case behind a low-probability window.
 
 `/bug-hunt` over `apps/web/client/src/app/w/**`, `apps/web/client/src/app/settings/page.tsx`, plus dependencies `apps/web/client/convex/workspaces.ts`, `convex/users.ts` (`capabilities`), `convex/lib/permissions.ts`, `convex/lib/auth.ts`. Validation: `bun typecheck` exit 0; `bunx eslint` on changed files exit 0.
 
+> **Round-2 update (2026-05-28, `/review-current-implementation` + `/bug-hunt`):**
+> Fixed the two **user-blocking** items below. The remaining "Needs human
+> review" entries are missing-feature / catalog-drift / polish items that
+> don't break a user flow — intentionally deferred per the "focus on
+> features that stop users" directive.
+>
+> - **RESOLVED — F-106 invitations whole-app crash (was the only Blocker).**
+>   `invitations/page.tsx` ran `useQuery(api.workspaces.inviteList)`
+>   unconditionally for team workspaces. `inviteList` calls
+>   `requireCap('workspace.invite')`, which `member` and `viewer` roles
+>   lack (`convex/lib/auth.ts:43-62`), so it threw `FORBIDDEN`. There is
+>   **no error boundary anywhere in the `/w` tree** (only the root
+>   `app/error.tsx`), so any team member/viewer opening the invitations
+>   URL directly nuked the entire app shell to the generic error page.
+>   Fix: gate the query behind `canInvite` derived from
+>   `api.users.capabilities` (which returns `[]` instead of throwing) and
+>   render a "View-only access" panel for non-admins. `inviteList` now
+>   runs only when the caller actually holds the cap.
+> - **RESOLVED — F-105 remove-self dead button.** `members/page.tsx`
+>   rendered `RemoveMemberButton` on the caller's own row; the backend
+>   rejects self-removal (`workspaces.ts:391`), so it only ever produced
+>   a `toast.error`. Fix: query `api.users.me` and hide the Remove button
+>   when `m.user.id === currentUserId`.
+>
+> Validation: `bun typecheck` exit 0; `bunx eslint` on both pages = 0
+> errors (5 pre-existing `no-unsafe-enum-comparison` warnings only);
+> preview server compiles both routes with no server errors; deep-link
+> `returnUrl` preservation from the round-1 layout fix confirmed live.
+
 ### Auto-fixed (2 issues)
 
 - **`apps/web/client/src/app/w/[slug]/layout.tsx:22-28`** — server-side

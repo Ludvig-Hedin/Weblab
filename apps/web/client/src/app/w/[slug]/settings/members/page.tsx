@@ -38,6 +38,13 @@ export default function MembersPage() {
     const canInvite = caps?.includes('workspace.invite') ?? false;
     const canManage = caps?.includes('workspace.manage_members') ?? false;
 
+    // Identify the viewer so we never render self-targeted management
+    // actions. `removeMember` rejects removing self (BAD_REQUEST: use
+    // leave()), so an un-filtered Remove button on the caller's own row
+    // only ever produces a toast.error — confusing dead UI.
+    const me = useQuery(api.users.me, {});
+    const currentUserId = me?._id;
+
     const members = useQuery(api.workspaces.listMembers, { workspaceId });
     const isLoading = members === undefined;
 
@@ -229,13 +236,18 @@ export default function MembersPage() {
                                     }
                                 />
                             )}
-                            {canManage && m.role !== WorkspaceRole.OWNER && m.user && (
-                                <RemoveMemberButton
-                                    user={m.user}
-                                    workspaceName={workspace.name}
-                                    onConfirm={(userId) => void handleRemove(userId as Id<'users'>)}
-                                />
-                            )}
+                            {canManage &&
+                                m.role !== WorkspaceRole.OWNER &&
+                                m.user &&
+                                m.user.id !== currentUserId && (
+                                    <RemoveMemberButton
+                                        user={m.user}
+                                        workspaceName={workspace.name}
+                                        onConfirm={(userId) =>
+                                            void handleRemove(userId as Id<'users'>)
+                                        }
+                                    />
+                                )}
                         </div>
                     ))
                 )}

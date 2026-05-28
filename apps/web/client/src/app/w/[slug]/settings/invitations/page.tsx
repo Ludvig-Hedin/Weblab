@@ -23,8 +23,20 @@ export default function InvitationsPage() {
     const workspace = useActiveWorkspace();
     const isPersonal = workspace.kind === WorkspaceKind.PERSONAL;
     const workspaceId = workspace.id as Id<'workspaces'>;
-    const invitations = useQuery(api.workspaces.inviteList, isPersonal ? 'skip' : { workspaceId });
-    const isLoading = !isPersonal && invitations === undefined;
+    // `users.capabilities` resolves to [] (never throws) for callers without
+    // access, so it's safe to gate on. `inviteList` itself calls
+    // `requireCap('workspace.invite')` and THROWS for members/viewers — and
+    // there's no error boundary in the /w tree, so an un-gated query here
+    // takes down the whole app shell when a non-admin opens this URL directly
+    // (the settings nav hides the link, but the route is still reachable).
+    const caps = useQuery(api.users.capabilities, isPersonal ? 'skip' : { workspaceId });
+    const capsLoading = !isPersonal && caps === undefined;
+    const canInvite = caps?.includes('workspace.invite') ?? false;
+    const invitations = useQuery(
+        api.workspaces.inviteList,
+        isPersonal || !canInvite ? 'skip' : { workspaceId },
+    );
+    const isLoading = !isPersonal && (capsLoading || (canInvite && invitations === undefined));
 
     const revokeMutation = useMutation(api.workspaces.inviteRevoke);
     const [revokingIds, setRevokingIds] = useState<Set<string>>(new Set());
@@ -64,6 +76,14 @@ export default function InvitationsPage() {
                             <Link href="/w/new">Create a team workspace</Link>
                         </Button>
                     </div>
+                </section>
+            ) : !canInvite && !capsLoading ? (
+                <section className="bg-background-secondary/40 flex flex-col gap-2 rounded-md border p-4">
+                    <h2 className="text-foreground text-smallPlus">View-only access</h2>
+                    <p className="text-foreground-tertiary text-mini">
+                        You don&apos;t have permission to manage invitations for {workspace.name}.
+                        Ask a workspace admin or owner to change your role.
+                    </p>
                 </section>
             ) : (
                 <section className="flex flex-col gap-2">
