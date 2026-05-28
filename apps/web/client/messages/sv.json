@@ -331,7 +331,8 @@
             "openingEditor": "Öppnar redigeraren",
             "creatingBlankProject": "Bygger ditt projekt",
             "creatingBlankProjectCaption": "Det här tar ungefär 15 sekunder medan vi förbereder arbetsytan. Häng kvar.",
-            "startBlankProject": "Starta tomt projekt"
+            "startBlankProject": "Starta tomt projekt",
+            "you": "You"
         },
         "dialogs": {
             "delete": {
@@ -399,16 +400,13 @@
         "profileSetup": {
             "title": "Vad ska vi kalla dig?",
             "description": "Berätta ditt namn så att Weblab kan tilltala dig rätt i appen.",
-            "firstName": "Förnamn",
-            "lastName": "Efternamn",
-            "optional": "(valfritt)",
-            "firstNamePlaceholder": "Ada",
-            "lastNamePlaceholder": "Lovelace",
-            "errorFirstNameRequired": "Ange ditt förnamn.",
             "errorSaveFailed": "Det gick inte att spara profilen. Försök igen.",
             "saving": "Sparar...",
             "continue": "Fortsätt",
-            "skip": "Hoppa över för nu"
+            "skip": "Hoppa över för nu",
+            "name": "Name",
+            "namePlaceholder": "Ada Lovelace",
+            "errorNameRequired": "Please enter your name."
         },
         "version": "Version {version}"
     },
@@ -1288,6 +1286,99 @@
                         "cancel": "Avbryt",
                         "addComment": "Lägg till en kommentar...",
                         "addReply": "Lägg till ett svar..."
+                    },
+                    "interactions": {
+                        "name": "Interactions",
+                        "availableInDesignMode": "Available in Design mode",
+                        "tabIndicator": "This element has interactions",
+                        "empty": {
+                            "noSelection": {
+                                "title": "No element selected",
+                                "body": "Pick an element to add a click, hover, or load animation."
+                            },
+                            "noInteractions": {
+                                "title": "No interactions yet",
+                                "body": "Click + to add a click, hover, or load animation.",
+                                "cta": "Add trigger"
+                            }
+                        },
+                        "sections": {
+                            "elementTrigger": {
+                                "title": "Element trigger",
+                                "addAria": "Add element trigger"
+                            },
+                            "pageTrigger": {
+                                "title": "Page trigger",
+                                "addAria": "Add page trigger",
+                                "hint": "Plays when the page loads."
+                            }
+                        },
+                        "triggerTypes": {
+                            "click": "Mouse click (tap)",
+                            "hover": "Mouse hover",
+                            "pageLoad": "Page load",
+                            "scroll": "Scroll",
+                            "scrollComingSoon": "Scroll — coming soon",
+                            "custom": "Custom event",
+                            "customComingSoon": "Custom event — coming soon"
+                        },
+                        "row": {
+                            "menu": {
+                                "rename": "Rename",
+                                "duplicate": "Duplicate",
+                                "delete": "Delete"
+                            }
+                        },
+                        "editor": {
+                            "back": "Back",
+                            "renamePlaceholder": "Interaction name",
+                            "save": "Save",
+                            "reset": "Reset",
+                            "unsaved": "Unsaved",
+                            "duration": "Duration",
+                            "loop": "Loop",
+                            "playhead": "Playhead",
+                            "play": "Play",
+                            "pause": "Pause",
+                            "skipToStart": "Skip to start",
+                            "skipToEnd": "Skip to end",
+                            "transport": "Transport",
+                            "addAction": "Add action",
+                            "actionTypes": {
+                                "move": "Move",
+                                "scale": "Scale",
+                                "rotate": "Rotate",
+                                "opacity": "Opacity",
+                                "size": "Size",
+                                "backgroundColor": "Background color"
+                            },
+                            "triggerSettings": {
+                                "title": "Trigger settings",
+                                "activeOn": "Active on",
+                                "breakpoints": {
+                                    "desktop": "Desktop",
+                                    "tablet": "Tablet",
+                                    "phone": "Phone"
+                                },
+                                "target": {
+                                    "label": "Target",
+                                    "self": "Self",
+                                    "sibling": "Sibling",
+                                    "child": "Child",
+                                    "class": "Class",
+                                    "selfHint": "Only the selected element",
+                                    "classHint": "All elements with this class",
+                                    "siblingPlaceholder": "Pick a sibling",
+                                    "childPlaceholder": "Pick a child"
+                                }
+                            },
+                            "discardConfirm": {
+                                "title": "Discard unsaved changes?",
+                                "body": "Your timeline edits will be lost.",
+                                "cancel": "Keep editing",
+                                "confirm": "Discard"
+                            }
+                        }
                     }
                 }
             },
@@ -1585,15 +1676,31 @@
                     "purpose": "Betalningshantering",
                     "region": "USA / EU"
                 },
-                "railway": { "name": "Railway", "purpose": "Applikationshosting", "region": "USA" },
+                "railway": {
+                    "name": "Railway",
+                    "purpose": "Applikationshosting",
+                    "region": "USA"
+                },
                 "github": {
                     "name": "GitHub",
                     "purpose": "OAuth-inloggning + repository-sync",
                     "region": "USA"
                 },
-                "posthog": { "name": "PostHog", "purpose": "Produktanalys", "region": "EU" },
-                "gleap": { "name": "Gleap", "purpose": "Användarfeedback-widget", "region": "EU" },
-                "resend": { "name": "Resend", "purpose": "Transaktionell e-post", "region": "EU" }
+                "posthog": {
+                    "name": "PostHog",
+                    "purpose": "Produktanalys",
+                    "region": "EU"
+                },
+                "gleap": {
+                    "name": "Gleap",
+                    "purpose": "Användarfeedback-widget",
+                    "region": "EU"
+                },
+                "resend": {
+                    "name": "Resend",
+                    "purpose": "Transaktionell e-post",
+                    "region": "EU"
+                }
             },
             "note": "* Aktiv endast vid konfiguration. Inaktiverade integrationer skickar ingen data till den underleverantören.",
             "lastUpdated": "Senast uppdaterad {date}"
@@ -1739,6 +1846,11 @@
             "title": "Webbplatsbyggare för team som äger en kodbas | Weblab",
             "description": "Webbplatsbyggare för team med en React- eller Next.js-kodbas. Visuell canvas, riktiga komponenter, AI-stöd, pull request-output. Öppen källkod. Gratis att självhosta.",
             "ogImageAlt": "Weblab – webbplatsbyggare för team med en kodbas"
+        },
+        "workflowsCodex": {
+            "title": "Codex for Designers: Add a Visual Canvas to Your Workflow | Weblab",
+            "description": "Designers using OpenAI Codex need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
+            "ogImageAlt": "Weblab Codex workflow preview"
         }
     },
     "nav": {
@@ -1750,15 +1862,18 @@
             "getStarted": "Kom igång"
         },
         "user": {
-            "downloadApp": "Ladda ner appen",
             "projects": "Projekt",
-            "signIn": "Logga in"
+            "signIn": "Logga in",
+            "download": "Download"
         },
         "categories": {
             "product": {
                 "label": "Produkt",
                 "links": {
-                    "ai": { "title": "AI", "description": "AI-driven design" },
+                    "ai": {
+                        "title": "AI",
+                        "description": "AI-driven design"
+                    },
                     "aiFrontend": {
                         "title": "AI för frontend",
                         "description": "AI som följer ditt designsystem"
@@ -1792,16 +1907,31 @@
                         "title": "Dokumentation",
                         "description": "Lär dig använda Weblab"
                     },
-                    "blog": { "title": "Blogg", "description": "Nyheter och uppdateringar" },
-                    "github": { "title": "GitHub", "description": "Visa källkoden" }
+                    "blog": {
+                        "title": "Blogg",
+                        "description": "Nyheter och uppdateringar"
+                    },
+                    "github": {
+                        "title": "GitHub",
+                        "description": "Visa källkoden"
+                    }
                 }
             },
             "about": {
                 "label": "Om",
                 "links": {
-                    "aboutUs": { "title": "Om oss", "description": "Lär dig mer om vårt uppdrag" },
-                    "faq": { "title": "FAQ", "description": "Vanliga frågor" },
-                    "security": { "title": "Säkerhet", "description": "Så hanterar vi din data" }
+                    "aboutUs": {
+                        "title": "Om oss",
+                        "description": "Lär dig mer om vårt uppdrag"
+                    },
+                    "faq": {
+                        "title": "FAQ",
+                        "description": "Vanliga frågor"
+                    },
+                    "security": {
+                        "title": "Säkerhet",
+                        "description": "Så hanterar vi din data"
+                    }
                 }
             }
         }
@@ -1813,7 +1943,6 @@
             "subhead": "Öppna ditt riktiga React- eller Next.js-projekt, redigera visuellt med AI och pusha till GitHub. Öppen källkod. Funkar med Claude Code.",
             "getStarted": "Kom igång",
             "continueProjects": "Fortsätt till dina projekt",
-            "downloadApp": "Ladda ner appen",
             "highDemand": "Just nu är efterfrågan hög. Projekt kan misslyckas att skapas.",
             "create": {
                 "promptPlaceholder": "Beskriv vad du vill bygga",
@@ -1858,7 +1987,8 @@
                     "submit": "Det gick inte att skicka formuläret. Försök igen.",
                     "generic": "Ett oväntat fel uppstod. Försök igen."
                 }
-            }
+            },
+            "download": "Download"
         },
         "useCases": {
             "eyebrow": "Ser enkelt ut. Går djupt.",
@@ -1891,16 +2021,14 @@
             "models": {
                 "gpt": "GPT-flaggskeppet för komplexa uppgifter",
                 "gptMini": "Mindre och snabbare GPT för vardagligt arbete",
-                "gptNano": "Pytte-GPT — snabbast och billigast",
                 "sonnet": "Anthropics flaggskepp – branschledande på kod",
                 "opus": "Mest kapabla Claude för de svåraste problemen",
                 "haiku": "Kompakt Claude — snabb och prisvärd",
                 "gemini": "Googles multimodala frontiermodell",
-                "geminiFlash": "Hastighetstrimmad Gemini för hög genomströmning",
                 "deepseek": "Open-weight-resonemang i frontierklass",
-                "deepseekCoder": "DeepSeek tränad för kodgenerering",
                 "kimi": "Lång kontext, snabb och kapabel",
-                "kimiLong": "Kimi med 2M tokens utökad kontext"
+                "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
+                "mistral": "Open-weight model tuned for code"
             }
         },
         "andSoMuchMore": {
@@ -2318,38 +2446,86 @@
             "brandHomeAria": "Weblab hem",
             "company": {
                 "title": "Företag",
-                "about": { "label": "Om oss", "title": "Om Weblab" },
-                "faq": { "label": "FAQ", "title": "Vanliga frågor" },
-                "contact": { "label": "Kontakt", "title": "Kontakta Weblabs support" }
+                "about": {
+                    "label": "Om oss"
+                },
+                "faq": {
+                    "label": "FAQ",
+                    "title": "Vanliga frågor"
+                },
+                "contact": {
+                    "label": "Kontakt",
+                    "title": "Kontakta Weblabs support"
+                }
             },
             "resources": {
                 "title": "Resurser",
-                "docs": { "label": "Dokumentation", "title": "Visa Weblabs dokumentation" },
-                "blog": { "label": "Blogg", "title": "Läs Weblab-bloggen" },
-                "githubRepo": { "label": "GitHub-repo", "title": "Visa Weblab på GitHub" },
-                "changelog": { "label": "Changelog", "title": "Se vad som är nytt i Weblab" }
+                "docs": {
+                    "label": "Dokumentation",
+                    "title": "Visa Weblabs dokumentation"
+                },
+                "blog": {
+                    "label": "Blogg",
+                    "title": "Läs Weblab-bloggen"
+                },
+                "githubRepo": {
+                    "label": "GitHub-repo",
+                    "title": "Visa Weblab på GitHub"
+                },
+                "changelog": {
+                    "label": "Changelog",
+                    "title": "Se vad som är nytt i Weblab"
+                },
+                "compare": {
+                    "label": "Compare",
+                    "title": "See how Weblab compares to alternatives"
+                }
             },
             "product": {
                 "title": "Produkt",
-                "pricing": { "label": "Priser", "title": "Visa Weblabs priser" },
+                "pricing": {
+                    "label": "Priser",
+                    "title": "Visa Weblabs priser"
+                },
                 "download": {
                     "label": "Ladda ner",
                     "title": "Ladda ner Weblab för Mac, Windows, Linux och iOS"
                 },
-                "myProjects": { "label": "Mina projekt", "title": "Visa dina projekt" }
+                "myProjects": {
+                    "label": "Mina projekt",
+                    "title": "Visa dina projekt"
+                }
             },
             "legal": {
                 "title": "Juridik",
-                "terms": { "label": "Användarvillkor", "title": "Läs våra användarvillkor" },
-                "privacy": { "label": "Integritetspolicy", "title": "Läs vår integritetspolicy" },
-                "security": { "label": "Säkerhet", "title": "Så hanterar Weblab din data" },
-                "sitemap": { "label": "Webbplatskarta", "title": "Visa webbplatskartan" },
+                "terms": {
+                    "label": "Användarvillkor",
+                    "title": "Läs våra användarvillkor"
+                },
+                "privacy": {
+                    "label": "Integritetspolicy",
+                    "title": "Läs vår integritetspolicy"
+                },
+                "security": {
+                    "label": "Säkerhet",
+                    "title": "Så hanterar Weblab din data"
+                },
+                "sitemap": {
+                    "label": "Webbplatskarta",
+                    "title": "Visa webbplatskartan"
+                },
                 "copyright": "© {year} Weblab"
             },
             "workflows": {
                 "title": "Arbetsflöden",
-                "claudeCode": { "label": "Claude Code", "title": "Använd Weblab med Claude Code" },
-                "vibeCoding": { "label": "Vibe Coding", "title": "Vibe coding för team" }
+                "claudeCode": {
+                    "label": "Claude Code",
+                    "title": "Använd Weblab med Claude Code"
+                },
+                "vibeCoding": {
+                    "label": "Vibe Coding",
+                    "title": "Vibe coding för team"
+                }
             },
             "features": {
                 "title": "Funktioner",
@@ -2357,7 +2533,10 @@
                     "label": "Funktionsöversikt",
                     "title": "Visa alla Weblab-funktioner"
                 },
-                "ai": { "label": "AI", "title": "AI-drivna utvecklingsverktyg" },
+                "ai": {
+                    "label": "AI",
+                    "title": "AI-drivna utvecklingsverktyg"
+                },
                 "visualBuilder": {
                     "label": "Visuell byggare",
                     "title": "Verktyg för visuell byggare"
@@ -2373,7 +2552,10 @@
             },
             "followUs": {
                 "title": "Följ oss",
-                "github": { "label": "GitHub", "title": "Visa Weblab på GitHub" }
+                "github": {
+                    "label": "GitHub",
+                    "title": "Visa Weblab på GitHub"
+                }
             },
             "languageSwitcher": {
                 "label": "Språk"

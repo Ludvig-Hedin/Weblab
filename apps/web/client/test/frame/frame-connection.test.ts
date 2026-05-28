@@ -52,7 +52,14 @@ describe('isFrameBridgeReady', () => {
 });
 
 describe('shouldUnlockCodeSandboxPreview', () => {
-    test('returns true once a disconnected CodeSandbox preview has failed enough times', () => {
+    // Auto-unlock on connection failure was disabled in May 2026 (users
+    // reported being forced into preview after a 1-2s delay on project
+    // entry). Entering preview is now a manual action via the toolbar Play
+    // button or the PREVIEW hotkey, so this helper always returns false
+    // regardless of input. The remaining cases below stay as regression
+    // guards in case anyone re-enables the auto-flip without also updating
+    // the policy.
+    test('returns false even after a disconnected CodeSandbox preview has failed multiple times (auto-unlock disabled)', () => {
         expect(
             shouldUnlockCodeSandboxPreview({
                 isCodeSandboxFrame: true,
@@ -60,7 +67,7 @@ describe('shouldUnlockCodeSandboxPreview', () => {
                 connectionFailureCount: 2,
                 isFirstCreation: false,
             }),
-        ).toBe(true);
+        ).toBe(false);
     });
 
     test('returns false during the initial connection attempt', () => {
