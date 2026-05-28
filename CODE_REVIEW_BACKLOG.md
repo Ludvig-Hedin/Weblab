@@ -1,5 +1,78 @@
 # Code Review Backlog
 
+## Bug Hunt — 2026-05-28 — F-450..F-453 (Pricing / Avatar / Telemetry)
+
+Two-pass `/bug-hunt` over `apps/web/client/src/components/ui/pricing-modal/`,
+`apps/web/client/src/components/ui/pricing-table/`,
+`apps/web/client/src/components/ui/avatar-dropdown/`,
+`apps/web/client/src/components/telemetry-provider.tsx`,
+`apps/web/client/src/utils/telemetry/index.ts`. `bun typecheck` exit 0 after fixes.
+`bunx eslint` on scoped paths: 7 pre-existing warnings (below repo 5000 cap), 0 errors.
+
+### Auto-fixed (6 issues)
+
+- **`apps/web/client/src/components/ui/pricing-modal/free-card.tsx:117`** —
+  `handleDowngradeToFree()` floating promise. Wrapped in `void`. Lint clean.
+- **`apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx:43`** —
+  `navigator.clipboard.writeText(code)` floating promise. Wrapped in `void`.
+  Toast still fires synchronously, which masks clipboard rejection (see
+  Needs-review item below for "false success on clipboard reject").
+- **`apps/web/client/src/utils/telemetry/index.ts:1-7`** — replaced static
+  `import posthog from 'posthog-js'` with dynamic `await import('posthog-js')`
+  inside `resetTelemetry`. The static import defeated
+  `telemetry-provider`'s consent-gated dynamic-import claim — posthog-js
+  was pulled into every page's critical-path bundle. Now consistent with
+  provider: SDK is dynamic everywhere.
+- **`apps/web/client/src/components/ui/pricing-modal/index.tsx:65`** —
+  `onClick={() => (state.isSubscriptionModalOpen = false)}` did a raw MobX
+  property write that bypasses action-wrapping (see
+  `components/store/state/manager.ts:17-23`). Switched to
+  `state.setIsSubscriptionModalOpen(false)`. Same fix applied to
+  `avatar-dropdown/plans.tsx:37` (`= true` → `setIsSubscriptionModalOpen(true)`).
+- **`apps/web/client/src/components/ui/avatar-dropdown/index.tsx:94`** —
+  `signOutEverywhere(...)` was awaited without a try/catch. A Clerk
+  sign-out failure prevented the follow-up
+  `window.location.assign(getSignInUrlClient())`, stranding the user
+  with cleared localforage but a stale signed-in UI. Wrapped in
+  `try/catch/finally` so the hard-navigate always fires.
+- **`apps/web/client/src/components/telemetry-provider.tsx:53-101`** —
+  module-level `posthogClient` / `gleapSingleton` singletons had no
+  double-init guard. On HMR / Suspense remount the effect re-fired and
+  `posthog.init()` / `gleap.initialize()` ran twice. PostHog warns
+  ("PostHog was already initialized"); Gleap can register duplicate
+  listeners. Added `!posthogClient` / `!gleapSingleton` guards both
+  outside the async closure (to skip work) and re-checked after `import`
+  resolves (to win the race between two concurrent remounts).
+
+### Needs human review (7 issues)
+
+- **`telemetry-provider.tsx:9`** — `import { PostHogProvider as PHProvider } from 'posthog-js/react'` is a **static** import. File comment claims "Dynamic import for posthog-js keeps the SDK out of the critical-path bundle on landing/login/dashboard until cookie consent fires" — but this static line pulls the posthog-js React adapter (which pulls posthog-js itself) into the bundle anyway. Verified live: `/pricing` cold load fetches `node_modules_posthog-js_*.js` from `_next/static/chunks` even with `weblab.consent` cookie absent. Fix: lazy-load `PHProvider` via `const PHProvider = lazy(() => import('posthog-js/react').then(m => ({ default: m.PostHogProvider })))`, wrap consumer in `<Suspense>`. Out of `<3 files` scope for this pass.
+
+- **`telemetry-provider.tsx:53-101`** — cookie consent is read **once** at mount via `useEffect([])`. If the user accepts consent after the provider mounts (the cookie-consent banner is a sibling component, so this is the common path), telemetry never initializes until the next full page reload. The pathname effect on line 178 fires, but it only triggers `softReInitialize` after `gleapSingleton` exists — chicken-and-egg. Fix: listen for a `weblab:consent-accepted` custom event (or poll `document.cookie` on focus) and re-run the init effect.
+
+- **`pricing-table/index.tsx:26,32`** — `isUnauthenticated={!user}` treats `user === undefined` (Convex query loading) as unauthenticated. Signed-in visitor on `/pricing` sees "Get Started Free" / "Get started" briefly before query lands and flips to "Current plan". Fix: distinguish loading from anonymous — `const isLoading = hasAuthCookie === true && user === undefined; const isUnauthenticated = hasAuthCookie === false`. Pass loading skeleton to FreeCard / ProCard.
+
+- **`avatar-dropdown/index.tsx:53`**, **`avatar-dropdown/plans.tsx:19,20`** — `useQuery(api.users.me, {})`, `useQuery(api.subscriptions.get, {})`, `useQuery(api.usage.get, {})` all fire **unconditionally**. Parent routes correctly gate the avatar render behind `isSignedIn` so this is currently safe, but the components have no defensive auth-cookie gate of their own. If they ever mount in an unauthenticated context (Storybook, design-system page, marketing surface), Convex returns 401 / floods console. Fix: mirror the `useHasAuthCookie() === true ? {} : 'skip'` pattern from `useSubscription` and `telemetry-provider`.
+
+- **`avatar-dropdown/plans.tsx:28-31`** — three `@typescript-eslint/no-unsafe-enum-comparison` warnings: `product?.type === ProductType.FREE/PRO`. `product` is `subscription?.product ?? FREE_PRODUCT_CONFIG`. `FREE_PRODUCT_CONFIG.type` is the string literal `'free'` from `@weblab/stripe`; `subscription.product.type` flows through Convex (loses enum brand). Runtime-safe, lint-noisy. Fix: declare `FREE_PRODUCT_CONFIG.type` as `ProductType` in `@weblab/stripe`, or narrow at the boundary in plans.tsx with `as ProductType`.
+
+- **`pricing-modal/legacy-promotion.tsx:1-6`** — imports `motion` and `AnimatePresence` from `framer-motion` while the rest of the pricing UI imports from `motion/react`. Mixed deps means two animation libs ship to the bundle for one feature. Fix: switch this file to `motion/react` to match `index.tsx`, `free-card.tsx`, `pro-card.tsx`, `enterprise-card.tsx`.
+
+- **`pricing-modal/legacy-promotion.tsx:42-47`** — false success toast on clipboard reject. `navigator.clipboard.writeText(code)` is fire-and-forget (now wrapped in `void`), but `toast.success('Copied to clipboard')` fires synchronously before the promise resolves. Clipboard permission-denied or unavailable-API paths show "Copied" while nothing was copied. Fix: convert handler to `async`, `await` the write inside try/catch, toast.error on rejection. Same pattern as the F-205 publish/dropdown/url fix in the 2026-05-28 backlog above.
+
+### Out-of-scope console errors (pre-existing, not in our 4 files — track separately)
+
+- **"Can't perform a React state update on a component that hasn't mounted yet"** fires 8× on `/pricing` cold load. String not present in our source — comes from React-DOM dev runtime. Likely a sibling provider (clerk, motion, or radix) calling `setState` from a render-time side effect. Repro: cold load `http://localhost:3000/pricing` anon, check console errors.
+- **`WorkspaceLayout` `ConvexHttpClient.queryInner` "Unauthenticated: Could not verify OIDC token claim"** fires repeatedly on every page transition in this dev session. Pre-existing — `loadBridgedUser` SSR path passes a stale Clerk JWT to Convex. The error is handled by the root error boundary so it does not crash UX, but it pollutes telemetry and the dev console.
+
+### Coverage gaps (added to docs/test-plan.md follow-up)
+
+No adjacent `*.test.ts` for any of F-450..F-453. T-010, T-400, T-450, T-451,
+T-452, T-453, T-725 all `[ ]` un-run. Test-plan rows exist but need a Clerk
+dev-user fixture + Stripe test-mode fixture to execute.
+
+---
+
 ## Bug Hunt — 2026-05-28 — F-200..F-209 (Editor Top Bar — continued)
 
 Exhaustive deeper `/bug-hunt` sweep across all top-bar features. `bun typecheck` exit 0; `bun lint` exit 0 before and after all fixes.
@@ -1484,4 +1557,125 @@ publish-vercel) or a latent edge case behind a low-probability window.
   (F-092 + F-093 unauth gate), Stripe success/cancel pages (F-090, F-091).
 
 
+
+## Bug Hunt — 2026-05-28 — F-100..F-108 (Workspace & Settings)
+
+`/bug-hunt` over `apps/web/client/src/app/w/**`, `apps/web/client/src/app/settings/page.tsx`, plus dependencies `apps/web/client/convex/workspaces.ts`, `convex/users.ts` (`capabilities`), `convex/lib/permissions.ts`, `convex/lib/auth.ts`. Validation: `bun typecheck` exit 0; `bunx eslint` on changed files exit 0.
+
+### Auto-fixed (2 issues)
+
+- **`apps/web/client/src/app/w/[slug]/layout.tsx:22-28`** — server-side
+  unauth bounce hardcoded `redirect(getSignInUrl(\`/w/${slug}/projects\`))`
+  for every nested route. Visiting `/w/foo/settings/general` while signed
+  out always returned the user to `/w/foo/projects` post-sign-in,
+  dropping deep links from emails, settings notifications, members
+  pages, etc. Replaced with `headers().get('x-pathname')` (middleware
+  sets the header on every request — see `middleware.ts:56-58`) with
+  the same hardcoded fallback. Same fix applied to
+  **`apps/web/client/src/app/w/[slug]/settings/layout.tsx:22-25`**
+  (which previously hardcoded `/w/${slug}/settings` — itself a 404
+  because no `page.tsx` exists at that level, so signed-out deep links
+  into settings sub-pages would land on a 404 after sign-in).
+
+### Needs human review (12 issues)
+
+- **F-100 `apps/web/client/src/app/w/new/page.tsx:1-72`** — page is a
+  `'use client'` component with **no auth gate**. Signed-out visitors
+  see the form, fill it in, and only fail at the `createTeam` mutation
+  (toast.error). The catalog row tags it `#auth-gated` but enforcement
+  is implicit via Convex `requireUser`. Fix: wrap with a server-side
+  parent layout that bounces unauth users, or use `useUser()` to
+  redirect on mount.
+- **F-100 `apps/web/client/src/app/w/new/page.tsx:65`** — Cancel button
+  calls `router.back()`. On direct visit (no prior history) the back
+  navigation is a no-op and the user is stranded. Should fall back to
+  `/projects` (or `useActiveWorkspaceMaybe()` slug when available).
+- **F-103 `apps/web/client/src/app/w/[slug]/settings/general/page.tsx`** —
+  catalog claims sub-features "Name / slug / logo / delete" but the
+  page only implements name + delete + leave. **No slug editor** (the
+  `workspaces.update` mutation accepts `slug` but no UI binds it). **No
+  logo / avatar upload** (`avatarUrl` is in the schema and the
+  mutation, but no input). Either build the missing UI or update the
+  catalog row + test plan.
+- **F-103 leave & delete `router.push('/projects')`** — after success
+  the `LAST_WORKSPACE_SLUG_COOKIE` still points at the just-left or
+  just-deleted workspace. `/projects` self-heals (filters by match)
+  but the cookie should be cleared explicitly in
+  `WorkspaceProvider` cleanup or in the leave/delete handlers to
+  avoid one extra round-trip and to prevent surprise on edge cases
+  where the slug is reused.
+- **F-103 race between leave + delete** — both buttons have
+  independent `isLeaving` / `isDeleting` busy state. User can fire
+  one while the other is in flight. Hide / disable the entire danger
+  section when *either* is pending.
+- **F-103 stale-state on `name` input after save** — `useState(workspace.name)`
+  initializes from prop but doesn't re-sync after the mutation if the
+  workspace context updates (e.g. trailing whitespace stripped by
+  backend). After `router.refresh()` the layout re-runs but the
+  component state survives. Either reset `setName(updated.name)` after
+  the mutation or derive `name` from context with an editing flag.
+- **F-104 `apps/web/client/src/app/w/[slug]/settings/billing/page.tsx`** —
+  currently a redirect shim to `/pricing?fromWorkspace=<slug>`. Catalog
+  row says "Plan, seats, Stripe portal, usage caps" — none of those
+  are implemented. Either land the workspace-scoped billing page or
+  update the catalog + test-plan (T-104 currently asserts "Open Stripe
+  portal; portal session URL returned" which the redirect cannot
+  fulfill). Tracked TODO comment is already in the source.
+- **F-105 `members/page.tsx:232-238`** — `RemoveMemberButton` renders
+  for **the current viewer themselves** when they have
+  `workspace.manage_members`. Backend correctly throws
+  `BAD_REQUEST: use leave() to remove self` (workspaces.ts:391) but
+  the user sees a `toast.error` instead of a clear "leave" affordance.
+  Fix: pass the current `userId` into the page (via `useQuery(api.users.me)`
+  or expose it on `ActiveWorkspace`) and hide the Remove button on
+  the row matching `viewerUserId`.
+- **F-105 `handleUpdateRole` no per-row busy state** — while a role
+  change is in flight, the `Select` accepts new choices and double-fires
+  the mutation. Track a per-userId pending set similar to
+  `revokingIds` in F-106 invitations.
+- **F-105 invitations & members list have no sort** — invitations
+  return in insertion order via `by_workspace_email_status` index,
+  members come back in workspace-member insertion order. Pending
+  invites should bubble to the top of F-106; members should sort
+  owners first then alphabetical to match the F-101 layout's expected
+  hierarchy.
+- **F-106 invitations missing "resend" affordance** — catalog row
+  says sub-features include resend; only `revoke` is implemented.
+  Either add the resend mutation/UI or update the catalog row +
+  T-106 expectations.
+- **F-106 direct URL access for non-invite-cap viewer crashes the
+  page** — settings nav hides the link when `\!canInvite`, but a viewer
+  hitting `/w/[slug]/settings/invitations` directly fires
+  `useQuery(api.workspaces.inviteList)` which throws
+  `FORBIDDEN: workspace.invite` inside Convex. Without an error
+  boundary the React tree errors. Add the same cap guard the nav
+  uses at the page level (mirror `general/page.tsx`'s `canUpdate`
+  pattern) and render a friendly empty state.
+- **F-108 `apps/web/client/src/app/settings/page.tsx`** — catalog
+  claims "Personal user account settings"; implementation is a
+  workspace-resolution redirect shim. Either land a real personal
+  settings page (current personal profile + theme + i18n live on the
+  in-editor settings modal — F-420..F-449 — none exposed on this
+  route) or update the catalog row.
+
+### Catalog / test-plan corrections (separate from runtime bugs)
+
+- **F-100 path/sub-features** — catalog says
+  `Convex \`workspaces.create\`` but the mutation is named
+  `workspaces.createTeam` (workspaces.ts:146). T-100 should also
+  assert `createTeam` not `create`.
+- **F-104** — see above; row's sub-features list is aspirational.
+- **F-103** — see above; slug + logo are aspirational.
+- **F-106** — resend is aspirational.
+- **F-108** — personal-settings copy is aspirational.
+
+### Lint warnings worth tracking (not auto-fixed; pre-existing)
+
+`bunx eslint` against `src/app/w` + `src/app/settings` reports 7
+warnings (`@typescript-eslint/no-unsafe-enum-comparison` x6 plus
+`jsx-a11y/no-autofocus` x1 on F-100). Root cause: `WorkspaceRole` /
+`InvitationStatus` / `WorkspaceKind` enums in `@weblab/models` don't
+share an enum identity with the matching union types returned from
+Convex. Repo-wide cleanup: convert those enums to `as const` literal
+unions or branded aliases that match the Convex schema.
 

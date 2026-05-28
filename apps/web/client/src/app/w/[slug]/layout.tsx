@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
@@ -21,7 +22,13 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
 
     const user = await getCurrentUser();
     if (!user) {
-        redirect(getSignInUrl(`/w/${slug}/projects`));
+        // Preserve deep-link target so post-sign-in lands the user on the
+        // page they actually requested (e.g. /w/[slug]/settings/general)
+        // rather than collapsing every signed-out visit to /w/[slug]/projects.
+        // `x-pathname` is set by middleware.ts; fall back to the projects
+        // route if for any reason the header is absent.
+        const requestPath = (await headers()).get('x-pathname') ?? `/w/${slug}/projects`;
+        redirect(getSignInUrl(requestPath));
     }
 
     const { getToken } = await auth();

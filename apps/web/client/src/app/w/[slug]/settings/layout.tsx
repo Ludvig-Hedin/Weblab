@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
@@ -19,9 +20,14 @@ export default async function WorkspaceSettingsLayout({ children, params }: Sett
 
     // Mirror /w/[slug]/layout: redirect anonymous visitors to sign-in
     // before the Convex call throws UNAUTHORIZED.
+    // Preserve the actual deep-link via the middleware-set `x-pathname`
+    // header so e.g. /w/[slug]/settings/members survives the round trip
+    // through sign-in. Without this we landed every signed-out user on
+    // /w/[slug]/settings — which itself 404s because it has no page.tsx.
     const user = await getCurrentUser();
     if (!user) {
-        redirect(getSignInUrl(`/w/${slug}/settings`));
+        const requestPath = (await headers()).get('x-pathname') ?? `/w/${slug}/settings/general`;
+        redirect(getSignInUrl(requestPath));
     }
 
     const { getToken } = await auth();
