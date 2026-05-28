@@ -1,5 +1,37 @@
 # Code Review Backlog
 
+## Deep Bug Hunt — 2026-05-27 — F-291 (ai-prompt-composer)
+
+Deep recursion through `apps/web/client/src/components/ai-prompt-composer/` plus both callers (editor `chat-input/index.tsx` and public hero `_components/hero/create.tsx`). `bun typecheck` exits 0 after fixes.
+
+### Auto-fixed (2)
+
+- **`extensions/file-mention.tsx:68` — Escape destroys the mention popup but leaves the suggestion session orphaned.**
+  On Escape the handler called `popupEl.remove() + component.destroy() + set both to undefined`, but the TipTap suggestion session was still active (cursor still after `@`). Subsequent keystrokes invoked `onUpdate`, which guarded `if (!component || !popupEl) return;` — leaving the user stranded with an invisible mention session until they retyped `@` to start a fresh one. Confirmed bug — exactly the regression `slash-commands.tsx` already documents avoiding (`apps/web/client/src/components/ai-prompt-composer/extensions/slash-commands.tsx:82-87`). Fix: mirror the slash-commands pattern — hide via `popupEl.style.display = 'none'`, then re-show on `onUpdate` with `popupEl.style.display = ''`. Real teardown still happens in `onExit`. Affects editor chat-input (only caller using `mentionConfig`).
+- **`model-picker/provider-setup-dialog.tsx:67` — Unawaited `navigator.clipboard.writeText` → false "Copied" indicator.**
+  Same anti-pattern fixed earlier in `top-bar/publish/dropdown/url.tsx`. `copy()` returned synchronously, set `copied = cmd`, then scheduled the reset — but a rejection (permission denied / insecure context / missing API in non-HTTPS preview) silently failed while the button still flipped to "Copied". Fixed: made `copy()` async, awaited the write inside `try { ... } catch { /* idle */ }` so failure leaves the button idle for retry. Call site updated to `onClick={() => void copy(h.command)}`.
+
+### Needs human review (4)
+
+- **`tiptap-editor.tsx:73-78` — `Placeholder` extension is captured at first editor mount; subsequent `placeholder` prop changes do not propagate.**
+  `useEditor(options, deps?)` with no deps passes `deps = []` (TipTap source `node_modules/@tiptap/react/src/useEditor.ts:339`). When `deps.length === 0` and the editor is alive, TipTap calls `setOptions` instead of `refreshEditorInstance` — and `setOptions` only re-applies `editorProps`, not `extensions` (`node_modules/@tiptap/core/src/Editor.ts:266-281`). Effect: in editor chat-input the placeholder text computed from `getPlaceholderText()` changes when `chatMode` switches Build/Ask/Plan/Fix, but the placeholder shown on the empty input is whatever was first computed (typically Build). Low severity — cosmetic only; affects empty-input UX. Suggested fix: pass `[placeholder, mentionConfig, slashCommands]` as the deps arg to `useEditor` so the editor refreshes when these change. Trade-off: editor refresh blows away cursor + selection state, so we should only refresh when the user is in an idle/empty state, or migrate to a Placeholder extension that supports live updates via `view.dispatch`.
+- **`mention-list.tsx:42-48` and `slash-list.tsx:40-46` — Enter on empty results swallows the keypress.**
+  When `items.length === 0` the lists still return `true` on Enter (after the `if (item)` guard returns without dispatching). This blocks the editor from inserting a newline when the user presses Enter on a "No results" panel. Confirmed in code — affects mid-mention/mid-slash sessions that filtered to empty. Suggested fix: return `false` when `selectedIndex` resolves to no item so the editor handles the key normally (and the suggestion session exits as the user keeps typing).
+- **`chat-input/index.tsx:140-160` — `generateSuggestions` has no stale-response guard.**
+  `setSuggestions(nextSuggestions)` writes whatever response arrives, regardless of whether the user has since switched conversations or sent another message. Two interleaved requests can land out-of-order, overwriting the newest suggestions with stale ones. Outside strict F-291 scope (lives in chat-input, not the shared composer), but flagged because the composer's `suggestions` slot consumes this state. Suggested fix: capture the current `currentConversation.id` + a monotonically increasing request seq in a ref, compare on resolution, drop stale writes. Same pattern protects the dedupe signature clear in the catch branch (line 156) from re-firing for an older state.
+- **`model-selector-v2.tsx:133-134` — `hasCliBridge` read during render → hydration mismatch on SSR'd pages.**
+  `const hasCliBridge = typeof window !== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);` evaluates differently on server (false) vs first client render (true if desktop bridge present). React 18 hydration logs a warning and may force a client re-render. ModelSelectorV2 is feature-flagged off today (`env.NEXT_PUBLIC_PROVIDER_PICKER_V2`), so the runtime impact is gated. Suggested fix: lift the check into a `useState`/`useEffect` post-mount, identical to the `hasNativeBridge` pattern already in `use-provider-statuses.ts:71-102`.
+
+### Verified NOT bugs (5)
+
+- **`tiptap-editor.tsx:127-161` — closures over `onPaste`/`onCompositionStart`/`onCompositionEnd` are NOT stale.** Verified via TipTap source: `useEditor` passes a new options object every render → `compareOptions` detects `editorProps` identity change → `setOptions` re-applies `editorProps` via `view.setProps`. Closures refresh on every render.
+- **`extensions/slash-commands.tsx:23-31` — `cmd.keywords?.some(...)` returning `undefined` as filter result is safe.** Empty query matches everything via `String.includes('')`. Falsy `undefined` correctly filters out non-matching commands.
+- **`mention-list.tsx:33` / `slash-list.tsx:32` — modulo arithmetic with empty `items` does not divide by zero.** `Math.max(items.length, 1)` floors the divisor at 1 and the wrapped index resolves to 0; subsequent `items[selectedIndex]` is guarded with `if (item)`.
+- **`tiptap-editor.tsx:179-186` — value-sync effect's `setContent` with `emitUpdate: false` does not feedback-loop with `onUpdate`.** Verified by TipTap dispatching the transaction with `meta: { preventUpdate: true }`.
+- **`pull-model-dialog.tsx:55-70` — IPC progress listener cleanup is correct.** The bridge type `onOllamaPullProgress?: (...) => () => void` returns a real unsubscribe; the useEffect returns it as cleanup; `pullIdRef` guards against listener-after-second-pull (button is disabled while `pulling !== null`).
+
+---
+
 ## Bug Hunt — 2026-05-28 — F-380..F-392 deeper pass (CMS workspace, round 2)
 
 Second `/bug-hunt` over `apps/web/client/src/app/project/[id]/_components/cms-workspace/` (13 files, F-380..F-392). This pass crossed the UI ↔ Convex boundary — read every `cmsCollections`, `cmsItems`, `cmsFields`, `cmsBindings`, `cmsSources`, `cmsCollectionPages`, `cmsActions` module to compare contracts. `bun typecheck` exit 0; touched-file `bunx eslint` clean.

@@ -57,9 +57,19 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     // Already authenticated visitors should never see the sign-in form.
     // Bounce to the sanitized returnUrl when present, otherwise to /projects
     // (which itself forwards to the user's last/personal workspace).
+    //
+    // Self-loop guard: reject `returnUrl=/sign-in` (and `/sign-up`, which the
+    // sign-up page rewrites to `/sign-in`) so a stray caller — e.g.
+    // `AuthProvider.setIsAuthModalOpen(true)` fired from a component that
+    // happens to render on `/sign-in` itself — can't trap the user in a
+    // redirect loop.
     const user = await getCurrentUser();
     if (user) {
-        redirect(sanitized ?? Routes.PROJECTS);
+        const safeTarget =
+            sanitized && sanitized !== Routes.LOGIN && sanitized !== '/sign-up'
+                ? sanitized
+                : Routes.PROJECTS;
+        redirect(safeTarget);
     }
 
     return <SignInClient returnUrl={sanitized ?? null} initialEmail={initialEmail} />;

@@ -25,9 +25,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthModalOpen(open);
         if (open) {
             // Bounce to Clerk's sign-in instead of opening a custom modal.
-            // returnUrl is built from the current pathname so the user lands
-            // back where they were after sign-in.
-            const returnUrl = typeof window !== 'undefined' ? window.location.pathname : '/';
+            // returnUrl is built from the current pathname + search so the user
+            // lands back where they were (with query params intact, e.g.
+            // `/projects?filter=foo`) after sign-in. Hash is intentionally
+            // dropped because the server-side `redirect(returnUrl)` doesn't
+            // preserve hashes anyway.
+            const returnUrl =
+                typeof window !== 'undefined'
+                    ? `${window.location.pathname}${window.location.search}`
+                    : '/';
             const params = new URLSearchParams({ returnUrl });
             router.push(`/sign-in?${params.toString()}`);
         }

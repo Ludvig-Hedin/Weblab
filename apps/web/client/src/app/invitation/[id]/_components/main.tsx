@@ -22,7 +22,7 @@ export function Main({ invitationId }: { invitationId: string }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const token = useSearchParams().get('token');
+    const token = searchParams.get('token');
     const { signOut: clerkSignOut } = useClerk();
     // Convex queries throw to nearest ErrorBoundary on failure rather than
     // returning an error — error state is reserved for the mutation path only.
