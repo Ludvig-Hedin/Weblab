@@ -50,10 +50,16 @@ describe('registry', () => {
         ]);
     });
 
-    test('isFrameworkReady is true only for Next.js (until other templates land)', () => {
+    test('isFrameworkReady covers Next.js + static HTML (until other templates land)', () => {
+        // Vercel-only blank-project pipeline ships a Next.js scaffolder and a
+        // static-html scaffolder (commit 18e4e9828 — `refactor(sandbox): blank
+        // scaffolds for next + static html templates`). The remaining four
+        // (Vite/Remix/Astro/TanStack Start) are still gated until their
+        // scaffolders land.
         const ready = listReadyFrameworkAdapters();
-        expect(ready.map((a) => a.id)).toEqual(['nextjs']);
+        expect(ready.map((a) => a.id)).toEqual(['nextjs', 'static-html']);
         expect(isFrameworkReady(nextjsAdapter)).toBe(true);
+        expect(isFrameworkReady(staticHtmlAdapter)).toBe(true);
         expect(isFrameworkReady(viteReactAdapter)).toBe(false);
     });
 });

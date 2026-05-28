@@ -7,7 +7,18 @@ import type { T } from './packages';
 import { isReactFragment } from './helpers';
 import { t, traverse } from './packages';
 
-const generateIxIdSuffix = customAlphabet(VALID_DATA_ATTR_CHARS, 7);
+// Lazy generator (see same pattern in @weblab/utility/src/id.ts): a top-level
+// `const generateIxIdSuffix = customAlphabet(...)` tripped a TDZ under
+// `bun test --coverage` because the coverage transform reorders module
+// initialization while the JSX traversal in this file's own consumers fires
+// synchronously inside import side effects.
+let cachedSuffixGenerator: ReturnType<typeof customAlphabet> | null = null;
+function generateIxIdSuffix(): string {
+    if (!cachedSuffixGenerator) {
+        cachedSuffixGenerator = customAlphabet(VALID_DATA_ATTR_CHARS, 7);
+    }
+    return cachedSuffixGenerator();
+}
 
 export function createIxId(): string {
     return `ix_${generateIxIdSuffix()}`;
