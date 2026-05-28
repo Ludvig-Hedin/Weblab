@@ -22,9 +22,21 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Pre-build Storybook with bun so workspace deps resolve through the
+      # same package manager that installed them. The chromaui action's
+      # default `npm run build-storybook` previously failed on bun-installed
+      # workspaces (Vite "use client" warnings → exit code 1 with no real
+      # error surfaced; local `bun run build-storybook` succeeds the same
+      # build cleanly).
+      - name: Build Storybook
+        working-directory: apps/web/client
+        env:
+          SKIP_ENV_VALIDATION: true
+        run: bun run build-storybook --output-dir storybook-static
+
       - name: Run Chromatic
         uses: chromaui/action@latest
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           workingDir: apps/web/client
-          buildScriptName: build-storybook
+          storybookBuildDir: storybook-static
