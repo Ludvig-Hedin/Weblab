@@ -318,7 +318,23 @@ export class BranchManager {
             await this.switchToBranch(newBranch.id);
         } catch (error) {
             console.error('Failed to create blank sandbox:', error);
-            toast.error('Failed to create blank sandbox');
+            // Surface the real reason when the action classified it (e.g. a
+            // Vercel 402 billing block arrives as a ConvexError with a
+            // structured `{ message }` payload). A plain Error from a Convex
+            // action is redacted to "Server Error" in prod, so prefer `data`.
+            const structured = (error as { data?: unknown } | null)?.data;
+            const description =
+                structured &&
+                typeof structured === 'object' &&
+                typeof (structured as { message?: unknown }).message === 'string'
+                    ? (structured as { message: string }).message
+                    : error instanceof Error
+                      ? error.message
+                      : undefined;
+            toast.error(
+                'Failed to create blank sandbox',
+                description ? { description } : undefined,
+            );
             throw error;
         } finally {
             toast.dismiss();

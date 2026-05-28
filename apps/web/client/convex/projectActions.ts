@@ -7,6 +7,7 @@ import { VercelSandboxProvider } from '@weblab/code-provider';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
+import { mapSandboxProvisionError } from './lib/sandboxErrors';
 
 // Node-only actions for the projects domain. These wrap external SDK calls
 // (Firecrawl HTTP API, Vercel Sandbox SDK, sharp image compression,
@@ -322,7 +323,11 @@ export const createBlank = action({
                     console.warn('[createBlank] Vercel sandbox cleanup failed', cleanupErr);
                 }
             }
-            throw error;
+            // Re-wrap recognized Vercel provisioning failures (402 billing,
+            // 401/403 auth, 429 rate-limit, 5xx upstream) as ConvexErrors so
+            // the real reason survives prod redaction; unrecognized errors
+            // pass through untouched.
+            throw mapSandboxProvisionError(error);
         }
     },
 });

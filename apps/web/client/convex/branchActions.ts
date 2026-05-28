@@ -7,6 +7,7 @@ import { VercelSandboxProvider } from '@weblab/code-provider';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
+import { mapSandboxProvisionError } from './lib/sandboxErrors';
 
 // Node-only actions for branches — wrap Vercel Sandbox SDK calls and persist
 // via internal mutations.
@@ -194,7 +195,10 @@ export const createBlank = action({
                     );
                 }
             }
-            throw error;
+            // Re-wrap recognized Vercel provisioning failures (402 billing,
+            // 401/403 auth, 429 rate-limit, 5xx upstream) as ConvexErrors so
+            // the real reason survives prod redaction.
+            throw mapSandboxProvisionError(error);
         }
     },
 });

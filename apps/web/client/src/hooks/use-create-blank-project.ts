@@ -90,10 +90,32 @@ export function useCreateBlankProject() {
             setPhase('idle');
         } catch (error) {
             console.error('Error creating blank project:', error);
-            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            // Convex actions that hit a recognized Vercel provisioning failure
+            // throw a ConvexError carrying a structured `{ message, retryable }`
+            // payload (see convex/lib/sandboxErrors.ts). Prefer it: a plain
+            // Error from a Convex action is redacted to "Server Error" in prod,
+            // so `error.message` alone is useless there.
+            const structured = (error as { data?: unknown } | null)?.data;
+            const structuredMessage =
+                structured &&
+                typeof structured === 'object' &&
+                typeof (structured as { message?: unknown }).message === 'string'
+                    ? (structured as { message: string }).message
+                    : null;
+            const structuredRetryable =
+                structured &&
+                typeof structured === 'object' &&
+                typeof (structured as { retryable?: unknown }).retryable === 'boolean'
+                    ? (structured as { retryable: boolean }).retryable
+                    : null;
+
+            const errorMessage =
+                structuredMessage ?? (error instanceof Error ? error.message : String(error));
 
             // Transient triggers, in order:
-            //   - upstream gateway errors (502/503/504) bubbling up from CSB,
+            //   - the structured `retryable` flag from a classified ConvexError,
+            //   - upstream gateway errors (502/503/504),
             //   - the sandbox.fork retry-exhaustion message format
             //     ("Failed to create sandbox after N attempts: ..."),
             //   - generic timeout / temporarily unavailable phrasing.
@@ -102,11 +124,12 @@ export function useCreateBlankProject() {
             // errors and surfaced a misleading Retry CTA.
             const lower = errorMessage.toLowerCase();
             const isTransient =
-                /\b50[234]\b/.test(errorMessage) ||
-                /failed to create sandbox after \d+ attempts?/i.test(errorMessage) ||
-                lower.includes('temporarily unavailable') ||
-                lower.includes('timeout') ||
-                lower.includes('timed out');
+                structuredRetryable ??
+                (/\b50[234]\b/.test(errorMessage) ||
+                    /failed to create sandbox after \d+ attempts?/i.test(errorMessage) ||
+                    lower.includes('temporarily unavailable') ||
+                    lower.includes('timeout') ||
+                    lower.includes('timed out'));
 
             if (isTransient) {
                 toast.error('Sandbox service temporarily unavailable', {
