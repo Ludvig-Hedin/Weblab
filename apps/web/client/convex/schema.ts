@@ -776,7 +776,11 @@ export default defineSchema({
         eventId: v.string(),
         eventType: v.string(),
         processedAt: v.number(),
-    }).index('by_event_id', ['eventId']),
+    })
+        .index('by_event_id', ['eventId'])
+        // Range index for the purge cron — drop rows older than Stripe's retry
+        // window so the table stays bounded.
+        .index('by_processed_at', ['processedAt']),
 
     // -------------------------------------------------------------------------
     // Presence (live cursors)
@@ -799,7 +803,11 @@ export default defineSchema({
         .index('by_project_lastSeen', ['projectId', 'lastSeen'])
         // Lets `deleteUserCascade` target a user's cursor rows directly
         // instead of scanning the whole cursors table.
-        .index('by_user', ['userId']),
+        .index('by_user', ['userId'])
+        // Global lastSeen range index for `purgeStaleCursors` — without it the
+        // purge does an unindexed table scan (`.take(n)` bounds rows returned,
+        // not rows scanned).
+        .index('by_lastSeen', ['lastSeen']),
 
     // -------------------------------------------------------------------------
     // AI usage events — per-request token/cost/cache/latency telemetry

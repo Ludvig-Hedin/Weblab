@@ -38,6 +38,26 @@ later without re-discovering the context.
 
 ## Open
 
+### Stripe webhook required-field gate can drop cancel/pause/resume events
+
+- **Discovered:** 2026-05-28 (CodeRabbit-fix pass, local-review)
+- **Where:** [apps/web/client/convex/http.ts:216-234](apps/web/client/convex/http.ts#L216-L234) — the `if (!event.id || !sub.id || !item?.id || !priceId || !customerId || !item.current_period_start || !item.current_period_end)` 202 gate
+- **Symptom:** the gate requires `priceId` + `customerId` + `current_period_*` for **every** routed event before dispatch, then 202-accept-ignores (no Stripe retry). But `_handleSubDeleted` / `_handleSubPaused` / `_handleSubResumed` only consume `subscriptionId`. If Stripe ever delivers a cancel/pause/resume without a fully-expanded price/period (e.g. canceled-immediately, or future API-version field relocation), the event is permanently dropped and the subscription stays `status:'active'` in our DB → user keeps entitlements they no longer pay for.
+- **Root cause:** one-size gate; pre-existing (predates the `evt.id` dedup work, which only added `!event.id` to the same gate).
+- **Next step:** gate billing fields only for `created`/`updated` (`const needsBilling = event.type === 'customer.subscription.created' || 'customer.subscription.updated'`). **Must also** relax `vSubEventInput` (make `priceId`/`customerId`/`currentPeriod*` optional) since those handlers don't read them — a gate-only change would pass the gate then fail the validator → 500 retry loop. Needs a convex-test once a harness exists.
+- **Risk if ignored:** low in practice (Stripe currently sends the full subscription object on delete/pause/resume) but a silent revenue/entitlement leak if that ever changes.
+- **Tags:** `#bug` `#billing` `#webhook`
+
+### `_clearScheduleChange` uses unindexed `.filter` table scan + `.unique()`
+
+- **Discovered:** 2026-05-28 (CodeRabbit-fix pass, local-review)
+- **Where:** [apps/web/client/convex/lib/stripeWebhook.ts](apps/web/client/convex/lib/stripeWebhook.ts) — `_clearScheduleChange`, `.filter(q => q.eq(q.field('stripeSubscriptionScheduleId'), …)).unique()`
+- **Symptom:** unlike every other lookup in the file (all `withIndex`), this scans the entire `subscriptions` table on each schedule release; `.unique()` throws if two rows ever share a schedule id. Violates the Convex "never `.filter`" guideline.
+- **Root cause:** missing index; pre-existing (untouched by the dedup work).
+- **Next step:** add `subscriptions.index('by_stripe_subscription_schedule_id', ['stripeSubscriptionScheduleId'])` and switch to `withIndex`; consider `.first()` over `.unique()` per the duplicate-row hazard already acknowledged in `_resolveCallerUserId`.
+- **Risk if ignored:** full-table scan cost grows with subscription count; a duplicate schedule id crashes `releaseSubscriptionSchedule`.
+- **Tags:** `#tech-debt` `#billing` `#performance`
+
 ### Confirm Railway `NEXT_PUBLIC_CONVEX_URL` = prod Convex (`rapid-crab-113`)
 
 - **Discovered:** 2026-05-28 (prod Google-login crash investigation)
@@ -735,6 +755,16 @@ later without re-discovering the context.
 
 ### F-491 — Stripe webhook lacks `evt.id` idempotency; replays grant duplicate credits
 
+- **Resolved:** 2026-05-28 (CodeRabbit-fix pass) — added a `stripeEventLog`
+  table (`by_event_id`) and an `alreadyProcessed()` guard at the top of every
+  `_handleSub*` mutation; `event.id` is threaded through `http.ts`. Dedup is
+  transactional (log insert + handler work in one mutation), so a failed
+  handler rolls back the log row and Stripe still retries genuine failures;
+  Convex OCC closes the concurrent-duplicate race. Table kept bounded by a
+  daily `purgeStaleStripeEvents` cron (7-day TTL, Stripe retries ≤3 days).
+  Note: the live risk was lower than stated below — existing state-guards
+  (priceId/periodEnd patches) plus OCC already prevented most duplicates in the
+  Convex runtime; this makes idempotency explicit and future-proof.
 - **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
 - **Where:** [apps/web/client/convex/http.ts:235-270](apps/web/client/convex/http.ts#L235-L270) +
   [apps/web/client/convex/lib/stripeWebhook.ts:220-401](apps/web/client/convex/lib/stripeWebhook.ts#L220-L401)

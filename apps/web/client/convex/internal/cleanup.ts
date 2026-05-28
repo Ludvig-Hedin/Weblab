@@ -18,9 +18,12 @@ export const purgeStaleCursors = internalMutation({
     args: {},
     handler: async (ctx) => {
         const cutoff = Date.now() - CURSOR_PURGE_TTL_MS;
+        // Index range query (NOT `.filter`) — `.take(n)` bounds rows returned,
+        // not rows scanned, so an unindexed filter would scan the whole table
+        // every tick. `by_lastSeen` lets us read only the stale rows.
         const stale = await ctx.db
             .query('cursors')
-            .filter((q) => q.lt(q.field('lastSeen'), cutoff))
+            .withIndex('by_lastSeen', (q) => q.lt('lastSeen', cutoff))
             .take(PURGE_BATCH_LIMIT);
         let deleted = 0;
         for (const row of stale) {
@@ -32,6 +35,33 @@ export const purgeStaleCursors = internalMutation({
                 // and continue. Convex retries the mutation on transient
                 // errors; persistent failures fall to the next tick.
                 console.warn('[purgeStaleCursors] delete failed', row._id, err);
+            }
+        }
+        return { deleted, hadMore: stale.length === PURGE_BATCH_LIMIT };
+    },
+});
+
+// Stripe retries an event for up to 3 days; keep a margin and drop
+// `stripeEventLog` rows older than 7 days. Past that window no replay can
+// arrive, so the row is no longer needed for webhook idempotency. Without this
+// the table grows unbounded (one row per Stripe event, forever).
+const STRIPE_EVENT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const purgeStaleStripeEvents = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const cutoff = Date.now() - STRIPE_EVENT_TTL_MS;
+        const stale = await ctx.db
+            .query('stripeEventLog')
+            .withIndex('by_processed_at', (q) => q.lt('processedAt', cutoff))
+            .take(PURGE_BATCH_LIMIT);
+        let deleted = 0;
+        for (const row of stale) {
+            try {
+                await ctx.db.delete(row._id);
+                deleted++;
+            } catch (err) {
+                console.warn('[purgeStaleStripeEvents] delete failed', row._id, err);
             }
         }
         return { deleted, hadMore: stale.length === PURGE_BATCH_LIMIT };

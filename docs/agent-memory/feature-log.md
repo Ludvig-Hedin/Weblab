@@ -16,6 +16,17 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-28 — Stripe webhook idempotency (evt.id dedup) + CodeRabbit fix pass
+Author: Claude Opus 4.7
+Area: `apps/web/client/convex` (billing/webhook), `apps/web/client/messages` (i18n), `apps/web/client/src/components/ui/pricing-modal`
+Summary: Validated two CodeRabbit reviews against the code and fixed the real findings. Headline: closed the Stripe webhook duplicate-credit gap (BACKLOG F-491) — added a `stripeEventLog` table (`by_event_id`) and an `alreadyProcessed()` guard at the top of every `_handleSub*` mutation, with `event.id` threaded through `http.ts`. Dedup is transactional (log insert + handler work in one mutation) and race-safe via Convex OCC; a failed handler rolls back the log row so genuine retries still reprocess. Kept the table bounded with a daily `purgeStaleStripeEvents` cron (7-day TTL).
+Other fixes: pre-existing unindexed `.filter` scan in `purgeStaleCursors` (added `cursors.by_lastSeen` index + `withIndex`); accurate `deleted` count + corrected doc-budget comment in cleanup.ts; 20 missing `sv.json` i18n keys added (en/sv now both 1637 leaf keys); SEO FAQ framework claim reconciled (dropped "Vue, Angular" → React/Next.js + roadmap); `sr-only` loading labels on the pricing-card auth-loading CTAs (a11y).
+Validated as NOT bugs (skipped): `projects.list` "limit applied late" (micro-opt — `break` already caps `loadProjectListCard` work); `projects.update` "cloud clobber" (false positive — nested `runtimeMetadata.cloud` lives on the branches table, replaced wholesale; projects only carry `.framework`).
+Deferred to BACKLOG: over-strict webhook field gate (can drop cancel/pause/resume); `_clearScheduleChange` `.filter` table scan.
+Tests: no Convex test harness exists (`convex-test`/`@edge-runtime/vm` absent, zero `convex/*.test.ts`). Relied on `bun typecheck` + `eslint` + `claude-review`. Harness setup is a follow-up.
+Files: `convex/schema.ts`, `convex/http.ts`, `convex/lib/stripeWebhook.ts`, `convex/internal/cleanup.ts`, `convex/crons.ts`, `messages/en.json`, `messages/sv.json`, `messages/en.d.json.ts`, `components/ui/pricing-modal/free-card.tsx`, `components/ui/pricing-modal/pro-card.tsx`
+Links: BACKLOG F-491 (Resolved)
+
 ## 2026-05-28 — Prod Google login crash root-caused: prod Convex was never deployed
 Author: Claude Opus 4.7
 Area: Convex deploy pipeline / `apps/web/client/convex` / `apps/web/client/src/app/projects`

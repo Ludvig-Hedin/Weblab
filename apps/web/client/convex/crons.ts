@@ -13,4 +13,13 @@ const crons = cronJobs();
 // delete.
 crons.interval('purge stale cursors', { minutes: 5 }, internal.internal.cleanup.purgeStaleCursors);
 
+// Purge processed Stripe webhook events older than their retry window so the
+// `stripeEventLog` idempotency table stays bounded (one row per event, forever
+// otherwise). Daily is ample — the TTL is 7 days.
+crons.interval(
+    'purge stale stripe events',
+    { hours: 24 },
+    internal.internal.cleanup.purgeStaleStripeEvents,
+);
+
 export default crons;
