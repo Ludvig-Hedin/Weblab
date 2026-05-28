@@ -1,5 +1,7 @@
 # Build Weblab web client
-FROM oven/bun:1
+# Pinned to match the bun version that generated bun.lock (1.3.10).
+# When upgrading bun: update this tag, run `bun install` locally, commit bun.lock.
+FROM oven/bun:1.3.10
 
 WORKDIR /app
 
