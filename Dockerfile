@@ -46,7 +46,7 @@ RUN apt-get update \
 # Copy only the files bun needs to resolve + install the workspace. These change
 # far less often than source files, so the bun install layer stays warm across
 # the vast majority of deploys (i.e. anything that isn't a dep bump).
-COPY bun.lockb package.json bunfig.toml ./
+COPY bun.lock package.json bunfig.toml ./
 
 COPY packages/ai/package.json              ./packages/ai/
 COPY packages/ai-cli/package.json          ./packages/ai-cli/
