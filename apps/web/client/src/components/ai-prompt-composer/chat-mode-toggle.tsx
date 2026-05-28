@@ -94,16 +94,19 @@ export const ChatModeToggle = observer(
                             onClick={() => onChatModeChange(mode.type)}
                             className={cn(
                                 'flex items-start gap-2.5 rounded-md px-3 py-2',
-                                chatMode === mode.type && 'bg-background-weblab',
+                                chatMode === mode.type && 'bg-accent',
                             )}
                         >
                             <mode.Icon className="mt-0.5 h-4 w-4 shrink-0" />
-                            <div className="flex flex-col gap-0.5">
+                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                 <span className="text-mini font-medium">{mode.label}</span>
                                 <span className="text-foreground-tertiary text-mini">
                                     {mode.description}
                                 </span>
                             </div>
+                            {chatMode === mode.type && (
+                                <Icons.Check className="text-foreground-secondary mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            )}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
