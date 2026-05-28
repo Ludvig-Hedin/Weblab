@@ -227,10 +227,17 @@ export default function ClerkVerifyPage() {
 
             setResendCountdown(RESEND_COOLDOWN);
             setOtp('');
-            // TODO(bug-hunt): also update the URL `?sentAt=` param so a
-            // post-resend refresh computes `initialCountdown` from the new
-            // resend timestamp, not the stale one. See CODE_REVIEW_BACKLOG.md
-            // → "Bug Hunt 2026-05-28 — Desktop auth".
+            // Sync the URL `?sentAt=` to the new resend time so a refresh after
+            // resend recomputes `initialCountdown` from the fresh timestamp, not
+            // the stale one. Use history.replaceState (not router.replace) to
+            // update the param without a Next re-render that would reset state.
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('sentAt', String(Date.now()));
+                window.history.replaceState(null, '', url.toString());
+            } catch {
+                // best-effort — URL sync only affects the refresh-after-resend edge
+            }
             // Clear any still-running countdown before starting a new one —
             // otherwise the original interval is orphaned (the cleanup only
             // clears the current ref), leaking a timer that keeps decrementing
