@@ -12,9 +12,11 @@ import { Response } from '@weblab/ui/ai-elements';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
+import { useAuthContext } from '@/app/auth/auth-context';
 import { PlanApprovalCard } from '@/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-approval-card';
 import { PlanQuestionCard } from '@/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-question-card';
 import { CreateManagerProvider, useCreateManager } from '@/components/store/create';
+import { isNotAuthenticatedError } from '@/components/store/create/manager';
 import { usePlanChat } from './use-plan-chat';
 
 function PlanPageInner() {
@@ -23,11 +25,13 @@ function PlanPageInner() {
     const prompt = searchParams.get('prompt') ?? '';
     const user = useQuery(api.users.me, {});
     const createManager = useCreateManager();
+    const { setIsAuthModalOpen } = useAuthContext();
 
     const { messages, isStreaming, stop, sendMessage } = usePlanChat();
     const [sentInitial, setSentInitial] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll on new messages
@@ -52,13 +56,31 @@ function PlanPageInner() {
     const handleBuildNow = async () => {
         if (!user?._id || isCreating) return;
         setIsCreating(true);
+        setCreateError(null);
         try {
             const project = await createManager.startCreate(user._id, prompt, []);
             if (project) {
                 router.push(`/project/${project.id}`);
+                return;
             }
+            // Defensive: startCreate is typed `Promise<{ id: string }>` and
+            // should either resolve with a project or throw, but if it ever
+            // resolves with a nullish value reset the button so the user
+            // isn't stuck on a spinner.
+            setCreateError('No project was returned. Try again.');
+            setIsCreating(false);
         } catch (err) {
+            // Session expired between page load and click — re-open the
+            // auth modal instead of surfacing a confusing 'NOT_AUTHENTICATED'
+            // error message (matches the pattern in `/projects/creating`).
+            if (isNotAuthenticatedError(err)) {
+                setIsAuthModalOpen(true);
+                setIsCreating(false);
+                return;
+            }
             console.error('Plan → create project failed:', err);
+            const message = err instanceof Error ? err.message : 'Failed to start project.';
+            setCreateError(message);
             setIsCreating(false);
         }
     };
@@ -181,6 +203,20 @@ function PlanPageInner() {
                     <div ref={bottomRef} />
                 </div>
             </div>
+
+            {/* Inline error surface for "Build now" failures. Without this the
+                button silently resets and the user has no idea why nothing
+                happened. */}
+            {createError && (
+                <div className="border-border-primary border-t px-4 py-2">
+                    <div
+                        className="text-foreground-warning bg-background-warning/40 mx-auto max-w-2xl rounded-md px-3 py-2 text-xs"
+                        role="alert"
+                    >
+                        {createError}
+                    </div>
+                </div>
+            )}
 
             {/* Input */}
             <div className="border-border-primary border-t px-4 py-3">

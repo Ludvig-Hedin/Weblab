@@ -110,7 +110,9 @@ export const ConnectGithub = () => {
                             size="icon"
                             variant="outline"
                             className="py-2"
-                            onClick={() => redirectToInstallation()}
+                            onClick={() => {
+                                void redirectToInstallation();
+                            }}
                             title="Reconfigure GitHub connection"
                         >
                             <Icons.Gear className="h-4 w-4" />
@@ -125,14 +127,18 @@ export const ConnectGithub = () => {
                         <Button
                             variant="outline"
                             className="px-3 py-2"
-                            onClick={() => redirectToInstallation()}
+                            onClick={() => {
+                                void redirectToInstallation();
+                            }}
                         >
                             <Icons.GitHubLogo className="mr-2 h-4 w-4" />
                             <span>Open GitHub again</span>
                         </Button>
                         <Button
                             className="px-3 py-2"
-                            onClick={() => refetch()}
+                            onClick={() => {
+                                void refetch();
+                            }}
                             disabled={isChecking}
                         >
                             {isChecking ? (
@@ -146,7 +152,9 @@ export const ConnectGithub = () => {
                 ) : (
                     <Button
                         className="px-3 py-2"
-                        onClick={() => redirectToInstallation()}
+                        onClick={() => {
+                            void redirectToInstallation();
+                        }}
                         disabled={isChecking}
                     >
                         <Icons.GitHubLogo className="mr-2 h-4 w-4" />

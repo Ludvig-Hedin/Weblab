@@ -38,6 +38,132 @@ later without re-discovering the context.
 
 ## Open
 
+### F-134 — invalid Convex ID format crashes settings/access page (same gap as F-131)
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** [apps/web/client/src/app/project/[id]/settings/access/page.tsx:35](apps/web/client/src/app/project/[id]/settings/access/page.tsx#L35)
+- **Symptom:** `const projectId = params.id as Id<'projects'>;` is an unchecked cast. When the route is hit with a non-Convex ID (e.g. `/project/abc/settings/access`), every `useQuery`/`useMutation` call below throws `ArgumentValidationError` and the whole component unmounts via the error boundary (`/project/[id]/error.tsx`). Same root pattern as F-131 — see that backlog entry.
+- **Next step:** before calling `useQuery(api.projects.get, ...)`, validate the id shape (Convex IDs are length-32 strings, but the safe check is "let the query 'skip' and treat a thrown validation error as `invalid-id`"). Render the same `ProjectLoadError variant="invalid-id"` used elsewhere. Coordinate with the F-131 fix so both share one helper.
+- **Risk if ignored:** any user landing on a typo'd / share-link / stale-bookmark URL hits the generic crash screen instead of "that project ID is malformed".
+- **Tags:** `#bug` `#auth-gated` `#convex`
+
+### F-125 — `<iframe>` template preview missing `sandbox` attribute
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** [apps/web/client/src/app/projects/templates/[id]/page.tsx:159-165](apps/web/client/src/app/projects/templates/[id]/page.tsx#L159-L165)
+- **Symptom:** `<iframe src={template.previewUrl} …>` has no `sandbox` attribute. `previewUrl` is currently static template data (low risk today), but loading any third-party URL into an iframe without `sandbox` gives that page full access to the parent origin via the `window.top` handle once anti-clickjacking headers permit.
+- **Next step:** add `sandbox="allow-scripts allow-same-origin allow-forms"` (or stricter — most marketing pages only need `allow-scripts`). Verify the live previews still render. If a specific template needs an exception, add a per-template opt-out rather than removing the attribute.
+- **Risk if ignored:** if `previewUrl` ever becomes user-controlled (e.g. user-submitted templates), this is a stored-XSS / clickjacking vector. Even with static data, an upstream demo host serving malicious JS can pivot through the frame.
+- **Tags:** `#security` `#defense-in-depth` `#auth-gated`
+
+### F-126 — Figma card lands on a non-functional wizard despite `#disabled` tag
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** [apps/web/client/src/app/projects/import/page.tsx:13-15](apps/web/client/src/app/projects/import/page.tsx#L13-L15)
+- **Symptom:** Import hub renders three equal cards (local / GitHub / Figma). The Figma card routes to `/projects/import/figma`, which renders the 3-step wizard. F-129 is tagged `#disabled` in [docs/feature-catalog.md](docs/feature-catalog.md) — users are expected to see "currently unavailable" copy (T-127), but they instead see a working-looking wizard that stubs out on the final step.
+- **Next step:** either (a) hide the Figma card behind the same flag that disables the backend, or (b) overlay a "Coming soon" badge + `disabled` state on the card so clicks no-op or show a toast. Pair with deletion of `import/figma/page.tsx` when the flow is permanently retired.
+- **Risk if ignored:** users complete OAuth + frame selection and then get an opaque error at finalize — wasted intent, support tickets.
+- **Tags:** `#bug` `#ux` `#auth-gated`
+
+### F-134 — no client-side email validation before invite send
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** [apps/web/client/src/app/project/[id]/settings/access/page.tsx:184-190](apps/web/client/src/app/project/[id]/settings/access/page.tsx#L184-L190)
+- **Symptom:** `disabled={!inviteEmail.trim() || isCreatingInvite}` only blocks an empty string. Strings like `"not an email"` reach `createInviteAction`, which then surfaces whatever server-side validation Convex returns (currently undefined behavior).
+- **Next step:** validate with a cheap regex (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`) or `zod.string().email().safeParse()` before enabling the button. Mirror the validation Convex applies on `projectInvitations.create` so the user sees one consistent message.
+- **Risk if ignored:** noisy "Failed to send invite" toasts with no actionable detail. Possible cost on transactional email provider if invalid addresses get retried.
+- **Tags:** `#bug` `#ux` `#auth-gated`
+
+### ESLint config — `react-hooks/exhaustive-deps` rule unregistered at inline disable sites
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** repo-wide. Confirmed sites: [apps/web/client/src/app/projects/import/local/_components/verify-project.tsx:36](apps/web/client/src/app/projects/import/local/_components/verify-project.tsx#L36), [apps/web/client/src/app/projects/_components/select/use-screenshot-backfill.ts:127](apps/web/client/src/app/projects/_components/select/use-screenshot-backfill.ts#L127).
+- **Symptom:** `bunx eslint <file>` reports `warning: Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps` on every `// eslint-disable-next-line react-hooks/exhaustive-deps` comment. The rule is registered in [tooling/eslint/react.js](tooling/eslint/react.js) and the flat config in [apps/web/client/eslint.config.js](apps/web/client/eslint.config.js) spreads `reactConfig`, so the rule should be loaded. The fact that ESLint reports the disable directive as referencing an unknown rule means a later flat-config layer is shadowing the plugin map for the file.
+- **Next step:** add an explicit `plugins: { 'react-hooks': hooksPlugin }` to whichever layer in `apps/web/client/eslint.config.js` is shadowing it (likely the storybook layer added last). Verify by re-running `bunx eslint` on the two files above — the "Definition for rule … was not found" should disappear. While there, audit `@next/next/no-img-element` — same symptom across `projects/_components/select/*.tsx` (multiple sites).
+- **Risk if ignored:** every inline `eslint-disable-next-line react-hooks/exhaustive-deps` is currently a no-op. If the rule were to actually fire, several real dep-array bugs may be hiding behind suppressions that don't suppress.
+- **Tags:** `#infra` `#lint` `#tech-debt`
+
+### F-128 — GitHub setup.tsx still relies on `any`-typed responses on multiple paths
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** [apps/web/client/src/app/projects/import/github/_components/setup.tsx](apps/web/client/src/app/projects/import/github/_components/setup.tsx) lines 40, 51, 67-73
+- **Symptom:** `(org: any)`, `(repo: any)`, and `.includes(...)` chains on optional GitHub API fields. The `filteredRepositories` filter was hardened this session (`?.` on `owner` / `name` / `full_name`), but the surrounding handlers (`handleOrganizationSelect`, `handleRepositorySelect`) still rely on the same untyped shape, and downstream sorting/display will throw if the shape drifts.
+- **Next step:** import the typed shape from the GitHub OAuth client (`@octokit/rest` or whatever the connector uses), replace `any` with `RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]["data"][number]`, drop the unsafe member-access warnings, and add a runtime fall-back for repos with `owner: null`.
+- **Risk if ignored:** silent regressions when GitHub adds / nulls a field; archived & transferred repos are most likely to surface this.
+- **Tags:** `#bug` `#tech-debt` `#integration`
+
+### CreateManager mutates `this.error` outside `runInAction`
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Where:** [apps/web/client/src/components/store/create/manager.ts:122,143,205](apps/web/client/src/components/store/create/manager.ts#L122)
+- **Symptom:** `this.error = null` runs in async function body before the explicit `runInAction(...)` block. Only a problem if MobX strict mode is enabled — current setup is not strict, but auto-binding via `makeAutoObservable` does enforce strict-mode rules in some MobX builds.
+- **Next step:** wrap each pre-check assignment in `runInAction(() => { this.error = null; })` for consistency with the rest of the file. Cheap, no behavior change.
+- **Risk if ignored:** if MobX is ever configured with `enforceActions: 'always'`, every entry point starts crashing on the first line.
+- **Tags:** `#tech-debt`
+
+### F-453 — `PostHogProvider` static import defeats consent-gated dynamic-import claim
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** [apps/web/client/src/components/telemetry-provider.tsx:9](apps/web/client/src/components/telemetry-provider.tsx#L9)
+- **Symptom:** Cold load of `/pricing` (anonymous, no `weblab.consent` cookie) fetches `_next/static/chunks/node_modules_posthog-js_*.js` regardless. The file's own comment claims "Dynamic import for posthog-js keeps the SDK out of the critical-path bundle on landing/login/dashboard until cookie consent fires" — partially false because `import { PostHogProvider as PHProvider } from 'posthog-js/react'` is static.
+- **Next step:** `const PHProvider = lazy(() => import('posthog-js/react').then(m => ({ default: m.PostHogProvider })))`, wrap the provider return in `<Suspense fallback={children}>`. Verify chunk does NOT appear in `_next/static/chunks` on anon `/pricing`.
+- **Risk if ignored:** ~50KB posthog-js shipped on every landing/login/marketing surface for visitors who never consent. Privacy and performance regression.
+- **Tags:** `#tech-debt` `#perf` `#privacy` `#telemetry`
+
+### F-453 — Cookie consent read only at mount; no runtime re-init
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** [apps/web/client/src/components/telemetry-provider.tsx:53-101](apps/web/client/src/components/telemetry-provider.tsx#L53-L101)
+- **Symptom:** `hasCookieConsent()` is invoked once inside `useEffect([])`. If the user clicks "Accept" on the cookie-consent banner AFTER the provider mounts (the common path), telemetry never initializes until the next full page reload. PostHog identify / Gleap feedback widget unavailable mid-session.
+- **Next step:** in the cookie-consent banner, dispatch `window.dispatchEvent(new Event('weblab:consent-accepted'))` on accept. In telemetry-provider, add a listener that bumps a `consentVersion` state — include it in the init effect's deps so the gated branch can re-run.
+- **Risk if ignored:** users who accept consent mid-session never get identified — analytics undercounts active signed-in users; feedback widget never opens.
+- **Tags:** `#bug` `#telemetry` `#ux`
+
+### F-451 — Pricing table CTA flickers for signed-in users while query loads
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** [apps/web/client/src/components/ui/pricing-table/index.tsx:26-33](apps/web/client/src/components/ui/pricing-table/index.tsx#L26-L33)
+- **Symptom:** `isUnauthenticated={!user}` treats `user === undefined` (Convex query loading) as anonymous. Signed-in visitor lands on `/pricing` and briefly sees "Get Started Free" / "Get started" — buttons that, when clicked in that window, open the auth modal instead of starting checkout. Resolves to "Current plan" once query lands.
+- **Next step:** distinguish loading from anonymous — `const isLoading = hasAuthCookie === true && user === undefined; const isUnauthenticated = hasAuthCookie === false;` Pass an explicit `isLoading` prop to FreeCard / ProCard or render a Skeleton wrapper during load.
+- **Risk if ignored:** signed-in user clicks a CTA in the flicker window → unexpected auth modal → confusion.
+- **Tags:** `#bug` `#ui` `#billing`
+
+### F-452 — Avatar dropdown Convex queries fire unconditionally
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** [apps/web/client/src/components/ui/avatar-dropdown/index.tsx:53](apps/web/client/src/components/ui/avatar-dropdown/index.tsx#L53), [apps/web/client/src/components/ui/avatar-dropdown/plans.tsx:19-20](apps/web/client/src/components/ui/avatar-dropdown/plans.tsx#L19-L20)
+- **Symptom:** `useQuery(api.users.me, {})`, `useQuery(api.subscriptions.get, {})`, `useQuery(api.usage.get, {})` all run unconditionally. Parent routes currently gate the avatar render behind `isSignedIn`, so this is safe today — but the components carry no defensive auth-cookie gate of their own. Any future surface that mounts them in an unauthenticated context (Storybook, design-system page, marketing) flooded with 401s.
+- **Next step:** mirror the `useHasAuthCookie() === true ? {} : 'skip'` pattern from `use-subscription.tsx` and `telemetry-provider.tsx`.
+- **Risk if ignored:** defensive layer missing; first leak surfaces as a console flood when someone embeds the avatar somewhere new.
+- **Tags:** `#tech-debt` `#auth-gated`
+
+### F-450 — Legacy promotion clipboard handler shows false success
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** [apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx:42-47](apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx#L42-L47)
+- **Symptom:** `void navigator.clipboard.writeText(code)` is fire-and-forget. `toast.success('Copied to clipboard')` fires synchronously regardless of the clipboard promise. Permission-denied / unavailable clipboard API delivers a "Copied" toast while nothing was actually copied.
+- **Next step:** convert the handler to `async`, `await` the write inside try/catch, toast.error on rejection. Same pattern as the F-205 `top-bar/publish/dropdown/url.tsx` fix in CODE_REVIEW_BACKLOG.md.
+- **Risk if ignored:** user clicks "Copy", believes the promo code was copied, paste fails. Real revenue path — promo code unlocks 1 month free Pro.
+- **Tags:** `#bug` `#billing` `#ux`
+
+### F-450 — `legacy-promotion.tsx` imports from `framer-motion` while siblings use `motion/react`
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** [apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx:6](apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx#L6)
+- **Symptom:** This file imports `motion`, `AnimatePresence` from `framer-motion`. Every other file in the pricing UI (`index.tsx`, `free-card.tsx`, `pro-card.tsx`, `enterprise-card.tsx`) imports from `motion/react`. Both libs ship to the bundle for one feature.
+- **Next step:** replace `from 'framer-motion'` with `from 'motion/react'` in legacy-promotion.tsx. Confirm `bun build` removes the `framer-motion` chunk if no other importer remains.
+- **Risk if ignored:** wasted bundle size; future drift as one lib's API evolves and the other stagnates.
+- **Tags:** `#tech-debt` `#perf`
+
+### F-453 — React-DOM dev warning on cold pricing load (source unknown)
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Where:** unknown — fires 8× on cold `/pricing` anon load. Warning text is React-DOM's "Can't perform a React state update on a component that hasn't mounted yet." Not present in any of the four F-450..F-453 files.
+- **Symptom:** Dev console pollution. No user-visible effect, but indicates a render-time `setState` side-effect in a sibling provider (motion, radix, clerk, or telemetry-provider's own dynamic-import closures racing strict-mode remount).
+- **Next step:** add `Error.captureStackTrace` shim in dev to surface the offending component, or bisect by progressively unmounting providers in `layout.tsx`.
+- **Risk if ignored:** real race condition may produce stale state in prod under load. Currently masked because the warning is dev-only.
+- **Tags:** `#bug` `#react`
+
 ### F-437 — Uploaded favicon / OG image path uses raw `file.name`
 
 - **Discovered:** 2026-05-28 (validate-feature F-420..F-439 deeper pass)
@@ -96,6 +222,71 @@ later without re-discovering the context.
 - **Next step:** Add `U` tests for pure utilities in `editor-bar/utils/` (F-319) and pure helpers in `editor-bar/hooks/` (F-318) — these are testable without a live editor. Add RTL + Convex test-client `I` tests for F-301 (`projectComments` / `commentReplies`) and F-360 (`projectInvitations` / `projectMembers`) which exercise Convex mutations directly without the editor.
 - **Risk if ignored:** every validation pass on these 32 features blocks on Phase 3 — when Phase 3 infra breaks (as it did this run), validation has no fallback signal.
 - **Tags:** `#test-gap`
+
+### F-471 — `toolCallCount` over-counts `tool-input-start` and other trigger events
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts:524-526](apps/web/client/src/app/api/chat/route.ts#L524)
+- **Symptom:** `(responseMessage?.parts ?? []).filter((p) => p.type?.startsWith('tool-')).length` counts every `tool-*` part — including `tool-input-start`, `tool-input-delta`, `tool-input-available`, etc. — as a "tool call" recorded in `aiUsageEvents.toolCallCount`.
+- **Root cause:** AI SDK stream parts are a discriminated union; only `tool-call` / `tool-result` represent semantic invocations. The substring filter is too permissive.
+- **Next step:** narrow to the actual call/result variants, or count distinct `toolCallId`s.
+- **Risk if ignored:** inflated tool-call metrics in usage dashboards; cost-attribution per turn skewed; no user-facing impact.
+- **Tags:** `#bug` `#telemetry`
+
+### F-473 — `chat-images/[id]` double-allocates the response buffer
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/chat-images/[id]/route.ts:31-32](apps/web/client/src/app/api/chat-images/[id]/route.ts#L31)
+- **Symptom:** `Buffer.from(entry.b64, 'base64')` decodes into a Buffer, then `new Uint8Array(buffer)` copies that into a fresh Uint8Array — two allocations of the same payload, doubling peak memory for large images.
+- **Next step:** `return new Response(buffer, ...)` (Node 18+ undici accepts `Buffer` directly), or `Buffer.from(entry.b64, 'base64').buffer` to hand off the underlying `ArrayBuffer`.
+- **Risk if ignored:** memory churn at scale; harmless functionally.
+- **Tags:** `#perf`
+
+### F-474 — `X-Trace-Id` exposed to client on `inline-edit`
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/ai/inline-edit/route.ts:253-256](apps/web/client/src/app/api/ai/inline-edit/route.ts#L253)
+- **Symptom:** Server-generated `traceId` is returned in the response headers. Trace IDs are tied to Langfuse spans + usage events and are not strictly secret, but exposing them to the client lets anyone correlate their session with internal observability data and (combined with another bug) potentially poison telemetry across users.
+- **Next step:** decide policy — either drop the header in production, or keep it only when an opted-in dev/debug header is present on the request.
+- **Risk if ignored:** low — observability surface only. Worth a policy call.
+- **Tags:** `#security` `#observability`
+
+### F-471 — `USAGE_LIMIT_REACHED` is detected via substring match
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/chat/helpers/usage.ts:92](apps/web/client/src/app/api/chat/helpers/usage.ts#L92)
+- **Symptom:** `error.message.includes('USAGE_LIMIT_REACHED')` is how the route discovers that Convex hit the cap. If Convex wraps the error differently in a future runtime (already does in different layers), the substring miss flips the code to the "transient error, don't penalize the user" branch — silently granting free LLM responses to everyone over quota.
+- **Next step:** throw a typed `ConvexError` from `usage.increment` and `instanceof` check it, OR pin the message format with an explicit reserved prefix and an integration test that boots Convex and asserts the message shape.
+- **Risk if ignored:** future Convex upgrade silently disables the quota cap.
+- **Tags:** `#bug` `#billing` `#convex` `#brittle`
+
+### F-472 — Summarize refunds the user credit even when the LLM was actually called
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/chat/summarize/route.ts:162-164](apps/web/client/src/app/api/chat/summarize/route.ts#L162)
+- **Symptom:** `summarizeConversation()` runs the LLM (cost incurred at OpenRouter). If it returns `null` (e.g. truncation produced no usable summary), `refundOnce()` reverts the user's quota deduction. The user pays nothing, but Weblab still pays OpenRouter.
+- **Root cause:** the refund path treats "no result" as "no work done"; in reality it means "work done, result discarded".
+- **Next step:** distinguish "no summary produced" (refund) from "summary attempted but LLM returned empty / parse failed" (keep deduction; log + metric). Or accept the asymmetry and document it as a policy choice.
+- **Risk if ignored:** small cost leak proportional to summarizer flakiness.
+- **Tags:** `#bug` `#billing` `#design-question`
+
+### F-479 — Invalid date strings in `banner.startsAt` / `banner.endsAt` fail open
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/promo-resume/route.ts:37-42](apps/web/client/src/app/api/promo-resume/route.ts#L37)
+- **Symptom:** `new Date('not-a-date')` returns `Invalid Date`. `Invalid Date > now` and `Invalid Date < now` both evaluate `false` (NaN comparison), so a banner whose `startsAt` or `endsAt` is a malformed string is treated as currently active. A bad commit to `promo-banners.ts` could re-enable an expired promo without anyone noticing.
+- **Next step:** validate `startsAt` / `endsAt` at the `PromoBanner` schema layer (zod / TS guard), and bail out (fallback redirect) on `Number.isNaN(date.getTime())` here.
+- **Risk if ignored:** stale promo banners silently extend; low blast radius today.
+- **Tags:** `#bug` `#billing` `#defensive`
+
+### F-471 / F-474 — `code` field on 501 response is a string; client only handles numeric codes
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts:306](apps/web/client/src/app/api/chat/route.ts#L306), [apps/web/client/src/app/api/ai/inline-edit/route.ts:182](apps/web/client/src/app/api/ai/inline-edit/route.ts#L182), [apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/error-message.tsx:27](apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/error-message.tsx#L27)
+- **Symptom:** `/api/chat` and `/api/ai/inline-edit` return `code: 'cli_provider_routing_not_implemented'` (string) with HTTP 501 when a CLI-only provider is selected on hosted web. Everywhere else `code` is a number (`401`, `402`, `400`). The client error-message component only branches on `parsed.code === 402`; the string code falls through to a generic "unexpected error" message.
+- **Next step:** standardize on a number (e.g. `501`) and surface the underlying intent via the `error` text, OR rename the field (`code` → number, `errorCode` → string identifier) and have the client handle both shapes.
+- **Risk if ignored:** users who pick a CLI provider on hosted web get a generic error instead of "use the desktop app" guidance.
+- **Tags:** `#bug` `#ux`
 
 ### F-471 — Non-EDIT chat types skip the atomic usage increment
 

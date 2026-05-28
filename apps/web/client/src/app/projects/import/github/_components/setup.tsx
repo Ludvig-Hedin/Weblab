@@ -63,14 +63,18 @@ export const SetupGithub = () => {
         }
     };
 
-    // Filter repositories by organization and search query
+    // Filter repositories by organization and search query.
+    // Defensive `?.` guards: archived/transferred repos can return null for
+    // `owner` or `name`; without guards `.login` / `.toLowerCase()` would
+    // throw and crash the entire repo list.
     const filteredRepositories = githubData.repositories.filter((repo: any) => {
-        const matchesOrg = selectedOrg ? repo.owner.login === selectedOrg.login : true;
+        const matchesOrg = selectedOrg ? repo.owner?.login === selectedOrg.login : true;
+        const query = searchQuery.toLowerCase();
         const matchesSearch =
             searchQuery.trim() === '' ||
-            repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            repo.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            repo.description?.toLowerCase().includes(searchQuery.toLowerCase());
+            repo.name?.toLowerCase().includes(query) ||
+            repo.full_name?.toLowerCase().includes(query) ||
+            repo.description?.toLowerCase().includes(query);
         return matchesOrg && matchesSearch;
     });
 
