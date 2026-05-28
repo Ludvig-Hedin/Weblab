@@ -49,7 +49,15 @@ function InputOTPSlot({
             data-slot="input-otp-slot"
             data-active={isActive}
             className={cn(
-                'data-[active=true]:border-ring data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:ring-destructive/20 dark:data-[active=true]:aria-invalid:ring-destructive/40 aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive dark:bg-input/30 border-input relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-xs transition-all outline-none first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10 data-[active=true]:ring-[3px]',
+                'relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-xs transition-all outline-none first:rounded-l-md first:border-l last:rounded-r-md',
+                // Visible background: white in light, slightly elevated surface in dark
+                'bg-white dark:bg-[#252525]',
+                // Visible border in both modes (dark overrides the near-invisible --border-input default)
+                'border-border-input dark:border-[#3a3a3a]',
+                // Active: strong neutral border + subtle ring — no blue
+                'data-[active=true]:z-10 data-[active=true]:border-foreground data-[active=true]:ring-[2px] data-[active=true]:ring-foreground/10',
+                // Error states
+                'aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:data-[active=true]:aria-invalid:ring-destructive/40',
                 className,
             )}
             {...props}

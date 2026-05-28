@@ -16,6 +16,7 @@ import { TelemetryProvider } from '@/components/telemetry-provider';
 import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
+import { ChunkErrorReloader } from './_components/chunk-error-reloader';
 import { CookieConsent } from './_components/cookie-consent';
 import { DesktopChrome } from './_components/desktop-chrome';
 import { SWRegister } from './_components/sw-register';
@@ -210,6 +211,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </head>
             <body>
                 {isProduction && <RB2BLoader />}
+                <ChunkErrorReloader />
                 <SWRegister />
                 <DesktopChrome />
                 <ViewTransitionNoiseSuppress />

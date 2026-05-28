@@ -372,6 +372,9 @@
         "login": {
             "github": "Logga in med GitHub",
             "google": "Logga in med Google",
+            "continueGithub": "Fortsätt med GitHub",
+            "continueGoogle": "Fortsätt med Google",
+            "continueVercel": "Fortsätt med Vercel",
             "lastUsed": "Det här använde du senast",
             "loginToEdit": "Logga in för att redigera",
             "shareProjects": "Inget kreditkort krävs • Få en webbplats på sekunder",

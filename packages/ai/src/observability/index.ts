@@ -33,6 +33,12 @@ export interface ModelPricing {
  * Cache rates follow Anthropic's published 1.25x (write) / 0.1x (read) multipliers.
  */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
+    [OPENROUTER_MODELS.CLAUDE_OPUS_4_8]: {
+        inputUsdPerMTok: 15,
+        outputUsdPerMTok: 75,
+        cacheCreationUsdPerMTok: 18.75,
+        cacheReadUsdPerMTok: 1.5,
+    },
     [OPENROUTER_MODELS.CLAUDE_OPUS_4_7]: {
         inputUsdPerMTok: 15,
         outputUsdPerMTok: 75,

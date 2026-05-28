@@ -81,3 +81,5 @@ fix_hsl.py
 
 # Nested archived repo (not tracked here)
 docs/archive/t3code/
+
+agent-temp-input/

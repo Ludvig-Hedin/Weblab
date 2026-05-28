@@ -79,7 +79,10 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
         if (!terminalData) return;
         editorEngine.branches.switchToBranch(terminalData.branchId);
         const sandbox = branches.getSandboxById(terminalData.branchId);
-        if (sandbox) {
+        // Guard `.session` too — during sandbox cold-boot the branch can have a
+        // sandbox record but no session yet; writing into `.session` would throw
+        // and crash the terminal-switch / cycle-session hotkey.
+        if (sandbox?.session) {
             sandbox.session.activeTerminalSessionId = terminalData.sessionId;
         }
     };

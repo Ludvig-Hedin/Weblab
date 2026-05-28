@@ -370,3 +370,316 @@ export const releaseSubscriptionSchedule = action({
         return { subscriptionId: updatedId };
     },
 });
+
+// ─── Billing-details shapes ──────────────────────────────────────────────────
+//
+// Returned by `getBillingDetails` and consumed by the settings → Subscription
+// tab. Plain JS objects (no Convex validator needed on action returns). All
+// monetary amounts are Stripe minor units (cents); all timestamps are epoch ms.
+
+interface BillingPaymentMethod {
+    id: string;
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+    isDefault: boolean;
+}
+
+interface BillingInvoice {
+    id: string;
+    number: string | null;
+    created: number; // epoch ms
+    amountPaid: number; // minor units (cents)
+    currency: string;
+    status: string | null;
+    hostedInvoiceUrl: string | null;
+    invoicePdf: string | null;
+}
+
+interface BillingCustomerInfo {
+    name: string | null;
+    email: string | null;
+    address: {
+        line1: string | null;
+        line2: string | null;
+        city: string | null;
+        state: string | null;
+        postalCode: string | null;
+        country: string | null;
+    } | null;
+}
+
+interface BillingDetails {
+    customer: BillingCustomerInfo | null;
+    paymentMethods: BillingPaymentMethod[];
+    invoices: BillingInvoice[];
+}
+
+// Resolve the default payment method id off a (possibly expanded) customer.
+function resolveDefaultPaymentMethodId(customer: Stripe.Customer): string | null {
+    const dpm = customer.invoice_settings?.default_payment_method;
+    if (!dpm) return null;
+    return typeof dpm === 'string' ? dpm : dpm.id;
+}
+
+// Confirm the caller's Stripe customer owns the payment method before any
+// mutation. Stripe's detach/update endpoints don't scope by customer, so
+// without this check a caller could pass any `pm_…` id. Throws FORBIDDEN.
+async function assertPaymentMethodOwned(
+    stripe: Stripe,
+    paymentMethodId: string,
+    customerId: string,
+): Promise<Stripe.PaymentMethod> {
+    const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+    const pmCustomer = typeof pm.customer === 'string' ? pm.customer : (pm.customer?.id ?? null);
+    if (pmCustomer !== customerId) {
+        throw new Error('FORBIDDEN');
+    }
+    return pm;
+}
+
+// ─── getBillingDetails ───────────────────────────────────────────────────────
+//
+// Read-only fetch of the caller's Stripe customer, saved cards, and recent
+// invoices for the in-app billing UI. Returns null when the caller has no
+// Stripe customer yet (free user who never checked out) — the UI renders the
+// Free/empty state without a Stripe round-trip.
+export const getBillingDetails = action({
+    args: {},
+    handler: async (ctx): Promise<BillingDetails | null> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+        const customerId = caller.stripeCustomerId;
+        if (!customerId) return null;
+
+        const stripe = getStripe();
+        const [customer, paymentMethods, invoices] = await Promise.all([
+            stripe.customers.retrieve(customerId),
+            stripe.paymentMethods.list({ customer: customerId, type: 'card' }),
+            stripe.invoices.list({ customer: customerId, limit: 10 }),
+        ]);
+
+        let customerInfo: BillingCustomerInfo | null = null;
+        let defaultPaymentMethodId: string | null = null;
+        if (customer && !customer.deleted) {
+            const addr = customer.address;
+            customerInfo = {
+                name: customer.name ?? null,
+                email: customer.email ?? null,
+                address: addr
+                    ? {
+                          line1: addr.line1 ?? null,
+                          line2: addr.line2 ?? null,
+                          city: addr.city ?? null,
+                          state: addr.state ?? null,
+                          postalCode: addr.postal_code ?? null,
+                          country: addr.country ?? null,
+                      }
+                    : null,
+            };
+            defaultPaymentMethodId = resolveDefaultPaymentMethodId(customer);
+        }
+
+        const mappedPaymentMethods: BillingPaymentMethod[] = paymentMethods.data.map((pm) => ({
+            id: pm.id,
+            brand: pm.card?.brand ?? 'card',
+            last4: pm.card?.last4 ?? '••••',
+            expMonth: pm.card?.exp_month ?? 0,
+            expYear: pm.card?.exp_year ?? 0,
+            isDefault: pm.id === defaultPaymentMethodId,
+        }));
+
+        const mappedInvoices: BillingInvoice[] = invoices.data.map((inv) => ({
+            id: inv.id ?? '',
+            number: inv.number ?? null,
+            created: inv.created * 1000,
+            amountPaid: inv.amount_paid,
+            currency: inv.currency,
+            status: inv.status ?? null,
+            hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
+            invoicePdf: inv.invoice_pdf ?? null,
+        }));
+
+        return {
+            customer: customerInfo,
+            paymentMethods: mappedPaymentMethods,
+            invoices: mappedInvoices,
+        };
+    },
+});
+
+// ─── updateBillingInfo ───────────────────────────────────────────────────────
+//
+// Update the Stripe customer's name + billing address from the in-app form.
+export const updateBillingInfo = action({
+    args: {
+        name: v.optional(v.string()),
+        address: v.object({
+            line1: v.string(),
+            line2: v.optional(v.string()),
+            city: v.string(),
+            state: v.optional(v.string()),
+            postalCode: v.string(),
+            country: v.string(),
+        }),
+    },
+    handler: async (ctx, { name, address }): Promise<{ ok: true }> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+        const customerId = caller.stripeCustomerId;
+        if (!customerId) throw new Error('NO_CUSTOMER');
+
+        const stripe = getStripe();
+        await stripe.customers.update(customerId, {
+            ...(name !== undefined ? { name } : {}),
+            address: {
+                line1: address.line1,
+                line2: address.line2,
+                city: address.city,
+                state: address.state,
+                postal_code: address.postalCode,
+                country: address.country,
+            },
+        });
+        return { ok: true };
+    },
+});
+
+// ─── setDefaultPaymentMethod ─────────────────────────────────────────────────
+//
+// Mark an owned card as the customer's default for future invoices.
+export const setDefaultPaymentMethod = action({
+    args: { paymentMethodId: v.string() },
+    handler: async (ctx, { paymentMethodId }): Promise<{ ok: true }> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+        const customerId = caller.stripeCustomerId;
+        if (!customerId) throw new Error('NO_CUSTOMER');
+
+        const stripe = getStripe();
+        await assertPaymentMethodOwned(stripe, paymentMethodId, customerId);
+        await stripe.customers.update(customerId, {
+            invoice_settings: { default_payment_method: paymentMethodId },
+        });
+        return { ok: true };
+    },
+});
+
+// ─── deletePaymentMethod ─────────────────────────────────────────────────────
+//
+// Detach an owned card. Refuses to remove the current default (throws
+// CANNOT_DELETE_DEFAULT) — leaving a customer with an active subscription and
+// no default card silently breaks the next invoice. The UI prompts the user to
+// pick another default first.
+export const deletePaymentMethod = action({
+    args: { paymentMethodId: v.string() },
+    handler: async (ctx, { paymentMethodId }): Promise<{ ok: true }> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+        const customerId = caller.stripeCustomerId;
+        if (!customerId) throw new Error('NO_CUSTOMER');
+
+        const stripe = getStripe();
+        await assertPaymentMethodOwned(stripe, paymentMethodId, customerId);
+
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer && !customer.deleted) {
+            if (resolveDefaultPaymentMethodId(customer) === paymentMethodId) {
+                throw new Error('CANNOT_DELETE_DEFAULT');
+            }
+        }
+
+        await stripe.paymentMethods.detach(paymentMethodId);
+        return { ok: true };
+    },
+});
+
+// ─── addPaymentMethod ────────────────────────────────────────────────────────
+//
+// The one PCI-sensitive flow that leaves the app: deep-link straight into the
+// Stripe Billing Portal's add/update-card flow. Requires the portal config to
+// have the payment-method-update feature enabled (Stripe dashboard).
+export const addPaymentMethod = action({
+    args: {},
+    handler: async (ctx): Promise<{ url: string }> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+        const customerId = caller.stripeCustomerId;
+        if (!customerId) throw new Error('NO_CUSTOMER');
+
+        const stripe = getStripe();
+        const origin = getSiteUrl();
+        const session = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: `${origin}/projects`,
+            flow_data: { type: 'payment_method_update' },
+        });
+        return { url: session.url };
+    },
+});
+
+// ─── cancelSubscription ──────────────────────────────────────────────────────
+//
+// Native cancel: flag the Stripe subscription to cancel at period end. The
+// `customer.subscription.updated` webhook carries the resulting `cancel_at`,
+// and `_handleSubUpdated` records scheduledAction='cancellation' so the UI
+// reflects the pending cancel via the reactive `subscriptions.get` query.
+export const cancelSubscription = action({
+    args: {},
+    handler: async (ctx): Promise<{ ok: true }> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+
+        const sub = await ctx.runQuery(
+            internal.lib.stripeWebhook._findActiveSubscriptionForCaller,
+            { userId: caller.id as Id<'users'> },
+        );
+        if (!sub) throw new Error('No active subscription found for user');
+
+        const stripe = getStripe();
+        await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+            cancel_at_period_end: true,
+        });
+        return { ok: true };
+    },
+});
+
+// ─── reactivateSubscription ──────────────────────────────────────────────────
+//
+// Undo a pending cancel/downgrade. A pending downgrade lives as a Stripe
+// subscription *schedule*; a pending cancellation is just cancel_at_period_end
+// on the subscription itself. Release the schedule if present (and clear our
+// scheduled-change columns), otherwise clear the cancel flag and let the
+// webhook reconcile.
+export const reactivateSubscription = action({
+    args: {},
+    handler: async (ctx): Promise<{ ok: true }> => {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller) throw new Error('UNAUTHORIZED');
+
+        const sub = await ctx.runQuery(
+            internal.lib.stripeWebhook._findActiveSubscriptionForCaller,
+            { userId: caller.id as Id<'users'> },
+        );
+        if (!sub) throw new Error('No active subscription found for user');
+
+        const stripe = getStripe();
+        if (sub.stripeSubscriptionScheduleId) {
+            try {
+                await stripe.subscriptionSchedules.release(sub.stripeSubscriptionScheduleId);
+            } catch (err) {
+                const code = (err as { code?: string } | null)?.code;
+                if (code !== 'invalid_request_error') throw err;
+            }
+            await ctx.runMutation(internal.lib.stripeWebhook._clearScheduleChange, {
+                stripeSubscriptionScheduleId: sub.stripeSubscriptionScheduleId,
+            });
+        } else {
+            await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+                cancel_at_period_end: false,
+            });
+        }
+        return { ok: true };
+    },
+});

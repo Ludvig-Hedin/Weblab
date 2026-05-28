@@ -15,6 +15,7 @@ export enum OPENROUTER_MODELS {
     OPEN_AI_GPT_5_5 = 'openai/gpt-5.5',
     OPEN_AI_GPT_5_4_MINI = 'openai/gpt-5.4-mini',
     GEMINI_3_1_PRO_PREVIEW = 'google/gemini-3.1-pro-preview',
+    CLAUDE_OPUS_4_8 = 'anthropic/claude-opus-4.8',
     CLAUDE_OPUS_4_7 = 'anthropic/claude-opus-4.7',
     CLAUDE_SONNET_4_6 = 'anthropic/claude-sonnet-4.6',
     CLAUDE_3_5_HAIKU = 'anthropic/claude-3.5-haiku',
@@ -79,6 +80,7 @@ const REASONING_CAPABLE_MODELS: ReadonlySet<string> = new Set<string>([
     OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
     OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI,
     OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
+    OPENROUTER_MODELS.CLAUDE_OPUS_4_8,
     OPENROUTER_MODELS.CLAUDE_OPUS_4_7,
     OPENROUTER_MODELS.CLAUDE_SONNET_4_6,
     OPENROUTER_MODELS.DEEPSEEK_V4_PRO,
@@ -92,6 +94,7 @@ export const MODEL_MAX_TOKENS: Record<string, number> = {
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: 1050000,
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI]: 400000,
     [OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW]: 1048576,
+    [OPENROUTER_MODELS.CLAUDE_OPUS_4_8]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_OPUS_4_7]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_SONNET_4_6]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_3_5_HAIKU]: 200000,
@@ -149,6 +152,10 @@ export const CHAT_MODEL_OPTIONS = [
         model: OPENROUTER_MODELS.CLAUDE_SONNET_4_6,
     },
     {
+        label: 'Claude Opus 4.8',
+        model: OPENROUTER_MODELS.CLAUDE_OPUS_4_8,
+    },
+    {
         label: 'Claude Opus 4.7',
         model: OPENROUTER_MODELS.CLAUDE_OPUS_4_7,
     },
@@ -187,6 +194,7 @@ export type ChatModel = OPENROUTER_MODELS | OllamaModelId | typeof AUTO_MODEL_ID
 
 /** Claude Code CLI models (direct Anthropic API model IDs). */
 export const CLAUDE_CODE_MODELS = [
+    { id: 'claude-opus-4.8', label: 'Claude Opus 4.8' },
     { id: 'claude-opus-4.7', label: 'Claude Opus 4.7' },
     { id: 'claude-sonnet-4.6', label: 'Claude Sonnet 4.6' },
     { id: 'claude-haiku-4.5', label: 'Claude Haiku 4.5' },

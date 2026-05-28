@@ -230,7 +230,7 @@ const MODELS: { name: string; key: ModelKey; Icon: React.ComponentType<{ classNa
     [
         { name: 'Kimi k2.6', key: 'kimi', Icon: KimiIcon },
         { name: 'GPT-5.5', key: 'gpt', Icon: OpenAIIcon },
-        { name: 'Opus 4.7', key: 'opus', Icon: ClaudeIcon },
+        { name: 'Opus 4.8', key: 'opus', Icon: ClaudeIcon },
         { name: 'Gemini 3.1 Pro', key: 'gemini', Icon: GeminiIcon },
         { name: 'DeepSeek V4', key: 'deepseek', Icon: DeepSeekIcon },
         { name: 'Sonnet 4.6', key: 'sonnet', Icon: ClaudeIcon },

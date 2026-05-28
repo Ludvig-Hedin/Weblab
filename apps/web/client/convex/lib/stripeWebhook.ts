@@ -622,10 +622,16 @@ export const _resolveCallerUserId = internalQuery({
 export const _findActiveProSubscriptionForPromo = internalQuery({
     args: { userId: v.id('users') },
     handler: async (ctx, { userId }) => {
-        const sub = await ctx.db
+        // Pick-first instead of `.unique()` — see _findActiveSubscriptionForCaller:
+        // a duplicate active subscription must not throw and block the promo flow.
+        const active = await ctx.db
             .query('subscriptions')
             .withIndex('by_user_status', (q) => q.eq('userId', userId).eq('status', 'active'))
-            .unique();
+            .take(2);
+        if (active.length > 1) {
+            console.warn('[stripe] multiple active subscriptions for user', userId);
+        }
+        const sub = active[0];
         if (!sub) return false;
         const product = await ctx.db.get(sub.productId);
         return product?.type === 'pro';
@@ -665,10 +671,19 @@ export const _findPriceByKey = internalQuery({
 export const _findActiveSubscriptionForCaller = internalQuery({
     args: { userId: v.id('users') },
     handler: async (ctx, { userId }) => {
-        const sub = await ctx.db
+        // Pick-first instead of `.unique()`: a user can end up with >1 active
+        // subscription (double-click / two-tab checkout race from before the
+        // entry-point guard landed). `.unique()` would throw here and lock the
+        // user out of the billing portal entirely — they could neither cancel
+        // nor fix the duplicate. Take the first and warn for observability.
+        const active = await ctx.db
             .query('subscriptions')
             .withIndex('by_user_status', (q) => q.eq('userId', userId).eq('status', 'active'))
-            .unique();
+            .take(2);
+        if (active.length > 1) {
+            console.warn('[stripe] multiple active subscriptions for user', userId);
+        }
+        const sub = active[0];
         if (!sub) return null;
         return {
             id: sub._id,

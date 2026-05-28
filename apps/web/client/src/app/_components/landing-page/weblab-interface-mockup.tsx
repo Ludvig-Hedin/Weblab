@@ -1766,7 +1766,7 @@ export function WeblabInterfaceMockup() {
     }, []);
 
     const [chatModelLabel, setChatModelLabel] = useState('Sonnet 4.6');
-    const CHAT_MODELS = ['Sonnet 4.6', 'Opus 4.7', 'GPT-5'];
+    const CHAT_MODELS = ['Sonnet 4.6', 'Opus 4.8', 'GPT-5'];
     const cycleModel = () =>
         setChatModelLabel((m) => {
             const i = CHAT_MODELS.indexOf(m);

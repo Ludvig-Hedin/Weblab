@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
-import { motion } from 'motion/react';
 
 import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
 import type { ChatModel, LocalModelOption, ReasoningEffort } from '@weblab/models';
@@ -47,8 +46,10 @@ function ProviderIcon({ name, className }: { name: string; className?: string })
 }
 
 const MODEL_DESCRIPTIONS: Record<string, string> = {
+    auto: 'Picks the best model per task automatically',
     'openai/gpt-5.5': 'Best for deep research and complex knowledge work',
     'anthropic/claude-sonnet-4.6': 'Excels at coding and complex reasoning',
+    'anthropic/claude-opus-4.8': 'Most capable Claude for the hardest tasks',
     'anthropic/claude-opus-4.7': 'Maximum intelligence for complex tasks',
     'google/gemini-3.1-pro-preview': "Google's latest flagship model",
     'deepseek/deepseek-v4-pro': 'High performance open-source reasoning model',
@@ -56,7 +57,7 @@ const MODEL_DESCRIPTIONS: Record<string, string> = {
 };
 
 function cloudProviderIconName(modelId: string): string {
-    if (modelId.startsWith('anthropic/')) return 'AnthropicLogo';
+    if (modelId.startsWith('anthropic/')) return 'ClaudeLogo';
     if (modelId.startsWith('openai/')) return 'OpenAiLogo';
     if (modelId.startsWith('google/')) return 'GeminiMonoLogo';
     if (modelId.startsWith('deepseek/')) return 'DeepSeekLogo';
@@ -111,6 +112,10 @@ export const ModelSelectorV2 = ({
     localModelsLoading,
     reasoningEffort,
     onReasoningEffortChange,
+    // Search box is hidden by default. Flip `showSearch` on to surface the
+    // filter input (the cmdk filter still works when shown). Kept off here to
+    // match the build/plan dropdown's plain-list feel.
+    showSearch = false,
 }: {
     value: ChatModel;
     onChange: (model: ChatModel) => void;
@@ -118,9 +123,10 @@ export const ModelSelectorV2 = ({
     localModelsLoading: boolean;
     reasoningEffort?: ReasoningEffort;
     onReasoningEffortChange?: (effort: ReasoningEffort) => void;
+    /** Show the search/filter input atop the model list. Default: false. */
+    showSearch?: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [hoveredCloudId, setHoveredCloudId] = useState<string | null>(null);
     const [setupEntry, setSetupEntry] = useState<ProviderManifestEntry | null>(null);
     const [pullDialogOpen, setPullDialogOpen] = useState(false);
     const [disconnectTarget, setDisconnectTarget] = useState<ProviderManifestEntry | null>(null);
@@ -169,6 +175,14 @@ export const ModelSelectorV2 = ({
     const subProviders = PROVIDER_MANIFEST.filter((e) => e.kind !== 'openrouter');
 
     const selectedId = value as string;
+
+    // cmdk auto-highlights the first row at rest; point its initial highlight at
+    // the currently-selected model instead so the rest-state matches the
+    // build/plan dropdown (only the chosen row is highlighted until hover).
+    const selectedCloudOption = cloud?.models.find((m) => m.id === selectedId);
+    const selectedCloudValue = selectedCloudOption
+        ? `${selectedCloudOption.label} ${selectedCloudOption.id} openrouter cloud`
+        : undefined;
 
     const handleSelectModel = (id: string) => {
         onChange(id as ChatModel);
@@ -251,6 +265,7 @@ export const ModelSelectorV2 = ({
             >
                 <Command
                     className="bg-transparent"
+                    defaultValue={selectedCloudValue}
                     filter={(itemValue, search) => {
                         if (!search) return 1;
                         const haystack = itemValue.toLowerCase();
@@ -260,7 +275,15 @@ export const ModelSelectorV2 = ({
                         return tokens.every((t) => haystack.includes(t)) ? 0.5 : 0;
                     }}
                 >
-                    <CommandInput placeholder="Search models…" autoFocus className="h-9 text-xs" />
+                    {/* Search input — hidden by default (showSearch=false). Kept here
+                        intentionally: flip the prop on to restore the filter box. */}
+                    {showSearch && (
+                        <CommandInput
+                            placeholder="Search models…"
+                            autoFocus
+                            className="h-9 text-xs"
+                        />
+                    )}
                     <CommandList className="max-h-[360px] py-1">
                         <CommandEmpty className="text-foreground-tertiary px-3 py-4 text-center text-xs">
                             No models found.
@@ -270,50 +293,33 @@ export const ModelSelectorV2 = ({
                             <CommandGroup className="[&_[cmdk-group-heading]]:hidden">
                                 {cloud.models.map((option) => {
                                     const description = MODEL_DESCRIPTIONS[option.id];
-                                    const isHovered = hoveredCloudId === option.id;
                                     const isSelected = option.id === selectedId;
                                     return (
                                         <CommandItem
                                             key={`openrouter:${option.id}`}
                                             value={`${option.label} ${option.id} openrouter cloud`}
                                             onSelect={() => handleSelectModel(option.id)}
-                                            onMouseEnter={() => setHoveredCloudId(option.id)}
-                                            onMouseLeave={() => setHoveredCloudId(null)}
                                             className={cn(
-                                                'relative flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-xs',
-                                                isSelected &&
-                                                    !isHovered &&
-                                                    'bg-background-secondary',
+                                                'flex cursor-pointer items-start gap-2.5 rounded-md px-3 py-2',
+                                                isSelected && 'bg-accent',
                                             )}
-                                            style={{ background: 'transparent' }}
                                         >
-                                            {isHovered && (
-                                                <motion.div
-                                                    layoutId="cloud-model-hover-bg"
-                                                    className="bg-background-secondary absolute inset-0 rounded-md"
-                                                    transition={{
-                                                        type: 'spring',
-                                                        bounce: 0,
-                                                        duration: 0.2,
-                                                    }}
-                                                />
-                                            )}
                                             <ProviderIcon
                                                 name={cloudProviderIconName(option.id)}
-                                                className="text-foreground-tertiary relative z-10 mt-0.5 h-3.5 w-3.5 shrink-0"
+                                                className="text-foreground-tertiary mt-0.5 h-4 w-4 shrink-0"
                                             />
-                                            <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-0.5">
-                                                <span className="text-foreground-primary truncate font-medium">
+                                            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                                <span className="text-mini font-medium">
                                                     {option.label}
                                                 </span>
                                                 {description && (
-                                                    <span className="text-foreground-tertiary truncate text-[10px] leading-tight">
+                                                    <span className="text-foreground-tertiary text-mini">
                                                         {description}
                                                     </span>
                                                 )}
                                             </div>
                                             {isSelected && (
-                                                <Icons.Check className="text-foreground-secondary relative z-10 mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                                <Icons.Check className="text-foreground-secondary mt-0.5 h-3.5 w-3.5 shrink-0" />
                                             )}
                                         </CommandItem>
                                     );

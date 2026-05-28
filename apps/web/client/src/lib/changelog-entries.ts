@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-2-claude-opus-4-8',
+        version: '2.2',
+        title: 'Claude Opus 4.8',
+        description:
+            "Anthropic's newest flagship, Claude Opus 4.8, is now selectable in the model picker — from the hero prompt and in-editor chat alike. The picker also got a polish pass: the real Claude mark replaces the old Anthropic glyph, a clearer hover highlight, and tighter model titles.",
+        date: '2026-05-28',
+        tags: ['AI', 'Models', 'Chat'],
+    },
+    {
         slug: 'v2-1-vercel-only-sandbox',
         version: '2.1',
         title: 'Faster sandbox runtime',

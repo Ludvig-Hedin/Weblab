@@ -375,6 +375,9 @@ declare const messages: {
         "login": {
             "github": "Sign in with GitHub",
             "google": "Sign in with Google",
+            "continueGithub": "Continue with GitHub",
+            "continueGoogle": "Continue with Google",
+            "continueVercel": "Continue with Vercel",
             "lastUsed": "You used this last time",
             "loginToEdit": "Sign in to edit",
             "shareProjects": "No credit card required • Get a site in seconds",

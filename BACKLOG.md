@@ -38,6 +38,36 @@ later without re-discovering the context.
 
 ## Open
 
+### Billing settings redesign built but not wired into the Subscription tab
+
+- **Discovered:** 2026-05-29 (full-repo code review)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/billing/](apps/web/client/src/components/ui/settings-modal/billing/) — `plan-card.tsx`, `payment-methods.tsx`, `billing-information.tsx`, `billing-info-edit-dialog.tsx`, `billing-history.tsx`, `cancel-plan.tsx`, `use-billing-details.ts`, `format.ts`. Backed by new Convex actions in [convex/subscriptionActions.ts](apps/web/client/convex/subscriptionActions.ts) (`getBillingDetails`, `updateBillingInfo`, `setDefaultPaymentMethod`, `deletePaymentMethod`, `addPaymentMethod`, `cancelSubscription`, `reactivateSubscription`).
+- **Symptom:** Nothing imports any of these components — `grep` for `PlanCard`/`PaymentMethods`/`useBillingDetails` outside the dir returns zero hits. The live Subscription tab ([subscription-tab.tsx](apps/web/client/src/components/ui/settings-modal/subscription-tab.tsx)) still renders the old inline UI, so the new payment-method management, billing-address editor, invoice history, and native cancel/reactivate are invisible to users.
+- **Root cause:** In-flight WIP committed before the integration step. Components + actions typecheck/lint clean (compiled as dead code), so no build break — but the feature does nothing.
+- **Next step:** Wire the new `billing/*` components into `subscription-tab.tsx` (replace or augment the existing plan UI), then browser-verify the full Stripe flow end-to-end against test mode: load details, set/delete default card, add card (portal deep-link), edit billing address, cancel + reactivate. Treat as a payment-critical change — do not ship without manual verification of each path.
+- **Risk if ignored:** dead code in the bundle; the intended billing UX never reaches users; future readers assume it's live.
+- **Tags:** `#feature-gap` `#billing` `#convex` `#wip`
+
+### Vercel Sandbox returns HTTP 402 — all project/branch creation + editor sandbox resume is blocked
+
+- **Discovered:** 2026-05-29 (investigate: "can't create projects")
+- **Where:** Vercel account behind `VERCEL_TEAM_ID` (set on both Convex deployments `avid-gnat-539` dev + `rapid-crab-113` prod). Surfaces at [apps/web/client/convex/projectActions.ts:243](apps/web/client/convex/projectActions.ts#L243) (`VercelSandboxProvider.createProject` → `Sandbox.create`).
+- **Symptom:** `projectActions.createBlank` / `branchActions.createBlank` fail; prod client sees masked "Server Error" (request id `d93c958b083e9289`). Prod Convex log: `Uncaught Error: Status code 402 is not ok`. Editing an existing project also breaks because opening the editor resumes the sandbox via the same `Sandbox.create` call.
+- **Root cause:** HTTP 402 Payment Required from the Vercel Sandbox API — the token authenticates (else 401/403) but the team has hit a spend/quota limit, has no payment method, or is on a plan that excludes Sandbox. **Not a code bug.**
+- **Next step (manual, owner = Ludvig):** In the Vercel dashboard for the team in `VERCEL_TEAM_ID` → Settings → Billing: confirm an active paid plan that includes Sandbox, add/repair a payment method, and raise/clear the spend-management cap. Then retry "Start blank". If it should run on a different team, rotate `VERCEL_TEAM_ID`/`VERCEL_PROJECT_ID`/`VERCEL_TOKEN` on **both** Convex deployments (`npx convex env set … ` and `… --prod`).
+- **Risk if ignored:** core product is unusable — no project can be created, opened, or edited.
+- **Tags:** `#bug` `#infra` `#blocker` `#sandbox` `#billing`
+
+### Prompt / GitHub-template project creation not yet ported to Convex (`TODO(sandbox-port)`)
+
+- **Discovered:** 2026-05-29 (investigate; pre-existing TODO)
+- **Where:** [apps/web/client/src/components/store/create/manager.ts:24](apps/web/client/src/components/store/create/manager.ts#L24) — `startCreate`, `startGitHubTemplate`, `startPublicGitHubTemplate` all throw `UNAVAILABLE_MESSAGE`.
+- **Symptom:** AI/prompt create (hero input) and GitHub-template imports show "Project creation is temporarily unavailable while the sandbox layer is being migrated to Convex." Only the "Start blank" CTA reaches a real Convex action.
+- **Root cause:** legacy flow chained tRPC `api.sandbox.fork` + `api.project.create` + `api.github.validate`; none have Convex equivalents that accept a prompt, image context, or github subpath. `projectActions.createBlank` only handles the blank shape.
+- **Next step:** port a `projectActions.createFromPrompt` (+ github variant) that provisions via `VercelSandboxProvider.createProjectFromGit` / scaffold, writes the project graph, and seeds the first chat message. Gated behind the 402 blocker above — nothing creates until billing is fixed.
+- **Risk if ignored:** the headline "describe your app" entry point is dead; users must use "Start blank".
+- **Tags:** `#tech-debt` `#sandbox` `#convex` `#feature-gap`
+
 ### Stripe webhook required-field gate can drop cancel/pause/resume events
 
 - **Discovered:** 2026-05-28 (CodeRabbit-fix pass, local-review)
@@ -100,6 +130,7 @@ later without re-discovering the context.
 
 ### F-335 — Aborted restart leaves the button spinner stuck forever
 
+- **Resolved:** 2026-05-28 (backlog user-flow sweep) — verified fixed in code: [restart-sandbox-button.tsx:213-221](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L213) now resets `restarting` / `restartElapsedSec` / `restartGraceUntilRef` on the abort path before returning. Stale entry.
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
 - **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/restart-sandbox-button.tsx:214](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L214)
 - **Symptom:** User clicks Restart Sandbox once → cancels (unmounts mid-restart or grace-window expires) → button stays in `restarting=true` spinner state, `restartElapsedSec` keeps the last value, `restartGraceUntilRef.current` keeps the future timestamp. The button is permanently disabled (`disabled={... || restarting}`) until the component remounts.
@@ -125,6 +156,7 @@ later without re-discovering the context.
 - **Symptom:** Per catalog, F-361 is `#disabled` on Vercel Sandbox (`TODO(sandbox-fork)`). T-361 expects "clear error per `TODO(sandbox-fork)`". Reality: `forkBranch` and `createBlankSandbox` both `catch (error) { console.error(...); }`. The user sees the dropdown close + the spinner reset; no toast, no inline error, nothing.
 - **Root cause:** Error handling is `console.error`-only. The `#disabled` contract isn't enforced at the UI surface.
 - **Next step:** replace each `console.error` with `toast.error(...)` falling back to a fixed string when the upstream Convex error has no `message`. Use the existing `'Branch fork is not available on Vercel Sandbox yet.'` copy from the `TODO(sandbox-fork)` note.
+- **Partial fix (2026-05-29):** `BranchManager.createBlankSandbox` now surfaces a `toast.error` with the structured `ConvexError` message as the description (see [branch/manager.ts](apps/web/client/src/components/store/editor/branch/manager.ts) + [convex/lib/sandboxErrors.ts](apps/web/client/convex/lib/sandboxErrors.ts)). `forkBranch` (the stub at `branch-controls.tsx`) is still `console.error`-only — this entry stays open for it.
 - **Risk if ignored:** user thinks the button is dead; reports a "nothing happens" bug; T-361 keeps failing.
 - **Tags:** `#bug` `#editor` `#branch` `#disabled-contract`
 
@@ -203,6 +235,7 @@ later without re-discovering the context.
 
 ### F-300 — `activeBranch.id` accessed without null guard (Interactions tab)
 
+- **Resolved:** 2026-05-28 (backlog user-flow sweep) — verified fixed: [list-view.tsx:96,107](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96) and [timeline-editor.tsx:60-64](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60) now use `activeBranch?.id` + early return. Stale entry.
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
 - **Where:** [list-view.tsx:96 + 106](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96) + [timeline-editor.tsx:60](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60)
 - **Symptom:** `const branchId = editorEngine.branches.activeBranch.id;` — during branch switch `activeBranch` is transiently `null` → TypeError uncaught.
@@ -405,6 +438,7 @@ later without re-discovering the context.
 
 ### F-360 — `projectInvitations.accept` does not trim whitespace before email lookup
 
+- **Resolved:** 2026-05-28 (backlog user-flow sweep) — `isEmailMatch` now trims both sides ([projectInvitations.ts:14-15](apps/web/client/convex/projectInvitations.ts#L14)) so the accept-path comparison is whitespace-insensitive (fixes legacy rows too); `create` now canonicalizes with `.trim().toLowerCase()` and the legacy fallback uses the trimmed value, so new rows can't store stray whitespace.
 - **Discovered:** 2026-05-28 (validate-feature F-360 deeper pass)
 - **Where:** [apps/web/client/convex/projectInvitations.ts:421](apps/web/client/convex/projectInvitations.ts#L421)
 - **Symptom:** `args.inviteeEmail.toLowerCase()` is used as the key to look up the `users` row by email. If the upstream caller (sign-in flow, accept page) passes the email with leading/trailing whitespace — easy to do when a user pastes from another app — the lookup misses and the invitation can never be accepted by that account.
@@ -603,6 +637,7 @@ later without re-discovering the context.
 
 ### F-330..F-335 — Bottom-bar unguarded null/undefined access risks runtime crash
 
+- **Resolved:** 2026-05-28 (backlog user-flow sweep) — the one genuinely-unguarded write, [terminal-area.tsx:82](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L82), now guards `sandbox?.session` before assigning. The `terminal-area.tsx:55` access is inside a try/catch (`continue` on throw — safe), and `restart-sandbox-button.tsx:177` `activeBranch.sandbox.id` is type-safe (`Branch.sandbox` is non-optional in [branch.ts:39](packages/models/src/project/branch.ts#L39)), so neither can crash the editor.
 - **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-420..F-439 run)
 - **Where:**
   - [apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx:55](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L55) — `branches.activeBranch.id` accessed inside try/catch (caught) but only by accident.
@@ -663,8 +698,17 @@ later without re-discovering the context.
 - **Next step:** implement `users.disconnectGitHub` Convex mutation that revokes the GitHub App installation and clears `providerConnections` row; until then disable the button instead of pretending it works.
 - **Tags:** `#bug` `#integration`
 
+### GitHub connect — Convex env required per deployment + single Setup-URL caveat
+
+- **Discovered:** 2026-05-29 (debugging "Failed to generate GitHub installation URL").
+- **Root cause (fixed):** `githubActions.*` run in the Convex Node runtime and read `GITHUB_APP_ID`/`GITHUB_APP_SLUG`/`GITHUB_APP_PRIVATE_KEY`/`GITHUB_INSTALL_STATE_SECRET` from the **Convex** env store (separate from Next.js `.env.local`). Both deployments were missing all four → `generateInstallationUrlAction` threw. Set on dev `avid-gnat-539` and prod `rapid-crab-113` via [scripts/set-convex-github-env.mjs](apps/web/client/scripts/set-convex-github-env.mjs).
+- **Open caveat:** the single GitHub App (id `3588674`) has one post-install Setup URL. It can only point at one host, so the install callback (`/callback/github/install` → `handleInstallationCallbackUrl`) lands on one deployment. **Local-dev connect won't complete** unless the Setup URL targets localhost; prod (weblab.build) is the supported target. A separate dev GitHub App would be needed for local end-to-end testing.
+- **Next step:** confirm the GitHub App Setup URL = `https://weblab.build/callback/github/install`; optionally register a second dev App for localhost. New deployments must run the provisioner (or set the 4 env vars) before GitHub connect works.
+- **Tags:** `#integration` `#config` `#convex`
+
 ### F-491 — `checkout` allows multiple active subscriptions per user; downstream `.unique()` queries crash billing portal
 
+- **Resolved:** 2026-05-28 (backlog user-flow sweep) — both halves landed: (1) `checkout` now calls `_findActiveSubscriptionForCaller` first and throws `ALREADY_SUBSCRIBED` ([subscriptionActions.ts:73-79](apps/web/client/convex/subscriptionActions.ts#L73)), preventing new duplicates; (2) defense-in-depth — `_findActiveSubscriptionForCaller` + `_findActiveProSubscriptionForPromo` now use `.take(2)` + pick-first + `console.warn` instead of `.unique()`, so a pre-existing duplicate no longer throws and locks the user out of the billing portal / promo.
 - **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
 - **Where:** [apps/web/client/convex/subscriptionActions.ts:52-91](apps/web/client/convex/subscriptionActions.ts#L52-L91) (`checkout` action) +
   [apps/web/client/convex/lib/stripeWebhook.ts:630-647](apps/web/client/convex/lib/stripeWebhook.ts#L630-L647) (`_findActiveSubscriptionForCaller`) +
@@ -683,6 +727,7 @@ later without re-discovering the context.
 
 ### F-491 — `update` action does not catch already-released schedule from Stripe; upgrade/downgrade aborts
 
+- **Resolved:** 2026-05-28 (backlog user-flow sweep) — verified fixed: the `release` call is now wrapped in try/catch that swallows `invalid_request_error` ([subscriptionActions.ts:183-194](apps/web/client/convex/subscriptionActions.ts#L183)), mirroring `releaseSubscriptionSchedule`, so an already-released schedule no longer aborts the plan change. Stale entry.
 - **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
 - **Where:** [apps/web/client/convex/subscriptionActions.ts:156-158](apps/web/client/convex/subscriptionActions.ts#L156-L158)
 - **Symptom:** User changes plan via the pricing modal while a previously scheduled downgrade is in-flight. `update` action sees `owned.stripeSubscriptionScheduleId` and calls `stripe.subscriptionSchedules.release(scheduleId)` without try/catch. If Stripe reports the schedule is already in `'released'` state (e.g. the scheduled phase fired and Stripe auto-released it just before this request, or the user released it manually from the portal), Stripe throws `StripeInvalidRequestError`. The action aborts; user sees a generic toast. Our DB still references the now-dead `stripeSubscriptionScheduleId`, so the next attempt repeats the failure.

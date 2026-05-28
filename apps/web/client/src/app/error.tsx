@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { Button } from '@weblab/ui/button';
 
+import { env } from '@/env';
 import { Routes } from '@/utils/constants';
+import { isChunkLoadError, reloadOnceForChunkError } from './_components/chunk-error-reloader';
 
 export default function RootErrorBoundary({
     error,
@@ -14,13 +16,30 @@ export default function RootErrorBoundary({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const isChunkError = isChunkLoadError(error);
+    // Hide the error card while a chunk-load failure is being recovered so the
+    // reload doesn't flash "Something went wrong" first.
+    const [recovering, setRecovering] = useState(isChunkError);
+
     useEffect(() => {
-        if (process.env.NODE_ENV !== 'production') {
+        // A chunk-load failure reaching the render boundary means a stale module
+        // graph (HMR rebuild / deploy). Recover with a guarded one-time reload
+        // instead of stranding the user on a dead-end error card.
+        if (isChunkError && reloadOnceForChunkError()) {
+            return;
+        }
+        // Reload was guarded (already retried → broken build) — reveal the card.
+        setRecovering(false);
+        if (env.NODE_ENV !== 'production') {
             console.error('Root error boundary:', error);
         }
-    }, [error]);
+    }, [error, isChunkError]);
 
     const reference = error?.digest ?? null;
+
+    if (recovering) {
+        return <div className="bg-background min-h-screen" aria-hidden="true" />;
+    }
 
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">

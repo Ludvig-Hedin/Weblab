@@ -45,6 +45,12 @@ export interface BillingSubscription {
     status: SubscriptionStatusValue;
     startedAt: number;
     endedAt: number | null;
+    // Current Stripe billing period (epoch ms). currentPeriodEnd is the
+    // auto-renew date shown in the billing UI when no cancellation is
+    // scheduled; when scheduledChange.scheduledAction === 'cancellation' the
+    // cancel date comes from scheduledChange.scheduledChangeAt instead.
+    currentPeriodStart: number;
+    currentPeriodEnd: number;
     product: BillingProduct;
     price: BillingPrice;
     scheduledChange: BillingScheduledChange | null;
@@ -136,6 +142,8 @@ export const get = query({
             status: subscription.status,
             startedAt: subscription.startedAt,
             endedAt: subscription.endedAt ?? null,
+            currentPeriodStart: subscription.stripeCurrentPeriodStart,
+            currentPeriodEnd: subscription.stripeCurrentPeriodEnd,
             product: toBillingProduct(product),
             price: toBillingPrice(price),
             scheduledChange: toBillingScheduledChange(
