@@ -98,6 +98,7 @@ export const FreeCard = ({
             return (
                 <div className="flex items-center gap-2">
                     <Icons.Shadow className="h-4 w-4 animate-spin" />
+                    <span className="sr-only">{t(transKeys.pricing.loading.checkingPayment)}</span>
                 </div>
             );
         }

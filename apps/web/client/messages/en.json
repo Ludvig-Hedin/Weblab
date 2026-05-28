@@ -1761,7 +1761,7 @@
         },
         "faq": {
             "title": "FAQ | Weblab - AI-Powered Visual Editor for Frontend Development",
-            "description": "Frequently asked questions about Weblab, the AI-powered visual editor for frontend development. Learn about supported frameworks (React, Vue, Angular), component libraries, AI features, pricing, and how Weblab differs from other design tools.",
+            "description": "Frequently asked questions about Weblab, the AI-powered visual editor for frontend development. Learn about supported frameworks (React and Next.js, with Vite, Remix, Astro, and TanStack Start on the roadmap), component libraries, AI features, pricing, and how Weblab differs from other design tools.",
             "ogImageAlt": "Weblab FAQ"
         },
         "about": {

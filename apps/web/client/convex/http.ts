@@ -183,6 +183,7 @@ http.route({
             return new Response('payload not JSON', { status: 400 });
         }
         const event = parsed as {
+            id?: string;
             type?: string;
             data?: {
                 object?: {
@@ -214,6 +215,7 @@ http.route({
         const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule?.id;
 
         if (
+            !event.id ||
             !sub.id ||
             !item?.id ||
             !priceId ||
@@ -221,14 +223,17 @@ http.route({
             !item.current_period_start ||
             !item.current_period_end
         ) {
-            // Subscription event missing required ids — accept-ignore so
-            // Stripe doesn't retry forever on a malformed event we cannot act on.
+            // Event missing its id or required subscription ids — accept-ignore
+            // so Stripe doesn't retry forever on a malformed event we cannot act
+            // on. (`event.id` is required for idempotency; real Stripe events
+            // always carry it.)
             return new Response('event payload missing required fields', {
                 status: 202,
             });
         }
 
         const eventInput = {
+            eventId: event.id,
             subscriptionId: sub.id,
             subscriptionItemId: item.id,
             subscriptionScheduleId: scheduleId ?? undefined,
@@ -240,12 +245,11 @@ http.route({
             cancelAt: sub.cancel_at ?? undefined,
         };
 
-        // TODO(bug-hunt 2026-05-28, F-491): no event-id (`evt.id`) dedupe.
-        // Stripe retries deliveries on 5xx (and may double-deliver even on
-        // 2xx). `_handleSubUpdated` upgrade/renewal branches insert new
-        // `rateLimits` rows on every call — replay grants duplicate credits.
-        // Fix: add a `stripeEventLog` table keyed by `evt.id`, insert+early-
-        // return on conflict.
+        // Idempotency: each `_handleSub*` mutation records `event.id` in the
+        // `stripeEventLog` table (indexed by_event_id) inside its own
+        // transaction and early-returns if the id was already processed — so
+        // Stripe retries / double-deliveries don't grant duplicate credits.
+        // See `alreadyProcessed` in convex/lib/stripeWebhook.ts.
         try {
             switch (event.type) {
                 case 'customer.subscription.created':

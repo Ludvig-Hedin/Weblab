@@ -772,6 +772,18 @@
                 "q4": {
                     "question": "Hur får jag ut ändringar i produktion?",
                     "answer": "Ändringar du gör i Weblab blir riktiga kodändringar i ditt repo. När du är redo, skicka dem som en pull request för utvecklare att granska och merga. Ingen export, ingen copy-paste, ingen översättning. Koden är produktionsklar eftersom den använder dina riktiga komponenter."
+                },
+                "q5": {
+                    "question": "Kan jag skapa en webbplats från grunden med AI?",
+                    "answer": "Ja. Du behöver ingen befintlig kodbas för att använda Weblab. Från dashboarden trycker du på \"Start blank\" för att skapa ett nytt Next.js- eller statiskt HTML-projekt, och bygger sedan ut det med AI-chatten och den visuella canvasen i editorn – generera sidor, lägg in sektioner, finjustera layout och text. Prompt-baserad projektstart och GitHub-mallimporter finns på vägkartan."
+                },
+                "q6": {
+                    "question": "Vilka AI-modeller kan jag använda?",
+                    "answer": "Weblab är modellagnostiskt. Välj mellan Claude Opus 4.7 och Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro och Kimi K2.6 – eller kör lokala modeller via Ollama i skrivbordsappen. Du kan även använda din egen API-nyckel. Resonemangsnivån är konfigurerbar per chatt, från Fast till Deep."
+                },
+                "q7": {
+                    "question": "Sparar Weblab versionshistorik?",
+                    "answer": "Ja. Varje ändring spåras. Revisionspanelen visar hela redigeringshistoriken med AI-meddelandet eller den visuella ändringen som skapade varje revision. Du kan förhandsgranska, återställa eller grena från valfritt tidigare läge, och den underliggande Git-historiken hålls ren."
                 }
             },
             "compatibility": {
@@ -795,6 +807,14 @@
                 "q5": {
                     "question": "Hur integrerar Weblab med GitHub?",
                     "answer": "Weblab ansluter direkt till ditt GitHub-repo. Ändringar du gör spåras som riktiga kodändringar. När du är redo att skicka skapar Weblab en pull request med dina ändringar som utvecklare kan granska, kommentera och merga via sitt vanliga arbetsflöde."
+                },
+                "q6": {
+                    "question": "Stödjer ni vanlig HTML och statiska sajter?",
+                    "answer": "Ja. Weblab har en statisk HTML-scaffolder direkt ur lådan – perfekt för landningssidor, portföljer och marknadsföringssajter som inte behöver ett ramverk. Den visuella editorn och AI:n fungerar likadant på statisk HTML som på React-projekt, så du får hela Weblab-upplevelsen utan att starta upp en byggpipeline."
+                },
+                "q7": {
+                    "question": "Var körs min kod – moln eller skrivbord?",
+                    "answer": "Båda. Den värdade molnversionen kör dina projekt i en säker molnsandbox, så du kan redigera var som helst utan lokal setup. Skrivbordsappen laddar din befintliga lokala kodbas och kör dev-servern på din maskin – användbart när du vill hålla koden lokal eller para Weblab med din egen AI-kodagent som Claude Code (Codex, Cursor och Gemini kommer)."
                 }
             },
             "workflow": {
@@ -814,6 +834,14 @@
                 "q4": {
                     "question": "Kan jag dela mitt arbete med intressenter som inte använder Weblab?",
                     "answer": "Ja. Eftersom Weblab jobbar med riktig kod kan du dela ditt arbete direkt som du skapat det på canvasen. Intressenter ser riktigt fungerande UI – inte statiska mockups som kanske inte matchar slutprodukten."
+                },
+                "q5": {
+                    "question": "Vad är gratis och vad kostar?",
+                    "answer": "Weblab är öppen källkod under Apache 2.0 – du kan självhosta hela tjänsten gratis från GitHub. Den värdade molnversionen har en gratis Basic-plan med dagliga AI-krediter, och betalda Pro-, Launch- och Scale-planer som låser upp obegränsad AI, egna domäner, borttagning av \"Built with Weblab\"-vattenstämpeln och teamfunktioner. Se prissidan för hela uppdelningen."
+                },
+                "q6": {
+                    "question": "Kan jag deploya till en egen domän?",
+                    "answer": "Ja. Pro-planer inkluderar en gratis egen domän som hostas av Weblab – deploya direkt från dashboarden. Du kan även exportera koden till GitHub och deploya var du än hostar idag."
                 }
             },
             "company": {
@@ -1749,7 +1777,7 @@
         },
         "faq": {
             "title": "FAQ | Weblab – AI-driven visuell redigerare för frontend-utveckling",
-            "description": "Vanliga frågor om Weblab, den AI-drivna visuella redigeraren för frontend-utveckling. Lär dig om stödda ramverk (React, Vue, Angular), komponentbibliotek, AI-funktioner, priser och hur Weblab skiljer sig från andra designverktyg.",
+            "description": "Vanliga frågor om Weblab, den AI-drivna visuella redigeraren för frontend-utveckling. Lär dig om stödda ramverk (React och Next.js, med Vite, Remix, Astro och TanStack Start på vägkartan), komponentbibliotek, AI-funktioner, priser och hur Weblab skiljer sig från andra designverktyg.",
             "ogImageAlt": "Weblab FAQ"
         },
         "about": {
@@ -2416,6 +2444,18 @@
                 "code": {
                     "question": "Behöver jag kunna koda?",
                     "answer": "Nej. Designers använder en visuell canvas med bekanta verktyg. Riktig kod körs under huven – du behöver inte röra den om du inte vill."
+                },
+                "htmlSites": {
+                    "question": "Kan jag bygga vanliga HTML-webbplatser?",
+                    "answer": "Ja. {appName} har en statisk HTML-scaffolder för landningssidor, portföljer och marknadsföringssajter – inget ramverk krävs."
+                },
+                "fromScratch": {
+                    "question": "Kan jag skapa en webbplats från grunden med AI?",
+                    "answer": "Ja. Tryck på \"Start blank\" för att skapa ett nytt projekt, och använd sedan AI-chatten i editorn för att generera sidor, sektioner och stilar. Ingen befintlig kodbas krävs."
+                },
+                "desktopAndOwnAI": {
+                    "question": "Kan jag använda {appName} med min egen AI-kodare?",
+                    "answer": "Ja. Skrivbordsappen laddar din lokala kodbas och körs vid sidan av din AI-kodagent – designa visuellt i {appName} medan Claude Code gör det tunga jobbet i terminalen. Stöd för Codex, Cursor och Gemini rullas ut."
                 },
                 "collaborate": {
                     "question": "Kan mitt team samarbeta?",

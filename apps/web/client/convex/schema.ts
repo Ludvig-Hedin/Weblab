@@ -764,6 +764,20 @@ export default defineSchema({
         redeemBy: v.optional(v.number()),
     }).index('by_email', ['email']),
 
+    // Stripe webhook idempotency log. The /webhooks/stripe httpAction can
+    // receive the same `evt.id` more than once — Stripe retries on 5xx for up
+    // to 3 days and may double-deliver even on 2xx. Each subscription handler
+    // records the event id here inside its own transaction and early-returns
+    // if the id is already present, so credit-granting branches run exactly
+    // once per Stripe event. Convex OCC makes the check+insert race-safe: a
+    // concurrent duplicate conflicts on the by_event_id read set and retries
+    // into the "already processed" path.
+    stripeEventLog: defineTable({
+        eventId: v.string(),
+        eventType: v.string(),
+        processedAt: v.number(),
+    }).index('by_event_id', ['eventId']),
+
     // -------------------------------------------------------------------------
     // Presence (live cursors)
     // -------------------------------------------------------------------------

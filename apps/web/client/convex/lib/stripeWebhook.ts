@@ -25,6 +25,8 @@ import { getUserByClerkIdSafe } from './permissions';
 // status string, optional cancel_at (epoch seconds).
 
 const vSubEventInput = v.object({
+    // Top-level Stripe event id (`evt_…`) — drives webhook idempotency.
+    eventId: v.string(),
     subscriptionId: v.string(),
     subscriptionItemId: v.string(),
     subscriptionScheduleId: v.optional(v.string()),
@@ -37,6 +39,7 @@ const vSubEventInput = v.object({
 });
 
 type SubEventInput = {
+    eventId: string;
     subscriptionId: string;
     subscriptionItemId: string;
     subscriptionScheduleId?: string;
@@ -107,6 +110,33 @@ function isTierUpgrade(currentLimit: number, newLimit: number): boolean {
     return newLimit > currentLimit;
 }
 
+// ─── Webhook idempotency ─────────────────────────────────────────────────────
+//
+// Stripe retries deliveries on 5xx for up to 3 days and may double-deliver even
+// on 2xx. Record each processed `evt.id` in `stripeEventLog` inside the same
+// transaction as the handler's work, and skip if already present, so the
+// credit-granting branches run exactly once per event. Convex OCC closes the
+// concurrent-duplicate race: the second transaction's `by_event_id` read is
+// invalidated by the first transaction's insert and retries into the
+// "already processed" path.
+async function alreadyProcessed(
+    ctx: MutationCtx,
+    eventId: string,
+    eventType: string,
+): Promise<boolean> {
+    const existing = await ctx.db
+        .query('stripeEventLog')
+        .withIndex('by_event_id', (q) => q.eq('eventId', eventId))
+        .unique();
+    if (existing) return true;
+    await ctx.db.insert('stripeEventLog', {
+        eventId,
+        eventType,
+        processedAt: Date.now(),
+    });
+    return false;
+}
+
 // ─── _setStripeCustomerId ────────────────────────────────────────────────────
 //
 // Used by the `checkout` action when it creates a fresh Stripe customer for
@@ -138,6 +168,7 @@ export const _handleSubCreated = internalMutation({
     args: { event: vSubEventInput },
     handler: async (ctx, { event }) => {
         const input = event as SubEventInput;
+        if (await alreadyProcessed(ctx, input.eventId, 'customer.subscription.created')) return;
 
         const price = await findPriceByStripeId(ctx, input.priceId);
         if (!price) {
@@ -221,6 +252,7 @@ export const _handleSubUpdated = internalMutation({
     args: { event: vSubEventInput },
     handler: async (ctx, { event }) => {
         const input = event as SubEventInput;
+        if (await alreadyProcessed(ctx, input.eventId, 'customer.subscription.updated')) return;
         const subscription = await findSubscriptionByStripeId(ctx, input.subscriptionId);
         if (!subscription) {
             throw new Error('Subscription not found');
@@ -409,6 +441,7 @@ export const _handleSubDeleted = internalMutation({
     args: { event: vSubEventInput },
     handler: async (ctx, { event }) => {
         const input = event as SubEventInput;
+        if (await alreadyProcessed(ctx, input.eventId, 'customer.subscription.deleted')) return;
         const subscription = await findSubscriptionByStripeId(ctx, input.subscriptionId);
         if (!subscription) {
             // Webhook for a subscription we never persisted — accept-ignore.
@@ -431,6 +464,7 @@ export const _handleSubPaused = internalMutation({
     args: { event: vSubEventInput },
     handler: async (ctx, { event }) => {
         const input = event as SubEventInput;
+        if (await alreadyProcessed(ctx, input.eventId, 'customer.subscription.paused')) return;
         const subscription = await findSubscriptionByStripeId(ctx, input.subscriptionId);
         if (!subscription) return;
         const now = Date.now();
@@ -446,6 +480,7 @@ export const _handleSubResumed = internalMutation({
     args: { event: vSubEventInput },
     handler: async (ctx, { event }) => {
         const input = event as SubEventInput;
+        if (await alreadyProcessed(ctx, input.eventId, 'customer.subscription.resumed')) return;
         const subscription = await findSubscriptionByStripeId(ctx, input.subscriptionId);
         if (!subscription) return;
         const now = Date.now();
