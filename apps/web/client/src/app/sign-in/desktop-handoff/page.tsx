@@ -1,5 +1,8 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth as clerkAuth, clerkClient } from '@clerk/nextjs/server';
+
+import { BrandLogo } from '@weblab/ui/brand';
 
 import { DesktopHandoffClient } from './handoff-client';
 
@@ -42,6 +45,32 @@ async function createTicketFor(userId: string): Promise<string> {
     return token.token;
 }
 
+// Friendly fallback rendered when the Clerk Backend API call fails (network
+// outage, rate limit, account suddenly disabled). Without this, an uncaught
+// throw from `createTicketFor` falls through to Next.js' global error
+// boundary — the user sees a generic crash page with no way back. The
+// component is intentionally minimal: same chrome as the success path so the
+// shell doesn't flash a wildly different layout on error.
+function HandoffErrorScreen({ message }: { message: string }) {
+    return (
+        <div className="relative flex h-screen w-screen items-center justify-center">
+            <div className="flex w-full max-w-md flex-col items-center gap-8 px-6 text-center">
+                <BrandLogo className="h-5" />
+                <div className="space-y-2">
+                    <h1 className="text-title2 leading-tight">Sign-in handoff failed</h1>
+                    <p className="text-foreground-secondary text-regular">{message}</p>
+                </div>
+                <Link
+                    href="/sign-in"
+                    className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
+                >
+                    Back to sign in
+                </Link>
+            </div>
+        </div>
+    );
+}
+
 interface DesktopHandoffPageProps {
     // Both forwarded by the Electron renderer when the user clicked an OAuth
     // or email button. `email` prefills the sign-in form so the user doesn't
@@ -79,7 +108,23 @@ export default async function DesktopHandoffPage({ searchParams }: DesktopHandof
         redirect(`/sign-in?${signInQuery.toString()}`);
     }
 
-    const ticket = await createTicketFor(userId);
+    // Wrap the Clerk Backend API call so transient failures (network blip,
+    // rate limit, account disabled between the auth check and the token
+    // mint) render an actionable error instead of falling through to
+    // Next.js' global error boundary.
+    let ticket: string;
+    try {
+        ticket = await createTicketFor(userId);
+    } catch (err) {
+        const detail = err instanceof Error ? err.message : 'Unknown error';
+        // Log on the server so ops can see the upstream error code; never
+        // surface raw Clerk error text to the user (it can include internal
+        // identifiers).
+        console.error('[desktop-handoff] createSignInToken failed', detail);
+        return (
+            <HandoffErrorScreen message="We couldn't start the handoff back to the desktop app. Please try signing in again." />
+        );
+    }
 
     // Hand the ticket to the desktop via the custom protocol. The client
     // component sets `window.location.href` so the OS protocol handler fires

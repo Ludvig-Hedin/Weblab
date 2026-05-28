@@ -227,6 +227,10 @@ export default function ClerkVerifyPage() {
 
             setResendCountdown(RESEND_COOLDOWN);
             setOtp('');
+            // TODO(bug-hunt): also update the URL `?sentAt=` param so a
+            // post-resend refresh computes `initialCountdown` from the new
+            // resend timestamp, not the stale one. See CODE_REVIEW_BACKLOG.md
+            // → "Bug Hunt 2026-05-28 — Desktop auth".
             // Clear any still-running countdown before starting a new one —
             // otherwise the original interval is orphaned (the cleanup only
             // clears the current ref), leaking a timer that keeps decrementing

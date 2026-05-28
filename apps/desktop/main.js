@@ -106,6 +106,12 @@ function openInExternalBrowser(url) {
 // `weblab:open-external`. The legacy `weblab:open-oauth` channel is aliased
 // to the same handler in `preload.js` so any in-flight code that still
 // references it keeps working.
+//
+// TODO(bug-hunt): defense-in-depth — validate `event.senderFrame.url` against
+// ALLOWED_IPC_ORIGINS before opening. A renderer that has navigated off-origin
+// (XSS escape, escaped iframe) can otherwise drive the user's default browser
+// to any https:// URL via `weblabNative.openExternal('https://phish.example')`.
+// See CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 — Desktop auth".
 ipcMain.handle('weblab:open-external', async (_event, url) => {
     if (typeof url !== 'string') return false;
     return openInExternalBrowser(url);
@@ -187,6 +193,12 @@ function handleDeepLink(rawUrl) {
         // desktop to navigate to a redeem URL with an empty / non-string
         // ticket (Clerk would surface a noisy error in the renderer).
         if (!ticket || typeof ticket !== 'string') return;
+        // TODO(bug-hunt): CSRF gap — any process that can launch a `weblab://`
+        // URL can deliver a ticket here and sign the user into the attacker's
+        // Clerk account. Mitigation requires a per-launch nonce: persist a
+        // random value when openExternal first fires, require the handoff
+        // deep link to echo the same nonce, reject otherwise. See
+        // CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 — Desktop auth".
         const target = new URL('/sign-in/redeem', APP_URL);
         target.searchParams.set('ticket', ticket);
         target.searchParams.set('native', '1');

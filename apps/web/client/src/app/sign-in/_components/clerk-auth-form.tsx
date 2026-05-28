@@ -364,6 +364,13 @@ export function ClerkAuthForm({
                         await createSignInAttempt();
                         return 'sign-in';
                     } catch (retryError) {
+                        // TODO(bug-hunt): if the retry itself throws
+                        // `isAlreadySignedInError` (signOut didn't fully clear
+                        // the session — happens in Electron's persist:weblab
+                        // when cookies haven't flushed), we fall through to
+                        // the sign-up branch with a stale error. See
+                        // CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 —
+                        // Desktop auth" for the proposed fix.
                         flowError = retryError;
                     }
                 }

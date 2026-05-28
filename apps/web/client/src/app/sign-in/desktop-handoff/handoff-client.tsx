@@ -26,6 +26,13 @@ export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
         // the initial paint commits first — without it, some browsers swallow
         // the protocol launch (no user gesture associated with the
         // navigation) and the user lands on a blank tab with no feedback.
+        //
+        // TODO(bug-hunt): no detection / fallback if `weblab://` isn't
+        // registered (user uninstalled the desktop app, browser blocks
+        // unknown schemes). User stays on the spinner forever; only escape is
+        // the manual "Open Weblab" button. Consider a ~3-5s timeout with a
+        // "Don't have Weblab desktop? Download here" fallback. See
+        // CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 — Desktop auth".
         const deepLink = `weblab://auth/handoff?ticket=${encodeURIComponent(ticket)}`;
         const id = window.setTimeout(() => {
             window.location.href = deepLink;

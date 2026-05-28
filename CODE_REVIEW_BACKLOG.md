@@ -1,6 +1,34 @@
 # Code Review Backlog
 
-## Bug Hunt — 2026-05-28 — F-450..F-453 (Pricing / Avatar / Telemetry)
+## Bug Hunt — 2026-05-28 — Desktop auth (sign-in, handoff, redeem, clerk-bridge)
+
+Scope: `apps/desktop/{main.js,preload.js}`, `apps/web/client/src/app/sign-in/**`, `apps/web/client/src/utils/auth/**`. Tools: `bun typecheck` exit 0; `bunx eslint` scoped files clean. Observed runtime errors during preview testing via `mcp__Claude_Preview__preview_logs`.
+
+### Auto-fixed (2 issues)
+
+- **`apps/web/client/src/utils/auth/clerk-bridge.ts:loadBridgedUser`** — Convex `fetchQuery` / `fetchMutation` and `clerkClient.users.getUser` calls threw uncaught when the Clerk-issued JWT was rejected ("Could not verify OIDC token claim. Check that the token signature is valid and the token hasn't expired."). Caught by `preview_logs` during this session — every protected RSC (`/w/[slug]/projects`, etc.) crashed to the root error boundary with no recovery path: user couldn't sign out, sign in to a different account, or land on `/sign-in`. Wrapped all three call sites in try/catch, added `isConvexUnauthenticated` helper, and return `null` on rejection so the protected-route guard redirects to `/sign-in` for a fresh-token re-auth. Fix verified in code but Turbopack module cache for `'server-only'` modules was stuck during preview validation — the in-process server kept executing the previous-version compiled chunk. Effective after a dev-server restart in production-style builds it applies on the next request.
+
+- **`apps/web/client/src/app/sign-in/desktop-handoff/page.tsx`** — `await createTicketFor(userId)` (Clerk Backend `signInTokens.createSignInToken`) was un-caught. A Clerk-side failure (network outage, rate limit, account disabled between the `auth()` check and the token mint) bubbled to Next.js' global error boundary — generic crash page, no way back. Wrapped in try/catch with a `<HandoffErrorScreen>` fallback that renders the same chrome as the success path and links to `/sign-in`.
+
+### Needs human review (8 issues)
+
+- **`apps/desktop/main.js:ipcMain.handle('weblab:open-external')`** — IPC handler does not validate `event.senderFrame.url` against `ALLOWED_IPC_ORIGINS`. A renderer that has navigated off-origin (e.g. to a third-party iframe that escaped the CSP, or a future bug that lets an attacker XSS the page) could call `weblabNative.openExternal('https://phish.example')` and the OS browser would open it in the user's default browser. Same defense-in-depth gap pre-existed on the legacy `weblab:open-oauth` channel and is now inherited by the alias. The cross-process risk is bounded (the URL just opens externally; it can't reach the desktop's filesystem or partition cookies) but the phishing surface is real. Fix sketch: in the handler, look up `event.senderFrame?.url` and reject any URL whose origin isn't in `ALLOWED_IPC_ORIGINS`. Same pattern as the CLI bridge in `weblab-cli.js`.
+
+- **`apps/desktop/main.js:handleDeepLink` `weblab://auth/handoff?ticket=…`** — Sign-in-ticket CSRF. An attacker can craft a deep-link payload with their own freshly-minted ticket and trick the user into opening it (macOS will prompt "Open in Weblab?" for any `weblab://` URL). If the user accepts, the desktop redeems the attacker's ticket and the user is signed into the attacker's Clerk account on their machine — every subsequent action, project, payment method now lands in the attacker's account. Mitigation: the desktop should mint a per-launch nonce when it first calls `openExternal('/sign-in/desktop-handoff?…&nonce=…')`, persist the nonce in `app.getPath('userData')`, and require the ticket to be redeemed only when the deep link's nonce matches the persisted one. Server-side `createSignInToken` would need to accept and round-trip the nonce, or the desktop would need to call a separate `/api/desktop/verify-nonce` before redeeming. Real attack but requires social-engineering the user into opening a hostile `weblab://` URL.
+
+- **`apps/web/client/src/app/sign-in/redeem/redeem-client.tsx:91-93`** — `setActive` → `router.replace('/projects')` race. Clerk's `setActive` writes the session cookie into the partition; immediately after, `router.replace` triggers a client navigation that the server renders. There is no documented guarantee that the cookie is committed to the browser's cookie store before the next request fires. Symptom would be: redeem completes, navigates to `/projects`, server `getCurrentUser` returns null, user gets redirected back to `/sign-in` — looks like sign-in failed. Hard to reproduce locally; would surface on slow disks / high-CPU. Fix sketch: after `setActive`, wait until `useUser().isSignedIn === true` before navigating (poll with a small interval, or subscribe to Clerk's session signal).
+
+- **`apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx:360-369`** — In `startOtpFlow`, after `isAlreadySignedInError(err)` is true we `signOut()` and retry `createSignInAttempt`. If that retry ALSO throws `isAlreadySignedInError` (e.g., `signOut` returned before the session cookie was actually cleared in the embedded Chromium partition), the error is treated as non-recoverable and we fall through to the `form_identifier_not_found` branch — which then re-throws the "already signed in" error wrapped in a generic message. Fix sketch: detect `isAlreadySignedInError(retryError)` and either retry once more after a small delay, or bail out with a clear "Please reload the app" message.
+
+- **`apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx:30-47`** — Hydration mismatch risk (React error #418 was observed in the user's Electron logs). The component starts with `desktop.isDesktop = false`, then sets to `true` in `useEffect`. First client render matches server, so should be safe — but the `pkg.version` vs `desktop.version` swap and the `<Link>` vs raw `<BrandLogo>` swap both happen on a post-hydration setState. If a downstream subscriber reads desktop state during the same render pass (e.g. a `next-intl` translation that consumes `data-desktop`), the server-rendered text and the hydrated-client text differ. Refactor to a `mounted` flag + `useEffect(() => setMounted(true))` and gate the variant swap on `mounted` so the FIRST hydrate render is always equal to the server output, eliminating the class of mismatches.
+
+- **`apps/web/client/src/app/sign-in/verify/page.tsx:handleResend`** — After a successful resend, the URL `?sentAt=` param is NOT updated, only the `resendCountdown` state. If the user refreshes the page after resending, `initialCountdown` is computed from the stale `sentAt` URL value, and the cooldown UI is wrong (shows shorter than the actual cooldown). Fix sketch: in `handleResend`, after the Clerk re-create succeeds, `router.replace` to the same path with a fresh `sentAt=Date.now()`.
+
+- **`apps/web/client/src/app/sign-in/desktop-handoff/handoff-client.tsx:26-36`** — No fallback if the `weblab://` protocol handler isn't registered on the OS (user uninstalled the desktop app, browser doesn't trust unknown schemes). `window.location.href = 'weblab://...'` silently does nothing in some browsers, and the user sees the "Returning to Weblab…" spinner forever. The manual "Open Weblab" button is the only recovery. Fix sketch: after a 3–5s timeout with no page-unload event, render a fallback "Don't have Weblab desktop? Download here." link or a "Stay signed in to the browser" alternative.
+
+- **`apps/web/client/src/app/project/[id]/page.tsx:81`** *(out of strict auth scope but discovered while running preview validation)* — `fetchQuery(api.projects.getEditorBootstrap, { projectId: projectId as Id<'projects'> }, …)` casts the raw URL segment to a Convex `Id<'projects'>` without validating its format, then Convex throws `ArgumentValidationError: Value does not match validator. Path: .projectId Value: "<uuid>" Validator: v.id("projects")` (UUID-shaped values from the old Supabase-era links land here). The cast lies to the type system and the runtime crashes. Fix sketch: validate the id with `Id<'projects'>` or a regex (Convex ids are base32-ish, fixed-length) before the call, returning a 404 page when malformed instead of crashing.
+
+
 
 Two-pass `/bug-hunt` over `apps/web/client/src/components/ui/pricing-modal/`,
 `apps/web/client/src/components/ui/pricing-table/`,
@@ -1679,3 +1707,132 @@ share an enum identity with the matching union types returned from
 Convex. Repo-wide cleanup: convert those enums to `as const` literal
 unions or branded aliases that match the Convex schema.
 
+## 2026-05-27 — Bug hunt round 2 (F-080..F-093 + adjacent)
+
+### Auto-fixed (3 issues)
+
+- `apps/web/client/src/app/invitation/[id]/_components/main.tsx:24-25` —
+  `useSearchParams()` called twice in same render
+  (`const searchParams = useSearchParams();` + `const token =
+  useSearchParams().get('token');`). Two hook slots, same value. Replaced
+  the second call with `searchParams.get('token')`.
+- `apps/web/client/src/app/auth/auth-context.tsx:30` — `setIsAuthModalOpen`
+  built `returnUrl` from `window.location.pathname` only, dropping the
+  `search` query string. Any auth-gated action on a page with query params
+  (`/projects?filter=foo`, `/projects/templates?q=...`, etc.) lost them
+  after sign-in. 8 callers across hero, projects/creating, templates
+  modals. Now uses `${pathname}${search}` to match the pattern in
+  `invitation/_components/auth.tsx`. Hash intentionally dropped — server
+  `redirect()` strips them anyway.
+- `apps/web/client/src/app/sign-in/[[...rest]]/page.tsx:60-69` — Self-loop
+  guard. If an authed user hit `/sign-in?returnUrl=/sign-in` (e.g. from a
+  stray `setIsAuthModalOpen(true)` firing while already on `/sign-in`),
+  the page called `redirect(sanitized)` → `/sign-in` → loop. Now: if
+  `sanitized` equals `/sign-in` or `/sign-up`, fall through to
+  `Routes.PROJECTS`. Latent — unreachable via known UI paths today, but
+  cheap defensive guard.
+
+### Needs human review (4 issues)
+
+- `apps/web/client/src/app/sign-in/verify/page.tsx:174-180` — Non-`complete`
+  OTP status (Clerk reports e.g. `needs_second_factor`,
+  `needs_identifier`) does `router.replace('/sign-in?reason=status:X')`.
+  But the sign-in page doesn't read `?reason`, so the user lands on the
+  form with no visible error. Either thread `reason` into
+  `<ClerkAuthForm initialEmailError>` and render a banner, or surface the
+  status on the verify page before redirecting. Currently rare (Clerk
+  defaults to no MFA), but if a user enables a second factor mid-flow it
+  fails silently.
+- `apps/web/client/src/app/sign-in/verify/page.tsx:194-205` — When the
+  user types a 6-digit code before Clerk hooks finish loading
+  (`!isLoaded`), `handleVerify` early-returns silently. UX gap: input
+  shows the digits, nothing happens, no feedback. Options: (a) defer
+  auto-submit until `isLoaded`, (b) show a "Loading…" hint while
+  `!isLoaded`, (c) keep the submit pending and fire it once `isLoaded`
+  becomes true. Low-frequency edge (Clerk usually loads in <500ms).
+- `apps/web/client/src/utils/constants/index.ts:29` —
+  `AUTH_CALLBACK: '/auth/callback'` is a dead constant. No route at
+  `/auth/callback` exists (only `/auth/redirect`, `/auth/auth-code-error`)
+  and nothing references `Routes.AUTH_CALLBACK` in `src/`. Either restore
+  the route or remove the constant. Doc-only cleanup, no runtime impact.
+- `apps/web/client/src/app/invitation/[id]/_components/main.tsx:32-34` —
+  Convex `useQuery(api.projectInvitations.getWithoutToken, { id:
+  invitationId as Id<'projectInvitations'> })` throws to the root
+  ErrorBoundary when `invitationId` isn't a syntactically valid Convex
+  `Id` (anyone pastes a stale or garbage URL like `/invitation/abc?token=…`).
+  **Reproduced:** validator error `Validator: v.id("projectInvitations")`
+  → "Unexpected error / Something went wrong" full-page boundary instead
+  of the page-local "Invitation not found" UI. Fix surface: either (a)
+  move the lookup to the server component (`page.tsx`) via `fetchQuery`
+  with try/catch and pass an `{ ok | not-found }` prop, or (b) add a
+  local ErrorBoundary around `<Main>` that maps the validator error to
+  the existing not-found card. Pre-existing — not introduced by this
+  pass. `/invitation/workspace/[id]` looks up by `token` (string), not
+  `id`, so it doesn't trip the validator the same way.
+
+### Examined and clean
+
+- All `Routes.*` constants used by F-080..F-093 (`LOGIN`, `LOGIN_VERIFY`,
+  `AUTH_REDIRECT`, `AUTH_CODE_ERROR`, `PROFILE_SETUP`, `PROJECTS`,
+  `PROJECT`, `IMPORT_FIGMA`, `IMPORT_GITHUB`, `CALLBACK_STRIPE_*`,
+  `HOME`) resolve to extant routes.
+- `sanitizeReturnUrl` (both impls) reject CRLF, control chars, `\\`,
+  `//`-prefix, and non-`/`-prefixed values. No open-redirect surface
+  found.
+- `clerk-auth-form.tsx` OAuth + email flows: identifier-not-found → fall
+  through to `signUp.create` works as documented; `isAlreadySignedInError`
+  retry path is bounded.
+- `invitation/[id]/_components/main.tsx` accept + decline paths handle
+  loading / error / not-found states; null-token defensive guard on the
+  Accept button.
+- `invitation/workspace/[id]/_components/main.tsx` `skip` parameter
+  correctly threaded through `useQuery`; `isLoading` derivation skips
+  when token is absent.
+- `getCurrentUser` / `getClerkBridgedUser` correctly returns `null` for
+  unauthenticated requests; loud server log on Clerk JWT-template
+  misconfig.
+
+### Validation
+
+- `bun typecheck` → exit 0.
+- `bun lint` → 0 new warnings on touched files.
+
+
+## Deep Bug Hunt — 2026-05-27 — F-220..F-250 (left-panel)
+
+Recursive defect scan over `apps/web/client/src/app/project/[id]/_components/left-panel/**`. Maps to feature catalog F-220..F-250 (design-panel tabs + code-panel). Priorities: logic errors, async issues, React hook issues, null/undefined access, Radix/contract violations, MobX issues, memory leaks.
+
+### Auto-fixed (3)
+
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/windows-tab/device-settings.tsx:16-22` — `frameData.view.getTheme().then(setTheme)` ran an unguarded setState after async resolution. If `frameData` flipped or the component unmounted before the promise resolved, the late callback called `setTheme` against a stale (or different-frame) component. Added a `cancelled` flag and effect-teardown that flips it; the resolve-callback now no-ops when stale.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/windows-tab/frame-dimensions.tsx:27-48` — Rules of Hooks violation: the function declared a `useState(...)` call **after** an early-return for `\!frameData`. If `frameData` was present on first render and removed later (frame deleted while the panel is open), React would render fewer hooks and crash with "Rendered fewer hooks than expected." Moved both `useState` calls above the early return and switched their initializers to use `frameData?.frame.dimension.width ?? 0` so the unconditional path is safe when `frameData` is null.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-editor.tsx:193-208` — was already covered as a stale-Promise risk; added a `TODO(bug-hunt-deep)` for the un-cleared `setTimeout(handleNavigation, 100)` (see below) rather than auto-fixing because the cleanup requires restructuring `onCreateEditor` into an effect.
+
+### Needs human review (5)
+
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:551-578` — `handleDeleteFile` deletes the file on disk via `branchData.codeEditor.deleteFile(path)` but never removes the matching entries from `openedEditorFiles` or the `editorViewsRef` map. Deleting a file (or directory whose descendants are open) leaves orphaned tabs whose Save / Read-back / dirty-check silently fail against a path that no longer exists. Fix: after the toast promise resolves, iterate opened files whose path equals `path` or starts with `${path}/` and call `closeFileInternal` for each. `TODO(bug-hunt-deep)` added.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/branches-tab/branch-management.tsx:99-117` — In `handleDelete`, the Convex `removeBranchMutation` runs first, then `switchToBranch(switchTargetId)` if needed, then `editorEngine.branches.removeBranch`. If `switchToBranch` throws, the Convex row is deleted but the local MobX collection retains the stale branch. The branch keeps appearing in the list but can never be selected. Fix: move `removeBranch` above the switch (or wrap the switch in its own try). `TODO(bug-hunt-deep)` added.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-editor.tsx:193-208` — `setTimeout(() => handleNavigation(editor, navigationTarget), 100)` inside `onCreateEditor` is never cleared. If the editor is destroyed in that 100ms window (file closed, branch switched), the callback dispatches against a destroyed view. CodeMirror tolerates it today (no-op) but is not contractually safe. `TODO(bug-hunt-deep)` added with the suggested fix.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:415-426` — `closeLocalFile`'s `isDirty(...).then(...)` runs without a cancellation guard. Rapid double-close or close-then-unmount lets the late callback drive `closeFileInternal` (no-op safe) or pop the unsaved dialog against already-stale state. Same pattern at `:428-446` (`closeAllLocalFiles`). `TODO(bug-hunt-deep)` added on the first occurrence; the second has the same root cause.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/brand-tab/variables-panel/index.tsx:122-126` — `VariableRow` syncs `light` / `dark` / `hasDark` state from props in an effect. If the user is mid-typing in the value input when the underlying observable updates (e.g. an external scan completes), their typed input is wiped. Typical "controlled vs. uncontrolled" race. Not auto-fixed because the right behavior is product-dependent (preserve user input vs. always reflect source-of-truth).
+
+### Verified NOT bugs (12)
+
+These were candidate findings that I confirmed are safe under the actual code paths. Logging them so future agents don't re-flag.
+
+- `design-panel/layers-tab/tree/tree-node.tsx:247` — `node.data.isVisible = \!node.data.isVisible` looks like a MobX write outside `runInAction`, but `LayerNode` is plain data (not an observable), so this is just an in-memory toggle. No MobX warning fires in dev.
+- `design-panel/layers-tab/tree/tree-node.tsx:175-186` — `parentGroupEnd` returns `false`, `true`, or falls through with no return. The falsy `undefined` is consumed by a `cn()` boolean coercion (line 206) where `undefined` is treated as falsy. Equivalent to `false`. Safe.
+- `design-panel/layers-tab/index.tsx:26-29` — `useEffect(handleSelectChange, [...])` references `handleSelectChange` declared at `:36` via function-declaration hoisting. Hoisting makes this safe. Looks suspicious but is correct.
+- `design-panel/search-tab/use-search.ts:209` — `useMemo` dep list omits the captured `editorEngine` (eslint-disable comment present and accurate). The intentional design is that `selectionKey` / `layerSizesKey` derived primitives drive recomputation; `editorEngine` is read inside the memo for fresh data. Documented in the existing comment.
+- `design-panel/search-tab/index.tsx:30-80` — `ResultList` re-builds grouping arrays on every render (no memo). Tested with 500 max items — perf hot path but not a bug. Skipped per scope rules ("perf hot paths" not in this hunt).
+- `design-panel/search-tab/search-result-row.tsx:14` — declares `onHover?` prop but `ResultList` never passes it. Dead prop, not a bug; intentional optional API.
+- `design-panel/page-tab/index.tsx:53-55` — `useEffect(() => { editorEngine.pages.scanPages(); }, [])` omits `editorEngine.pages` from deps. `useEditorEngine()` returns a stable singleton ref, so the closure never goes stale. Equivalent to a `useEffect(..., [])` mount-only effect; intentional.
+- `code-panel/code-tab/file-content/code-editor.tsx:144-150` — `mouseup` schedules `setTimeout(setShowButton(true), 0)`. The 0-ms timer fires in the same microtask cycle, before any cleanup can run. No leak.
+- `code-panel/code-tab/file-content/tab-complete/extension.ts:251-253` — `view.dispatch(setSuggestionEffect.of(...))` after fetch resolves. The `ViewPlugin.destroy()` at `:259-262` aborts the controller and clears the timer on view teardown, so dispatch against a destroyed view is not reachable in practice.
+- `design-panel/asset-tab/asset-item.tsx:269-270` — `onMouseDown` / `onMouseUp` toggle insert-mode only when `isImage && \!selectionMode`. Click-without-drag triggers mouseup which resets editor mode to DESIGN. Looks like dead state but is the documented "image click = enter insert mode briefly" UX.
+- `design-panel/branches-tab/index.tsx:259` — `onClick={() => handleBranchSwitch(branch.id)}` ignores the returned Promise. The handler catches its own errors internally and toasts; safe.
+- `design-panel/brand-tab/font-panel/index.tsx:75-80` — `useCallback(debounce(performSearch, 300), [performSearch])` re-evaluates `debounce(...)` on every render but `useCallback` memoizes by `[performSearch]`, so the same debounced instance is returned between renders where `performSearch` is stable. Timer state is preserved across keystrokes.
+
+### Validation
+
+- `bun typecheck` → exit 0 after fixes.

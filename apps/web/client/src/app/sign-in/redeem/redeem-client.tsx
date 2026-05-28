@@ -89,6 +89,12 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
                 }
 
                 await setActive({ session: attempt.createdSessionId });
+                // TODO(bug-hunt): cookie-write race. `setActive` writes the
+                // session cookie into the partition; `router.replace` fires
+                // immediately after and the server may render `/projects`
+                // before the cookie is committed, bouncing back to /sign-in
+                // and looking like a failed sign-in. Fix: wait for
+                // `useUser().isSignedIn === true` before navigating.
                 setState({ status: 'success' });
                 router.replace('/projects');
             } catch (err) {
