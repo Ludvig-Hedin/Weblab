@@ -113,9 +113,18 @@ const nextConfig: NextConfig = {
                             "object-src 'none'",
                             "img-src 'self' data: blob: https:",
                             "font-src 'self' data: https:",
-                            process.env.NODE_ENV === 'production'
-                                ? "script-src 'self' 'unsafe-inline' https:"
-                                : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+                            // `unsafe-eval` is required in prod too: Next 16
+                            // Turbopack ships chunks that evaluate strings
+                            // (`new Function(...)`) during module init, and
+                            // several runtime deps (mobx, AI tooling, parser
+                            // helpers) follow the same pattern. Dropping it
+                            // in prod broke the entire client bundle — every
+                            // visit ended on the global error boundary with
+                            // `EvalError: Evaluating a string as JavaScript
+                            // violates the following Content Security Policy
+                            // directive` (see BACKLOG: "harden CSP — drop
+                            // unsafe-eval via nonces/strict-dynamic").
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
                             "style-src 'self' 'unsafe-inline' https:",
                             // Local Ollama is a development convenience only. In production we
                             // must not advertise that any visitor's localhost is reachable from
