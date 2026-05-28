@@ -38,7 +38,7 @@ export const PreviewDomain = observer(() => {
                     </div>
                     <div className="flex flex-1 gap-2">
                         <Input value={baseUrl} disabled className="bg-muted" />
-                        <Link href={validUrl} target="_blank" className="text-sm">
+                        <Link href={validUrl} target="_blank" className="text-small">
                             <Button variant="ghost" size="icon">
                                 <Icons.ExternalLink className="h-4 w-4" />
                             </Button>

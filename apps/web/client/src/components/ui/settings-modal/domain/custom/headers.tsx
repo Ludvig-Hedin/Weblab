@@ -28,7 +28,7 @@ export const ConfigureHeader = observer(() => {
                 <Button
                     variant="secondary"
                     size="sm"
-                    className="h-8 px-3 text-sm"
+                    className="h-8 px-3 text-small"
                     onClick={verifyDomain}
                     disabled={isLoading}
                 >

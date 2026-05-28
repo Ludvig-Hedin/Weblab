@@ -21,9 +21,9 @@ export const DnsRecords = observer(() => {
 
     return (
         <div className="grid grid-cols-7 gap-4 rounded-lg border p-4">
-            <div className="col-span-1 text-sm font-medium">Type</div>
-            <div className="col-span-3 text-sm font-medium">Host</div>
-            <div className="col-span-3 text-sm font-medium">Value</div>
+            <div className="col-span-1 text-small font-medium">Type</div>
+            <div className="col-span-3 text-small font-medium">Host</div>
+            <div className="col-span-3 text-small font-medium">Value</div>
 
             {records.map((record, index) => (
                 <Fragment key={`${record.type}-${record.name}-${index}`}>
@@ -53,7 +53,7 @@ function RecordField({
     };
 
     return (
-        <div className={cn('group relative p-1 text-sm', className)}>
+        <div className={cn('group relative p-1 text-small', className)}>
             <p className="overflow-auto pr-6 text-ellipsis">{value}</p>
             {copyable && (
                 <Button

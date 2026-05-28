@@ -183,7 +183,7 @@ export const VersionRow = observer(
                     </div>
                     <span className="text-muted-foreground font-light">
                         {commit.author.name}{' '}
-                        <span className="mx-0.45 inline-block scale-75 text-xs">•</span>{' '}
+                        <span className="mx-0.45 text-mini inline-block scale-75">•</span>{' '}
                         {renderDate()}
                     </span>
                 </span>

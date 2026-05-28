@@ -18,7 +18,7 @@ export const Verification = observer(() => {
                     <DnsRecords />
                 </>
             )}
-            {error && <p className="text-destructive text-sm whitespace-pre-wrap">{error}</p>}
+            {error && <p className="text-destructive text-small whitespace-pre-wrap">{error}</p>}
         </div>
     );
 });

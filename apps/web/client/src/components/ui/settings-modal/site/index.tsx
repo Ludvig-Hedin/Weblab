@@ -144,7 +144,7 @@ export const SiteTab = observer(() => {
                     <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
                         <div className="text-foreground-secondary flex items-center gap-3">
                             <Icons.LoadingSpinner className="h-5 w-5 animate-spin" />
-                            <span className="text-sm">Fetching metadata...</span>
+                            <span className="text-small">Fetching metadata...</span>
                         </div>
                     </div>
                 ) : (

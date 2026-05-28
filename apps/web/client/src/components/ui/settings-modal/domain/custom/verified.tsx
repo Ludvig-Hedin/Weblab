@@ -40,7 +40,7 @@ export const Verified = () => {
                     <Input value={baseUrl ?? ''} readOnly className="bg-muted" />
                     <div className="flex items-center gap-1">
                         <Icons.CheckCircled className="text-foreground-success h-4 w-4" />
-                        <span className="text-xs">Verified</span>
+                        <span className="text-mini">Verified</span>
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
