@@ -12,7 +12,6 @@ export default function SsoCallbackPage() {
     return (
         <div className="flex h-screen w-screen flex-col items-center justify-center gap-4">
             <Icons.LoadingSpinner className="text-foreground-secondary h-6 w-6 animate-spin" />
-            <p className="text-foreground-secondary text-small">Finishing sign-in…</p>
 
             <AuthenticateWithRedirectCallback
                 // Sign-IN: use a FALLBACK (not force) redirect so the per-flow

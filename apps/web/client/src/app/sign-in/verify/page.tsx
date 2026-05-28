@@ -270,7 +270,6 @@ export default function ClerkVerifyPage() {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center gap-3">
                 <Icons.LoadingSpinner className="text-foreground-secondary h-6 w-6 animate-spin" />
-                <p className="text-foreground-tertiary text-sm">Checking session…</p>
             </div>
         );
     }
