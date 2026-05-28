@@ -9,7 +9,7 @@ import {
     filterExcludedPaths,
     getFileTypePattern,
     isPathExcluded,
-} from '@weblab/ai/src/tools/shared/helpers/cli';
+} from '../../src/tools/shared/helpers/cli';
 
 describe('Tool Helpers', () => {
     describe('DEFAULT_EXCLUDED_PATTERNS', () => {

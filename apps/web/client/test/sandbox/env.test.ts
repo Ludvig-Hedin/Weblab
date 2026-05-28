@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { parseEnvContent } from '../../src/server/api/routers/publish/helpers/env';
+// Source moved during Convex migration. The legacy tRPC router
+// `src/server/api/routers/publish/helpers/env` was deleted; the helper
+// lives alongside the publish Convex action now.
+import { parseEnvContent } from '../../convex/lib/publishHelpers';
 
 describe('parseEnvContent', () => {
     test('should parse basic key-value pairs', () => {

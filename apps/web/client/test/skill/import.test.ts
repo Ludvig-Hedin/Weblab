@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
-import { parseSkillSource } from '../../src/server/api/routers/skill/import';
+// Source moved during Convex migration. The legacy tRPC router
+// `src/server/api/routers/skill/import` was deleted; logic lives in
+// the Convex action helper now.
+import { parseSkillSource } from '../../convex/lib/skillImport';
 
 describe('parseSkillSource', () => {
     test('parses standard frontmatter + body', () => {

@@ -1,8 +1,8 @@
 import { describe, expect, mock, test } from 'bun:test';
 
 import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
-import { SearchReplaceEditTool } from '@weblab/ai/src/tools/classes/search-replace-edit';
-import { SearchReplaceMultiEditFileTool } from '@weblab/ai/src/tools/classes/search-replace-multi-edit';
+import { SearchReplaceEditTool } from '../../src/tools/classes/search-replace-edit';
+import { SearchReplaceMultiEditFileTool } from '../../src/tools/classes/search-replace-multi-edit';
 
 describe('SearchReplaceEditTool', () => {
     test('should replace single occurrence', async () => {
