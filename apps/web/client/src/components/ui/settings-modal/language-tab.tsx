@@ -29,8 +29,8 @@ export const LanguageTab = observer(() => {
     };
 
     return (
-        <div className="flex flex-col gap-16 p-6">
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+        <div className="divide-border flex flex-col divide-y px-6">
+            <section className="space-y-4 py-6">
                 <div>
                     <h2 className="text-largePlus">Language</h2>
                     <p className="text-regular text-foreground-tertiary">

@@ -8,7 +8,6 @@ import { observer } from 'mobx-react-lite';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
-import { cn } from '@weblab/ui/utils';
 
 import { SHORTCUT_SECTIONS } from '@/app/project/[id]/_components/keyboard-shortcuts-modal';
 import { DEFAULT_HOTKEYS, makeReadableCommand } from '@/components/hotkey';
@@ -209,8 +208,8 @@ export const ShortcutsTab = observer(() => {
     const hasCustom = Object.keys(stateManager.hotkeys.customBindings).length > 0;
 
     return (
-        <div className="flex flex-col gap-6 p-6" ref={containerRef}>
-            <div className="flex items-center justify-between">
+        <div className="divide-border flex flex-col divide-y px-6" ref={containerRef}>
+            <div className="flex items-center justify-between py-6">
                 <div>
                     <h2 className="text-largePlus">Keyboard shortcuts</h2>
                     <p className="text-regular text-foreground-tertiary">
@@ -225,10 +224,7 @@ export const ShortcutsTab = observer(() => {
             </div>
 
             {SHORTCUT_SECTIONS.map((section) => (
-                <section
-                    key={section.title}
-                    className="border-border bg-background-secondary rounded-lg border p-4"
-                >
+                <section key={section.title} className="py-6">
                     <h3 className="text-regularPlus mb-3">{section.title}</h3>
                     <div className="space-y-0.5">
                         {section.keys.map((key) => (

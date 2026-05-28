@@ -107,9 +107,9 @@ export const AppearanceTab = observer(() => {
     );
 
     return (
-        <div className="flex flex-col gap-16 p-6">
+        <div className="divide-border flex flex-col divide-y px-6">
             {/* Theme */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div>
                     <h2 className="text-largePlus">Theme</h2>
                     <p className="text-regular text-foreground-tertiary">
@@ -128,7 +128,7 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Accent color */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div>
                     <h2 className="text-largePlus">Accent color</h2>
                     <p className="text-regular text-foreground-tertiary">
@@ -155,7 +155,7 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Font family */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div>
                     <h2 className="text-largePlus">Font family</h2>
                     <p className="text-regular text-foreground-tertiary">
@@ -173,7 +173,7 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Font size */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div>
                     <h2 className="text-largePlus">Font size</h2>
                     <p className="text-regular text-foreground-tertiary">
@@ -192,7 +192,7 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Density */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div>
                     <h2 className="text-largePlus">Density</h2>
                     <p className="text-regular text-foreground-tertiary">

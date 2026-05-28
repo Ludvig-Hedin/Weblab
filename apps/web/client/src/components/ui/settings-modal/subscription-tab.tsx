@@ -16,7 +16,11 @@ import { formatPrice } from '../pricing-modal/pro-card';
 import { useSubscription } from '../pricing-modal/use-subscription';
 
 const formatDate = (ts: number) =>
-    new Date(ts).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    new Date(ts).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    });
 
 const UsageRow = ({ label, used, limit }: { label: string; used: number; limit: number }) => {
     const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
@@ -73,9 +77,9 @@ export const SubscriptionTab = observer(() => {
     };
 
     return (
-        <div className="flex flex-col gap-16 p-6">
+        <div className="divide-border flex flex-col divide-y px-6">
             {/* Current plan */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <h2 className="text-largePlus">Current plan</h2>
 
                 <div className="flex items-start justify-between gap-4">
@@ -124,7 +128,7 @@ export const SubscriptionTab = observer(() => {
             </section>
 
             {/* Usage */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <h2 className="text-largePlus">Usage</h2>
                 {usage === undefined ? (
                     <p className="text-small text-foreground-tertiary">Loading usage…</p>
@@ -151,7 +155,7 @@ export const SubscriptionTab = observer(() => {
             </section>
 
             {/* Billing */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                         <h2 className="text-largePlus">Billing</h2>

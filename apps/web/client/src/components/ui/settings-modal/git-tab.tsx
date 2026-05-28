@@ -100,8 +100,8 @@ export const GitTab = observer(() => {
     );
 
     return (
-        <div className="flex flex-col gap-16 p-6">
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+        <div className="divide-border flex flex-col divide-y px-6">
+            <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h2 className="text-largePlus">Commit behaviour</h2>
@@ -140,7 +140,7 @@ export const GitTab = observer(() => {
                 </div>
             </section>
 
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h2 className="text-largePlus">Naming conventions</h2>

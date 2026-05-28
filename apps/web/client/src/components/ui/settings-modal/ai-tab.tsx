@@ -199,9 +199,9 @@ export const AITab = observer(() => {
     );
 
     return (
-        <div className="flex flex-col gap-16 p-6">
+        <div className="divide-border flex flex-col divide-y px-6">
             {/* Default model */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h2 className="text-largePlus">Default model</h2>
@@ -243,7 +243,7 @@ export const AITab = observer(() => {
             </section>
 
             {/* Local models (Ollama) */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h2 className="text-largePlus">Local models</h2>
@@ -309,7 +309,7 @@ export const AITab = observer(() => {
             </section>
 
             {/* Chat behaviour */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <h2 className="text-largePlus">Chat behaviour</h2>
                     <SaveStatus />

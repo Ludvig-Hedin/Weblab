@@ -58,9 +58,9 @@ export const AccountTab = observer(() => {
     };
 
     return (
-        <div className="flex flex-col gap-16 p-6">
+        <div className="divide-border flex flex-col divide-y px-6">
             {/* Profile */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-center gap-2">
                     <h2 className="text-largePlus">Profile</h2>
                     {provider && (

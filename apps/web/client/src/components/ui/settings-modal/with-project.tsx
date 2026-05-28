@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'motion/react';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { Separator } from '@weblab/ui/separator';
 import { cn } from '@weblab/ui/utils';
 import { capitalizeFirstLetter } from '@weblab/utility';
 
@@ -142,92 +141,89 @@ export const SettingsModalWithProjects = observer(() => {
                         transition={{ duration: 0.15 }}
                         className="pointer-events-none fixed inset-0 z-50 flex items-start justify-center sm:items-center"
                     >
-                        <div className="bg-background pointer-events-auto h-[100dvh] w-screen rounded-none border p-0 shadow-lg sm:h-[700px] sm:max-h-screen sm:w-[900px] sm:max-w-4xl sm:rounded-lg">
-                            <div className="flex h-full flex-col overflow-hidden">
-                                {/* Top bar - fixed height */}
-                                <div className="ml-1 flex shrink-0 items-center p-5 pb-4 select-none">
-                                    <h1 className="text-title3">Settings</h1>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="ml-auto"
-                                        onClick={() => stateManager.setIsSettingsModalOpen(false)}
-                                    >
-                                        <Icons.CrossS className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                                <Separator orientation="horizontal" className="shrink-0" />
+                        <div className="bg-background pointer-events-auto h-[100dvh] w-screen overflow-hidden rounded-none border p-0 shadow-lg sm:h-[700px] sm:max-h-screen sm:w-[900px] sm:max-w-4xl sm:rounded-lg">
+                            <div className="flex h-full overflow-hidden">
+                                {/* Sidebar */}
+                                <div className="flex w-52 shrink-0 flex-col overflow-y-auto p-3 select-none">
+                                    <div className="mb-3 flex items-center justify-between px-2.5 pt-1">
+                                        <h1 className="text-largePlus">Settings</h1>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() =>
+                                                stateManager.setIsSettingsModalOpen(false)
+                                            }
+                                        >
+                                            <Icons.CrossS className="h-4 w-4" />
+                                        </Button>
+                                    </div>
 
-                                {/* Main content */}
-                                <div className="flex min-h-0 flex-1 overflow-hidden">
-                                    {/* Left navigation - fixed width */}
-                                    <div className="flex flex-col overflow-y-scroll select-none">
-                                        <div className="w-48 shrink-0 space-y-1 p-3">
-                                            <p className="text-mini text-foreground-tertiary mt-2 mb-0.5 ml-2.5">
-                                                Project
-                                            </p>
-                                            <div className="text-foreground-tertiary mb-3 ml-2.5 flex items-center gap-1.5">
-                                                <Icons.Branch className="min-h-3 min-w-3" />
-                                                <span
-                                                    className="text-mini max-w-30 truncate"
-                                                    title={editorEngine.branches.activeBranch.name}
-                                                >
-                                                    {editorEngine.branches.activeBranch.name}
-                                                </span>
-                                            </div>
-                                            {projectTabs.map((tab) => (
-                                                <Button
-                                                    key={tab.label}
-                                                    variant="ghost"
-                                                    className={cn(
-                                                        'w-full justify-start px-2.5',
-                                                        stateManager.settingsTab === tab.label
-                                                            ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
-                                                            : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
-                                                    )}
-                                                    onClick={() =>
-                                                        stateManager.setSettingsTab(tab.label)
-                                                    }
-                                                >
-                                                    {tab.icon}
-                                                    {capitalizeFirstLetter(tab.label.toLowerCase())}
-                                                </Button>
-                                            ))}
+                                    {/* Project group */}
+                                    <div className="space-y-1">
+                                        <p className="text-mini text-foreground-tertiary mb-0.5 ml-2.5">
+                                            Project
+                                        </p>
+                                        <div className="text-foreground-tertiary mb-2 ml-2.5 flex items-center gap-1.5">
+                                            <Icons.Branch className="min-h-3 min-w-3" />
+                                            <span
+                                                className="text-mini max-w-30 truncate"
+                                                title={editorEngine.branches.activeBranch.name}
+                                            >
+                                                {editorEngine.branches.activeBranch.name}
+                                            </span>
                                         </div>
-                                        <Separator />
-                                        <div className="w-48 shrink-0 space-y-1 p-3">
-                                            <p className="text-mini text-foreground-tertiary mt-2 mb-2 ml-2.5">
-                                                Global Settings
-                                            </p>
-                                            {globalTabs.map((tab) => (
-                                                <Button
-                                                    key={tab.label}
-                                                    variant="ghost"
-                                                    className={cn(
-                                                        'w-full justify-start px-2.5',
-                                                        stateManager.settingsTab === tab.label
-                                                            ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
-                                                            : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
-                                                    )}
-                                                    onClick={() =>
-                                                        stateManager.setSettingsTab(tab.label)
-                                                    }
-                                                >
-                                                    {tab.icon}
-                                                    {capitalizeFirstLetter(tab.label.toLowerCase())}
-                                                </Button>
-                                            ))}
-                                        </div>
+                                        {projectTabs.map((tab) => (
+                                            <Button
+                                                key={tab.label}
+                                                variant="ghost"
+                                                className={cn(
+                                                    'w-full justify-start px-2.5',
+                                                    stateManager.settingsTab === tab.label
+                                                        ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
+                                                        : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
+                                                )}
+                                                onClick={() =>
+                                                    stateManager.setSettingsTab(tab.label)
+                                                }
+                                            >
+                                                {tab.icon}
+                                                {capitalizeFirstLetter(tab.label.toLowerCase())}
+                                            </Button>
+                                        ))}
                                     </div>
-                                    <Separator orientation="vertical" className="h-full" />
-                                    {/* Right content */}
-                                    <div className="flex-1 overflow-y-auto">
-                                        {
-                                            tabs.find(
-                                                (tab) => tab.label === stateManager.settingsTab,
-                                            )?.component
-                                        }
+
+                                    {/* Global group */}
+                                    <div className="mt-4 space-y-1">
+                                        <p className="text-mini text-foreground-tertiary mb-1 ml-2.5">
+                                            Global Settings
+                                        </p>
+                                        {globalTabs.map((tab) => (
+                                            <Button
+                                                key={tab.label}
+                                                variant="ghost"
+                                                className={cn(
+                                                    'w-full justify-start px-2.5',
+                                                    stateManager.settingsTab === tab.label
+                                                        ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
+                                                        : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
+                                                )}
+                                                onClick={() =>
+                                                    stateManager.setSettingsTab(tab.label)
+                                                }
+                                            >
+                                                {tab.icon}
+                                                {capitalizeFirstLetter(tab.label.toLowerCase())}
+                                            </Button>
+                                        ))}
                                     </div>
+                                </div>
+                                {/* Content */}
+                                <div className="flex-1 overflow-y-auto">
+                                    {
+                                        tabs.find((tab) => tab.label === stateManager.settingsTab)
+                                            ?.component
+                                    }
                                 </div>
                             </div>
                         </div>

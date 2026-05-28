@@ -147,9 +147,9 @@ export const GitHubTab = () => {
     };
 
     return (
-        <div className="flex flex-col gap-16 p-6">
+        <div className="divide-border flex flex-col divide-y px-6">
             {/* Connection status */}
-            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+            <section className="space-y-4 py-6">
                 <div className="flex items-center gap-3">
                     <Icons.GitHubLogo className="h-5 w-5" />
                     <div>
@@ -263,7 +263,7 @@ export const GitHubTab = () => {
 
             {/* Repo list — only when connected */}
             {isConnected && (
-                <section className="border-border bg-background-secondary space-y-3 rounded-lg border p-4">
+                <section className="space-y-3 py-6">
                     <div className="flex items-center justify-between">
                         <h3 className="text-regularPlus">Accessible repositories</h3>
                         {repos && (
