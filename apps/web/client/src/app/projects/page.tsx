@@ -2,11 +2,11 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
-import { fetchMutation, fetchQuery } from 'convex/nextjs';
 
 import { LAST_WORKSPACE_SLUG_COOKIE } from '@/app/w/[slug]/_components/workspace-context';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
+import { fetchMutationWithTimeout, fetchQueryWithTimeout } from '@/utils/convex/server-fetch';
 
 /**
  * Legacy `/projects` route. Workspaces own the canonical project list at
@@ -30,7 +30,11 @@ export default async function LegacyProjectsPage() {
 
     const { getToken } = await auth();
     const token = await getToken({ template: 'convex' });
-    const workspaces = await fetchQuery(api.workspaces.list, {}, { token: token ?? undefined });
+    const workspaces = await fetchQueryWithTimeout(
+        api.workspaces.list,
+        {},
+        { token: token ?? undefined },
+    );
     if (workspaces.length > 0) {
         const cookieStore = await cookies();
         const lastSlug = cookieStore.get(LAST_WORKSPACE_SLUG_COOKIE)?.value;
@@ -44,7 +48,7 @@ export default async function LegacyProjectsPage() {
         redirect(`/w/${workspaces[0]!.slug}/projects`);
     }
     // Self-heal: create the missing personal workspace, then forward.
-    const personal = await fetchMutation(
+    const personal = await fetchMutationWithTimeout(
         api.workspaces.ensurePersonal,
         {},
         { token: token ?? undefined },

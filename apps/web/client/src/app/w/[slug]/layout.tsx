@@ -3,13 +3,13 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
-import { fetchQuery } from 'convex/nextjs';
 
 import type { WorkspaceKind, WorkspaceRole } from '@weblab/models';
 
 import type { ActiveWorkspace } from './_components/workspace-context';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
+import { fetchQueryWithTimeout } from '@/utils/convex/server-fetch';
 import { WorkspaceProvider } from './_components/workspace-context';
 
 interface WorkspaceLayoutProps {
@@ -33,7 +33,7 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
 
     const { getToken } = await auth();
     const token = await getToken({ template: 'convex' });
-    const workspace = await fetchQuery(
+    const workspace = await fetchQueryWithTimeout(
         api.workspaces.getBySlug,
         { slug },
         { token: token ?? undefined },
