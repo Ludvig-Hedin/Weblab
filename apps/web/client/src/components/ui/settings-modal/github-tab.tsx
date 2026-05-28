@@ -147,7 +147,7 @@ export const GitHubTab = () => {
     };
 
     return (
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-16 p-6">
             {/* Connection status */}
             <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div className="flex items-center gap-3">

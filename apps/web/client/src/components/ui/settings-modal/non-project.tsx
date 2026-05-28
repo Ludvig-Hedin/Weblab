@@ -139,10 +139,10 @@ export const NonProjectSettingsModal = observer(() => {
                                                     key={tab.label}
                                                     variant="ghost"
                                                     className={cn(
-                                                        'w-full justify-start px-0 hover:bg-transparent',
+                                                        'w-full justify-start px-2.5',
                                                         stateManager.settingsTab === tab.label
-                                                            ? 'text-foreground-active'
-                                                            : 'text-muted-foreground',
+                                                            ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
+                                                            : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
                                                     )}
                                                     onClick={() =>
                                                         stateManager.setSettingsTab(tab.label)

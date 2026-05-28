@@ -27,7 +27,7 @@ export const PreviewDomain = observer(() => {
 
     return (
         <div className="flex flex-col space-y-4">
-            <h2 className="text-lg">Base Domain</h2>
+            <h2 className="text-largePlus">Base Domain</h2>
             <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                     <div className="w-1/3">

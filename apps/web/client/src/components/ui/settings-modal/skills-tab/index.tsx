@@ -151,7 +151,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
     return (
         <div className="flex h-full flex-col">
             <div className="space-y-1 px-5 pt-5 pb-3">
-                <h2 className="text-large font-medium">Skills</h2>
+                <h2 className="text-largePlus">Skills</h2>
                 <p className="text-muted-foreground text-mini">
                     Skills teach the AI how to handle specific tasks. The AI lists them via{' '}
                     <code className="bg-muted text-mini rounded px-1 py-0.5">list_skills</code> and

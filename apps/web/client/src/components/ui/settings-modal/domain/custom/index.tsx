@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { ProductType } from '@weblab/stripe';
+import { Badge } from '@weblab/ui/badge';
 import { Icons } from '@weblab/ui/icons';
 
 import type { Id } from '@convex/_generated/dataModel';
@@ -45,12 +46,12 @@ export const CustomDomain = observer(() => {
         <DomainVerificationProvider>
             <div className="space-y-4">
                 <div className="flex items-center justify-start gap-3">
-                    <h2 className="text-lg">Custom Domain</h2>
+                    <h2 className="text-largePlus">Custom Domain</h2>
                     {product?.type === ProductType.PRO && (
-                        <div className="flex h-5 items-center space-x-1 rounded-full bg-blue-500/20 px-2 dark:bg-blue-500">
-                            <Icons.Sparkles className="h-4 w-4" />
-                            <span className="text-xs">Pro</span>
-                        </div>
+                        <Badge variant="secondary" className="text-mini gap-1">
+                            <Icons.Sparkles className="h-3 w-3" />
+                            Pro
+                        </Badge>
                     )}
                 </div>
                 {renderContent()}

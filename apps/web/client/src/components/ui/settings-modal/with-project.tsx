@@ -180,10 +180,10 @@ export const SettingsModalWithProjects = observer(() => {
                                                     key={tab.label}
                                                     variant="ghost"
                                                     className={cn(
-                                                        'w-full justify-start px-0 hover:bg-transparent',
+                                                        'w-full justify-start px-2.5',
                                                         stateManager.settingsTab === tab.label
-                                                            ? 'text-foreground-active'
-                                                            : 'text-muted-foreground',
+                                                            ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
+                                                            : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
                                                     )}
                                                     onClick={() =>
                                                         stateManager.setSettingsTab(tab.label)
@@ -195,8 +195,8 @@ export const SettingsModalWithProjects = observer(() => {
                                             ))}
                                         </div>
                                         <Separator />
-                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-3">
-                                            <p className="text-muted-foreground text-smallPlus mt-2 mb-2 ml-2.5">
+                                        <div className="w-48 shrink-0 space-y-1 p-3">
+                                            <p className="text-mini text-foreground-tertiary mt-2 mb-2 ml-2.5">
                                                 Global Settings
                                             </p>
                                             {globalTabs.map((tab) => (
@@ -204,10 +204,10 @@ export const SettingsModalWithProjects = observer(() => {
                                                     key={tab.label}
                                                     variant="ghost"
                                                     className={cn(
-                                                        'w-full justify-start px-0 hover:bg-transparent',
+                                                        'w-full justify-start px-2.5',
                                                         stateManager.settingsTab === tab.label
-                                                            ? 'text-foreground-active'
-                                                            : 'text-muted-foreground',
+                                                            ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
+                                                            : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
                                                     )}
                                                     onClick={() =>
                                                         stateManager.setSettingsTab(tab.label)
