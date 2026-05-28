@@ -16,7 +16,6 @@ import { waitForSandboxReady } from '../canvas/frame/wait-for-sandbox-ready';
 // fired a 502 (too short) or made fast restarts feel sluggish. We
 // poll up to this ceiling and then reload anyway as a fallback.
 const RESTART_READY_CEILING_MS = 60_000;
-const RESTART_GRACE_AFTER_READY_MS = 5_000;
 
 export const RestartSandboxButton = observer(({ className }: { className?: string }) => {
     const editorEngine = useEditorEngine();
@@ -79,7 +78,7 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
     // External trigger: command palette dispatches `weblab:restart-sandbox`
     // when the user picks "Restart Sandbox". Reuse the same handler so the
     // grace-window / abort plumbing is identical to the button click.
-    const handleRestartSandboxRef = useRef<() => void>(() => {});
+    const handleRestartSandboxRef = useRef<() => void>(() => undefined);
 
     // Listen for iframe load failures dispatched from the canvas frame view —
     // a 502 from the sandbox or a network error in the iframe both fire the

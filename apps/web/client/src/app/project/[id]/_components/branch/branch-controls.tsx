@@ -84,7 +84,7 @@ export function BranchControls({
         <div className="p-1">
             <DropdownMenuItem
                 className="flex items-center gap-2 p-2"
-                onSelect={handleForkBranch}
+                onSelect={() => void handleForkBranch()}
                 disabled={isForking}
             >
                 {isForking ? (
@@ -96,7 +96,7 @@ export function BranchControls({
             </DropdownMenuItem>
             <DropdownMenuItem
                 className="flex items-center gap-2 p-2"
-                onSelect={handleCreateBlankSandbox}
+                onSelect={() => void handleCreateBlankSandbox()}
                 disabled={isCreatingBlank}
             >
                 {isCreatingBlank ? (
