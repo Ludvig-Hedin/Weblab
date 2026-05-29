@@ -57,6 +57,16 @@ export function useImportLocalProject() {
     // `handleImportLocalProject()` from there.
     const [hasPendingLocalImport, setHasPendingLocalImport] = useState(false);
 
+    // SSR-safe File System Access support flag. `isFsAccessSupported()` reads
+    // `window`, so calling it during render makes the server (false) and the
+    // first client render (true in Chromium) disagree → React hydration
+    // mismatch on the Upload-folder card. Resolve it after mount so the first
+    // client render matches the server, then update post-hydration.
+    const [fsAccessSupported, setFsAccessSupported] = useState(false);
+    useEffect(() => {
+        setFsAccessSupported(isFsAccessSupported());
+    }, []);
+
     const handleImportLocalProject = async () => {
         // Idempotency: this function is called both from the button
         // click and from the post-auth resume effect below. Without this
@@ -122,7 +132,7 @@ export function useImportLocalProject() {
         handleImportLocalProject,
         isImporting,
         progress,
-        isFsAccessSupported: isFsAccessSupported(),
+        isFsAccessSupported: fsAccessSupported,
         hasPendingLocalImport,
         clearPendingLocalImport,
     };
