@@ -9,6 +9,7 @@ import {
     buildTxtRecord,
     createFreestyleDomainVerification,
     getARecords,
+    normalizeDomainInput,
     parseDomain,
     verifyFreestyleDomain,
     verifyFreestyleDomainWithCustomDomain,
@@ -55,28 +56,35 @@ export const verificationCreate = action({
         projectId: v.id('projects'),
     },
     handler: async (ctx, { domain, projectId }): Promise<unknown> => {
+        // Normalize once at the boundary (strip protocol/port/path, lowercase)
+        // so the persisted `fullDomain` and the Freestyle request use a clean
+        // hostname. Exact-match lookups (customRemove, owned-domain reuse)
+        // compare against this stored value, so storing raw user input breaks
+        // them when casing/format differs.
+        const normalizedDomain = normalizeDomainInput(domain);
+
         // Parse apex + subdomain in Node (tldts handles multi-label TLDs
         // like .co.uk / .github.io / .vercel.app correctly via the Public
         // Suffix List). Pass the parsed pair down so the V8 mutation
         // doesn't need to re-derive it with a heuristic that misclassifies
         // ccTLDs.
-        const { apexDomain, subdomain } = parseDomain(domain);
+        const { apexDomain, subdomain } = parseDomain(normalizedDomain);
 
         // Permission + customDomain upsert is done in the mutation. The
         // action only owns the external Freestyle call (must run in Node).
         const { customDomainId, subdomain: returnedSubdomain, existing } = await ctx.runMutation(
             internal.domainActionsDb._ensureCustomDomainForVerification,
-            { domain, projectId, apexDomain, subdomain },
+            { domain: normalizedDomain, projectId, apexDomain, subdomain },
         );
         if (existing) return existing;
 
         const { freestyleVerificationId, verificationCode } =
-            await createFreestyleDomainVerification(domain);
+            await createFreestyleDomainVerification(normalizedDomain);
 
         return ctx.runMutation(internal.domainActionsDb._verificationInsert, {
             projectId,
             customDomainId,
-            domain,
+            domain: normalizedDomain,
             freestyleVerificationId,
             txtRecord: buildTxtRecord(verificationCode),
             aRecords: getARecords(returnedSubdomain),

@@ -73,6 +73,25 @@ export const parseDomain = (domain: string): { apexDomain: string; subdomain: st
     };
 };
 
+/**
+ * Normalize user-entered domain text to a bare, lowercased hostname so the
+ * value we persist as `fullDomain` (and send to Freestyle) is consistent.
+ * `tldts.parse` extracts a normalized hostname from messy input — it strips
+ * protocol, port, path, and query and lowercases:
+ *   "HTTPS://WWW.Example.com:3000/path" -> "www.example.com".
+ * Without this, a user who pastes a URL or types mixed case has the raw string
+ * stored verbatim, which breaks the exact-match `customRemove` / owned-domain
+ * lookups that compare against `fullDomain`. Apex parsing already normalizes
+ * via tldts, so this only fixes the stored full-hostname; dedup is unchanged.
+ * Falls back to trim+lowercase when tldts can't derive a hostname so genuinely
+ * invalid input still flows to `parseDomain`, which throws BAD_REQUEST.
+ */
+export const normalizeDomainInput = (domain: string): string => {
+    const trimmed = domain.trim();
+    const parsed = parse(trimmed);
+    return parsed.hostname ?? trimmed.toLowerCase();
+};
+
 export const buildTxtRecord = (verificationCode: string): TxtVerificationRecord => ({
     type: 'TXT',
     name: FREESTYLE_CUSTOM_HOSTNAME,
