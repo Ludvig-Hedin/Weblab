@@ -38,6 +38,110 @@ later without re-discovering the context.
 
 ## Open
 
+### Built-in skills `tailwind` and `impeccable` could not be embedded (missing sources)
+
+- **Discovered:** 2026-05-29 (skills built-in seeding session)
+- **Where:** `agent-temp-input/tailwind` → `../../.agents/skills/tailwind` and `agent-temp-input/impeccable` → `../../.agents/skills/impeccable` (dangling symlinks); generator [packages/ai/scripts/generate-skills.ts](packages/ai/scripts/generate-skills.ts) reads `skills/<name>/SKILL.md`.
+- **Symptom:** User asked for both to ship as default-on built-ins, but their symlink targets resolve to `coder-new/.agents/skills/*`, which does not exist on disk; no matching `SKILL.md` found under `~/.claude` either. The other 7 requested skills were embedded; these two were skipped.
+- **Next step:** Obtain the real `tailwind` + `impeccable` `SKILL.md` sources, drop them into `skills/tailwind/SKILL.md` and `skills/impeccable/SKILL.md`, then run `bun run generate:skills`. No code change needed.
+- **Risk if ignored:** the agent's built-in skill menu is missing two skills the user expected.
+- **Tags:** `#docs` `#tech-debt`
+
+### Image credit deduction can't span multiple Pro rate-limit buckets
+
+- **Discovered:** 2026-05-29 (image-gen independent review)
+- **Where:** [convex/lib/usageMath.ts](apps/web/client/convex/lib/usageMath.ts) `selectDeductionBucket` (has a `TODO(image-credits)` marker); consumed by `applyIncrement` / `reserveImage` in [convex/usage.ts](apps/web/client/convex/usage.ts).
+- **Symptom:** A Pro user whose remaining credits are split across two buckets (e.g. 3 + 4 left = 7 total) can't generate a 5-credit image because no single bucket holds ≥5 — they get `USAGE_LIMIT_REACHED` despite having enough total. Reachable near billing-period rollover. Text usage (cost 1) is unaffected.
+- **Root cause:** deduction targets one bucket and the usageRecord links one bucket so `revertIncrement` can refund it; spanning buckets needs multi-link tracking.
+- **Next step:** add a `linkedRateLimits: {id, amount}[]` field (or child table) on `usageRecords`, drain oldest-first across buckets in `applyIncrement`, refund each in `revertIncrement`.
+- **Risk if ignored:** rare false "out of credits" for paying users near period boundaries.
+- **Tags:** `#bug` `#billing`
+
+### Skills settings tab strings are hardcoded (no i18n)
+
+- **Discovered:** 2026-05-29 (skills scope-clarity work)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/skills-tab/index.tsx](apps/web/client/src/components/ui/settings-modal/skills-tab/index.tsx) and [scope-badge.tsx](apps/web/client/src/components/ui/settings-modal/skills-tab/scope-badge.tsx).
+- **Symptom:** all strings ("Skills", "All skills", scope help, empty/loading states) are inline English, unlike the sibling `skill-import-dialog.tsx` which uses `next-intl`. New scope-help copy added this session followed the file's existing hardcoded convention.
+- **Next step:** route through `editor.settings.skills.*` keys in `messages/en.json` (base for all locales).
+- **Risk if ignored:** the Skills tab stays untranslated for non-English users.
+- **Tags:** `#i18n` `#tech-debt`
+
+### Blank-project create pays the sandbox cold-boot cost twice (slow create + slow editor)
+
+- **Discovered:** 2026-05-29 (project-creation investigation session)
+- **Where:** [convex/projectActions.ts:244](apps/web/client/convex/projectActions.ts#L244) (`createBlank` → `VercelSandboxProvider.createProject`, synchronous), then editor cold-resume via [src/components/store/editor/sandbox/session.ts](apps/web/client/src/components/store/editor/sandbox/session.ts) `start()`.
+- **Symptom:** "Start blank" shows the creation loader for 15–45s while `createBlank` scaffolds + `npm install` + snapshots + resumes the sandbox synchronously. It then `router.push`es to the editor, which cold-resumes the *same* sandbox from snapshot — the dev server respawns and the preview 502s for another 20–60s. The user waits through the boot twice.
+- **Root cause:** Provisioning is fully synchronous in the action, and the editor does not reuse the still-warm sandbox from create; it re-resumes from the persisted `snapshotId`.
+- **Next step:** Either (a) keep the create-time sandbox warm and hand its live session to the editor so it skips the second resume, or (b) provision asynchronously (return `projectId` immediately, boot in the background) and let the editor's now-resilient boot loop (see self-heal in [use-frame-reload.ts](apps/web/client/src/app/project/[id]/_components/canvas/frame/use-frame-reload.ts)) cover the wait. Also wire `WEBLAB_VERCEL_WARM_POOL_SIZE` so a pre-warmed VM is claimed instead of cold-provisioned. Needs a live Vercel-sandbox env to verify.
+- **Risk if ignored:** every new project feels slow and "stuck"; the perceived double-wait is the top creation-flow complaint.
+- **Tags:** `#perf` `#infra` `#sandbox` `#needs-verification`
+
+### Sandbox liveness probe is a no-op on Convex — editor can't tell "booting" from "dead"
+
+- **Discovered:** 2026-05-29 (project-creation investigation session)
+- **Where:** [src/app/project/[id]/_components/canvas/frame/use-sandbox-liveness.ts:23](apps/web/client/src/app/project/[id]/_components/canvas/frame/use-sandbox-liveness.ts#L23) (TODO(convex-migration): always returns `'unknown'`); also stubbed in [project-preview-surface.tsx:93](apps/web/client/src/app/projects/_components/select/project-preview-surface.tsx#L93).
+- **Symptom:** `useSandboxLiveness` never probes, so every auto-recovery branch in [frame/index.tsx](apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx) that keys off `livenessState === 'alive' | 'gone' | 'notFound'` is dead code. The editor relies solely on the penpal handshake + reload loop; a genuinely-reaped sandbox can't surface a Restore CTA, and the boot loop can't distinguish "still cold" from "gone forever". Partially mitigated this session by a background self-heal reload after the cap, but that's a fallback, not a real signal.
+- **Root cause:** The legacy `sandbox.checkAlive` tRPC procedure (apps/web/server) was never ported to Convex during the migration.
+- **Next step:** Add a Convex `action` `sandboxActions.checkAlive({ projectId })` that server-side `HEAD`s the project's *own* stored `sandboxUrl` (look it up server-side — do NOT accept an arbitrary URL from the client, SSRF) and classifies `2xx/3xx/404→alive`, `502/503/504→booting`, `410/DNS-fail→gone`. Wire it into `useSandboxLiveness` (poll while `enabled`). Unit-test the classifier in isolation.
+- **Risk if ignored:** reaped sandboxes spin forever with no Restore path; boot UX stays guess-based.
+- **Tags:** `#bug` `#sandbox` `#convex` `#tech-debt`
+
+### Stripe `past_due` / `unpaid` subscriptions keep full Pro access (no failed-payment gating)
+
+- **Discovered:** 2026-05-29 (test-hardening session: billing audit, HIGH-confidence)
+- **Where:** [convex/lib/stripeWebhook.ts:279](apps/web/client/convex/lib/stripeWebhook.ts#L279) (`isRenewal` only handles `stripeStatus === 'active'`), [convex/lib/enums.ts](apps/web/client/convex/lib/enums.ts) (`vSubscriptionStatus` is only `active | canceled`), entitlement at [convex/usage.ts:54](apps/web/client/convex/usage.ts#L54) (keys solely off `status === 'active'`).
+- **Symptom:** When a renewal charge fails, Stripe sends `customer.subscription.updated` with `status: 'past_due'`. `_handleSubUpdated` has no branch that maps non-active statuses, so the row stays `active` and the user keeps Pro credits while not paying. There is **no `invoice.payment_failed` handler** (grep: 0 matches). Conversely, when `customer.subscription.deleted` finally fires, access is yanked with no prior grace/warning.
+- **Root cause:** The subscription model has only two states; `past_due`/`unpaid`/`incomplete` are unrepresentable, and entitlement never consults `stripeCurrentPeriodEnd`.
+- **Next step:** Decide the dunning policy (grace window vs immediate gate), extend `vSubscriptionStatus` + `_handleSubUpdated` to map `past_due`/`unpaid`, and add an `invoice.payment_failed` handler in the webhook switch ([convex/http.ts](apps/web/client/convex/http.ts)). Add a `convex-test` harness so `_handleSubUpdated` can be unit-tested.
+- **Risk if ignored:** revenue leak (failed renewals keep access) + abrupt access loss with no warning UX.
+- **Tags:** `#bug` `#billing` `#convex` `#money-path`
+
+### Stripe webhook reads billing period from `items.data[0]`, not the subscription — API-version fragile
+
+- **Discovered:** 2026-05-29 (test-hardening session: billing audit, NEEDS-VERIFICATION)
+- **Where:** [convex/http.ts:195](apps/web/client/convex/http.ts#L195) (`current_period_start/end` read off `subscription.items.data[0]`; 202-drop guard at ~L222), SDK constructed with no pinned `apiVersion` at [convex/subscriptionActions.ts:27](apps/web/client/convex/subscriptionActions.ts#L27).
+- **Symptom:** `current_period_start/end` moved onto subscription **items** only in Stripe API `2025-03-31.basil`+. On an older account default API version those fields are `undefined` → the guard returns `202` and silently drops the event — including `customer.subscription.created`, so a brand-new paid subscription is never persisted (user charged, zero access). Renewal quota reset also depends on a distinct `subscription.updated` rather than the canonical `invoice.paid` signal.
+- **Next step:** Confirm the Stripe API version pinned for this account's webhook endpoint; make the parser fall back to `sub.current_period_*` when the item fields are absent; pin `apiVersion` on the `new Stripe()` client so the webhook JSON shape and SDK agree.
+- **Risk if ignored:** on an API-version mismatch every checkout silently no-ops server-side.
+- **Tags:** `#bug` `#billing` `#convex` `#needs-verification`
+
+### Email / custom-domain values are not canonicalized at write — case-sensitive lookups can miss
+
+- **Discovered:** 2026-05-29 (test-hardening session: auth + domain audit, MEDIUM)
+- **Where:** invite member-conflict guard [convex/projectInvitations.ts:428](apps/web/client/convex/projectInvitations.ts#L428) (probes only lowercased + as-typed email); `users.email` stored raw from Clerk ([convex/clerkWebhooks.ts:31](apps/web/client/convex/clerkWebhooks.ts#L31), [convex/lib/permissions.ts:88](apps/web/client/convex/lib/permissions.ts#L88)). Custom-domain reuse/remove exact-match on stored `fullDomain`: [convex/domainActionsDb.ts:273](apps/web/client/convex/domainActionsDb.ts#L273) (`_ensureUserOwnsDomain`), [:82/:95](apps/web/client/convex/domainActionsDb.ts#L82) (`_customRemove`).
+- **Symptom:** A member whose stored email is `John.Doe@Acme.com` invited again as `john.doe@acme.com` (third casing) bypasses the "already a member" guard → duplicate pending invite (NOT a privilege escalation; `accept` is case-insensitive + idempotent). Custom-domain reuse/remove can miss when casing differs from the stored value.
+- **Root cause:** emails/domains persisted verbatim; guards assume a lowercased invariant that writers don't enforce. (The verification **create** path was normalized 2026-05-29 — see commit; reuse lookup left raw for backward-compat with pre-existing rows.)
+- **Next step:** lowercase `users.email` in the Clerk webhook + JIT writers (one-time backfill for existing rows), then normalize the reuse/remove domain lookups too. Extract a pure `canonicalizeEmail` + reuse the existing `isEmailMatch`.
+- **Risk if ignored:** duplicate invites + occasional "you don't own this domain" / silent no-op on remove for mixed-case entries. Low severity.
+- **Tags:** `#bug` `#auth` `#convex` `#low-severity`
+
+### Dead-code domain helpers in `packages/utility` have a real ccTLD bug
+
+- **Discovered:** 2026-05-29 (test-hardening session: auth audit)
+- **Where:** [packages/utility/src/domain.ts:58](packages/utility/src/domain.ts#L58) `getRootDomain` (naive `parts.slice(-2)`), plus `isSubdomain` (:49) and `verifyDomainOwnership` (:14).
+- **Symptom:** `getRootDomain('app.foo.co.uk')` → `"co.uk"` (public suffix, not the registrable apex). These have **zero production callers** (grep across `apps/`+`packages/`); the live Convex path uses tldts (`convex/lib/freestyle.ts::parseDomain`, now unit-tested). Vestigial from the pre-Convex tRPC domain router.
+- **Next step:** delete the dead helpers, or if revived, reimplement on tldts/PSL and add tests.
+- **Risk if ignored:** none today (dead); a future caller would inherit the ccTLD mis-parse.
+- **Tags:** `#tech-debt` `#dead-code`
+
+### Test hygiene: `navigation.test.ts` fails in bare env; `subdirectory.test.ts` is empty
+
+- **Discovered:** 2026-05-29 (test-hardening session: baseline run)
+- **Where:** [apps/web/client/test/frame/navigation.test.ts](apps/web/client/test/frame/navigation.test.ts) (transitively imports `src/env.ts`); [apps/web/client/test/sandbox/subdirectory.test.ts](apps/web/client/test/sandbox/subdirectory.test.ts) (0 bytes).
+- **Symptom:** `navigation.test.ts` is the only failing test in the client suite — it throws "Invalid environment variables" at import time because `OPENROUTER_API_KEY` is unset under `bun test` (env IS set at runtime, so not a product bug). `subdirectory.test.ts` is empty → false-confidence "coverage" with zero assertions.
+- **Next step:** preload a test-only env (bunfig `preload` or set a dummy `OPENROUTER_API_KEY` in a test setup file) so the suite is green in CI; delete or fill `subdirectory.test.ts` (no subdirectory-resolution helper currently exists to test).
+- **Risk if ignored:** perpetually red suite masks new real failures; empty file misleads.
+- **Tags:** `#test-gap` `#flake` `#infra`
+
+### `parseDomain` comment claims PSL private-domain handling it doesn't do
+
+- **Discovered:** 2026-05-29 (test-hardening session; pinned in `freestyle.test.ts`)
+- **Where:** [convex/lib/freestyle.ts:65](apps/web/client/convex/lib/freestyle.ts#L65) + the comment at [domainActions.ts:58](apps/web/client/convex/domainActions.ts#L58).
+- **Symptom:** Comment says tldts splits `.co.uk` / `.github.io` / `.vercel.app` "correctly via the PSL", but `parse()` is called without `allowPrivateDomains: true`, so PRIVATE suffixes are NOT honored: `parseDomain('user.github.io')` → apex `github.io`, `parseDomain('x.vercel.app')` → apex `vercel.app`. `.co.uk` (ICANN suffix) is correct. Behavior is now pinned in `convex/lib/freestyle.test.ts`.
+- **Next step:** either fix the comment (private suffixes not handled) or pass `{ allowPrivateDomains: true }` if those should be treated as apexes — and update the test. Low impact: users connect real registrable domains, not `*.github.io`.
+- **Risk if ignored:** misleading comment; apex dedup key for a `*.vercel.app`/`*.github.io` custom domain would be the shared private suffix.
+- **Tags:** `#docs` `#low-severity`
+
 ### Billing settings redesign built but not wired into the Subscription tab
 
 - **Discovered:** 2026-05-29 (full-repo code review)

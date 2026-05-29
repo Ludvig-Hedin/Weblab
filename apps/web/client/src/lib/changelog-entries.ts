@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-4-generate-images-in-chat',
+        version: '2.4',
+        title: 'Generate images in chat',
+        description:
+            'The AI can now generate images directly in chat with Nano Banana (Google Gemini) alongside GPT Image. Image generation draws from your usage credits with per-day and per-minute limits, so it stays predictable and never runs away.',
+        date: '2026-05-29',
+        tags: ['AI', 'Images', 'Chat'],
+    },
+    {
+        slug: 'v2-3-skills-upload-and-built-ins',
+        version: '2.3',
+        title: 'Upload skills + more built-ins',
+        description:
+            'Import a skill by dropping in a SKILL.md or a .zip — upload is now the default, with paste and URL still available. The settings Skills tab also explains the All / My skills / This project scopes, and ships more built-in skills enabled by default.',
+        date: '2026-05-29',
+        tags: ['Skills', 'Settings', 'AI', 'UX'],
+    },
+    {
         slug: 'v2-2-claude-opus-4-8',
         version: '2.2',
         title: 'Claude Opus 4.8',
