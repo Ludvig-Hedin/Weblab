@@ -547,21 +547,45 @@ export const createFromPrompt = action({
                 runtime: result.runtime,
             });
 
+            // Project + sandbox are now committed; the sandbox belongs to this
+            // project, so a later failure must NOT stop it. Clear the cleanup
+            // latch before the best-effort prompt seed below.
+            provisionedSandboxId = null;
+
             // Seed the prompt (+ images) for the editor to replay into the AI
             // chat. Discriminated CreateRequestContext[] — see
-            // packages/models/src/project/create.ts.
+            // packages/models/src/project/create.ts. Best-effort: a failed seed
+            // must not orphan the already-created project (worst case the editor
+            // opens without auto-replaying the prompt; the user can retype it).
             const context: Array<Record<string, unknown>> = [
                 { type: 'prompt', content: args.prompt },
             ];
             for (const img of args.images ?? []) {
                 context.push({ type: 'image', content: img.content, mimeType: img.mimeType });
             }
-            await ctx.runMutation(internal.projectCreateRequests._insertCreateRequest, {
-                projectId: projectId as any,
-                context,
-            });
+            try {
+                await ctx.runMutation(internal.projectCreateRequests._insertCreateRequest, {
+                    projectId: projectId as any,
+                    context,
+                });
+            } catch (seedErr) {
+                // Most likely the base64 images pushed the doc past Convex's
+                // ~1MB limit. Retry prompt-only so the AI replay still fires —
+                // losing image context is better than losing the prompt.
+                console.error(
+                    '[createFromPrompt] full seed failed; retrying prompt-only',
+                    seedErr,
+                );
+                try {
+                    await ctx.runMutation(internal.projectCreateRequests._insertCreateRequest, {
+                        projectId: projectId as any,
+                        context: [{ type: 'prompt', content: args.prompt }],
+                    });
+                } catch (retryErr) {
+                    console.error('[createFromPrompt] prompt-only seed also failed', retryErr);
+                }
+            }
 
-            provisionedSandboxId = null;
             return { projectId };
         } catch (error) {
             if (provisionedSandboxId) {
@@ -597,7 +621,14 @@ export const createFromPrompt = action({
  * Persisting the project is the caller's job (`projects.create`).
  */
 export const createEmptySandbox = action({
-    args: { workspaceId: v.optional(v.id('workspaces')) },
+    args: {
+        workspaceId: v.optional(v.id('workspaces')),
+        // The imported project's dev-server port (from its package.json). The
+        // sandbox only exposes the ports it's created with, so a non-3000
+        // project (static-HTML serve on 8080, Vite on 5173, …) would 502 if we
+        // hardcoded 3000.
+        port: v.optional(v.number()),
+    },
     handler: async (
         ctx,
         args,
@@ -622,7 +653,9 @@ export const createEmptySandbox = action({
             );
         }
 
-        const port = 3000;
+        // Clamp to a valid TCP port; fall back to 3000 (Next.js default).
+        const port =
+            args.port && args.port > 0 && args.port <= 65535 ? args.port : 3000;
         const runtime = 'node24';
         try {
             const sandbox = await Sandbox.create({

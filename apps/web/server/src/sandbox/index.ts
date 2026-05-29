@@ -183,10 +183,14 @@ export async function commandRun(
 
 /** True if a dev server is already up for the project. */
 async function isDevServerRunning(sandbox: Sandbox): Promise<boolean> {
-    // Match the actual server process — `next dev` (Next.js) or `serve`
-    // (static-HTML). `[x]` bracket trick stops pgrep from matching its own
-    // command line (which contains the literal pattern).
-    const result = await runShell(sandbox, 'pgrep -f "[n]ext dev" || pgrep -f "[s]erve" || true');
+    // Match the actual server process — `next dev` (Next.js) or the static-HTML
+    // `serve` binary (`node …/node_modules/serve/…`). The narrow `serve` match
+    // avoids false-positives on unrelated args like "preserve"/"reserved". The
+    // `[x]` bracket trick stops pgrep from matching its own command line.
+    const result = await runShell(
+        sandbox,
+        'pgrep -f "[n]ext dev" || pgrep -f "[n]ode_modules/serve" || true',
+    );
     const out = await result.stdout();
     return out.trim().length > 0;
 }

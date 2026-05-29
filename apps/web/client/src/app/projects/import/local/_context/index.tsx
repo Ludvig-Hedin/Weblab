@@ -157,9 +157,10 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     // TODO(sandbox-port): imported sandboxes aren't snapshotted yet, so the
     // project is lost when the sandbox times out (~30m). Follow-up: snapshot
     // after upload+install so cold-resume works like blank/clone.
-    const forkSandbox = async (
-        _args: unknown,
-    ): Promise<{
+    const forkSandbox = async (args: {
+        port?: number;
+        config?: unknown;
+    }): Promise<{
         sandboxId: string;
         previewUrl: string;
         sandboxRuntime: {
@@ -170,7 +171,10 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             runtime?: string;
         };
     }> => {
-        const res = await createEmptySandboxAction({});
+        // Pass the port detected from the imported package.json so the sandbox
+        // exposes the right one (a Next project is 3000, but static-HTML serves
+        // on 8080 and would 502 on a 3000-only sandbox).
+        const res = await createEmptySandboxAction({ port: args.port });
         return {
             sandboxId: res.sandboxId,
             previewUrl: res.previewUrl,
