@@ -1,5 +1,6 @@
-import type { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+import type { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
 
 // Clerk JWT verification for the sandbox tRPC server.
 //
@@ -51,7 +52,11 @@ export async function createContext(opts: CreateFastifyContextOptions) {
         typeof req.headers.authorization === 'string'
             ? req.headers.authorization.replace(/^Bearer\s+/i, '')
             : undefined;
-    const userId = await resolveUserId(wsToken || headerToken);
+    // Treat an empty-string WS token (the client sends `token: ''` when signed
+    // out) as absent so we fall back to the header. `??` would keep the '' and
+    // skip the header, so an explicit length check is used instead.
+    const token = wsToken && wsToken.length > 0 ? wsToken : headerToken;
+    const userId = await resolveUserId(token);
 
     // `user` kept for back-compat with any existing consumers.
     const user: User = { name: req.headers.username ?? 'anonymous' };

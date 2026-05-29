@@ -262,6 +262,7 @@
       "dependencies": {
         "@fastify/websocket": "^11.0.2",
         "@trpc/server": "^11.0.0",
+        "@vercel/sandbox": "1.10.2",
         "@weblab/rpc": "*",
         "fastify": "^5.2.2",
         "jose": "^6.2.3",

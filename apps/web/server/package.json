@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "@fastify/websocket": "^11.0.2",
+        "@vercel/sandbox": "1.10.2",
         "@weblab/rpc": "*",
         "@trpc/server": "^11.0.0",
         "fastify": "^5.2.2",
