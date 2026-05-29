@@ -32,6 +32,26 @@ async function runShell(sandbox: Sandbox, command: string) {
     return sandbox.runCommand({ cmd: 'bash', args: ['-lc', command], cwd: PROJECT_ROOT });
 }
 
+/**
+ * Defense-in-depth for mutating file ops: callers pass project-relative paths,
+ * so reject absolute paths and `..` traversal. Without this, an imported folder
+ * (or any compromised caller) could write/delete outside the project root
+ * (e.g. `../../etc/...`).
+ */
+function assertSafeSandboxPath(path: string): void {
+    if (path.startsWith('/') || path.split('/').some((seg) => seg === '..')) {
+        throw new Error(`Unsafe sandbox path rejected: ${path}`);
+    }
+}
+
+/** True when a write failed only because its parent directory doesn't exist. */
+function isMissingDirError(err: unknown): boolean {
+    const code = (err as { code?: string } | null)?.code;
+    if (code === 'ENOENT') return true;
+    const msg = err instanceof Error ? err.message : String(err);
+    return /ENOENT|no such file/i.test(msg);
+}
+
 function credentials(): { teamId: string; projectId: string; token: string } {
     const teamId = process.env.VERCEL_TEAM_ID;
     const projectId = process.env.VERCEL_PROJECT_ID;
@@ -95,9 +115,31 @@ export async function fileWrite(
     sandboxId: string,
     path: string,
     content: string,
+    encoding: 'utf8' | 'base64' = 'utf8',
 ): Promise<{ success: boolean }> {
+    assertSafeSandboxPath(path);
     const sandbox = await getSandbox(sandboxId);
-    await sandbox.fs.writeFile(path, content, 'utf8');
+    // base64 carries binary assets (images, fonts) for folder imports; decode
+    // to raw bytes. Text uses utf8. Buffer write takes no encoding arg.
+    const write = () =>
+        encoding === 'base64'
+            ? sandbox.fs.writeFile(path, Buffer.from(content, 'base64'))
+            : sandbox.fs.writeFile(path, content, 'utf8');
+    try {
+        await write();
+    } catch (err) {
+        // Parent dir may not exist yet (nested import paths) — create it once
+        // and retry, but ONLY for a missing-dir error so a real failure
+        // (permission, disk-full) isn't masked. Steady-state editor writes
+        // (dir already present) keep the fast single-call path.
+        const slash = path.lastIndexOf('/');
+        if (slash > 0 && isMissingDirError(err)) {
+            await sandbox.fs.mkdir(path.slice(0, slash), { recursive: true });
+            await write();
+        } else {
+            throw err;
+        }
+    }
     return { success: true };
 }
 
@@ -111,6 +153,7 @@ export async function fileStat(
 }
 
 export async function fileMkdir(sandboxId: string, path: string): Promise<{ success: boolean }> {
+    assertSafeSandboxPath(path);
     const sandbox = await getSandbox(sandboxId);
     await sandbox.fs.mkdir(path, { recursive: true });
     return { success: true };
@@ -121,6 +164,7 @@ export async function fileDelete(
     path: string,
     recursive?: boolean,
 ): Promise<{ success: boolean }> {
+    assertSafeSandboxPath(path);
     const sandbox = await getSandbox(sandboxId);
     await sandbox.fs.rm(path, { recursive: recursive ?? false, force: true });
     return { success: true };

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api as convexApi } from '@convex/_generated/api';
-import { useMutation, useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { FrameworkId, ProjectFile } from '@weblab/framework';
@@ -14,7 +14,22 @@ import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/type
 import type { Id } from '@convex/_generated/dataModel';
 import { ProcessedFileType } from '@/app/projects/types';
 import { env } from '@/env';
+import { getSandboxServerClient } from '@/lib/sandbox-server-client';
 import { Routes } from '@/utils/constants';
+
+/**
+ * Browser-safe base64 for binary import assets. Chunked so a large file's byte
+ * array never blows the call stack via spread into String.fromCharCode.
+ */
+function bytesToBase64(bytes: number[]): string {
+    const arr = Uint8Array.from(bytes);
+    let binary = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < arr.length; i += CHUNK) {
+        binary += String.fromCharCode(...arr.subarray(i, i + CHUNK));
+    }
+    return btoa(binary);
+}
 
 export interface Project {
     name: string;
@@ -133,16 +148,15 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const isMultiFrameworkEnabled = env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED;
     const user = useQuery(convexApi.users.me, {});
     const createProject = useMutation(convexApi.projects.create);
+    const createEmptySandboxAction = useAction(convexApi.projectActions.createEmptySandbox);
     const removeProjectMutation = useMutation(convexApi.projects.remove);
     const deleteProject = ({ id }: { id: string }) =>
         removeProjectMutation({ projectId: id as Id<'projects'> });
-    // TODO(bug-hunt): No UX guard prevents users from entering the full import
-    // wizard before hitting this stub. Users click through all steps, reach
-    // "Finalizing", and then get a generic "Failed to create project" error
-    // with no explanation. Fix: disable the local import route or show a
-    // prominent "coming soon" banner before the wizard starts.
-    // TODO(sandbox-port): api.sandbox.* has no Convex equivalent yet — all
-    // sandbox calls throw a clear error until the routes are ported.
+    // Provision a bare Vercel sandbox (no scaffold) for the import. The user's
+    // uploaded files become the project, so a scaffold would collide.
+    // TODO(sandbox-port): imported sandboxes aren't snapshotted yet, so the
+    // project is lost when the sandbox times out (~30m). Follow-up: snapshot
+    // after upload+install so cold-resume works like blank/clone.
     const forkSandbox = async (
         _args: unknown,
     ): Promise<{
@@ -156,16 +170,50 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             runtime?: string;
         };
     }> => {
-        throw new Error('Local import is temporarily unavailable.');
-    };
-    const startOrphanSandbox = async (_args: unknown): Promise<never> => {
-        throw new Error('Local import is temporarily unavailable.');
+        const res = await createEmptySandboxAction({});
+        return {
+            sandboxId: res.sandboxId,
+            previewUrl: res.previewUrl,
+            sandboxRuntime: {
+                provider: 'vercel_sandbox',
+                port: res.port,
+                runtime: res.runtime,
+            },
+        };
     };
     const deleteOrphanSandbox = async (_args: unknown): Promise<void> => {
-        // No-op: sandbox cleanup is unavailable until api.sandbox.* ports.
+        // No-op: imported sandboxes auto-expire on the Vercel timeout, so
+        // best-effort cleanup is a future hardening (a stop route).
     };
-    const orphanBulkUpload = async (_args: unknown): Promise<void> => {
-        throw new Error('Local import is temporarily unavailable.');
+    // Upload the picked folder into the sandbox over the authed proxy (text as
+    // utf8, binary as base64), then run setup() to install deps + start dev.
+    const orphanBulkUpload = async (args: {
+        sandboxId: string;
+        files: Array<{ path: string; content: string | number[] }>;
+        runSetup?: boolean;
+    }): Promise<void> => {
+        const client = getSandboxServerClient();
+        let uploaded = 0;
+        for (const file of args.files) {
+            const isBinary = Array.isArray(file.content);
+            await client.sandbox.fileWrite.mutate({
+                sandboxId: args.sandboxId,
+                path: file.path,
+                content: isBinary
+                    ? bytesToBase64(file.content as number[])
+                    : (file.content as string),
+                encoding: isBinary ? 'base64' : 'utf8',
+            });
+            uploaded += 1;
+            setFinalizeProgress({
+                phase: 'uploading',
+                filesUploaded: uploaded,
+                totalFiles: args.files.length,
+            });
+        }
+        if (args.runSetup) {
+            await client.sandbox.setup.mutate({ sandboxId: args.sandboxId });
+        }
     };
 
     /**

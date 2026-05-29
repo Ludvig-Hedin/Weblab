@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { mutation, query } from './_generated/server';
+import { internalMutation, mutation, query } from './_generated/server';
 import { vProjectCreateRequestStatus } from './lib/enums';
 import { requireCap } from './lib/permissions';
 
@@ -35,5 +35,29 @@ export const updateStatus = mutation({
         if (!row) return null;
         await ctx.db.patch(row._id, { status, updatedAt: Date.now() });
         return (await ctx.db.get(row._id))!;
+    },
+});
+
+// ─── Internal mutations ─────────────────────────────────────────────────────────
+
+/**
+ * Seed the pending create request that the editor auto-consumes on first open
+ * (`use-start-project` reads `getPendingRequest`, replays the prompt/images into
+ * the AI chat, then marks it COMPLETED). Called from `projectActions` right
+ * after the project graph is inserted, so the AI create flow has a writer.
+ */
+export const _insertCreateRequest = internalMutation({
+    args: {
+        projectId: v.id('projects'),
+        // CreateRequestContext[] — discriminated union; validated by the caller.
+        context: v.any(),
+    },
+    handler: async (ctx, { projectId, context }) => {
+        await ctx.db.insert('projectCreateRequests', {
+            projectId,
+            context,
+            status: 'pending',
+            updatedAt: Date.now(),
+        });
     },
 });

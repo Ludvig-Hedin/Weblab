@@ -332,6 +332,321 @@ export const createBlank = action({
     },
 });
 
+// ─── createFromGit (site clone / GitHub import) ────────────────────────────────
+
+/**
+ * Provisions a Vercel sandbox by `git clone`-ing a public repo, then persists
+ * the project graph — the clone analogue of {@link createBlank}. Wraps
+ * `VercelSandboxProvider.createProjectFromGit` (clone → `npm install` →
+ * snapshot → resume) and reuses `_insertProjectGraph`, so the editor boots the
+ * same way a blank project does.
+ */
+export const createFromGit = action({
+    args: {
+        repoUrl: v.string(),
+        branch: v.optional(v.string()),
+        subpath: v.optional(v.string()),
+        name: v.optional(v.string()),
+        description: v.optional(v.string()),
+        framework: v.optional(
+            v.union(
+                v.literal('nextjs'),
+                v.literal('vite-react'),
+                v.literal('remix'),
+                v.literal('astro'),
+                v.literal('tanstack-start'),
+                v.literal('static-html'),
+            ),
+        ),
+        workspaceId: v.optional(v.id('workspaces')),
+    },
+    handler: async (ctx, args): Promise<{ projectId: string }> => {
+        const me: any = await ctx.runQuery(api.users.me, {});
+        if (!me) throw new Error('UNAUTHORIZED');
+
+        // Same create-cap gate as createBlank — never burn paid sandbox quota
+        // for a workspace VIEWER, and never inject a sandbox iframe into a
+        // shared workspace the caller can only view.
+        if (args.workspaceId) {
+            await ctx.runQuery(internal.projects._requireProjectCreateCap, {
+                workspaceId: args.workspaceId,
+            });
+        }
+
+        if (!process.env.VERCEL_TOKEN) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        const framework = args.framework ?? 'nextjs';
+
+        let provisionedSandboxId: string | null = null;
+        try {
+            const result = await VercelSandboxProvider.createProjectFromGit({
+                repoUrl: args.repoUrl,
+                branch: args.branch ?? 'main',
+                subpath: args.subpath,
+                privacy: 'private',
+            });
+
+            const sandboxId = result.id;
+            provisionedSandboxId = sandboxId;
+            const previewUrl = result.previewUrl ?? '';
+            const port = result.port ?? (framework === 'static-html' ? 8080 : 3000);
+
+            const workspaceId: any =
+                args.workspaceId ??
+                (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
+                    userId: me._id,
+                }));
+
+            // Derive a readable fallback name from the repo URL when the caller
+            // didn't supply one (last non-empty path segment, sans `.git`).
+            const repoName =
+                args.repoUrl
+                    .replace(/\.git$/, '')
+                    .split('/')
+                    .filter(Boolean)
+                    .pop() ?? 'Imported project';
+            const projectName = args.name?.trim() || `Imported · ${repoName}`;
+
+            const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
+                userId: me._id,
+                workspaceId,
+                name: projectName,
+                description: args.description?.trim() || `Imported from ${args.repoUrl}`,
+                tags: ['imported'],
+                framework,
+                sandboxId,
+                sandboxUrl: previewUrl,
+                cloudProvider: 'vercel_sandbox',
+                port,
+                snapshotId: result.snapshotId,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
+            });
+
+            provisionedSandboxId = null;
+            return { projectId };
+        } catch (error) {
+            if (provisionedSandboxId) {
+                try {
+                    const credentials = {
+                        teamId: process.env.VERCEL_TEAM_ID ?? '',
+                        projectId: process.env.VERCEL_PROJECT_ID ?? '',
+                        token: process.env.VERCEL_TOKEN ?? '',
+                    };
+                    if (credentials.teamId && credentials.projectId && credentials.token) {
+                        const sandbox = await Sandbox.get({
+                            sandboxId: provisionedSandboxId,
+                            ...credentials,
+                        });
+                        await sandbox.stop({ blocking: false }).catch(() => undefined);
+                    }
+                } catch (cleanupErr) {
+                    console.warn('[createFromGit] Vercel sandbox cleanup failed', cleanupErr);
+                }
+            }
+            throw mapSandboxProvisionError(error);
+        }
+    },
+});
+
+// ─── createFromPrompt (AI prompt create) ───────────────────────────────────────
+
+/**
+ * Provisions a blank Vercel sandbox (same as {@link createBlank}) and seeds a
+ * pending `projectCreateRequests` row so the editor replays the user's prompt
+ * (and any images) into the AI chat on first open. The consumer side
+ * (`getPendingRequest` + `use-start-project`) already existed; this is the
+ * writer that was missing.
+ */
+export const createFromPrompt = action({
+    args: {
+        prompt: v.string(),
+        images: v.optional(
+            v.array(v.object({ content: v.string(), mimeType: v.string() })),
+        ),
+        framework: v.optional(
+            v.union(
+                v.literal('nextjs'),
+                v.literal('vite-react'),
+                v.literal('remix'),
+                v.literal('astro'),
+                v.literal('tanstack-start'),
+                v.literal('static-html'),
+            ),
+        ),
+        workspaceId: v.optional(v.id('workspaces')),
+    },
+    handler: async (ctx, args): Promise<{ projectId: string }> => {
+        const me: any = await ctx.runQuery(api.users.me, {});
+        if (!me) throw new Error('UNAUTHORIZED');
+
+        if (args.workspaceId) {
+            await ctx.runQuery(internal.projects._requireProjectCreateCap, {
+                workspaceId: args.workspaceId,
+            });
+        }
+
+        if (!process.env.VERCEL_TOKEN) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        // AI generation targets Next.js (the only framework the chat pipeline
+        // scaffolds against today); honor an explicit override for parity.
+        const framework =
+            args.framework === 'static-html' ? 'static-html' : 'nextjs';
+
+        let provisionedSandboxId: string | null = null;
+        try {
+            const result = await VercelSandboxProvider.createProject({
+                source: 'template',
+                id: framework,
+                framework,
+                title: `AI project - ${me._id}`,
+                tags: ['prompt', String(me._id)],
+                privacy: 'private',
+            });
+
+            const sandboxId = result.id;
+            provisionedSandboxId = sandboxId;
+            const previewUrl = result.previewUrl ?? '';
+            const port = result.port ?? (framework === 'static-html' ? 8080 : 3000);
+
+            const workspaceId: any =
+                args.workspaceId ??
+                (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
+                    userId: me._id,
+                }));
+
+            // Readable name from the prompt's first line; the user can rename.
+            const firstLine = args.prompt.trim().split('\n')[0] ?? '';
+            const projectName = firstLine.slice(0, 60) || 'New Project';
+
+            const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
+                userId: me._id,
+                workspaceId,
+                name: projectName,
+                description: 'Created from a prompt',
+                tags: ['prompt'],
+                framework,
+                sandboxId,
+                sandboxUrl: previewUrl,
+                cloudProvider: 'vercel_sandbox',
+                port,
+                snapshotId: result.snapshotId,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
+            });
+
+            // Seed the prompt (+ images) for the editor to replay into the AI
+            // chat. Discriminated CreateRequestContext[] — see
+            // packages/models/src/project/create.ts.
+            const context: Array<Record<string, unknown>> = [
+                { type: 'prompt', content: args.prompt },
+            ];
+            for (const img of args.images ?? []) {
+                context.push({ type: 'image', content: img.content, mimeType: img.mimeType });
+            }
+            await ctx.runMutation(internal.projectCreateRequests._insertCreateRequest, {
+                projectId: projectId as any,
+                context,
+            });
+
+            provisionedSandboxId = null;
+            return { projectId };
+        } catch (error) {
+            if (provisionedSandboxId) {
+                try {
+                    const credentials = {
+                        teamId: process.env.VERCEL_TEAM_ID ?? '',
+                        projectId: process.env.VERCEL_PROJECT_ID ?? '',
+                        token: process.env.VERCEL_TOKEN ?? '',
+                    };
+                    if (credentials.teamId && credentials.projectId && credentials.token) {
+                        const sandbox = await Sandbox.get({
+                            sandboxId: provisionedSandboxId,
+                            ...credentials,
+                        });
+                        await sandbox.stop({ blocking: false }).catch(() => undefined);
+                    }
+                } catch (cleanupErr) {
+                    console.warn('[createFromPrompt] Vercel sandbox cleanup failed', cleanupErr);
+                }
+            }
+            throw mapSandboxProvisionError(error);
+        }
+    },
+});
+
+// ─── createEmptySandbox (local folder import) ──────────────────────────────────
+
+/**
+ * Provisions a bare Vercel sandbox (no scaffold) for the local-folder import
+ * flow. The browser then uploads the user's files into it via the authed
+ * sandbox proxy and calls `setup` (install + dev). Kept separate from
+ * createBlank, whose Next.js scaffold the imported files would collide with.
+ * Persisting the project is the caller's job (`projects.create`).
+ */
+export const createEmptySandbox = action({
+    args: { workspaceId: v.optional(v.id('workspaces')) },
+    handler: async (
+        ctx,
+        args,
+    ): Promise<{ sandboxId: string; previewUrl: string; port: number; runtime: string }> => {
+        const me: any = await ctx.runQuery(api.users.me, {});
+        if (!me) throw new Error('UNAUTHORIZED');
+
+        if (args.workspaceId) {
+            await ctx.runQuery(internal.projects._requireProjectCreateCap, {
+                workspaceId: args.workspaceId,
+            });
+        }
+
+        const teamId = process.env.VERCEL_TEAM_ID;
+        const projectId = process.env.VERCEL_PROJECT_ID;
+        const token = process.env.VERCEL_TOKEN;
+        if (!teamId || !projectId || !token) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        const port = 3000;
+        const runtime = 'node24';
+        try {
+            const sandbox = await Sandbox.create({
+                ports: [port],
+                runtime,
+                // Generous: must outlive the browser file upload + npm install.
+                timeout: 1_800_000,
+                resources: { vcpus: 2 },
+                teamId,
+                projectId,
+                token,
+            });
+            return {
+                sandboxId: sandbox.sandboxId,
+                previewUrl: sandbox.domain(port),
+                port,
+                runtime,
+            };
+        } catch (error) {
+            throw mapSandboxProvisionError(error);
+        }
+    },
+});
+
 // ─── generateName ─────────────────────────────────────────────────────────────
 
 /**

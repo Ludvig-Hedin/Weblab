@@ -67,11 +67,13 @@ export const sandboxRouter = router({
                 path: z.string(),
                 content: z.string(),
                 overwrite: z.boolean().optional(),
+                // 'base64' for binary import assets; defaults to utf8 text.
+                encoding: z.enum(['utf8', 'base64']).optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
             requireUserId(ctx);
-            return sandbox.fileWrite(input.sandboxId, input.path, input.content);
+            return sandbox.fileWrite(input.sandboxId, input.path, input.content, input.encoding);
         }),
 
     fileDelete: publicProcedure

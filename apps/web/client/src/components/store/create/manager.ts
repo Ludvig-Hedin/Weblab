@@ -5,6 +5,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import type { FrameworkId } from '@weblab/framework';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { parseRepoUrl } from './parse-repo-url';
@@ -106,28 +107,43 @@ export class CreateManager {
     }
 
     /**
-     * TODO(sandbox-port): replace once the prompt-create flow is ported to
-     * Convex. The legacy implementation chained `api.sandbox.fork` →
-     * `api.project.create`. Both still have no Convex equivalents that accept
-     * a prompt + image context, so the entry point throws a friendly error
-     * surfaced by the caller's toast. The signature is preserved so the
-     * callers compile; the unused locals keep TS happy without changing the
-     * public API.
+     * AI create: provision a blank Vercel sandbox and seed the user's prompt
+     * (+ images) so the editor replays it into the AI chat on first open. Wraps
+     * `projectActions.createFromPrompt`; the editor's `use-start-project`
+     * consumer auto-sends the seeded prompt.
      */
     async startCreate(
         userId: string,
-        _prompt: string,
-        _images: ImageMessageContext[],
+        prompt: string,
+        images: ImageMessageContext[],
     ): Promise<{ id: string }> {
         this.error = null;
         if (!userId) {
             throw new CreateFlowNotAuthenticatedError();
         }
-        runInAction(() => {
-            this.error = UNAVAILABLE_MESSAGE;
-            this.phase = 'idle';
-        });
-        throw new Error(UNAVAILABLE_MESSAGE);
+        try {
+            runInAction(() => {
+                this.phase = 'forking-sandbox';
+            });
+            const { projectId } = await this.convex.action(
+                convexApi.projectActions.createFromPrompt,
+                {
+                    prompt,
+                    images: images.map((i) => ({ content: i.content, mimeType: i.mimeType })),
+                    workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
+                },
+            );
+            runInAction(() => {
+                this.phase = 'opening-editor';
+            });
+            return { id: projectId };
+        } catch (error) {
+            runInAction(() => {
+                this.error = error instanceof Error ? error.message : 'Failed to create project';
+                this.phase = 'idle';
+            });
+            throw error;
+        }
     }
 
     resetPhase() {
@@ -135,9 +151,8 @@ export class CreateManager {
     }
 
     /**
-     * TODO(sandbox-port): see `startCreate`. GitHub-template imports relied on
-     * `api.github.validate`, `api.sandbox.createFromGitHub`, and
-     * `api.project.create` — none have Convex equivalents yet.
+     * Clone a public Git repo into a fresh Vercel sandbox via the
+     * `projectActions.createFromGit` action, then open the editor on it.
      */
     async startGitHubTemplate(userId: string, repoUrl: string): Promise<{ id: string }> {
         this.error = null;
@@ -145,13 +160,20 @@ export class CreateManager {
             throw new CreateFlowNotAuthenticatedError();
         }
         // Validate the URL shape eagerly so the user gets a precise error for
-        // a bad URL before hitting the unavailability message — preserves the
-        // pre-migration UX where parseRepoUrl errors surfaced as a toast.
+        // a bad URL before the network round-trip.
         parseRepoUrl(repoUrl);
-        runInAction(() => {
-            this.error = UNAVAILABLE_MESSAGE;
-        });
-        throw new Error(UNAVAILABLE_MESSAGE);
+        try {
+            const { projectId } = await this.convex.action(convexApi.projectActions.createFromGit, {
+                repoUrl,
+                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
+            });
+            return { id: projectId };
+        } catch (error) {
+            runInAction(() => {
+                this.error = error instanceof Error ? error.message : 'Failed to create project';
+            });
+            throw error;
+        }
     }
 
     /**
@@ -211,9 +233,24 @@ export class CreateManager {
                 'Cannot use subpath with pre-seeded sandbox templates.',
             );
         }
-        runInAction(() => {
-            this.error = UNAVAILABLE_MESSAGE;
-        });
-        throw new Error(UNAVAILABLE_MESSAGE);
+        // `sandboxId` was the CodeSandbox fast-fork pre-seed — meaningless on
+        // Vercel, where we always `git clone` from the template's repo.
+        try {
+            const { projectId } = await this.convex.action(convexApi.projectActions.createFromGit, {
+                repoUrl: input.repoUrl,
+                branch: input.branch,
+                subpath: input.subpath,
+                name: input.name,
+                description: input.description,
+                framework: input.framework,
+                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
+            });
+            return { id: projectId };
+        } catch (error) {
+            runInAction(() => {
+                this.error = error instanceof Error ? error.message : 'Failed to create project';
+            });
+            throw error;
+        }
     }
 }
