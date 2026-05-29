@@ -5,11 +5,12 @@ import { getFrameworkAdapter } from '@weblab/framework';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 
-export const ChatControls = observer(() => {
+export const ChatControls = observer(({ compact = false }: { compact?: boolean }) => {
     const editorEngine = useEditorEngine();
     const t = useTranslations();
 
@@ -38,7 +39,7 @@ export const ChatControls = observer(() => {
 
     return (
         <div className="flex flex-row items-center gap-1">
-            {showFrameworkChip && (
+            {showFrameworkChip && !compact && (
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span
@@ -59,7 +60,11 @@ export const ChatControls = observer(() => {
                         <Button
                             variant={'ghost'}
                             size={'icon'}
-                            className="group text-foreground-secondary hover:text-foreground-primary h-8 w-fit cursor-pointer gap-1.5 bg-transparent px-2 hover:!bg-transparent"
+                            aria-label={t(transKeys.editor.panels.edit.tabs.chat.controls.newChat)}
+                            className={cn(
+                                'group text-foreground-secondary hover:text-foreground-primary h-8 cursor-pointer gap-1.5 bg-transparent hover:!bg-transparent',
+                                compact ? 'w-8 px-0' : 'w-fit px-2',
+                            )}
                             onClick={handleNewChat}
                             disabled={isDisabled}
                         >
@@ -68,9 +73,11 @@ export const ChatControls = observer(() => {
                             ) : (
                                 <Icons.Edit className="h-4 w-4" />
                             )}
-                            <span className="text-small">
-                                {t(transKeys.editor.panels.edit.tabs.chat.controls.newChat)}
-                            </span>
+                            {!compact && (
+                                <span className="text-small">
+                                    {t(transKeys.editor.panels.edit.tabs.chat.controls.newChat)}
+                                </span>
+                            )}
                         </Button>
                     </span>
                 </TooltipTrigger>

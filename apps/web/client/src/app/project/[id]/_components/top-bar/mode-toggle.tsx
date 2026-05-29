@@ -132,7 +132,10 @@ export const ModeToggle = observer(() => {
             {/* Desktop: inline toggle group */}
             <div ref={groupRef} className="relative hidden md:block">
                 <ToggleGroup
-                    className="mt-1 h-7 font-normal"
+                    // border-0 + rounded-none strip the ToggleGroup primitive's
+                    // default border/radius so the mode tabs read as a flat
+                    // header control, not a boxed segmented control.
+                    className="mt-1 h-7 rounded-none border-0 font-normal"
                     type="single"
                     value={mode}
                     onValueChange={(value) => {

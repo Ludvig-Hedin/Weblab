@@ -27,6 +27,8 @@ export type ModelSelectorProps = {
     localModelsLoading: boolean;
     reasoningEffort?: ReasoningEffort;
     onReasoningEffortChange?: (effort: ReasoningEffort) => void;
+    /** Show the search/filter box atop the model list (V2 only). Default: false. */
+    showSearch?: boolean;
 };
 
 export const ModelSelector = (props: ModelSelectorProps) => {

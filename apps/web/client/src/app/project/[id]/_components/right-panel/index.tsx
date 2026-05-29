@@ -65,6 +65,12 @@ const FIRST_CREATION_PANEL_WIDTH = 460;
 const PANEL_MIN_WIDTH = 280;
 const PANEL_MAX_WIDTH = 560;
 
+// Below this width the header row (3 tab labels + New Chat label + settings +
+// collapse) no longer fits and the collapse button gets clipped. When narrow we
+// drop to icon-only for inactive tabs and the New Chat button so the collapse
+// toggle stays reachable at every width down to PANEL_MIN_WIDTH.
+const PANEL_NARROW_WIDTH = 456;
+
 // Persist the panel layout so it survives reloads. Plain localStorage (not
 // Convex) keeps this device-local and schema-free — it's a UI preference, not
 // shared state.
@@ -259,6 +265,13 @@ export const RightPanel = observer(() => {
         editorEngine.interactions.isLoaded && editorEngine.interactions.interactions.length > 0;
     const showInteractionsDot = hasAnyInteractions && activeTab !== 'interactions' && !isCodeMode;
 
+    // When narrow, only the active tab keeps its text label; inactive tabs and
+    // the New Chat button collapse to icon-only so the header never overflows.
+    const isNarrow = panelWidth < PANEL_NARROW_WIDTH;
+    const styleLabel = t(transKeys.editor.panels.edit.tabs.styles.name);
+    const interactionsLabel = t(transKeys.editor.panels.edit.tabs.interactions.name);
+    const chatLabel = t(transKeys.editor.panels.edit.tabs.chat.name);
+
     return (
         <div
             className={cn(
@@ -347,7 +360,7 @@ export const RightPanel = observer(() => {
                                 className="flex h-full min-w-0 flex-col gap-0"
                             >
                                 <div className="flex h-10 w-full flex-row items-center border-b px-2">
-                                    <TabsList className="bg-background-tab-strip h-8 gap-0 rounded-md p-0.5">
+                                    <TabsList className="bg-background-tab-strip h-8 min-w-0 gap-0 rounded-md p-0.5">
                                         {(() => {
                                             // The tooltip explains "Available in Design
                                             // mode" and is only meaningful in CODE mode.
@@ -358,21 +371,25 @@ export const RightPanel = observer(() => {
                                             // so the active background never shows. So
                                             // only wrap when the tooltip is actually
                                             // needed; otherwise render a bare trigger.
+                                            const showStyleLabel =
+                                                !isNarrow || activeTab === 'style';
                                             const styleTrigger = (
                                                 <TabsTrigger
                                                     value="style"
                                                     disabled={isCodeMode}
+                                                    aria-label={styleLabel}
+                                                    title={showStyleLabel ? undefined : styleLabel}
                                                     className={cn(
-                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:text-mini relative h-7 gap-1.5 rounded-md px-2.5',
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:text-mini relative h-7 gap-1.5 rounded-md',
+                                                        showStyleLabel
+                                                            ? 'px-2.5'
+                                                            : 'w-7 flex-none px-0',
                                                         isCodeMode &&
                                                             'cursor-not-allowed opacity-40',
                                                     )}
                                                 >
-                                                    <Icons.Layout className="h-3 w-3" />
-                                                    {t(
-                                                        transKeys.editor.panels.edit.tabs.styles
-                                                            .name,
-                                                    )}
+                                                    <Icons.Layout className="h-3 w-3 shrink-0" />
+                                                    {showStyleLabel && styleLabel}
                                                     {showStyleDot && (
                                                         <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
                                                     )}
@@ -394,21 +411,29 @@ export const RightPanel = observer(() => {
                                             );
                                         })()}
                                         {(() => {
+                                            const showInteractionsLabel =
+                                                !isNarrow || activeTab === 'interactions';
                                             const interactionsTrigger = (
                                                 <TabsTrigger
                                                     value="interactions"
                                                     disabled={isCodeMode}
+                                                    aria-label={interactionsLabel}
+                                                    title={
+                                                        showInteractionsLabel
+                                                            ? undefined
+                                                            : interactionsLabel
+                                                    }
                                                     className={cn(
-                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent px-2.5',
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent',
+                                                        showInteractionsLabel
+                                                            ? 'px-2.5'
+                                                            : 'w-7 flex-none px-0',
                                                         isCodeMode &&
                                                             'cursor-not-allowed opacity-40',
                                                     )}
                                                 >
-                                                    <Icons.CursorArrow className="h-3 w-3" />
-                                                    {t(
-                                                        transKeys.editor.panels.edit.tabs
-                                                            .interactions.name,
-                                                    )}
+                                                    <Icons.CursorArrow className="h-3 w-3 shrink-0" />
+                                                    {showInteractionsLabel && interactionsLabel}
                                                     {showInteractionsDot && (
                                                         <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
                                                     )}
@@ -432,16 +457,27 @@ export const RightPanel = observer(() => {
                                         <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                         <TabsTrigger
                                             value="chat"
-                                            className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent px-2.5"
+                                            aria-label={chatLabel}
+                                            title={
+                                                !isNarrow || activeTab === 'chat'
+                                                    ? undefined
+                                                    : chatLabel
+                                            }
+                                            className={cn(
+                                                'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent',
+                                                !isNarrow || activeTab === 'chat'
+                                                    ? 'px-2.5'
+                                                    : 'w-7 flex-none px-0',
+                                            )}
                                         >
-                                            <Icons.Sparkles className="h-3 w-3" />
-                                            {t(transKeys.editor.panels.edit.tabs.chat.name)}
+                                            <Icons.Sparkles className="h-3 w-3 shrink-0" />
+                                            {(!isNarrow || activeTab === 'chat') && chatLabel}
                                         </TabsTrigger>
                                     </TabsList>
-                                    <div className="ml-auto flex items-center gap-0.5">
+                                    <div className="ml-auto flex shrink-0 items-center gap-0.5">
                                         {activeTab === 'chat' && (
                                             <>
-                                                <ChatControls />
+                                                <ChatControls compact={isNarrow} />
                                                 <ChatPanelDropdown
                                                     isChatHistoryOpen={isChatHistoryOpen}
                                                     setIsChatHistoryOpen={setIsChatHistoryOpen}

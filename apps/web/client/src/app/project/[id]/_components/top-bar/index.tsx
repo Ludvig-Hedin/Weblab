@@ -50,7 +50,7 @@ export const TopBar = observer(() => {
         'text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary/60 h-8 w-8 rounded-md';
 
     return (
-        <div className="bg-background-chrome border-border desktop-drag-region flex h-14 flex-row items-center justify-center border-b px-3">
+        <div className="bg-background-chrome border-border desktop-drag-region flex h-14 flex-row items-center justify-center border-b pr-3 pl-1.5">
             {/* Left: breadcrumb + branch. ConnectionChip hidden on mobile — too wide. */}
             <div className="flex flex-grow basis-0 flex-row items-center justify-start gap-1 overflow-hidden">
                 <ProjectBreadcrumb />

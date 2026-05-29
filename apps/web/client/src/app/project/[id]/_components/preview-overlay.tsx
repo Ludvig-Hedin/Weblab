@@ -4,12 +4,16 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { observer } from 'mobx-react-lite';
 
 import type { ParsedError } from '@weblab/utility';
+import { DEVICE_OPTIONS } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -586,6 +590,23 @@ export const PreviewOverlay = observer(() => {
         [maxHeight],
     );
 
+    // Apply a "WxH" device preset (from DEVICE_OPTIONS) to the preview size,
+    // clamped to the available preview area.
+    const applyDeviceSize = useCallback(
+        (dimensions: string) => {
+            const [w, h] = dimensions.split('x').map(Number);
+            if (
+                typeof w === 'number' &&
+                Number.isFinite(w) &&
+                typeof h === 'number' &&
+                Number.isFinite(h)
+            ) {
+                setSize({ width: clampDim(w, maxWidth), height: clampDim(h, maxHeight) });
+            }
+        },
+        [maxWidth, maxHeight],
+    );
+
     const activeBreakpoint = size
         ? (groupBreakpoints.find((bp) => Math.abs(bp.width - size.width) < 1) ?? null)
         : null;
@@ -685,7 +706,14 @@ export const PreviewOverlay = observer(() => {
                                         <Icons.ChevronDown className="text-foreground-tertiary h-3.5 w-3.5" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="center" className="z-[70]">
+                                <DropdownMenuContent
+                                    align="center"
+                                    className="z-[70] max-h-[60vh] overflow-y-auto"
+                                >
+                                    {/* Your own breakpoints (the frames in this group). */}
+                                    <DropdownMenuLabel className="text-mini text-foreground-tertiary">
+                                        Breakpoints
+                                    </DropdownMenuLabel>
                                     {groupBreakpoints.map((bp) => (
                                         <DropdownMenuItem
                                             key={bp.frameId}
@@ -703,6 +731,38 @@ export const PreviewOverlay = observer(() => {
                                             </span>
                                         </DropdownMenuItem>
                                     ))}
+
+                                    {/* Detailed device presets — relocated here from the
+                                        (now hidden) frame toolbar device selector. */}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="text-mini text-foreground-tertiary">
+                                        Devices
+                                    </DropdownMenuLabel>
+                                    {Object.entries(DEVICE_OPTIONS)
+                                        .filter(([category]) => category !== 'Custom')
+                                        .map(([category, devices]) => (
+                                            <DropdownMenuGroup key={category}>
+                                                <DropdownMenuLabel className="text-micro text-foreground-tertiary/70 px-2 pt-1.5 pb-0.5 font-normal">
+                                                    {category}
+                                                </DropdownMenuLabel>
+                                                {Object.entries(devices).map(
+                                                    ([name, dimensions]) => (
+                                                        <DropdownMenuItem
+                                                            key={`${category}:${name}`}
+                                                            onSelect={() =>
+                                                                applyDeviceSize(dimensions)
+                                                            }
+                                                            className="flex items-center gap-3"
+                                                        >
+                                                            <span className="flex-1">{name}</span>
+                                                            <span className="text-foreground-tertiary text-micro tabular-nums">
+                                                                {dimensions.replace('x', '×')}
+                                                            </span>
+                                                        </DropdownMenuItem>
+                                                    ),
+                                                )}
+                                            </DropdownMenuGroup>
+                                        ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}

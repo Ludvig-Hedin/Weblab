@@ -15,7 +15,9 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { HelpButton } from './help-button';
+// HelpButton hidden per request — the "?" feedback button did nothing useful.
+// Import kept commented so it can be restored without re-wiring.
+// import { HelpButton } from './help-button';
 import { ZoomControls } from './zoom-controls';
 
 // Tab contents are gated by `selectedTab === X` below, so only one renders at
@@ -171,22 +173,32 @@ export const DesignPanel = observer(() => {
     };
 
     if (isCollapsed || editorEngine.state.panelsHidden) {
+        // Anchored to the exact rectangle the rail's collapse button occupies
+        // (w-14 lane, pt-2, h-9) so the toggle never jumps position or size
+        // between open and collapsed states — only the icon flips.
         return (
-            <div className="mt-3 flex">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t(transKeys.editor.panels.layers.rail.openLeftPanel)}
-                    className="border-border-bar bg-background-chrome text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-none rounded-r-md border border-l-0"
-                    onClick={() => {
-                        if (editorEngine.state.panelsHidden) {
-                            editorEngine.state.togglePanelsHidden();
-                        }
-                        setIsCollapsed(false);
-                    }}
-                >
-                    <Icons.SidebarLeftExpand className="h-4 w-4" />
-                </Button>
+            <div className="flex w-14 flex-col items-center pt-2">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t(transKeys.editor.panels.layers.rail.openLeftPanel)}
+                            className="border-border-bar bg-background-chrome text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-9 w-9 rounded-md border shadow-sm"
+                            onClick={() => {
+                                if (editorEngine.state.panelsHidden) {
+                                    editorEngine.state.togglePanelsHidden();
+                                }
+                                setIsCollapsed(false);
+                            }}
+                        >
+                            <Icons.SidebarLeftExpand className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" hideArrow>
+                        {t(transKeys.editor.panels.layers.rail.openLeftPanel)}
+                    </TooltipContent>
+                </Tooltip>
             </div>
         );
     }
@@ -249,6 +261,24 @@ export const DesignPanel = observer(() => {
         <div className="flex h-full overflow-auto" onMouseLeave={handleMouseLeave}>
             {/* Left sidebar with tabs */}
             <div className="bg-background-chrome border-border-bar flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
+                {/* Collapse toggle pinned to the top of the rail — occupies the
+                    same rectangle as the collapsed-state expand button so it
+                    never jumps position or size, only flips its icon. */}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            aria-label={t(transKeys.editor.panels.layers.rail.collapsePanel)}
+                            className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
+                            onClick={() => setIsCollapsed(true)}
+                        >
+                            <Icons.SidebarLeftCollapse className="h-5 w-5" />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" hideArrow>
+                        {t(transKeys.editor.panels.layers.rail.collapsePanel)}
+                    </TooltipContent>
+                </Tooltip>
+                <div className="bg-border-bar/60 my-1 h-px w-6" />
                 {tabs.map((tab) => {
                     const label = getTabLabel(tab.value);
 
@@ -289,21 +319,8 @@ export const DesignPanel = observer(() => {
 
                 <div className="mt-auto mb-4 flex flex-col items-center gap-0">
                     <ZoomControls />
-                    <HelpButton />
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                aria-label={t(transKeys.editor.panels.layers.rail.collapsePanel)}
-                                className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
-                                onClick={() => setIsCollapsed(true)}
-                            >
-                                <Icons.SidebarLeftCollapse className="h-4 w-4" />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" hideArrow>
-                            {t(transKeys.editor.panels.layers.rail.collapsePanel)}
-                        </TooltipContent>
-                    </Tooltip>
+                    {/* HelpButton hidden per request — non-functional "?" button. */}
+                    {/* <HelpButton /> */}
                 </div>
             </div>
 

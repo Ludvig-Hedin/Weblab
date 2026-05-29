@@ -97,6 +97,15 @@ export const EditorBar = observer(({ availableWidth }: { availableWidth?: number
         return null;
     }
 
+    // Frame/window toolbar (device picker, theme, rotate, duplicate, delete) is
+    // hidden per request. The device presets it exposed now also live in the
+    // Preview device selector. Element styling toolbars (text/img/div) still
+    // render below. getTopBar() keeps the <FrameSelected /> wiring intact;
+    // remove this guard to restore the floating frame toolbar.
+    if (windowSelected) {
+        return null;
+    }
+
     return (
         <DropdownManagerProvider>
             <motion.div
