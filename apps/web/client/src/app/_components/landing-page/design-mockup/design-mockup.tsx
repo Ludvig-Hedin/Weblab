@@ -45,12 +45,7 @@ const TIERS = [
         name: 'Pro',
         price: 12,
         sub: 'For ambitious masterminds.',
-        feats: [
-            'Unlimited lairs',
-            'Priority hench-support',
-            'Advanced AI plotting',
-            'Audit log',
-        ],
+        feats: ['Unlimited lairs', 'Priority hench-support', 'Advanced AI plotting', 'Audit log'],
         featured: true,
     },
     {
@@ -201,8 +196,8 @@ export function DesignMockup({
                         isDark ? 'text-neutral-400' : 'text-neutral-500',
                     )}
                 >
-                    Plot, build, and deploy evil schemes with AI. For the villains who ship —
-                    not the ones still drafting their monologue.
+                    Plot, build, and deploy evil schemes with AI. For the villains who ship — not
+                    the ones still drafting their monologue.
                 </p>
                 <div className="relative flex items-center gap-1.5">
                     <button
@@ -232,9 +227,7 @@ export function DesignMockup({
             <div
                 className={cn(
                     'flex shrink-0 items-center gap-3 border-y px-6 py-1.5',
-                    isDark
-                        ? 'border-neutral-800 bg-neutral-900/60'
-                        : 'border-neutral-100 bg-white',
+                    isDark ? 'border-neutral-800 bg-neutral-900/60' : 'border-neutral-100 bg-white',
                 )}
             >
                 <span
@@ -321,9 +314,7 @@ export function DesignMockup({
                     {TIERS.map((t) => {
                         const displayPrice = t.name === 'Starter' ? starterPrice : t.price;
                         const proBorder =
-                            t.featured && proAccentOverride
-                                ? proAccentOverride
-                                : null;
+                            t.featured && proAccentOverride ? proAccentOverride : null;
                         return (
                             <div
                                 key={t.name}
@@ -340,10 +331,7 @@ export function DesignMockup({
                                                       : 'border-neutral-900'),
                                           )
                                         : cardsAccent
-                                          ? cn(
-                                                isDark ? 'bg-neutral-800' : 'bg-white',
-                                                accentBorder,
-                                            )
+                                          ? cn(isDark ? 'bg-neutral-800' : 'bg-white', accentBorder)
                                           : isDark
                                             ? 'border-neutral-800 bg-neutral-800/60'
                                             : 'border-neutral-200 bg-white',
@@ -465,53 +453,115 @@ export function DesignMockup({
     );
 }
 
-export function DesignMockupMobile() {
+export function DesignMockupMobile({ theme = 'light' }: { theme?: 'light' | 'dark' } = {}) {
+    const isDark = theme === 'dark';
     return (
-        <div className="relative flex h-116 w-50 flex-col overflow-hidden rounded-sm border border-neutral-200 bg-[#FCFCFA] text-neutral-900">
+        <div
+            className={cn(
+                'relative flex h-116 w-50 flex-col overflow-hidden rounded-sm border transition-colors duration-300',
+                isDark
+                    ? 'border-neutral-800 bg-neutral-950 text-neutral-100'
+                    : 'border-neutral-200 bg-[#FCFCFA] text-neutral-900',
+            )}
+        >
             {/* Nav */}
-            <div className="flex h-7 shrink-0 items-center justify-between border-b border-neutral-200 bg-white/95 px-2 backdrop-blur">
+            <div
+                className={cn(
+                    'flex h-7 shrink-0 items-center justify-between border-b px-2 backdrop-blur',
+                    isDark
+                        ? 'border-neutral-800 bg-neutral-900/95'
+                        : 'border-neutral-200 bg-white/95',
+                )}
+            >
                 <div className="flex items-center gap-1">
-                    <div className="flex h-3 w-3 items-center justify-center rounded-sm bg-neutral-900">
-                        <span className={cn('text-[7px] text-white', vujahdayScript.className)}>
+                    <div
+                        className={cn(
+                            'flex h-3 w-3 items-center justify-center rounded-sm',
+                            isDark ? 'bg-neutral-100' : 'bg-neutral-900',
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                'text-[7px]',
+                                isDark ? 'text-neutral-900' : 'text-white',
+                                vujahdayScript.className,
+                            )}
+                        >
                             V
                         </span>
                     </div>
                     <span className="text-[7px] font-semibold tracking-tight">Villainterest</span>
                 </div>
                 <div className="flex h-4 w-4 flex-col items-center justify-center gap-[2px]">
-                    <span className="block h-px w-3 bg-neutral-700" />
-                    <span className="block h-px w-3 bg-neutral-700" />
+                    <span
+                        className={cn(
+                            'block h-px w-3',
+                            isDark ? 'bg-neutral-300' : 'bg-neutral-700',
+                        )}
+                    />
+                    <span
+                        className={cn(
+                            'block h-px w-3',
+                            isDark ? 'bg-neutral-300' : 'bg-neutral-700',
+                        )}
+                    />
                 </div>
             </div>
 
             {/* Hero */}
-            <div className="relative flex flex-col items-center bg-gradient-to-b from-neutral-50 to-white px-3 pt-4 pb-3">
+            <div
+                className={cn(
+                    'relative flex flex-col items-center px-3 pt-4 pb-3',
+                    isDark
+                        ? 'bg-gradient-to-b from-neutral-900 to-neutral-950'
+                        : 'bg-gradient-to-b from-neutral-50 to-white',
+                )}
+            >
                 <h1 className="mb-1.5 text-center text-[15px] leading-[1] font-semibold tracking-[-0.028em]">
                     The lair builder
                     <br />
                     <span
                         className={cn(
-                            'font-normal text-neutral-700 italic',
+                            'font-normal italic',
+                            isDark ? 'text-neutral-300' : 'text-neutral-700',
                             vujahdayScript.className,
                         )}
                     >
                         for masterminds
                     </span>
                 </h1>
-                <p className="mb-2 px-2 text-center text-[7px] leading-snug text-neutral-500">
+                <p
+                    className={cn(
+                        'mb-2 px-2 text-center text-[7px] leading-snug',
+                        isDark ? 'text-neutral-400' : 'text-neutral-500',
+                    )}
+                >
                     Plot, build, deploy your evil schemes with AI.
                 </p>
-                <button className="rounded-full bg-neutral-900 px-2.5 py-1 text-[7px] font-medium text-white shadow-sm">
+                <button
+                    className={cn(
+                        'rounded-full px-2.5 py-1 text-[7px] font-medium shadow-sm',
+                        isDark ? 'bg-neutral-100 text-neutral-900' : 'bg-neutral-900 text-white',
+                    )}
+                >
                     Start scheming
                 </button>
             </div>
 
             {/* Logo strip */}
-            <div className="flex shrink-0 items-center justify-around border-y border-neutral-100 bg-white py-1 opacity-60">
+            <div
+                className={cn(
+                    'flex shrink-0 items-center justify-around border-y py-1 opacity-60',
+                    isDark ? 'border-neutral-800 bg-neutral-900/60' : 'border-neutral-100 bg-white',
+                )}
+            >
                 {LOGO_WORDS.slice(0, 3).map((n) => (
                     <span
                         key={n}
-                        className="font-serif text-[7px] font-semibold tracking-tight text-neutral-700"
+                        className={cn(
+                            'font-serif text-[7px] font-semibold tracking-tight',
+                            isDark ? 'text-neutral-300' : 'text-neutral-700',
+                        )}
                     >
                         {n}
                     </span>
@@ -519,8 +569,20 @@ export function DesignMockupMobile() {
             </div>
 
             {/* Pricing tiers stacked */}
-            <div className="flex flex-1 flex-col gap-1.5 border-t border-neutral-100 bg-neutral-50 px-2 py-2">
-                <div className="text-[7px] font-semibold tracking-tight text-neutral-900">
+            <div
+                className={cn(
+                    'flex flex-1 flex-col gap-1.5 border-t px-2 py-2',
+                    isDark
+                        ? 'border-neutral-800 bg-neutral-900'
+                        : 'border-neutral-100 bg-neutral-50',
+                )}
+            >
+                <div
+                    className={cn(
+                        'text-[7px] font-semibold tracking-tight',
+                        isDark ? 'text-neutral-100' : 'text-neutral-900',
+                    )}
+                >
                     Pricing
                 </div>
                 {TIERS.map((t) => (
@@ -529,41 +591,43 @@ export function DesignMockupMobile() {
                         className={cn(
                             'flex items-center justify-between rounded-md border px-1.5 py-1.5',
                             t.featured
-                                ? 'border-neutral-900 bg-neutral-900 text-white'
-                                : 'border-neutral-200 bg-white',
+                                ? isDark
+                                    ? 'border-neutral-100 bg-neutral-100 text-neutral-900'
+                                    : 'border-neutral-900 bg-neutral-900 text-white'
+                                : isDark
+                                  ? 'border-neutral-800 bg-neutral-800/60'
+                                  : 'border-neutral-200 bg-white',
                         )}
                     >
                         <div className="flex flex-col">
-                            <span
-                                className={cn(
-                                    'text-[7px] font-semibold',
-                                    t.featured && 'text-white',
-                                )}
-                            >
-                                {t.name}
-                            </span>
+                            <span className="text-[7px] font-semibold">{t.name}</span>
                             <span
                                 className={cn(
                                     'text-[6px]',
-                                    t.featured ? 'text-neutral-400' : 'text-neutral-500',
+                                    t.featured
+                                        ? isDark
+                                            ? 'text-neutral-500'
+                                            : 'text-neutral-400'
+                                        : isDark
+                                          ? 'text-neutral-400'
+                                          : 'text-neutral-500',
                                 )}
                             >
                                 {t.sub}
                             </span>
                         </div>
                         <div className="text-right">
-                            <span
-                                className={cn(
-                                    'text-[9px] font-semibold',
-                                    t.featured && 'text-white',
-                                )}
-                            >
-                                ${t.price}
-                            </span>
+                            <span className="text-[9px] font-semibold">${t.price}</span>
                             <span
                                 className={cn(
                                     'text-[6px]',
-                                    t.featured ? 'text-neutral-400' : 'text-neutral-500',
+                                    t.featured
+                                        ? isDark
+                                            ? 'text-neutral-500'
+                                            : 'text-neutral-400'
+                                        : isDark
+                                          ? 'text-neutral-400'
+                                          : 'text-neutral-500',
                                 )}
                             >
                                 /mo
@@ -574,13 +638,26 @@ export function DesignMockupMobile() {
             </div>
 
             {/* Mobile tab bar */}
-            <div className="absolute right-0 bottom-0 left-0 z-10 flex h-7 items-center justify-around border-t border-neutral-200 bg-white/90 px-2 backdrop-blur-md">
+            <div
+                className={cn(
+                    'absolute right-0 bottom-0 left-0 z-10 flex h-7 items-center justify-around border-t px-2 backdrop-blur-md',
+                    isDark
+                        ? 'border-neutral-800 bg-neutral-900/90'
+                        : 'border-neutral-200 bg-white/90',
+                )}
+            >
                 {['◆', '○', '+', '⌘', '☰'].map((g, i) => (
                     <span
                         key={i}
                         className={cn(
                             'text-[10px]',
-                            i === 0 ? 'text-neutral-900' : 'text-neutral-400',
+                            i === 0
+                                ? isDark
+                                    ? 'text-neutral-100'
+                                    : 'text-neutral-900'
+                                : isDark
+                                  ? 'text-neutral-600'
+                                  : 'text-neutral-400',
                         )}
                     >
                         {g}

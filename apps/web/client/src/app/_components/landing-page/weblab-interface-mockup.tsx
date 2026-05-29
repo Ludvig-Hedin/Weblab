@@ -177,8 +177,20 @@ const INITIAL_LAYERS: MockLayer[] = [
     { id: 'hero-title', name: 'Headline', tagName: 'H1', level: 2, isInstance: false },
     { id: 'hero-sub', name: 'Subhead', tagName: 'P', level: 2, isInstance: false },
     { id: 'hero-cta-row', name: 'CTA Row', tagName: 'DIV', level: 2, isInstance: false },
-    { id: 'hero-cta-primary', name: 'Start scheming', tagName: 'BUTTON', level: 3, isInstance: false },
-    { id: 'hero-cta-secondary', name: 'Watch demo', tagName: 'BUTTON', level: 3, isInstance: false },
+    {
+        id: 'hero-cta-primary',
+        name: 'Start scheming',
+        tagName: 'BUTTON',
+        level: 3,
+        isInstance: false,
+    },
+    {
+        id: 'hero-cta-secondary',
+        name: 'Watch demo',
+        tagName: 'BUTTON',
+        level: 3,
+        isInstance: false,
+    },
     { id: 'logos', name: 'Logo Strip', tagName: 'DIV', level: 1, isInstance: false },
     { id: 'pricing', name: 'Pricing', tagName: 'COMPONENT', level: 1, isInstance: true },
     { id: 'card-starter', name: 'Starter', tagName: 'COMPONENT', level: 2, isInstance: true },
@@ -1186,49 +1198,6 @@ function CmsModePanel({ onExit }: { onExit: () => void }) {
     );
 }
 
-function NotesComponent() {
-    const notes = [
-        'Hero — bigger headline + tagline',
-        'Pricing tiers — 3 plans, Pro featured',
-        'Feature grid — Plot / Build / Deploy',
-        'Footer with newsletter signup',
-        'Customer logo strip below hero',
-        'FAQ section above footer',
-    ];
-
-    return (
-        <div className="border-border bg-background-chrome mt-10 h-fit w-72 min-w-56 rounded-lg border p-3 backdrop-blur-sm">
-            <div className="mb-1.5 flex items-center gap-2">
-                <h3 className="text-foreground-secondary font-mono text-[11px]">
-                    Launch checklist
-                </h3>
-            </div>
-            <div className="space-y-1.5">
-                {notes.map((note, index) => (
-                    <div key={index} className="flex items-start gap-2 text-[10px]">
-                        <div
-                            className={cn(
-                                'mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full',
-                                index < 3 ? 'bg-emerald-400/70' : 'bg-foreground-tertiary',
-                            )}
-                        />
-                        <span
-                            className={cn(
-                                'font-mono leading-relaxed',
-                                index < 3
-                                    ? 'text-foreground-tertiary line-through'
-                                    : 'text-foreground-secondary',
-                            )}
-                        >
-                            {note}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 function UserMessage({ text }: { text: string }) {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-1 flex w-full flex-row justify-end px-2 duration-300">
@@ -1559,17 +1528,10 @@ function StyleField({
         <div className="border-border bg-background-secondary/60 flex h-7 items-center gap-1.5 rounded px-2 text-[11px]">
             {swatch && <div className={cn('ring-border h-3 w-3 rounded-sm ring-1', swatch)} />}
             <span className="text-foreground-tertiary w-9 shrink-0 text-[10px]">{label}</span>
-            <span
-                className={cn(
-                    'text-foreground flex-1 truncate text-right',
-                    mono && 'font-mono',
-                )}
-            >
+            <span className={cn('text-foreground flex-1 truncate text-right', mono && 'font-mono')}>
                 {value}
             </span>
-            {trailing && (
-                <span className="text-foreground-tertiary text-[10px]">{trailing}</span>
-            )}
+            {trailing && <span className="text-foreground-tertiary text-[10px]">{trailing}</span>}
         </div>
     );
 }
@@ -1640,12 +1602,7 @@ function StylePanel({ selectedLayer }: { selectedLayer?: MockLayer }) {
                     <StyleField label="Width" value="1" />
                     <StyleField label="Radius" value="12" />
                 </div>
-                <StyleField
-                    label="Color"
-                    value="#1F1F22"
-                    mono
-                    swatch="bg-neutral-900"
-                />
+                <StyleField label="Color" value="#1F1F22" mono swatch="bg-neutral-900" />
             </StyleSection>
             <StyleSection title="Typography" icon="TextAlignLeft">
                 <StyleField label="Font" value="Inter · 600" />
@@ -1767,11 +1724,6 @@ export function WeblabInterfaceMockup() {
 
     const [chatModelLabel, setChatModelLabel] = useState('Sonnet 4.6');
     const CHAT_MODELS = ['Sonnet 4.6', 'Opus 4.8', 'GPT-5'];
-    const cycleModel = () =>
-        setChatModelLabel((m) => {
-            const i = CHAT_MODELS.indexOf(m);
-            return CHAT_MODELS[(i + 1) % CHAT_MODELS.length] ?? CHAT_MODELS[0]!;
-        });
     const [chatComposerMode, setChatComposerMode] = useState<'Build' | 'Ask' | 'Plan'>('Build');
     const [modeMenuOpen, setModeMenuOpen] = useState(false);
     const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -1819,7 +1771,15 @@ export function WeblabInterfaceMockup() {
     // deliberate, natural collaborative edit instead of a constantly
     // dancing resize handle.
     type CollabAction =
-        | { kind: 'resize'; id: string; ownerId: string; x: number; y: number; w: number; h: number }
+        | {
+              kind: 'resize';
+              id: string;
+              ownerId: string;
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+          }
         | {
               kind: 'recolor';
               id: string;
@@ -2039,9 +1999,7 @@ export function WeblabInterfaceMockup() {
                 if (cancelled) return;
                 i += 1;
                 setComments((prev) =>
-                    prev.map((c) =>
-                        c.id === id ? { ...c, text: fullText.slice(0, i) } : c,
-                    ),
+                    prev.map((c) => (c.id === id ? { ...c, text: fullText.slice(0, i) } : c)),
                 );
                 if (i >= fullText.length && charTimer) {
                     clearInterval(charTimer);
@@ -2158,7 +2116,6 @@ export function WeblabInterfaceMockup() {
                     transition: isPanning ? 'none' : 'transform 0.15s ease-out',
                 }}
             >
-                <NotesComponent />
                 <div
                     data-canvas-element
                     className={cn(
@@ -2298,10 +2255,7 @@ export function WeblabInterfaceMockup() {
                                     <div className="border-border bg-background-chrome absolute top-7 left-0 z-50 w-48 rounded-md border p-2 shadow-xl">
                                         <div className="mb-1 flex items-center gap-1.5">
                                             <span
-                                                className={cn(
-                                                    'h-3 w-3 rounded-full',
-                                                    bubbleColor,
-                                                )}
+                                                className={cn('h-3 w-3 rounded-full', bubbleColor)}
                                             />
                                             <span className="text-foreground text-[10px] font-medium">
                                                 {c.author ?? 'You'}
@@ -2326,53 +2280,56 @@ export function WeblabInterfaceMockup() {
                         Recolor/edit-text actions show a subtle outline +
                         the owner cursor on the target, so changes read as
                         a natural edit instead of a moving resize box. */}
-                    {activeCollabAction && (() => {
-                        const action = activeCollabAction;
-                        const owner = presence.find((p) => p.id === action.ownerId);
-                        if (!owner) return null;
-                        const isResize = action.kind === 'resize';
-                        return (
-                            <div
-                                className="pointer-events-none absolute z-[15]"
-                                style={{
-                                    left: `${action.x}%`,
-                                    top: `${action.y}%`,
-                                    width: `${action.w}%`,
-                                    height: `${action.h}%`,
-                                    transition:
-                                        'left 0.55s cubic-bezier(0.22, 1, 0.36, 1), top 0.55s cubic-bezier(0.22, 1, 0.36, 1), width 0.55s cubic-bezier(0.22, 1, 0.36, 1), height 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
-                                }}
-                            >
+                    {activeCollabAction &&
+                        (() => {
+                            const action = activeCollabAction;
+                            const owner = presence.find((p) => p.id === action.ownerId);
+                            if (!owner) return null;
+                            const isResize = action.kind === 'resize';
+                            return (
                                 <div
-                                    className={cn(
-                                        'absolute inset-0 rounded-[2px]',
-                                        isResize ? 'border-[1.5px]' : 'border-[1px] border-dashed opacity-70',
-                                        owner.border,
-                                    )}
-                                />
-                                {isResize &&
-                                    [
-                                        { left: 0, top: 0 },
-                                        { left: '100%', top: 0 },
-                                        { left: 0, top: '100%' },
-                                        { left: '100%', top: '100%' },
-                                    ].map((c, i) => (
-                                        <div
-                                            key={i}
-                                            className={cn(
-                                                'absolute h-1.5 w-1.5 rounded-sm border border-white shadow-sm',
-                                                owner.bg,
-                                            )}
-                                            style={{
-                                                left: c.left,
-                                                top: c.top,
-                                                transform: 'translate(-50%, -50%)',
-                                            }}
-                                        />
-                                    ))}
-                            </div>
-                        );
-                    })()}
+                                    className="pointer-events-none absolute z-[15]"
+                                    style={{
+                                        left: `${action.x}%`,
+                                        top: `${action.y}%`,
+                                        width: `${action.w}%`,
+                                        height: `${action.h}%`,
+                                        transition:
+                                            'left 0.55s cubic-bezier(0.22, 1, 0.36, 1), top 0.55s cubic-bezier(0.22, 1, 0.36, 1), width 0.55s cubic-bezier(0.22, 1, 0.36, 1), height 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
+                                    }}
+                                >
+                                    <div
+                                        className={cn(
+                                            'absolute inset-0 rounded-[2px]',
+                                            isResize
+                                                ? 'border-[1.5px]'
+                                                : 'border-[1px] border-dashed opacity-70',
+                                            owner.border,
+                                        )}
+                                    />
+                                    {isResize &&
+                                        [
+                                            { left: 0, top: 0 },
+                                            { left: '100%', top: 0 },
+                                            { left: 0, top: '100%' },
+                                            { left: '100%', top: '100%' },
+                                        ].map((c, i) => (
+                                            <div
+                                                key={i}
+                                                className={cn(
+                                                    'absolute h-1.5 w-1.5 rounded-sm border border-white shadow-sm',
+                                                    owner.bg,
+                                                )}
+                                                style={{
+                                                    left: c.left,
+                                                    top: c.top,
+                                                    transform: 'translate(-50%, -50%)',
+                                                }}
+                                            />
+                                        ))}
+                                </div>
+                            );
+                        })()}
                     {/* Live collaborator cursors — fake presence. Active
                         owner cursor snaps to its action target; others keep
                         wandering via waypoints. */}
@@ -2435,7 +2392,7 @@ export function WeblabInterfaceMockup() {
                             <Icons.ChevronDown className="text-foreground-secondary mb-0.5 h-4 w-4" />
                         </div>
                     </div>
-                    <DesignMockupMobile />
+                    <DesignMockupMobile theme={previewTheme} />
                 </div>
             </div>
 
@@ -2909,7 +2866,7 @@ export function WeblabInterfaceMockup() {
                                                     key={c}
                                                     className="bg-background-secondary/60 hover:bg-background-secondary border-border text-foreground-secondary hover:text-foreground flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-[0.5px] p-1 text-[10px] transition-colors"
                                                 >
-                                                    <Icons.Component className="text-purple-400 h-3.5 w-3.5" />
+                                                    <Icons.Component className="h-3.5 w-3.5 text-purple-400" />
                                                     {c}
                                                 </button>
                                             ))}
@@ -2948,17 +2905,15 @@ export function WeblabInterfaceMockup() {
                                             Layout
                                         </div>
                                         <div className="flex flex-col gap-0.5">
-                                            {['Section', 'Container', 'Grid', 'Stack'].map(
-                                                (l) => (
-                                                    <button
-                                                        key={l}
-                                                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex h-6 items-center gap-2 rounded px-1.5 text-[11px]"
-                                                    >
-                                                        <Icons.Layout className="h-3 w-3" />
-                                                        {l}
-                                                    </button>
-                                                ),
-                                            )}
+                                            {['Section', 'Container', 'Grid', 'Stack'].map((l) => (
+                                                <button
+                                                    key={l}
+                                                    className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex h-6 items-center gap-2 rounded px-1.5 text-[11px]"
+                                                >
+                                                    <Icons.Layout className="h-3 w-3" />
+                                                    {l}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
