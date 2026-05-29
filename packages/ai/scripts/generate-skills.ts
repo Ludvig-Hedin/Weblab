@@ -122,6 +122,30 @@ export const EMBEDDED_SKILLS: ReadonlyArray<SkillInfo> = ${JSON.stringify(
     return header;
 }
 
+function emitSummaries(skills: EmbeddedSkill[]): string {
+    const generatedAt = new Date().toISOString();
+    return `/**
+ * AUTO-GENERATED — do not edit by hand.
+ * Source: <repoRoot>/skills/<name>/SKILL.md (frontmatter only).
+ * Regenerate via \`bun run generate:skills\` from packages/ai.
+ *
+ * Client-safe: name + description ONLY — no skill bodies — so importing this
+ * into the browser bundle (e.g. the Skills settings tab) does NOT ship the full
+ * skill content, which can be hundreds of KB across all built-ins.
+ *
+ * Generated at: ${generatedAt}
+ * Skill count:  ${skills.length}
+ */
+import type { SkillSummary } from './types';
+
+export const EMBEDDED_SKILL_SUMMARIES: ReadonlyArray<SkillSummary> = ${JSON.stringify(
+        skills.map((s) => ({ name: s.name, description: s.description })),
+        null,
+        4,
+    )};
+`;
+}
+
 async function main() {
     const startDir = resolve(import.meta.dir, '..', '..');
     const repoRoot = findRepoRoot(startDir);
@@ -134,8 +158,12 @@ async function main() {
 
     const outPath = resolve(import.meta.dir, '..', 'src', 'skills', 'embedded.ts');
     writeFileSync(outPath, emit(skills));
+
+    const summariesPath = resolve(import.meta.dir, '..', 'src', 'skills', 'embedded-summaries.ts');
+    writeFileSync(summariesPath, emitSummaries(skills));
+
     console.log(
-        `[generate-skills] Wrote ${skills.length} skills to ${outPath}: ${skills
+        `[generate-skills] Wrote ${skills.length} skills to ${outPath} (+ client-safe summaries): ${skills
             .map((s) => s.name)
             .join(', ')}`,
     );

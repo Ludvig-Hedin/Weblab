@@ -541,6 +541,20 @@ Per package (F-680 … F-705) at least one smoke test.
 
 ---
 
+## Skills & Image Generation (added 2026-05-29)
+
+| ID | Covers | Test | Status |
+|---|---|---|---|
+| T-800 | Credit bucket selection (`selectDeductionBucket`) | unit `apps/web/client/convex/lib/usageMath.test.ts` — expiry, single-bucket-needed, carry-over priority, tie-break, legacy needed=1 | ✅ automated |
+| T-801 | Amount summation / cap predicate / credit normalize (`sumUsageAmount`, `isAtOrOverCap`, `normalizeCredits`) | unit `apps/web/client/convex/lib/usageMath.test.ts` | ✅ automated |
+| T-802 | OpenRouter image data-URL parse (`parseImageDataUrl`) | unit `packages/ai/src/image/providers.test.ts` — png/jpeg/http→null/malformed/newline | ✅ automated |
+| T-803 | `reserveImage` guards (daily free 2 / pro 50, burst 3/min, free credit-pool gate, per-turn 4, revert refund) | needs `convex-test` harness | ⬜ TODO (see Open Questions) |
+| T-804 | Image gen happy path — Nano Banana via OpenRouter + GPT Image direct render inline and charge 5 credits; failure reverts | manual (chat turn, needs `OPENROUTER_API_KEY`) | ⬜ manual |
+| T-805 | Skill import upload (.md + .zip), Upload-is-default tab order, drag highlight, auto-preview → Import | manual (auth-gated Skills tab) | ⬜ manual |
+| T-806 | Built-in skills appear default-on in the agent skill menu; client bundle excludes skill bodies (`embedded-summaries.ts` has no `content`) | partial — bundle split asserted; menu manual | ✅ partial |
+
+---
+
 ## Open Questions
 
 - [ ] E2E runner — Playwright (recommended) vs Cypress?

@@ -24,7 +24,7 @@ import {
 } from '@weblab/ai';
 import { loadSkillSummaries } from '@weblab/ai/server';
 import { toDbMessage } from '@weblab/db';
-import { CHAT_MODEL_OPTIONS, ChatType } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS, ChatType, IMAGE_MAX_PER_TURN } from '@weblab/models';
 
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { trackEvent } from '@/utils/analytics/server';
@@ -424,6 +424,32 @@ const streamResponse = async (req: NextRequest, userId: string) => {
             tierPromise,
         ]);
 
+        // Per-turn image cap + Convex-backed credit reservation, injected into
+        // the tool context so packages/ai stays backend-agnostic. The counter is
+        // request-scoped: one HTTP request == one chat turn.
+        let imagesThisTurn = 0;
+        const reserveImageCredits = async () => {
+            imagesThisTurn += 1;
+            if (imagesThisTurn > IMAGE_MAX_PER_TURN) {
+                throw new Error('IMAGE_TURN_CAP_REACHED');
+            }
+            return fetchMutation(api.usage.reserveImage, { traceId }, { token: convexToken });
+        };
+        const releaseImageCredits = async (handle: {
+            usageRecordId: string | undefined;
+            rateLimitId: string | undefined;
+        }) => {
+            if (!handle.usageRecordId) return;
+            await fetchMutation(
+                api.usage.revertIncrement,
+                {
+                    usageRecordId: handle.usageRecordId as Id<'usageRecords'>,
+                    rateLimitId: handle.rateLimitId as Id<'rateLimits'> | undefined,
+                },
+                { token: convexToken },
+            );
+        };
+
         const built = await buildChatRequest({
             chatType,
             messages,
@@ -447,6 +473,8 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                       conversationId,
                       trpcCaller: convexToolCaller,
                       messages,
+                      reserveImageCredits,
+                      releaseImageCredits,
                   }
                 : undefined,
             toolSetOverride: chatType === ChatType.PLAN && !projectId ? prePlanToolset : undefined,

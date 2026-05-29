@@ -92,6 +92,7 @@
         "culori": "^4.0.1",
         "date-fns": "^4.1.0",
         "embla-carousel-react": "^8.6.0",
+        "fflate": "^0.8.3",
         "flexsearch": "^0.8.160",
         "framer-motion": "^12.38.0",
         "freestyle-sandboxes": "^0.0.78",

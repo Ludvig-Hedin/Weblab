@@ -859,4 +859,5 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 |---|---|---|
 | 2026-05-26 | F-001 … F-763 | Initial comprehensive catalog v2 — replaces v1 (Convex backend reflected, route inventory verified against filesystem). |
 | 2026-05-26 | F-087, F-088, F-092 | Validation pass: documented F-087 server-side auth gate (new `profile-setup/layout.tsx`); F-088 tagged `#disabled` and rewritten to render error synchronously (drops fragile useEffect + AnimatePresence pattern that hung the page); F-092 invite query/mutation name corrected (`projectInvitations.*`). |
+| 2026-05-29 | image-gen + skills | `generate_image` tool now supports Nano Banana (`google/gemini-2.5-flash-image`) via OpenRouter REST alongside direct-OpenAI GPT Image; metered via new `convex/usage.reserveImage` (5-credit multiplier + daily/burst/per-turn caps, `type:'image'` on `usageRecords`). Skill import gained `.md`/`.zip` upload; 7 more default-on built-ins embedded; scope selector clarified. `#ai` `#images` `#skills` `#billing`. See spec `docs/superpowers/specs/2026-05-29-skills-image-gen-design.md`. |
 

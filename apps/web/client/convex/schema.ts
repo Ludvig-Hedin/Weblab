@@ -119,6 +119,11 @@ export default defineSchema({
         avatarUrl: v.optional(v.string()),
         stripeCustomerId: v.optional(v.string()),
         githubInstallationId: v.optional(v.string()),
+        // True once the user has seen (and dismissed/completed) the first-run
+        // editor tour. Per-user + durable so existing users never re-see it
+        // after clearing browser storage or switching device/browser — the
+        // old localforage-only flag was per-browser and re-triggered the tour.
+        hasSeenEditorOnboarding: v.optional(v.boolean()),
         updatedAt: v.number(),
     })
         .index('by_clerk_user_id', ['clerkUserId'])
@@ -741,6 +746,11 @@ export default defineSchema({
         type: vUsageType,
         timestamp: v.number(),
         traceId: v.optional(v.string()),
+        // Credits this record consumed. Undefined on legacy/single-credit rows
+        // (treated as 1). Set to the credit multiplier for costlier operations
+        // such as image generation (IMAGE_CREDIT_COST). `revertIncrement`
+        // refunds exactly this many credits to the linked bucket.
+        amount: v.optional(v.number()),
         // The rateLimit bucket the original `increment` mutation decremented
         // from (Pro users only — undefined for free-tier records). Required
         // so `revertIncrement` can refund the SAME bucket and ignore the

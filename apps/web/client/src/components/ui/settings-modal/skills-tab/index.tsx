@@ -5,7 +5,7 @@ import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
-import { EMBEDDED_SKILLS } from '@weblab/ai/client';
+import { EMBEDDED_SKILL_SUMMARIES } from '@weblab/ai/client';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -80,7 +80,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
 
     const removeSkillMutation = useMutation(api.skills.remove);
 
-    const builtInNames = useMemo(() => new Set(EMBEDDED_SKILLS.map((s) => s.name)), []);
+    const builtInNames = useMemo(() => new Set(EMBEDDED_SKILL_SUMMARIES.map((s) => s.name)), []);
 
     const dbByName = useMemo(() => {
         const map = new Map<string, DbSkill>();
@@ -95,7 +95,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
         // Built-ins first (when not filtered out by scope), but only if no
         // user override exists for that name.
         if (scope === 'all') {
-            for (const s of EMBEDDED_SKILLS) {
+            for (const s of EMBEDDED_SKILL_SUMMARIES) {
                 if (dbByName.has(s.name)) continue;
                 out.push({
                     name: s.name,
@@ -169,13 +169,13 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                         <SelectItem value="all">All skills</SelectItem>
                         <SelectItem value="global">
                             <span className="flex items-center gap-2">
-                                <ScopeBadge scope="global" /> only
+                                <ScopeBadge scope="global" /> My skills
                             </span>
                         </SelectItem>
                         {inProject ? (
                             <SelectItem value="project">
                                 <span className="flex items-center gap-2">
-                                    <ScopeBadge scope="project" /> only
+                                    <ScopeBadge scope="project" /> This project
                                 </span>
                             </SelectItem>
                         ) : null}
@@ -199,6 +199,14 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                     </Button>
                 </div>
             </div>
+
+            <p className="text-muted-foreground text-mini px-5 pb-3">
+                {scope === 'all'
+                    ? 'Built-in skills, your own skills, and skills saved to this project.'
+                    : scope === 'global'
+                      ? 'Your own skills — available across every project (built-ins excluded).'
+                      : 'Skills saved only to this project.'}
+            </p>
 
             <div className="flex-1 overflow-y-auto px-5 pb-5">
                 {isLoading ? (

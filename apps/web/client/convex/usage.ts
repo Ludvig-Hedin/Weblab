@@ -4,7 +4,15 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation, query } from './_generated/server';
 import { vUsageType } from './lib/enums';
+import {
+    IMAGE_BURST_PER_MIN,
+    IMAGE_BURST_WINDOW_MS,
+    IMAGE_CREDIT_COST,
+    IMAGE_DAILY_CAP_FREE,
+    IMAGE_DAILY_CAP_PRO,
+} from './lib/imageLimits';
 import { requireUser } from './lib/permissions';
+import { isAtOrOverCap, normalizeCredits, selectDeductionBucket, sumUsageAmount } from './lib/usageMath';
 
 // Convex usage tracking.
 //
@@ -78,21 +86,24 @@ async function freePlanUsage(
         )
         .collect();
 
-    const lastDayCount = monthRecords.filter(
+    const dayRecords = monthRecords.filter(
         // Match the outer index bound `.lte('timestamp', now)` so a record
         // written at exactly `now` (rare but reachable) isn't undercounted.
         (r) => r.timestamp >= dayStart && r.timestamp <= now,
-    ).length;
+    );
 
+    // Sum credit amounts (not row counts): an image record consumes
+    // IMAGE_CREDIT_COST credits, a text message consumes 1. Legacy rows with no
+    // `amount` count as 1.
     return {
         daily: {
             period: 'day',
-            usageCount: lastDayCount,
+            usageCount: sumUsageAmount(dayRecords),
             limitCount: FREE_DAILY_LIMIT,
         },
         monthly: {
             period: 'month',
-            usageCount: monthRecords.length,
+            usageCount: sumUsageAmount(monthRecords),
             limitCount: FREE_MONTHLY_LIMIT,
         },
     };
@@ -187,65 +198,65 @@ export const increment = mutation({
     },
     handler: async (ctx, { type, traceId }) => {
         const user = await requireUser(ctx);
-        const now = Date.now();
-
-        let rateLimitId: Id<'rateLimits'> | undefined;
-        const active = await loadActiveSubscriptionWithProduct(ctx, user._id);
-
-        if (active && active.isPro) {
-            const candidate = await pickRateLimitForDeduction(ctx, user._id, now);
-            if (!candidate) {
-                // Match Drizzle's tx.rollback() — caller catches and treats
-                // it as out-of-quota.
-                throw new Error('USAGE_LIMIT_REACHED');
-            }
-            await ctx.db.patch(candidate._id, {
-                left: candidate.left - 1,
-                updatedAt: now,
-            });
-            rateLimitId = candidate._id;
-        }
-
-        const usageRecordId = await ctx.db.insert('usageRecords', {
-            userId: user._id,
-            type,
-            timestamp: now,
-            traceId,
-            // SECURITY: link the record to the bucket we decremented so
-            // `revertIncrement` can refund the SAME bucket without trusting
-            // a client-supplied rateLimitId (which would otherwise let any
-            // user farm unlimited refunds by replaying their own rate-limit
-            // ids).
-            linkedRateLimitId: rateLimitId,
-        });
-
-        return { rateLimitId, usageRecordId };
+        // Public text/deployment usage is always a single credit. The credit
+        // multiplier is server-internal (see `reserveImage`), so a client can
+        // never request an arbitrary deduction amount.
+        return applyIncrement(ctx, user._id, type, 1, traceId);
     },
 });
 
-async function pickRateLimitForDeduction(
+// Shared deduction logic. Deducts `credits` from the best Pro bucket (or just
+// records free-tier usage) and writes a single usageRecords row carrying the
+// `amount` + the linked bucket. Extracted from the mutation so `reserveImage`
+// can reuse it without a mutation-calling-mutation round trip.
+async function applyIncrement(
     ctx: MutationCtx,
     userId: Id<'users'>,
-    now: number,
-): Promise<Doc<'rateLimits'> | null> {
-    const candidates = await ctx.db
-        .query('rateLimits')
-        .withIndex('by_user_time', (q) => q.eq('userId', userId).lte('startedAt', now))
-        .collect();
-    // `> now` (strict) matches `proPlanUsage`'s display gate — at the exact
-    // endedAt ms the bucket is expired and must not deduct credits.
-    const valid = candidates.filter((r) => r.endedAt > now && r.left > 0);
-    if (valid.length === 0) return null;
-    // Deduct from the bucket with the most carry-over (= oldest credits)
-    // first. Stable tie-break by id keeps multi-row concurrent updates
-    // deterministic across replays.
-    valid.sort((a, b) => {
-        if (b.carryOverTotal !== a.carryOverTotal) {
-            return b.carryOverTotal - a.carryOverTotal;
+    type: 'message' | 'deployment' | 'image',
+    credits: number,
+    traceId?: string,
+): Promise<{ rateLimitId: Id<'rateLimits'> | undefined; usageRecordId: Id<'usageRecords'> }> {
+    const now = Date.now();
+    const amount = normalizeCredits(credits);
+
+    let rateLimitId: Id<'rateLimits'> | undefined;
+    const active = await loadActiveSubscriptionWithProduct(ctx, userId);
+
+    if (active && active.isPro) {
+        // `> now` (strict, applied in selectDeductionBucket) matches
+        // `proPlanUsage`'s display gate — at the exact endedAt ms the bucket is
+        // expired and must not deduct credits.
+        const buckets = await ctx.db
+            .query('rateLimits')
+            .withIndex('by_user_time', (q) => q.eq('userId', userId).lte('startedAt', now))
+            .collect();
+        const candidate = selectDeductionBucket(buckets, now, amount);
+        if (!candidate) {
+            // Match Drizzle's tx.rollback() — caller catches and treats it as
+            // out-of-quota. (No single bucket holds `amount` credits.)
+            throw new Error('USAGE_LIMIT_REACHED');
         }
-        return a._id.localeCompare(b._id);
+        await ctx.db.patch(candidate._id, {
+            left: candidate.left - amount,
+            updatedAt: now,
+        });
+        rateLimitId = candidate._id;
+    }
+
+    const usageRecordId = await ctx.db.insert('usageRecords', {
+        userId,
+        type,
+        timestamp: now,
+        traceId,
+        amount,
+        // SECURITY: link the record to the bucket we decremented so
+        // `revertIncrement` can refund the SAME bucket without trusting a
+        // client-supplied rateLimitId (which would otherwise let any user farm
+        // unlimited refunds by replaying their own rate-limit ids).
+        linkedRateLimitId: rateLimitId,
     });
-    return valid[0] ?? null;
+
+    return { rateLimitId, usageRecordId };
 }
 
 // Revert a previously-attempted increment. Used when an AI request fails
@@ -278,6 +289,9 @@ export const revertIncrement = mutation({
         if (record.userId !== user._id) throw new Error('FORBIDDEN');
 
         const linkedId = record.linkedRateLimitId;
+        // Refund exactly what was deducted. Legacy/single-credit rows have no
+        // `amount` and count as 1; image reservations refund IMAGE_CREDIT_COST.
+        const amount = record.amount ?? 1;
         let creditRefunded = false;
         if (linkedId) {
             const rate = await ctx.db.get(linkedId);
@@ -287,7 +301,11 @@ export const revertIncrement = mutation({
             // forfeit to the new period.)
             if (rate && rate.userId === user._id) {
                 await ctx.db.patch(linkedId, {
-                    left: rate.left + 1,
+                    // Clamp to `max` so a refund can never inflate a bucket above
+                    // its ceiling if max/left shifted between deduct and revert
+                    // (period rollover, manual grant) — otherwise proPlanUsage
+                    // would report a negative usageCount (max - left).
+                    left: Math.min(rate.max, rate.left + amount),
                     updatedAt: Date.now(),
                 });
                 creditRefunded = true;
@@ -301,5 +319,77 @@ export const revertIncrement = mutation({
         // record was still deleted (idempotency holds) but no credit
         // movement happened.
         return { ok: true as const, refunded: creditRefunded };
+    },
+});
+
+// Reserve a credit slot for one AI image generation. Three cash guards run in a
+// single transaction: (1) per-user daily image cap, (2) per-minute burst limit,
+// (3) the credit deduction (IMAGE_CREDIT_COST). The two count checks are
+// index-bounded reads (`.take(cap)`), never unbounded scans.
+//
+// On generation FAILURE the caller MUST call `revertIncrement(usageRecordId)`:
+// that refunds the credits AND deletes the usageRecord, so a failed attempt no
+// longer counts against the daily/burst caps.
+//
+// Concurrency: the cap counts and the credit insert span multiple documents, so
+// two simultaneous calls can each pass the check before either inserts — a cap
+// may be exceeded by ~1 in a tight race. Accepted by design: the credit
+// deduction itself is atomic (single rateLimits doc), so this never leaks spend
+// beyond one extra cheap image. See spec 2026-05-29-skills-image-gen-design §8.4.
+export const reserveImage = mutation({
+    args: {
+        traceId: v.optional(v.string()),
+    },
+    handler: async (ctx, { traceId }) => {
+        const user = await requireUser(ctx);
+        const now = Date.now();
+
+        const active = await loadActiveSubscriptionWithProduct(ctx, user._id);
+        const isPro = !!active?.isPro;
+        const dailyCap = isPro ? IMAGE_DAILY_CAP_PRO : IMAGE_DAILY_CAP_FREE;
+
+        // (1) Daily cap — count today's (non-reverted) image records. Reads at
+        // most `dailyCap` rows via the by_user_type_time index.
+        const dayStart = startOfUtcDay(now);
+        const todaysImages = await ctx.db
+            .query('usageRecords')
+            .withIndex('by_user_type_time', (q) =>
+                q.eq('userId', user._id).eq('type', 'image').gte('timestamp', dayStart),
+            )
+            .take(dailyCap);
+        if (isAtOrOverCap(todaysImages.length, dailyCap)) {
+            throw new Error('IMAGE_DAILY_CAP_REACHED');
+        }
+
+        // (2) Burst — count images in the last minute (reads at most BURST rows).
+        const windowStart = now - IMAGE_BURST_WINDOW_MS;
+        const recentImages = await ctx.db
+            .query('usageRecords')
+            .withIndex('by_user_type_time', (q) =>
+                q.eq('userId', user._id).eq('type', 'image').gt('timestamp', windowStart),
+            )
+            .take(IMAGE_BURST_PER_MIN);
+        if (isAtOrOverCap(recentImages.length, IMAGE_BURST_PER_MIN)) {
+            throw new Error('IMAGE_RATE_LIMITED');
+        }
+
+        // (3) Free tier shares the text credit pool, but applyIncrement can't
+        // enforce it (free users have no rateLimits bucket to deduct). Check the
+        // daily/monthly budget here — the same gate checkMessageLimit applies on
+        // the text path — so an image can't exceed the free credit allowance.
+        // Pro users are enforced atomically by the bucket deduction in step (4).
+        if (!isPro) {
+            const usage = await freePlanUsage(ctx, user._id, now);
+            if (
+                usage.daily.usageCount + IMAGE_CREDIT_COST > usage.daily.limitCount ||
+                usage.monthly.usageCount + IMAGE_CREDIT_COST > usage.monthly.limitCount
+            ) {
+                throw new Error('USAGE_LIMIT_REACHED');
+            }
+        }
+
+        // (4) Deduct credits (throws USAGE_LIMIT_REACHED if unaffordable) and
+        // write the usageRecord the caps above count.
+        return applyIncrement(ctx, user._id, 'image', IMAGE_CREDIT_COST, traceId);
     },
 });

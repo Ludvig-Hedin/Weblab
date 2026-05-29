@@ -151,7 +151,11 @@ export const vPriceKey = v.union(
     v.literal('PRO_MONTHLY_TIER_11'),
 );
 
-export const vUsageType = v.union(v.literal('message'), v.literal('deployment'));
+export const vUsageType = v.union(
+    v.literal('message'),
+    v.literal('deployment'),
+    v.literal('image'),
+);
 
 // ─── Legacy `ProjectRole` ────────────────────────────────────────────────────
 // Kept ONLY so we can decode old projectInvitations rows; new code uses

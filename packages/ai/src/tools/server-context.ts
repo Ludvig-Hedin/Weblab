@@ -25,4 +25,19 @@ export interface ServerToolContext {
     trpcCaller: unknown;
     /** Live message thread for the current turn. */
     messages: ChatMessage[];
+    /**
+     * Reserve credits + enforce caps for one image generation. Injected by the
+     * web app (Convex-backed) so packages/ai stays backend-agnostic. Throws a
+     * typed limit error (IMAGE_DAILY_CAP_REACHED / IMAGE_RATE_LIMITED /
+     * IMAGE_TURN_CAP_REACHED / USAGE_LIMIT_REACHED) when blocked. Returns a
+     * handle used to refund on failure. Undefined in unmetered contexts.
+     */
+    reserveImageCredits?: () => Promise<ImageCreditHandle>;
+    /** Refund a reservation when generation fails. Paired with reserveImageCredits. */
+    releaseImageCredits?: (handle: ImageCreditHandle) => Promise<void>;
+}
+
+export interface ImageCreditHandle {
+    usageRecordId: string | undefined;
+    rateLimitId: string | undefined;
 }

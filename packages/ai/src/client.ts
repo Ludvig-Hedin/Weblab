@@ -1,8 +1,10 @@
 // Client-safe exports — no Node.js builtins.
 // Import from '@weblab/ai/client' in client components.
 
-// Skills
-export { EMBEDDED_SKILLS } from './skills/embedded';
+// Skills — client gets name+description summaries ONLY (no bodies) so the
+// browser bundle never ships hundreds of KB of skill content. Server code that
+// needs full bodies imports EMBEDDED_SKILLS from './skills/embedded' directly.
+export { EMBEDDED_SKILL_SUMMARIES } from './skills/embedded-summaries';
 export * from './skills/types';
 
 // Context helpers (used by context-pills UI)
