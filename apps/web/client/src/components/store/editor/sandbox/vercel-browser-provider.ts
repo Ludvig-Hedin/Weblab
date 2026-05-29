@@ -51,12 +51,18 @@ import {
     ProviderTerminal,
 } from '@weblab/code-provider';
 
-// TODO(sandbox-port): `api.sandbox.*` endpoints (fileWrite, fileRename,
-// fileStat, fileDelete, fileList, fileRead, fileDownload, fileCopy, fileMkdir,
-// commandRun, commandRunBackground, gitStatus, delete, taskOpen, taskRestart)
-// have no Convex equivalent yet — sandbox proxy lives outside the Convex
-// migration scope. All sandbox calls return safe defaults until the routes
-// are ported.
+import { getSandboxServerClient } from '@/lib/sandbox-server-client';
+
+// Browser → Fastify sandbox proxy. File ops, `commandRun`, and dev-server
+// `setup` route through the authed tRPC client (getSandboxServerClient) to the
+// Vercel Sandbox SDK on the server. Each method degrades to a safe default on
+// transport failure so a flaky server can't brick editor boot.
+//
+// Still unported (return safe defaults, not yet on the proxy):
+//   downloadFiles, copyFiles, runBackgroundCommand, real file watch.
+// renameFile is emulated as read → write → delete; gitStatus is derived from
+// `commandRun` (`git status --porcelain`); the `dev` task starts the dev
+// server via the idempotent `setup` route (no streamed logs over the proxy).
 
 export interface VercelBrowserProviderOptions {
     sandboxId: string;
@@ -75,57 +81,132 @@ export class VercelBrowserProvider extends Provider {
         return {};
     }
 
-    async writeFile(_input: WriteFileInput): Promise<WriteFileOutput> {
-        // TODO(sandbox-port): api.sandbox.fileWrite has no Convex equivalent yet.
-        return { success: false } as never;
+    async writeFile(input: WriteFileInput): Promise<WriteFileOutput> {
+        const content =
+            typeof input.args.content === 'string'
+                ? input.args.content
+                : new TextDecoder().decode(input.args.content);
+        try {
+            return await getSandboxServerClient().sandbox.fileWrite.mutate({
+                sandboxId: this.sandboxId,
+                path: input.args.path,
+                content,
+            });
+        } catch (err) {
+            console.error('[VercelBrowserProvider] writeFile failed', err);
+            return { success: false };
+        }
     }
 
-    async renameFile(_input: RenameFileInput): Promise<RenameFileOutput> {
-        // TODO(sandbox-port): api.sandbox.fileRename has no Convex equivalent yet.
-        return { success: false } as never;
+    async renameFile(input: RenameFileInput): Promise<RenameFileOutput> {
+        // No dedicated server rename op — emulate as copy-to-new + delete-old.
+        // Order matters: read → write → delete so a mid-way failure never
+        // destroys the source. Errors propagate intentionally — the sync engine
+        // relies on a throw to detect a failed rename and keep its hash map
+        // consistent (swallowing here would desync tracked file hashes).
+        const client = getSandboxServerClient();
+        const res = await client.sandbox.fileRead.query({
+            sandboxId: this.sandboxId,
+            path: input.args.oldPath,
+        });
+        await client.sandbox.fileWrite.mutate({
+            sandboxId: this.sandboxId,
+            path: input.args.newPath,
+            content: res.content,
+        });
+        await client.sandbox.fileDelete.mutate({
+            sandboxId: this.sandboxId,
+            path: input.args.oldPath,
+        });
+        return {};
     }
 
-    async statFile(_input: StatFileInput): Promise<StatFileOutput> {
-        // TODO(sandbox-port): api.sandbox.fileStat has no Convex equivalent yet.
-        return { type: 'file', isSymlink: false, size: 0 } as never;
+    async statFile(input: StatFileInput): Promise<StatFileOutput> {
+        try {
+            const stat = await getSandboxServerClient().sandbox.fileStat.query({
+                sandboxId: this.sandboxId,
+                path: input.args.path,
+            });
+            return { type: stat.type, isSymlink: false, size: stat.size };
+        } catch {
+            return { type: 'file', isSymlink: false, size: 0 };
+        }
     }
 
-    async deleteFiles(_input: DeleteFilesInput): Promise<DeleteFilesOutput> {
-        // TODO(sandbox-port): api.sandbox.fileDelete has no Convex equivalent yet.
-        return { success: false } as never;
+    async deleteFiles(input: DeleteFilesInput): Promise<DeleteFilesOutput> {
+        try {
+            await getSandboxServerClient().sandbox.fileDelete.mutate({
+                sandboxId: this.sandboxId,
+                path: input.args.path,
+                recursive: input.args.recursive,
+            });
+        } catch (err) {
+            console.error('[VercelBrowserProvider] deleteFiles failed', err);
+        }
+        return {};
     }
 
-    async listFiles(_input: ListFilesInput): Promise<ListFilesOutput> {
-        // TODO(sandbox-port): api.sandbox.fileList has no Convex equivalent yet.
-        return { files: [] } as never;
+    async listFiles(input: ListFilesInput): Promise<ListFilesOutput> {
+        try {
+            return await getSandboxServerClient().sandbox.fileList.query({
+                sandboxId: this.sandboxId,
+                path: input.args.path,
+            });
+        } catch {
+            // Degrade to the pre-wiring behavior (empty) rather than throw
+            // during boot if the sandbox server is unreachable.
+            return { files: [] };
+        }
     }
 
     async readFile(input: ReadFileInput): Promise<ReadFileOutput> {
-        // TODO(sandbox-port): api.sandbox.fileRead has no Convex equivalent yet.
-        const decoded = '';
-        return {
-            file: {
+        try {
+            const res = await getSandboxServerClient().sandbox.fileRead.query({
+                sandboxId: this.sandboxId,
                 path: input.args.path,
-                type: 'text',
-                content: decoded,
-                toString: () => decoded,
-            },
-        } as never;
+            });
+            return {
+                file: {
+                    path: res.path,
+                    type: 'text' as const,
+                    content: res.content,
+                    toString: () => res.content,
+                },
+            };
+        } catch {
+            const decoded = '';
+            return {
+                file: {
+                    path: input.args.path,
+                    type: 'text' as const,
+                    content: decoded,
+                    toString: () => decoded,
+                },
+            };
+        }
     }
 
     async downloadFiles(_input: DownloadFilesInput): Promise<DownloadFilesOutput> {
-        // TODO(sandbox-port): api.sandbox.fileDownload has no Convex equivalent yet.
-        return { downloadUrl: '' } as never;
+        // TODO(sandbox-port): no fileDownload route yet — omit url so callers
+        // treat it as "nothing to download" rather than fetching a bad URL.
+        return {};
     }
 
     async copyFiles(_input: CopyFilesInput): Promise<CopyFileOutput> {
-        // TODO(sandbox-port): api.sandbox.fileCopy has no Convex equivalent yet.
-        return { success: false } as never;
+        // TODO(sandbox-port): no fileCopy route yet. Not on the boot path.
+        return {};
     }
 
-    async createDirectory(_input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
-        // TODO(sandbox-port): api.sandbox.fileMkdir has no Convex equivalent yet.
-        return { success: false } as never;
+    async createDirectory(input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
+        try {
+            await getSandboxServerClient().sandbox.fileMkdir.mutate({
+                sandboxId: this.sandboxId,
+                path: input.args.path,
+            });
+        } catch (err) {
+            console.error('[VercelBrowserProvider] createDirectory failed', err);
+        }
+        return {};
     }
 
     async watchFiles(_input: WatchFilesInput): Promise<WatchFilesOutput> {
@@ -140,23 +221,46 @@ export class VercelBrowserProvider extends Provider {
         return { task: new VercelBrowserTask(this.sandboxId, input.args.id) };
     }
 
-    async runCommand(_input: TerminalCommandInput): Promise<TerminalCommandOutput> {
-        // TODO(sandbox-port): api.sandbox.commandRun has no Convex equivalent yet.
-        return { output: '', success: false, exitCode: 0 } as never;
+    async runCommand(input: TerminalCommandInput): Promise<TerminalCommandOutput> {
+        try {
+            const { output } = await getSandboxServerClient().sandbox.commandRun.mutate({
+                sandboxId: this.sandboxId,
+                command: input.args.command,
+            });
+            return { output };
+        } catch (err) {
+            console.error('[VercelBrowserProvider] runCommand failed', err);
+            return { output: '' };
+        }
     }
 
     async runBackgroundCommand(
         input: TerminalBackgroundCommandInput,
     ): Promise<TerminalBackgroundCommandOutput> {
-        // TODO(sandbox-port): api.sandbox.commandRunBackground has no Convex equivalent yet.
+        // TODO(sandbox-port): no detached-command route yet. Returning a no-op
+        // command is safe — the dev server is started by the `dev` task via
+        // the idempotent `setup` route, not through this path.
         return {
             command: new VercelBrowserBackgroundCommand(input.args.command, ''),
         };
     }
 
     async gitStatus(_input: GitStatusInput): Promise<GitStatusOutput> {
-        // TODO(sandbox-port): api.sandbox.gitStatus has no Convex equivalent yet.
-        return { hasGit: false, branch: '', ahead: 0, behind: 0, changes: [] } as never;
+        try {
+            // 2>/dev/null so a non-git project yields empty stdout (→ no changes)
+            // instead of leaking "fatal: not a git repository" into the list.
+            const { output } = await getSandboxServerClient().sandbox.commandRun.mutate({
+                sandboxId: this.sandboxId,
+                command: 'git status --porcelain 2>/dev/null',
+            });
+            const changedFiles = output
+                .split('\n')
+                .map((line) => line.slice(3).trim())
+                .filter(Boolean);
+            return { changedFiles };
+        } catch {
+            return { changedFiles: [] };
+        }
     }
 
     async createSession(_input: CreateSessionInput): Promise<CreateSessionOutput> {
@@ -164,7 +268,13 @@ export class VercelBrowserProvider extends Provider {
     }
 
     async setup(_input: SetupInput): Promise<SetupOutput> {
-        await this.runCommand({ args: { command: 'npm install' } });
+        try {
+            // Idempotent server-side: installs deps if missing and starts the
+            // dev server only if one isn't already running.
+            await getSandboxServerClient().sandbox.setup.mutate({ sandboxId: this.sandboxId });
+        } catch (err) {
+            console.error('[VercelBrowserProvider] setup failed', err);
+        }
         return {};
     }
 
@@ -225,8 +335,7 @@ class VercelBrowserTerminal extends ProviderTerminal {
     private readonly terminalId = 'vercel-terminal';
     private readonly terminalName = 'terminal';
 
-    // sandboxId currently unused — kept for restoration when api.sandbox.* ports.
-    constructor(private readonly _sandboxId: string) {
+    constructor(private readonly sandboxId: string) {
         super();
     }
 
@@ -247,9 +356,17 @@ class VercelBrowserTerminal extends ProviderTerminal {
         await this.run(input);
     }
 
-    async run(_input: string): Promise<void> {
-        // TODO(sandbox-port): api.sandbox.commandRun has no Convex equivalent yet.
-        const output = '';
+    async run(input: string): Promise<void> {
+        let output = '';
+        try {
+            const res = await getSandboxServerClient().sandbox.commandRun.mutate({
+                sandboxId: this.sandboxId,
+                command: input,
+            });
+            output = res.output;
+        } catch (err) {
+            console.error('[VercelBrowserProvider] terminal run failed', err);
+        }
         this.output += output;
         for (const callback of this.callbacks) {
             callback(output);
@@ -273,10 +390,11 @@ class VercelBrowserTask extends ProviderTask {
     private output = '';
     private callbacks = new Set<(data: string) => void>();
     private readonly taskCommand = 'npm run dev -- --hostname 0.0.0.0';
+    // Dedupe concurrent open()/run() during boot into a single setup call.
+    private starting: Promise<void> | null = null;
 
-    // sandboxId currently unused — kept for restoration when api.sandbox.* ports.
     constructor(
-        private readonly _sandboxId: string,
+        private readonly sandboxId: string,
         private readonly taskId: string,
     ) {
         super();
@@ -295,32 +413,46 @@ class VercelBrowserTask extends ProviderTask {
     }
 
     async open(): Promise<string> {
-        if (!this.output) {
-            await this.run();
-        }
+        // The editor calls open() first on boot — ensure the dev server is up.
+        // We can't stream sandbox stdout over the proxy, so logs stay empty;
+        // the preview iframe polls the domain and self-heals once it serves.
+        await this.ensureDevServer();
         return this.output;
     }
 
     async run(): Promise<void> {
-        // TODO(sandbox-port): api.sandbox.taskOpen has no Convex equivalent yet.
-        const output = '';
-        this.output = output;
-        for (const callback of this.callbacks) {
-            callback(output);
-        }
+        await this.ensureDevServer();
     }
 
     async restart(): Promise<void> {
-        // TODO(sandbox-port): api.sandbox.taskRestart has no Convex equivalent yet.
-        const output = '';
-        this.output = output;
-        for (const callback of this.callbacks) {
-            callback(output);
-        }
+        // setup is idempotent server-side (won't double-spawn while one is
+        // already running), so this re-asserts liveness rather than force-
+        // killing. True restart needs a dedicated route — TODO(sandbox-port).
+        // Replace the dedup promise atomically (no null window) so a racing
+        // open()/run() awaits this call instead of spawning a second setup.
+        this.starting = this.startDevServer();
+        await this.starting;
     }
 
     async stop(): Promise<void> {
         return undefined;
+    }
+
+    private async ensureDevServer(): Promise<void> {
+        // Start once; concurrent open()/run() during boot await the same call.
+        this.starting ??= this.startDevServer();
+        await this.starting;
+    }
+
+    private startDevServer(): Promise<void> {
+        return getSandboxServerClient()
+            .sandbox.setup.mutate({ sandboxId: this.sandboxId })
+            .then(() => undefined)
+            .catch((err) => {
+                console.error('[VercelBrowserProvider] dev server setup failed', err);
+                // Clear so a later reload / self-heal can retry.
+                this.starting = null;
+            });
     }
 
     onOutput(callback: (data: string) => void): () => void {

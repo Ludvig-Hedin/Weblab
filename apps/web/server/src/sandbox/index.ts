@@ -12,6 +12,26 @@ import { Sandbox } from '@vercel/sandbox';
 
 const DEFAULT_PORT = 3000;
 
+// All project source lives here inside the Vercel sandbox (mirrors
+// `PROJECT_ROOT` in @weblab/code-provider's vercel-sandbox provider). Every
+// command MUST run with this cwd or `npm install` / `npm run dev` / reads of
+// `package.json` execute in the wrong directory and silently fail.
+const PROJECT_ROOT = '/vercel/sandbox';
+
+// Next.js needs an explicit external bind or the preview domain 502s; the
+// static-HTML scaffold binds 0.0.0.0 in its own `serve` script.
+const NEXT_DEV_COMMAND = 'npm run dev -- --turbopack --hostname 0.0.0.0';
+
+/**
+ * Run a shell command line inside the project root and resolve to the finished
+ * command (combined stdout+stderr available via `.output('both')`). Uses
+ * `bash -lc` so pipes, redirects, quoting and `&&`/`||` behave as callers
+ * expect — the editor terminal and helpers pass full shell command lines.
+ */
+async function runShell(sandbox: Sandbox, command: string) {
+    return sandbox.runCommand({ cmd: 'bash', args: ['-lc', command], cwd: PROJECT_ROOT });
+}
+
 function credentials(): { teamId: string; projectId: string; token: string } {
     const teamId = process.env.VERCEL_TEAM_ID;
     const projectId = process.env.VERCEL_PROJECT_ID;
@@ -111,20 +131,68 @@ export async function commandRun(
     command: string,
 ): Promise<{ output: string; exitCode: number }> {
     const sandbox = await getSandbox(sandboxId);
-    const [cmd, ...args] = command.trim().split(/\s+/);
-    const result = await sandbox.runCommand(cmd ?? '', args);
-    const output = await result.stdout();
+    const result = await runShell(sandbox, command);
+    // 'both' merges stdout+stderr so terminal callers see warnings/errors too.
+    const output = await result.output('both');
     return { output, exitCode: result.exitCode };
 }
 
-/** `npm install` then spawn the dev server (detached) so the preview serves. */
+/** True if a Next.js or static-HTML dev server is already serving the project. */
+async function isDevServerRunning(sandbox: Sandbox): Promise<boolean> {
+    // `[n]ext` / `[s]erve` bracket trick stops pgrep from matching its own
+    // command line (which contains the literal pattern).
+    const result = await runShell(
+        sandbox,
+        'pgrep -f "[n]ext dev" || pgrep -f "[s]erve -s" || true',
+    );
+    const out = await result.stdout();
+    return out.trim().length > 0;
+}
+
+/**
+ * Idempotently bring the preview online: install deps if missing, then start
+ * the framework's dev server unless one is already running. The create/resume
+ * path snapshots *after* `npm install`, so on the common path this skips the
+ * install and only spawns the dev server — which `createBlank` never does, so
+ * without this the preview domain 502s forever.
+ */
 export async function setup(sandboxId: string): Promise<{ success: boolean; previewUrl: string }> {
     const sandbox = await getSandbox(sandboxId);
-    await sandbox.runCommand({ cmd: 'npm', args: ['install'] });
-    await sandbox.runCommand({
-        cmd: 'npm',
-        args: ['run', 'dev', '--', '--turbopack', '--hostname', '0.0.0.0'],
-        detached: true,
-    });
+
+    // 1. Deps — skip when node_modules is already present (resumed snapshot).
+    const nm = await (
+        await runShell(sandbox, 'test -d node_modules && echo yes || echo no')
+    ).stdout();
+    if (!nm.includes('yes')) {
+        await runShell(sandbox, 'npm install');
+    }
+
+    // 2. Pick the dev command from package.json. Next.js needs the explicit
+    //    host flag; anything else (e.g. static-HTML `serve`) self-binds.
+    let devCommand = NEXT_DEV_COMMAND;
+    try {
+        const pkgRaw = await (await runShell(sandbox, 'cat package.json')).stdout();
+        const pkg = JSON.parse(pkgRaw) as { scripts?: { dev?: string } };
+        const devScript = pkg.scripts?.dev ?? '';
+        if (devScript && !devScript.includes('next')) {
+            devCommand = 'npm run dev';
+        }
+    } catch (err) {
+        // Unreadable/missing package.json → fall back to the Next.js command.
+        // Log so a non-Next project that got the wrong dev command is visible.
+        console.warn('[sandbox.setup] could not read package.json; defaulting to Next dev', err);
+    }
+
+    // 3. Spawn detached only when nothing is serving yet — duplicate dev
+    //    servers fight over the same build output and 404 preview assets.
+    if (!(await isDevServerRunning(sandbox))) {
+        await sandbox.runCommand({
+            cmd: 'bash',
+            args: ['-lc', devCommand],
+            cwd: PROJECT_ROOT,
+            detached: true,
+        });
+    }
+
     return { success: true, previewUrl: sandbox.domain(DEFAULT_PORT) };
 }
