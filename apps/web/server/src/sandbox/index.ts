@@ -137,14 +137,12 @@ export async function commandRun(
     return { output, exitCode: result.exitCode };
 }
 
-/** True if a Next.js or static-HTML dev server is already serving the project. */
+/** True if a dev server is already up for the project. */
 async function isDevServerRunning(sandbox: Sandbox): Promise<boolean> {
-    // `[n]ext` / `[s]erve` bracket trick stops pgrep from matching its own
+    // Match the actual server process — `next dev` (Next.js) or `serve`
+    // (static-HTML). `[x]` bracket trick stops pgrep from matching its own
     // command line (which contains the literal pattern).
-    const result = await runShell(
-        sandbox,
-        'pgrep -f "[n]ext dev" || pgrep -f "[s]erve -s" || true',
-    );
+    const result = await runShell(sandbox, 'pgrep -f "[n]ext dev" || pgrep -f "[s]erve" || true');
     const out = await result.stdout();
     return out.trim().length > 0;
 }
@@ -192,6 +190,15 @@ export async function setup(sandboxId: string): Promise<{ success: boolean; prev
             cwd: PROJECT_ROOT,
             detached: true,
         });
+        // A detached spawn resolves before its child process is visible in the
+        // process table. Poll until the dev process appears (or give up after
+        // ~15s) so a rapid second setup() detects it and skips, instead of
+        // launching a duplicate server.
+        const deadline = Date.now() + 15_000;
+        while (Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            if (await isDevServerRunning(sandbox)) break;
+        }
     }
 
     return { success: true, previewUrl: sandbox.domain(DEFAULT_PORT) };
