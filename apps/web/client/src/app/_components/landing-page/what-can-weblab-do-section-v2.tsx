@@ -682,40 +682,64 @@ function escapeHtmlChars(s: string) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// `animateFromIndex` — only spans at/after this index get the fade-in keyframe.
-// The loop rebuilds the whole innerHTML each tick, so animating every span would
-// re-trigger the fade on all prior tokens (whole-block flicker). Animating only the
-// newest token keeps the reveal clean — each glyph fades in exactly once.
-function buildTokenHtml(count: number, opts: { animateFromIndex: number; withCaret: boolean }) {
+// Typewriter pacing. Char-by-char (not token chunks) so the reveal reads as smooth,
+// deliberate typing instead of multi-character tokens popping in at once.
+const CHAR_DELAY_MS = 28; // per visible character of the current token
+const WS_DELAY_MS = 14; // whitespace/newline tokens reveal whole (typing spaces reads as a stall)
+const HOLD_MS = 4500; // pause on the finished file before looping
+
+// Renders the code up to `tokenIdx` fully-revealed tokens, plus the first `charIdx`
+// characters of the in-progress token. The loop rebuilds innerHTML each tick, so only
+// the single newest character carries the fade keyframe — animating more would re-fire
+// the fade on already-typed glyphs (whole-block flicker).
+function buildTokenHtml(
+    tokenIdx: number,
+    charIdx: number,
+    opts: { withCaret: boolean; animateNewest: boolean },
+) {
     let html = '';
-    for (let i = 0; i < count; i++) {
+    // Fully-revealed tokens.
+    for (let i = 0; i < tokenIdx; i++) {
         const tok = HOME_TOKENS[i]!;
         if (tok.t === 'ws') {
             html += escapeHtmlChars(tok.v);
             continue;
         }
-        const color = CODE_TOKEN_VARS[tok.t];
-        const anim =
-            i >= opts.animateFromIndex
-                ? 'animation:code-token-in .24s cubic-bezier(.25,.46,.45,.94) both;'
-                : '';
-        html += `<span style="color:${color};white-space:pre;${anim}">${escapeHtmlChars(tok.v)}</span>`;
+        html += `<span style="color:${CODE_TOKEN_VARS[tok.t]};white-space:pre;">${escapeHtmlChars(tok.v)}</span>`;
+    }
+    // In-progress token, typed one character at a time.
+    const cur = HOME_TOKENS[tokenIdx];
+    if (cur && cur.t !== 'ws' && charIdx > 0) {
+        const shown = cur.v.slice(0, charIdx);
+        const head = escapeHtmlChars(shown.slice(0, -1));
+        const last = escapeHtmlChars(shown.slice(-1));
+        const lastSpan = opts.animateNewest
+            ? `<span style="animation:code-char-in .12s ease-out both;">${last}</span>`
+            : last;
+        html += `<span style="color:${CODE_TOKEN_VARS[cur.t]};white-space:pre;">${head}${lastSpan}</span>`;
     }
     if (opts.withCaret) {
-        const isComplete = count >= HOME_TOKENS.length;
-        const caretAnim = isComplete
-            ? 'animation:code-caret-blink 1s steps(1) infinite;'
-            : '';
+        const isComplete = tokenIdx >= HOME_TOKENS.length;
+        const caretAnim = isComplete ? 'animation:code-caret-blink 1s steps(1) infinite;' : '';
         html += `<span aria-hidden="true" contenteditable="false" data-caret="true" style="display:inline-block;width:1.5px;height:14px;background:var(--code-caret);vertical-align:middle;transform:translateY(2px);margin-left:1px;${caretAnim}"></span>`;
     }
     return html;
 }
 
+// Full source rendered once with the same markup as the live editor — drives an
+// invisible spacer that reserves the panel's final height up front. Identical markup
+// means identical wrapping, so the typewriter never shifts layout as lines appear.
+const FULL_CODE_HTML = buildTokenHtml(HOME_TOKENS.length, 0, {
+    withCaret: false,
+    animateNewest: false,
+});
+
 function CodePanelVisual() {
     const [interactive, setInteractive] = useState(false);
     const [selPos, setSelPos] = useState<{ top: number; left: number } | null>(null);
     const preRef = useRef<HTMLPreElement | null>(null);
-    const revealedRef = useRef(0);
+    const tokenIdxRef = useRef(0);
+    const charIdxRef = useRef(0);
     const pausedRef = useRef(false);
     const interactiveRef = useRef(false);
     const timeoutRef = useRef<number | null>(null);
@@ -724,18 +748,14 @@ function CodePanelVisual() {
     // Imperative animation — drives pre.innerHTML directly so React never re-renders the
     // editable surface. After the first user interaction the loop stops and the DOM is
     // owned by the browser (contentEditable edits survive subsequent React re-renders).
-    const renderTokens = useCallback(
-        (animateLast: boolean) => {
-            const pre = preRef.current;
-            if (!pre) return;
-            pre.innerHTML = buildTokenHtml(revealedRef.current, {
-                // Animate only the just-revealed token; everything before it is static.
-                animateFromIndex: animateLast ? revealedRef.current - 1 : revealedRef.current,
-                withCaret: true,
-            });
-        },
-        [],
-    );
+    const renderTokens = useCallback((animateNewest: boolean) => {
+        const pre = preRef.current;
+        if (!pre) return;
+        pre.innerHTML = buildTokenHtml(tokenIdxRef.current, charIdxRef.current, {
+            withCaret: true,
+            animateNewest,
+        });
+    }, []);
 
     const scheduleNext = useCallback(() => {
         if (interactiveRef.current || pausedRef.current) return;
@@ -744,23 +764,41 @@ function CodePanelVisual() {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
-        const idx = revealedRef.current;
-        if (idx >= total) {
+        // Finished the file — hold, then reset and loop.
+        if (tokenIdxRef.current >= total) {
             timeoutRef.current = window.setTimeout(() => {
                 if (interactiveRef.current || pausedRef.current) return;
-                revealedRef.current = 0;
+                tokenIdxRef.current = 0;
+                charIdxRef.current = 0;
                 renderTokens(false);
                 scheduleNext();
-            }, 4500);
+            }, HOLD_MS);
             return;
         }
-        const delay = HOME_TOKENS[idx]?.t === 'ws' ? 24 : 52;
+        const cur = HOME_TOKENS[tokenIdxRef.current]!;
+        // Whitespace reveals whole; advance straight to the next token.
+        if (cur.t === 'ws') {
+            timeoutRef.current = window.setTimeout(() => {
+                if (interactiveRef.current || pausedRef.current) return;
+                tokenIdxRef.current += 1;
+                charIdxRef.current = 0;
+                renderTokens(false);
+                scheduleNext();
+            }, WS_DELAY_MS);
+            return;
+        }
+        // Reveal the next character of the current token.
         timeoutRef.current = window.setTimeout(() => {
             if (interactiveRef.current || pausedRef.current) return;
-            revealedRef.current = idx + 1;
+            charIdxRef.current += 1;
             renderTokens(true);
+            // Token fully typed — promote it and move on.
+            if (charIdxRef.current >= cur.v.length) {
+                tokenIdxRef.current += 1;
+                charIdxRef.current = 0;
+            }
             scheduleNext();
-        }, delay);
+        }, CHAR_DELAY_MS);
     }, [total, renderTokens]);
 
     useEffect(() => {
@@ -780,7 +818,7 @@ function CodePanelVisual() {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
-        pre.innerHTML = buildTokenHtml(total, { animateFromIndex: total, withCaret: false });
+        pre.innerHTML = buildTokenHtml(total, 0, { withCaret: false, animateNewest: false });
         pre.focus({ preventScroll: true });
         const range = document.createRange();
         range.selectNodeContents(pre);
@@ -888,9 +926,9 @@ function CodePanelVisual() {
                     0%, 50% { opacity: 1; }
                     50.01%, 100% { opacity: 0; }
                   }
-                  @keyframes code-token-in {
-                    from { opacity: 0; filter: blur(2px); }
-                    to { opacity: 1; filter: blur(0); }
+                  @keyframes code-char-in {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
                   }
                   .code-panel-root pre::selection { background: rgba(38,37,30,0.18); }
                   .code-panel-root pre *::selection { background: rgba(38,37,30,0.18); }
@@ -898,8 +936,8 @@ function CodePanelVisual() {
                   .dark .code-panel-root pre *::selection { background: rgba(86,156,214,0.32); }
                 `}</style>
                 <div className="code-panel-root">
-                    {/* Title bar — 28px */}
-                    <div className="relative flex h-7 items-center justify-between border-b border-[rgba(38,37,30,0.1)] pr-3 pl-2 dark:border-white/[0.08]">
+                    {/* Title bar — 28px (opaque, matches the AI assistant chrome) */}
+                    <div className="relative flex h-7 items-center justify-between border-b border-[rgba(38,37,30,0.1)] bg-white/80 pr-3 pl-2 backdrop-blur-[24px] dark:border-white/[0.08] dark:bg-[#161617]">
                         <div className="flex items-center gap-1.5">
                             <span className="size-2.5 rounded-full bg-[rgba(38,37,30,0.2)] dark:bg-white/[0.22]" />
                             <span className="size-2.5 rounded-full bg-[rgba(38,37,30,0.2)] dark:bg-white/[0.22]" />
@@ -909,8 +947,8 @@ function CodePanelVisual() {
                             Weblab
                         </span>
                     </div>
-                    {/* Tab bar — 30px */}
-                    <div className="relative flex h-[30px] items-stretch border-b border-[rgba(38,37,30,0.1)] dark:border-white/[0.08]">
+                    {/* Tab bar — 30px (opaque, matches the AI assistant chrome) */}
+                    <div className="relative flex h-[30px] items-stretch border-b border-[rgba(38,37,30,0.1)] bg-white/80 backdrop-blur-[24px] dark:border-white/[0.08] dark:bg-[#161617]">
                         <div className="flex items-center gap-2 border-r border-[rgba(38,37,30,0.1)] bg-[#f7f7f4] px-3 text-[12px] leading-[16px] text-[#26251e] dark:border-white/[0.08] dark:bg-[#1c1c1d] dark:text-white/90">
                             Home.tsx
                             <Icons.CrossS className="h-2.5 w-2.5 text-[#26251e]/40 dark:text-white/40" />
@@ -920,11 +958,18 @@ function CodePanelVisual() {
                         </div>
                     </div>
                     {/* Code body — DOM is owned imperatively after first interaction so
-                        contentEditable edits survive React re-renders. */}
-                    <div className="relative">
+                        contentEditable edits survive React re-renders. The invisible
+                        spacer reserves the full height; the live editor overlays it so
+                        the typewriter never grows the panel. */}
+                    <div className="relative bg-[#f7f7f4] dark:bg-[#1c1c1d]">
+                        <pre
+                            aria-hidden
+                            className="invisible px-7 pt-3 pb-4 font-mono text-[12px] leading-[20px] whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{ __html: FULL_CODE_HTML }}
+                        />
                         <pre
                             ref={preRef}
-                            className="relative min-h-[380px] cursor-text bg-[#f7f7f4] px-7 pt-3 pb-4 font-mono text-[12px] leading-[20px] whitespace-pre-wrap text-[var(--code-text)] outline-none dark:bg-[#1c1c1d]"
+                            className="absolute inset-0 cursor-text overflow-hidden px-7 pt-3 pb-4 font-mono text-[12px] leading-[20px] whitespace-pre-wrap text-[var(--code-text)] outline-none"
                             contentEditable
                             suppressContentEditableWarning
                             spellCheck={false}
