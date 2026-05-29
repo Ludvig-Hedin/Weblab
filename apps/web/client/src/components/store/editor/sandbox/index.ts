@@ -14,6 +14,11 @@ import { GitManager } from '../git';
 import { detectRouterConfig } from '../pages/helper';
 import { isSandboxGoneError } from './errors';
 import {
+    MAX_PRELOAD_RETRY_ATTEMPTS,
+    planPreloadRetry,
+    PRELOAD_RETRY_DELAY_MS,
+} from './preload-retry';
+import {
     copyPreloadScriptToPublic,
     copyPreloadScriptToStaticHtml,
     getLayoutPath as detectLayoutPath,
@@ -25,9 +30,6 @@ export enum PreloadScriptState {
     LOADING = 'loading',
     INJECTED = 'injected',
 }
-
-const PRELOAD_RETRY_DELAY_MS = 2000;
-const MAX_PRELOAD_RETRY_ATTEMPTS = 5;
 
 export class SandboxManager {
     readonly session: SessionManager;
@@ -96,6 +98,13 @@ export class SandboxManager {
             () => this.session.provider,
             async (provider) => {
                 if (provider) {
+                    // Fresh provider connection (initial boot OR reconnect after
+                    // a "Restart sandbox"): give preload injection a clean retry
+                    // budget. Without this, a slow first boot that exhausted its
+                    // transient-retry budget could never inject the preload
+                    // script even after the sandbox came back, leaving the
+                    // canvas tools permanently dead.
+                    this.resetPreloadRetryState();
                     // Offline path: skip the bidirectional sync engine. The
                     // OfflineProvider would return empty file lists which
                     // would wipe ZenFS via the initial `pullFromSandbox`
@@ -314,10 +323,12 @@ export class SandboxManager {
                 return;
             }
             const isTransient = error instanceof Error && error.message === MISSING_ROUTER_CONFIG;
-            const willRetry = this.preloadRetryCount < MAX_PRELOAD_RETRY_ATTEMPTS;
-            if (isTransient && willRetry) {
-                // Sandbox files probably haven't synced yet. The reaction-driven
-                // retry below handles this — keep the console clean.
+            const { maxAttempts, logLevel } = planPreloadRetry(isTransient, this.preloadRetryCount);
+            if (logLevel === 'debug') {
+                // Expected during cold boot: the sandbox FS hasn't synced the
+                // router directory yet. Retry patiently — escalating to
+                // console.error (or giving up) here is what stranded slow
+                // Vercel cold-boots on a forever spinner.
                 console.debug(
                     '[SandboxManager] Router config not detected yet, retrying preload injection…',
                 );
@@ -327,12 +338,12 @@ export class SandboxManager {
             runInAction(() => {
                 this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
             });
-            this.schedulePreloadRetry();
+            this.schedulePreloadRetry(maxAttempts);
         }
     }
 
-    private schedulePreloadRetry(): void {
-        if (this.preloadRetryTimeout || this.preloadRetryCount >= MAX_PRELOAD_RETRY_ATTEMPTS) {
+    private schedulePreloadRetry(maxAttempts: number = MAX_PRELOAD_RETRY_ATTEMPTS): void {
+        if (this.preloadRetryTimeout || this.preloadRetryCount >= maxAttempts) {
             return;
         }
 
@@ -341,6 +352,17 @@ export class SandboxManager {
             this.preloadRetryTimeout = null;
             void this.ensurePreloadScriptExists();
         }, PRELOAD_RETRY_DELAY_MS);
+    }
+
+    // Clears any pending retry and resets the attempt budget. Called on a fresh
+    // provider connection so a reconnect/restart gets a full retry budget; the
+    // retry loop itself never calls this (it must keep incrementing).
+    private resetPreloadRetryState(): void {
+        if (this.preloadRetryTimeout) {
+            clearTimeout(this.preloadRetryTimeout);
+            this.preloadRetryTimeout = null;
+        }
+        this.preloadRetryCount = 0;
     }
 
     async getLayoutPath(): Promise<string | null> {

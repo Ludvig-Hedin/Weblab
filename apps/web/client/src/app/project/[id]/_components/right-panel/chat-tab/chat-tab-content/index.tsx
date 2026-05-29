@@ -13,6 +13,7 @@ import {
 } from '@/components/ai-prompt-composer/create-draft';
 import { useReasoningEffort } from '@/components/ai-prompt-composer/model-picker/use-reasoning-effort';
 import { useEditorEngine } from '@/components/store/editor';
+import { canReachLocalOllamaFromBrowser } from '@/services/offline/ollama-client';
 import { useChat } from '../../../../_hooks/use-chat';
 import { ChatInput } from '../chat-input';
 import { ChatMessages } from '../chat-messages';
@@ -107,6 +108,12 @@ export const ChatTabContent = ({
         setLocalModelsLoading(true);
 
         const probeBrowser = async (): Promise<LocalModelOption[]> => {
+            // In hosted production the CSP (`connect-src 'self' https: wss:`)
+            // blocks http://localhost:11434, so this fetch can only ever fail
+            // with a console-spamming CSP violation. Skip it where the CSP
+            // forbids it; the server route probe above already covers the
+            // desktop / self-hosted case. See canReachLocalOllamaFromBrowser.
+            if (!canReachLocalOllamaFromBrowser()) return [];
             try {
                 const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/tags`, {
                     signal: probeSignal,

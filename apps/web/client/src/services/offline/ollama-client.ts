@@ -25,6 +25,24 @@ export interface OllamaChatRequest {
     signal?: AbortSignal;
 }
 
+/**
+ * Whether a direct browser→localhost Ollama fetch can succeed in the current
+ * build. The hosted production `connect-src` CSP in `next.config.ts` omits
+ * `http://localhost:11434`, so any browser probe there is guaranteed to fail
+ * with a noisy "Refused to connect" CSP violation in the console. Gate browser
+ * probes on this so we only attempt them where the CSP actually allows it
+ * (dev / self-hosted / desktop). The server-side `/api/models/local` route is
+ * unaffected and remains the primary probe path everywhere.
+ *
+ * Kept in lock-step with the CSP ternary in `next.config.ts`.
+ */
+export function canReachLocalOllamaFromBrowser(
+    // eslint-disable-next-line no-restricted-properties -- raw NODE_ENV mirrors the next.config.ts CSP gate; injectable below for tests
+    nodeEnv: string | undefined = process.env.NODE_ENV,
+): boolean {
+    return nodeEnv !== 'production';
+}
+
 export async function isOllamaReachable(baseUrl = OLLAMA_DEFAULT_BASE_URL): Promise<boolean> {
     try {
         const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/version`, {

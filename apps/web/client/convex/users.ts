@@ -144,6 +144,21 @@ export const setGithubInstallationId = mutation({
     },
 });
 
+// Marks the first-run editor tour as seen for the current user. Idempotent —
+// safe to call repeatedly. Durable per-user so the tour never re-appears for an
+// existing user (unlike the old per-browser localforage flag).
+export const markEditorOnboardingSeen = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const user = await requireUserJIT(ctx);
+        if (user.hasSeenEditorOnboarding) return;
+        await ctx.db.patch(user._id, {
+            hasSeenEditorOnboarding: true,
+            updatedAt: Date.now(),
+        });
+    },
+});
+
 // Alias for setGithubInstallationId({ githubInstallationId: null }). Convenience
 // for "disconnect GitHub" UI button — clearer call site than passing null.
 export const disconnectGitHub = mutation({

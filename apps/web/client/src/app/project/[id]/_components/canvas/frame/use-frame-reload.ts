@@ -1,23 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 
-// Reload timing constants
-const RELOAD_BASE_DELAY_MS = 2000;
-const RELOAD_INCREMENT_MS = 1000;
-// First-attempt timeout. CodeSandbox cold-boot regularly takes 10–15s before
-// the dev server responds (502 until then). 5s was too aggressive — the
+import { planReload } from './frame-reload-policy';
+
+// First-attempt timeout. Vercel Sandbox cold-boot regularly takes 10–15s
+// before the dev server responds (502 until then). 5s was too aggressive — the
 // handshake fired, timed out, and dumped a noisy error to the console for
 // every freshly-created project. 12s gives the sandbox a realistic window
 // while still failing fast on a genuinely-broken handshake.
 const PENPAL_BASE_TIMEOUT_MS = 12000;
 const PENPAL_TIMEOUT_INCREMENT_MS = 2000;
 const PENPAL_MAX_TIMEOUT_MS = 30000;
-// Hard cap on automatic reloads. Past this point the loader UI takes
-// over with a "Restart sandbox" affordance — auto-reloading forever
-// would just thrash a permanently-dead sandbox and waste resources.
-// 6 attempts ≈ 27 s of waiting plus the per-attempt penpal timeouts,
-// covering the realistic boot window with margin.
-const RELOAD_MAX_ATTEMPTS = 6;
 
 // Boot-elapsed escalation thresholds. Drive the loader's UI escalation
 // (soft caption at 30s, "Restart sandbox" panel at 60s) without
@@ -85,21 +78,22 @@ export function useFrameReload() {
         reloadCountRef.current += 1;
         setConnectionFailureCount(reloadCountRef.current);
 
-        if (reloadCountRef.current > RELOAD_MAX_ATTEMPTS) {
-            // Stop scheduling new reloads. The escalation UI surfaces a
-            // Restart sandbox button so the user can recover deliberately
-            // instead of us thrashing in the background.
-            setReloadCapped(true);
+        const plan = planReload(reloadCountRef.current);
+        // `capped` surfaces the manual "Retry preview" / "Restart sandbox"
+        // panel. Past the fast budget we keep scheduling gentle background
+        // self-heal reloads (long interval) so a late-booting sandbox
+        // reconnects on its own — `useSandboxLiveness` is a no-op today, so
+        // this is the only signal that re-arms the iframe once the dev server
+        // finally serves.
+        setReloadCapped(plan.capped);
+        if (!plan.shouldReload) {
             return;
         }
-
-        const reloadDelay =
-            RELOAD_BASE_DELAY_MS + RELOAD_INCREMENT_MS * (reloadCountRef.current - 1);
 
         reloadTimeoutRef.current = setTimeout(() => {
             setReloadKey((prev) => prev + 1);
             reloadTimeoutRef.current = null;
-        }, reloadDelay);
+        }, plan.delayMs);
     };
 
     // Keep the ref pointing at the latest scheduleReload closure so the

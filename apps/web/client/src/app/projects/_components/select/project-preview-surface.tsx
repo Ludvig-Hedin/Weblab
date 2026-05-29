@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { BrandLogo } from '@weblab/ui/brand';
 import { cn } from '@weblab/ui/utils';
 
 import { getFaviconUrl } from './project-card-utils';
@@ -48,6 +49,9 @@ export function isNonEmbeddable(url: string): boolean {
         return (
             hostname.endsWith('.csb.app') ||
             hostname.endsWith('.codesandbox.io') ||
+            // Vercel Sandbox dev-server URLs 502 until the dev server binds and
+            // are not meant to be embedded as static thumbnails.
+            hostname.endsWith('.vercel.run') ||
             hostname === 'vercel.com' ||
             hostname.endsWith('.vercel.com')
         );
@@ -81,31 +85,23 @@ export const ProjectPreviewSurface = ({
     }, [imageUrl, siteUrl, sandboxPreviewUrl]);
 
     const shouldRenderImage = Boolean(imageUrl && !imageFailed);
-    // Live iframe — prefer the published site (filters out non-embeddable
-    // hosts like Vercel marketing pages). When unpublished, fall back to the
-    // sandbox dev-server URL: it may show a consent dialog on CSB Free but
-    // that's still more informative than a blank "M" tile. The csb.app
-    // block in isNonEmbeddable applies to published sites only — sandbox
-    // URLs deliberately bypass it.
-    const iframeUrl: string | null =
-        siteUrl && !isNonEmbeddable(siteUrl) ? siteUrl : (sandboxPreviewUrl ?? null);
-
-    // TODO(convex-migration): port api.sandbox.checkAlive — no Convex equivalent yet.
-    // Liveness probe is disabled; sandbox URLs will iframe-render directly until ported.
-    const livenessQuery = {
-        data: undefined as { state: string } | undefined,
-        isLoading: false,
-    };
-    const sandboxLooksDead =
-        livenessQuery.data?.state === 'gone' ||
-        livenessQuery.data?.state === 'notFound' ||
-        livenessQuery.data?.state === 'error';
+    // Live iframe — only the published site, and only when embeddable.
+    //
+    // We intentionally do NOT fall back to the raw sandbox dev-server URL: a
+    // freshly created or cold sandbox returns HTTP 502 until its dev server
+    // binds a port, and an iframe "loads" that 502 error page successfully
+    // (onError never fires), so the card would render a "502 Bad Gateway" tile.
+    // With the server liveness probe still unported to Convex there's no way to
+    // know the sandbox is healthy before embedding it, so we keep the calm
+    // skeleton/favicon placeholder until a real screenshot is captured.
+    // `sandboxPreviewUrl` is retained on the props for callers but is no longer
+    // embedded.
+    const iframeUrl: string | null = siteUrl && !isNonEmbeddable(siteUrl) ? siteUrl : null;
 
     // Pulse only while actively waiting for a preview to paint.
     const isLoadingPreview =
         (Boolean(imageUrl && !imageFailed) && !imageLoaded) ||
-        (Boolean(!imageUrl && iframeUrl) &&
-            (livenessQuery.isLoading || (!sandboxLooksDead && !iframeLoaded && !iframeTimedOut)));
+        (Boolean(!imageUrl && iframeUrl) && !iframeLoaded && !iframeTimedOut);
 
     // Give the iframe 6 s before giving up and showing the skeleton fallback.
     // Without this, cards with unresponsive or iframe-blocking preview URLs
@@ -117,10 +113,14 @@ export const ProjectPreviewSurface = ({
     }, [iframeLoaded, imageUrl, iframeUrl]);
 
     const shouldRenderIframe = Boolean(
-        !shouldRenderImage && iframeUrl && !sandboxLooksDead && (iframeLoaded || !iframeTimedOut),
+        !shouldRenderImage && iframeUrl && (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);
+    // Brand-new projects have no screenshot, no published site, and no favicon
+    // yet — show a calm branded mark instead of a blank tile so the card reads
+    // as "new / preview pending" rather than empty or broken.
+    const showPlaceholder = !shouldRenderImage && !shouldRenderIframe && !showFavicon;
 
     return (
         <div
@@ -181,6 +181,13 @@ export const ProjectPreviewSurface = ({
                         loading="lazy"
                         onError={() => setFaviconFailed(true)}
                     />
+                </div>
+            )}
+
+            {/* Branded placeholder for a project with no preview yet */}
+            {showPlaceholder && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <BrandLogo className="h-5 opacity-15" />
                 </div>
             )}
 

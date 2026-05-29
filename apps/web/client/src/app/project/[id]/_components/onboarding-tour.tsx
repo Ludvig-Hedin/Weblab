@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import localforage from 'localforage';
 
 import { Button } from '@weblab/ui/button';
 import { cn } from '@weblab/ui/utils';
 
 import { ONBOARDING_SEEN_KEY } from '@/utils/constants';
+import { resolveOnboardingVisibility } from './onboarding-visibility';
 
 /**
  * First-run editor onboarding tour.
@@ -100,44 +103,62 @@ interface OnboardingTourProps {
 }
 
 export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
-    // `null` = haven't checked storage yet; `true` = should render; `false` = done.
-    const [shouldShow, setShouldShow] = useState<boolean | null>(null);
+    // Source of truth: per-user Convex flag (durable across browsers/devices).
+    const user = useQuery(api.users.me);
+    const markEditorOnboardingSeen = useMutation(api.users.markEditorOnboardingSeen);
+    // localforage cache: `null` until read; used only to avoid a flash before
+    // the per-user flag round-trips.
+    const [localSeen, setLocalSeen] = useState<boolean | null>(null);
+    // In-memory hide for the current mount (does not persist).
+    const [dismissed, setDismissed] = useState(false);
     const [stepIndex, setStepIndex] = useState(0);
     const [position, setPosition] = useState<CardPosition | null>(null);
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const finishedRef = useRef(false);
 
-    // Read flag once on mount.
+    // Read the local cache once on mount (optimistic only — the per-user flag
+    // above is authoritative).
     useEffect(() => {
-        if (suppressed) {
-            setShouldShow(false);
-            return;
-        }
         let cancelled = false;
         void (async () => {
             try {
                 const seen = await localforage.getItem<boolean>(ONBOARDING_SEEN_KEY);
-                if (cancelled) return;
-                setShouldShow(!seen);
+                if (!cancelled) setLocalSeen(!!seen);
             } catch (err) {
                 // localforage failures shouldn't break the editor — just skip.
                 console.warn('Onboarding flag read failed', err);
-                if (!cancelled) setShouldShow(false);
+                if (!cancelled) setLocalSeen(false);
             }
         })();
         return () => {
             cancelled = true;
         };
-    }, [suppressed]);
+    }, []);
 
-    const finish = () => {
-        if (finishedRef.current) return;
-        finishedRef.current = true;
-        setShouldShow(false);
-        void localforage.setItem(ONBOARDING_SEEN_KEY, true).catch((err) => {
-            console.warn('Onboarding flag write failed', err);
-        });
-    };
+    const shouldShow =
+        !dismissed && resolveOnboardingVisibility({ suppressed, user, localSeen }) === true;
+
+    /**
+     * Hide the tour. `persist: true` for a genuine dismissal/completion — writes
+     * the durable per-user flag (+ local cache) so it never returns. `persist:
+     * false` hides only for this mount (e.g. anchors aren't in the DOM yet)
+     * WITHOUT burning the flag, so a real first-run can still surface later.
+     */
+    const finish = useCallback(
+        (persist: boolean) => {
+            setDismissed(true);
+            if (!persist || finishedRef.current) return;
+            finishedRef.current = true;
+            setLocalSeen(true);
+            void localforage.setItem(ONBOARDING_SEEN_KEY, true).catch((err) => {
+                console.warn('Onboarding flag write failed', err);
+            });
+            void markEditorOnboardingSeen({}).catch((err) => {
+                console.warn('Onboarding flag persist failed', err);
+            });
+        },
+        [markEditorOnboardingSeen],
+    );
 
     // Advance over steps whose target isn't in the DOM, then position the card.
     useLayoutEffect(() => {
@@ -153,7 +174,9 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
             cursor += 1;
         }
         if (cursor >= STEPS.length) {
-            finish();
+            // No anchors in the DOM right now — hide without persisting so a
+            // genuine first-run can still show once the panels are mounted.
+            finish(false);
             return;
         }
         if (cursor !== stepIndex) {
@@ -161,18 +184,18 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
             return;
         }
         if (!element) {
-            finish();
+            finish(false);
             return;
         }
         const step = STEPS[cursor];
         if (!step) {
-            finish();
+            finish(false);
             return;
         }
         const rect = element.getBoundingClientRect();
         setTargetRect(rect);
         setPosition(computeCardPosition(rect, step.side));
-    }, [shouldShow, stepIndex]);
+    }, [shouldShow, stepIndex, finish]);
 
     // Reposition on resize — keeps card aligned if the user resizes the panel.
     useEffect(() => {
@@ -195,12 +218,12 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
         if (!shouldShow) return;
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                finish();
+                finish(true);
             }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [shouldShow]);
+    }, [shouldShow, finish]);
 
     if (!shouldShow || !position) return null;
 
@@ -211,10 +234,11 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
     return (
         <>
             {/* Transparent backdrop — captures clicks to dismiss but doesn't dim
-                the editor. We want users to *see* the editor while reading. */}
+                the editor. We want users to *see* the editor while reading.
+                Keyboard users dismiss via the ESC handler wired above. */}
             <div
                 aria-hidden="true"
-                onClick={finish}
+                onClick={() => finish(true)}
                 className="fixed inset-0 z-[1000] bg-transparent"
             />
             {/* Subtle highlight ring around the active target. Pointer-events
@@ -231,7 +255,10 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
                     }}
                 />
             )}
-            {/* The tour card itself. */}
+            {/* The tour card itself. onClick stops backdrop dismissal when
+                clicking inside; it's not a real action, so the a11y key-handler
+                rules don't apply. */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
             <div
                 role="dialog"
                 aria-label="Editor tour"
@@ -254,7 +281,7 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
                 </div>
                 <p className="text-foreground-secondary text-mini">{step.body}</p>
                 <div className="mt-1 flex justify-end gap-1">
-                    <Button variant="ghost" size="sm" onClick={finish}>
+                    <Button variant="ghost" size="sm" onClick={() => finish(true)}>
                         Skip
                     </Button>
                     <Button
@@ -262,7 +289,7 @@ export const OnboardingTour = ({ suppressed = false }: OnboardingTourProps) => {
                         size="sm"
                         onClick={() => {
                             if (isLast) {
-                                finish();
+                                finish(true);
                             } else {
                                 setStepIndex((i) => i + 1);
                             }
