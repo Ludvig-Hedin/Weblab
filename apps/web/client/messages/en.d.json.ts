@@ -334,7 +334,7 @@ declare const messages: {
             "creatingProject": "Saving your project",
             "openingEditor": "Opening the editor",
             "creatingBlankProject": "Building your project",
-            "creatingBlankProjectCaption": "This takes about 15 seconds while we get your workspace ready. Hang tight.",
+            "creatingBlankProjectCaption": "Spinning up your workspace — this usually takes 20–40 seconds. Hang tight.",
             "startBlankProject": "Start blank project"
         },
         "dialogs": {
@@ -1494,11 +1494,20 @@ declare const messages: {
             },
             "skillImportDialog": {
                 "title": "Import skill",
-                "description": "Bring in a skill from a remote URL or paste its SKILL.md content. We parse the frontmatter, show a preview, and only save once you confirm.",
+                "description": "Upload a SKILL.md or .zip, paste its content, or pull from a remote URL. We parse the frontmatter, show a preview, and only save once you confirm.",
                 "tabs": {
-                    "url": "From URL",
-                    "paste": "Paste content"
+                    "upload": "Upload file",
+                    "paste": "Paste content",
+                    "url": "From URL"
                 },
+                "uploadLabel": "SKILL.md or .zip",
+                "uploadDropHint": "Drop a file here, or",
+                "uploadCta": "Choose file",
+                "uploadHint": "Accepts a single SKILL.md (.md) or a .zip containing one. Max 2 MB.",
+                "toastNoSkillMd": "No SKILL.md (or .md) found in the archive",
+                "toastFileTooLarge": "File is too large (max 2 MB)",
+                "toastEmptyFile": "That file is empty",
+                "toastUnzipFailed": "Couldn't read that file",
                 "urlLabel": "SKILL.md URL",
                 "urlPlaceholder": "https://raw.githubusercontent.com/.../SKILL.md",
                 "urlHint": "Allowed hosts: raw.githubusercontent.com, gist.githubusercontent.com, agentskills.io.",
