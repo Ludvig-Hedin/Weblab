@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClerk } from '@clerk/nextjs';
+import { useAuth, useClerk } from '@clerk/nextjs';
 import { useSignIn } from '@clerk/nextjs/legacy';
 
 import { BrandLogo } from '@weblab/ui/brand';
@@ -42,11 +42,19 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
     const router = useRouter();
     const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
     const { signOut } = useClerk();
+    // Reactive session state. After `setActive` writes the session cookie into
+    // the `persist:weblab` partition, `isSignedIn` flips to true once Clerk's
+    // client has synced. We gate the `/projects` navigation on it to avoid the
+    // cookie-write race described below.
+    const { isSignedIn } = useAuth();
     const [state, setState] = useState<RedeemState>({ status: 'idle' });
     // Ticket is one-time; if Clerk rejects it, retrying the same call would
     // hit a "ticket already consumed" error. The latch guards the effect from
     // re-firing on React strict-mode double-mounts in dev.
     const consumedRef = useRef(false);
+    // Latches the post-success navigation so it fires exactly once regardless
+    // of whether the `isSignedIn` flip or the fallback timeout wins.
+    const navigatedRef = useRef(false);
 
     useEffect(() => {
         if (!isSignInLoaded || !signIn || !setActive) return;
@@ -89,14 +97,14 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
                 }
 
                 await setActive({ session: attempt.createdSessionId });
-                // TODO(bug-hunt): cookie-write race. `setActive` writes the
-                // session cookie into the partition; `router.replace` fires
-                // immediately after and the server may render `/projects`
-                // before the cookie is committed, bouncing back to /sign-in
-                // and looking like a failed sign-in. Fix: wait for
-                // `useUser().isSignedIn === true` before navigating.
+                // Don't navigate here. `setActive` writes the session cookie
+                // into the partition, but `/projects` is auth-gated — rendering
+                // it before the cookie commits bounces back to /sign-in and
+                // looks like a failed sign-in. The effect below waits for
+                // `isSignedIn` to flip true (cookie committed + client synced)
+                // before navigating, with a timeout fallback so a stalled flip
+                // never strands the user on the spinner.
                 setState({ status: 'success' });
-                router.replace('/projects');
             } catch (err) {
                 type ClerkAPIErrorLike = {
                     errors?: Array<{ message?: string; longMessage?: string }>;
@@ -119,7 +127,29 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
                 setState({ status: 'error', message });
             }
         })();
-    }, [isSignInLoaded, signIn, setActive, signOut, ticket, router]);
+    }, [isSignInLoaded, signIn, setActive, signOut, ticket]);
+
+    // Navigate to /projects only once the ticket exchange succeeded AND the
+    // session is live (`isSignedIn`). A 4s fallback covers the rare case where
+    // the reactive flip lags the cookie commit — navigating then is no worse
+    // than the old unconditional push, and avoids an indefinite spinner.
+    useEffect(() => {
+        if (state.status !== 'success') return;
+        if (navigatedRef.current) return;
+
+        if (isSignedIn) {
+            navigatedRef.current = true;
+            router.replace('/projects');
+            return;
+        }
+
+        const fallback = window.setTimeout(() => {
+            if (navigatedRef.current) return;
+            navigatedRef.current = true;
+            router.replace('/projects');
+        }, 4000);
+        return () => window.clearTimeout(fallback);
+    }, [state.status, isSignedIn, router]);
 
     return (
         <div className="relative flex h-screen w-screen items-center justify-center">

@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-5-desktop-app',
+        version: '2.5',
+        title: 'Weblab for desktop',
+        description:
+            'The desktop app is now available to download for macOS, with Windows and Linux builds published alongside it. Sign in with Google, GitHub, Vercel, or email — auth hands off to your real browser and lands you straight back in the app. Drag the window from anywhere along the top to move it. Get it from the Download page.',
+        date: '2026-06-01',
+        tags: ['Desktop', 'Auth', 'Release'],
+    },
+    {
         slug: 'v2-4-generate-images-in-chat',
         version: '2.4',
         title: 'Generate images in chat',

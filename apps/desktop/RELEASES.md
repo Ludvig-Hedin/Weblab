@@ -5,6 +5,31 @@ This doc covers three paths: building locally, sharing with friends, and publish
 
 ## Changelog
 
+### v0.2.2
+
+- Desktop sign-in now works end-to-end. OAuth (Google/GitHub/Vercel) and email
+  sign-in hand off to the user's real default browser via
+  `weblabNative.openExternal`, finish there, then return to the app through a
+  `weblab://auth/handoff?ticket=…` deep link that the shell redeems at
+  `/sign-in/redeem`. This sidesteps Google's block on embedded Chromium and the
+  Cloudflare Turnstile failures that broke in-window provider sign-in.
+- Fixed a sign-in cookie-write race: after redeeming the handoff ticket the app
+  now waits for the session to go live before navigating to `/projects`, so the
+  last step no longer occasionally bounces back to the sign-in screen.
+- Window drag is now injected from the main process on every load
+  (`insertCSS` + `data-desktop` stamping), so the top-of-window drag region
+  survives even if the web-side CSS is stripped or the renderer errors before
+  mounting its own chrome.
+- Hardened auth error handling: Convex JWT rejections and Clerk Backend API
+  failures during the handoff now render an actionable screen instead of the
+  generic crash boundary.
+
+### v0.2.1
+
+- CI: pinned the build runners' Python to 3.11 so native dependencies that rely
+  on `distutils` (removed from the Python 3.12 stdlib) compile on the macOS and
+  Windows release runners. Packaging-only release — no app behavior changes.
+
 ### v0.2.0
 
 - Window now drags from the top 38px on every route, including the root error boundary, sign-in, and any page that hasn't yet rendered its own drag region. Implemented as a CSS-only fallback strip injected on `load` so it survives renderer errors.
@@ -125,51 +150,64 @@ Once a user installs the app, it will check GitHub Releases on every launch and 
 
 ---
 
-## 5. Sign-in (OAuth in the desktop auth window)
+## 5. Sign-in (browser-handoff OAuth)
 
-OAuth providers should not replace the main app window. The desktop app routes
-provider redirects into a small auth BrowserWindow that shares the app's
-`persist:weblab` cookie partition, then closes that window when a Weblab
-callback URL is reached and finishes sign-in in the main window.
+OAuth and email sign-in run in the user's **real default browser**, not inside
+the app. Embedded Chromium is a dead end for sign-in — Google blocks it
+outright, GitHub/Vercel/Clerk construct the OAuth `client_id` differently
+outside a real browser, and Cloudflare Turnstile (Clerk's bot check) fails its
+environment probe. So the desktop shell hands the flow to the OS browser and
+gets the finished session back through a one-time ticket.
 
 ### What happens, step by step
 
-1. User clicks an OAuth provider button inside the main Weblab window.
-2. The web app starts Clerk OAuth normally.
-3. The main process detects provider navigation (`accounts.google.com`,
-   `github.com`, `vercel.com`, Clerk auth hosts) and opens it in the desktop
-   auth window instead of `shell.openExternal`.
-4. The user signs in in the auth window.
-5. When the auth window reaches a Weblab callback URL, the main process loads
-   that URL in the main window and closes the auth window.
-6. Clerk finishes the redirect callback and sets session cookies in
-   `persist:weblab`. User is signed in.
+1. User clicks an OAuth provider (or submits their email) inside the main
+   Weblab window.
+2. The web app calls `weblabNative.openExternal('…/sign-in/desktop-handoff?…')`,
+   which `main.js` routes to `shell.openExternal` — the OS default browser
+   opens the handoff URL.
+3. In the browser: if the user isn't signed in, `/sign-in/desktop-handoff`
+   bounces to `/sign-in` (carrying a `returnUrl` back to itself). The user
+   completes OAuth or email OTP there normally.
+4. Once signed in, `/sign-in/desktop-handoff` mints a short-lived (60s) Clerk
+   **sign-in ticket** server-side and the page sets
+   `window.location.href = 'weblab://auth/handoff?ticket=…'`.
+5. The OS launches the `weblab://` deep link; `handleDeepLink` (main.js)
+   rewrites it to `/sign-in/redeem?ticket=…&native=1` and loads it in the main
+   window.
+6. `/sign-in/redeem` calls `signIn.create({ strategy: 'ticket', ticket })` then
+   `setActive`, writing the session into the `persist:weblab` cookie partition,
+   waits for the session to go live, and lands the user on `/projects`.
 
-### Required OAuth configuration
+The OAuth provider hosts are also defense-in-depth blocked from rendering in any
+BrowserWindow (`will-navigate` / `will-redirect` / `setWindowOpenHandler` bounce
+them to `shell.openExternal`).
 
-In your auth provider dashboard, allow the Weblab callback URLs used by the
-hosted app and desktop shell:
+### Required OAuth / Clerk configuration
 
-- Add `weblab://auth/callback` to the **Redirect URLs** allow-list.
-- Keep `https://weblab.build/auth/callback` for the web app and the
-  https-bounce step above.
-
-That's all — same allow-list entry as iOS, no per-platform config.
+- Register `weblab://` as a custom URL scheme (already done in `main.js` via
+  `app.setAsDefaultProtocolClient`).
+- In Clerk, allow the hosted redirect URLs used by the in-browser flow
+  (`https://weblab.build/sign-in/sso-callback`, `…/sign-in/redeem`). No
+  provider-side `weblab://` redirect entry is needed — the deep link is fired
+  by the browser page itself, not by an OAuth redirect.
 
 ### Testing the deep link locally
 
 ```bash
-# macOS
-open "weblab://auth/callback?code=test"
+# macOS — simulate the handoff the browser fires after sign-in
+open "weblab://auth/handoff?ticket=test"
 
 # Windows  (cmd)
-start weblab://auth/callback?code=test
+start weblab://auth/handoff?ticket=test
 
 # Linux
-xdg-open "weblab://auth/callback?code=test"
+xdg-open "weblab://auth/handoff?ticket=test"
 ```
 
-The desktop app should load `https://weblab.build/auth/callback?code=test&native=1`.
+The desktop app should load `https://weblab.build/sign-in/redeem?ticket=test&native=1`
+(the redeem screen will then reject `test` as an invalid ticket — that's
+expected; it confirms the deep-link routing works).
 
 ---
 
