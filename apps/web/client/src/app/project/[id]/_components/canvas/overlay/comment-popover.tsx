@@ -207,6 +207,7 @@ export const CommentPopover = observer(() => {
                             }
                         }}
                         placeholder="Add a comment..."
+                        aria-label="Add a comment"
                         rows={2}
                         className="text-foreground-primary placeholder:text-foreground-tertiary text-small min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 focus:outline-none"
                         disabled={isSubmitting}
