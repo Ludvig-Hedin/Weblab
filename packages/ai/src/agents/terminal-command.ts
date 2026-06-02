@@ -55,11 +55,14 @@ export function sanitizeCommand(raw: string): string {
         cmd = fenceMatch[1].trim();
     }
 
-    // Collapse to the first non-empty line — we only ever run one command.
+    // Collapse to the first non-empty, non-fence line — we only ever run one
+    // command. Dropping fence-only lines (``` or ```bash) first prevents an
+    // unanchored / trailing-text fence from leaking a literal "```bash" through
+    // as the command (which, in auto-run mode, would be piped to the PTY).
     const firstLine = cmd
         .split('\n')
         .map((line) => line.trim())
-        .find((line) => line.length > 0);
+        .find((line) => line.length > 0 && !/^```[a-zA-Z]*$/.test(line));
     cmd = firstLine ?? '';
 
     // Strip a leading shell prompt sigil ("$ ", "# ").
@@ -122,5 +125,13 @@ export const generateTerminalCommand = async ({
         },
     });
 
-    return sanitizeCommand(text);
+    const command = sanitizeCommand(text);
+    // An empty result (model returned only fences/whitespace) is a failed
+    // translation, not a valid command. Throw so the route's catch refunds the
+    // charged credit instead of returning `{ command: '' }` with a 200 (which
+    // would spend a credit for nothing).
+    if (!command) {
+        throw new Error('Empty translation');
+    }
+    return command;
 };

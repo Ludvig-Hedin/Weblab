@@ -46,12 +46,20 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
     const [aiEnabled, setAiEnabled] = useState(false);
     const [autoRun, setAutoRun] = useState(false);
     const [loading, setLoading] = useState(false);
+    // Mirrors `previewedRef` for rendering the "command ready — ↵ to run" hint.
+    const [previewActive, setPreviewActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const abortRef = useRef<AbortController | null>(null);
-    // The last command AI wrote into the box as a preview. When the user hits
-    // Enter on an unchanged previewed command we run it literally instead of
-    // re-translating it (the "preview → Enter to run" flow).
+    // The command AI wrote into the box as a preview. While a preview is active
+    // the box holds an editable command — Enter runs it (the "preview → Enter to
+    // run" flow). Clearing the box (or Esc) drops the preview so the next typed
+    // request is treated as fresh natural language to translate again.
     const previewedRef = useRef<string | null>(null);
+
+    const clearPreview = () => {
+        previewedRef.current = null;
+        setPreviewActive(false);
+    };
 
     // Hydrate prefs after mount to avoid SSR/client mismatch.
     useEffect(() => {
@@ -69,7 +77,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
             writeBool(AI_ENABLED_KEY, next);
             return next;
         });
-        previewedRef.current = null;
+        clearPreview();
         inputRef.current?.focus();
     };
 
@@ -83,7 +91,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
         if (!trimmed) return;
         onRun(trimmed);
         setValue('');
-        previewedRef.current = null;
+        clearPreview();
     };
 
     const translateWithAi = async (instruction: string) => {
@@ -122,6 +130,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                 // review (and edit) it. Next Enter runs it literally.
                 setValue(command);
                 previewedRef.current = command;
+                setPreviewActive(true);
                 inputRef.current?.focus();
             }
         } catch (err) {
@@ -224,12 +233,19 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                     setValue(e.target.value);
                     // Clearing the box drops the active preview so the next typed
                     // request is treated as fresh natural language to translate.
-                    if (e.target.value === '') previewedRef.current = null;
+                    if (e.target.value === '') clearPreview();
                 }}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         handleSubmit();
+                    } else if (e.key === 'Escape' && (value || previewActive)) {
+                        // Esc clears the box (and any active AI preview) so the
+                        // user can immediately ask a fresh question instead of
+                        // the box's command running literally on the next Enter.
+                        e.preventDefault();
+                        setValue('');
+                        clearPreview();
                     }
                 }}
                 placeholder={
@@ -247,6 +263,12 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                     'text-small text-foreground-primary placeholder:text-foreground-tertiary h-7 flex-1 border-none bg-transparent font-mono outline-none disabled:cursor-not-allowed disabled:opacity-60',
                 )}
             />
+
+            {previewActive && canRun && (
+                <span className="text-mini text-foreground-tertiary hidden shrink-0 items-center gap-1 select-none sm:flex">
+                    ↵ run · esc clear
+                </span>
+            )}
 
             {value.trim() && canRun && (
                 <button

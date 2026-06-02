@@ -48,6 +48,22 @@ describe('sanitizeCommand', () => {
         expect(sanitizeCommand('bun install && bun run dev')).toBe('bun install && bun run dev');
     });
 
+    test('skips a stray opening fence line (unclosed fence + trailing note)', () => {
+        // The whole-string fence regex does not match here; the first-line pick
+        // must skip the ```bash line rather than return it as the command.
+        expect(sanitizeCommand('```bash\ncd app && bun add three\nnote: done')).toBe(
+            'cd app && bun add three',
+        );
+    });
+
+    test('skips a bare opening fence line', () => {
+        expect(sanitizeCommand('```\nbun run build')).toBe('bun run build');
+    });
+
+    test('returns empty for fence-only output', () => {
+        expect(sanitizeCommand('```bash\n\n```')).toBe('');
+    });
+
     test('does not strip an inner "#" that is not a prompt sigil', () => {
         // Only a leading "# " (with space) is treated as a sigil; a comment-ish
         // token mid-command stays intact.

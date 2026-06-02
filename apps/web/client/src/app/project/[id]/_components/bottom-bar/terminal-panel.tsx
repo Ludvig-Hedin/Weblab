@@ -53,6 +53,9 @@ export const TerminalPanel = observer(
         const [height, setHeight] = useState(DEFAULT_HEIGHT);
         const [dragKey, setDragKey] = useState<string | null>(null);
         const resizeStart = useRef<{ y: number; height: number } | null>(null);
+        // Mirror height into a ref so the pointer-up handler can persist the
+        // latest value synchronously without a side effect inside setState.
+        const heightRef = useRef(DEFAULT_HEIGHT);
 
         // Hydrate persisted height after mount (avoid SSR mismatch).
         useEffect(() => {
@@ -63,6 +66,10 @@ export const TerminalPanel = observer(
                 // ignore
             }
         }, []);
+
+        useEffect(() => {
+            heightRef.current = height;
+        }, [height]);
 
         const onResizePointerMove = useCallback((e: PointerEvent) => {
             if (!resizeStart.current) return;
@@ -75,14 +82,11 @@ export const TerminalPanel = observer(
             resizeStart.current = null;
             window.removeEventListener('pointermove', onResizePointerMove);
             window.removeEventListener('pointerup', onResizePointerUp);
-            setHeight((h) => {
-                try {
-                    window.localStorage.setItem(HEIGHT_KEY, String(h));
-                } catch {
-                    // ignore
-                }
-                return h;
-            });
+            try {
+                window.localStorage.setItem(HEIGHT_KEY, String(heightRef.current));
+            } catch {
+                // ignore
+            }
         }, [onResizePointerMove]);
 
         const onResizePointerDown = useCallback(
@@ -123,9 +127,17 @@ export const TerminalPanel = observer(
                     // a one-shot runCommand and echo into this tab's xterm so the
                     // user still sees the command and its output.
                     activeTerminal.xterm?.write(`\r\n$ ${command}\r\n`);
-                    void branchSession.runCommand(command, (chunk) =>
-                        activeTerminal.xterm?.write(chunk),
-                    );
+                    void branchSession
+                        .runCommand(command, (chunk) => activeTerminal.xterm?.write(chunk))
+                        .then((res) => {
+                            // runCommand resolves (never rejects) with success/error —
+                            // it streams stdout but not the failure message, so surface
+                            // it here, otherwise a failed fallback command looks like it
+                            // silently did nothing.
+                            if (!res.success && res.error) {
+                                activeTerminal.xterm?.write(`\r\n\x1b[31m${res.error}\x1b[0m\r\n`);
+                            }
+                        });
                 }
             },
             [activeTerminal, branchSession],

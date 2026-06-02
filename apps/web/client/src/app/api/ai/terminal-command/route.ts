@@ -69,10 +69,17 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json' },
         });
     }
-    const context =
-        body.context && getStringBytes(body.context) <= MAX_CONTEXT_BYTES
-            ? body.context
-            : undefined;
+    // Reject oversized context explicitly (consistent with the instruction
+    // check) rather than silently dropping it — a silent drop would translate
+    // without the context the caller sent and produce a worse command with no
+    // signal why.
+    if (body.context && getStringBytes(body.context) > MAX_CONTEXT_BYTES) {
+        return new Response(JSON.stringify({ error: 'context too long', code: 400 }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+    const context = body.context;
 
     // Verify the caller can access the project BEFORE charging usage or calling
     // the LLM — mirrors chat/route.ts. `projects.get` runs requireCap and throws
@@ -117,9 +124,16 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId },
         });
     } catch (error) {
-        // One-shot call failed (provider 5xx, abort, etc.) — refund the credit
-        // we charged up front so a failed translation doesn't burn usage.
+        // One-shot call failed (provider 5xx, abort, empty translation) —
+        // refund the credit we charged up front so a failed translation
+        // doesn't burn usage.
         await decrementUsage(req, incrementResult);
+        // Client aborts (component unmount / a superseding request) are routine,
+        // not failures — don't log them at error level or return a bogus 500 to
+        // a connection that's already gone.
+        if ((error as Error)?.name === 'AbortError' || req.signal.aborted) {
+            return new Response(null, { status: 499 });
+        }
         console.error('Error in terminal-command', error);
         return new Response(JSON.stringify({ error: 'Failed to translate command.', code: 500 }), {
             status: 500,
