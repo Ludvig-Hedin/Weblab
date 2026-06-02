@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
@@ -37,9 +37,10 @@ export const ProjectBreadcrumb = observer(() => {
     const stateManager = useStateManager();
     const posthog = usePostHog();
     const router = useRouter();
-    const project = useQuery(api.projects.get, {
-        projectId: editorEngine.projectId as Id<'projects'>,
-    });
+    const project = useQuery(
+        api.projects.get,
+        editorEngine.projectId ? { projectId: editorEngine.projectId as Id<'projects'> } : 'skip',
+    );
     const convex = useConvex();
     const subscription = useQuery(api.subscriptions.get, {});
     const isPro = subscription?.product?.type === ProductType.PRO;
@@ -47,6 +48,8 @@ export const ProjectBreadcrumb = observer(() => {
     const showViewerPill = !capsLoading && canView && !canEdit;
     const t = useTranslations();
     const closeTimeoutRef = useRef<Timer | null>(null);
+    const navTimeoutRef = useRef<Timer | null>(null);
+    const mountedRef = useRef(true);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isClosingProject, setIsClosingProject] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -54,10 +57,20 @@ export const ProjectBreadcrumb = observer(() => {
     const { handleDownloadToFolder, isDownloading: isDownloadingToFolder } =
         useDownloadProjectToFolder();
 
+    // Guard against setState post-unmount: clear timers and mark unmounted.
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+            if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
+        };
+    }, []);
+
     async function handleNavigateToProjects(_route?: 'create' | 'import') {
         try {
             setIsClosingProject(true);
-            editorEngine.screenshot.captureScreenshot();
+            void editorEngine.screenshot.captureScreenshot();
         } catch (error) {
             console.error('Failed to take screenshots:', error);
         } finally {
@@ -67,10 +80,11 @@ export const ProjectBreadcrumb = observer(() => {
             // project's workspace can't be resolved.
             const targetWsId = (project as { workspaceId?: string | null } | null)?.workspaceId;
             const finish = (href: string) => {
-                setIsClosingProject(false);
+                if (mountedRef.current) setIsClosingProject(false);
                 router.push(href);
             };
-            setTimeout(() => {
+            if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
+            navTimeoutRef.current = setTimeout(() => {
                 if (!targetWsId) {
                     finish(Routes.PROJECTS);
                     return;
@@ -104,7 +118,7 @@ export const ProjectBreadcrumb = observer(() => {
             const result = await editorEngine.activeSandbox.downloadFiles(project.name);
 
             if (result) {
-                window.open(result.downloadUrl, '_blank');
+                window.open(result.downloadUrl, '_blank', 'noopener,noreferrer');
 
                 posthog.capture('download_project_code', {
                     projectId: project._id,
