@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-6-terminal-tabs-ai',
+        version: '2.6',
+        title: 'A real terminal in the editor',
+        description:
+            'The editor terminal got a full upgrade. Open it and the bottom toolbar stays put — the terminal opens as a window right below it. Type commands directly in the input below the tabs, open multiple terminal tabs with the + button, close and drag-reorder them, and drag the top edge to resize the panel height. Flip on AI mode to describe what you want in plain language and let it write the command for you (it previews first, so you press Enter to run — switch to auto-run in settings).',
+        date: '2026-06-02',
+        tags: ['Editor', 'Terminal', 'AI'],
+    },
+    {
         slug: 'v2-5-desktop-app',
         version: '2.5',
         title: 'Weblab for desktop',

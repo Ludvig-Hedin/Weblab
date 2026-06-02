@@ -6,29 +6,21 @@ import { motion } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { Icons } from '@weblab/ui/icons';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
+import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
-import { cn } from '@weblab/ui/utils';
 
+import type { TerminalTab } from './terminal-panel';
 import { useEditorEngine } from '@/components/store/editor';
 import { RestartSandboxButton } from './restart-sandbox-button';
-import { Terminal } from './terminal';
+import { TerminalPanel } from './terminal-panel';
 
 export const TerminalArea = observer(({ children }: { children: React.ReactNode }) => {
     const editorEngine = useEditorEngine();
     const branches = editorEngine.branches;
 
-    // Collect terminal sessions from all branches
-    const allTerminalSessions = new Map<
-        string,
-        {
-            name: string;
-            branchName: string;
-            branchId: string;
-            sessionId: string;
-            session: any;
-        }
-    >();
+    // Collect terminal sessions from all branches, preserving branch order then
+    // each branch's session-map order (which drag-to-reorder rewrites).
+    const tabs: TerminalTab[] = [];
     let activeSessionId: string | null = null;
 
     for (const branch of branches.allBranches) {
@@ -36,21 +28,21 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
             const branchData = branches.getBranchById(branch.id);
             if (!branchData) continue;
 
-            // Get the sandbox manager for this branch
             const sandbox = branches.getSandboxById(branch.id);
             if (!sandbox?.session?.terminalSessions) continue;
 
             for (const [sessionId, session] of sandbox.session.terminalSessions) {
                 const key = `${branch.id}-${sessionId}`;
-                allTerminalSessions.set(key, {
+                tabs.push({
+                    key,
                     name: session.name,
                     branchName: branch.name,
                     branchId: branch.id,
-                    sessionId: sessionId,
+                    sessionId,
+                    type: session.type,
                     session: session,
                 });
 
-                // Set active session if this is the currently active branch and session
                 if (
                     branch.id === branches.activeBranch.id &&
                     sessionId === sandbox.session.activeTerminalSessionId
@@ -58,8 +50,8 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                     activeSessionId = key;
                 }
             }
-        } catch (error) {
-            // Skip branches that aren't properly initialized
+        } catch {
+            // Skip branches that aren't properly initialized.
             continue;
         }
     }
@@ -72,19 +64,61 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
         return () => window.removeEventListener('toggle-terminal', handleToggle);
     }, []);
 
-    const sessionKeys = Array.from(allTerminalSessions.keys());
+    const sessionKeys = tabs.map((t) => t.key);
 
     const switchToSessionByKey = (key: string) => {
-        const terminalData = allTerminalSessions.get(key);
-        if (!terminalData) return;
-        editorEngine.branches.switchToBranch(terminalData.branchId);
-        const sandbox = branches.getSandboxById(terminalData.branchId);
-        // Guard `.session` too — during sandbox cold-boot the branch can have a
-        // sandbox record but no session yet; writing into `.session` would throw
-        // and crash the terminal-switch / cycle-session hotkey.
+        const tab = tabs.find((t) => t.key === key);
+        if (!tab) return;
+        void editorEngine.branches.switchToBranch(tab.branchId);
+        const sandbox = branches.getSandboxById(tab.branchId);
+        // Guard `.session` — during sandbox cold-boot the branch can have a
+        // sandbox record but no session yet; writing into `.session` would throw.
         if (sandbox?.session) {
-            sandbox.session.activeTerminalSessionId = terminalData.sessionId;
+            sandbox.session.activeTerminalSessionId = tab.sessionId;
         }
+    };
+
+    const handleClose = (key: string) => {
+        const tab = tabs.find((t) => t.key === key);
+        if (!tab) return;
+        const sandbox = branches.getSandboxById(tab.branchId);
+        void sandbox?.session?.disposeTerminal(tab.sessionId);
+    };
+
+    const handleNew = async () => {
+        const active = branches.activeBranch;
+        const sandbox = branches.getSandboxById(active.id);
+        if (!sandbox?.session) {
+            toast.error('Sandbox not ready yet');
+            return;
+        }
+        const id = await sandbox.session.createTerminalSession();
+        if (!id) {
+            toast.error('Terminal unavailable — sandbox is offline or restarting');
+        }
+    };
+
+    // Drag-to-reorder, scoped to a single branch (cross-branch interleaving
+    // can't be represented in per-branch session maps). Same-branch reorder
+    // covers the common single-branch project.
+    const handleReorder = (dragKey: string, targetKey: string) => {
+        const dragTab = tabs.find((t) => t.key === dragKey);
+        const targetTab = tabs.find((t) => t.key === targetKey);
+        if (!dragTab || !targetTab) return;
+        if (dragTab.branchId !== targetTab.branchId) return;
+        const session = branches.getSandboxById(dragTab.branchId)?.session;
+        if (!session) return;
+
+        const ids = tabs.filter((t) => t.branchId === dragTab.branchId).map((t) => t.sessionId);
+        const fromIdx = ids.indexOf(dragTab.sessionId);
+        const toIdx = ids.indexOf(targetTab.sessionId);
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+
+        const reordered = [...ids];
+        const [moved] = reordered.splice(fromIdx, 1);
+        if (moved === undefined) return;
+        reordered.splice(toIdx, 0, moved);
+        session.reorderTerminalSessions(reordered);
     };
 
     const cycleSession = (delta: 1 | -1) => {
@@ -126,115 +160,41 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
 
     return (
         <>
-            {terminalHidden ? (
-                <motion.div layout className="flex items-center gap-1">
-                    {children}
+            {/* Bottom toolbar row — always visible, even when the terminal is
+                open (the panel grows below it inside the same rounded box). */}
+            <motion.div layout className="flex w-full items-center gap-1">
+                {children}
+                <div className="ml-auto flex items-center gap-1">
                     <RestartSandboxButton />
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
-                                onClick={() => setTerminalHidden(!terminalHidden)}
+                                onClick={() => setTerminalHidden((prev) => !prev)}
+                                aria-label="Toggle Terminal"
+                                aria-pressed={!terminalHidden}
                                 className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
                             >
-                                <Icons.Terminal />
+                                {terminalHidden ? <Icons.Terminal /> : <Icons.ChevronDown />}
                             </button>
                         </TooltipTrigger>
                         <TooltipContent sideOffset={5} hideArrow>
                             Toggle Terminal
                         </TooltipContent>
                     </Tooltip>
-                </motion.div>
-            ) : (
-                <motion.div layout className="mb-1 flex w-full items-center justify-between">
-                    <motion.span
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.7 }}
-                        className="text-small text-foreground-secondary ml-2 select-none"
-                    >
-                        Terminal
-                    </motion.span>
-                    <div className="flex items-center gap-1">
-                        <motion.div layout>{/* <RunButton /> */}</motion.div>
-                        <RestartSandboxButton />
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
-                                    onClick={() => setTerminalHidden(!terminalHidden)}
-                                    className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
-                                >
-                                    <Icons.ChevronDown />
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent sideOffset={5} hideArrow>
-                                Toggle Terminal
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
-                </motion.div>
+                </div>
+            </motion.div>
+
+            {!terminalHidden && (
+                <TerminalPanel
+                    tabs={tabs}
+                    activeKey={activeSessionId}
+                    onSelect={switchToSessionByKey}
+                    onClose={handleClose}
+                    onNew={() => void handleNew()}
+                    onReorder={handleReorder}
+                    projectId={editorEngine.projectId}
+                />
             )}
-            <div
-                className={cn(
-                    'bg-background flex h-full flex-col items-center justify-between overflow-auto rounded-lg transition-all duration-300',
-                    terminalHidden ? 'invisible h-0 w-0' : 'h-[22rem] w-[37rem]',
-                )}
-            >
-                {allTerminalSessions.size > 0 ? (
-                    <Tabs
-                        defaultValue={'cli'}
-                        value={activeSessionId || ''}
-                        onValueChange={(value) => {
-                            // Extract branch and session from the combined key
-                            const terminalData = allTerminalSessions.get(value);
-                            if (terminalData) {
-                                // Switch to the branch first
-                                editorEngine.branches.switchToBranch(terminalData.branchId);
-                                // Then set the active terminal session for that branch
-                                const sandbox = branches.getSandboxById(terminalData.branchId);
-                                if (sandbox) {
-                                    sandbox.session.activeTerminalSessionId =
-                                        terminalData.sessionId;
-                                }
-                            }
-                        }}
-                        className="h-full w-full"
-                    >
-                        <TabsList className="border-border h-8 w-full justify-start overflow-x-auto rounded-none border-b">
-                            {Array.from(allTerminalSessions).map(([key, terminalData]) => (
-                                <TabsTrigger key={key} value={key} className="flex-1">
-                                    <span className="truncate">
-                                        {terminalData.name} • {terminalData.branchName}
-                                    </span>
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                        <div className="h-full w-full overflow-auto">
-                            {Array.from(allTerminalSessions).map(([key, terminalData]) => (
-                                <TabsContent
-                                    key={key}
-                                    forceMount
-                                    value={key}
-                                    className="h-full"
-                                    hidden={activeSessionId !== key}
-                                >
-                                    <Terminal
-                                        hidden={terminalHidden}
-                                        terminalSessionId={terminalData.sessionId}
-                                        branchId={terminalData.branchId}
-                                    />
-                                </TabsContent>
-                            ))}
-                        </div>
-                    </Tabs>
-                ) : (
-                    <div className="text-muted-foreground flex h-full items-center justify-center">
-                        <span className="text-small">
-                            No terminal open. Start the app to open one.
-                        </span>
-                    </div>
-                )}
-            </div>
         </>
     );
 });

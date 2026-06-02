@@ -68,7 +68,7 @@ export class SessionManager {
         makeAutoObservable(this);
     }
 
-    async start(sandboxId: string, userId?: string): Promise<void> {
+    async start(sandboxId: string, _userId?: string): Promise<void> {
         const MAX_RETRIES = 3;
         const RETRY_DELAY_MS = 2000;
 
@@ -303,7 +303,11 @@ export class SessionManager {
         );
 
         this.terminalSessions.set(terminal.id, terminal);
-        this.activeTerminalSessionId = task.id;
+        // Default-focus the interactive terminal, not the read-only dev-server
+        // task. The task tab ("server") still exists for viewing boot logs, but
+        // opening the panel onto an interactive shell means the user has
+        // somewhere to type immediately instead of staring at a read-only log.
+        this.activeTerminalSessionId = terminal.id;
 
         // Initialize the sessions after creation
         try {
@@ -311,6 +315,67 @@ export class SessionManager {
         } catch (error) {
             console.error('Failed to initialize terminal sessions:', error);
         }
+    }
+
+    /**
+     * Create an additional interactive terminal session on demand (the "+"
+     * button in the terminal panel). Returns the new session id, or null when
+     * no live provider is available (offline / sandbox reclaimed) so the caller
+     * can surface a toast instead of silently no-op'ing.
+     */
+    async createTerminalSession(): Promise<string | null> {
+        if (this.sandboxGone || !this.provider) {
+            return null;
+        }
+        // Name sequentially: "terminal", "terminal 2", "terminal 3"… based on
+        // how many interactive terminals already exist.
+        const existingTerminals = Array.from(this.terminalSessions.values()).filter(
+            (s) => s.type === CLISessionType.TERMINAL,
+        ).length;
+        const name = existingTerminals === 0 ? 'terminal' : `terminal ${existingTerminals + 1}`;
+
+        const session = new CLISessionImpl(
+            name,
+            CLISessionType.TERMINAL,
+            this.provider,
+            this.errorManager,
+        );
+        runInAction(() => {
+            this.terminalSessions.set(session.id, session);
+            this.activeTerminalSessionId = session.id;
+        });
+        try {
+            await session.initTerminal();
+        } catch (error) {
+            console.error('Failed to initialize new terminal session:', error);
+        }
+        return session.id;
+    }
+
+    /**
+     * Reorder the terminal sessions to match `orderedIds` (drag-to-reorder in
+     * the tab bar). Unknown ids are ignored; any existing session not named in
+     * `orderedIds` is appended in its current relative order so nothing is
+     * dropped. Rebuilds the observable map in place so the tab list re-renders.
+     */
+    reorderTerminalSessions(orderedIds: string[]) {
+        const current = this.terminalSessions;
+        const next = new Map<string, CLISession>();
+        for (const id of orderedIds) {
+            const session = current.get(id);
+            if (session) next.set(id, session);
+        }
+        // Preserve any sessions the caller didn't mention (e.g. sessions from
+        // another branch when reordering happened within one branch).
+        for (const [id, session] of current) {
+            if (!next.has(id)) next.set(id, session);
+        }
+        runInAction(() => {
+            current.clear();
+            for (const [id, session] of next) {
+                current.set(id, session);
+            }
+        });
     }
 
     async disposeTerminal(id: string) {
@@ -322,7 +387,16 @@ export class SessionManager {
                     terminal.xterm.dispose();
                 }
             }
-            this.terminalSessions.delete(id);
+            runInAction(() => {
+                this.terminalSessions.delete(id);
+                // If we just closed the active tab, fall back to whatever
+                // session is now first so the panel never points at a deleted
+                // id (which would render an empty body with no typing area).
+                if (this.activeTerminalSessionId === id) {
+                    const next = this.terminalSessions.keys().next();
+                    this.activeTerminalSessionId = next.done ? 'cli' : next.value;
+                }
+            });
         }
     }
 
