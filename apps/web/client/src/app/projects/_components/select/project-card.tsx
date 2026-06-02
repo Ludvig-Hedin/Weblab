@@ -59,6 +59,14 @@ export function ProjectCard({
     // the editor route hydrates.
     const [isOpening, setIsOpening] = useState(false);
     const [hasPrefetched, setHasPrefetched] = useState(false);
+
+    // Safety net: clear the opening overlay if navigation never completes
+    // (browser-back, failed hydration, middle-click, etc.).
+    useEffect(() => {
+        if (!isOpening) return;
+        const timer = setTimeout(() => setIsOpening(false), 8000);
+        return () => clearTimeout(timer);
+    }, [isOpening]);
     // Drives the settings menu so right-click can open the same `…` menu.
     const [menuOpen, setMenuOpen] = useState(false);
 

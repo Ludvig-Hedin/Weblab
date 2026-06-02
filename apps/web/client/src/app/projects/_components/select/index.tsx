@@ -67,6 +67,8 @@ const isProjectView = (value: unknown): value is ProjectView =>
     value === 'grid' || value === 'list' || value === 'table';
 
 const STARRED_TEMPLATES_KEY = 'weblab_starred_templates';
+const getStarredTemplatesKey = (userId?: string | null) =>
+    `${STARRED_TEMPLATES_KEY}:${userId ?? 'anonymous'}`;
 
 export const PROJECT_SUGGESTIONS: CreateSuggestion[] = [
     {
@@ -325,9 +327,11 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         }
     };
 
+    const starredTemplatesKey = useMemo(() => getStarredTemplatesKey(user?._id), [user?._id]);
+
     const saveStarredTemplates = async (templateIds: Set<string>) => {
         try {
-            await localforage.setItem(STARRED_TEMPLATES_KEY, Array.from(templateIds));
+            await localforage.setItem(starredTemplatesKey, Array.from(templateIds));
         } catch (error) {
             console.error('Failed to save starred templates:', error);
         }
@@ -384,27 +388,37 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     };
 
     useEffect(() => {
+        let cancelled = false;
         void (async () => {
             try {
-                const saved = await localforage.getItem<string[]>(STARRED_TEMPLATES_KEY);
-                if (saved && Array.isArray(saved)) {
+                const saved = await localforage.getItem<string[]>(starredTemplatesKey);
+                if (!cancelled && saved && Array.isArray(saved)) {
                     setStarredTemplates(new Set(saved));
                 }
             } catch (error) {
                 console.error('Failed to load starred templates:', error);
             }
         })();
-    }, []);
+        return () => {
+            cancelled = true;
+        };
+    }, [starredTemplatesKey]);
 
     useEffect(() => {
+        let cancelled = false;
         void (async () => {
             try {
                 const saved = await localforage.getItem<ProjectFolder[]>(foldersStorageKey);
-                setFolders(Array.isArray(saved) ? saved : []);
+                if (!cancelled) {
+                    setFolders(Array.isArray(saved) ? saved : []);
+                }
             } catch (error) {
                 console.error('Failed to load folders:', error);
             }
         })();
+        return () => {
+            cancelled = true;
+        };
     }, [foldersStorageKey]);
 
     // Load + persist layout view across sessions, scoped per-user so two
@@ -612,22 +626,20 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     };
 
     const handleSelectionChange = (projectId: string, checked: boolean) => {
-        setSelectedProjectIds((previous) => {
-            const next = new Set(previous);
-            if (checked) {
-                next.add(projectId);
-            } else {
-                next.delete(projectId);
-            }
-            // Auto-enter selection mode when the first card checkbox is clicked,
-            // and auto-exit when the last item is unchecked.
-            if (next.size > 0 && !selectionMode) {
-                setSelectionMode(true);
-            } else if (next.size === 0) {
-                setSelectionMode(false);
-            }
-            return next;
-        });
+        // Build next set eagerly so we can derive selectionMode outside the
+        // updater — updaters must be pure (StrictMode runs them twice).
+        const next = new Set(selectedProjectIds);
+        if (checked) {
+            next.add(projectId);
+        } else {
+            next.delete(projectId);
+        }
+        setSelectedProjectIds(next);
+        if (next.size > 0) {
+            if (!selectionMode) setSelectionMode(true);
+        } else {
+            setSelectionMode(false);
+        }
     };
 
     const resetSelection = () => {
