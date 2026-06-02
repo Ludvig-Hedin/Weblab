@@ -33,6 +33,7 @@ export function ProjectCard({
     selectionMode = false,
     selected = false,
     onSelectionChange,
+    onStartMultiSelect,
     isBackfilling = false,
 }: {
     project: ProjectListItem;
@@ -42,6 +43,8 @@ export function ProjectCard({
     selectionMode?: boolean;
     selected?: boolean;
     onSelectionChange?: (selected: boolean) => void;
+    /** Enter multi-select mode (used by the card menu's "Select multiple"). */
+    onStartMultiSelect?: () => void;
     isBackfilling?: boolean;
 }) {
     const t = useTranslations('selectProject') as (
@@ -56,6 +59,8 @@ export function ProjectCard({
     // the editor route hydrates.
     const [isOpening, setIsOpening] = useState(false);
     const [hasPrefetched, setHasPrefetched] = useState(false);
+    // Drives the settings menu so right-click can open the same `…` menu.
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const lastUpdated = useMemo(
         () => timeAgo(project.metadata?.updatedAt),
@@ -126,6 +131,12 @@ export function ProjectCard({
                     'rounded-xl p-1.5 transition-colors duration-200',
                     selected ? 'bg-foreground/8' : 'bg-transparent',
                 )}
+                onContextMenu={(event) => {
+                    // Right-click anywhere on the card opens the same `…` menu.
+                    if (selectionMode) return;
+                    event.preventDefault();
+                    setMenuOpen(true);
+                }}
             >
                 <div className="relative">
                     {selectionMode ? (
@@ -161,24 +172,24 @@ export function ProjectCard({
                         </Link>
                     )}
 
-                    <div
-                        role="presentation"
-                        className={cn(
-                            'absolute top-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 backdrop-blur-md transition-opacity',
-                            selectionMode || selected
-                                ? 'opacity-100'
-                                : 'opacity-0 group-hover/card:opacity-100',
-                        )}
-                        onClick={(event) => event.stopPropagation()}
-                        onKeyDown={(event) => event.stopPropagation()}
-                    >
-                        <Checkbox
-                            checked={selected}
-                            onCheckedChange={(checked) => onSelectionChange?.(checked === true)}
-                            aria-label={`Select ${project.name}`}
-                            className="border-foreground/20 bg-foreground/5 data-[state=checked]:border-foreground/30 data-[state=checked]:bg-foreground data-[state=checked]:text-background rounded-full"
-                        />
-                    </div>
+                    {/* Selection checkbox — only in selection mode. Outside it,
+                        selecting happens via the card's `…` menu (Select /
+                        Select multiple), so no checkbox appears on hover. */}
+                    {selectionMode && (
+                        <div
+                            role="presentation"
+                            className="absolute top-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 opacity-100 backdrop-blur-md transition-opacity"
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
+                        >
+                            <Checkbox
+                                checked={selected}
+                                onCheckedChange={(checked) => onSelectionChange?.(checked === true)}
+                                aria-label={`Select ${project.name}`}
+                                className="border-foreground/20 bg-foreground/5 data-[state=checked]:border-foreground/30 data-[state=checked]:bg-foreground data-[state=checked]:text-background rounded-full"
+                            />
+                        </div>
+                    )}
 
                     {/* Status / freshness indicator — recently active wins
                         over the backfill pulse so a live edit isn't hidden by
@@ -197,7 +208,12 @@ export function ProjectCard({
                     {!selectionMode && (
                         <>
                             <div
-                                className="absolute top-3 right-3 z-30 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100"
+                                className={cn(
+                                    'absolute top-3 right-3 z-30 transition-opacity duration-200',
+                                    menuOpen
+                                        ? 'opacity-100'
+                                        : 'opacity-0 group-hover/card:opacity-100',
+                                )}
                                 onClick={(e) => e.stopPropagation()}
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => e.stopPropagation()}
@@ -209,10 +225,19 @@ export function ProjectCard({
                                     refetch={() => {
                                         void refetch();
                                     }}
+                                    open={menuOpen}
+                                    onOpenChange={setMenuOpen}
+                                    onSelect={() => onSelectionChange?.(true)}
+                                    onSelectMultiple={() => onStartMultiSelect?.()}
                                 />
                             </div>
-                            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity group-hover/card:pointer-events-auto group-hover/card:opacity-100">
-                                <EditAppButton project={project as Project} />
+                            {/* Edit App stays the centered call-to-action, but the
+                                overlay no longer blocks clicks — clicking anywhere on
+                                the preview navigates via the <Link> beneath it. */}
+                            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100">
+                                <span className="pointer-events-none group-hover/card:pointer-events-auto">
+                                    <EditAppButton project={project as Project} />
+                                </span>
                             </div>
                         </>
                     )}

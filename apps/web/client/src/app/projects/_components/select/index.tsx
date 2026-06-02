@@ -33,7 +33,7 @@ import { Icons } from '@weblab/ui/icons';
 import { Skeleton } from '@weblab/ui/skeleton';
 
 import type { StaticTemplate } from '../templates/static-templates';
-import type { ProjectFolder, ProjectListItem } from './project-card-utils';
+import type { ProjectFolder } from './project-card-utils';
 import type { ProjectFilters, ProjectSort, ProjectView } from './projects-toolbar';
 import type { CreateSuggestion } from '@/app/_components/hero/create';
 import type { Id } from '@convex/_generated/dataModel';
@@ -949,6 +949,16 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                     <Icons.Trash className="h-4 w-4" />
                                     {t('deleteSelected')}
                                 </Button>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-foreground-tertiary hover:text-foreground"
+                                    onClick={resetSelection}
+                                >
+                                    <Icons.Check className="h-4 w-4" />
+                                    {t('doneSelecting')}
+                                </Button>
                             </div>
                         </div>
                     )}
@@ -1018,6 +1028,9 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                                     selected={selectedProjectIds.has(project.id)}
                                                     onSelectionChange={(checked) =>
                                                         handleSelectionChange(project.id, checked)
+                                                    }
+                                                    onStartMultiSelect={() =>
+                                                        setSelectionMode(true)
                                                     }
                                                     isBackfilling={backfill.inFlight.has(
                                                         project.id,
@@ -1114,6 +1127,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                         onSelectionChange={(checked) =>
                                             handleSelectionChange(project.id, checked)
                                         }
+                                        onStartMultiSelect={() => setSelectionMode(true)}
                                         isBackfilling={backfill.inFlight.has(project.id)}
                                     />
                                 ))}

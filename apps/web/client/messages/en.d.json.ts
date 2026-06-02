@@ -442,6 +442,7 @@ declare const messages: {
         "createFolder": "Create folder",
         "doneSelecting": "Done selecting",
         "select": "Select",
+        "selectMultiple": "Select multiple",
         "sortLastViewed": "Last modified",
         "sortDateCreated": "Date created",
         "sortAlphabetical": "A to Z",

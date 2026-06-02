@@ -54,7 +54,7 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
                 }}
                 className="text-destructive hover:!bg-destructive/15 hover:!text-destructive gap-2"
             >
-                <Icons.Trash className="h-4 w-4" />
+                <Icons.Trash className="text-destructive h-4 w-4" />
                 {t(transKeys.projects.actions.deleteProject)}
             </DropdownMenuItem>
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

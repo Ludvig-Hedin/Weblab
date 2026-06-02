@@ -201,9 +201,8 @@ export const ProjectsToolbar = ({
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                'text-foreground-tertiary hover:text-foreground hover:border-foreground/10 hover:bg-foreground/6 h-8 gap-1.5 border border-transparent text-xs font-normal',
-                                activeFilterCount > 0 &&
-                                    'text-foreground border-foreground/10 bg-foreground/6',
+                                'text-foreground-tertiary hover:text-foreground hover:bg-foreground/6 h-8 gap-1.5 text-xs font-normal',
+                                activeFilterCount > 0 && 'text-foreground bg-foreground/6',
                             )}
                         >
                             <Icons.MixerHorizontal className="h-3.5 w-3.5" />
@@ -337,7 +336,7 @@ export const ProjectsToolbar = ({
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-foreground-tertiary hover:text-foreground hover:border-foreground/10 hover:bg-foreground/6 h-8 gap-1.5 border border-transparent text-xs font-normal"
+                            className="text-foreground-tertiary hover:text-foreground hover:bg-foreground/6 h-8 gap-1.5 text-xs font-normal"
                         >
                             <Icons.MixerVertical className="h-3.5 w-3.5" />
                             <span>
@@ -385,10 +384,10 @@ export const ProjectsToolbar = ({
                                         aria-pressed={isActive}
                                         onClick={() => onViewChange(option.value)}
                                         className={cn(
-                                            'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border transition-colors',
+                                            'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors',
                                             isActive
-                                                ? 'border-foreground/10 bg-foreground/8 text-foreground'
-                                                : 'text-foreground-tertiary hover:border-foreground/10 hover:bg-foreground/6 hover:text-foreground border-transparent',
+                                                ? 'bg-foreground/8 text-foreground'
+                                                : 'text-foreground-tertiary hover:bg-foreground/6 hover:text-foreground',
                                         )}
                                     >
                                         <Icon className="h-3.5 w-3.5" />
