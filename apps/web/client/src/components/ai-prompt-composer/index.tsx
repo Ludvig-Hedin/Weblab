@@ -269,6 +269,7 @@ export function AiPromptComposer({
             <div
                 role="presentation"
                 className={cn(
+                    'relative',
                     AI_CHAT_INPUT_SURFACE_CLASS,
                     AI_CHAT_INPUT_DRAG_CLASS,
                     classes.surface,
@@ -291,6 +292,11 @@ export function AiPromptComposer({
                 }}
                 onDrop={(event) => void handleDrop(event)}
             >
+                {showImageButton && isDragging && (
+                    <div className="text-mini text-foreground-secondary pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[inherit]">
+                        Drop image here
+                    </div>
+                )}
                 {notice}
                 <div className="flex w-full flex-col">
                     {topSlot}

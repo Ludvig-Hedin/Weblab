@@ -114,9 +114,13 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
 
     async function handleCopyClick() {
         const text = getUserMessageContent(message);
-        await navigator.clipboard.writeText(text);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(text);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        } catch {
+            toast.error('Failed to copy message');
+        }
     }
 
     const handleSubmit = async () => {
@@ -145,11 +149,22 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
     };
 
     const sendMessage = async (newContent: string) => {
-        toast.promise(onEditMessage(message.id, newContent, ChatType.EDIT), {
+        // Await the inner promise so callers (handleSubmit) actually block on
+        // completion — otherwise isSubmittingEdit resets immediately, the spinner
+        // never renders, and the double-submit guard is a no-op. Mirrors handleRetry.
+        const promise = onEditMessage(message.id, newContent, ChatType.EDIT);
+        toast.promise(promise, {
             loading: 'Editing message...',
             success: 'Message resubmitted successfully',
             error: 'Failed to resubmit message',
         });
+        try {
+            await promise;
+        } catch {
+            // toast.promise already surfaces the error; swallow here so the
+            // void-invoked callers (handleKeyDown / onClick) don't see an
+            // unhandled rejection.
+        }
     };
 
     const performRestore = async (checkpoint: GitMessageCheckpoint) => {
@@ -243,7 +258,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
 
     function renderButtons() {
         return (
-            <div className="flex gap-1 pr-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <div className="flex gap-1 pr-1 opacity-60 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
@@ -321,7 +336,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                         </div>
                     </div>
                 )}
-                <div className="bg-background-muted relative flex flex-col rounded-xl px-3 py-2">
+                <div className="relative flex flex-col rounded-xl bg-[#f4f4f4] px-3 py-2 dark:bg-[#2b2b2b]">
                     <div className="text-small leading-snug tracking-[-0.005em]">
                         {isEditing ? (
                             renderEditingInput()

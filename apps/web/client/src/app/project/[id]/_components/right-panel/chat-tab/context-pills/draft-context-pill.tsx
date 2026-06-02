@@ -46,7 +46,7 @@ export const DraftContextPill = React.forwardRef<
                         e.stopPropagation();
                         onRemove();
                     }}
-                    className="bg-primary absolute -top-1.5 -right-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full p-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                    className="bg-primary absolute -top-1.5 -right-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full p-1 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
                 >
                     <Icons.CrossL className="text-primary-foreground h-2.5 w-2.5" />
                 </button>

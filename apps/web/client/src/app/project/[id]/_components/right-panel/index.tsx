@@ -71,6 +71,12 @@ const PANEL_MAX_WIDTH = 560;
 // toggle stays reachable at every width down to PANEL_MIN_WIDTH.
 const PANEL_NARROW_WIDTH = 456;
 
+// The "New chat" text label (and framework chip) only fit without crowding the
+// header very near full width. Show them from 95% of the panel's max width and
+// up; below that the New Chat control collapses to icon-only. Kept separate
+// from PANEL_NARROW_WIDTH so the tab labels still appear at narrower widths.
+const PANEL_NEW_CHAT_LABEL_WIDTH = Math.round(PANEL_MAX_WIDTH * 0.95); // 532
+
 // Persist the panel layout so it survives reloads. Plain localStorage (not
 // Convex) keeps this device-local and schema-free — it's a UI preference, not
 // shared state.
@@ -135,9 +141,7 @@ export const RightPanel = observer(() => {
     // 'skip' until the engine has a real projectId (Convex 'skip' sentinel).
     const creationRequest = useQuery(
         api.projectCreateRequests.getPendingRequest,
-        editorEngine.projectId
-            ? { projectId: editorEngine.projectId as Id<'projects'> }
-            : 'skip',
+        editorEngine.projectId ? { projectId: editorEngine.projectId as Id<'projects'> } : 'skip',
     );
     const isFirstCreation = !!creationRequest;
     const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
@@ -268,6 +272,15 @@ export const RightPanel = observer(() => {
     // When narrow, only the active tab keeps its text label; inactive tabs and
     // the New Chat button collapse to icon-only so the header never overflows.
     const isNarrow = panelWidth < PANEL_NARROW_WIDTH;
+    // New Chat keeps its text label only near full width (see constant above).
+    const isChatControlsCompact = panelWidth < PANEL_NEW_CHAT_LABEL_WIDTH;
+    // TEMP: the right panel's own collapse/open toggle is hidden — the left
+    // panel's toggle now controls BOTH panels via `panelsHidden`. So the right
+    // panel's collapsed state is driven by panelsHidden alone (its local
+    // `isCollapsed` is ignored for rendering, though still persisted).
+    // Revert: `const rightCollapsed = isCollapsed || editorEngine.state.panelsHidden;`
+    // and uncomment the two toggle buttons below.
+    const rightCollapsed = editorEngine.state.panelsHidden;
     const styleLabel = t(transKeys.editor.panels.edit.tabs.styles.name);
     const interactionsLabel = t(transKeys.editor.panels.edit.tabs.interactions.name);
     const chatLabel = t(transKeys.editor.panels.edit.tabs.chat.name);
@@ -276,37 +289,44 @@ export const RightPanel = observer(() => {
         <div
             className={cn(
                 'flex h-full items-start justify-end transition-[width,opacity] duration-200',
-                !(isCollapsed || editorEngine.state.panelsHidden) &&
+                // Revert: `!(isCollapsed || editorEngine.state.panelsHidden)`
+                !rightCollapsed &&
                     'bg-background-chrome group/panel border-border-bar w-full border-l',
             )}
         >
-            {isCollapsed || editorEngine.state.panelsHidden ? (
-                <div className="mt-3 flex">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={t(
-                                    transKeys.editor.panels.edit.tabs.chat.controls.openPanel,
-                                )}
-                                className="border-border-bar bg-background-chrome text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-md rounded-r-none border border-r-0"
-                                onClick={() => {
-                                    if (editorEngine.state.panelsHidden) {
-                                        editorEngine.state.togglePanelsHidden();
-                                    }
-                                    setIsCollapsed(false);
-                                }}
-                            >
-                                <Icons.SidebarLeftCollapse className="h-4 w-4 scale-x-[-1]" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" hideArrow>
-                            {t(transKeys.editor.panels.edit.tabs.chat.controls.openPanel)}
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-            ) : (
+            {/* TEMP: right panel toggle hidden — the left panel's toggle now
+                controls both panels via `panelsHidden`, so the right panel
+                renders nothing when collapsed/hidden. Original collapsed-state
+                open button preserved verbatim for revert (restore it as the
+                truthy `?` branch of the ternary below, i.e. `rightCollapsed ? (
+                <button-block> ) : (`):
+            <div className="mt-1 mr-2 flex">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t(
+                                transKeys.editor.panels.edit.tabs.chat.controls.openPanel,
+                            )}
+                            className="border-border-bar bg-background-chrome text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md border shadow-sm"
+                            onClick={() => {
+                                if (editorEngine.state.panelsHidden) {
+                                    editorEngine.state.togglePanelsHidden();
+                                }
+                                setIsCollapsed(false);
+                            }}
+                        >
+                            <Icons.SidebarLeftCollapse className="h-4 w-4 scale-x-[-1]" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" hideArrow>
+                        {t(transKeys.editor.panels.edit.tabs.chat.controls.openPanel)}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+            */}
+            {rightCollapsed ? null : (
                 <ResizablePanel
                     side="right"
                     defaultWidth={panelWidth}
@@ -314,7 +334,10 @@ export const RightPanel = observer(() => {
                     maxWidth={PANEL_MAX_WIDTH}
                     forceWidth={forceWidth}
                     onWidthChange={setPanelWidth}
-                    className="overflow-hidden"
+                    // Short slide+fade so expanding the panel reads as a smooth
+                    // open rather than a hard pop (tailwindcss-animate; plays once
+                    // when the open panel mounts).
+                    className="animate-in fade-in slide-in-from-right-2 overflow-hidden duration-200"
                 >
                     <DropdownManagerProvider>
                         {isCommentMode ? (
@@ -477,7 +500,10 @@ export const RightPanel = observer(() => {
                                     <div className="ml-auto flex shrink-0 items-center gap-0.5">
                                         {activeTab === 'chat' && (
                                             <>
-                                                <ChatControls compact={isNarrow} />
+                                                <ChatControls
+                                                    compact={isChatControlsCompact}
+                                                    onOpenHistory={() => setIsChatHistoryOpen(true)}
+                                                />
                                                 <ChatPanelDropdown
                                                     isChatHistoryOpen={isChatHistoryOpen}
                                                     setIsChatHistoryOpen={setIsChatHistoryOpen}
@@ -507,6 +533,9 @@ export const RightPanel = observer(() => {
                                                 </ChatPanelDropdown>
                                             </>
                                         )}
+                                        {/* TEMP: right panel close button hidden — the
+                                            left panel's toggle controls both panels.
+                                            Revert: uncomment this block.
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -529,6 +558,7 @@ export const RightPanel = observer(() => {
                                                 )}
                                             </TooltipContent>
                                         </Tooltip>
+                                        */}
                                     </div>
                                 </div>
                                 <ChatHistory

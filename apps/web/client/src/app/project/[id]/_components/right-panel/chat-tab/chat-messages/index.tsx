@@ -15,7 +15,6 @@ import { Icons } from '@weblab/ui/icons';
 import { assertNever } from '@weblab/utility';
 
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
-import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 import { AssistantMessage } from './assistant-message';
 import { ErrorMessage } from './error-message';
@@ -65,7 +64,6 @@ export const ChatMessages = observer(
         isStreaming,
         error,
     }: ChatMessagesProps) => {
-        const editorEngine = useEditorEngine();
         const t = useTranslations();
         const latestAssistantMessageId = getLatestAssistantMessageId(messages);
 
@@ -115,46 +113,62 @@ export const ChatMessages = observer(
 
         if (!messages || messages.length === 0) {
             return (
-                !editorEngine.elements.selected.length && (
-                    <div className="text-foreground-tertiary/80 flex h-full flex-1 flex-col items-center justify-center gap-5 px-6">
-                        <Icons.EmptyState className="size-32" />
-                        <p className="text-regularPlus max-w-[300px] text-center text-balance">
-                            {t(transKeys.editor.panels.edit.tabs.chat.emptyState)}
-                        </p>
-                        {onSuggestionClick && (
-                            <div
-                                className="flex flex-wrap justify-center gap-2"
-                                aria-label="Starter suggestions"
-                            >
-                                {STARTER_SUGGESTIONS.map(
-                                    ({ key, icon: SuggestionIcon, transKey }) => {
-                                        const label = t(transKey);
-                                        return (
-                                            <Button
-                                                key={key}
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => onSuggestionClick(label)}
-                                            >
-                                                <SuggestionIcon className="h-3.5 w-3.5 shrink-0" />
-                                                {label}
-                                            </Button>
-                                        );
-                                    },
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )
+                <div className="text-foreground-tertiary/80 flex h-full flex-1 flex-col items-center justify-center gap-5 px-6">
+                    {/* <Icons.EmptyState className="size-32" /> */}
+                    {/* (We don't want to show this now, but keep it in the code for potential future use) */}
+                    <p className="text-regularPlus max-w-[300px] text-center text-balance">
+                        {t(transKeys.editor.panels.edit.tabs.chat.emptyState)}
+                    </p>
+                    {onSuggestionClick && (
+                        <div
+                            className="flex flex-wrap justify-center gap-2"
+                            aria-label="Starter suggestions"
+                        >
+                            {STARTER_SUGGESTIONS.map(({ key, icon: SuggestionIcon, transKey }) => {
+                                const label = t(transKey);
+                                return (
+                                    <Button
+                                        key={key}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => onSuggestionClick(label)}
+                                    >
+                                        <SuggestionIcon className="h-3.5 w-3.5 shrink-0" />
+                                        {label}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             );
         }
+
+        // Bridge the dead air between hitting send and the first assistant
+        // token: while streaming, if the trailing turn is still the user's (or
+        // an assistant message exists but hasn't emitted any parts yet), show a
+        // lightweight shimmering "Thinking…" placeholder so the panel never
+        // looks frozen. It disappears as soon as real assistant content streams.
+        const lastMessage = messages[messages.length - 1];
+        const showThinking =
+            isStreaming &&
+            !!lastMessage &&
+            (lastMessage.role === 'user' ||
+                (lastMessage.role === 'assistant' && (lastMessage.parts?.length ?? 0) === 0));
 
         return (
             <Conversation>
                 <ConversationContent className="m-0 p-0">
                     {messages.map((message) => renderMessage(message))}
-                    {error && <ErrorMessage error={error} />}
+                    {showThinking && (
+                        <div className="text-small flex items-center px-3 py-2" aria-live="polite">
+                            <span className="text-foreground-tertiary animate-pulse">
+                                {t(transKeys.editor.panels.edit.tabs.chat.thinking)}
+                            </span>
+                        </div>
+                    )}
+                    {error && <ErrorMessage error={error} onRetry={onRegenerateLastAssistant} />}
                 </ConversationContent>
                 <ConversationScrollButton />
             </Conversation>

@@ -53,7 +53,7 @@ const AssistantMessageComponent = ({
                 createdAt={createdAt}
             />
             {showRegenerate && (
-                <div className="flex gap-1 pl-1 opacity-0 transition-opacity duration-200 group-hover/assistant:opacity-100 focus-within:opacity-100">
+                <div className="flex gap-1 pl-1 opacity-60 transition-opacity duration-200 group-hover/assistant:opacity-100 focus-within:opacity-100">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button

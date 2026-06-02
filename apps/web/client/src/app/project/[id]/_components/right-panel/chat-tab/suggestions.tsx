@@ -3,11 +3,13 @@ import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { ChatSuggestion } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { transKeys } from '@/i18n/keys';
 
 export interface SuggestionsRef {
     handleTabNavigation: (reverse: boolean) => boolean;
@@ -27,6 +29,7 @@ export const Suggestions = observer(
         }
     >(({ suggestions, isStreaming, disabled, inputValue, setInput, onSuggestionFocus }, ref) => {
         const editorEngine = useEditorEngine();
+        const t = useTranslations();
         const settings = useQuery(api.users.getSettings, {});
         const [focusedIndex, setFocusedIndex] = useState<number>(-1);
         const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -47,7 +50,8 @@ export const Suggestions = observer(
 
             // Calculate next index
             const defaultIndex = reverse ? suggestions.length - 1 : 0;
-            const nextIndex = focusedIndex === -1 ? defaultIndex : focusedIndex + 1;
+            const nextIndex =
+                focusedIndex === -1 ? defaultIndex : focusedIndex + (reverse ? -1 : 1);
 
             // If we would exceed the suggestions, return false to move to chat input
             if (nextIndex >= suggestions.length) {
@@ -98,6 +102,9 @@ export const Suggestions = observer(
                     initial={false}
                     transition={{ duration: 0.2 }}
                 >
+                    <span className="text-mini text-foreground-tertiary px-1 select-none">
+                        {t(transKeys.editor.panels.edit.tabs.chat.suggestionsLabel)}
+                    </span>
                     {suggestions.map((suggestion, index) => (
                         <motion.button
                             ref={(el) => {

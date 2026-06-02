@@ -9,12 +9,15 @@ import { transKeys } from '@/i18n/keys';
 
 export const ActionButtons = ({
     disabled = false,
+    processing = false,
     handleImageEvent,
 }: {
     disabled?: boolean;
+    processing?: boolean;
     handleImageEvent: (file: File, fileName: string) => Promise<void>;
 }) => {
     const t = useTranslations();
+    const isDisabled = disabled || processing;
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         const inputElement = document.createElement('input');
@@ -35,18 +38,22 @@ export const ActionButtons = ({
                     size={'icon'}
                     aria-label={t(transKeys.editor.panels.edit.tabs.chat.attachImage)}
                     className="text-foreground-tertiary group h-8 w-8 cursor-pointer hover:bg-transparent"
-                    disabled={disabled}
+                    disabled={isDisabled}
                     onClick={handleClick}
                     onMouseDown={(e) => e.currentTarget.blur()}
                 >
-                    <Icons.Image
-                        className={cn('h-4 w-4', !disabled && 'group-hover:text-foreground')}
-                    />
+                    {processing ? (
+                        <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Icons.Image
+                            className={cn('h-4 w-4', !isDisabled && 'group-hover:text-foreground')}
+                        />
+                    )}
                 </Button>
             </TooltipTrigger>
             <TooltipPortal>
                 <TooltipContent side="top" sideOffset={6} hideArrow>
-                    {disabled ? 'Select an element to start' : 'Attach image'}
+                    {t(transKeys.editor.panels.edit.tabs.chat.attachImage)}
                 </TooltipContent>
             </TooltipPortal>
         </Tooltip>

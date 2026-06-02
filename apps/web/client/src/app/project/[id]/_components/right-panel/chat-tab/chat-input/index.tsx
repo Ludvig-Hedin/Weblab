@@ -137,6 +137,9 @@ export const ChatInput = observer(
         }, [messages]);
         const generateSuggestionsAction = useAction(api.chatActions.generateSuggestions);
         const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+        // Surfaced on the attach button so the user gets feedback while an image
+        // is compressed + encoded (can take a beat for large files).
+        const [isProcessingImage, setIsProcessingImage] = useState(false);
         const generateSuggestions = async (input: {
             conversationId: string;
             messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
@@ -461,7 +464,14 @@ export const ChatInput = observer(
 
             return new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = (event) => resolve(event.target?.result as string);
+                reader.onload = (event) => {
+                    const result = event.target?.result;
+                    if (typeof result === 'string') {
+                        resolve(result);
+                    } else {
+                        reject(new Error('Failed to read image as data URL'));
+                    }
+                };
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
@@ -477,32 +487,39 @@ export const ChatInput = observer(
                 return;
             }
 
-            const imageContexts: ImageMessageContext[] = [];
+            setIsProcessingImage(true);
+            try {
+                const imageContexts: ImageMessageContext[] = [];
 
-            for (const file of files) {
-                try {
-                    const base64URL = await processImageFile(file);
-                    const contextImage: ImageMessageContext = {
-                        id: uuidv4(),
-                        type: MessageContextType.IMAGE,
-                        source: 'external',
-                        content: base64URL,
-                        mimeType: file.type,
-                        displayName:
-                            customDisplayName && files.length === 1 ? customDisplayName : file.name,
-                    };
-                    imageContexts.push(contextImage);
-                } catch (error) {
-                    console.error(`Failed to process image ${file.name}:`, error);
-                    toast.error(`Failed to process image: ${file.name}`);
+                for (const file of files) {
+                    try {
+                        const base64URL = await processImageFile(file);
+                        const contextImage: ImageMessageContext = {
+                            id: uuidv4(),
+                            type: MessageContextType.IMAGE,
+                            source: 'external',
+                            content: base64URL,
+                            mimeType: file.type,
+                            displayName:
+                                customDisplayName && files.length === 1
+                                    ? customDisplayName
+                                    : file.name,
+                        };
+                        imageContexts.push(contextImage);
+                    } catch (error) {
+                        console.error(`Failed to process image ${file.name}:`, error);
+                        toast.error(`Failed to process image: ${file.name}`);
+                    }
                 }
-            }
 
-            if (imageContexts.length > 0) {
-                editorEngine.chat.context.addContexts(imageContexts);
-                if (imageContexts.length > 1) {
-                    toast.success(`Added ${imageContexts.length} images to chat`);
+                if (imageContexts.length > 0) {
+                    editorEngine.chat.context.addContexts(imageContexts);
+                    if (imageContexts.length > 1) {
+                        toast.success(`Added ${imageContexts.length} images to chat`);
+                    }
                 }
+            } finally {
+                setIsProcessingImage(false);
             }
         };
 
@@ -756,7 +773,10 @@ export const ChatInput = observer(
                 }
                 leftControls={
                     <>
-                        <ActionButtons handleImageEvent={handleImageEvent} />
+                        <ActionButtons
+                            handleImageEvent={handleImageEvent}
+                            processing={isProcessingImage}
+                        />
                         <ChatModeToggle
                             chatMode={chatMode}
                             onChatModeChange={handleChatModeChange}

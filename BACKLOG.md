@@ -38,6 +38,138 @@ later without re-discovering the context.
 
 ## Open
 
+### Edit-message submit guard is a no-op (`sendMessage` not awaited)
+
+- **Discovered:** 2026-06-02 (chat-panel UI review session, surfaced by `claude-review`)
+- **Where:** `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/user-message.tsx:147-153` (caller `handleSubmit:122-131`)
+- **Symptom:** Editing a user message and pressing Submit twice quickly can fire the edit twice; the Submit spinner (`isSubmittingEdit`) never visibly renders.
+- **Root cause:** `sendMessage` calls `toast.promise(onEditMessage(...))` but never `await`s or `return`s the inner promise, so it resolves to `undefined` immediately. `handleSubmit` awaits it and the `finally` resets `isSubmittingEdit` before the edit completes, defeating the `if (isSubmittingEdit) return;` dedup guard. `handleRetry` (133-145) already does this correctly.
+- **Next step:** make `sendMessage` await/return its promise — `const p = onEditMessage(...); toast.promise(p, {...}); await p;` (mirror `handleRetry`).
+- **Risk if ignored:** rare double-submit of an edited message; no visible submitting state. Pre-existing (not introduced by this session's UI tweaks); left out of scope to avoid touching unrelated logic in a multi-session tree.
+- **Tags:** `#bug`
+
+### Project settings expansion — deferred sub-features
+
+- **Discovered:** 2026-06-02 (project-settings expansion session)
+- **Where:** `apps/web/client/src/components/ui/settings-modal/*`
+- **Context:** Built this pass — Overview (General), Site Access tab, SEO tab (robots.txt + crawler/AI quick-inserts + llms.txt + custom sitemap.xml). The items below were deferred; each has a reason + a quick alternative.
+- **Deferred — blocked by disabled publish/serving on Vercel (`TODO(publish-vercel)`):**
+  - **Website password** + **Make staging private** — need a serving-layer auth gate on the published/staging site; nothing serves it yet. *Quick alt:* persist the setting now, label "applies once publishing is live" (no real protection until then). `pageAccess.passwordHash` schema already exists to build on.
+  - **301 redirects** — need `next.config` redirects or a redirect server honoring them. *Quick alt:* persist a redirect list now; write to `next.config` / wire serving when publish lands.
+  - **Forms** (sender name / send-to / submissions) — no form-capture backend, and submissions require the served site to POST somewhere. *Quick alt:* embed a 3rd-party form (Formspree/Tally) on the page — works with zero backend from us.
+- **Deferred — feasible but medium-high / better handled elsewhere:**
+  - **Fonts** (Google/custom/Adobe) — must inject into the user's project code (`next/font`, Tailwind v4 theme, or `<link>`) + an asset pipeline for custom uploads; fragile across arbitrary project setups. *Quick alt:* ask the AI chat ("use Inter") — it edits the project's actual font setup correctly today.
+  - **Organize in folder** — no folder model exists; it's an org/dashboard-level concept, not per-project settings. *Quick alt:* project **tags** already exist for grouping.
+  - **SEO v2** — auto-generate sitemap from the pages tree, global canonical URL (needs root-metadata plumbing like the Site tab), staging-indexing toggle (moot until staging serves). *Quick alt:* the custom `sitemap.xml` editor already shipped covers manual sitemaps.
+  - **Overview: total asset size + site activity** — need storage metering + an `auditLog` query (the `auditLog` table exists, no client query yet).
+- **Handoff prompts written** (2026-06-03) for picking these up: [docs/prompts/add-publishing-controls.md](docs/prompts/add-publishing-controls.md) (password · private staging · 301 redirects · Forms), [docs/prompts/add-fonts-tab.md](docs/prompts/add-fonts-tab.md), [docs/prompts/add-seo-v2.md](docs/prompts/add-seo-v2.md). The **folder** item is now DONE (folder dropdown shipped in General settings).
+- **Tags:** `#feature` `#tech-debt` `#infra`
+
+### AI chat UX — deferred polish follow-ups
+
+- **Discovered:** 2026-06-02 (chat-tab `/ux-assesment` + `/ux-polish` session)
+- **Where:** `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/*` + `messages/en.json` (`panels.edit.tabs.chat.*`)
+- **Symptom / items not done this pass** (the high-value W1–W9 + thread-title orientation shipped):
+  - **Queue clarity (S3):** the message queue never explains *why* messages queue or *when* they send, and a committed queued-edit shows no save confirmation. `chat-input/queue-items/*`.
+  - **History-recall affordance (S2):** ↑/↓ recalls prior prompts but there is no hint and no "browsing history (n/total)" active indicator. `chat-input/index.tsx:281-320`.
+  - **Context-pill near-limit count:** made the remove-X always visible (W6) but did **not** add the `n/max` image-limit indicator — intentionally skipped to avoid clutter. `context-pills/input-context-pills.tsx`.
+  - **Stale composer copy:** `chat.input.tooltip` = "Chat with AI about the selected element" (selection no longer required — misleading) and `chat.mode.tooltip` = "Switch between Build and Ask modes" (omits **Plan**). `messages/en.json` (~1164, ~1167).
+- **Next step:** small, independent edits; each a self-contained quick win. Fix the two stale strings first (one-line copy each).
+- **Risk if ignored:** minor friction / mild confusion; nothing broken.
+- **Tags:** `#ux` `#polish` `#i18n`
+
+### Settings modal i18n is partial — only 4 tabs translated
+
+- **Discovered:** 2026-06-02 (settings-modal polish session)
+- **Where:** `apps/web/client/src/components/ui/settings-modal/*` — new `settings.*` namespace in `messages/en.json` + `sv.json`
+- **Symptom:** Switching language now updates the **Appearance, Language, Editor, and Domain** tabs (Swedish added), but the remaining tabs (Account, AI, Skills, Shortcuts, Git, Subscription, Site, Project, Versions) and nested dialogs (skill-form, billing-info-edit, user-delete) still render hardcoded English.
+- **Root cause:** Scope was limited to the highest-traffic tabs + the tab in the original report. Account-tab was deferred because its support-link helper needs `t.rich` and it embeds the sensitive delete flow.
+- **Next step:** Convert the remaining tab files to `useTranslations()` under `settings.*`, extend `en.json`/`sv.json` (and ideally the other locales). Use the 4 done tabs as the pattern.
+- **Risk if ignored:** Inconsistent localization — Swedish users see a mixed-language settings modal.
+- **Tags:** `#i18n` `#tech-debt`
+
+### Orphaned Convex `uiDensity` field after Density control removal
+
+- **Discovered:** 2026-06-02 (settings-modal polish session)
+- **Where:** `apps/web/client/convex/schema.ts` (userSettings `uiDensity`), `convex/users.ts` (`updateSettings`/`getMappedSettings` still map it)
+- **Symptom:** The Density appearance control was removed because `--spacing-unit` (set by `[data-density]`) was consumed nowhere — the toggle did nothing. The Convex `uiDensity` field is now write-dead.
+- **Root cause:** Density was never wired to real spacing; removing the UI is correct, but the schema field was left to avoid a migration.
+- **Next step:** Either drop `uiDensity` from the userSettings schema + mapper in a dedicated additive→narrow migration, OR re-implement density for real (multiply component padding by `--spacing-unit`). Low priority.
+- **Risk if ignored:** Harmless dead field; minor schema clutter.
+- **Tags:** `#tech-debt` `#convex`
+
+### Editable Weblab subdomain — end-to-end serving unverified (publish disabled)
+
+- **Discovered:** 2026-06-02 (settings-modal polish session)
+- **Where:** `convex/domains.ts` (`setPreviewSlug`, `previewSlugGet`), `convex/domainActionsDb.ts` (`_previewCreate`), `domain/preview.tsx`
+- **Symptom:** Users can now reserve/rename `<slug>.weblab.app`. The slug persists (`projects.previewSlug`) and `_previewCreate` honors it, but `publish` is disabled on Vercel (`TODO(publish-vercel)`), so the slug can't be exercised against live routing/serving yet.
+- **Root cause:** Publish path gated until snapshot-based fork lands.
+- **Next step:** When publish is re-enabled, verify a chosen slug actually serves the deployed site and that the wildcard DNS + `by_full_domain` lookup resolves it. Pre-publish slug collisions across projects are only guarded at set-time (and at publish-time in `_previewCreate`).
+- **Risk if ignored:** Setter UX works, but a reserved slug might not route until verified post-publish.
+- **Tags:** `#infra` `#convex` `#test-gap`
+
+### Terminal tab drag-reorder is single-branch only; live exec depends on sandbox runtime
+
+- **Discovered:** 2026-06-02 (terminal overhaul — F-331/F-331a/F-331b/F-480)
+- **Where:** [terminal-area.tsx](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx) `handleReorder`; [session.ts](apps/web/client/src/components/store/editor/sandbox/session.ts) `reorderTerminalSessions`.
+- **Symptom / limitation:** Drag-to-reorder of terminal tabs only works **within a single branch**. Dragging a tab across branch boundaries is a deliberate no-op because per-branch session maps can't represent cross-branch interleaving. The common single-branch project is unaffected. Multi-branch projects can't interleave tabs from different branches.
+- **Also:** The new command input row + AI mode are fully wired to the provider PTY (`terminal.write`) / `session.runCommand`, but **live command execution depends on the Vercel sandbox runtime** (the TOP-PRIORITY entry below) — `VercelBrowserProvider.runCommand`/terminals are currently stubs, so commands won't produce output on cloud projects until that lands. Works today on the local `nodefs` provider. The AI translation route (F-480) is independent and works now (returns a command string).
+- **Next step (reorder):** if cross-branch interleaving is ever needed, lift terminal ordering out of per-branch maps into a single editor-level ordered list keyed by composite `branchId-sessionId`.
+- **Tags:** `#editor` `#terminal` `#low`
+
+### Editor sandbox runtime is UNIMPLEMENTED (deferred migration) → every project "loads forever" [TOP PRIORITY]
+
+- **Discovered:** 2026-05-29 (create-flow e2e + root-cause). This is THE reason the editor preview never boots (penpal timeout + `__missing_router_config__` + "Trouble connecting"). Reproduces on every project, all environments.
+- **Root cause — all three layers are stubs:**
+  - `apps/web/client/src/components/store/editor/sandbox/vercel-browser-provider.ts` — every method returns a safe default: `listFiles → {files:[]}`, `readFile → ''`, `writeFile → {success:false}`, `runCommand → {success:false}`, terminals/tasks/watch are no-ops ("return safe defaults until the routes are ported").
+  - `apps/web/server/src/router/routes/sandbox.ts` — `sandboxRouter` only has `create/start/stop/status` and they're placeholders (`create` returns `` `hi ${input}` ``).
+  - `apps/web/server/src/sandbox/index.ts` — `start/stop/status` return hardcoded `http://localhost:8084` URLs.
+- **Consequences:** `listFiles` empty → `detectRouterConfig` null → preload never injects → penpal never connects; `runCommand` no-op → dev server never starts → preview URL 502s. So the canvas, code panel, AI edit, and preview are all dead even though the sandbox provisions fine (`createBlank` works; a direct snapshot resume serves HTTP 200 in ~13s).
+- **The building blocks all exist + are verified:** browser→server tRPC WS client `apps/web/client/src/lib/sandbox-server-client.ts` (+ Clerk JWT auth bridge `sandbox-server-auth-bridge.tsx`), `NEXT_PUBLIC_SANDBOX_SERVER_URL` (defaults `ws://host:8080/api/trpc`), and the `@vercel/sandbox` SDK (`Sandbox.get({sandboxId,teamId,projectId,token})` → `fs.readFile/writeFiles/mkdir/stat`, `runCommand`, `domain(port)` — all confirmed working via probe).
+- **Build spec (incremental, verify each on localhost):**
+  1. `apps/web/server/src/sandbox/index.ts`: real helpers over `Sandbox.get` — `listFiles` (via `runCommand('find . -type f' ...)` excluding node_modules/.next/.git), `readFile`, `writeFile` (`fs.writeFiles`), `stat`, `mkdir`, `runCommand`, `runBackgroundCommand` (dev server), `domain`.
+  2. `apps/web/server/src/router/routes/sandbox.ts`: tRPC procedures (`fileList/fileRead/fileWrite/fileStat/fileMkdir/fileDelete/commandRun/commandRunBackground/taskOpen/taskRestart`) calling the helpers; auth via the existing Clerk-JWT context.
+  3. `vercel-browser-provider.ts`: replace each stub with a call to `sandbox-server-client.ts`. Implement `VercelBrowserTerminal`/`VercelBrowserTask` streaming over the WS subscription, and `setup()` → `npm install` + spawn `npm run dev -- --hostname 0.0.0.0` (background).
+  4. Verify order on localhost: router config detected → preload injected → dev server serves → penpal connects → preview renders.
+- **SECURITY PREREQUISITE (blocker for the whole build):** the Fastify tRPC context `apps/web/server/src/router/context.ts` does NO real auth — it sets `user = { name: req.headers.username ?? 'anonymous' }`. The sandbox-server-auth-bridge claims the server "verifies the token via Clerk's JWKS in its tRPC context", but it does NOT. Wiring `fileRead`/`fileWrite`/`commandRun` onto this would expose **arbitrary file read/write + command execution on ANY sandbox to ANY unauthenticated caller** (RCE + cross-tenant data access). Before any sandbox procedure ships: (a) verify the Clerk JWT (passed in WS connectionParams) against Clerk JWKS in `createContext`, (b) resolve the caller's userId, (c) authorize that the caller owns/can-access the requested `sandboxId` (map sandboxId→project→`requireCap('project.edit')`). This is the gating reason the wiring must be a reviewed, security-tested build, NOT a blind push. The server-side `VercelSandboxProvider` (reused by `createBlank`) already wraps the SDK correctly — reuse it, but the AUTH layer is net-new and security-critical.
+- **Risk:** this is the editor's core runtime AND a remote sandbox-access surface — build behind verification + a security review, do NOT ship partial or unauthenticated.
+- **Tags:** `#bug` `#sandbox` `#migration` `#editor` `#high` `#blocks-everything`
+
+### Editor preview never boots on a freshly-created blank project — sync engine wipes the sandbox on first connect (DATA-PATH RISK)
+
+- **Discovered:** 2026-05-29 (create-flow e2e, localhost, authenticated). This is the real "loads forever" the original report showed (penpal timeouts + `__missing_router_config__`).
+- **NOT offline mode:** ruled out — `navigator.onLine === true`, `/api/health` → 200, and the project connected to a **real** sandbox (`[Sync] Created new sync instance for sbx_…`). The synthetic-project offline fallback (`session.ts:102`, sandboxId `test-…`/`example.com`) is a separate, intended path (that's why the seeded "QA Test Project" is offline).
+- **Symptom / sequence on first connect:** `[Sync] Created new sync instance for sbx_…` → `[Sync] Deleted directory: /public` → `[Sync] Pushing locally modified files back to sandbox…` → `Error: File system not initialized` (`CodeFileSystem.writeFile`) → `[SandboxManager] Router config not detected yet` (repeats forever) → penpal timeouts. The client ZenFS (`CodeFileSystem`) appears uninitialized, so the sync engine treats local as empty and **pushes empty / deletes `/public` (and the router dir) on the sandbox** instead of pulling sandbox→local first. With `app/` gone, `detectRouterConfig` returns null forever → preload never injects → preview never connects.
+- **The sandbox itself is healthy** — a direct snapshot-resume probe serves HTTP 200 in ~13s. The bug is in the editor's initial sync, not the sandbox.
+- **Next step (do carefully — this path persists user code):** trace `CodeProviderSync` (`src/services/sync-engine/sync-engine.ts`) initial-sync direction + `CodeFileSystem` init order (`packages/file-system`). The initial `pullFromSandbox` must complete (and ZenFS must be initialized) BEFORE any push/delete. Add a guard: never push/delete to the sandbox until the first successful pull. Repro is deterministic on a fresh blank create.
+- **Risk if ignored:** every freshly-created project (and any reconnect with an uninitialized FS) can have its sandbox files deleted → permanent "loads forever" + potential loss of scaffolded files.
+- **Tags:** `#bug` `#sandbox` `#sync` `#data-loss-risk` `#high`
+
+> Note: `bun dev` (`@weblab/web dev`) only starts client+preload, not `@weblab/web-server`. Start `apps/web/server` separately (`bun --filter @weblab/web-server dev`, port 8080) for full local editing. This was NOT the cause of the boot failure above but is needed for a complete local stack.
+
+### Editor comments fail to load — ConvexHttpClient query is unauthenticated (UNAUTHORIZED)
+
+- **Discovered:** 2026-05-29 (editor console). `CommentManager.loadCommentsOnce` → `ConvexHttpClient.query(api.comments...)` → `Server Error / UNAUTHORIZED at requireUser (convex/lib/permissions.ts:44)`.
+- **Root cause:** the one-shot `ConvexHttpClient` is created without `.setAuth(token)`, so it carries no Clerk identity; `requireCap('project.view')` → `requireUser` throws. Would fail on prod too (comments never load in the editor).
+- **Next step:** pass the Clerk JWT to the `ConvexHttpClient` used by `CommentManager` (`client.setAuth(await getToken())`), or switch to the reactive authenticated Convex client.
+- **Risk if ignored:** project comments silently never load.
+- **Tags:** `#bug` `#convex` `#auth`
+
+### 3 of 4 create paths disabled — AI / clone / upload need Convex re-implementation (Vercel 402 now RESOLVED)
+
+- **Discovered:** 2026-05-29 (create-flow e2e session). External Vercel 402 blocker is **gone** — verified `Sandbox.create` provisions in ~3.6s and a blank snapshot resume serves HTTP 200 in ~13s. So **blank create works end to end** (`api.projectActions.createBlank`). The other three paths are still stubbed.
+- **Where / current state:**
+  - **AI prompt:** [src/components/store/create/manager.ts](apps/web/client/src/components/store/create/manager.ts) `startCreate` throws `UNAVAILABLE_MESSAGE`. Editor reads `api.projectCreateRequests.getPendingRequest` ([convex/projectCreateRequests.ts](apps/web/client/convex/projectCreateRequests.ts)) → only sets `isFirstCreation` (copy). **No insert mutation for `projectCreateRequests`, and no editor consumer that actually sends the prompt to the AI chat** — the auto-kickoff was part of the removed `project.create(creationData)` flow.
+  - **Site clone:** [src/hooks/use-clone-website.ts](apps/web/client/src/hooks/use-clone-website.ts) `cloneFromUrl` — `scrapeUrl` ([convex/utils.ts:152](apps/web/client/convex/utils.ts#L152), returns markdown/HTML + base64 screenshot) works, then `unavailable('Cloning from URL')`. Clone = scrape → AI rebuild, so it depends on the same missing AI-kickoff.
+  - **Upload folder:** [src/hooks/use-import-local-project.ts](apps/web/client/src/hooks/use-import-local-project.ts) throws before the FS-Access picker; needs the removed `sandbox.fork` + `orphanBulkUpload` + `startOrphan`.
+- **Root cause:** Convex migration removed `sandbox.fork`, `project.create(creationData)`, and the bulk-upload/orphan primitives. `createBlank` returns `{projectId}` only and takes no initial files; `writeFile` exists on the provider ([packages/code-provider/src/providers/vercel-sandbox/index.ts:586](packages/code-provider/src/providers/vercel-sandbox/index.ts#L586)) but nothing wires scrape/upload content into a provisioned sandbox.
+- **Next step (incremental, verify each in a logged-in browser before shipping):**
+  1. **Upload** (no AI): client FS-Access gather → new Convex action: provision (createBlank path) → bulk `writeFile` into the live sandbox → re-snapshot → insert project graph.
+  2. **AI kickoff**: add a `projectCreateRequests` insert mutation; add an editor consumer that, on a pending request, sends the stored prompt to the AI chat and marks the request done.
+  3. **Clone**: reuse (2) — feed the `scrapeUrl` result as the create-request context.
+- **Risk if ignored:** only blank create is usable; AI/clone/upload show "temporarily unavailable".
+- **Tags:** `#feature` `#sandbox` `#convex` `#ai`
+
 ### Built-in skills `tailwind` and `impeccable` could not be embedded (missing sources)
 
 - **Discovered:** 2026-05-29 (skills built-in seeding session)
