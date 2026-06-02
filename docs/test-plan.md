@@ -346,6 +346,9 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-432 | F-436 | E | Edit project meta | `projects` (F-589) updates | `[ ]` |
 | T-433 | F-437 | E | Edit favicon + OG | `projectSettings` (F-591) updates | `[ ]` |
 | T-434 | F-438, F-528, F-609 | E (mock DNS) | Attach + verify custom domain | Verification state machine transitions | `[ ]` |
+| T-438 | F-438, F-530 | U | Weblab preview subdomain validation (`convex/lib/previewSlug.test.ts`) | Accepts 3–48-char lowercase labels; rejects too-short/long, leading/trailing hyphen, spaces/underscores/dots/non-ascii, empty, and all reserved slugs | `[x]` |
+| T-807 | F-780 | E | Site Access tab | Members list renders; role change persists via `projectMembers.updateRole`; invite-by-email calls `projectInvitationActions.create`; revoke removes pending invite; last-manager guard surfaces error | `[ ]` |
+| T-808 | F-781 | E | SEO tab file editors | robots.txt / llms.txt / sitemap.xml load from `public/` (or default), edit, Save → `activeSandbox.writeFile`; AI-bot quick-insert appends standard block | `[ ]` |
 
 ---
 

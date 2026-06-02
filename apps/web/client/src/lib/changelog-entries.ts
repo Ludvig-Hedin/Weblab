@@ -9,6 +9,33 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-9-settings-polish-folders',
+        version: '2.9',
+        title: 'Dark-mode favicons, folders in settings, and a cleaner look',
+        description:
+            'Upload a separate favicon for dark mode in the Site tab — visitors see the version that fits their color scheme. Organize a project into a folder right from its settings (the same folders as your projects dashboard). And the settings modal reads cleaner: the active tab is now full-contrast and section subtitles are less muted.',
+        date: '2026-06-03',
+        tags: ['Settings', 'Design'],
+    },
+    {
+        slug: 'v2-8-project-settings',
+        version: '2.8',
+        title: 'More in project settings',
+        description:
+            'Project settings grew up. A new Overview shows your Site ID, page count, and when the site was last published, updated, and created. A new Site Access tab lets you invite people by email, set their role (manager, editor, reviewer, viewer), and remove members. And a new SEO tab gives you editors for robots.txt (with one-click crawler and AI-bot controls), llms.txt, and a custom sitemap.xml — written straight into your site so search engines and AI assistants see them.',
+        date: '2026-06-02',
+        tags: ['Settings', 'Collaboration', 'SEO'],
+    },
+    {
+        slug: 'v2-7-settings-refined',
+        version: '2.7',
+        title: 'Settings, refined',
+        description:
+            'Project settings got a cleanup pass. Claim your free Weblab domain right in the Domain tab — pick your <name>.weblab.app subdomain and save it. Upgrade prompts are now calm and monochrome with one clear button, instead of the old high-contrast callout. The Appearance, Language, Editor, and Domain tabs are translated (Swedish included), so switching language updates them live. Form spacing is tidied throughout, and the Density toggle that did nothing is gone.',
+        date: '2026-06-02',
+        tags: ['Settings', 'Domains', 'i18n', 'Design'],
+    },
+    {
         slug: 'v2-6-terminal-tabs-ai',
         version: '2.6',
         title: 'A real terminal in the editor',
