@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 
 import { toast } from '@weblab/ui/sonner';
@@ -13,35 +14,29 @@ type ThemeOption = 'light' | 'dark' | 'system';
 type AccentOption = 'blue' | 'red' | 'green' | 'neutral';
 type FontFamilyOption = 'sans' | 'serif';
 type FontSizeOption = 'small' | 'medium' | 'large';
-type DensityOption = 'compact' | 'comfortable';
 
 const ACCENT_COLORS: {
     value: AccentOption;
-    label: string;
     bg: string;
     ring: string;
 }[] = [
     {
         value: 'blue',
-        label: 'Blue',
         bg: 'bg-[oklch(0.623_0.214_255)]',
         ring: 'ring-[oklch(0.623_0.214_255)]',
     },
     {
         value: 'red',
-        label: 'Red',
         bg: 'bg-[oklch(0.637_0.237_25.3)]',
         ring: 'ring-[oklch(0.637_0.237_25.3)]',
     },
     {
         value: 'green',
-        label: 'Green',
         bg: 'bg-[oklch(0.723_0.19_142.5)]',
         ring: 'ring-[oklch(0.723_0.19_142.5)]',
     },
     {
         value: 'neutral',
-        label: 'Neutral',
         bg: 'bg-[oklch(0.556_0_0)]',
         ring: 'ring-[oklch(0.556_0_0)]',
     },
@@ -68,7 +63,7 @@ function SegmentedControl<T extends string>({
                         'text-regular px-3 py-1.5 transition-colors',
                         value === opt.value
                             ? 'bg-foreground text-background font-medium'
-                            : 'text-foreground-tertiary hover:text-foreground hover:bg-background-secondary',
+                            : 'text-foreground-secondary hover:text-foreground hover:bg-background-secondary',
                     )}
                 >
                     {opt.label}
@@ -79,9 +74,19 @@ function SegmentedControl<T extends string>({
 }
 
 export const AppearanceTab = observer(() => {
+    const t = useTranslations();
     const userSettings = useQuery(api.users.getSettings);
     const updateSettingsMutation = useMutation(api.users.updateSettings);
     const { setTheme } = useTheme();
+
+    // Literal-keyed lookup so next-intl can type-check each accent label
+    // (passing a dynamic key string into t() loses the typed-message guarantee).
+    const accentLabel: Record<AccentOption, string> = {
+        blue: t('settings.appearance.accent.blue'),
+        red: t('settings.appearance.accent.red'),
+        green: t('settings.appearance.accent.green'),
+        neutral: t('settings.appearance.accent.neutral'),
+    };
 
     const update = useCallback(
         async (patch: Record<string, unknown>) => {
@@ -89,7 +94,6 @@ export const AppearanceTab = observer(() => {
             const html = document.documentElement;
             if ('accentColor' in patch)
                 html.setAttribute('data-accent', patch.accentColor as string);
-            if ('uiDensity' in patch) html.setAttribute('data-density', patch.uiDensity as string);
             if ('fontSize' in patch) html.setAttribute('data-font-size', patch.fontSize as string);
             if ('fontFamily' in patch)
                 html.setAttribute('data-font-family', patch.fontFamily as string);
@@ -100,10 +104,10 @@ export const AppearanceTab = observer(() => {
                 // Optimistic DOM mutation already applied above — surface the
                 // failure to the user so they know the change won't persist.
                 console.error('Failed to update settings', error);
-                toast.error('Failed to save appearance setting');
+                toast.error(t('settings.appearance.saveError'));
             }
         },
-        [updateSettingsMutation, setTheme],
+        [updateSettingsMutation, setTheme, t],
     );
 
     return (
@@ -111,16 +115,16 @@ export const AppearanceTab = observer(() => {
             {/* Theme */}
             <section className="space-y-4 py-6">
                 <div>
-                    <h2 className="text-largePlus">Theme</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Choose your preferred color scheme.
+                    <h2 className="text-largePlus">{t('settings.appearance.theme.title')}</h2>
+                    <p className="text-regular text-foreground-secondary">
+                        {t('settings.appearance.theme.description')}
                     </p>
                 </div>
                 <SegmentedControl<ThemeOption>
                     options={[
-                        { value: 'light', label: 'Light' },
-                        { value: 'dark', label: 'Dark' },
-                        { value: 'system', label: 'System' },
+                        { value: 'light', label: t('settings.appearance.theme.light') },
+                        { value: 'dark', label: t('settings.appearance.theme.dark') },
+                        { value: 'system', label: t('settings.appearance.theme.system') },
                     ]}
                     value={(userSettings?.theme ?? 'system') as ThemeOption}
                     onChange={(v) => void update({ theme: v })}
@@ -130,9 +134,9 @@ export const AppearanceTab = observer(() => {
             {/* Accent color */}
             <section className="space-y-4 py-6">
                 <div>
-                    <h2 className="text-largePlus">Accent color</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Used for active states and highlights.
+                    <h2 className="text-largePlus">{t('settings.appearance.accent.title')}</h2>
+                    <p className="text-regular text-foreground-secondary">
+                        {t('settings.appearance.accent.description')}
                     </p>
                 </div>
                 <div className="flex gap-3">
@@ -140,7 +144,7 @@ export const AppearanceTab = observer(() => {
                         <button
                             key={color.value}
                             type="button"
-                            title={color.label}
+                            title={accentLabel[color.value]}
                             onClick={() => void update({ accentColor: color.value })}
                             className={cn(
                                 'ring-offset-background h-7 w-7 rounded-full ring-2 ring-offset-2 transition-all',
@@ -157,15 +161,15 @@ export const AppearanceTab = observer(() => {
             {/* Font family */}
             <section className="space-y-4 py-6">
                 <div>
-                    <h2 className="text-largePlus">Font family</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Applies to the app UI, not your project.
+                    <h2 className="text-largePlus">{t('settings.appearance.fontFamily.title')}</h2>
+                    <p className="text-regular text-foreground-secondary">
+                        {t('settings.appearance.fontFamily.description')}
                     </p>
                 </div>
                 <SegmentedControl<FontFamilyOption>
                     options={[
-                        { value: 'sans', label: 'Sans-serif' },
-                        { value: 'serif', label: 'Serif' },
+                        { value: 'sans', label: t('settings.appearance.fontFamily.sans') },
+                        { value: 'serif', label: t('settings.appearance.fontFamily.serif') },
                     ]}
                     value={(userSettings?.fontFamily ?? 'sans') as FontFamilyOption}
                     onChange={(v) => void update({ fontFamily: v })}
@@ -175,37 +179,19 @@ export const AppearanceTab = observer(() => {
             {/* Font size */}
             <section className="space-y-4 py-6">
                 <div>
-                    <h2 className="text-largePlus">Font size</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Base size for the app UI text.
+                    <h2 className="text-largePlus">{t('settings.appearance.fontSize.title')}</h2>
+                    <p className="text-regular text-foreground-secondary">
+                        {t('settings.appearance.fontSize.description')}
                     </p>
                 </div>
                 <SegmentedControl<FontSizeOption>
                     options={[
-                        { value: 'small', label: 'Small' },
-                        { value: 'medium', label: 'Medium' },
-                        { value: 'large', label: 'Large' },
+                        { value: 'small', label: t('settings.appearance.fontSize.small') },
+                        { value: 'medium', label: t('settings.appearance.fontSize.medium') },
+                        { value: 'large', label: t('settings.appearance.fontSize.large') },
                     ]}
                     value={(userSettings?.fontSize ?? 'medium') as FontSizeOption}
                     onChange={(v) => void update({ fontSize: v })}
-                />
-            </section>
-
-            {/* Density */}
-            <section className="space-y-4 py-6">
-                <div>
-                    <h2 className="text-largePlus">Density</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Controls spacing throughout the UI.
-                    </p>
-                </div>
-                <SegmentedControl<DensityOption>
-                    options={[
-                        { value: 'compact', label: 'Compact' },
-                        { value: 'comfortable', label: 'Comfortable' },
-                    ]}
-                    value={(userSettings?.uiDensity ?? 'comfortable') as DensityOption}
-                    onChange={(v) => void update({ uiDensity: v })}
                 />
             </section>
         </div>

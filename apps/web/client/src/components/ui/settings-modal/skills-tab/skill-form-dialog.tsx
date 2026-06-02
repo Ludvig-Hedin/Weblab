@@ -131,7 +131,7 @@ export function SkillFormDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label htmlFor="skill-name">Name</Label>
                         <Input
                             id="skill-name"
@@ -155,7 +155,7 @@ export function SkillFormDialog({
                         )}
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label htmlFor="skill-description">Description</Label>
                         <Input
                             id="skill-description"
@@ -170,7 +170,7 @@ export function SkillFormDialog({
                     </div>
 
                     {!isEditing && projectId ? (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="skill-scope">Scope</Label>
                             <Select
                                 value={scope}
@@ -189,7 +189,7 @@ export function SkillFormDialog({
                         </div>
                     ) : null}
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label htmlFor="skill-content">Body</Label>
                         <Textarea
                             id="skill-content"

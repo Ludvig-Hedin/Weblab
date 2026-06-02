@@ -270,13 +270,19 @@ export default defineSchema({
         createdByUserId: v.id('users'),
         accessMode: vProjectAccessMode,
 
+        // User-chosen preview subdomain label (e.g. "my-site" → my-site.weblab.app).
+        // When unset, the preview domain falls back to a slug derived from the
+        // project id. Set via domains.setPreviewSlug; consumed by _previewCreate.
+        previewSlug: v.optional(v.string()),
+
         // deprecated sandbox columns — kept opaque for back-compat
         sandboxId: v.optional(v.string()),
         sandboxUrl: v.optional(v.string()),
     })
         .index('by_workspace', ['workspaceId'])
         .index('by_created_by_user', ['createdByUserId'])
-        .index('by_workspace_updated', ['workspaceId', 'updatedAt']),
+        .index('by_workspace_updated', ['workspaceId', 'updatedAt'])
+        .index('by_preview_slug', ['previewSlug']),
 
     branches: defineTable({
         projectId: v.id('projects'),

@@ -20,11 +20,17 @@ import { GitHubTab } from './github-tab';
 import { SettingsTabValue } from './helpers';
 import { LanguageTab } from './language-tab';
 import { ProjectTab } from './project';
+import { SeoTab } from './seo-tab';
 import { ShortcutsTab } from './shortcuts-tab';
 import { SiteTab } from './site';
+import { SiteAccessTab } from './site-access-tab';
 import { SkillsTab } from './skills-tab';
 import { SubscriptionTab } from './subscription-tab';
 import { VersionsTab } from './versions';
+
+// SEO renders as the uppercase acronym; every other tab just title-cases.
+const tabLabel = (label: string): string =>
+    label === (SettingsTabValue.SEO as string) ? 'SEO' : capitalizeFirstLetter(label.toLowerCase());
 
 export const SettingsModalWithProjects = observer(() => {
     const editorEngine = useEditorEngine();
@@ -104,6 +110,16 @@ export const SettingsModalWithProjects = observer(() => {
             component: <DomainTab />,
         },
         {
+            label: SettingsTabValue.SITE_ACCESS,
+            icon: <Icons.Group className="mr-2 h-4 w-4" />,
+            component: <SiteAccessTab />,
+        },
+        {
+            label: SettingsTabValue.SEO,
+            icon: <Icons.MagnifyingGlass className="mr-2 h-4 w-4" />,
+            component: <SeoTab />,
+        },
+        {
             label: SettingsTabValue.PROJECT,
             icon: <Icons.Gear className="mr-2 h-4 w-4" />,
             component: <ProjectTab />,
@@ -180,15 +196,15 @@ export const SettingsModalWithProjects = observer(() => {
                                                 className={cn(
                                                     'w-full justify-start px-2.5',
                                                     stateManager.settingsTab === tab.label
-                                                        ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
-                                                        : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
+                                                        ? 'bg-background-secondary text-foreground dark:text-foreground hover:bg-background-secondary hover:text-foreground dark:hover:text-foreground font-medium'
+                                                        : 'text-foreground-secondary dark:text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground dark:hover:text-foreground',
                                                 )}
                                                 onClick={() =>
                                                     stateManager.setSettingsTab(tab.label)
                                                 }
                                             >
                                                 {tab.icon}
-                                                {capitalizeFirstLetter(tab.label.toLowerCase())}
+                                                {tabLabel(tab.label)}
                                             </Button>
                                         ))}
                                     </div>
@@ -205,15 +221,15 @@ export const SettingsModalWithProjects = observer(() => {
                                                 className={cn(
                                                     'w-full justify-start px-2.5',
                                                     stateManager.settingsTab === tab.label
-                                                        ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
-                                                        : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
+                                                        ? 'bg-background-secondary text-foreground dark:text-foreground hover:bg-background-secondary hover:text-foreground dark:hover:text-foreground font-medium'
+                                                        : 'text-foreground-secondary dark:text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground dark:hover:text-foreground',
                                                 )}
                                                 onClick={() =>
                                                     stateManager.setSettingsTab(tab.label)
                                                 }
                                             >
                                                 {tab.icon}
-                                                {capitalizeFirstLetter(tab.label.toLowerCase())}
+                                                {tabLabel(tab.label)}
                                             </Button>
                                         ))}
                                     </div>

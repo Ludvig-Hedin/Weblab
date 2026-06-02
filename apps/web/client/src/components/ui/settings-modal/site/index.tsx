@@ -14,6 +14,38 @@ import { useEditorEngine } from '@/components/store/editor';
 import { MetadataForm } from './metadata-form';
 import { useMetadataForm } from './use-metadata-form';
 
+// Favicon icons can be a single value or a [light, dark] media-query array.
+// Pull display URLs back out for the upload thumbnails.
+function extractFaviconUrls(icons: PageMetadata['icons']): { light?: string; dark?: string } {
+    const icon = icons?.icon;
+    if (!icon) return {};
+    const toUrl = (d: unknown): string | undefined => {
+        if (typeof d === 'string') return d;
+        if (d instanceof URL) return d.toString();
+        if (d && typeof d === 'object' && 'url' in d) {
+            const u = (d as { url: unknown }).url;
+            return typeof u === 'string' ? u : u instanceof URL ? u.toString() : undefined;
+        }
+        return undefined;
+    };
+    if (Array.isArray(icon)) {
+        let light: string | undefined;
+        let dark: string | undefined;
+        for (const descriptor of icon) {
+            const rawMedia =
+                descriptor && typeof descriptor === 'object' && 'media' in descriptor
+                    ? (descriptor as { media?: unknown }).media
+                    : undefined;
+            const media = typeof rawMedia === 'string' ? rawMedia : '';
+            const url = toUrl(descriptor);
+            if (media.includes('dark')) dark = dark ?? url;
+            else light = light ?? url;
+        }
+        return { light, dark };
+    }
+    return { light: toUrl(icon) };
+}
+
 export const SiteTab = observer(() => {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
@@ -22,6 +54,7 @@ export const SiteTab = observer(() => {
 
     const homePage = useMemo(() => {
         return editorEngine.pages.getPageByPath('/');
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-derive when the page tree changes; `editorEngine.pages` is a stable store ref
     }, [editorEngine.pages.tree]);
 
     const {
@@ -44,10 +77,18 @@ export const SiteTab = observer(() => {
     });
 
     const [uploadedFavicon, setUploadedFavicon] = useState<File | null>(null);
+    const [uploadedFaviconDark, setUploadedFaviconDark] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+
+    const faviconUrls = extractFaviconUrls(homePage?.metadata?.icons);
 
     const handleFaviconSelect = (file: File) => {
         setUploadedFavicon(file);
+        setIsDirty(true);
+    };
+
+    const handleFaviconDarkSelect = (file: File) => {
+        setUploadedFaviconDark(file);
         setIsDirty(true);
     };
 
@@ -81,18 +122,40 @@ export const SiteTab = observer(() => {
                 }
             }
 
-            if (uploadedFavicon) {
-                let faviconPath;
-                try {
+            // Resolve final favicon paths — newly uploaded files take precedence
+            // over whatever's already saved in metadata.
+            let lightFaviconPath = faviconUrls.light;
+            let darkFaviconPath = faviconUrls.dark;
+            try {
+                if (uploadedFavicon) {
                     await editorEngine.image.upload(uploadedFavicon, DefaultSettings.IMAGE_FOLDER);
-                    faviconPath = `/${uploadedFavicon.name}`;
-                } catch (error) {
-                    toast.error('Failed to upload favicon. Please try again.');
-                    return;
+                    lightFaviconPath = `/${uploadedFavicon.name}`;
                 }
+                if (uploadedFaviconDark) {
+                    await editorEngine.image.upload(
+                        uploadedFaviconDark,
+                        DefaultSettings.IMAGE_FOLDER,
+                    );
+                    darkFaviconPath = `/${uploadedFaviconDark.name}`;
+                }
+            } catch (error) {
+                console.error('Failed to upload favicon:', error);
+                toast.error('Failed to upload favicon. Please try again.');
+                return;
+            }
+            if (lightFaviconPath && darkFaviconPath) {
+                // Two variants → emit a media-query array so the browser picks
+                // the icon matching the visitor's color scheme.
                 updatedMetadata.icons = {
-                    icon: faviconPath,
+                    icon: [
+                        { url: lightFaviconPath, media: '(prefers-color-scheme: light)' },
+                        { url: darkFaviconPath, media: '(prefers-color-scheme: dark)' },
+                    ],
                 };
+            } else if (lightFaviconPath) {
+                updatedMetadata.icons = { icon: lightFaviconPath };
+            } else if (darkFaviconPath) {
+                updatedMetadata.icons = { icon: darkFaviconPath };
             }
             if (uploadedImage) {
                 let imagePath;
@@ -122,6 +185,7 @@ export const SiteTab = observer(() => {
 
             await editorEngine.pages.updateMetadataPage('/', updatedMetadata);
             setUploadedFavicon(null);
+            setUploadedFaviconDark(null);
             setIsDirty(false);
             toast.success('Site metadata has been updated successfully.', {});
         } catch (error) {
@@ -163,8 +227,11 @@ export const SiteTab = observer(() => {
                         onDescriptionChange={handleDescriptionChange}
                         onImageSelect={handleImageSelect}
                         onFaviconSelect={handleFaviconSelect}
+                        onFaviconDarkSelect={handleFaviconDarkSelect}
+                        faviconUrl={faviconUrls.light}
+                        faviconDarkUrl={faviconUrls.dark}
                         onDiscard={handleDiscard}
-                        onSave={handleSave}
+                        onSave={() => void handleSave()}
                         showFavicon={true}
                         currentMetadata={homePage?.metadata ?? {}}
                         isRoot={true}

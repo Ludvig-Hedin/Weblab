@@ -1,8 +1,13 @@
 import { v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
-import { query } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import { requireCap, requireUser } from './lib/permissions';
+import { validatePreviewSlug } from './lib/previewSlug';
+
+// Keep in lockstep with domainActionsDb.ts so the slug a user reserves here
+// produces the exact domain `_previewCreate` later publishes.
+const HOSTING_DOMAIN = process.env.NEXT_PUBLIC_HOSTING_DOMAIN ?? 'weblab.app';
 
 // Convex port of:
 //   src/server/api/routers/domain/index.ts (getAll)
@@ -144,5 +149,70 @@ export const verificationGetActive = query({
         if (!active) return null;
         const customDomain = await ctx.db.get(active.customDomainId);
         return { ...active, customDomain };
+    },
+});
+
+/**
+ * The project's free Weblab preview subdomain settings. `slug` is the chosen
+ * label (null when never set — caller should show a placeholder); `hostingDomain`
+ * is the suffix to render `<slug>.<hostingDomain>`; `publishedDomain` is the
+ * actually-live preview domain (null until the project is published).
+ */
+export const previewSlugGet = query({
+    args: { projectId: v.id('projects') },
+    handler: async (ctx, { projectId }) => {
+        await requireCap(ctx, 'project.view', { projectId });
+        const project = await ctx.db.get(projectId);
+        const preview = await ctx.db
+            .query('previewDomains')
+            .withIndex('by_project', (q) => q.eq('projectId', projectId))
+            .first();
+        return {
+            slug: project?.previewSlug ?? null,
+            hostingDomain: HOSTING_DOMAIN,
+            publishedDomain: preview?.fullDomain ?? null,
+        };
+    },
+});
+
+/**
+ * Reserve/rename the project's free Weblab preview subdomain. Validates format
+ * and global uniqueness (against both published preview domains and other
+ * projects' reserved slugs). The chosen slug is applied the next time the
+ * project publishes (see `_previewCreate`).
+ */
+export const setPreviewSlug = mutation({
+    args: { projectId: v.id('projects'), slug: v.string() },
+    handler: async (ctx, { projectId, slug }) => {
+        await requireCap(ctx, 'project.update', { projectId });
+
+        const validation = validatePreviewSlug(slug);
+        if (!validation.ok) {
+            throw new Error(`BAD_REQUEST: ${validation.error}`);
+        }
+        const normalized = validation.normalized;
+
+        const fullDomain = `${normalized}.${HOSTING_DOMAIN}`;
+
+        // Collision with an already-published preview domain of another project.
+        const publishedCollision = await ctx.db
+            .query('previewDomains')
+            .withIndex('by_full_domain', (q) => q.eq('fullDomain', fullDomain))
+            .first();
+        if (publishedCollision && publishedCollision.projectId !== projectId) {
+            throw new Error('BAD_REQUEST: That subdomain is already taken.');
+        }
+
+        // Collision with another project's reserved (not-yet-published) slug.
+        const slugCollision = await ctx.db
+            .query('projects')
+            .withIndex('by_preview_slug', (q) => q.eq('previewSlug', normalized))
+            .first();
+        if (slugCollision && slugCollision._id !== projectId) {
+            throw new Error('BAD_REQUEST: That subdomain is already taken.');
+        }
+
+        await ctx.db.patch(projectId, { previewSlug: normalized });
+        return { slug: normalized, fullDomain };
     },
 });

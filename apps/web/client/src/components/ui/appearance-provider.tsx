@@ -26,13 +26,12 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 
     useEffect(() => {
         if (!userSettings?.appearance) return;
-        const { theme, accentColor, fontFamily, fontSize, uiDensity } = userSettings.appearance;
+        const { theme, accentColor, fontFamily, fontSize } = userSettings.appearance;
 
         if (theme) setTheme(theme);
 
         const html = document.documentElement;
         if (accentColor) html.setAttribute('data-accent', accentColor);
-        if (uiDensity) html.setAttribute('data-density', uiDensity);
         if (fontSize) html.setAttribute('data-font-size', fontSize);
         if (fontFamily) html.setAttribute('data-font-family', fontFamily);
     }, [userSettings?.appearance, setTheme]);

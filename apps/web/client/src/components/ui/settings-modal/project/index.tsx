@@ -1,18 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
+import localforage from 'localforage';
 import { observer } from 'mobx-react-lite';
 
+import type { PageNode } from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
+import { DeploymentStatus, DeploymentType } from '@weblab/models/hosting';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { Separator } from '@weblab/ui/separator';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 
+import type { ProjectFolder } from '@/app/projects/_components/select/project-card-utils';
 import type { CachedProjectRecord } from '@/services/offline/project-cache';
 import type { Id } from '@convex/_generated/dataModel';
+import { CreateFolderDialog } from '@/app/projects/_components/select/create-folder-dialog';
+import {
+    getFoldersStorageKey,
+    moveProjectIdsToFolder,
+} from '@/app/projects/_components/select/project-card-utils';
 import { useEditorEngine } from '@/components/store/editor';
 import {
     cacheProject,
@@ -33,12 +43,47 @@ function formatRelative(ms: number): string {
     return `${days}d ago`;
 }
 
+function formatDate(ms: number): string {
+    return new Date(ms).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+}
+
+// Pages tree is folder/page nodes; count only the leaves that are real pages.
+function countPages(nodes: PageNode[]): number {
+    let total = 0;
+    for (const node of nodes) {
+        if (node.kind === 'page') total += 1;
+        if (node.children?.length) total += countPages(node.children);
+    }
+    return total;
+}
+
+// A small labelled row used throughout the Overview section.
+function OverviewRow({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex items-center justify-between gap-4">
+            <p className="text-muted-foreground">{label}</p>
+            <div className="text-foreground-secondary flex min-w-0 items-center gap-1.5">
+                {children}
+            </div>
+        </div>
+    );
+}
+
+// Sentinel Select values (Radix SelectItem can't use an empty string).
+const NO_FOLDER_VALUE = 'none';
+const NEW_FOLDER_VALUE = '__new__';
+
 export const ProjectTab = observer(() => {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
 
     const project = useQuery(api.projects.get, { projectId });
     const updateProject = useMutation(api.projects.update);
+    const deployments = useQuery(api.deployments.list, { projectId, limit: 25 });
     const projectSettings = useQuery(api.projectSettings.get, { projectId });
     const updateProjectSettings = useMutation(api.projectSettings.upsert);
     const branches = useQuery(api.branches.getByProjectId, { projectId });
@@ -55,7 +100,7 @@ export const ProjectTab = observer(() => {
             if (!cancelled) setCachedRecord(rec);
         };
         void load();
-        const interval = setInterval(load, 5_000);
+        const interval = setInterval(() => void load(), 5_000);
         return () => {
             cancelled = true;
             clearInterval(interval);
@@ -98,6 +143,84 @@ export const ProjectTab = observer(() => {
     const runCommand = projectSettings?.runCommand ?? DefaultSettings.COMMANDS.run;
     const buildCommand = projectSettings?.buildCommand ?? DefaultSettings.COMMANDS.build;
     const name = project?.name ?? '';
+
+    // Overview — most recent successful publish (preview or custom domain).
+    const lastPublishedAt = useMemo(() => {
+        const published = (deployments ?? []).find((d) => {
+            const type = d.type as DeploymentType;
+            return (
+                (type === DeploymentType.PREVIEW || type === DeploymentType.CUSTOM) &&
+                (d.status as DeploymentStatus) === DeploymentStatus.COMPLETED
+            );
+        });
+        return published?._creationTime ?? null;
+    }, [deployments]);
+    const pagesCount = countPages(editorEngine.pages.tree ?? []);
+
+    const [copiedId, setCopiedId] = useState(false);
+    const copyProjectId = async () => {
+        try {
+            await navigator.clipboard.writeText(projectId);
+            setCopiedId(true);
+            setTimeout(() => setCopiedId(false), 1500);
+        } catch {
+            toast.error('Could not copy Site ID');
+        }
+    };
+
+    // ── Folders (shared with the projects dashboard via localforage) ──────────
+    const me = useQuery(api.users.me, {});
+    const [folders, setFolders] = useState<ProjectFolder[]>([]);
+    const [showCreateFolder, setShowCreateFolder] = useState(false);
+    const foldersKey = useMemo(() => getFoldersStorageKey(me?._id), [me?._id]);
+
+    useEffect(() => {
+        void (async () => {
+            try {
+                const saved = await localforage.getItem<ProjectFolder[]>(foldersKey);
+                setFolders(Array.isArray(saved) ? saved : []);
+            } catch (error) {
+                console.error('Failed to load folders:', error);
+            }
+        })();
+    }, [foldersKey]);
+
+    const currentFolderId = folders.find((f) => f.projectIds.includes(projectId))?.id ?? null;
+
+    const persistFolders = async (next: ProjectFolder[]) => {
+        const previous = folders;
+        setFolders(next);
+        try {
+            await localforage.setItem(foldersKey, next);
+        } catch (error) {
+            console.error('Failed to save folders:', error);
+            setFolders(previous);
+            toast.error('Could not update folder.');
+        }
+    };
+
+    const handleFolderChange = async (value: string) => {
+        if (value === NEW_FOLDER_VALUE) {
+            setShowCreateFolder(true);
+            return;
+        }
+        const folderId = value === NO_FOLDER_VALUE ? null : value;
+        await persistFolders(moveProjectIdsToFolder(folders, [projectId], folderId));
+        toast.success(folderId ? 'Project moved to folder.' : 'Project removed from folder.');
+    };
+
+    const handleCreateFolder = async (name: string) => {
+        const cleared = moveProjectIdsToFolder(folders, [projectId], null);
+        const folder: ProjectFolder = {
+            id: crypto.randomUUID(),
+            name,
+            projectIds: [projectId],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        await persistFolders([...cleared, folder]);
+        toast.success('Folder created.');
+    };
 
     // Form state
     const [formData, setFormData] = useState({
@@ -179,6 +302,47 @@ export const ProjectTab = observer(() => {
         <div className="text-regular flex h-full flex-col">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6 pb-24">
                 <div className="flex flex-col gap-4">
+                    <h2 className="text-largePlus">Overview</h2>
+                    <div className="space-y-3">
+                        <OverviewRow label="Site ID">
+                            <code className="text-mini truncate font-mono">{projectId}</code>
+                            <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                type="button"
+                                aria-label="Copy Site ID"
+                                onClick={() => void copyProjectId()}
+                            >
+                                {copiedId ? (
+                                    <Icons.Check className="h-3.5 w-3.5" />
+                                ) : (
+                                    <Icons.Copy className="h-3.5 w-3.5" />
+                                )}
+                            </Button>
+                        </OverviewRow>
+                        <OverviewRow label="Pages">
+                            <span>{editorEngine.pages.isScanning ? '—' : pagesCount}</span>
+                        </OverviewRow>
+                        <OverviewRow label="Last published">
+                            <span>
+                                {lastPublishedAt ? formatRelative(lastPublishedAt) : 'Never'}
+                            </span>
+                        </OverviewRow>
+                        <OverviewRow label="Last updated">
+                            <span>
+                                {project?.updatedAt ? formatRelative(project.updatedAt) : '—'}
+                            </span>
+                        </OverviewRow>
+                        <OverviewRow label="Created">
+                            <span>
+                                {project?._creationTime ? formatDate(project._creationTime) : '—'}
+                            </span>
+                        </OverviewRow>
+                    </div>
+                </div>
+                <Separator />
+
+                <div className="flex flex-col gap-4">
                     <h2 className="text-largePlus">Metadata</h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -190,6 +354,26 @@ export const ProjectTab = observer(() => {
                                 className="w-2/3"
                                 disabled={isSaving}
                             />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <p className="text-muted-foreground">Folder</p>
+                            <Select
+                                value={currentFolderId ?? NO_FOLDER_VALUE}
+                                onValueChange={(v) => void handleFolderChange(v)}
+                            >
+                                <SelectTrigger className="w-2/3">
+                                    <SelectValue placeholder="No folder" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={NO_FOLDER_VALUE}>No folder</SelectItem>
+                                    {folders.map((folder) => (
+                                        <SelectItem key={folder.id} value={folder.id}>
+                                            {folder.name}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value={NEW_FOLDER_VALUE}>+ New folder…</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </div>
@@ -303,6 +487,12 @@ export const ProjectTab = observer(() => {
                     </Button>
                 </div>
             </div>
+            <CreateFolderDialog
+                open={showCreateFolder}
+                onOpenChange={setShowCreateFolder}
+                onCreateFolder={handleCreateFolder}
+                existingNames={folders.map((f) => f.name)}
+            />
         </div>
     );
 });

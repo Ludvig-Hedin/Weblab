@@ -76,8 +76,8 @@ type IconDescriptor = {
     fetchPriority?: 'high' | 'low' | 'auto';
 };
 type Icons = {
-    /** rel="icon" */
-    icon?: Icon;
+    /** rel="icon" — single value, or an array (e.g. light/dark via `media`) */
+    icon?: Icon | Icon[];
     /** rel="shortcut icon" */
     shortcut?: Icon;
     /**

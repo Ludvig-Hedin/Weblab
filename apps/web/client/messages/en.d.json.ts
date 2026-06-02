@@ -1157,11 +1157,13 @@ declare const messages: {
                 "tabs": {
                     "chat": {
                         "name": "Chat",
-                        "emptyState": "Select an element to chat with AI",
+                        "emptyState": "Ask AI to build, edit, or change anything",
                         "emptyStateStart": "Start the project to chat",
                         "loadingMessages": "Loading messages…",
                         "loadFailed": "Couldn’t load messages.",
                         "retry": "Retry",
+                        "thinking": "Thinking…",
+                        "suggestionsLabel": "Suggested",
                         "input": {
                             "placeholder": "Ask anything...",
                             "tooltip": "Chat with AI about the selected element"
@@ -1172,6 +1174,7 @@ declare const messages: {
                         "controls": {
                             "newChat": "New Chat",
                             "history": "Chat History",
+                            "viewHistory": "View chat history",
                             "newChatTooltipStarting": "Starting new chat…",
                             "newChatTooltipStreaming": "Reply still streaming",
                             "chatSettings": "Chat settings",
@@ -2521,6 +2524,87 @@ declare const messages: {
                 "system": "System",
                 "light": "Light",
                 "dark": "Dark"
+            }
+        }
+    },
+    "settings": {
+        "domain": {
+            "upgrade": {
+                "title": "Custom domains are a Pro feature",
+                "description": "Upgrade to {app} Pro to connect your own domain.",
+                "cta": "Upgrade to Pro"
+            },
+            "base": {
+                "title": "Weblab domain",
+                "label": "Subdomain",
+                "helper": "Your free address. Pick the subdomain your site is published to.",
+                "placeholder": "my-site",
+                "save": "Save",
+                "saved": "Saved {domain}",
+                "saveError": "Couldn't save your subdomain. Please try again.",
+                "liveAt": "Live at",
+                "notPublished": "Not published yet — your site goes live here once you publish."
+            }
+        },
+        "appearance": {
+            "saveError": "Failed to save appearance setting",
+            "theme": {
+                "title": "Theme",
+                "description": "Choose your preferred color scheme.",
+                "light": "Light",
+                "dark": "Dark",
+                "system": "System"
+            },
+            "accent": {
+                "title": "Accent color",
+                "description": "Used for active states and highlights.",
+                "blue": "Blue",
+                "red": "Red",
+                "green": "Green",
+                "neutral": "Neutral"
+            },
+            "fontFamily": {
+                "title": "Font family",
+                "description": "Applies to the app UI, not your project.",
+                "sans": "Sans-serif",
+                "serif": "Serif"
+            },
+            "fontSize": {
+                "title": "Font size",
+                "description": "Base size for the app UI text.",
+                "small": "Small",
+                "medium": "Medium",
+                "large": "Large"
+            }
+        },
+        "language": {
+            "title": "Language",
+            "description": "Choose the language for the app UI.",
+            "displayLabel": "Display language",
+            "updated": "Language updated",
+            "saveError": "Failed to save language preference",
+            "appliesImmediately": "Language change applies immediately."
+        },
+        "editor": {
+            "saveError": "Failed to save editor settings",
+            "saving": "Saving…",
+            "saved": "Saved",
+            "preferences": {
+                "title": "Editor preferences",
+                "description": "Control how the editor behaves."
+            },
+            "warnDelete": {
+                "title": "Warn before deleting elements",
+                "description": "Show a confirmation dialog when removing elements."
+            },
+            "bunReplace": {
+                "title": "Enable Bun replace",
+                "description": "Prefer Bun for package management operations."
+            },
+            "build": {
+                "title": "Build configuration",
+                "description": "Flags passed to the build command.",
+                "flagsLabel": "Build flags"
             }
         }
     }

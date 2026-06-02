@@ -90,7 +90,7 @@ export const AccountTab = observer(() => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label className="text-mini">First name</Label>
                         <Input
                             value={firstName}
@@ -99,7 +99,7 @@ export const AccountTab = observer(() => {
                             className="text-small h-8"
                         />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label className="text-mini">Last name</Label>
                         <Input
                             value={lastName}
@@ -110,7 +110,7 @@ export const AccountTab = observer(() => {
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                     <Label className="text-mini">Display name</Label>
                     <Input
                         value={displayName}
@@ -120,7 +120,7 @@ export const AccountTab = observer(() => {
                     />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                     <Label className="text-mini">Email</Label>
                     <Input value={user?.email ?? ''} readOnly disabled className="text-small h-8" />
                     {/* Bug fix #28: Replace the dead-end "Email cannot be changed." line with

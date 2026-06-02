@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Language, LANGUAGE_DISPLAY_NAMES } from '@weblab/constants';
 import { Label } from '@weblab/ui/label';
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@weblab/ui/sonner';
 
 export const LanguageTab = observer(() => {
+    const t = useTranslations();
     const router = useRouter();
     const userSettings = useQuery(api.users.getSettings);
     const updateSettings = useMutation(api.users.updateSettings);
@@ -22,9 +24,9 @@ export const LanguageTab = observer(() => {
             await updateSettings({ locale: value });
             document.cookie = `NEXT_LOCALE=${value}; path=/; max-age=31536000; SameSite=Lax`;
             router.refresh();
-            toast.success('Language updated');
+            toast.success(t('settings.language.updated'));
         } catch {
-            toast.error('Failed to save language preference');
+            toast.error(t('settings.language.saveError'));
         }
     };
 
@@ -32,13 +34,13 @@ export const LanguageTab = observer(() => {
         <div className="divide-border flex flex-col divide-y px-6">
             <section className="space-y-4 py-6">
                 <div>
-                    <h2 className="text-largePlus">Language</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Choose the language for the app UI.
+                    <h2 className="text-largePlus">{t('settings.language.title')}</h2>
+                    <p className="text-regular text-foreground-secondary">
+                        {t('settings.language.description')}
                     </p>
                 </div>
-                <div className="space-y-1.5">
-                    <Label className="text-mini">Display language</Label>
+                <div className="space-y-2">
+                    <Label className="text-mini">{t('settings.language.displayLabel')}</Label>
                     <Select value={currentLocale} onValueChange={(v) => void handleChange(v)}>
                         <SelectTrigger className="w-60">
                             <SelectValue />
@@ -52,8 +54,8 @@ export const LanguageTab = observer(() => {
                         </SelectContent>
                     </Select>
                 </div>
-                <p className="text-mini text-foreground-tertiary">
-                    Language change applies immediately.
+                <p className="text-mini text-foreground-secondary">
+                    {t('settings.language.appliesImmediately')}
                 </p>
             </section>
         </div>

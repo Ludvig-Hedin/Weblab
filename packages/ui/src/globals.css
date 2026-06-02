@@ -686,12 +686,13 @@
     --background-diff-added: #193323;
     --background-diff-removed: #411d1a;
 
-    /* Status surfaces (kept blue-aliased — visual blocks only; text uses real colors below) */
+    /* Status surfaces — success/positive stay blue-aliased (calm callout blocks);
+       warning is warm-tinted so orange text/icons don't clash with a blue field. */
     --background-positive: #002c52;
     --background-success: #002c52;
     --background-success-secondary: #00518f;
-    --background-warning: #002847;
-    --background-warning-secondary: #00518f;
+    --background-warning: #3a2a12;               /* dark amber tint, mirrors warning text (was blue #002847) */
+    --background-warning-secondary: #4d3818;
 
     /* Canvas editor surfaces (dark mode).
        Chrome + bar share the main app backdrop so the editor reads as a single

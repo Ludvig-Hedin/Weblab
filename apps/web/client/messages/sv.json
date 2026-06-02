@@ -2604,5 +2604,86 @@
                 "dark": "Mörkt"
             }
         }
+    },
+    "settings": {
+        "domain": {
+            "upgrade": {
+                "title": "Egna domäner är en Pro-funktion",
+                "description": "Uppgradera till {app} Pro för att koppla din egen domän.",
+                "cta": "Uppgradera till Pro"
+            },
+            "base": {
+                "title": "Weblab-domän",
+                "label": "Underdomän",
+                "helper": "Din kostnadsfria adress. Välj underdomänen din webbplats publiceras på.",
+                "placeholder": "min-sajt",
+                "save": "Spara",
+                "saved": "Sparade {domain}",
+                "saveError": "Det gick inte att spara underdomänen. Försök igen.",
+                "liveAt": "Live på",
+                "notPublished": "Inte publicerad än — din webbplats blir live här när du publicerar."
+            }
+        },
+        "appearance": {
+            "saveError": "Det gick inte att spara utseendeinställningen",
+            "theme": {
+                "title": "Tema",
+                "description": "Välj ditt föredragna färgschema.",
+                "light": "Ljust",
+                "dark": "Mörkt",
+                "system": "System"
+            },
+            "accent": {
+                "title": "Accentfärg",
+                "description": "Används för aktiva lägen och markeringar.",
+                "blue": "Blå",
+                "red": "Röd",
+                "green": "Grön",
+                "neutral": "Neutral"
+            },
+            "fontFamily": {
+                "title": "Teckensnitt",
+                "description": "Gäller appens gränssnitt, inte ditt projekt.",
+                "sans": "Sans-serif",
+                "serif": "Serif"
+            },
+            "fontSize": {
+                "title": "Textstorlek",
+                "description": "Basstorlek för appens text.",
+                "small": "Liten",
+                "medium": "Mellan",
+                "large": "Stor"
+            }
+        },
+        "language": {
+            "title": "Språk",
+            "description": "Välj språk för appens gränssnitt.",
+            "displayLabel": "Visningsspråk",
+            "updated": "Språket har uppdaterats",
+            "saveError": "Det gick inte att spara språkinställningen",
+            "appliesImmediately": "Språkändringen tillämpas direkt."
+        },
+        "editor": {
+            "saveError": "Det gick inte att spara redigerarinställningarna",
+            "saving": "Sparar…",
+            "saved": "Sparat",
+            "preferences": {
+                "title": "Redigerarinställningar",
+                "description": "Styr hur redigeraren beter sig."
+            },
+            "warnDelete": {
+                "title": "Varna innan element tas bort",
+                "description": "Visa en bekräftelsedialog när element tas bort."
+            },
+            "bunReplace": {
+                "title": "Aktivera Bun-ersättning",
+                "description": "Föredra Bun för pakethantering."
+            },
+            "build": {
+                "title": "Byggkonfiguration",
+                "description": "Flaggor som skickas till byggkommandot.",
+                "flagsLabel": "Byggflaggor"
+            }
+        }
     }
 }

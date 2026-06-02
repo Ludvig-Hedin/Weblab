@@ -38,7 +38,11 @@ export const _previewCreate = internalMutation({
     args: { projectId: v.id('projects') },
     handler: async (ctx, { projectId }): Promise<{ domain: string }> => {
         await requireCap(ctx, 'project.publish', { projectId });
-        const domain = `${slugifyForSubdomain(projectId)}.${NEXT_PUBLIC_HOSTING_DOMAIN}`;
+        // Honor a user-chosen subdomain (domains.setPreviewSlug); otherwise fall
+        // back to a slug derived from the project id.
+        const project = await ctx.db.get(projectId);
+        const slug = project?.previewSlug ?? slugifyForSubdomain(projectId);
+        const domain = `${slug}.${NEXT_PUBLIC_HOSTING_DOMAIN}`;
 
         const collision = await ctx.db
             .query('previewDomains')

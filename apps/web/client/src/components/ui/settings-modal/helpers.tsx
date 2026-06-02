@@ -13,6 +13,8 @@ export enum SettingsTabValue {
     // Project tabs
     SITE = 'site',
     DOMAIN = 'domain',
+    SITE_ACCESS = 'site access',
+    SEO = 'seo',
     PROJECT = 'project',
     VERSIONS = 'versions',
 }

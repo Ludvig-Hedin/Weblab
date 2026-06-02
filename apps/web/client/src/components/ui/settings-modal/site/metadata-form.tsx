@@ -43,6 +43,9 @@ interface MetadataFormProps {
     onDescriptionChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
     onImageSelect: (file: File) => void;
     onFaviconSelect?: (file: File) => void;
+    onFaviconDarkSelect?: (file: File) => void;
+    faviconUrl?: string;
+    faviconDarkUrl?: string;
     onDiscard: () => void;
     onSave: () => void;
     showFavicon?: boolean;
@@ -86,6 +89,9 @@ export const MetadataForm = ({
     onDescriptionChange,
     onImageSelect,
     onFaviconSelect,
+    onFaviconDarkSelect,
+    faviconUrl,
+    faviconDarkUrl,
     onDiscard,
     onSave,
     showFavicon = false,
@@ -104,10 +110,12 @@ export const MetadataForm = ({
 }: MetadataFormProps) => {
     const imagePickerRef = useRef<ImagePickerRef>(null);
     const faviconRef = useRef<FaviconRef>(null);
+    const faviconDarkRef = useRef<FaviconRef>(null);
 
     const handleDiscard = () => {
         imagePickerRef.current?.reset();
         faviconRef.current?.reset();
+        faviconDarkRef.current?.reset();
         onDiscard();
     };
 
@@ -138,7 +146,7 @@ export const MetadataForm = ({
                         </div>
                         <Input
                             placeholder="Default title"
-                            value={titleObject.default || ''}
+                            value={titleObject.default ?? ''}
                             className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                             onChange={onTitleChange}
                             disabled={disabled}
@@ -154,7 +162,7 @@ export const MetadataForm = ({
                             </div>
                             <Input
                                 placeholder="Absolute title"
-                                value={titleObject.absolute || ''}
+                                value={titleObject.absolute ?? ''}
                                 className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                                 onChange={onTitleAbsoluteChange}
                                 disabled={disabled}
@@ -171,7 +179,7 @@ export const MetadataForm = ({
                             </div>
                             <Input
                                 placeholder="%s | My Site"
-                                value={titleObject.template || ''}
+                                value={titleObject.template ?? ''}
                                 className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                                 onChange={onTitleTemplateChange}
                                 disabled={disabled}
@@ -319,15 +327,40 @@ export const MetadataForm = ({
                             <div className="text-foreground-secondary max-w-52">
                                 <p className="text-regular font-medium">Favicon</p>
                                 <p className="text-small">
-                                    This is the small icon that shows up in search engines and in
-                                    your browser. It should be 64 × 64 pixels.
+                                    The small icon shown in browser tabs and search results (64 × 64
+                                    px). Add a separate dark-mode version if your icon needs more
+                                    contrast on dark backgrounds.
                                 </p>
                             </div>
-                            <Favicon
-                                ref={faviconRef}
-                                onImageSelect={onFaviconSelect!}
-                                url={currentMetadata?.icons?.icon?.toString()}
-                            />
+                            <div className="flex flex-wrap gap-4">
+                                <div className="flex flex-col items-center gap-1">
+                                    <Favicon
+                                        ref={faviconRef}
+                                        onImageSelect={onFaviconSelect!}
+                                        url={
+                                            faviconUrl ??
+                                            (typeof currentMetadata?.icons?.icon === 'string'
+                                                ? currentMetadata.icons.icon
+                                                : undefined)
+                                        }
+                                    />
+                                    <span className="text-mini text-foreground-secondary">
+                                        Light
+                                    </span>
+                                </div>
+                                {onFaviconDarkSelect && (
+                                    <div className="flex flex-col items-center gap-1">
+                                        <Favicon
+                                            ref={faviconDarkRef}
+                                            onImageSelect={onFaviconDarkSelect}
+                                            url={faviconDarkUrl}
+                                        />
+                                        <span className="text-mini text-foreground-secondary">
+                                            Dark
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

@@ -52,6 +52,7 @@ import type * as lib_imageLimits from "../lib/imageLimits.js";
 import type * as lib_passwordHash from "../lib/passwordHash.js";
 import type * as lib_permissions from "../lib/permissions.js";
 import type * as lib_personalWorkspace from "../lib/personalWorkspace.js";
+import type * as lib_previewSlug from "../lib/previewSlug.js";
 import type * as lib_providerTokens from "../lib/providerTokens.js";
 import type * as lib_publishHelpers from "../lib/publishHelpers.js";
 import type * as lib_publishManager from "../lib/publishManager.js";
@@ -138,6 +139,7 @@ declare const fullApi: ApiFromModules<{
   "lib/passwordHash": typeof lib_passwordHash;
   "lib/permissions": typeof lib_permissions;
   "lib/personalWorkspace": typeof lib_personalWorkspace;
+  "lib/previewSlug": typeof lib_previewSlug;
   "lib/providerTokens": typeof lib_providerTokens;
   "lib/publishHelpers": typeof lib_publishHelpers;
   "lib/publishManager": typeof lib_publishManager;
