@@ -99,6 +99,11 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     // the browser paints, eliminating the hydration mismatch that arose when
     // the lazy initialiser diverged between server (false) and mobile client (true).
     const [isMobile, setIsMobile] = useState<boolean>(false);
+    // True for ~250ms after a panel toggle so the bar glide only plays on
+    // toggle, not on every resize-drag tick. Resize-drag fires continuously
+    // while the user drags the panel handle; without this gate the bars trail
+    // 200ms behind the cursor — which feels wrong.
+    const [isPanelToggling, setIsPanelToggling] = useState(false);
 
     // Cold-start watchdog: if startup stalls past STARTUP_STALL_TIMEOUT_MS
     // without the project becoming ready AND without a surfaced error, the
@@ -126,6 +131,22 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, []);
+
+    // Enable the bar glide for a short window after a panel toggle. `panelsHidden`
+    // now drives both panels' collapse (unified toggle), so it's the precise
+    // "panels jumped" signal — distinct from "user is dragging the resize
+    // handle" (which changes width continuously without touching panelsHidden).
+    // useLayoutEffect so the flag commits before the measurement observer
+    // repositions the bars, otherwise the first frame would jump untransitioned.
+    const panelsHidden = editorEngine.state.panelsHidden;
+    const prevPanelsHidden = useRef(panelsHidden);
+    useLayoutEffect(() => {
+        if (prevPanelsHidden.current === panelsHidden) return;
+        prevPanelsHidden.current = panelsHidden;
+        setIsPanelToggling(true);
+        const timer = setTimeout(() => setIsPanelToggling(false), 250);
+        return () => clearTimeout(timer);
+    }, [panelsHidden]);
 
     useEffect(() => {
         function handleGlobalWheel(event: WheelEvent) {
@@ -258,7 +279,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     {/* EditorBar anchored between panels */}
                     <div
                         className={cn(
-                            'absolute top-14 z-49 transition-[left,right,max-width] duration-200 ease-out',
+                            'absolute top-14 z-49',
+                            isPanelToggling &&
+                                'transition-[left,right,max-width] duration-200 ease-out',
                             (isPreview || isCms) && 'hidden',
                         )}
                         style={{
@@ -304,7 +327,8 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     visually centered within the canvas area as panels resize. */}
                     <div
                         className={cn(
-                            'pointer-events-none absolute bottom-0 z-40 flex justify-center transition-[left,right] duration-200 ease-out',
+                            'pointer-events-none absolute bottom-0 z-40 flex justify-center',
+                            isPanelToggling && 'transition-[left,right] duration-200 ease-out',
                             (isPreview || isCms) && 'hidden',
                         )}
                         style={{ left: toolbarLeft, right: toolbarRight }}

@@ -48,10 +48,6 @@ body {
 [data-accent='green']   { --accent: #50c24a; --accent-foreground: #ffffff; }
 [data-accent='neutral'] { --accent: #737373; --accent-foreground: #ffffff; }
 
-/* UI density */
-[data-density='compact']     { --spacing-unit: 0.75; }
-[data-density='comfortable'] { --spacing-unit: 1; }
-
 /* Font size */
 html[data-font-size='small']  { font-size: 13px; }
 html[data-font-size='medium'] { font-size: 14px; }
@@ -71,7 +67,16 @@ html[data-font-family='mono']  { font-family: ui-monospace, 'SF Mono', 'Cascadia
     color: var(--foreground-tertiary);
     pointer-events: none;
     float: left;
-    height: 0;
+    /* Clip long placeholders (e.g. the offline "AI is unavailable…" message) to
+       a single line with an ellipsis instead of wrapping. max-width caps to the
+       editor width; height stays auto (not 0) so the clipped line keeps vertical
+       room — overflow:hidden on a 0-height box would hide the text entirely. The
+       float keeps the caret pinned to the start, and the editor's own min-height
+       means the empty input doesn't change size. */
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 /* TipTap mention chip */

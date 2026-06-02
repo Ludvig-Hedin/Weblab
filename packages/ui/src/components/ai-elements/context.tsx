@@ -100,7 +100,7 @@ const ContextIcon = () => {
 
 export type ContextTriggerProps = ComponentProps<typeof Button>;
 
-export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
+export const ContextTrigger = ({ children, className, ...props }: ContextTriggerProps) => {
     const { usedTokens, maxTokens } = useContextValue();
     const usedPercent = pct(usedTokens, maxTokens);
     const renderedPercent = new Intl.NumberFormat('en-US', {
@@ -111,10 +111,19 @@ export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
     return (
         <HoverCardTrigger asChild data-oid="3bac57f0d9">
             {children ?? (
-                <Button type="button" variant="ghost" {...props} data-oid="d91ff3d708">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    className={cn('group', className)}
+                    {...props}
+                    data-oid="d91ff3d708"
+                >
                     <ContextIcon data-oid="438ddb24c0" />
+                    {/* Percentage is hidden by default and revealed on hover — the
+                        ring icon alone communicates usage at rest; `hidden` keeps
+                        it out of the flex flow so no empty gap is reserved. */}
                     <span
-                        className="text-muted-foreground text-xs font-medium"
+                        className="text-muted-foreground hidden text-xs font-medium group-hover:inline-block group-focus-within:inline-block"
                         data-oid="d85b511f5a"
                     >
                         {renderedPercent}
