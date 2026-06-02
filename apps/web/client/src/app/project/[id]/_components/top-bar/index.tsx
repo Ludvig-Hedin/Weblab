@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -27,7 +26,6 @@ import { PublishButton } from './publish';
 
 export const TopBar = observer(() => {
     const stateManager = useStateManager();
-    const [isMembersPopoverOpen, setIsMembersPopoverOpen] = useState(false);
     const editorEngine = useEditorEngine();
     const t = useTranslations();
 
@@ -117,13 +115,7 @@ export const TopBar = observer(() => {
                     </Tooltip>
                     <DiffButton />
                     <GitActionsButton />
-                    <div className="group flex items-center">
-                        <div
-                            className={`transition-all duration-200 ${isMembersPopoverOpen ? 'mr-2' : '-mr-2 group-hover:mr-2'}`}
-                        >
-                            <Members onPopoverOpenChange={setIsMembersPopoverOpen} />
-                        </div>
-                    </div>
+                    <Members />
                 </div>
 
                 {/* Always visible: avatar + publish */}

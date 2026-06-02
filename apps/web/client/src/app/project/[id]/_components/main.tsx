@@ -257,7 +257,10 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     </div>
                     {/* EditorBar anchored between panels */}
                     <div
-                        className={cn('absolute top-14 z-49', (isPreview || isCms) && 'hidden')}
+                        className={cn(
+                            'absolute top-14 z-49 transition-[left,right,max-width] duration-200 ease-out',
+                            (isPreview || isCms) && 'hidden',
+                        )}
                         style={{
                             left: toolbarLeft,
                             right: toolbarRight,
@@ -301,7 +304,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     visually centered within the canvas area as panels resize. */}
                     <div
                         className={cn(
-                            'pointer-events-none absolute bottom-0 z-40 flex justify-center',
+                            'pointer-events-none absolute bottom-0 z-40 flex justify-center transition-[left,right] duration-200 ease-out',
                             (isPreview || isCms) && 'hidden',
                         )}
                         style={{ left: toolbarLeft, right: toolbarRight }}

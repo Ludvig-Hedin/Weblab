@@ -259,7 +259,7 @@ export const KeyboardShortcutsModal = observer(() => {
             open={editorEngine.state.hotkeysOpen}
             onOpenChange={(open) => editorEngine.state.setHotkeysOpen(open)}
         >
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
                 <DialogHeader>
                     <div className="flex items-start justify-between gap-3">
                         <div>

@@ -38,12 +38,17 @@ const MODE_TOGGLE_ITEMS: {
     { mode: EditorMode.CMS, hotkey: Hotkey.MODE_CMS },
 ];
 
+// Preview is promoted out of the inline tab strip into a dedicated play button
+// (it's an action — "run the site" — not an edit surface). The desktop tabs
+// therefore omit it; the mobile dropdown keeps all four for compactness.
+const DESKTOP_TAB_ITEMS = MODE_TOGGLE_ITEMS.filter((item) => item.mode !== EditorMode.PREVIEW);
+
 export const ModeToggle = observer(() => {
     const t = useTranslations();
     const editorEngine = useEditorEngine();
     const mode = editorEngine.state.editorMode;
 
-    const activeIndex = MODE_TOGGLE_ITEMS.findIndex((item) => item.mode === mode);
+    const activeIndex = DESKTOP_TAB_ITEMS.findIndex((item) => item.mode === mode);
     const safeIndex = activeIndex >= 0 ? activeIndex : 0;
 
     // Measure the active tab's actual rect so the indicator spans the full
@@ -55,6 +60,8 @@ export const ModeToggle = observer(() => {
     const [indicator, setIndicator] = useState<{
         x: number;
         width: number;
+        top: number;
+        height: number;
     } | null>(null);
 
     useLayoutEffect(() => {
@@ -63,7 +70,12 @@ export const ModeToggle = observer(() => {
         if (!group || !item) return;
         const groupRect = group.getBoundingClientRect();
         const itemRect = item.getBoundingClientRect();
-        setIndicator({ x: itemRect.left - groupRect.left, width: itemRect.width });
+        setIndicator({
+            x: itemRect.left - groupRect.left,
+            width: itemRect.width,
+            top: itemRect.top - groupRect.top,
+            height: itemRect.height,
+        });
         // `mode` would be redundant — `safeIndex` is derived synchronously
         // from `mode`, so both always change in the same render.
     }, [safeIndex]);
@@ -79,6 +91,8 @@ export const ModeToggle = observer(() => {
             setIndicator({
                 x: itemRect.left - groupRect.left,
                 width: itemRect.width,
+                top: itemRect.top - groupRect.top,
+                height: itemRect.height,
             });
         });
         ro.observe(group);
@@ -129,71 +143,89 @@ export const ModeToggle = observer(() => {
                 </DropdownMenu>
             </div>
 
-            {/* Desktop: inline toggle group */}
-            <div ref={groupRef} className="relative hidden md:block">
-                <ToggleGroup
-                    // border-0 + rounded-none strip the ToggleGroup primitive's
-                    // default border/radius so the mode tabs read as a flat
-                    // header control, not a boxed segmented control.
-                    className="mt-1 h-7 rounded-none border-0 font-normal"
-                    type="single"
-                    value={mode}
-                    onValueChange={(value) => {
-                        if (value) {
-                            editorEngine.state.setEditorMode(value as EditorMode);
-                        }
-                    }}
-                >
-                    {MODE_TOGGLE_ITEMS.map((item, idx) => (
-                        <Tooltip key={item.mode}>
-                            <TooltipTrigger asChild>
-                                <ToggleGroupItem
-                                    ref={(el) => {
-                                        itemRefs.current[idx] = el;
-                                    }}
-                                    value={item.mode}
-                                    aria-label={item.hotkey.description}
-                                    // Preserve the onboarding-tour anchor that
-                                    // previously lived on the play-icon button so
-                                    // first-run tooltips still point at Preview.
-                                    data-tour={
-                                        item.mode === EditorMode.PREVIEW
-                                            ? 'preview-button'
-                                            : undefined
-                                    }
-                                    className={cn(
-                                        'text-small cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-colors duration-150 ease-in-out',
-                                        mode === item.mode
-                                            ? 'text-foreground-active hover:text-foreground-active hover:bg-transparent'
-                                            : 'text-foreground-tertiary hover:text-foreground-secondary hover:bg-transparent',
-                                    )}
-                                >
-                                    {modeLabel(item.mode)}
-                                </ToggleGroupItem>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="mt-0" hideArrow>
-                                <HotkeyLabel hotkey={item.hotkey} />
-                            </TooltipContent>
-                        </Tooltip>
-                    ))}
-                </ToggleGroup>
-                <motion.div
-                    className="bg-foreground-active absolute -top-1 h-0.5 rounded-full"
-                    initial={false}
-                    animate={{
-                        // Hide the indicator (opacity 0) until the first
-                        // measurement lands so it doesn't flash from {x:0,
-                        // width:0} → measured rect on initial mount.
-                        width: indicator?.width ?? 0,
-                        x: indicator?.x ?? 0,
-                        opacity: indicator ? 1 : 0,
-                    }}
-                    transition={{
-                        type: 'tween',
-                        ease: 'easeInOut',
-                        duration: 0.2,
-                    }}
-                />
+            {/* Desktop: inline toggle group + dedicated Preview play button */}
+            <div className="hidden items-center gap-1 md:flex">
+                <div ref={groupRef} className="relative">
+                    {/* Active-tab plate — a rounded fill that glides between tabs.
+                        Rendered before the items so it paints behind them; the
+                        labels sit on top (relative z-10) and stay readable. */}
+                    <motion.div
+                        className="bg-background-bar-active pointer-events-none absolute rounded-md"
+                        initial={false}
+                        style={{ top: indicator?.top ?? 0, height: indicator?.height ?? 0 }}
+                        animate={{
+                            // Hidden (opacity 0) until the first measurement lands
+                            // so it doesn't flash from {x:0,width:0} on mount.
+                            width: indicator?.width ?? 0,
+                            x: indicator?.x ?? 0,
+                            opacity: indicator ? 1 : 0,
+                        }}
+                        transition={{
+                            type: 'tween',
+                            ease: 'easeInOut',
+                            duration: 0.2,
+                        }}
+                    />
+                    <ToggleGroup
+                        // border-0 + rounded-none strip the ToggleGroup primitive's
+                        // default border/radius so the mode tabs read as a flat
+                        // header control, not a boxed segmented control.
+                        className="h-7 rounded-none border-0 font-normal"
+                        type="single"
+                        value={mode}
+                        onValueChange={(value) => {
+                            if (value) {
+                                editorEngine.state.setEditorMode(value as EditorMode);
+                            }
+                        }}
+                    >
+                        {DESKTOP_TAB_ITEMS.map((item, idx) => (
+                            <Tooltip key={item.mode}>
+                                <TooltipTrigger asChild>
+                                    <ToggleGroupItem
+                                        ref={(el) => {
+                                            itemRefs.current[idx] = el;
+                                        }}
+                                        value={item.mode}
+                                        aria-label={item.hotkey.description}
+                                        className={cn(
+                                            'text-small relative z-10 cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-colors duration-150 ease-in-out',
+                                            mode === item.mode
+                                                ? 'text-foreground-active hover:text-foreground-active hover:bg-transparent'
+                                                : 'text-foreground-tertiary hover:text-foreground-secondary hover:bg-transparent',
+                                        )}
+                                    >
+                                        {modeLabel(item.mode)}
+                                    </ToggleGroupItem>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="mt-0" hideArrow>
+                                    <HotkeyLabel hotkey={item.hotkey} />
+                                </TooltipContent>
+                            </Tooltip>
+                        ))}
+                    </ToggleGroup>
+                </div>
+
+                {/* Preview — promoted out of the tab strip into a play button.
+                    Keeps the onboarding-tour anchor so first-run tooltips still
+                    point here. */}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            data-tour="preview-button"
+                            aria-label={Hotkey.PREVIEW.description}
+                            onClick={() => editorEngine.state.setEditorMode(EditorMode.PREVIEW)}
+                            className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-7 w-7 rounded-md"
+                        >
+                            <Icons.Play className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="mt-0" hideArrow>
+                        <HotkeyLabel hotkey={Hotkey.PREVIEW} />
+                    </TooltipContent>
+                </Tooltip>
             </div>
         </div>
     );

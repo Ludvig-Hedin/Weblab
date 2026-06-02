@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { observer } from 'mobx-react-lite';
+import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { LeftPanelTabValue } from '@weblab/models';
@@ -192,7 +193,10 @@ export const DesignPanel = observer(() => {
                                 setIsCollapsed(false);
                             }}
                         >
-                            <Icons.SidebarLeftExpand className="h-5 w-5" />
+                            {/* size-5 (not h-5 w-5) so the Button icon-size rule
+                                doesn't shrink it to 16px — matches the open-state
+                                rail collapse button's 20px icon exactly. */}
+                            <Icons.SidebarLeftExpand className="size-5" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="right" hideArrow>
@@ -258,7 +262,17 @@ export const DesignPanel = observer(() => {
     );
 
     return (
-        <div className="flex h-full overflow-auto" onMouseLeave={handleMouseLeave}>
+        // Short slide+fade so expanding the panel reads as a smooth open rather
+        // than a hard pop. Plays on collapse→expand (the open tree mounts) and
+        // on first paint; tab/hover switches keep this wrapper mounted so they
+        // don't replay it.
+        <motion.div
+            className="flex h-full overflow-auto"
+            onMouseLeave={handleMouseLeave}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+        >
             {/* Left sidebar with tabs */}
             <div className="bg-background-chrome border-border-bar flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
                 {/* Collapse toggle pinned to the top of the rail — occupies the
@@ -269,7 +283,9 @@ export const DesignPanel = observer(() => {
                         <button
                             aria-label={t(transKeys.editor.panels.layers.rail.collapsePanel)}
                             className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
-                            onClick={() => setIsCollapsed(true)}
+                            // TEMP: left toggle now collapses BOTH panels (right
+                            // toggle is hidden). Revert → `onClick={() => setIsCollapsed(true)}`.
+                            onClick={() => editorEngine.state.togglePanelsHidden()}
                         >
                             <Icons.SidebarLeftCollapse className="h-5 w-5" />
                         </button>
@@ -346,6 +362,6 @@ export const DesignPanel = observer(() => {
                     {!isLocked && <div className="h-full w-24" />}
                 </>
             )}
-        </div>
+        </motion.div>
     );
 });
