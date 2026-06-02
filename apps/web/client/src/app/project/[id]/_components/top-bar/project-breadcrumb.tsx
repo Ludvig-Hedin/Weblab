@@ -14,7 +14,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -137,7 +136,12 @@ export const ProjectBreadcrumb = observer(() => {
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="ghost"
-                        className="text-foreground-weblab text-small hover:text-foreground-active group ml-1 cursor-pointer gap-2 px-0 hover:!bg-transparent"
+                        className={cn(
+                            'text-foreground-weblab text-small hover:text-foreground-active group -ml-0.5 cursor-pointer gap-2 px-1.5',
+                            isDropdownOpen
+                                ? 'bg-background-secondary hover:!bg-background-secondary'
+                                : 'hover:!bg-transparent',
+                        )}
                     >
                         <Icons.WeblabLogo
                             className={cn(
@@ -180,9 +184,7 @@ export const ProjectBreadcrumb = observer(() => {
                             </div>
                         </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <RecentProjectsMenu />
-                    <DropdownMenuSeparator />
                     <NewProjectMenu onShowCloneDialog={setShowCloneDialog} />
                     <DropdownMenuItem
                         onClick={() => {
@@ -224,7 +226,6 @@ export const ProjectBreadcrumb = observer(() => {
                                 : t(transKeys.projects.actions.downloadToFolder)}
                         </div>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                         className="cursor-pointer"
                         onClick={() => stateManager.setIsSettingsModalOpen(true)}
