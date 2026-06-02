@@ -31,6 +31,15 @@ const MAX_Y = 10000;
 const MIN_X = -5000;
 const MIN_Y = -5000;
 
+// Custom cursor for COMMENT mode — lucide `MessageCirclePlus` baked into an SVG
+// data-URI so it works as a CSS cursor (no asset request). Filled brand blue +
+// white plus, with a white outline so it stays legible over any frame content.
+// Hotspot sits at the bubble tail (bottom-left) where the pin will be placed.
+const COMMENT_CURSOR_SVG = encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" fill="#0169cc" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 12h8M12 8v8" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>`,
+);
+const COMMENT_CURSOR = `url("data:image/svg+xml,${COMMENT_CURSOR_SVG}") 3 26, crosshair`;
+
 export const Canvas = observer(() => {
     const editorEngine = useEditorEngine();
     const containerRef = useRef<HTMLDivElement>(null);
@@ -432,8 +441,15 @@ export const Canvas = observer(() => {
                     // the page, so suppress them in PREVIEW mode.
                     editorEngine.state.editorMode !== EditorMode.PREVIEW &&
                         'border-border-canvas border-t border-r border-l',
-                    editorEngine.state.editorMode === EditorMode.COMMENT && 'cursor-crosshair',
                 )}
+                // COMMENT mode shows a custom comment cursor (MessageCirclePlus)
+                // instead of the default crosshair; falls back to crosshair if the
+                // browser rejects SVG data-URI cursors.
+                style={
+                    editorEngine.state.editorMode === EditorMode.COMMENT
+                        ? { cursor: COMMENT_CURSOR }
+                        : undefined
+                }
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}
                 onMouseUp={handleCanvasMouseUp}

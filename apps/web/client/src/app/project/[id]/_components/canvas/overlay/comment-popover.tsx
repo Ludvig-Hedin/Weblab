@@ -188,46 +188,45 @@ export const CommentPopover = observer(() => {
             className="pointer-events-auto absolute z-50"
             style={{ left, top, width: POPOVER_WIDTH }}
         >
-            <div className="border-border bg-background/95 overflow-hidden rounded-xl border shadow-xl backdrop-blur-xl">
-                {/* New comment form — inline submit button */}
-                {pendingPlacement && !activeComment && (
-                    <div className="p-2">
-                        <div className="border-border focus-within:border-foreground/20 focus-within:ring-foreground/15 bg-background-secondary flex items-end gap-1.5 rounded-lg border transition-all focus-within:ring-1">
-                            <textarea
-                                ref={newCommentInputRef}
-                                value={newCommentText}
-                                onChange={(e) => setNewCommentText(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                        e.preventDefault();
-                                        handleSubmitNew();
-                                    }
-                                    if (e.key === 'Escape') {
-                                        editorEngine.comment.setPendingPlacement(null);
-                                        setNewCommentText('');
-                                    }
-                                }}
-                                placeholder="Add a comment..."
-                                rows={2}
-                                className="text-foreground-primary placeholder:text-foreground-tertiary text-small min-w-0 flex-1 resize-none bg-transparent px-2.5 pt-2 pb-1.5 focus:outline-none"
-                                disabled={isSubmitting}
-                            />
-                            <Button
-                                variant="default"
-                                size="icon"
-                                onClick={handleSubmitNew}
-                                disabled={!newCommentText.trim() || isSubmitting}
-                                className="mr-1.5 mb-1.5 h-7 w-7 flex-shrink-0 rounded-md"
-                                aria-label="Post comment"
-                            >
-                                <Icons.ArrowRight className="h-3.5 w-3.5" />
-                            </Button>
-                        </div>
-                    </div>
-                )}
+            {/* New comment form — a single clean input (bg + subtle border),
+                no surrounding card. Mirrors Framer's comment composer. */}
+            {pendingPlacement && !activeComment && (
+                <div className="bg-background-secondary border-border focus-within:border-foreground/25 flex items-end gap-1.5 rounded-xl border shadow-lg transition-colors">
+                    <textarea
+                        ref={newCommentInputRef}
+                        value={newCommentText}
+                        onChange={(e) => setNewCommentText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                e.preventDefault();
+                                handleSubmitNew();
+                            }
+                            if (e.key === 'Escape') {
+                                editorEngine.comment.setPendingPlacement(null);
+                                setNewCommentText('');
+                            }
+                        }}
+                        placeholder="Add a comment..."
+                        rows={2}
+                        className="text-foreground-primary placeholder:text-foreground-tertiary text-small min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 focus:outline-none"
+                        disabled={isSubmitting}
+                    />
+                    <Button
+                        variant="default"
+                        size="icon-sm"
+                        onClick={handleSubmitNew}
+                        disabled={!newCommentText.trim() || isSubmitting}
+                        className="m-1.5 flex-shrink-0 rounded-md"
+                        aria-label="Post comment"
+                    >
+                        <Icons.ArrowUp className="h-3.5 w-3.5" />
+                    </Button>
+                </div>
+            )}
 
-                {/* Existing comment view */}
-                {activeComment && (
+            {/* Existing comment view */}
+            {activeComment && (
+                <div className="border-border bg-background/95 overflow-hidden rounded-xl border shadow-xl backdrop-blur-xl">
                     <div className="flex max-h-96 flex-col overflow-y-auto">
                         {/* Main comment */}
                         <div className="border-border/50 border-b p-3">
@@ -480,8 +479,8 @@ export const CommentPopover = observer(() => {
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 });
