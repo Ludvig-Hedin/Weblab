@@ -7,6 +7,20 @@ import { ClientTool } from '../models/client';
 import { isCommandAvailable, resolveDirectoryPath, safeRunCommand } from '../shared/helpers/files';
 import { BRANCH_ID_SCHEMA } from '../shared/type';
 
+/**
+ * Normalize an agent-supplied directory path to the editor's local synced
+ * filesystem, which is rooted at `/` (project root) and excludes
+ * node_modules/.next/.git. Strips the in-sandbox PROJECT_ROOT prefix
+ * (`/vercel/sandbox`) and a leading `./`, and guarantees a leading slash.
+ */
+function toLocalDir(p?: string): string {
+    if (!p || p === '.' || p === './' || p === '') return '/';
+    let s = p.replace(/^\/?vercel\/sandbox\/?/, '/').replace(/^\.\//, '/');
+    if (!s.startsWith('/')) s = '/' + s;
+    s = s.replace(/\/+$/, '');
+    return s || '/';
+}
+
 export class ListFilesTool extends ClientTool {
     static readonly toolName = 'list_files';
     static readonly description =
@@ -43,6 +57,37 @@ export class ListFilesTool extends ClientTool {
         const sandbox = editorEngine.branches.getSandboxById(args.branchId);
         if (!sandbox) {
             throw new Error(`Sandbox not found for branch ID: ${args.branchId}`);
+        }
+
+        // Fast path: read the already-synced local filesystem instead of running
+        // ~10 sequential remote shell commands over the sandbox WS (pwd, which,
+        // test, realpath, find …). Each is a slow Vercel `runCommand` round-trip,
+        // so a single directory list could take minutes. The sync mirrors the
+        // sandbox project tree (minus node_modules/.next/.git), so local reads
+        // are instant and correct for the editor's working set.
+        try {
+            const localEntries = await sandbox.readDir(toLocalDir(args.path));
+            if (localEntries && localEntries.length > 0) {
+                return localEntries
+                    .filter((e) => args.show_hidden || !e.name.startsWith('.'))
+                    .filter((e) => !args.file_types_only || !e.isDirectory)
+                    .map((e) => ({
+                        path: e.name,
+                        type: (e.isDirectory ? 'directory' : 'file') as 'file' | 'directory',
+                        size: typeof e.size === 'number' ? e.size : undefined,
+                        modified: e.modifiedTime ? new Date(e.modifiedTime).toISOString() : undefined,
+                    }))
+                    .sort((a, b) =>
+                        a.type !== b.type
+                            ? a.type === 'directory'
+                                ? -1
+                                : 1
+                            : a.path.localeCompare(b.path),
+                    );
+            }
+        } catch {
+            // Local FS miss (path outside the synced tree, or FS not ready yet)
+            // — fall through to the remote command-based listing below.
         }
 
         try {
