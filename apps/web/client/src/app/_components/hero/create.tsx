@@ -458,17 +458,17 @@ export const Create = observer(
                     submitTooltip={!userId ? t('signInTooltip') : undefined}
                     leftControls={
                         <div className="flex items-center gap-1">
-                            <ModelSelector
-                                value={selectedModel}
-                                onChange={setSelectedModel}
-                                localModels={[]}
-                                localModelsLoading={false}
-                            />
                             <ChatModeToggle
                                 chatMode={chatMode}
                                 onChatModeChange={setChatMode}
                                 modes={[ChatType.EDIT, ChatType.PLAN]}
                                 disabled={isCreatingProject}
+                            />
+                            <ModelSelector
+                                value={selectedModel}
+                                onChange={setSelectedModel}
+                                localModels={[]}
+                                localModelsLoading={false}
                             />
                         </div>
                     }

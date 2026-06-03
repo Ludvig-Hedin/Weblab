@@ -305,63 +305,79 @@ function ModelsVisual() {
                 </div>
             </div>
 
-            {/* Dropdown — anchored just below the model chip, overlapping composer bottom */}
-            <div
-                className={cn(
-                    'relative z-20 -mt-1 ml-[15px] w-[176px] rounded-[12px] border p-1',
-                    'border-black/[0.08] bg-white shadow-[0_12px_32px_-12px_rgba(0,0,0,0.28)]',
-                    'dark:border-white/[0.1] dark:bg-[#1C1C1D] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)]',
-                )}
-            >
-                {MODELS.map((m) => {
-                    const isActive = m.key === active;
-                    return (
-                        <button
-                            key={m.key}
-                            type="button"
-                            onClick={() => setActive(m.key)}
-                            className={cn(
-                                'group/m relative flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors',
-                                'hover:bg-black/[0.04] dark:hover:bg-white/[0.04]',
-                            )}
-                        >
-                            {isActive && (
-                                <motion.span
-                                    layoutId="trio-model-bg"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 32,
-                                        mass: 0.45,
-                                    }}
-                                    className="pointer-events-none absolute inset-0 rounded-[8px] bg-black/[0.05] dark:bg-white/[0.06]"
-                                    aria-hidden
-                                />
-                            )}
-                            <m.Icon
+            {/* Dropdown — anchored just below the model chip, overlapping composer bottom.
+                Host clips overflow + centers, so this stays in normal flow. An invisible
+                clone of the Build chip (+ the inter-chip gap) offsets the dropdown so its
+                left edge lines up with the model chip rather than the Build chip — robust
+                to font metrics since it mirrors the real chip's markup. */}
+            <div className="relative z-20 -mt-1 flex pl-[9px]">
+                <span
+                    aria-hidden
+                    className="invisible mr-1.5 inline-flex shrink-0 items-center gap-1 self-start rounded-md px-1.5 py-0.5 text-[10px]"
+                >
+                    <span className="inline-flex h-3 w-3 items-center justify-center text-[13px] leading-none">
+                        ∞
+                    </span>
+                    Build
+                    <Icons.ChevronDown className="h-2.5 w-2.5" />
+                </span>
+                <div
+                    className={cn(
+                        'w-[176px] rounded-[12px] border p-1',
+                        'border-black/[0.08] bg-white shadow-[0_12px_32px_-12px_rgba(0,0,0,0.28)]',
+                        'dark:border-white/[0.1] dark:bg-[#1C1C1D] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)]',
+                    )}
+                >
+                    {MODELS.map((m) => {
+                        const isActive = m.key === active;
+                        return (
+                            <button
+                                key={m.key}
+                                type="button"
+                                onClick={() => setActive(m.key)}
                                 className={cn(
-                                    'relative h-3 w-3 shrink-0',
-                                    isActive
-                                        ? 'text-black/80 dark:text-white/85'
-                                        : 'text-black/50 dark:text-white/50',
-                                )}
-                            />
-                            <span
-                                className={cn(
-                                    'relative flex-1 text-[11px] leading-tight tracking-tight',
-                                    isActive
-                                        ? 'text-black dark:text-white'
-                                        : 'text-black/65 dark:text-white/65',
+                                    'group/m relative flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors',
+                                    'hover:bg-black/[0.04] dark:hover:bg-white/[0.04]',
                                 )}
                             >
-                                {m.name}
-                            </span>
-                            {isActive && (
-                                <Icons.Check className="relative h-3 w-3 text-black/70 dark:text-white/75" />
-                            )}
-                        </button>
-                    );
-                })}
+                                {isActive && (
+                                    <motion.span
+                                        layoutId="trio-model-bg"
+                                        transition={{
+                                            type: 'spring',
+                                            stiffness: 380,
+                                            damping: 32,
+                                            mass: 0.45,
+                                        }}
+                                        className="pointer-events-none absolute inset-0 rounded-[8px] bg-black/[0.05] dark:bg-white/[0.06]"
+                                        aria-hidden
+                                    />
+                                )}
+                                <m.Icon
+                                    className={cn(
+                                        'relative h-3 w-3 shrink-0',
+                                        isActive
+                                            ? 'text-black/80 dark:text-white/85'
+                                            : 'text-black/50 dark:text-white/50',
+                                    )}
+                                />
+                                <span
+                                    className={cn(
+                                        'relative flex-1 text-[11px] leading-tight tracking-tight',
+                                        isActive
+                                            ? 'text-black dark:text-white'
+                                            : 'text-black/65 dark:text-white/65',
+                                    )}
+                                >
+                                    {m.name}
+                                </span>
+                                {isActive && (
+                                    <Icons.Check className="relative h-3 w-3 text-black/70 dark:text-white/75" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
