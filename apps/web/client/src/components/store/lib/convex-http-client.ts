@@ -33,6 +33,30 @@ export function getConvexHttpClient(): ConvexHttpClient {
     return singleton;
 }
 
+// ─── Auth readiness ──────────────────────────────────────────────────────────
+// Protected one-shot queries (e.g. CommentManager on editor mount) can race the
+// auth bridge: if they fire before `setConvexAuthFetcher` has attached the Clerk
+// token, Convex returns UNAUTHORIZED and the caller may give up permanently.
+// `whenConvexAuthReady()` lets such callers await the first token attach (or a
+// short grace timeout, so a missing/late bridge never hangs the editor).
+let resolveAuthReady: (() => void) | null = null;
+const authReadyPromise: Promise<void> = new Promise<void>((resolve) => {
+    resolveAuthReady = resolve;
+});
+function markConvexAuthReady(): void {
+    resolveAuthReady?.();
+}
+// Safety net: never block protected queries forever if the auth bridge never
+// mounts — fall through (unauthenticated) after a short grace period.
+if (typeof window !== 'undefined') {
+    setTimeout(markConvexAuthReady, 5_000);
+}
+
+/** Resolves once a Clerk token has been attached (or cleared) at least once. */
+export function whenConvexAuthReady(): Promise<void> {
+    return authReadyPromise;
+}
+
 /**
  * Wire a Clerk JWT fetcher into the singleton. Called by the
  * `<ConvexAuthBridge>` component (mounted under ClerkProvider) once on
@@ -47,6 +71,7 @@ export function setConvexAuthFetcher(
     const client = getConvexHttpClient();
     if (!fetcher) {
         client.clearAuth();
+        markConvexAuthReady();
         return;
     }
     // `ConvexHttpClient.setAuth` expects a string token. Fetch the latest and
@@ -61,5 +86,9 @@ export function setConvexAuthFetcher(
         .catch((err: unknown) => {
             console.error('[convex-http-client] token fetch failed:', err);
             client.clearAuth();
+        })
+        .finally(() => {
+            // Unblock any query awaiting the first token attach, success or not.
+            markConvexAuthReady();
         });
 }

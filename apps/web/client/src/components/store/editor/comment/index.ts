@@ -4,7 +4,10 @@ import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { EditorEngine } from '../engine';
 import type { Id } from '@convex/_generated/dataModel';
-import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
+import {
+    getConvexHttpClient,
+    whenConvexAuthReady,
+} from '@/components/store/lib/convex-http-client';
 
 // Convex stores comments/replies with `_id` + numeric epoch timestamps; the
 // editor was written against the Drizzle shape (`id`, `Date`). Normalise once
@@ -233,6 +236,10 @@ export class CommentManager {
             this.isLoading = true;
         });
         try {
+            // Wait for the Clerk token to attach to the shared client before the
+            // first protected query — otherwise this races the auth bridge on
+            // editor mount, gets UNAUTHORIZED, and permanently disables comments.
+            await whenConvexAuthReady();
             const convexProjectId = projectId as Id<'projects'>;
             const result = (await this.convex.query(convexApi.comments.list, {
                 projectId: convexProjectId,
