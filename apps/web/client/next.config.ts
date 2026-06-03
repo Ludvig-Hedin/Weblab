@@ -130,9 +130,14 @@ const nextConfig: NextConfig = {
                             // must not advertise that any visitor's localhost is reachable from
                             // this origin — XSS injected into a prod page could otherwise probe
                             // / attack the user's local Ollama instance.
+                            // Dev also needs the local Fastify sandbox server's
+                            // INSECURE WebSocket (`ws://localhost:8080`, see
+                            // sandbox-server-client.ts). Prod uses `wss:` (already
+                            // allowed); without the `ws://` origins here the editor's
+                            // sandbox WS is CSP-blocked and previews never boot.
                             process.env.NODE_ENV === 'production'
                                 ? "connect-src 'self' https: wss:"
-                                : "connect-src 'self' https: wss: http://localhost:11434 http://127.0.0.1:11434",
+                                : "connect-src 'self' https: wss: ws://localhost:8080 ws://127.0.0.1:8080 http://localhost:11434 http://127.0.0.1:11434",
                             "frame-src 'self' https:",
                             "media-src 'self' blob: https:",
                             "worker-src 'self' blob:",

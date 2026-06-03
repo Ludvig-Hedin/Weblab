@@ -17,6 +17,7 @@
 //   await client.sandbox.fileRead.query({ sandboxId, path });
 
 import { createTRPCClient, createWSClient, wsLink } from '@trpc/client';
+import superjson from 'superjson';
 
 import type { AppRouter } from '@weblab/web-server/src/router';
 
@@ -37,15 +38,18 @@ function resolveServerUrl(): string {
     const explicit = env.NEXT_PUBLIC_SANDBOX_SERVER_URL;
     if (explicit) {
         // Convert http(s):// → ws(s):// if user passed a plain URL.
-        return explicit.replace(/^http/, 'ws').replace(/\/$/, '') + '/api/trpc';
+        return explicit.replace(/^http/, 'ws').replace(/\/$/, '') + '/trpc';
     }
-    // Dev fallback — apps/web/server defaults to port 8080.
+    // Dev fallback — apps/web/server defaults to port 8080. The `/trpc` path
+    // MUST match `editorServerConfig.prefix` (packages/rpc/src/trpc/config.ts) —
+    // a mismatch here (it was `/api/trpc`) makes every WS upgrade 404, so the
+    // editor never reaches the sandbox server and previews 502 forever.
     if (typeof window !== 'undefined') {
         const isSecure = window.location.protocol === 'https:';
         const host = window.location.hostname;
-        return `${isSecure ? 'wss' : 'ws'}://${host}:8080/api/trpc`;
+        return `${isSecure ? 'wss' : 'ws'}://${host}:8080/trpc`;
     }
-    return 'ws://localhost:8080/api/trpc';
+    return 'ws://localhost:8080/trpc';
 }
 
 export function getSandboxServerClient() {
@@ -64,8 +68,10 @@ export function getSandboxServerClient() {
         retryDelayMs: (attempt: number) => Math.min(30_000, 500 * 2 ** attempt),
     });
     cachedClient = createTRPCClient<AppRouter>({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        links: [wsLink({ client: wsClient, transformer: undefined as any })],
+        // superjson MUST match the server's transformer (apps/web/server
+        // src/router/trpc.ts uses superjson). Mismatch → every response fails
+        // with `TransformResultError: Unable to transform response from server`.
+        links: [wsLink({ client: wsClient, transformer: superjson })],
     });
     return cachedClient;
 }

@@ -21,7 +21,7 @@
     },
     "apps/desktop": {
       "name": "@weblab/desktop",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "dependencies": {
         "electron-updater": "^6.3.9",
       },
@@ -187,6 +187,7 @@
         "server-only": "^0.0.1",
         "shiki": "^4.0.2",
         "strip-ansi": "^7.1.0",
+        "superjson": "^2.2.2",
         "svix": "^1.94.0",
         "tailwind-merge": "^3.6.0",
         "tldts": "^7.0.12",

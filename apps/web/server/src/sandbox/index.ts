@@ -204,13 +204,17 @@ async function isDevServerRunning(sandbox: Sandbox): Promise<boolean> {
  */
 export async function setup(sandboxId: string): Promise<{ success: boolean; previewUrl: string }> {
     const sandbox = await getSandbox(sandboxId);
+    console.log(`[setup] begin sandboxId=${sandboxId}`);
 
     // 1. Deps — skip when node_modules is already present (resumed snapshot).
     const nm = await (
         await runShell(sandbox, 'test -d node_modules && echo yes || echo no')
     ).stdout();
+    console.log(`[setup] node_modules present? ${nm.trim()}`);
     if (!nm.includes('yes')) {
+        console.log('[setup] running npm install…');
         await runShell(sandbox, 'npm install');
+        console.log('[setup] npm install complete');
     }
 
     // 2. Pick the dev command from package.json. Next.js needs the explicit
@@ -231,22 +235,63 @@ export async function setup(sandboxId: string): Promise<{ success: boolean; prev
 
     // 3. Spawn detached only when nothing is serving yet — duplicate dev
     //    servers fight over the same build output and 404 preview assets.
-    if (!(await isDevServerRunning(sandbox))) {
+    //    Redirect output to a log file so a crash-on-boot is diagnosable: the
+    //    SDK discards a detached command's stdout/stderr, so without this a
+    //    failed `next dev` left the preview 502ing forever with no signal.
+    const DEV_LOG = '/tmp/weblab-dev.log';
+    console.log(`[setup] devCommand=${devCommand}`);
+    const alreadyRunning = await isDevServerRunning(sandbox);
+    console.log(`[setup] devServerRunning(before spawn)=${alreadyRunning}`);
+    if (!alreadyRunning) {
         await sandbox.runCommand({
             cmd: 'bash',
-            args: ['-lc', devCommand],
+            args: ['-lc', `${devCommand} > ${DEV_LOG} 2>&1`],
             cwd: PROJECT_ROOT,
             detached: true,
         });
-        // A detached spawn resolves before its child process is visible in the
-        // process table. Poll until the dev process appears (or give up after
-        // ~15s) so a rapid second setup() detects it and skips, instead of
-        // launching a duplicate server.
-        const deadline = Date.now() + 15_000;
-        while (Date.now() < deadline) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            if (await isDevServerRunning(sandbox)) break;
+        console.log(`[setup] spawned dev server (detached) → ${DEV_LOG}`);
+    }
+
+    // 4. Wait until the dev server actually BINDS the port (HTTP responds) —
+    //    not just until the process appears. The preview domain returns
+    //    `502 SANDBOX_NOT_LISTENING` until something listens on DEFAULT_PORT,
+    //    and a first-compile cold start can take 30-90s. Probe via node (always
+    //    present in a Next sandbox; curl may not be).
+    const probeCmd =
+        `node -e 'const http=require("http");` +
+        `http.get("http://127.0.0.1:${DEFAULT_PORT}",r=>{console.log(r.statusCode);process.exit(0)})` +
+        `.on("error",()=>{console.log("000");process.exit(0)})'`;
+    const deadline = Date.now() + 90_000;
+    let listening = false;
+    let probes = 0;
+    while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const code = (await (await runShell(sandbox, probeCmd)).stdout()).trim();
+        probes += 1;
+        if (probes % 3 === 0) {
+            console.log(`[setup] port ${DEFAULT_PORT} probe #${probes} → ${code}`);
         }
+        // Any HTTP status means the port is bound; "000" = connection refused
+        // (still compiling, or the process crashed).
+        if (code && code !== '000' && /^\d{3}$/.test(code)) {
+            listening = true;
+            break;
+        }
+    }
+
+    // Always capture the dev server's own output for diagnosis (missing dep,
+    // port already in use, build/runtime error) instead of an opaque 502.
+    const logTail = await (
+        await runShell(sandbox, `tail -n 40 ${DEV_LOG} 2>/dev/null || echo "(no dev log)"`)
+    ).stdout();
+    console.log(`[setup] listening=${listening}; dev log tail:\n${logTail}`);
+
+    if (!listening) {
+        // Thrown → the browser provider logs it + re-arms a retry.
+        throw new Error(
+            `Dev server failed to bind port ${DEFAULT_PORT} within 90s. ` +
+                `Command: \`${devCommand}\`. Recent output:\n${logTail}`,
+        );
     }
 
     return { success: true, previewUrl: sandbox.domain(DEFAULT_PORT) };
