@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { isFsAccessSupported } from '@/services/local-fs/directory-handle';
-import { LocalForageKeys } from '@/utils/constants';
+import { LocalForageKeys, Routes } from '@/utils/constants';
 
 export interface ImportProgress {
     /** Number of files uploaded so far. Total is unknown until the walk finishes. */
@@ -21,61 +21,47 @@ export interface ImportProgress {
 
 const INITIAL_PROGRESS: ImportProgress = { filesUploaded: 0, phase: 'idle' };
 
-// TODO(sandbox-port): the entire local-import flow depends on
-// `api.sandbox.fork`, `api.sandbox.deleteOrphan`, `api.sandbox.orphanBulkUpload`,
-// `api.sandbox.startOrphan` (no Convex equivalents yet) and the legacy
-// `project.create` shape. Until sandbox provisioning lands in Convex, this
-// hook keeps its public surface but the action throws with a clear message
-// so the UI can render "temporarily unavailable" instead of silently
-// dropping the request.
+const LOCAL_IMPORT_ROUTE = `${Routes.IMPORT_PROJECT}/local`;
 
 /**
- * Counterpart to `useCreateBlankProject`. Picks a folder via the File System
- * Access API, forks a blank cloud sandbox, uploads the folder's files into
- * it, then creates the project record and routes to the editor.
+ * Entry-point hook for "Import a local folder" buttons (dashboard cards, hero,
+ * empty state). It validates support + auth, then routes to the canonical
+ * multi-step importer at {@link LOCAL_IMPORT_ROUTE} (folder pick → upload into a
+ * fresh Vercel sandbox via `projectActions.createEmptySandbox` → `projects.create`
+ * → editor). The full flow lives in `app/projects/import/local/_context`.
  *
- * This is intentionally a cloud import flow. It is not true local project
- * editing; true local mode uses separate runtime metadata and a desktop local
- * provider.
+ * History: this used to run the whole import inline, but that path depended on
+ * the pre-Convex tRPC sandbox routers and was stubbed during the migration. The
+ * dedicated importer page is now wired to Convex and is the single source of
+ * truth, so these entry points just navigate there. The returned `isImporting`
+ * / `progress` fields are kept (inert) so existing consumers compile unchanged.
  */
 export function useImportLocalProject() {
     const user = useQuery(api.users.me, {});
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
-    const [progress, setProgress] = useState<ImportProgress>(INITIAL_PROGRESS);
-    const isImporting = progress.phase !== 'idle' && progress.phase !== 'done';
 
-    // Keep the router reference live so future re-introduction of the flow
-    // (when the sandbox port lands) doesn't need import housekeeping.
-    void router;
-
-    // Surface whether the user attempted "Import folder to cloud" while signed out.
-    // The picker itself can't be auto-invoked here — `showDirectoryPicker()` requires
-    // a fresh user gesture, and a `useEffect` running after auth-redirect doesn't
-    // count. Consumers (e.g. the `/projects` empty state) read this flag and render
-    // a banner whose button click *is* a fresh gesture, then call
-    // `handleImportLocalProject()` from there.
+    // Surface whether the user attempted "Import folder" while signed out, so
+    // the `/projects` empty state can render a resume banner whose click is a
+    // fresh user gesture (the dedicated page's folder picker needs one).
     const [hasPendingLocalImport, setHasPendingLocalImport] = useState(false);
 
     // SSR-safe File System Access support flag. `isFsAccessSupported()` reads
     // `window`, so calling it during render makes the server (false) and the
     // first client render (true in Chromium) disagree → React hydration
-    // mismatch on the Upload-folder card. Resolve it after mount so the first
-    // client render matches the server, then update post-hydration.
+    // mismatch. Resolve it after mount so the first client render matches the
+    // server, then update post-hydration.
     const [fsAccessSupported, setFsAccessSupported] = useState(false);
     useEffect(() => {
         setFsAccessSupported(isFsAccessSupported());
     }, []);
 
-    const handleImportLocalProject = async () => {
-        // Idempotency: this function is called both from the button
-        // click and from the post-auth resume effect below. Without this
-        // guard a click-then-auth-then-resume sequence could trigger
-        // two parallel imports.
-        if (isImporting) {
-            return;
-        }
+    const clearPendingLocalImport = async () => {
+        setHasPendingLocalImport(false);
+        await localforage.removeItem(LocalForageKeys.PENDING_LOCAL_IMPORT);
+    };
 
+    const handleImportLocalProject = async () => {
         if (!isFsAccessSupported()) {
             toast.error('Local folder access not supported', {
                 description: 'Use a Chromium-based browser like Chrome, Edge, or Arc.',
@@ -84,24 +70,17 @@ export function useImportLocalProject() {
         }
 
         if (!user?._id) {
-            await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
-            // Mark a pending import intent so the hook can re-trigger the picker
-            // automatically once the user returns from the auth flow.
+            // Send the user straight to the importer after auth, and flag the
+            // intent so the empty-state banner can re-offer it as a fresh
+            // gesture if the post-auth redirect doesn't land there.
+            await localforage.setItem(LocalForageKeys.RETURN_URL, LOCAL_IMPORT_ROUTE);
             await localforage.setItem(LocalForageKeys.PENDING_LOCAL_IMPORT, true);
             setIsAuthModalOpen(true);
             return;
         }
 
-        // TODO(sandbox-port): re-enable once `api.sandbox.fork`,
-        // `api.sandbox.orphanBulkUpload`, `api.sandbox.startOrphan`, and the
-        // new project.create flow are available in Convex. For now surface
-        // an explicit error so the UI shows a clear message instead of
-        // silently dropping the click.
-        const message =
-            'Local folder import is temporarily unavailable while the sandbox provisioning service is migrated.';
-        toast.error('Folder import unavailable', { description: message });
-        setProgress(INITIAL_PROGRESS);
-        throw new Error(message);
+        await clearPendingLocalImport();
+        router.push(LOCAL_IMPORT_ROUTE);
     };
 
     useEffect(() => {
@@ -123,15 +102,12 @@ export function useImportLocalProject() {
         };
     }, [user?._id]);
 
-    const clearPendingLocalImport = async () => {
-        setHasPendingLocalImport(false);
-        await localforage.removeItem(LocalForageKeys.PENDING_LOCAL_IMPORT);
-    };
-
     return {
         handleImportLocalProject,
-        isImporting,
-        progress,
+        // Navigation-based now — the dedicated importer owns progress UI. Kept
+        // inert so consumers that render an inline loader still compile.
+        isImporting: false as boolean,
+        progress: INITIAL_PROGRESS,
         isFsAccessSupported: fsAccessSupported,
         hasPendingLocalImport,
         clearPendingLocalImport,

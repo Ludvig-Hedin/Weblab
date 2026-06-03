@@ -7,6 +7,8 @@ import { useConvex, useQuery } from 'convex/react';
 
 import type { GitHubRepository } from '@weblab/github';
 
+import type { Id } from '@convex/_generated/dataModel';
+import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
 import { Routes } from '@/utils/constants';
 
 export type GitHubImportPhase =
@@ -14,6 +16,16 @@ export type GitHubImportPhase =
     | 'cloning-repository'
     | 'creating-project'
     | 'opening-editor';
+
+function readActiveWorkspaceId(): string | undefined {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        const id = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+        return id && id.length > 0 ? id : undefined;
+    } catch {
+        return undefined;
+    }
+}
 
 export const useRepositoryImport = () => {
     const router = useRouter();
@@ -45,72 +57,35 @@ export const useRepositoryImport = () => {
         setPhase('cloning-repository');
         setError(null);
 
-        // Track the forked sandbox so we can release it if project.create fails
-        // mid-flight — otherwise the orphan keeps consuming sandbox quota
-        // (matches the blank-create flow in components/store/create/manager.ts).
-        let forkedSandboxId: string | null = null;
         let didOpenEditor = false;
         try {
             checkAborted();
-            // TODO(sandbox-port): api.sandbox.createFromGitHub has no Convex
-            // equivalent yet — surface a clear error until the route lands.
-            const createFromGitHub = async (
-                _args: { repoUrl: string; branch: string },
-                _opts: { signal?: AbortSignal },
-            ): Promise<{
-                sandboxId: string;
-                previewUrl: string;
-                sandboxRuntime: unknown;
-            }> => {
-                throw new Error('GitHub import is temporarily unavailable.');
-            };
-            const { sandboxId, previewUrl, sandboxRuntime } = await createFromGitHub(
-                {
-                    repoUrl: selectedRepo.clone_url,
-                    branch: selectedRepo.default_branch,
-                },
-                {
-                    signal,
-                },
-            );
-            forkedSandboxId = sandboxId;
-            checkAborted();
-
-            setPhase('creating-project');
-            const project = await convex.mutation(convexApi.projects.create, {
-                name: selectedRepo.name ?? 'New project',
+            // `createFromGit` clones the repo into a fresh Vercel sandbox AND
+            // persists the project graph in one action (its own sandbox cleanup
+            // on failure), returning the new project id. This replaces the old
+            // two-step (provision sandbox → projects.create) flow that ran
+            // through the pre-Convex tRPC sandbox routers.
+            const { projectId } = await convex.action(convexApi.projectActions.createFromGit, {
+                repoUrl: selectedRepo.clone_url,
+                branch: selectedRepo.default_branch,
+                name: selectedRepo.name,
                 description: selectedRepo.description ?? 'Imported from GitHub',
-                sandboxId,
-                sandboxUrl: previewUrl,
-                sandboxRuntime: sandboxRuntime as never,
-                framework: 'nextjs',
+                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
             });
-
-            if (!project) {
-                throw new Error('Failed to create project');
-            }
-
-            // Project owns the sandbox now — clear the cleanup token.
-            forkedSandboxId = null;
             checkAborted();
+
             setPhase('opening-editor');
             didOpenEditor = true;
-            router.push(`${Routes.PROJECT}/${project._id}`);
+            router.push(`${Routes.PROJECT}/${projectId}`);
         } catch (error: unknown) {
-            if (forkedSandboxId) {
-                // TODO(sandbox-port): api.sandbox.deleteOrphan has no Convex
-                // equivalent yet — orphan cleanup is a no-op until the route lands.
-                console.warn('[useRepositoryImport] orphan sandbox cleanup unavailable', {
-                    sandboxId: forkedSandboxId,
-                });
-            }
             if (error instanceof DOMException && error.name === 'AbortError') {
                 return;
             }
             // Surface the actual error message (it carries the server-side
             // reason). Fall back to a generic hint when there's no message —
-            // typically auth/permission failures benefit from a nudge to check
-            // repo visibility and Weblab GitHub access (issue #40).
+            // typically a private repo or revoked access. createFromGit clones
+            // over HTTPS without an auth token, so private repos fail here with
+            // a clone error until token passthrough lands.
             const fallback =
                 "Failed to import repository. If this keeps happening, check that the repo is public or that you've granted access to Weblab.";
             const errorMessage = error instanceof Error ? error.message : fallback;
