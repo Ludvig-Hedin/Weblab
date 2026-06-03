@@ -40,9 +40,14 @@ describe('planReload', () => {
         expect(plan.capped).toBe(true);
     });
 
-    it('finally gives up after the self-heal ceiling', () => {
-        const plan = planReload(RELOAD_MAX_ATTEMPTS + SELF_HEAL_MAX_ATTEMPTS + 1);
-        expect(plan.shouldReload).toBe(false);
+    it('never permanently gives up — gentle self-heal continues so a slow boot recovers', () => {
+        // Vercel cold boot (npm install + next dev on a fresh sandbox) can run
+        // past any fixed ceiling. useSandboxLiveness is a no-op, so the gentle
+        // self-heal reload is the ONLY thing that re-arms the iframe when the dev
+        // server finally serves — it must keep going indefinitely.
+        const plan = planReload(RELOAD_MAX_ATTEMPTS + SELF_HEAL_MAX_ATTEMPTS + 50);
+        expect(plan.shouldReload).toBe(true);
         expect(plan.capped).toBe(true);
+        expect(plan.delayMs).toBe(SELF_HEAL_INTERVAL_MS);
     });
 });

@@ -157,7 +157,12 @@ export function useFrameReload() {
         }
         if (bootTimerRef.current) return;
         bootTimerRef.current = setInterval(() => {
-            setBootElapsedMs(Date.now() - bootStartedAtRef.current);
+            // Freeze the displayed value at the restart-hint ceiling. Past this
+            // the loader shows the "Restart sandbox" recovery panel and gentle
+            // self-heal continues in the background, so letting the counter climb
+            // to "3561s" is just noise (and reads as a bug). All escalation
+            // thresholds (soft hint 30s, restart hint 60s) still trigger at the cap.
+            setBootElapsedMs(Math.min(Date.now() - bootStartedAtRef.current, BOOT_RESTART_HINT_MS));
         }, BOOT_TIMER_TICK_MS);
         return clearBootTimer;
     }, [isPenpalConnected]);

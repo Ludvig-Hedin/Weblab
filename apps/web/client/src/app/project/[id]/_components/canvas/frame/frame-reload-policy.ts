@@ -21,8 +21,11 @@ export const RELOAD_INCREMENT_MS = 1000;
 export const RELOAD_MAX_ATTEMPTS = 6;
 
 // Background self-heal past the fast budget: gentle re-fetch every
-// SELF_HEAL_INTERVAL_MS for up to SELF_HEAL_MAX_ATTEMPTS (~3 min) so a
-// late-booting sandbox reconnects on its own instead of thrashing or giving up.
+// SELF_HEAL_INTERVAL_MS, continuing indefinitely (no hard ceiling) so a
+// late-booting sandbox reconnects on its own instead of being stranded.
+// SELF_HEAL_MAX_ATTEMPTS is retained only as the reference point at which the
+// manual Retry/Restart panel has been shown for a while (used by tests); it no
+// longer terminates the self-heal loop.
 export const SELF_HEAL_INTERVAL_MS = 15_000;
 export const SELF_HEAL_MAX_ATTEMPTS = 12;
 
@@ -48,10 +51,14 @@ export function planReload(attempt: number): ReloadPlan {
             capped: false,
         };
     }
-    if (attempt <= RELOAD_MAX_ATTEMPTS + SELF_HEAL_MAX_ATTEMPTS) {
-        // Past the fast budget: show the manual Retry affordance but keep
-        // gently re-fetching so a late-booting sandbox self-heals.
-        return { shouldReload: true, delayMs: SELF_HEAL_INTERVAL_MS, capped: true };
-    }
-    return { shouldReload: false, delayMs: 0, capped: true };
+    // Past the fast budget: surface the manual Retry/Restart panel (`capped`)
+    // but keep gently re-fetching on the long interval INDEFINITELY. A fixed
+    // ceiling stranded users whose Vercel cold boot (npm install + next dev on a
+    // fresh sandbox) ran past the budget — and since `useSandboxLiveness` is a
+    // no-op, this gentle reload is the ONLY signal that re-arms the iframe once
+    // the dev server finally serves. On success the loop stops (cleared by
+    // `handleConnectionSuccess`), and the editor unmount clears the timer, so
+    // "indefinite" is bounded by the editor staying open on a still-dead sandbox
+    // (where the user also has the explicit "Restart sandbox" CTA).
+    return { shouldReload: true, delayMs: SELF_HEAL_INTERVAL_MS, capped: true };
 }
