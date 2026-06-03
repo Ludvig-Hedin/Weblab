@@ -16,6 +16,17 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-03 — Human-readable workspace URL slugs (+ name-based published-subdomain default)
+Author: Claude Opus 4.8
+Area: `apps/web/client/convex` (workspaces, personal-workspace lib, domains preview slug)
+Summary: User asked why the projects page URL was `/w/personal-<32-char-user-id>/projects` and whether it could read like a name. Root cause: personal-workspace slug was hardcoded `personal-${user._id}` ([personalWorkspace.ts](apps/web/client/convex/lib/personalWorkspace.ts), [workspaces.ts](apps/web/client/convex/workspaces.ts) `ensurePersonal`), while team workspaces already got name-based slugs. Unified both on a new `lib/workspaceSlug.ts` (`baseWorkspaceSlug` pure + `generateUniqueWorkspaceSlug` collision loop) deriving the slug from the workspace **name** (Webflow/Framer style), with `-2`/`-3` suffix only on collision. Reserved `new` etc. (the `/w/new` static route would shadow a workspace slugged "new"). Added idempotent `_backfillPersonalSlugs` internalMutation (matches the exact legacy `personal-<createdByUserId>` shape via the by_slug index range — never false-positives a name-derived `personal-*` slug); ran on dev → 2/2 migrated (`personal-j571…` → `ludvig-hedins-workspace`). Old URLs self-heal: stale slug → `getBySlug` null → `/projects` redirect → re-resolves. Also switched the **published** preview-subdomain default from id-derived to name-derived (`slugFromNameForSubdomain` + global-uniqueness loop in `domainActionsDb._previewCreate`; gated behind currently-disabled publish, id fallback). Deferred (logged in BACKLOG): humanizing the `/project/<id>` **editor** URL — needs a workspace-scoped route to avoid global slug collisions + touches the core editor/offline bootstrap.
+Verification: 26/26 unit tests ✅ (`workspaceSlug.test.ts` + `previewSlug.test.ts`), `convex` typecheck ✅ (exit 0), deployed to dev + backfill ran + re-run idempotent (0/0), independent reviewer ✅ (fixed its one real finding: exact-legacy-match backfill). Browser E2E not run — workspace routes are Clerk-auth-gated; ground-truth verified via the dev DB (`convex data workspaces` shows the new slugs).
+Files: `apps/web/client/convex/lib/workspaceSlug.ts` (new) + `.test.ts`, `convex/workspaces.ts`, `convex/lib/personalWorkspace.ts`, `convex/lib/previewSlug.ts` (+test), `convex/domainActionsDb.ts`, `src/lib/changelog-entries.ts`
+Links: changelog v3.2; BACKLOG (editor-URL entry)
+Memory: `convex codegen` only generates types — it does NOT deploy functions; use `convex dev --once` to push to dev. `convex run`/`data`/`dev` are sandbox-blocked (websocket transport) — run with `dangerouslyDisableSandbox`; `codegen` works sandboxed (plain HTTPS).
+
+---
+
 ## 2026-06-03 — Local folder + GitHub repo import re-enabled (create-paths audit)
 Author: Claude Opus 4.8
 Area: `apps/web/client` (import entry-point hooks)

@@ -1,5 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { generateUniqueWorkspaceSlug } from './workspaceSlug';
 
 const PERSONAL = 'personal' as const;
 const OWNER = 'owner' as const;
@@ -28,35 +29,15 @@ export async function resolvePersonalWorkspaceId(
         user.firstName?.trim() ||
         (user.email?.split('@')[0] ?? '') ||
         'Personal';
-    const slug = `personal-${user._id}`;
+    const name = `${displayName}'s Workspace`;
+    // Human-readable slug derived from the name (e.g. "martins-workspace").
+    // A racing create is handled by Convex OCC: the conflicting transaction
+    // re-runs and the by_created_by_user check above returns the existing row.
+    const slug = await generateUniqueWorkspaceSlug(ctx, name);
     const now = Date.now();
 
-    // Guard against a race where another mutation just created the personal
-    // workspace by checking the slug-unique index before insert.
-    const collision = await ctx.db
-        .query('workspaces')
-        .withIndex('by_slug', (q) => q.eq('slug', slug))
-        .unique();
-    if (collision) {
-        const membership = await ctx.db
-            .query('workspaceMembers')
-            .withIndex('by_workspace_user', (q) =>
-                q.eq('workspaceId', collision._id).eq('userId', user._id),
-            )
-            .unique();
-        if (!membership) {
-            await ctx.db.insert('workspaceMembers', {
-                workspaceId: collision._id,
-                userId: user._id,
-                role: OWNER,
-                updatedAt: now,
-            });
-        }
-        return collision._id;
-    }
-
     const workspaceId = await ctx.db.insert('workspaces', {
-        name: `${displayName}'s Workspace`,
+        name,
         slug,
         kind: PERSONAL,
         createdByUserId: user._id,

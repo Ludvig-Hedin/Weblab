@@ -61,6 +61,7 @@ import type * as lib_skillHelpers from "../lib/skillHelpers.js";
 import type * as lib_skillImport from "../lib/skillImport.js";
 import type * as lib_stripeWebhook from "../lib/stripeWebhook.js";
 import type * as lib_usageMath from "../lib/usageMath.js";
+import type * as lib_workspaceSlug from "../lib/workspaceSlug.js";
 import type * as messages from "../messages.js";
 import type * as pageAccess from "../pageAccess.js";
 import type * as ping from "../ping.js";
@@ -148,6 +149,7 @@ declare const fullApi: ApiFromModules<{
   "lib/skillImport": typeof lib_skillImport;
   "lib/stripeWebhook": typeof lib_stripeWebhook;
   "lib/usageMath": typeof lib_usageMath;
+  "lib/workspaceSlug": typeof lib_workspaceSlug;
   messages: typeof messages;
   pageAccess: typeof pageAccess;
   ping: typeof ping;

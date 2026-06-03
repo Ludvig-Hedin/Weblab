@@ -38,6 +38,17 @@ later without re-discovering the context.
 
 ## Open
 
+### Editor URL `/project/<id>` is still the raw Convex id (not the site name)
+
+- **Discovered:** 2026-06-03 (URL-humanization session — workspace slugs shipped, this deferred)
+- **Where:** route [apps/web/client/src/app/project/[id]/page.tsx](apps/web/client/src/app/project/[id]/page.tsx); link builders [use-clone-website.ts:107,138](apps/web/client/src/hooks/use-clone-website.ts#L107), [use-create-blank-project.ts:84](apps/web/client/src/hooks/use-create-blank-project.ts#L84), [shared-with-me.tsx:37](apps/web/client/src/app/w/[slug]/_components/shared-with-me.tsx#L37). Route value `Routes.PROJECT` in [src/utils/constants/index.ts](apps/web/client/src/utils/constants/index.ts).
+- **Symptom:** while editing, the address bar shows `/project/k97fawpe0hv2bt3g5qv1df583h8794fh` — opaque, not the site name. (Sibling work: workspace URLs were humanized this session; published `<slug>.weblab.app` default was switched to name-derived.)
+- **Root cause:** the route param IS the Convex project `_id`, fed straight into `api.projects.getEditorBootstrap`, the offline bootstrap, and `editorEngine.projectId`. There is no project routing-slug column.
+- **Why deferred (don't-break-anything):** a flat `/project/<slug>` namespace forces slugs to be **globally** unique across all users → common names collide constantly → `portfolio-2`, `portfolio-x7f9` everywhere (not actually human). Doing it the Webflow/Framer way means re-scoping the route under the workspace (`/w/<workspace>/<project>`), which rewrites the core editor entry point + offline bootstrap — too risky to bundle with the slug change.
+- **Next step:** (a) add `projects.routeSlug` (unique **within workspace**), generate from name on create + backfill; (b) introduce nested route `/w/[slug]/[projectSlug]` (or make `/project/[idOrSlug]` resolve slug→id at the boundary via `ctx.db.normalizeId` fallback for back-compat so old id links never 404); (c) resolve to the real `_id` at the page boundary and keep passing the id downstream unchanged; (d) update the ~3 link builders; (e) decide offline-cache keying (slug URLs can't resolve offline → keep id-based links working as the offline path).
+- **Risk if ignored:** none functional — editor URLs stay ugly but fully working. Cosmetic only.
+- **Tags:** `#feature` `#editor` `#convex` `#ux`
+
 ### Fork-based create paths still stubbed: project clone + marketplace templates (`TODO(sandbox-fork)`)
 
 - **Discovered:** 2026-06-03 (create-paths audit session)

@@ -2,20 +2,11 @@ import { v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { mutation, query } from './_generated/server';
+import { internalMutation, mutation, query } from './_generated/server';
 import { audit } from './lib/audit';
 import { vWorkspaceRole } from './lib/enums';
 import { requireCap, requireUser } from './lib/permissions';
-
-const slugFromName = (name: string): string => {
-    const base = name
-        .toLowerCase()
-        .normalize('NFKD')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 48);
-    return base.length > 0 ? base : 'workspace';
-};
+import { generateUniqueWorkspaceSlug } from './lib/workspaceSlug';
 
 const PERSONAL = 'personal' as const;
 const TEAM = 'team' as const;
@@ -99,35 +90,16 @@ export const ensurePersonal = mutation({
             user.firstName?.trim() ||
             (user.email?.split('@')[0] ?? '') ||
             'Personal';
-        const slug = `personal-${user._id}`;
+        const name = `${displayName}'s Workspace`;
+        // Human-readable slug derived from the name (e.g. "martins-workspace").
+        // Uniqueness across racing creates is guaranteed by Convex OCC: a
+        // concurrent insert re-runs this handler, and the by_created_by_user
+        // check above then returns the already-created workspace.
+        const slug = await generateUniqueWorkspaceSlug(ctx, name);
         const now = Date.now();
 
-        const collision = await ctx.db
-            .query('workspaces')
-            .withIndex('by_slug', (q) => q.eq('slug', slug))
-            .unique();
-        if (collision) {
-            // Slug already exists — usually because the personal workspace
-            // was previously created and the membership row was either
-            // dropped (recovery case) or never written (race). Verify the
-            // caller's membership; if absent, write it now and return the
-            // workspace. Returning a workspace the caller has no row on
-            // would lie about access (every downstream requireCap call
-            // would then fail FORBIDDEN with an unhelpful trace).
-            const existingMembership = await getMembership(ctx, collision._id, user._id);
-            if (!existingMembership) {
-                await ctx.db.insert('workspaceMembers', {
-                    workspaceId: collision._id,
-                    userId: user._id,
-                    role: OWNER,
-                    updatedAt: now,
-                });
-            }
-            return collision;
-        }
-
         const id = await ctx.db.insert('workspaces', {
-            name: `${displayName}'s Workspace`,
+            name,
             slug,
             kind: PERSONAL,
             createdByUserId: user._id,
@@ -149,18 +121,27 @@ export const createTeam = mutation({
         const user = await requireUser(ctx);
         const name = args.name.trim();
         if (name.length === 0 || name.length > 80) throw new Error('BAD_REQUEST: name 1-80');
-        const slug = (args.slug ?? `${slugFromName(name)}-${user._id.slice(0, 6)}`).trim();
-        if (!/^[a-z0-9-]+$/.test(slug) || slug.length < 2 || slug.length > 64) {
-            throw new Error('BAD_REQUEST: slug invalid');
+
+        let slug: string;
+        if (args.slug !== undefined) {
+            // Explicit, user-supplied slug: validate format, reject the
+            // reserved `personal-` prefix, and fail loudly on collision.
+            slug = args.slug.trim();
+            if (!/^[a-z0-9-]+$/.test(slug) || slug.length < 2 || slug.length > 64) {
+                throw new Error('BAD_REQUEST: slug invalid');
+            }
+            if (slug.startsWith('personal-')) {
+                throw new Error('BAD_REQUEST: slug cannot start with "personal-"');
+            }
+            const collision = await ctx.db
+                .query('workspaces')
+                .withIndex('by_slug', (q) => q.eq('slug', slug))
+                .unique();
+            if (collision) throw new Error('CONFLICT: slug already in use');
+        } else {
+            // Default: derive a unique, human-readable slug from the name.
+            slug = await generateUniqueWorkspaceSlug(ctx, name);
         }
-        if (slug.startsWith('personal-')) {
-            throw new Error('BAD_REQUEST: slug cannot start with "personal-"');
-        }
-        const collision = await ctx.db
-            .query('workspaces')
-            .withIndex('by_slug', (q) => q.eq('slug', slug))
-            .unique();
-        if (collision) throw new Error('CONFLICT: slug already in use');
 
         const now = Date.now();
         const id = await ctx.db.insert('workspaces', {
@@ -183,6 +164,39 @@ export const createTeam = mutation({
             payload: { name, slug, kind: TEAM },
         });
         return (await ctx.db.get(id))!;
+    },
+});
+
+/**
+ * One-off backfill: rewrite legacy `personal-<userId>` slugs to the
+ * human-readable, name-derived form. Internal admin tool — invoke via
+ * `npx convex run workspaces:_backfillPersonalSlugs`.
+ *
+ * Safe to re-run: a row is migrated only when its slug is *exactly* the legacy
+ * `personal-<createdByUserId>` shape, so a name-derived slug that merely starts
+ * with "personal-" (e.g. a workspace named "Personal A" → "personal-a-...") is
+ * never touched, and already-migrated rows are skipped. Scans only the
+ * `personal-*` slug range via the by_slug index, so re-runs read ~zero rows.
+ */
+export const _backfillPersonalSlugs = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        // [`personal-`, `personal.`) is exactly the set of slugs with the
+        // `personal-` prefix ('-' = U+002D sorts just below '.' = U+002E).
+        const candidates = await ctx.db
+            .query('workspaces')
+            .withIndex('by_slug', (q) => q.gte('slug', 'personal-').lt('slug', 'personal.'))
+            .collect();
+        let updated = 0;
+        for (const ws of candidates) {
+            // Match the legacy format precisely: `personal-<createdByUserId>`.
+            if (ws.kind !== PERSONAL) continue;
+            if (ws.slug !== `personal-${ws.createdByUserId}`) continue;
+            const slug = await generateUniqueWorkspaceSlug(ctx, ws.name);
+            await ctx.db.patch(ws._id, { slug, updatedAt: Date.now() });
+            updated++;
+        }
+        return { scanned: candidates.length, updated };
     },
 });
 

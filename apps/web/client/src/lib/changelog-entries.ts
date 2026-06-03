@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-2-readable-workspace-urls',
+        version: '3.2',
+        title: 'Readable workspace URLs',
+        description:
+            'Your workspace address now reads like its name — /w/martins-workspace instead of a long random ID. New and existing personal workspaces both pick up the cleaner slug, and old bookmarked links still resolve automatically.',
+        date: '2026-06-03',
+        tags: ['Workspaces', 'Polish'],
+    },
+    {
         slug: 'v3-1-folder-github-import',
         version: '3.1',
         title: 'Import a local folder or a GitHub repo',

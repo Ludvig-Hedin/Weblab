@@ -4,6 +4,7 @@ import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, internalQuery } from './_generated/server';
 import { getUserByClerkIdSafe, requireCap } from './lib/permissions';
+import { slugFromNameForSubdomain } from './lib/previewSlug';
 
 // V8-runtime DB helpers invoked by domainActions.ts. Split from the action
 // file because Convex `"use node"` modules cannot also export queries/mutations
@@ -22,6 +23,44 @@ const slugifyForSubdomain = (projectId: string): string =>
         .replace(/^-+|-+$/g, '')
         .slice(0, 48) || 'project';
 
+/**
+ * Default preview subdomain for a project that hasn't set `previewSlug`.
+ * Prefers a label derived from the project NAME (so `<name>.weblab.app` reads
+ * like the site); falls back to the id-derived slug when the name yields
+ * nothing valid. Guarantees global uniqueness by appending `-2`, `-3`… against
+ * both published preview domains and other projects' reserved slugs — so the
+ * caller's collision check never trips on an auto-default.
+ */
+async function deriveUniquePreviewSlug(
+    ctx: MutationCtx,
+    name: string | undefined,
+    projectId: Id<'projects'>,
+): Promise<string> {
+    const base = slugFromNameForSubdomain(name ?? '') ?? slugifyForSubdomain(projectId);
+    const isTaken = async (candidate: string): Promise<boolean> => {
+        const domain = `${candidate}.${NEXT_PUBLIC_HOSTING_DOMAIN}`;
+        const domainHit = await ctx.db
+            .query('previewDomains')
+            .withIndex('by_full_domain', (q) => q.eq('fullDomain', domain))
+            .first();
+        if (domainHit && domainHit.projectId !== projectId) return true;
+        const slugHit = await ctx.db
+            .query('projects')
+            .withIndex('by_preview_slug', (q) => q.eq('previewSlug', candidate))
+            .first();
+        return slugHit !== null && slugHit._id !== projectId;
+    };
+    if (!(await isTaken(base))) return base;
+    for (let n = 2; n < 1000; n++) {
+        const suffix = `-${n}`;
+        const candidate = `${base.slice(0, 48 - suffix.length)}${suffix}`;
+        if (!(await isTaken(candidate))) return candidate;
+    }
+    // The id-derived slug is globally unique by construction (no two projects
+    // share an id), so this is always free.
+    return slugifyForSubdomain(projectId);
+}
+
 async function findExistingPendingVerification(
     ctx: QueryCtx | MutationCtx,
     projectId: Id<'projects'>,
@@ -38,10 +77,10 @@ export const _previewCreate = internalMutation({
     args: { projectId: v.id('projects') },
     handler: async (ctx, { projectId }): Promise<{ domain: string }> => {
         await requireCap(ctx, 'project.publish', { projectId });
-        // Honor a user-chosen subdomain (domains.setPreviewSlug); otherwise fall
-        // back to a slug derived from the project id.
+        // Honor a user-chosen subdomain (domains.setPreviewSlug); otherwise
+        // derive a unique label from the project name (id-based fallback).
         const project = await ctx.db.get(projectId);
-        const slug = project?.previewSlug ?? slugifyForSubdomain(projectId);
+        const slug = project?.previewSlug ?? (await deriveUniquePreviewSlug(ctx, project?.name, projectId));
         const domain = `${slug}.${NEXT_PUBLIC_HOSTING_DOMAIN}`;
 
         const collision = await ctx.db

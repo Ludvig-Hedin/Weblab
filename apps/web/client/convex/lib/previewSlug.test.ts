@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 
-import { RESERVED_SLUGS, validatePreviewSlug } from './previewSlug';
+import {
+    RESERVED_SLUGS,
+    slugFromNameForSubdomain,
+    SUBDOMAIN_SLUG_RE,
+    validatePreviewSlug,
+} from './previewSlug';
 
 describe('validatePreviewSlug', () => {
     it('accepts a simple lowercase label', () => {
@@ -64,5 +69,45 @@ describe('validatePreviewSlug', () => {
         const r = validatePreviewSlug('--bad--');
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.error).toContain('Subdomain must be');
+    });
+});
+
+describe('slugFromNameForSubdomain', () => {
+    it('derives a clean label from a project name', () => {
+        expect(slugFromNameForSubdomain('My Portfolio')).toBe('my-portfolio');
+        expect(slugFromNameForSubdomain('Acme, Inc.')).toBe('acme-inc');
+        expect(slugFromNameForSubdomain('Café')).toBe('cafe');
+    });
+
+    it('caps at 48 chars without a trailing hyphen', () => {
+        const out = slugFromNameForSubdomain('x'.repeat(60));
+        expect(out).not.toBeNull();
+        expect(out!.length).toBe(48);
+        expect(out!.endsWith('-')).toBe(false);
+    });
+
+    it('returns null when the name is too short to be a valid subdomain', () => {
+        // SUBDOMAIN_SLUG_RE requires >= 3 chars; the caller then uses the
+        // id-based fallback.
+        expect(slugFromNameForSubdomain('AB')).toBeNull();
+        expect(slugFromNameForSubdomain('a')).toBeNull();
+    });
+
+    it('returns null when nothing slug-safe remains', () => {
+        expect(slugFromNameForSubdomain('')).toBeNull();
+        expect(slugFromNameForSubdomain('   ')).toBeNull();
+        expect(slugFromNameForSubdomain('日本語')).toBeNull();
+    });
+
+    it('returns null for a reserved label so it is never auto-assigned', () => {
+        expect(slugFromNameForSubdomain('API')).toBeNull();
+        expect(slugFromNameForSubdomain('www')).toBeNull();
+    });
+
+    it('only ever returns labels that pass the canonical subdomain regex', () => {
+        for (const name of ['My Site', 'a-b-c', 'Project 2024', 'Hello World!!!']) {
+            const slug = slugFromNameForSubdomain(name);
+            if (slug !== null) expect(SUBDOMAIN_SLUG_RE.test(slug)).toBe(true);
+        }
     });
 });
