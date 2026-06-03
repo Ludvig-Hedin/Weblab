@@ -611,6 +611,186 @@ export const createFromPrompt = action({
     },
 });
 
+// ─── createFromWebsiteClone ─────────────────────────────────────────────────────
+
+/**
+ * Website-clone flow. Provisions a sandbox (like createFromPrompt) and seeds
+ * the purpose-built clone context types so the editor's `use-start-project`
+ * `resumeCreate` consumer can assemble a framework-specific clone prompt via
+ * `getCloneSystemPrompt`:
+ *   - WEBSITE_URL  → source url + chosen output framework
+ *   - WEBSITE_SCRAPE → Firecrawl markdown + brand-identity blob (optional)
+ *   - IMAGE → screenshot of the source page (optional, visual reference)
+ *   - PROMPT → the user's optional extra notes
+ *
+ * The caller scrapes first (so a bad URL fails before we burn a sandbox) and
+ * passes the scrape result + screenshot in. For screenshot-only clones, `url`
+ * is omitted and there is no scrapeContent — the WEBSITE_URL context is still
+ * seeded (empty url) so the editor takes the clone-guidance branch instead of
+ * treating it as a bare prompt.
+ */
+export const createFromWebsiteClone = action({
+    args: {
+        url: v.optional(v.string()),
+        notes: v.optional(v.string()),
+        scrapeContent: v.optional(v.string()),
+        screenshot: v.optional(v.object({ content: v.string(), mimeType: v.string() })),
+        framework: v.optional(v.union(v.literal('nextjs'), v.literal('static-html'))),
+        workspaceId: v.optional(v.id('workspaces')),
+    },
+    handler: async (ctx, args): Promise<{ projectId: string }> => {
+        const me: any = await ctx.runQuery(api.users.me, {});
+        if (!me) throw new Error('UNAUTHORIZED');
+
+        if (args.workspaceId) {
+            await ctx.runQuery(internal.projects._requireProjectCreateCap, {
+                workspaceId: args.workspaceId,
+            });
+        }
+
+        if (!process.env.VERCEL_TOKEN) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        const framework: 'nextjs' | 'static-html' =
+            args.framework === 'static-html' ? 'static-html' : 'nextjs';
+
+        let provisionedSandboxId: string | null = null;
+        try {
+            const result = await VercelSandboxProvider.createProject({
+                source: 'template',
+                id: framework,
+                framework,
+                title: `Cloned site - ${me._id}`,
+                tags: ['clone', String(me._id)],
+                privacy: 'private',
+            });
+
+            const sandboxId = result.id;
+            provisionedSandboxId = sandboxId;
+            const previewUrl = result.previewUrl ?? '';
+            const port = result.port ?? (framework === 'static-html' ? 8080 : 3000);
+
+            const workspaceId: any =
+                args.workspaceId ??
+                (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
+                    userId: me._id,
+                }));
+
+            // Readable name from the source host; the user can rename.
+            let projectName = 'Cloned site';
+            if (args.url) {
+                try {
+                    projectName = `Clone of ${new URL(args.url).hostname}`.slice(0, 60);
+                } catch {
+                    projectName = 'Cloned site';
+                }
+            }
+
+            const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
+                userId: me._id,
+                workspaceId,
+                name: projectName,
+                description: 'Created by cloning a website',
+                tags: ['clone'],
+                framework,
+                sandboxId,
+                sandboxUrl: previewUrl,
+                cloudProvider: 'vercel_sandbox',
+                port,
+                snapshotId: result.snapshotId,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
+            });
+
+            // Project + sandbox are committed; clear the cleanup latch before
+            // the best-effort context seed (a failed seed must not orphan the
+            // project — worst case the editor opens without the clone prompt).
+            provisionedSandboxId = null;
+
+            // Build the clone context. Order matters for the size-fallback
+            // below: the screenshot is the largest payload, so it goes last
+            // and is the first thing dropped if the doc exceeds Convex's ~1MB
+            // limit.
+            const baseContext: Array<Record<string, unknown>> = [
+                { type: 'website_url', content: args.url ?? '', framework },
+            ];
+            if (args.scrapeContent && args.scrapeContent.trim()) {
+                baseContext.push({ type: 'website_scrape', content: args.scrapeContent });
+            }
+            if (args.notes && args.notes.trim()) {
+                baseContext.push({ type: 'prompt', content: args.notes.trim() });
+            }
+            const fullContext = args.screenshot
+                ? [
+                      ...baseContext,
+                      {
+                          type: 'image',
+                          content: args.screenshot.content,
+                          mimeType: args.screenshot.mimeType,
+                      },
+                  ]
+                : baseContext;
+
+            try {
+                await ctx.runMutation(internal.projectCreateRequests._insertCreateRequest, {
+                    projectId: projectId as any,
+                    context: fullContext,
+                });
+            } catch (seedErr) {
+                // Most likely the base64 screenshot pushed the doc past Convex's
+                // ~1MB limit. Retry without the image so the clone guidance +
+                // scrape still replay — losing the screenshot beats losing the
+                // whole clone context.
+                console.error(
+                    '[createFromWebsiteClone] full seed failed; retrying without screenshot',
+                    seedErr,
+                );
+                try {
+                    await ctx.runMutation(internal.projectCreateRequests._insertCreateRequest, {
+                        projectId: projectId as any,
+                        context: baseContext,
+                    });
+                } catch (retryErr) {
+                    console.error(
+                        '[createFromWebsiteClone] image-free seed also failed',
+                        retryErr,
+                    );
+                }
+            }
+
+            return { projectId };
+        } catch (error) {
+            if (provisionedSandboxId) {
+                try {
+                    const credentials = {
+                        teamId: process.env.VERCEL_TEAM_ID ?? '',
+                        projectId: process.env.VERCEL_PROJECT_ID ?? '',
+                        token: process.env.VERCEL_TOKEN ?? '',
+                    };
+                    if (credentials.teamId && credentials.projectId && credentials.token) {
+                        const sandbox = await Sandbox.get({
+                            sandboxId: provisionedSandboxId,
+                            ...credentials,
+                        });
+                        await sandbox.stop({ blocking: false }).catch(() => undefined);
+                    }
+                } catch (cleanupErr) {
+                    console.warn(
+                        '[createFromWebsiteClone] Vercel sandbox cleanup failed',
+                        cleanupErr,
+                    );
+                }
+            }
+            throw mapSandboxProvisionError(error);
+        }
+    },
+});
+
 // ─── createEmptySandbox (local folder import) ──────────────────────────────────
 
 /**
