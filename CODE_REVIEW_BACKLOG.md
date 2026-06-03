@@ -2580,3 +2580,96 @@ direct read, applied only bounded fixes for user-blocking items.
 - `bunx convex codegen --typecheck disable` → exit 0
 - All edits confined to single-file scopes; no schema migration
   needed.
+
+---
+
+## Bug Hunt — 2026-05-29 — Create→preview flow (changed-files + core-flow trace)
+
+Scope: the uncommitted working-tree changes (new Convex create actions +
+`CreateManager` wiring) plus an end-to-end trace of "new user → create
+project → see preview". No source edits this pass — the create-flow files
+(`convex/projectActions.ts`, `components/store/create/manager.ts`) are
+mid-edit in a multi-session tree, so findings are logged here instead of
+injecting TODO comments that would entangle in-flight work.
+
+### Verified SOUND (no blocking bug in the changed create code)
+
+- `convex/projectActions.ts` `createFromGit` / `createFromPrompt` — provider
+  methods exist and are fully implemented (`VercelSandboxProvider.createProjectFromGit`
+  at `packages/code-provider/src/providers/vercel-sandbox/index.ts:526`,
+  `createProject` at `:481`); both return `{id, previewUrl, port, snapshotId,
+  devCommand, runtime}`. `createFromPrompt` reuses the exact `createProject`
+  signature that the working `createBlank` uses.
+- `convex/projectCreateRequests.ts` `_insertCreateRequest` — status `'pending'`
+  matches `getPendingRequest`'s filter and `vProjectCreateRequestStatus`
+  (`convex/lib/enums.ts:124`, all lowercase). Schema `context: v.any()` accepts
+  the discriminated `CreateRequestContext[]` array. Consumer
+  `use-start-project.tsx` replays the prompt into the AI chat and marks the
+  request completed.
+- Generated API: `projectActions` + `projectCreateRequests` modules are both
+  registered in `_generated/api.d.ts`; `api = anyApi` (runtime proxy) resolves
+  the new functions by path. The prior `layoutGuideStyles` codegen drift is
+  regenerated. Only runtime gate is deploying the new fns to the Convex
+  backend (`convex dev` / CI) — not a code defect.
+
+### Needs human review (3)
+
+- **HIGH (security, pre-launch must-fix) — `apps/web/server/src/router/routes/sandbox.ts:12-16`.**
+  The editor→Fastify sandbox proxy authenticates the caller (`requireUserId`,
+  real Clerk-JWT verification in `router/context.ts`) but does NOT authorize
+  per-sandbox OWNERSHIP. Any signed-in user who knows a `sandboxId` can
+  `fileRead` / `fileWrite` / `fileDelete` / `commandRun` / `setup` against
+  ANY tenant's sandbox → cross-tenant file read/write + arbitrary command
+  execution (RCE on another tenant's VM). Acknowledged by an in-code
+  `TODO(security)`; mitigated today only by non-enumerable sandboxIds + "no
+  real users yet". Fix: resolve `sandboxId → project` and assert
+  `requireCap('project.edit')` in each procedure (needs a Convex client in the
+  Fastify server). MUST land before multi-user / public launch.
+- **MEDIUM — `convex/projectActions.ts` `createFromPrompt` orphan-project on seed failure.**
+  Order is: provision sandbox → `_insertProjectGraph` (project row written) →
+  `_insertCreateRequest` (prompt seed) → `provisionedSandboxId = null`. If the
+  seed insert throws, the catch stops the sandbox but the project row is
+  already committed, so the user lands on a project pointing at a stopped
+  sandbox AND the prompt never replays. Low probability (`v.any()` insert
+  rarely fails) but leaves inconsistent state. Fix: insert the create-request
+  in its own try/catch (non-fatal — a missing prompt seed shouldn't orphan the
+  project), or delete the project row on the failure path before stopping the
+  sandbox. (`createBlank` is unaffected — it has no second insert.)
+- **LOW (latent / currently dead) — `components/store/create/manager.ts:165` `startGitHubTemplate`.**
+  Calls `parseRepoUrl(repoUrl)` for validation but DISCARDS the parsed
+  `{owner, repo}` and passes the raw `repoUrl` to `createFromGit` → provider
+  `git clone <repoUrl>`. A pasted GitHub URL with a `/tree/<branch>/<subdir>`
+  suffix (common when copying the address bar) would fail `git clone` with a
+  confusing error. No live impact: `startGitHubTemplate` has ZERO callers
+  today (the in-use path is `startPublicGitHubTemplate`, fed clean
+  template-metadata URLs with branch/subpath passed separately). If this method
+  is ever wired to a free-form import field, reconstruct the clone URL from the
+  parsed `owner`/`repo` first.
+
+### Stale BACKLOG.md entries (now FIXED in current code — recommend moving to Resolved)
+
+These three `BACKLOG.md` "Open" entries (added 2026-05-29) were verified
+RESOLVED by the recent `feat(server)` / `feat(editor)` sandbox-proxy commits:
+
+- "Editor sandbox runtime is UNIMPLEMENTED … loads forever [TOP PRIORITY]" —
+  `vercel-browser-provider.ts`, `server/src/router/routes/sandbox.ts`, and
+  `server/src/sandbox/index.ts` are now REAL (wrap the `@vercel/sandbox` SDK
+  over the authed tRPC client); `setup()` runs `npm install` + spawns the dev
+  server. The security PREREQUISITE in that entry (Clerk-JWT verification in
+  the tRPC context) is DONE — only the per-sandbox ownership check remains
+  (see HIGH finding above).
+- "Editor preview never boots … sync engine wipes the sandbox on first connect
+  (DATA-PATH RISK)" — fixed: `CodeFileSystem.initialize()` is awaited before
+  `SandboxManager.init()` (`branch/manager.ts:86-91`), and the sync engine
+  enforces pull-before-push (`sync-engine.ts:172-192`) with init guards on
+  every FS op. The destructive push-empty/delete-`/public` path is no longer
+  reachable.
+- "3 of 4 create paths disabled" — partially stale: the AI-prompt path
+  (`startCreate` → `createFromPrompt`) and template path
+  (`startPublicGitHubTemplate` → `createFromGit`) are now wired. Folder-upload
+  remains stubbed.
+
+### Validation
+
+- No source edits this pass (report-only). Did not run typecheck/lint — nothing
+  changed in code.
