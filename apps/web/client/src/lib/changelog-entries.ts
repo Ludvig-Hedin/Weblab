@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-0-clone-website',
+        version: '3.0',
+        title: 'Clone any website into an editable project',
+        description:
+            'Cloning is back. Paste a URL (or drop a screenshot) and Weblab reads the page, spins up a sandbox, and hands the layout, content, and a screenshot to the AI to rebuild as an editable Next.js or static-HTML project. Pick the output stack and add notes to steer the result.',
+        date: '2026-06-03',
+        tags: ['AI', 'Create'],
+    },
+    {
         slug: 'v2-9-settings-polish-folders',
         version: '2.9',
         title: 'Dark-mode favicons, folders in settings, and a cleaner look',

@@ -16,6 +16,17 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-03 — Website clone re-enabled end-to-end (Convex) + Firecrawl key env fix
+Author: Claude Opus 4.8
+Area: `apps/web/client` (clone hook + helpers), `convex/projectActions.ts` (new action); deployment config (Convex env)
+Summary: Website clone (from URL or screenshot) had been stubbed since the Supabase→Convex migration — `useCloneWebsite` scraped then threw "temporarily unavailable". Re-wired it through the proven create pipeline: new `projectActions.createFromWebsiteClone` provisions a Vercel sandbox and seeds the purpose-built clone context types (WEBSITE_URL + framework, WEBSITE_SCRAPE, IMAGE, PROMPT) that the editor's existing `use-start-project.resumeCreate` already turns into a framework-specific clone prompt via `getCloneSystemPrompt` — lighting up a previously dead replay branch instead of duplicating it. The user-facing "FIRECRAWL_API_KEY is not configured" error was a separate, env-placement root cause: the key was in Next.js `.env.local`, but the scrape runs in a Convex action that reads its own deployment env. Key set on both Convex deployments (dev avid-gnat-539 + prod rapid-crab-113).
+Verification: `bun typecheck` ✅, `eslint` ✅ (0), `bun test` ✅ (6/6 new helper tests), independent reviewer ✅ (no issues). Could NOT drive full browser E2E — the clone dialog is Clerk-auth-gated and a real Vercel sandbox provision can't be automated headless. New Convex action deployed to dev via `convex codegen`; prod gets it on the next CI Convex deploy (push required).
+Files: `apps/web/client/src/hooks/{use-clone-website.ts,clone-prompt.ts,clone-prompt.test.ts}`, `apps/web/client/convex/projectActions.ts`
+Links: changelog v3.0 (F-782); commit `38a0cf921`
+Memory: Convex actions read the Convex deployment env, NOT Next.js `.env.local` / Railway env — set runtime keys with `convex env set [--prod]`.
+
+---
+
 ## 2026-05-29 — Skills upload + more built-ins + agent image generation (Nano Banana via OpenRouter, metered)
 Author: Claude Opus 4.8
 Area: `apps/web/client` (settings Skills tab, chat API route, Convex usage), `packages/ai` (image tool + provider, skills codegen), `packages/models` (image registry)

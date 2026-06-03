@@ -143,6 +143,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-128 | F-131, F-159 | E | Visit invalid id | Variant-specific error (not-found / unauthorized / invalid) | `[ ]` |
 | T-129 | F-134, F-537, F-594 | E | Toggle page access | Convex `pageAccess` row written; non-member loses access | `[ ]` |
 | T-130 | F-135 | U | Drive `CreateManager` phases | Each phase transitions correctly | `[ ]` |
+| T-809 | F-782, F-540 | E | Clone a website from a URL (and from a screenshot) via the dashboard dialog | Scrape succeeds; project provisions; editor opens and the AI receives the clone prompt + screenshot. Pure helpers covered by `clone-prompt.test.ts` (U, passing). | `[ ]` |
 
 ---
 
