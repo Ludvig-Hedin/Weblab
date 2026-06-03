@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-1-folder-github-import',
+        version: '3.1',
+        title: 'Import a local folder or a GitHub repo',
+        description:
+            'Two more ways to start a project are back: import a local folder (your files upload into a fresh cloud workspace) or import a public GitHub repository by URL. Both drop you straight into the editor.',
+        date: '2026-06-03',
+        tags: ['Create', 'Import'],
+    },
+    {
         slug: 'v3-0-clone-website',
         version: '3.0',
         title: 'Clone any website into an editable project',

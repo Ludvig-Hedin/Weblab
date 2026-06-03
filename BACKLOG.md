@@ -38,6 +38,25 @@ later without re-discovering the context.
 
 ## Open
 
+### Fork-based create paths still stubbed: project clone + marketplace templates (`TODO(sandbox-fork)`)
+
+- **Discovered:** 2026-06-03 (create-paths audit session)
+- **Where:** `projectActions.fork` ([convex/projectActions.ts](apps/web/client/convex/projectActions.ts)) throws "Project fork is temporarily unavailable… snapshot-based fork is not yet implemented". Callers: project clone ([clone-project.tsx](apps/web/client/src/app/projects/_components/settings/clone-project.tsx), `clone-project-dialog.tsx`) and marketplace "Use template" ([template-modal.tsx](apps/web/client/src/app/projects/_components/templates/template-modal.tsx) → `forkTemplate`).
+- **Symptom:** "Clone project" and marketplace "Use template" toast "Sandbox service temporarily unavailable".
+- **Root cause:** Fork = duplicate an existing project's sandbox state into a new one. Needs Vercel snapshot-based fork (resume the source project's persisted `snapshotId` into a fresh sandbox, then insert a new project graph). Same blocker as `branch.fork` / publish.
+- **Next step:** implement `fork` via snapshot resume — read source `projects.snapshotId`, provision from it (model on `createBlank`/`createFromGit`), insert project graph. Handle expired/missing snapshot (re-scaffold fallback or clear error).
+- **Risk if ignored:** can't duplicate a project or start from a marketplace template. (Start-blank / AI-prompt / git-URL / folder / GitHub-repo / website-clone all work as of 2026-06-03.)
+- **Tags:** `#feature` `#sandbox` `#convex`
+
+### Figma import is low-fidelity (colored-box stubs); GitHub private-repo import needs token passthrough
+
+- **Discovered:** 2026-06-03 (create-paths audit session)
+- **Where:** Figma — [import/figma/_context/index.tsx:86](apps/web/client/src/app/projects/import/figma/_context/index.tsx#L86) (sandbox provisioning stubbed; fetch via `figmaActions.fetchFile` already works). GitHub private repos — `createFromGit` clones over HTTPS with no auth token.
+- **Symptom:** Figma import throws "Sandbox provisioning is temporarily unavailable". Private GitHub repos fail at clone with a generic error (public repos work).
+- **Root cause / detail:** Figma context is a near-copy of the (now-working) local importer and is wirable to `createEmptySandbox` + tRPC `fileWrite`/`setup`, BUT the scaffolder ([packages/figma/src/scaffold.ts](packages/figma/src/scaffold.ts)) only emits empty colored `<div>`s sized to each frame — no image export, no layout. So even re-enabled it yields colored boxes, not a real design.
+- **Next step:** (a) low-fi: rewire the 4 figma-context stubs to `createEmptySandbox` + upload and have the scaffolder emit Next.js boilerplate. (b) **recommended** high-fi: render frame screenshots via Figma `/v1/images/` and feed them into `createFromWebsiteClone`/`createFromPrompt` image context (real visual clone). Private GitHub: thread the user's GitHub token into `createFromGit`'s clone URL.
+- **Tags:** `#feature` `#sandbox` `#figma` `#integration`
+
 ### Edit-message submit guard is a no-op (`sendMessage` not awaited)
 
 - **Discovered:** 2026-06-02 (chat-panel UI review session, surfaced by `claude-review`)
@@ -156,6 +175,8 @@ later without re-discovering the context.
 - **Tags:** `#bug` `#convex` `#auth`
 
 ### 3 of 4 create paths disabled — AI / clone / upload need Convex re-implementation (Vercel 402 now RESOLVED)
+
+> **RESOLVED 2026-06-03** — all three are wired: AI prompt (`createFromPrompt`, commit `ab96d3e69`), site clone (`createFromWebsiteClone`, commit `38a0cf921`), upload folder (entry points route to the working `/projects/import/local` page → `createEmptySandbox`, commit `7a9c5df8e`). GitHub repo import also re-enabled (`createFromGit`). Remaining create gaps tracked in the two fork/figma entries at the top of Open.
 
 - **Discovered:** 2026-05-29 (create-flow e2e session). External Vercel 402 blocker is **gone** — verified `Sandbox.create` provisions in ~3.6s and a blank snapshot resume serves HTTP 200 in ~13s. So **blank create works end to end** (`api.projectActions.createBlank`). The other three paths are still stubbed.
 - **Where / current state:**
@@ -295,6 +316,8 @@ later without re-discovering the context.
 - **Tags:** `#bug` `#infra` `#blocker` `#sandbox` `#billing`
 
 ### Prompt / GitHub-template project creation not yet ported to Convex (`TODO(sandbox-port)`)
+
+> **RESOLVED 2026-06-03** — `startCreate` → `createFromPrompt`, and `startPublicGitHubTemplate` / `startGitHubTemplate` → `createFromGit` are all wired (commits `ab96d3e69`, `7a9c5df8e`). The only stubbed manager method left is `createSandboxFromGithub`, which is dead code (no caller). Marketplace "Use template" (forkTemplate → `fork`) is still blocked — see the `TODO(sandbox-fork)` entry at the top of Open.
 
 - **Discovered:** 2026-05-29 (investigate; pre-existing TODO)
 - **Where:** [apps/web/client/src/components/store/create/manager.ts:24](apps/web/client/src/components/store/create/manager.ts#L24) — `startCreate`, `startGitHubTemplate`, `startPublicGitHubTemplate` all throw `UNAVAILABLE_MESSAGE`.

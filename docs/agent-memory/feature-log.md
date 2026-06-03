@@ -16,6 +16,16 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-03 — Local folder + GitHub repo import re-enabled (create-paths audit)
+Author: Claude Opus 4.8
+Area: `apps/web/client` (import entry-point hooks)
+Summary: Goal: "make all project creation work." Audited every create entry point. Re-enabled the two stubbed paths that had ready Convex backends: (1) local folder import — the dashboard-card / hero / empty-state hook (`use-import-local-project`) now routes to the already-working `/projects/import/local` page (→ `createEmptySandbox` + sandbox upload + `projects.create`) instead of throwing "temporarily unavailable"; (2) GitHub repo import — `use-repo-import` wired to `projectActions.createFromGit` (clone + persist in one action; public repos). Confirmed already-working: blank, AI prompt (`createFromPrompt`), git-URL + public-GitHub-template (`createFromGit`/`startPublicGitHubTemplate`), website clone (`createFromWebsiteClone`). Still blocked and logged in BACKLOG: fork-based paths — project clone + marketplace "Use template" (`fork` action needs Vercel snapshot-based fork, `TODO(sandbox-fork)`) — and Figma import (wirable to `createEmptySandbox` but only yields low-fidelity colored-box stubs; recommend the screenshot→AI path instead).
+Verification: `bun typecheck` ✅, `eslint` ✅ on changed files. Full browser E2E blocked (Clerk-auth-gated + real Vercel sandbox provisioning, not automatable headless).
+Files: `apps/web/client/src/hooks/use-import-local-project.ts`, `apps/web/client/src/app/projects/import/github/_hooks/use-repo-import.ts`
+Links: changelog v3.1; commit `7a9c5df8e`; BACKLOG (sandbox-fork + figma entries)
+
+---
+
 ## 2026-06-03 — Website clone re-enabled end-to-end (Convex) + Firecrawl key env fix
 Author: Claude Opus 4.8
 Area: `apps/web/client` (clone hook + helpers), `convex/projectActions.ts` (new action); deployment config (Convex env)
