@@ -160,11 +160,14 @@ export class CreateManager {
             throw new CreateFlowNotAuthenticatedError();
         }
         // Validate the URL shape eagerly so the user gets a precise error for
-        // a bad URL before the network round-trip.
-        parseRepoUrl(repoUrl);
+        // a bad URL before the network round-trip, and reconstruct a canonical
+        // clone URL: parseRepoUrl tolerates address-bar URLs with a
+        // `/tree/<branch>/<dir>` suffix that `git clone` would reject.
+        const { owner, repo } = parseRepoUrl(repoUrl);
+        const cloneUrl = `https://github.com/${owner}/${repo}.git`;
         try {
             const { projectId } = await this.convex.action(convexApi.projectActions.createFromGit, {
-                repoUrl,
+                repoUrl: cloneUrl,
                 workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
             });
             return { id: projectId };
