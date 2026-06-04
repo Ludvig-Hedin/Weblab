@@ -8,6 +8,7 @@ import { ChatContext } from './context';
 import { ConversationManager } from './conversation';
 
 export const FOCUS_CHAT_INPUT_EVENT = 'focus-chat-input';
+export const OPEN_CHAT_PANEL_EVENT = 'weblab:open-chat-panel';
 export class ChatManager {
     conversation: ConversationManager;
     context: ChatContext;
@@ -29,6 +30,23 @@ export class ChatManager {
 
     focusChatInput() {
         window.dispatchEvent(new Event(FOCUS_CHAT_INPUT_EVENT));
+    }
+
+    /**
+     * Reveal + switch the right panel to the Chat tab. The right panel listens
+     * for this event (it owns the tab state) and unhides/uncollapses itself.
+     */
+    openChatPanel() {
+        window.dispatchEvent(new Event(OPEN_CHAT_PANEL_EVENT));
+    }
+
+    /**
+     * True once `useChat` has wired up the send action. The chat hook only
+     * mounts while the Chat tab is active, so callers outside the panel must
+     * check this (or open the panel first) before calling `sendMessage`.
+     */
+    get isChatActionReady(): boolean {
+        return this._sendMessageAction !== null;
     }
 
     getCurrentConversationId() {

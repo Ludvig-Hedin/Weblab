@@ -327,6 +327,12 @@
                         "miniChat": {
                             "button": "与 AI 聊天"
                         },
+                        "aiMenu": {
+                            "trigger": "用 AI 编辑",
+                            "placeholder": "描述更改…",
+                            "send": "发送",
+                            "addToChat": "添加到聊天"
+                        },
                         "openInCode": {
                             "button": "在代码中打开"
                         },

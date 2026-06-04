@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-4-copy-to-figma',
+        version: '3.4',
+        title: 'Copy to Figma',
+        description:
+            'Right-click an element (or select a frame) and choose Copy to Figma — then paste straight into a Figma file as real, editable layers, not a flat screenshot. A Figma button also appears in the frame toolbar and next to a selected element. No plugin required.',
+        date: '2026-06-04',
+        tags: ['Editor', 'Integration'],
+    },
+    {
+        slug: 'v3-3-element-ai-button',
+        version: '3.3',
+        title: 'Edit any element with the AI button',
+        description:
+            'Select an element on the canvas and a small AI button appears at its top-right corner. Click it to describe a change and send it straight to the AI, or add the element to the chat to build a longer request — no hunting for the right panel.',
+        date: '2026-06-04',
+        tags: ['AI', 'Editor'],
+    },
+    {
         slug: 'v3-2-readable-workspace-urls',
         version: '3.2',
         title: 'Readable workspace URLs',

@@ -332,6 +332,12 @@
                         "miniChat": {
                             "button": "Chatear con IA"
                         },
+                        "aiMenu": {
+                            "trigger": "Editar con IA",
+                            "placeholder": "Describe el cambio…",
+                            "send": "Enviar",
+                            "addToChat": "Añadir al chat"
+                        },
                         "openInCode": {
                             "button": "Abrir en Code"
                         },

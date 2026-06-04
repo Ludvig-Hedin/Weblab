@@ -198,6 +198,12 @@
                         "miniChat": {
                             "button": "AIとチャット"
                         },
+                        "aiMenu": {
+                            "trigger": "AIで編集",
+                            "placeholder": "変更内容を入力…",
+                            "send": "送信",
+                            "addToChat": "チャットに追加"
+                        },
                         "openInCode": {
                             "button": "コードで開く"
                         },

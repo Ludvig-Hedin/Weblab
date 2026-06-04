@@ -240,6 +240,11 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-287 | F-288, F-522 | E | New conv → switch → delete | Convex `conversations` reflects state | `[ ]` |
 | T-288 | F-290 | I | Trigger render error in chat | Error boundary catches; chat unmounts cleanly | `[ ]` |
 | T-289 | F-291 | U | Mount composer in two surfaces | Same behavior across both | `[ ]` |
+| T-810 | F-292 | U | `waitForChatReady` ready / late-attach / timeout | Resolves once the action wires up; rejects after the budget (`wait-for-chat-ready.test.ts`) | `[x]` |
+| T-811 | F-292 | E | Select element → corner AI button → type + Send | Popover shows the tag header; chat panel reveals and the edit streams against the element | `[ ]` |
+| T-812 | F-292 | E | Corner AI button → Add to chat | Chat reveals + input focused, element attached as a context pill, nothing sent | `[ ]` |
+| T-813 | F-783 | U | `@weblab/figma-clipboard` encode → decode round-trip (`packages/figma-clipboard/test/encode.test.ts`) | HTML has `(figmeta)`/`(figma)` markers; decoded `NODE_CHANGES` tree has correct types/size/fills/text/corner-radius; hidden + zero-size nodes skipped | `[x]` |
+| T-814 | F-783 | E | Select an element → Copy to Figma (any of the 4 surfaces) → `Cmd/Ctrl+V` into a real Figma file | Pastes as a **selectable, editable** frame/text/shape (not a flat image) at the right size with the right fill/text; repeat with a frame selected (frame toolbar Figma button + right-click) | `[ ]` |
 
 ---
 

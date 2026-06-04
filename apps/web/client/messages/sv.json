@@ -1225,6 +1225,12 @@
                         "miniChat": {
                             "button": "Chatta med AI"
                         },
+                        "aiMenu": {
+                            "trigger": "Redigera med AI",
+                            "placeholder": "Beskriv ändringen…",
+                            "send": "Skicka",
+                            "addToChat": "Lägg till i chatt"
+                        },
                         "openInCode": {
                             "button": "Öppna i Kod"
                         },
