@@ -619,14 +619,14 @@ export const FOREGROUND_TOKENS: ColorTokenData[] = [
     {
         name: 'background-success',
         cssVar: '--background-success',
-        value: '208 100% 16%',
+        value: '141 41% 14%',
         description: 'Success surface. Tinted background for "added" / "published" pills.',
         usage: 'bg-background-success/40 — success Badge fill.',
     },
     {
         name: 'background-success-secondary',
         cssVar: '--background-success-secondary',
-        value: '206 100% 28%',
+        value: '141 44% 20%',
         description: 'Brighter success surface for hover.',
         usage: 'hover:bg-background-success-secondary.',
     },

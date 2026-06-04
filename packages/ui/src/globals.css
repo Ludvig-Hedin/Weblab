@@ -252,9 +252,9 @@
  *   destructive / --destructive is the existing semantic for errors —
  *   no parallel addition needed; just use `text-destructive`, `bg-destructive`.
  *
- * Default values currently alias to the blue palette (matches today's render
- * because tokens.ts maps green/yellow/teal/amber → blue). To switch to real
- * green/amber, edit only these eight lines per mode.
+ * success now uses real green tints and warning real amber; positive stays
+ * blue (brand/info highlight). To retint a status, edit only these lines per
+ * mode.
  *
  * Tailwind utilities exposed:
  *   bg-background-success | bg-background-success-secondary
@@ -336,10 +336,11 @@
     --background-diff-added: #e1f5e9;
     --background-diff-removed: #ffe7e3;
 
-    /* Status surfaces — kept light-blue-tinted for soft callouts (text uses real colors) */
+    /* Status surfaces — positive=blue (brand/info), success=green, warning=amber
+       soft callout tints that match their real text/icon colors. */
     --background-positive: #e0f3ff;
-    --background-success: #e0f3ff;
-    --background-success-secondary: #8fceff;
+    --background-success: #e7f6ec;
+    --background-success-secondary: #c5e9cf;
     --background-warning: #fef3e9;               /* light orange tint, mirrors warning text */
     --background-warning-secondary: #fde0c8;
 
@@ -686,11 +687,11 @@
     --background-diff-added: #193323;
     --background-diff-removed: #411d1a;
 
-    /* Status surfaces — success/positive stay blue-aliased (calm callout blocks);
-       warning is warm-tinted so orange text/icons don't clash with a blue field. */
+    /* Status surfaces — positive stays blue (brand drag/info); success is green
+       and warning amber so their tints match their green/orange text+icons. */
     --background-positive: #002c52;
-    --background-success: #002c52;
-    --background-success-secondary: #00518f;
+    --background-success: #15321f;
+    --background-success-secondary: #1d4a2d;
     --background-warning: #3a2a12;               /* dark amber tint, mirrors warning text (was blue #002847) */
     --background-warning-secondary: #4d3818;
 
