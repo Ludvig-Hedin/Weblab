@@ -102,7 +102,9 @@ export const captureScreenshot = action({
                     url,
                     formats: ['screenshot'],
                     onlyMainContent: true,
-                    timeout: 10000,
+                    // 30s: a cold-resumed sandbox dev server can be slow to
+                    // first paint; 10s 408'd before the preview was ready.
+                    timeout: 30000,
                 }),
             });
             if (!fcRes.ok) {
@@ -131,18 +133,32 @@ export const captureScreenshot = action({
                 );
             }
             const arrayBuffer = await response.arrayBuffer();
-            // Dynamic import keeps sharp out of the bundle for non-screenshot
-            // paths (it's a heavy native dep).
-            const sharp = (await import('sharp')).default;
-            const compressed = await sharp(Buffer.from(arrayBuffer))
-                .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
-                .jpeg({ quality: 80 })
-                .toBuffer();
+            // Compress with sharp when available (dynamic import keeps the heavy
+            // native dep out of non-screenshot paths). sharp's platform binary
+            // is NOT present on the Convex linux-arm64 action runtime ("Could
+            // not load the sharp module using the linux-arm64 runtime"), so fall
+            // back to storing the raw screenshot rather than failing the whole
+            // capture — preview thumbnails are a nice-to-have, not worth
+            // erroring + spamming logs on every project refresh.
+            let blob: Blob;
+            try {
+                const sharp = (await import('sharp')).default;
+                const compressed = await sharp(Buffer.from(arrayBuffer))
+                    .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 80 })
+                    .toBuffer();
+                blob = new Blob([new Uint8Array(compressed)], { type: 'image/jpeg' });
+            } catch (sharpErr) {
+                console.warn(
+                    '[captureScreenshot] sharp unavailable on this runtime; storing raw screenshot',
+                    sharpErr instanceof Error ? sharpErr.message : sharpErr,
+                );
+                blob = new Blob([arrayBuffer], {
+                    type: response.headers.get('content-type') ?? 'image/png',
+                });
+            }
 
             // Upload to Convex File Storage.
-            const blob = new Blob([new Uint8Array(compressed)], {
-                type: 'image/jpeg',
-            });
             const storageId = await ctx.storage.store(blob);
 
             // Persist the storage id on the project.
