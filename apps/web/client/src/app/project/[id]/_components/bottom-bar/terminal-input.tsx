@@ -160,7 +160,10 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
     };
 
     return (
-        <div className="border-border/60 bg-background flex items-center gap-1.5 border-t px-2 py-1.5">
+        // Elevated surface (vs the panel body's `bg-background`) so the command
+        // input reads as a distinct, findable field instead of blending into the
+        // empty terminal area — the "I don't see any input" complaint.
+        <div className="border-border/60 bg-background-secondary flex items-center gap-1.5 border-t px-2 py-2">
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button

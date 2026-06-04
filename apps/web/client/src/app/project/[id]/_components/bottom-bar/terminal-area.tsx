@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { Icons } from '@weblab/ui/icons';
@@ -160,9 +160,40 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
 
     return (
         <>
-            {/* Bottom toolbar row — always visible, even when the terminal is
-                open (the panel grows below it inside the same rounded box). */}
-            <motion.div layout className="flex w-full items-center gap-1">
+            {/* Terminal card — slides up ABOVE the toolbar and grows the pill
+                smoothly (height + fade). Rendered before the toolbar so the
+                toolbar stays pinned at the bottom of the bottom-anchored pill;
+                its icons never shift when the terminal opens. */}
+            <AnimatePresence initial={false}>
+                {!terminalHidden && (
+                    <motion.div
+                        key="terminal-card"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{
+                            height: { type: 'spring', stiffness: 360, damping: 38 },
+                            opacity: { duration: 0.18, ease: 'easeOut' },
+                        }}
+                        className="w-full overflow-hidden"
+                    >
+                        <TerminalPanel
+                            tabs={tabs}
+                            activeKey={activeSessionId}
+                            onSelect={switchToSessionByKey}
+                            onClose={handleClose}
+                            onNew={() => void handleNew()}
+                            onReorder={handleReorder}
+                            projectId={editorEngine.projectId}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Bottom toolbar row — pinned at the bottom of the pill. Plain div
+                (no layout animation) so opening the terminal never reflows the
+                toolbar icons. */}
+            <div className="flex w-full items-center gap-1">
                 {children}
                 <div className="ml-auto flex items-center gap-1">
                     <RestartSandboxButton />
@@ -182,19 +213,7 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                         </TooltipContent>
                     </Tooltip>
                 </div>
-            </motion.div>
-
-            {!terminalHidden && (
-                <TerminalPanel
-                    tabs={tabs}
-                    activeKey={activeSessionId}
-                    onSelect={switchToSessionByKey}
-                    onClose={handleClose}
-                    onNew={() => void handleNew()}
-                    onReorder={handleReorder}
-                    projectId={editorEngine.projectId}
-                />
-            )}
+            </div>
         </>
     );
 });

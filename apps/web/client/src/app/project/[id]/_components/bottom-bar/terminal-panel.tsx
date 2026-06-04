@@ -123,21 +123,30 @@ export const TerminalPanel = observer(
                     // it back through onOutput → xterm, so we don't pre-echo.
                     void activeTerminal.terminal.write(command + '\r');
                 } else if (branchSession) {
-                    // PTY never attached (cold-boot / provider quirk): fall back to
-                    // a one-shot runCommand and echo into this tab's xterm so the
-                    // user still sees the command and its output.
-                    activeTerminal.xterm?.write(`\r\n$ ${command}\r\n`);
-                    void branchSession
-                        .runCommand(command, (chunk) => activeTerminal.xterm?.write(chunk))
-                        .then((res) => {
-                            // runCommand resolves (never rejects) with success/error —
-                            // it streams stdout but not the failure message, so surface
-                            // it here, otherwise a failed fallback command looks like it
-                            // silently did nothing.
-                            if (!res.success && res.error) {
-                                activeTerminal.xterm?.write(`\r\n\x1b[31m${res.error}\x1b[0m\r\n`);
-                            }
-                        });
+                    // PTY never attached (cold-boot / stubbed provider): fall back
+                    // to a one-shot runCommand and echo into this tab's xterm so
+                    // the user still sees the command and its output.
+                    const xterm = activeTerminal.xterm;
+                    // Guard every write: if the user closes the tab mid-command the
+                    // xterm is disposed, and write-after-dispose throws (optional
+                    // chaining only guards null, not a disposed instance).
+                    const safeWrite = (data: string) => {
+                        try {
+                            xterm?.write(data);
+                        } catch {
+                            // tab closed / xterm disposed — drop the write
+                        }
+                    };
+                    safeWrite(`\r\n$ ${command}\r\n`);
+                    void branchSession.runCommand(command, safeWrite).then((res) => {
+                        // runCommand resolves (never rejects) with success/error — it
+                        // streams stdout but not the failure message, so surface it
+                        // here, otherwise a failed fallback command looks like it
+                        // silently did nothing.
+                        if (!res.success && res.error) {
+                            safeWrite(`\r\n\x1b[31m${res.error}\x1b[0m\r\n`);
+                        }
+                    });
                 }
             },
             [activeTerminal, branchSession],
@@ -145,7 +154,7 @@ export const TerminalPanel = observer(
 
         return (
             <div
-                className="bg-background border-border/60 mt-1 flex w-[40rem] max-w-[80vw] flex-col overflow-hidden rounded-lg border"
+                className="bg-background border-border/60 mb-1 flex w-[40rem] max-w-[80vw] flex-col overflow-hidden rounded-lg border"
                 style={{ height }}
             >
                 {/* Resize handle — drag the top edge to grow/shrink height. */}
@@ -196,7 +205,10 @@ export const TerminalPanel = observer(
                                         dragKey === tab.key && 'opacity-50',
                                     )}
                                 >
-                                    <span className="truncate">
+                                    <span
+                                        className="truncate"
+                                        title={`${tab.name} • ${tab.branchName}`}
+                                    >
                                         {tab.name} • {tab.branchName}
                                     </span>
                                     {closable && (
