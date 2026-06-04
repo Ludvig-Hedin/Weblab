@@ -31,6 +31,36 @@ function bytesToBase64(bytes: number[]): string {
     return btoa(binary);
 }
 
+/**
+ * Per-file upload ceiling. The sandbox WS client (sandbox-server-client.ts)
+ * reconnects forever with backoff, so when the sandbox server (port 8080) is
+ * down a `fileWrite` mutate never resolves AND never rejects — the import sits
+ * on "Uploading 0/N files" behind a progress bar that has already animated to
+ * 100%. This timeout converts that silent hang into a real error so the user
+ * gets the Retry button instead of a frozen modal.
+ */
+const UPLOAD_FILE_TIMEOUT_MS = 30_000;
+
+const UPLOAD_TIMEOUT_MESSAGE =
+    'Upload timed out — the sandbox server is unreachable. Make sure it is running, then retry.';
+
+/** Reject with `message` if `promise` hasn't settled within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(message)), ms);
+        promise.then(
+            (value) => {
+                clearTimeout(timer);
+                resolve(value);
+            },
+            (err) => {
+                clearTimeout(timer);
+                reject(err);
+            },
+        );
+    });
+}
+
 export interface Project {
     name: string;
     folderPath: string;
@@ -200,14 +230,18 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         let uploaded = 0;
         for (const file of args.files) {
             const isBinary = Array.isArray(file.content);
-            await client.sandbox.fileWrite.mutate({
-                sandboxId: args.sandboxId,
-                path: file.path,
-                content: isBinary
-                    ? bytesToBase64(file.content as number[])
-                    : (file.content as string),
-                encoding: isBinary ? 'base64' : 'utf8',
-            });
+            await withTimeout(
+                client.sandbox.fileWrite.mutate({
+                    sandboxId: args.sandboxId,
+                    path: file.path,
+                    content: isBinary
+                        ? bytesToBase64(file.content as number[])
+                        : (file.content as string),
+                    encoding: isBinary ? 'base64' : 'utf8',
+                }),
+                UPLOAD_FILE_TIMEOUT_MS,
+                UPLOAD_TIMEOUT_MESSAGE,
+            );
             uploaded += 1;
             setFinalizeProgress({
                 phase: 'uploading',
@@ -348,7 +382,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 return;
             }
             console.error('Error creating project:', error);
-            setError('Failed to create project');
+            setError(error instanceof Error ? error.message : 'Failed to create project');
             if (inFlightSandboxId.current && !inFlightProjectId.current) {
                 await deleteOrphanSandbox({
                     sandboxId: inFlightSandboxId.current,

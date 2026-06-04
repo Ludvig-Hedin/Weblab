@@ -8,7 +8,6 @@ import { BrandLogo } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
 import { MotionCard } from '@weblab/ui/motion-card';
 
-import { useGetBackground } from '@/hooks/use-get-background';
 import { Routes } from '@/utils/constants';
 import { CancelButton } from '../cancel-button';
 import { FinalizingProject } from './_components/finalizing-project';
@@ -30,16 +29,8 @@ const Page = () => {
             return { x: `${-120 * direction}%`, opacity: 0 };
         },
     };
-    const backgroundUrl = useGetBackground('create');
     return (
-        <div
-            className="flex h-screen w-screen flex-col"
-            style={{
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundImage: `url(${backgroundUrl})`,
-            }}
-        >
+        <div className="bg-background flex h-screen w-screen flex-col">
             <div className="flex items-center justify-between px-12 py-4">
                 <Link href={Routes.HOME}>
                     <BrandLogo className="h-4" />
@@ -50,10 +41,11 @@ const Page = () => {
                 <div className="relative z-10">
                     <MotionConfig transition={{ duration: 0.5, type: 'spring', bounce: 0 }}>
                         <MotionCard
+                            tilt={false}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
-                            className="border-primary/20 !bg-background min-h-[12rem] w-[30rem] overflow-hidden rounded-lg border p-0 shadow-lg"
+                            className="border-border !bg-background-primary min-h-[12rem] w-[30rem] overflow-hidden rounded-lg border p-0 shadow-lg"
                         >
                             <motion.div ref={ref} layout="position" className="flex flex-col">
                                 <AnimatePresence

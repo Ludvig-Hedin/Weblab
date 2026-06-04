@@ -465,13 +465,13 @@ export const NewSelectFolder = () => {
 
         const statusConfig = {
             valid: {
-                bgColor: 'bg-background-success',
-                borderColor: 'border-success',
-                iconBgColor: 'bg-foreground-success',
+                bgColor: 'bg-background-secondary',
+                borderColor: 'border-border',
+                iconBgColor: 'bg-background-tertiary',
                 textColor: 'text-foreground-primary',
-                subTextColor: 'text-foreground-success',
+                subTextColor: 'text-foreground-secondary',
                 icon: (
-                    <Icons.CheckCircled className="text-foreground-success h-5 w-5 transition-opacity duration-200 group-hover:opacity-0" />
+                    <Icons.CheckCircled className="text-foreground-secondary h-5 w-5 transition-opacity duration-200 group-hover:opacity-0" />
                 ),
                 showError: false,
             },
@@ -528,7 +528,7 @@ export const NewSelectFolder = () => {
                         onClick={reset}
                     >
                         <Icons.MinusCircled
-                            className={`h-5 w-5 ${validation?.isValid ? 'text-foreground-success' : 'text-foreground-warning'}`}
+                            className={`h-5 w-5 ${validation?.isValid ? 'text-foreground-secondary' : 'text-foreground-warning'}`}
                         />
                     </Button>
                 </motion.div>

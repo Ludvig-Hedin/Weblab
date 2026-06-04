@@ -6,8 +6,17 @@ import { cn } from '../utils';
 
 type MotionDivProps = HTMLMotionProps<'div'>;
 
-const MotionCard = React.forwardRef<HTMLDivElement, MotionDivProps>(
-    ({ className, style, onMouseMove, onMouseLeave, ...props }, ref) => {
+type MotionCardProps = MotionDivProps & {
+    /**
+     * 3D pointer-tracking tilt on hover. Defaults to `true` (preserves the
+     * marketing/pricing card flourish). Pass `false` for flat product surfaces
+     * such as the import/setup cards, where the tilt reads as gimmicky.
+     */
+    tilt?: boolean;
+};
+
+const MotionCard = React.forwardRef<HTMLDivElement, MotionCardProps>(
+    ({ className, style, onMouseMove, onMouseLeave, tilt = true, ...props }, ref) => {
         const x = useMotionValue(0);
         const y = useMotionValue(0);
 
@@ -21,15 +30,19 @@ const MotionCard = React.forwardRef<HTMLDivElement, MotionDivProps>(
         });
 
         function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            x.set((e.clientX - rect.left) / rect.width - 0.5);
-            y.set((e.clientY - rect.top) / rect.height - 0.5);
+            if (tilt) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                x.set((e.clientX - rect.left) / rect.width - 0.5);
+                y.set((e.clientY - rect.top) / rect.height - 0.5);
+            }
             onMouseMove?.(e);
         }
 
         function handleMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
-            x.set(0);
-            y.set(0);
+            if (tilt) {
+                x.set(0);
+                y.set(0);
+            }
             onMouseLeave?.(e);
         }
 
@@ -43,10 +56,16 @@ const MotionCard = React.forwardRef<HTMLDivElement, MotionDivProps>(
                     backgroundColor: 'color-mix(in srgb, var(--background) 60%, transparent)',
                     boxShadow: `0px 0px 0px 0.5px color-mix(in srgb, var(--foreground) 20%, transparent)`,
                     color: 'var(--card-foreground)',
-                    rotateX,
-                    rotateY,
-                    transformStyle: 'preserve-3d',
-                    perspective: 800,
+                    // Only enable the 3D transform context when tilting — a static
+                    // perspective/preserve-3d on a flat card can subtly blur text.
+                    ...(tilt
+                        ? {
+                              rotateX,
+                              rotateY,
+                              transformStyle: 'preserve-3d',
+                              perspective: 800,
+                          }
+                        : {}),
                     ...style,
                 }}
                 onMouseMove={handleMouseMove}
