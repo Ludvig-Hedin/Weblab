@@ -145,6 +145,44 @@ async function main() {
     }
     console.log('npm install done.');
 
+    // Warm the dev server BEFORE snapshotting so the snapshot carries a hot
+    // `.next` Turbopack build cache. Without this the snapshot is cold and the
+    // first editor open pays a 30-90s first-compile (the preview domain 502s
+    // until then). Use the SAME command the editor's setup() uses
+    // (`--hostname 0.0.0.0`) so the warmed server binds the preview-reachable
+    // host and setup()'s `isDevServerRunning` detection stays consistent.
+    console.log('Warming dev server (first compile) so the snapshot is hot...');
+    await sandbox.runCommand({
+        cmd: 'bash',
+        args: ['-lc', 'npm run dev -- --turbopack --hostname 0.0.0.0 > /tmp/weblab-dev.log 2>&1'],
+        detached: true,
+    });
+    const probeArgs = [
+        '-lc',
+        `node -e 'const http=require("http");http.get("http://127.0.0.1:${PORT}",r=>{console.log(r.statusCode);process.exit(0)}).on("error",()=>{console.log("000");process.exit(0)})'`,
+    ];
+    const warmDeadline = Date.now() + 150_000;
+    let warm = false;
+    while (Date.now() < warmDeadline) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const probe = await sandbox.runCommand({ cmd: 'bash', args: probeArgs });
+        const code = (await probe.output('stdout')).trim();
+        if (code && code !== '000' && /^\d{3}$/.test(code)) {
+            warm = true;
+            break;
+        }
+    }
+    if (!warm) {
+        const logTail = await (
+            await sandbox.runCommand({ cmd: 'bash', args: ['-lc', 'tail -n 40 /tmp/weblab-dev.log'] })
+        ).output('stdout');
+        console.error('Dev server failed to warm within 150s. Log tail:\n', logTail);
+        process.exit(1);
+    }
+    // Let the first route fully render + Turbopack flush its cache to disk.
+    console.log('Dev server warm (port responding). Settling 6s before snapshot...');
+    await new Promise((r) => setTimeout(r, 6000));
+
     console.log('Snapshotting...');
     const snapshot = await sandbox.snapshot({ expiration: 0 });
     console.log('');

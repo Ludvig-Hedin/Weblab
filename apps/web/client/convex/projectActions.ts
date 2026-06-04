@@ -7,6 +7,7 @@ import { VercelSandboxProvider } from '@weblab/code-provider';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
+import { deriveRepoName } from './lib/repoName';
 import { mapSandboxProvisionError } from './lib/sandboxErrors';
 
 // Node-only actions for the projects domain. These wrap external SDK calls
@@ -444,15 +445,11 @@ export const createFromGit = action({
                     userId: me._id,
                 }));
 
-            // Derive a readable fallback name from the repo URL when the caller
-            // didn't supply one (last non-empty path segment, sans `.git`).
-            const repoName =
-                args.repoUrl
-                    .replace(/\.git$/, '')
-                    .split('/')
-                    .filter(Boolean)
-                    .pop() ?? 'Imported project';
-            const projectName = args.name?.trim() || `Imported · ${repoName}`;
+            // Readable fallback name from the repo URL when the caller didn't
+            // supply one. `deriveRepoName` (unit-tested in convex/lib) strips
+            // `.git` + any query/fragment so a `?tab=…` URL doesn't leak into
+            // the project name.
+            const projectName = args.name?.trim() || `Imported · ${deriveRepoName(args.repoUrl)}`;
 
             const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
                 userId: me._id,
