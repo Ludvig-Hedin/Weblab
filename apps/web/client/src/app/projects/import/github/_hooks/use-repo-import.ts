@@ -8,7 +8,7 @@ import { useConvex, useQuery } from 'convex/react';
 import type { GitHubRepository } from '@weblab/github';
 
 import type { Id } from '@convex/_generated/dataModel';
-import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
+import { readActiveWorkspaceId } from '@/utils/active-workspace';
 import { Routes } from '@/utils/constants';
 
 export type GitHubImportPhase =
@@ -16,16 +16,6 @@ export type GitHubImportPhase =
     | 'cloning-repository'
     | 'creating-project'
     | 'opening-editor';
-
-function readActiveWorkspaceId(): string | undefined {
-    if (typeof window === 'undefined') return undefined;
-    try {
-        const id = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
-        return id && id.length > 0 ? id : undefined;
-    } catch {
-        return undefined;
-    }
-}
 
 export const useRepositoryImport = () => {
     const router = useRouter();

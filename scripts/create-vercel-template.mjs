@@ -112,9 +112,12 @@ const TSCONFIG = {
     exclude: ['node_modules'],
 };
 
+// Module-scoped so the top-level catch can stop the VM if a bake step throws.
+let sandbox;
+
 async function main() {
     console.log('Creating sandbox...');
-    const sandbox = await Sandbox.create({
+    sandbox = await Sandbox.create({
         ports: [PORT],
         runtime: RUNTIME,
         timeout: 30 * 60 * 1000,
@@ -141,7 +144,7 @@ async function main() {
     const out = await result.output('both');
     if (result.exitCode !== 0) {
         console.error('npm install failed:\n', out);
-        process.exit(1);
+        throw new Error('npm install failed');
     }
     console.log('npm install done.');
 
@@ -177,7 +180,7 @@ async function main() {
             await sandbox.runCommand({ cmd: 'bash', args: ['-lc', 'tail -n 40 /tmp/weblab-dev.log'] })
         ).output('stdout');
         console.error('Dev server failed to warm within 150s. Log tail:\n', logTail);
-        process.exit(1);
+        throw new Error('dev server failed to warm');
     }
     // Let the first route fully render + Turbopack flush its cache to disk.
     console.log('Dev server warm (port responding). Settling 6s before snapshot...');
@@ -191,9 +194,16 @@ async function main() {
     console.log('');
     console.log('Add the above line to apps/web/client/.env.local');
     console.log('and restart `bun dev` for new blank projects to resume from snapshot.');
+
+    // Free the live VM — the snapshot is an independent checkpoint, so the
+    // running sandbox is no longer needed.
+    await sandbox.stop({ blocking: false }).catch(() => {});
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
     console.error('Failed:', err);
+    // Stop the orphaned VM so a failed bake doesn't leak a 4-vCPU sandbox for
+    // the full 30-min timeout.
+    if (sandbox) await sandbox.stop({ blocking: false }).catch(() => {});
     process.exit(1);
 });

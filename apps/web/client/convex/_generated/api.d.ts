@@ -56,6 +56,7 @@ import type * as lib_previewSlug from "../lib/previewSlug.js";
 import type * as lib_providerTokens from "../lib/providerTokens.js";
 import type * as lib_publishHelpers from "../lib/publishHelpers.js";
 import type * as lib_publishManager from "../lib/publishManager.js";
+import type * as lib_repoName from "../lib/repoName.js";
 import type * as lib_sandboxErrors from "../lib/sandboxErrors.js";
 import type * as lib_skillHelpers from "../lib/skillHelpers.js";
 import type * as lib_skillImport from "../lib/skillImport.js";
@@ -144,6 +145,7 @@ declare const fullApi: ApiFromModules<{
   "lib/providerTokens": typeof lib_providerTokens;
   "lib/publishHelpers": typeof lib_publishHelpers;
   "lib/publishManager": typeof lib_publishManager;
+  "lib/repoName": typeof lib_repoName;
   "lib/sandboxErrors": typeof lib_sandboxErrors;
   "lib/skillHelpers": typeof lib_skillHelpers;
   "lib/skillImport": typeof lib_skillImport;
