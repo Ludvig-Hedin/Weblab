@@ -31,7 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development
-bun dev              # Start Next.js client (port 3000) via Turbo
+bun dev              # Start the full local stack: Next.js client (3000) + preload + sandbox tRPC server (8080). The :8080 server is required for the editor to connect to a sandbox — without it the preview shows "booting sandbox" forever.
 bun backend:start    # Start Supabase local backend
 
 # Build

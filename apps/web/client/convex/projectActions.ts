@@ -264,6 +264,15 @@ export const createBlank = action({
                 title: `Blank project - ${me._id}`,
                 tags: ['blank', String(me._id)],
                 privacy: 'private',
+                // Resume from the pre-baked Next.js snapshot (~13s) instead of
+                // scaffolding + `npm install` from scratch (~60-90s). The
+                // provider only honors this for nextjs and silently falls back
+                // to a fresh scaffold if the snapshot is expired/unset, so an
+                // empty/stale VERCEL_BLANK_SNAPSHOT_ID degrades gracefully.
+                snapshotId:
+                    framework === 'nextjs'
+                        ? process.env.VERCEL_BLANK_SNAPSHOT_ID
+                        : undefined,
             });
 
             const sandboxId = result.id;
@@ -530,6 +539,13 @@ export const createFromPrompt = action({
                 title: `AI project - ${me._id}`,
                 tags: ['prompt', String(me._id)],
                 privacy: 'private',
+                // Resume the pre-baked Next.js snapshot (~13s) vs scaffold +
+                // install (~60-90s); provider ignores it for non-nextjs and
+                // falls back gracefully if expired/unset.
+                snapshotId:
+                    framework === 'nextjs'
+                        ? process.env.VERCEL_BLANK_SNAPSHOT_ID
+                        : undefined,
             });
 
             const sandboxId = result.id;
@@ -684,6 +700,13 @@ export const createFromWebsiteClone = action({
                 title: `Cloned site - ${me._id}`,
                 tags: ['clone', String(me._id)],
                 privacy: 'private',
+                // Resume the pre-baked Next.js snapshot (~13s) vs scaffold +
+                // install (~60-90s); provider ignores it for non-nextjs and
+                // falls back gracefully if expired/unset.
+                snapshotId:
+                    framework === 'nextjs'
+                        ? process.env.VERCEL_BLANK_SNAPSHOT_ID
+                        : undefined,
             });
 
             const sandboxId = result.id;

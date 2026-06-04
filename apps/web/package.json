@@ -4,7 +4,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "dev": "bun --filter '@weblab/web-client' --filter '@weblab/web-preload' dev",
+        "dev": "bun --filter '@weblab/web-client' --filter '@weblab/web-preload' --filter '@weblab/web-server' dev",
         "dev:client": "bun --filter @weblab/web-client dev",
         "dev:server": "bun --filter @weblab/web-server dev",
         "dev:preload": "bun --filter @weblab/web-preload dev",
