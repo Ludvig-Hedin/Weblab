@@ -21,7 +21,6 @@ const MAX_TEXT = 5000;
 
 const STYLE_KEYS = [
     'backgroundColor',
-    'backgroundImage',
     'color',
     'opacity',
     'borderTopWidth',
