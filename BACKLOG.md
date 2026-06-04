@@ -38,6 +38,24 @@ later without re-discovering the context.
 
 ## Open
 
+### Bug Hunt 2026-06-05 — project creation (needs-review findings)
+
+Auto-fixed this pass (committed): `captureScreenshot` logged the expected
+deleted-project `NOT_FOUND` race as a hard error (console spam) → now a quiet
+skip; `getTimeoutMs` returned a negative `input` verbatim as the sandbox
+lifetime → now guarded `> 0`. Remaining (not yet fixed):
+
+- **static-html GitHub import → permanent 502.** [convex/projectActions.ts:413](apps/web/client/convex/projectActions.ts#L413) `createFromGit` reads `framework` and persists it but never passes it to `VercelSandboxProvider.createProjectFromGit`, so the provider uses Next's `DEFAULT_PORT` (3000). A static-html template (`serve` binds 8080) gets port 3000 persisted (`?? 8080` never fires) → preview 502s forever. `TODO(bug-hunt)` in code. Fix: thread `framework` → provider, map port/devCommand from `FRAMEWORK_RUNTIME`. Only static-html git imports affected.
+- **`startGitHubTemplate` drops the parsed branch.** [components/store/create/manager.ts](apps/web/client/src/components/store/create/manager.ts) destructures `parseRepoUrl` for `{owner, repo}` only and lets `createFromGit` default branch to `main`; a repo whose default branch is `master`/`develop` (or a `/tree/<branch>` URL) clones the wrong/nonexistent ref → git failure. Fix: parse + pass the branch (action already accepts `branch`).
+- **Silent prompt drop on double seed-failure.** [convex/projectActions.ts](apps/web/client/convex/projectActions.ts) `createFromPrompt` returns `{projectId}` even when both `_insertCreateRequest` attempts fail, so the editor opens with no pending request and the user's prompt is silently dropped (no replay, no error). Fix: surface a non-fatal toast ("project created but prompt couldn't be saved — retype it").
+- **Sandbox-server lifecycle hardening (low).** `apps/web/server/src/sandbox/index.ts` `getSandbox` cache is unbounded + only evicts on rejection (stale handles to reclaimed VMs accumulate; 410 on first op after reclaim) — add TTL/LRU or evict on 410. And the provider's snapshot-resume shares the 45s `SDK_CALL_TIMEOUT_MS`; a legit cold resume >45s falls off a cliff to the 60-90s scaffold path — give snapshot-resume its own higher ceiling.
+
+### Perf: first editor open pays a cold Next compile (snapshot is baked pre-dev-server)
+
+- **Discovered:** 2026-06-05 (bug-hunt). The blank snapshot (`scripts/create-vercel-template.mjs`) is taken *after* `npm install` but *before* the dev server starts, so resume is fast (~13s) but the first preview pays a 30-90s cold Turbopack compile (`server/src/sandbox/index.ts` `setup()` polls up to 90s). No double-boot — the editor reuses the live sandbox by id (`Sandbox.get`), confirmed.
+- **Fix (in progress this turn):** warm the dev server (with `--hostname 0.0.0.0`) before snapshotting so the snapshot carries a hot `.next` build cache → first open recompiles in seconds. Bake script updated + re-baked; `VERCEL_BLANK_SNAPSHOT_ID` rotated. An in-action pre-warm was rejected — the scaffolded `package.json` dev script lacks `--hostname`, so pre-warming with the wrong command would make `setup()` skip its correct spawn and 502 the preview.
+- **Tags:** `#perf` `#sandbox`
+
 ### Copy to Figma (F-783): fidelity follow-ups + two live-Figma-only risks
 
 - **Discovered:** 2026-06-04 (Copy to Figma ship)

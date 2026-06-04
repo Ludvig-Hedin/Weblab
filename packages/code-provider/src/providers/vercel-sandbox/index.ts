@@ -172,7 +172,9 @@ function getCredentials(): VercelCredentials {
 
 function getTimeoutMs(input?: number | null) {
     const fromEnv = Number(process.env.VERCEL_SANDBOX_TIMEOUT_MS);
-    if (input && Number.isFinite(input)) return input;
+    // Guard `> 0`: a negative `input` is truthy + finite and would otherwise
+    // be returned verbatim as the sandbox lifetime.
+    if (typeof input === 'number' && Number.isFinite(input) && input > 0) return input;
     if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
     return DEFAULT_TIMEOUT_MS;
 }

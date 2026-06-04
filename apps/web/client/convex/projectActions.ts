@@ -173,10 +173,18 @@ export const captureScreenshot = action({
 
             return { success: true as const, storageId };
         } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            // The project (or its branch) being deleted between the debounced
+            // client-side capture trigger and this action running is an
+            // expected race, not a failure — skip quietly instead of logging
+            // an error on every deleted/just-removed project.
+            if (/NOT_FOUND/i.test(message)) {
+                return { success: false as const, skipped: 'not-found' as const };
+            }
             console.error('Error capturing project screenshot:', error);
             return {
                 success: false as const,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: message,
             };
         }
     },
@@ -410,6 +418,14 @@ export const createFromGit = action({
 
         let provisionedSandboxId: string | null = null;
         try {
+            // TODO(bug-hunt): `framework` is read above + persisted into the
+            // project graph, but NOT passed here — so the provider always uses
+            // the Next.js DEFAULT_PORT (3000) + DEFAULT_DEV_COMMAND. A
+            // static-html git import (whose `serve` binds 8080) gets port 3000
+            // persisted (the `?? 8080` below never fires because result.port is
+            // 3000), so the preview 502s forever. Fix: thread `framework` into
+            // createProjectFromGit and map port/devCommand from FRAMEWORK_RUNTIME
+            // like createProject does. Only affects static-html git imports.
             const result = await VercelSandboxProvider.createProjectFromGit({
                 repoUrl: args.repoUrl,
                 branch: args.branch ?? 'main',
