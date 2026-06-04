@@ -80,9 +80,11 @@ function serialize(
     const elementChildren = Array.from(el.children).filter(
         (c): c is HTMLElement => c instanceof HTMLElement,
     );
-    const isImage =
-        el.tagName === 'IMG' ||
-        (styles.backgroundImage != null && styles.backgroundImage !== 'none');
+    // Only a real replaced <img> is treated as an image *leaf* (→ placeholder
+    // rect). A container that merely has a `background-image` must NOT be
+    // flagged here — doing so would skip child recursion below and silently drop
+    // its entire subtree (e.g. a hero with a bg image + text/buttons).
+    const isImage = el.tagName === 'IMG';
 
     // Leaf with text and no element children → a Figma TEXT node.
     const ownText = elementChildren.length === 0 ? (el.textContent ?? '').trim() : '';
