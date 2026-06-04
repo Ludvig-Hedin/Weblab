@@ -69,11 +69,25 @@ export function useCloneWebsite() {
             // (before provisioning) means a bad/unreachable URL fails fast
             // without burning a sandbox.
             setPhase('scraping-url');
-            const scrape = await scrapeUrl({
+            // Heavy / JS-rendered pages can exceed Firecrawl's budget while
+            // rendering the screenshot (408). Try the full scrape (with
+            // screenshot) on a generous timeout; if it times out, retry
+            // markdown-only (no render) so the clone still proceeds from the
+            // page content instead of failing outright.
+            let scrape = await scrapeUrl({
                 url,
                 formats: ['markdown', 'branding', 'screenshot'],
                 onlyMainContent: true,
+                timeout: 90_000,
             });
+            if (scrape.error && /\b408\b|timed?\s*out|timeout/i.test(scrape.error)) {
+                scrape = await scrapeUrl({
+                    url,
+                    formats: ['markdown', 'branding'],
+                    onlyMainContent: true,
+                    timeout: 90_000,
+                });
+            }
             if (scrape.error || (!scrape.result && !scrape.screenshotBase64)) {
                 throw new Error(
                     scrape.error ??

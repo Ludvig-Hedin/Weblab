@@ -157,6 +157,11 @@ export const scrapeUrl = action({
         includeTags: v.optional(v.array(v.string())),
         excludeTags: v.optional(v.array(v.string())),
         waitFor: v.optional(v.number()),
+        // Firecrawl per-scrape budget in ms. Default 30s was too short for
+        // JS-heavy / large pages (408 "scrape operation timed out"). Default
+        // bumped to 60s, caller-overridable, hard-capped at 120s so a single
+        // scrape can't pin the action near the Convex runtime ceiling.
+        timeout: v.optional(v.number()),
     },
     handler: async (
         ctx,
@@ -180,10 +185,14 @@ export const scrapeUrl = action({
 
             const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
 
+            // Clamp the scrape budget to [10s, 120s]; default 60s.
+            const timeout = Math.min(Math.max(input.timeout ?? 60_000, 10_000), 120_000);
+
             // 'branding' is supported by the API but not in the SDK types.
             const result = (await app.scrapeUrl(input.url, {
                 formats: formats as unknown as never,
                 onlyMainContent,
+                timeout,
                 ...(input.includeTags ? { includeTags: input.includeTags } : {}),
                 ...(input.excludeTags ? { excludeTags: input.excludeTags } : {}),
                 ...(input.waitFor !== undefined ? { waitFor: input.waitFor } : {}),
