@@ -1,0 +1,9 @@
+{
+    "extends": "@weblab/typescript/base.json",
+    "compilerOptions": {
+        "outDir": "dist",
+        "rootDir": "."
+    },
+    "include": ["src/**/*", "test/**/*", "scripts/**/*"],
+    "exclude": ["node_modules", "dist"]
+}

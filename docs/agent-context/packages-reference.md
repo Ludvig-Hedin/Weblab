@@ -143,6 +143,16 @@ Figma REST API integration for design import.
 The Figma plugin source itself — design-to-code workflow that pushes Figma
 selections into a Weblab project.
 
+### `@weblab/figma-clipboard`
+The reverse direction of the two packages above: encodes a serialized DOM
+subtree into **Figma's native clipboard (Kiwi) format** so a user can
+`Cmd/Ctrl+V` a Weblab element/frame into Figma as editable layers (no plugin).
+Vendors the Figma scene schema (`src/schema-data.ts`, regenerable via
+`scripts/extract-schema.ts`) and drives `kiwi-schema` + `pako` to emit the
+`fig-kiwi` archive + `text/html` paste envelope. Pure + browser-safe;
+round-trip unit-tested. Consumed by the editor's `CopyToFigmaManager`
+(`engine.figma`) — see feature F-783.
+
 ### `@weblab/git`
 Local git operations (used primarily by desktop and local-mode runtimes).
 

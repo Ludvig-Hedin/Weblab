@@ -11,6 +11,19 @@ export function WindowActionsGroup({ frameData }: { frameData: FrameData }) {
     const editorEngine = useEditorEngine();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
+    const [isCopyingFigma, setIsCopyingFigma] = useState(false);
+
+    const copyToFigma = async () => {
+        if (!frameData?.frame.id) return;
+        setIsCopyingFigma(true);
+        try {
+            await editorEngine.figma.copyFrameToFigma(frameData.frame.id);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsCopyingFigma(false);
+        }
+    };
 
     const duplicateWindow = async () => {
         setIsDuplicating(true);
@@ -40,6 +53,19 @@ export function WindowActionsGroup({ frameData }: { frameData: FrameData }) {
 
     return (
         <>
+            <HoverOnlyTooltip content="Copy to Figma" side="bottom" sideOffset={10}>
+                <ToolbarButton
+                    className="flex w-9 items-center"
+                    onClick={copyToFigma}
+                    disabled={isCopyingFigma}
+                >
+                    {isCopyingFigma ? (
+                        <Icons.LoadingSpinner className="min-size-4 size-4 animate-spin" />
+                    ) : (
+                        <Icons.Figma className="min-size-4 size-4" />
+                    )}
+                </ToolbarButton>
+            </HoverOnlyTooltip>
             <HoverOnlyTooltip content="Duplicate Frame" side="bottom" sideOffset={10}>
                 <ToolbarButton
                     className="flex w-9 items-center"

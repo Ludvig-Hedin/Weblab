@@ -8,6 +8,7 @@ import { EditorMode } from '@weblab/models';
 import { useEditorEngine } from '@/components/store/editor';
 import { OverlayChatInput } from './chat';
 import { OverlayOpenCode } from './code';
+import { OverlayCopyToFigma } from './figma';
 import { DEFAULT_INPUT_STATE } from './helpers';
 
 export const OverlayButtons = observer(() => {
@@ -80,6 +81,7 @@ export const OverlayButtons = observer(() => {
         >
             <div className="flex flex-row items-center gap-2">
                 <OverlayChatInput inputState={inputState} setInputState={setInputState} />
+                <OverlayCopyToFigma isInputting={inputState.isInputting} />
                 <OverlayOpenCode isInputting={inputState.isInputting} />
             </div>
         </div>

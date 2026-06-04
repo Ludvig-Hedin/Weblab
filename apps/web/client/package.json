@@ -68,6 +68,7 @@
         "@weblab/constants": "*",
         "@weblab/email": "*",
         "@weblab/figma": "*",
+        "@weblab/figma-clipboard": "*",
         "@weblab/fonts": "*",
         "@weblab/github": "*",
         "@weblab/growth": "*",

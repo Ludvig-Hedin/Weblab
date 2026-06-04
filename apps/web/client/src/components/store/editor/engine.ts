@@ -15,6 +15,7 @@ import { ChatManager } from './chat';
 import { CodeManager } from './code';
 import { CommentManager } from './comment';
 import { CopyManager } from './copy';
+import { CopyToFigmaManager } from './copy/figma';
 import { ElementsManager } from './element';
 import { FontManager } from './font';
 import { FrameEventManager } from './frame-events';
@@ -73,6 +74,7 @@ export class EditorEngine {
     readonly insert: InsertManager = new InsertManager(this);
     readonly move: MoveManager = new MoveManager(this);
     readonly copy: CopyManager = new CopyManager(this);
+    readonly figma: CopyToFigmaManager = new CopyToFigmaManager(this);
     readonly group: GroupManager = new GroupManager(this);
     readonly ast: AstManager = new AstManager(this);
     readonly action: ActionManager = new ActionManager(this);

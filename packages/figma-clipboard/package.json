@@ -1,0 +1,29 @@
+{
+    "name": "@weblab/figma-clipboard",
+    "version": "0.0.0",
+    "private": true,
+    "license": "Apache-2.0",
+    "type": "module",
+    "sideEffects": false,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "clean": "rm -rf .turbo node_modules dist",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint . --max-warnings 0",
+        "format": "eslint --fix .",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "kiwi-schema": "^0.5.0",
+        "pako": "^2.1.0"
+    },
+    "devDependencies": {
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "@types/node": "^18.16.3",
+        "@types/pako": "^2.0.3",
+        "typescript": "^5.5.4"
+    }
+}

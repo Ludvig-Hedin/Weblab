@@ -18,6 +18,48 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-06-04 — Copy to Figma uses native clipboard encoding with a vendored Kiwi schema
+
+Decision: "Copy to Figma" (F-783) produces Figma's **native clipboard format**
+(a base64 `fig-kiwi` Kiwi archive inside `text/html`) so plain `Cmd/Ctrl+V`
+into Figma yields editable layers — no companion Figma plugin. The encoder
+lives in `@weblab/figma-clipboard`, built on `kiwi-schema` + `pako`, and the
+Figma scene **schema is vendored as a committed binary** (`src/schema-data.ts`,
+extracted from a real `.fig` via `scripts/extract-schema.ts`) rather than
+hand-authored.
+
+Context: User explicitly chose "editable layers" over a pixel-perfect image, and
+"native paste, no plugin" over a companion plugin. The format is private and
+reverse-engineered; the schema lives in chunk-1 of every `.fig`/clipboard buffer.
+
+Alternatives considered: (a) **Image paste** — render element→PNG→clipboard;
+trivial + reliable but a flat, non-editable layer. (b) **SVG vectors** — lossy
+for flex/grid. (c) **Companion Figma plugin** receiving a clean scene-JSON via
+Figma's stable plugin API — far more robust/maintainable, but requires a
+one-time plugin install (rejected for UX). (d) **Hand-writing the Kiwi schema**
+— thousands of fragile lines; rejected in favour of vendoring the empirical
+schema. (e) Depending on the `fig-kiwi` npm package at runtime — its published
+0.0.1 doesn't export the schema object `writeHTMLMessage` needs, so we only
+reuse its (verified) byte layout and supply our own schema.
+
+Rationale: Native paste matches the literal user flow with zero install. Pinning
+`kiwi-schema`/`pako` + a vendored schema keeps the risky binary work isolated,
+pure, and round-trip unit-testable (T-813) without a live Figma. Field names are
+schema-validated at encode time (kiwi silently drops unknown fields → the
+decode test catches drift).
+
+Risks / mitigations: the vendored schema is version-pinned (regen script +
+round-trip test fail loudly on drift); two acceptance details are only
+verifiable in the real Figma app (clipboard `version` tolerance and the
+`parentIndex.position` fractional-index format) — flagged in BACKLOG + T-814 as
+the user's manual proof. Browser-safety confirmed by inspection (kiwi-schema has
+no Node `Buffer`/fs; pako ships ESM); the `@weblab/figma` package already
+establishes that a TS-source `@weblab/*` package bundles client-side.
+
+Status: Active.
+
+---
+
 ## 2026-05-28 — Convex prod deploys go through CI (GitHub Action), not the Railway Docker build
 
 Decision: Production Convex (`rapid-crab-113`) is deployed by a dedicated GitHub

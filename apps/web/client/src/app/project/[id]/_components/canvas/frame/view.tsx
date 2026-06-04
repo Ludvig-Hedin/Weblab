@@ -414,6 +414,7 @@ export const FrameComponent = observer(
                     getOffsetParent: promisifyMethod(penpalChild?.getOffsetParent),
                     getActionLocation: promisifyMethod(penpalChild?.getActionLocation),
                     getActionElement: promisifyMethod(penpalChild?.getActionElement),
+                    getFigmaSceneData: promisifyMethod(penpalChild?.getFigmaSceneData),
                     getInsertLocation: promisifyMethod(penpalChild?.getInsertLocation),
                     getRemoveAction: promisifyMethod(penpalChild?.getRemoveAction),
                     getTheme: promisifyMethod(penpalChild?.getTheme),

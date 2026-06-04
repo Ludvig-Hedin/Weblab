@@ -10,6 +10,7 @@ import {
     getParentElement,
     updateElementInstance,
 } from './elements';
+import { getFigmaSceneData } from './elements/dom/figma-scene';
 import { groupElements, ungroupElements } from './elements/dom/group';
 import {
     getActionElement,
@@ -91,6 +92,7 @@ const rawMethods = {
     // Actions
     getActionLocation,
     getActionElement,
+    getFigmaSceneData,
     getInsertLocation,
     getRemoveAction,
 

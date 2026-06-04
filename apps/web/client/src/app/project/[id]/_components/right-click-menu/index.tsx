@@ -171,6 +171,27 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
         },
     ];
 
+    const FIGMA_ELEMENT_ITEMS: MenuItem[] = [
+        {
+            label: 'Copy to Figma',
+            action: () => editorEngine.figma.copySelectedToFigma(),
+            icon: <Icons.Figma className="mr-2 h-4 w-4" />,
+            disabled: editorEngine.figma.isCopying,
+        },
+    ];
+
+    const FIGMA_FRAME_ITEMS: MenuItem[] = [
+        {
+            label: 'Copy to Figma',
+            action: () => {
+                const frame = editorEngine.frames.selected[0];
+                if (frame) editorEngine.figma.copyFrameToFigma(frame.frame.id);
+            },
+            icon: <Icons.Figma className="mr-2 h-4 w-4" />,
+            disabled: editorEngine.figma.isCopying || !editorEngine.frames.selected.length,
+        },
+    ];
+
     const COMMENT_ITEMS: MenuItem[] = [
         {
             label: 'Add Comment',
@@ -195,7 +216,7 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
 
     const getMenuItems = (): MenuItem[][] => {
         if (!editorEngine.elements.selected.length) {
-            return [WINDOW_ITEMS, COMMENT_ITEMS];
+            return [WINDOW_ITEMS, FIGMA_FRAME_ITEMS, COMMENT_ITEMS];
         }
 
         const element: DomElement | undefined = editorEngine.elements.selected[0];
@@ -221,7 +242,14 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
             ...TOOL_ITEMS,
         ].filter((item): item is MenuItem => item !== false);
 
-        return [updatedToolItems, GROUP_ITEMS, EDITING_ITEMS, buildCmsItems(root), COMMENT_ITEMS];
+        return [
+            updatedToolItems,
+            GROUP_ITEMS,
+            EDITING_ITEMS,
+            FIGMA_ELEMENT_ITEMS,
+            buildCmsItems(root),
+            COMMENT_ITEMS,
+        ];
     };
 
     const menuItems: MenuItem[][] = getMenuItems();
