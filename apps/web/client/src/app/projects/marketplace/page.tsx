@@ -14,7 +14,7 @@ const MarketplacePage = () => {
                     <div className="mx-auto w-full max-w-6xl px-6 py-10">
                         <ExternalTemplates
                             templates={EXTERNAL_TEMPLATES}
-                            title="Starter templates"
+                            title="Templates"
                             description="Start from a proven Next.js template — preview live, or open the details for source and related options."
                         />
                     </div>

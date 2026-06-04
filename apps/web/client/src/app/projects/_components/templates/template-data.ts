@@ -1,5 +1,4 @@
 import type { FrameworkId } from '@weblab/framework';
-import { STATIC_HTML_SANDBOX_ID } from '@weblab/constants';
 
 export type ExternalTemplateCategory =
     | 'boilerplate'
@@ -59,60 +58,6 @@ export interface ExternalTemplate {
 }
 
 export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
-    {
-        id: 'static-html-starter',
-        name: 'Static HTML',
-        shortDescription: 'Plain HTML, CSS, and JavaScript — no build step, no framework.',
-        description:
-            'A minimal static site with an index.html, stylesheet, and script file. Use this when you want full control over your markup without a JavaScript framework or bundler — ideal for landing pages, portfolios, and quick prototypes.',
-        category: 'starter',
-        framework: 'static-html',
-        tags: ['HTML', 'CSS', 'JavaScript'],
-        sourceUrl: `https://codesandbox.io/p/sandbox/${STATIC_HTML_SANDBOX_ID}`,
-        // Fast path forks sandboxId (~2 s). repoUrl is only reached if the
-        // CSB fork endpoint is unavailable — replace with the actual repo that
-        // backs STATIC_HTML_SANDBOX_ID once that is known.
-        repoUrl: 'https://github.com/h5bp/html5-boilerplate',
-        previewUrl: `https://${STATIC_HTML_SANDBOX_ID}.csb.app/`,
-        branch: 'main',
-        sandboxId: STATIC_HTML_SANDBOX_ID,
-        highlights: [
-            'Zero dependencies — no npm or bundler required',
-            'index.html, style.css, and app.js ready to edit',
-            'Instant live preview via static file server',
-        ],
-        bestFor:
-            'Landing pages, portfolios, prototypes, and any project that does not need React or a build step.',
-        accentClassName: 'text-orange-200',
-        gradientClassName: 'from-orange-950 via-amber-900 to-yellow-700',
-    },
-    {
-        id: 'nextjs-boilerplate',
-        name: 'Next.js Boilerplate',
-        shortDescription: 'Vercel-maintained baseline for new Next.js apps.',
-        description:
-            'A clean Vercel example used as the default foundation for new Next.js app starts. Use this when you need the safest, most minimal Next.js baseline before adding product-specific UI.',
-        category: 'boilerplate',
-        tags: ['Next.js', 'Vercel', 'Boilerplate'],
-        sourceUrl: 'https://github.com/vercel/vercel/tree/main/examples/nextjs',
-        repoUrl: 'https://github.com/vercel/vercel',
-        subpath: 'examples/nextjs',
-        // Vercel's marketing page (vercel.com/templates/...) refuses
-        // iframe embedding via X-Frame-Options, which used to surface as
-        // a chrome-error inside the templates detail page. The
-        // canonical *deployed* boilerplate is hosted on the standard
-        // *.vercel.app domain — no XFO, embeds cleanly.
-        previewUrl: 'https://nextjs-boilerplate.vercel.app/',
-        branch: 'main',
-        highlights: [
-            'Minimal Next.js app structure',
-            'Vercel-first deployment path',
-            'Good base for custom AI generation',
-        ],
-        bestFor: 'Fresh Next.js apps that should start from a minimal, trusted foundation.',
-        accentClassName: 'text-neutral-200',
-        gradientClassName: 'from-neutral-950 via-neutral-800 to-neutral-600',
-    },
     {
         id: 'startd',
         name: 'Startd',
