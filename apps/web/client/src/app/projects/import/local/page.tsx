@@ -5,7 +5,6 @@ import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import useResizeObserver from 'use-resize-observer';
 
 import { BrandLogo } from '@weblab/ui/brand';
-import { Icons } from '@weblab/ui/icons';
 import { MotionCard } from '@weblab/ui/motion-card';
 
 import { Routes } from '@/utils/constants';
