@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useAuthContext } from '@/app/auth/auth-context';
+import { readActiveWorkspaceId } from '@/utils/active-workspace';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { LazyImage } from './lazy-image';
 
@@ -82,6 +83,7 @@ export function TemplateModal({
         try {
             const newProject = await forkTemplate({
                 projectId: templateProject.id as Id<'projects'>,
+                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
             });
 
             if (newProject) {

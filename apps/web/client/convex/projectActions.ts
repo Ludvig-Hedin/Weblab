@@ -918,24 +918,138 @@ export const generateName = action({
  * via `csb.sandboxes.create({source:'template', id})`; that path was removed
  * 2026-05-24 along with the rest of the CodeSandbox runtime.
  *
- * A native Vercel Sandbox fork (snapshot source → resume into new sandbox)
- * has not been re-implemented yet, so this action surfaces a clear error
- * rather than silently failing or provisioning an empty VM. Tracked as
- * TODO(sandbox-fork) — see docs/notes/2026-05-13-vercel-sandbox-provider.md.
+ * Native Vercel Sandbox fork: resume a fresh sandbox from the source project's
+ * persisted snapshot, then insert a new project graph pointing at it (the same
+ * graph `createBlank` builds). Powers "Clone project" and marketplace
+ * "Use template" — for a template the snapshot IS the curated content, so the
+ * clone is an exact copy of its current saved state.
  *
- * Caller must have project.view on the source project.
+ * Caller must have project.view on the source project; create is gated on the
+ * TARGET workspace (clone into the caller's workspace, not the source's — a
+ * public template lives in another team's workspace).
+ *
+ * Limitations (clear errors, never a silent empty clone):
+ *   - Next.js only — the provider's snapshot-resume fast path is nextjs-only;
+ *     static-HTML would scaffold blank and lose content.
+ *   - Requires a saved snapshot on the source's default branch.
+ *   - Expired/invalid snapshot → the provider falls back to a blank scaffold
+ *     (returns a different snapshotId); we detect that, clean up, and fail.
  */
 export const fork = action({
     args: {
         projectId: v.id('projects'),
         name: v.optional(v.string()),
+        workspaceId: v.optional(v.id('workspaces')),
     },
-    handler: async (_ctx, _args): Promise<{ projectId: string }> => {
-        throw new Error(
-            'Project fork is temporarily unavailable. ' +
-                'CodeSandbox was archived 2026-05-24; the Vercel Sandbox snapshot-based ' +
-                'fork is not yet implemented. Use "Create blank project" with the same ' +
-                'framework as a workaround until TODO(sandbox-fork) lands.',
-        );
+    handler: async (ctx, args): Promise<{ projectId: string }> => {
+        const me: any = await ctx.runQuery(api.users.me, {});
+        if (!me) throw new Error('UNAUTHORIZED');
+
+        if (!process.env.VERCEL_TOKEN) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        // Load + read-gate the source (api.projects.get enforces view access).
+        const source: any = await ctx.runQuery(api.projects.get, { projectId: args.projectId });
+        if (!source) throw new Error('NOT_FOUND: project');
+
+        const framework: string = source.runtimeMetadata?.framework ?? 'nextjs';
+        if (framework !== 'nextjs') {
+            throw new Error(
+                `Cloning is only supported for Next.js projects right now (this one is "${framework}").`,
+            );
+        }
+
+        // Source snapshot lives on the default branch's cloud runtime metadata.
+        const branches: any[] = await ctx.runQuery(api.branches.getByProjectId, {
+            projectId: args.projectId,
+            onlyDefault: true,
+        });
+        const sourceSnapshotId: string | undefined =
+            branches?.[0]?.runtimeMetadata?.cloud?.snapshotId;
+        if (!sourceSnapshotId) {
+            throw new Error(
+                "This project can't be cloned yet — it has no saved sandbox snapshot. " +
+                    'Open it once so it provisions, then try cloning again.',
+            );
+        }
+
+        // Clone into the caller's workspace (NOT the source's), gated on create.
+        const workspaceId: any =
+            args.workspaceId ??
+            (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
+                userId: me._id,
+            }));
+        await ctx.runQuery(internal.projects._requireProjectCreateCap, { workspaceId });
+
+        const forkName = args.name ?? `${source.name ?? 'Project'} (copy)`;
+
+        const stopSandbox = async (sandboxId: string) => {
+            try {
+                const credentials = {
+                    teamId: process.env.VERCEL_TEAM_ID ?? '',
+                    projectId: process.env.VERCEL_PROJECT_ID ?? '',
+                    token: process.env.VERCEL_TOKEN ?? '',
+                };
+                if (credentials.teamId && credentials.projectId && credentials.token) {
+                    const sandbox = await Sandbox.get({ sandboxId, ...credentials });
+                    await sandbox.stop({ blocking: false }).catch(() => undefined);
+                }
+            } catch (cleanupErr) {
+                console.warn('[fork] Vercel sandbox cleanup failed', cleanupErr);
+            }
+        };
+
+        let provisionedSandboxId: string | null = null;
+        try {
+            const result = await VercelSandboxProvider.createProject({
+                source: 'template',
+                id: framework,
+                framework,
+                snapshotId: sourceSnapshotId,
+                title: forkName,
+                tags: ['fork', String(me._id)],
+                privacy: 'private',
+            });
+            provisionedSandboxId = result.id;
+
+            // Success returns the SAME snapshotId; a different one means resume
+            // failed and the provider scaffolded a blank project. Fail rather
+            // than hand back an empty clone (silent content loss).
+            if (result.snapshotId !== sourceSnapshotId) {
+                throw new Error(
+                    "Couldn't clone this project: its saved snapshot has expired. " +
+                        'Open the original once to refresh it, then try cloning again.',
+                );
+            }
+
+            const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
+                userId: me._id,
+                workspaceId,
+                name: forkName,
+                description: source.description ?? 'Cloned project',
+                tags: ['fork'],
+                framework,
+                sandboxId: result.id,
+                sandboxUrl: result.previewUrl ?? '',
+                cloudProvider: 'vercel_sandbox',
+                snapshotId: result.snapshotId,
+                port: result.port ?? 3000,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
+            });
+
+            provisionedSandboxId = null;
+            return { projectId };
+        } catch (error) {
+            if (provisionedSandboxId) {
+                await stopSandbox(provisionedSandboxId);
+            }
+            throw mapSandboxProvisionError(error);
+        }
     },
 });

@@ -23,6 +23,7 @@ import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
+import { readActiveWorkspaceId } from '@/utils/active-workspace';
 
 export function CloneProject({ project, refetch }: { project: Project; refetch: () => void }) {
     const t = useTranslations();
@@ -45,6 +46,7 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
             await forkProject({
                 projectId: project.id as Id<'projects'>,
                 name: cloneProjectName,
+                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
             });
 
             toast.success('Project cloned successfully');
