@@ -76,10 +76,10 @@ const ModelSelectorLegacy = ({
                     aria-label={`Model: ${currentLabel}`}
                     className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary h-7 gap-1 rounded-md px-1.5 text-xs font-normal"
                 >
+                    <Icons.Cpu className="h-3 w-3 shrink-0" />
                     <span title={currentLabel} className="max-w-[160px] truncate">
                         {currentLabel}
                     </span>
-                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">

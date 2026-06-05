@@ -83,7 +83,6 @@ export const ChatModeToggle = observer(
                                 )}
                             />
                             <span>{currentMode.label}</span>
-                            <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
                         </Button>
                     </DropdownMenuTrigger>
                 </HoverOnlyTooltip>

@@ -117,6 +117,7 @@ import {
     ViewVerticalIcon,
 } from '@radix-ui/react-icons';
 import {
+    CpuIcon,
     CreditCardIcon,
     ListCheckIcon,
     MailXIcon,
@@ -1866,6 +1867,7 @@ export const Icons = {
     Code: CodeIcon,
     ComponentInstance: ComponentInstanceIcon,
     Copy: CopyIcon,
+    Cpu: CpuIcon,
     CornerTopLeft: CornerTopLeftIcon,
     Corners: CornersIcon,
     CounterClockwiseClock: CounterClockwiseClockIcon,
