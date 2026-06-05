@@ -4,6 +4,13 @@ Companion to [`2026-06-05-local-first-desktop-design.md`](./2026-06-05-local-fir
 
 Conventions: every phase ends green on `bun typecheck` + its unit tests. Touch only listed files (multi-session tree — never `git add .`). Reuse `inferPortFromDevScript` and the install-command patterns already in `apps/web/server/src/sandbox/index.ts`.
 
+## Status (2026-06-05)
+
+- **Phase 1 — DONE & verified, committed** (`d87e511eb`, `27bf85f71`): IPC bridge, `LocalProvider` (8 unit tests), `createLocal` mutation, open-folder hook, desktop-gated dashboard card. `bun typecheck` (web-client) exit 0; provider tests 8/8. The open → boot → render → edit → save → watch loop is wired end to end.
+- **Not yet runtime-verified:** the live desktop flow (open folder → canvas renders localhost). Requires launching the Electron build on a machine with a display — cannot be done headless here. Most likely first-fix: the frame-url ↔ booted-port match (P1d note below).
+- **Phase 2 / 3** (visual edit ↔ disk sync; cloud AI editing local files): the editor + AI client-tools are provider-agnostic and now route to `LocalProvider`, so these *should* work without new code — but need the runtime check above to confirm.
+- **Phase 4** (create-new scaffold + recents) and **Phase 5** (release + signing) remain. P5 needs Ludvig's Apple Developer cert.
+
 ---
 
 ## Phase 1 — Local file plumbing + boot to a live canvas
