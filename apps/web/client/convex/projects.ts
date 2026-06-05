@@ -563,6 +563,125 @@ export const create = mutation({
 });
 
 /**
+ * Create a LOCAL-runtime project whose files live on the user's disk (desktop
+ * only). Mirrors `create` but skips ALL sandbox provisioning: the branch carries
+ * `runtimeType: 'local'` + `runtimeMetadata.local = { rootPath, devCommand?, port? }`
+ * and frames point at the local dev server (`http://localhost:<port>`). The
+ * editor's NodeFsProvider — selected by session.ts on `runtime.type === 'local'`
+ * — performs every file op and boots the dev server over the desktop IPC bridge.
+ *
+ * `port` should be inferred client-side from the folder's package.json dev
+ * script so the frame URL matches the port the dev server actually binds.
+ */
+export const createLocal = mutation({
+    args: {
+        name: v.string(),
+        rootPath: v.string(),
+        description: v.optional(v.string()),
+        tags: v.optional(v.array(v.string())),
+        framework: v.optional(v.string()),
+        devCommand: v.optional(v.string()),
+        port: v.optional(v.number()),
+        workspaceId: v.optional(v.id('workspaces')),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+        if (args.rootPath.length === 0) throw new Error('BAD_REQUEST: rootPath');
+
+        const workspaceId = args.workspaceId
+            ? args.workspaceId
+            : await resolvePersonalWorkspaceId(ctx, user);
+        if (args.workspaceId) {
+            await requireCap(ctx, 'project.create', { workspaceId: args.workspaceId });
+        }
+
+        const port =
+            typeof args.port === 'number' && args.port > 0 && args.port <= 65535 ? args.port : 3000;
+        const previewUrl = `http://localhost:${port}`;
+        const now = Date.now();
+
+        const projectId = await ctx.db.insert('projects', {
+            name: args.name,
+            description: args.description,
+            tags: args.tags ?? [],
+            updatedAt: now,
+            storageMode: 'local',
+            runtimeMetadata: { framework: args.framework ?? 'nextjs' },
+            workspaceId,
+            createdByUserId: user._id,
+            accessMode: 'workspace',
+        });
+
+        // The branch row requires a `sandboxId` string; local branches never use
+        // it (session.ts reads `runtime.local.rootPath`), so carry a synthetic id.
+        const branchId = await ctx.db.insert('branches', {
+            projectId,
+            name: 'main',
+            description: 'Default branch',
+            isDefault: true,
+            updatedAt: now,
+            sandboxId: `local:${projectId}`,
+            runtimeType: 'local',
+            runtimeMetadata: {
+                local: {
+                    rootPath: args.rootPath,
+                    devCommand: args.devCommand,
+                    port,
+                },
+            },
+        });
+
+        await ctx.db.insert('projectMembers', {
+            projectId,
+            userId: user._id,
+            role: 'manager',
+            updatedAt: now,
+        });
+
+        const canvasId = await ctx.db.insert('canvases', { projectId });
+        await ctx.db.insert('userCanvases', {
+            userId: user._id,
+            canvasId,
+            scale: 0.56,
+            x: 120,
+            y: 120,
+        });
+
+        const defaultFrames = [
+            { name: 'Desktop', width: 1440, height: 900, order: 0 },
+            { name: 'Tablet', width: 768, height: 1024, order: 1 },
+            { name: 'Phone', width: 375, height: 812, order: 2 },
+        ];
+        const groupId = crypto.randomUUID();
+        let xOffset = 0;
+        for (const f of defaultFrames) {
+            await ctx.db.insert('frames', {
+                canvasId,
+                branchId,
+                url: previewUrl,
+                x: xOffset,
+                y: 0,
+                width: f.width,
+                height: f.height,
+                groupId,
+                breakpointId: f.name.toLowerCase(),
+                breakpointName: f.name,
+                breakpointOrder: f.order,
+            });
+            xOffset += f.width + 40;
+        }
+
+        await ctx.db.insert('conversations', {
+            projectId,
+            displayName: 'New conversation',
+            updatedAt: now,
+        });
+
+        return (await ctx.db.get(projectId))!;
+    },
+});
+
+/**
  * Internal mutation used by createBlank action — same DB graph build, but
  * accepts pre-resolved sandbox metadata from the action and skips the
  * outer requireUser (action passes userId after its own auth check).

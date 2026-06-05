@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -11,6 +11,7 @@ import { cn } from '@weblab/ui/utils';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
+import { useOpenLocalProject } from '@/hooks/use-open-local-project';
 import { transKeys } from '@/i18n/keys';
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { CloneWebsiteDialog } from './clone-website-dialog';
@@ -106,8 +107,16 @@ export function ProjectChooserCards({
     const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
     const { handleImportLocalProject, isImporting, progress, isFsAccessSupported } =
         useImportLocalProject();
+    const { openLocalFolder, isBusy: isOpeningLocal, isDesktop } = useOpenLocalProject();
 
-    const isBusy = aiBusy || isCreatingProject || isImporting;
+    // Desktop-only "Open local folder" card. Gate on a mounted flag so SSR and
+    // the first client render agree (the IPC bridge only exists in the desktop
+    // app), avoiding a hydration mismatch when the card appears.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    const showLocalCard = mounted && isDesktop;
+
+    const isBusy = aiBusy || isCreatingProject || isImporting || isOpeningLocal;
 
     const creationSteps = [
         {
@@ -205,6 +214,17 @@ export function ProjectChooserCards({
                     busy={isImporting}
                     disabled={isBusy || !isFsAccessSupported}
                 />
+                {showLocalCard && (
+                    <ChooserCard
+                        icon={<Icons.Directory className="h-4 w-4" />}
+                        title="Open local folder"
+                        description="Edit a project that stays on your machine. Open it in your code editor too — changes sync both ways, live."
+                        cta="Choose a folder"
+                        onClick={() => void openLocalFolder()}
+                        busy={isOpeningLocal}
+                        disabled={isBusy}
+                    />
+                )}
             </div>
 
             {showDesktopFooter && (
