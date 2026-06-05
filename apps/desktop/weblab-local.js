@@ -209,6 +209,10 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
             // localhost:<port> on the canvas matching the actual dev server.
             env: { ...syncedEnv(), PORT: String(port) },
             shell: true, // user's own project script — runs through the shell
+            // New process group (POSIX) so stopDevServer can kill the shell AND
+            // the dev server it spawns. Without this, shell:true leaves the real
+            // dev server orphaned on close/switch, leaking processes + the port.
+            detached: process.platform !== 'win32',
             stdio: ['ignore', 'pipe', 'pipe'],
         });
     } catch (err) {
@@ -253,11 +257,21 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
 
 function stopDevServer(root) {
     const rec = devServers.get(root);
-    if (rec && rec.child) {
+    if (rec && rec.child && rec.child.pid) {
         try {
-            rec.child.kill();
+            if (process.platform === 'win32') {
+                rec.child.kill();
+            } else {
+                // Negative pid → kill the whole process group (shell + the dev
+                // server it spawned), so nothing is orphaned holding the port.
+                process.kill(-rec.child.pid, 'SIGTERM');
+            }
         } catch {
-            // ignore
+            try {
+                rec.child.kill();
+            } catch {
+                // already gone
+            }
         }
     }
     devServers.delete(root);

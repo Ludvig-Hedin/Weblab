@@ -27,7 +27,7 @@ const os = require('os');
 const path = require('path');
 
 const DESKTOP = path.join(__dirname, '..');
-const { registerLocalIpc } = require(path.join(DESKTOP, 'weblab-local.js'));
+const { registerLocalIpc, stopDevServer } = require(path.join(DESKTOP, 'weblab-local.js'));
 
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:39000';
 const ORIGIN_PORT = Number(new URL(ORIGIN).port);
@@ -35,9 +35,20 @@ const DEV_PORT = 31988;
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wl-ipc-'));
 fs.mkdirSync(path.join(root, 'node_modules'), { recursive: true }); // skip install
+// A dependency-free static file server (stands in for the project's real dev
+// server) so we can prove an edit written to disk is actually served back —
+// i.e. shows up on the canvas. CORS '*' lets the renderer read it cross-origin.
 fs.writeFileSync(
     path.join(root, 'server.js'),
-    `const http=require('http');http.createServer((_,res)=>res.end('ok')).listen(${DEV_PORT},'127.0.0.1');`,
+    [
+        "const http=require('http'),fs=require('fs'),path=require('path');",
+        'http.createServer((req,res)=>{',
+        "  res.setHeader('Access-Control-Allow-Origin','*');",
+        "  const rel=(req.url||'/').split('?')[0];",
+        "  const f=path.join(__dirname, rel==='/'?'index.html':rel);",
+        "  fs.readFile(f,(e,d)=>{ if(e){res.statusCode=404;res.end('not found');} else {res.end(d);} });",
+        `}).listen(${DEV_PORT},'127.0.0.1');`,
+    ].join('\n'),
 );
 fs.writeFileSync(
     path.join(root, 'package.json'),
@@ -53,6 +64,7 @@ const PAGE = `<html><head><meta charset="utf-8"></head><body><script>
     const lf = n.localfs, dev = n.localdev;
     const root = new URLSearchParams(location.search).get('root');
     const r = { bridge: true };
+    await lf.write(root, 'index.html', '<h1 id="t">v1</h1>');
     r.writeOk = (await lf.write(root, 'src/hello.txt', 'hi')).success === true;
     r.readMatch = (await lf.read(root, 'src/hello.txt')).content === 'hi';
     await lf.mkdir(root, 'sub');
@@ -78,6 +90,13 @@ const PAGE = `<html><head><meta charset="utf-8"></head><body><script>
       document.body.appendChild(f);
       setTimeout(() => res(false), 5000);
     });
+    // "Do some edits and it will be saved": write an edit to the source via the
+    // bridge, confirm the running dev server serves it (would show on canvas),
+    // and confirm it persisted to disk (survives a reopen — disk is truth).
+    await lf.write(root, 'index.html', '<h1 id="t">v2-EDITED</h1>');
+    const served = await fetch('http://127.0.0.1:${DEV_PORT}/index.html?' + Date.now()).then((x) => x.text()).catch(() => '');
+    r.editServed = served.includes('v2-EDITED');
+    r.editPersisted = ((await lf.read(root, 'index.html')).content || '').includes('v2-EDITED');
     out(r);
   } catch (e) { out({ bridge: true, error: String((e && e.message) || e) }); }
 })();
@@ -94,6 +113,11 @@ function finish(code, msg) {
     if (done) return;
     done = true;
     console.log(`SMOKE_DONE code=${code} ${msg || ''}`);
+    try {
+        stopDevServer(root);
+    } catch {
+        /* ignore */
+    }
     try {
         server.close();
     } catch {
@@ -149,7 +173,9 @@ app.whenReady().then(() => {
                 r.statFile &&
                 r.watchFired &&
                 r.devStartOk &&
-                r.iframeLoaded;
+                r.iframeLoaded &&
+                r.editServed &&
+                r.editPersisted;
             finish(ok ? 0 : 1);
         });
         win.loadURL(`${ORIGIN}/?root=${encodeURIComponent(root)}`);
