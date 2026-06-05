@@ -245,6 +245,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-812 | F-292 | E | Corner AI button → Add to chat | Chat reveals + input focused, element attached as a context pill, nothing sent | `[ ]` |
 | T-813 | F-783 | U | `@weblab/figma-clipboard` encode → decode round-trip (`packages/figma-clipboard/test/encode.test.ts`) | HTML has `(figmeta)`/`(figma)` markers; decoded `NODE_CHANGES` tree has correct types/size/fills/text/corner-radius; hidden + zero-size nodes skipped | `[x]` |
 | T-814 | F-783 | E | Select an element → Copy to Figma (any of the 4 surfaces) → `Cmd/Ctrl+V` into a real Figma file | Pastes as a **selectable, editable** frame/text/shape (not a flat image) at the right size with the right fill/text; repeat with a frame selected (frame toolbar Figma button + right-click) | `[ ]` |
+| T-815 | F-785 | U | Component registry + prompt wiring (`packages/ai/test/prompt/component-registry.test.ts`) | `COMPONENT_REGISTRY` items well-formed, no dup lib+name, correct ui/watermelon-ui import folder; `COMPONENT_REGISTRY_PROMPT` lists every import path + has default-stack / never-hardcode / tokens / existing-project / escape-hatch text; `DESIGN_SYSTEM_PROMPT` keeps Rule 0 + existing-project-wins + defaults-not-censorship + never-introduce-new-color; nextjs stable block carries `<design-system>`+`<component-registry>`+`<anti-slop-checklist>`+a sample import path; static-html omits `<component-registry>`/`<shadcn-block-catalog>`; provider path injects all three; checklist is the final block | `[x]` |
 
 ---
 

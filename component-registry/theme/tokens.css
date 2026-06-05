@@ -1,0 +1,94 @@
+/*
+ * Weblab design tokens — the ONLY palette and radii the AI may use.
+ *
+ * These map 1:1 to the shadcn/ui CSS-variable contract, so every component in
+ * ../shadcn and ../watermelon renders on-brand without edits. The aesthetic is
+ * the Weblab default: tinted neutrals, impure black/white, ONE whisper accent
+ * (muted teal) reserved for focus/active state only, flat (no decorative
+ * shadows). Values are OKLCH for perceptually-even ramps.
+ *
+ * HOW TO TWEAK: edit the values here. Never hardcode hex in a component, and
+ * never introduce a color or radius that isn't defined below. When the AI
+ * scaffolds a new site it copies these into the project's globals.css; when it
+ * edits an existing site it must use that project's existing tokens instead.
+ */
+
+:root {
+    /* Surfaces + text — near-white bg, impure near-black ink, faint cool tint */
+    --background: oklch(0.99 0.002 250);
+    --foreground: oklch(0.2 0.01 250);
+    --card: oklch(0.99 0.002 250);
+    --card-foreground: oklch(0.2 0.01 250);
+    --popover: oklch(0.99 0.002 250);
+    --popover-foreground: oklch(0.2 0.01 250);
+
+    /* Primary = ink (premium near-black button), never the accent color */
+    --primary: oklch(0.22 0.012 250);
+    --primary-foreground: oklch(0.98 0.002 250);
+
+    /* Neutral fills for secondary / muted / hover surfaces — no color */
+    --secondary: oklch(0.96 0.004 250);
+    --secondary-foreground: oklch(0.22 0.012 250);
+    --muted: oklch(0.96 0.004 250);
+    --muted-foreground: oklch(0.5 0.012 250);
+    --accent: oklch(0.95 0.005 250);
+    --accent-foreground: oklch(0.22 0.012 250);
+
+    /* Destructive — muted, not a screaming red */
+    --destructive: oklch(0.55 0.16 25);
+    --destructive-foreground: oklch(0.98 0.002 250);
+
+    /* Hairlines + the single whisper accent (muted teal) on ring/focus only */
+    --border: oklch(0.92 0.004 250);
+    --input: oklch(0.92 0.004 250);
+    --ring: oklch(0.62 0.07 195);
+
+    /* The one brand accent, exposed for active states / a single CTA. <5% of UI. */
+    --brand-accent: oklch(0.62 0.07 195);
+    --brand-accent-foreground: oklch(0.99 0.002 250);
+
+    /* Restrained near-mono chart ramp ending on the teal accent */
+    --chart-1: oklch(0.3 0.01 250);
+    --chart-2: oklch(0.45 0.012 250);
+    --chart-3: oklch(0.6 0.012 250);
+    --chart-4: oklch(0.74 0.01 250);
+    --chart-5: oklch(0.62 0.07 195);
+
+    /* Radii — differentiated by component class (Direction A: rounded, friendly) */
+    --radius: 0.625rem; /* surfaces ~10px */
+}
+
+.dark {
+    --background: oklch(0.18 0.012 250);
+    --foreground: oklch(0.96 0.003 250);
+    --card: oklch(0.21 0.012 250);
+    --card-foreground: oklch(0.96 0.003 250);
+    --popover: oklch(0.21 0.012 250);
+    --popover-foreground: oklch(0.96 0.003 250);
+
+    --primary: oklch(0.96 0.003 250);
+    --primary-foreground: oklch(0.2 0.012 250);
+
+    --secondary: oklch(0.26 0.01 250);
+    --secondary-foreground: oklch(0.96 0.003 250);
+    --muted: oklch(0.26 0.01 250);
+    --muted-foreground: oklch(0.68 0.012 250);
+    --accent: oklch(0.28 0.01 250);
+    --accent-foreground: oklch(0.96 0.003 250);
+
+    --destructive: oklch(0.62 0.17 25);
+    --destructive-foreground: oklch(0.98 0.002 250);
+
+    --border: oklch(0.3 0.01 250);
+    --input: oklch(0.32 0.01 250);
+    --ring: oklch(0.6 0.07 195);
+
+    --brand-accent: oklch(0.62 0.08 195);
+    --brand-accent-foreground: oklch(0.16 0.012 250);
+
+    --chart-1: oklch(0.85 0.01 250);
+    --chart-2: oklch(0.7 0.012 250);
+    --chart-3: oklch(0.56 0.012 250);
+    --chart-4: oklch(0.42 0.01 250);
+    --chart-5: oklch(0.62 0.08 195);
+}

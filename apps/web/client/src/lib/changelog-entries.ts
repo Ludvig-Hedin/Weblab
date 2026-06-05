@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-6-on-brand-by-default',
+        version: '3.6',
+        title: 'On-brand sites by default',
+        description:
+            'The AI now builds from a curated component library (shadcn/ui + Watermelon UI) and a single design-token palette instead of inventing markup and colors — so generated sites look consistent and deliberate, not like a generic AI template. When it edits an existing site it matches that project’s stack, colors, and fonts. Defaults to Next.js + React + shadcn for new projects.',
+        date: '2026-06-05',
+        tags: ['AI', 'Design'],
+    },
+    {
         slug: 'v3-5-standard-text-scale',
         version: '3.5',
         title: 'Crisper, standard-sized text',

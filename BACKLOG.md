@@ -38,6 +38,52 @@ later without re-discovering the context.
 
 ## Open
 
+### Component registry — extend catalog + auto-apply tokens to scaffolded projects
+
+- **Discovered:** 2026-06-05 (component-registry / anti-slop prompt session)
+- **Where:** `component-registry/` (catalog + `scripts/fetch-components.mjs`); `packages/code-provider/src/providers/vercel-sandbox/index.ts` (`scaffoldNextProject`)
+- **Symptom:** MVP only fetched 21 components (16 shadcn + 5 watermelon). And `component-registry/theme/tokens.css` is NOT auto-written into new projects — the AI is told to copy tokens, but a blank scaffold ships without them, so first-build styling relies on the agent doing the copy.
+- **Next step:** (a) append more entries to `CURATED` in the fetcher and re-run `bun run component-registry/scripts/fetch-components.mjs`; (b) write the token CSS into `scaffoldNextProject`'s `globals.css` so new sites are on-brand before the AI touches them.
+- **Risk if ignored:** thin catalog; new sites can still drift from the palette on the first generation.
+- **Tags:** `#enhancement` `#tech-debt`
+
+### Component catalog is hand-synced in two places (manifest.json ↔ constants)
+
+- **Discovered:** 2026-06-05 (component-registry session)
+- **Where:** `component-registry/manifest.json` (generated) and `packages/constants/src/component-registry.ts` (`COMPONENT_REGISTRY`, hand-mirrored)
+- **Symptom:** adding a component means editing the fetcher AND mirroring the row into constants. Easy to drift.
+- **Next step:** codegen `COMPONENT_REGISTRY` from `manifest.json` at build (small script or a generated `.ts`), making the manifest the single source.
+- **Risk if ignored:** catalog drift — prompt advertises components the folder lacks, or vice versa.
+- **Tags:** `#tech-debt`
+
+### `@weblab/ai` package lint is red from pre-existing warnings (max-warnings 0)
+
+- **Discovered:** 2026-06-05 (component-registry session — surfaced, not caused)
+- **Where:** `packages/ai/test/stream/convert.test.ts`, `test/tools/edit.test.ts`, `test/tools/read.test.ts` (`no-explicit-any`, `await-thenable`, prettier); `packages/ai/src/prompt/provider.ts:~220` (`img.id || 'unknown'` → prefer `??`)
+- **Symptom:** `bun --filter @weblab/ai lint` exits 1 with 383 warnings, 0 errors. This session's new prompt files lint clean — the debt predates it.
+- **Next step:** type the test fixtures (drop `any`), remove non-thenable `await`s, run `format`, and switch the provider `||` to `??` (confirm empty-string id semantics first).
+- **Risk if ignored:** the ai workspace lint stays red, so genuinely new warnings get lost in the noise.
+- **Tags:** `#tech-debt` `#test-gap`
+
+### Editor micro text sizes (`text-[11px]`/`text-[12px]`) still hardcoded after type-scale fix
+
+- **Discovered:** 2026-06-05 (standard-text-scale session)
+- **Where:** editor panels — `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v2|v3|v4/**`, `left-panel/design-panel/**`; className literals `text-[11px]` and `text-[12px]`.
+- **Symptom:** these micro-labels stay a fixed px and do **not** follow the Appearance → Font size (density) setting, unlike the now-tokenized `text-tiny`/`text-sm` siblings. Minor inconsistency at non-default density.
+- **Why it matters:** design-system guidance (`design-system/_components/demos/data.ts`) recommends tokens over hardcoded px; mixed approaches drift.
+- **Next step:** convert real-text `text-[11px]`→`text-micro` (0.6875rem, exact) and `text-[12px]`→`text-mini` or `text-xs` (both 0.75rem, exact). **Skip** SVG/icon-glyph sizing (e.g. `landing-page/feature-trio-section.tsx` `text-[13px]` inside an `h-3 w-3` box) and landing `design-mockup`. Left out of the 2026-06-05 sweep per "editor can be custom".
+- **Also:** `--text-tiny` (10px) is defined in `@theme` (`packages/ui/src/globals.css`) but not shown in the design-system typography visual scale (`typography.tsx` iterates the `--font-size-*` family, not `--text-*`). Add a row/note there.
+
+### Editor cleanup logs `File system not initialized` after project creation tab churn
+
+- **Discovered:** 2026-06-05 (Codex project-creation E2E session)
+- **Where:** [packages/file-system/src/code-fs.ts](packages/file-system/src/code-fs.ts) cleanup/index flush path
+- **Symptom:** Browser console logs `Error: File system not initialized` from `CodeFileSystem.writeFile -> undobounceSaveIndexToFile -> cleanup` after navigating across multiple freshly-created project tabs.
+- **Root cause:** Cleanup tries to save `.weblab/index.json` even when the file system was never initialized or was already torn down during route changes.
+- **Next step:** Make cleanup/index flush a no-op when the FS is not initialized, or ensure initialization state is stable through route teardown.
+- **Risk if ignored:** No confirmed data loss in this session, but project creation E2E has avoidable console errors and route-change cleanup noise.
+- **Tags:** `#bug` `#editor` `#project-creation`
+
 ### Bug Hunt 2026-06-05 — project creation (needs-review findings)
 
 Auto-fixed this pass (committed): `captureScreenshot` logged the expected
@@ -1284,6 +1330,22 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### 2026-06-05 — Project creation E2E clone + Startd blockers
+
+Resolved by the 2026-06-05 Codex project-creation pass.
+
+- Clone-from-URL now flushes the generated user message into AI SDK state
+  before starting `regenerate`; local E2E confirmed `/api/chat` returned 200
+  for `https://example.com`.
+- Startd template detail pages no longer crash from importing a client-only
+  preview helper into a server page.
+- Vercel Sandbox git imports now use lockfile-aware installs and conservative
+  Next dev commands. Legacy Next templates self-heal to Next 12/React 17 so
+  Startd boots on the Node 24 sandbox; local direct preview returned HTTP 200.
+- Production auth workflow is documented in
+  [prod-e2e-testing.md](docs/agent-context/prod-e2e-testing.md). Prod still
+  requires deployment before these local fixes can be verified live.
 
 ### 2026-05-28 — User-stopping fixes from F-300..F-402 bug-hunt
 

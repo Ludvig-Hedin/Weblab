@@ -1,0 +1,346 @@
+{
+  "generatedBy": "component-registry/scripts/fetch-components.mjs",
+  "note": "Generated file. Do not edit by hand — re-run the fetcher to update. Hand-edit tokens.css / blocks / templates instead.",
+  "libraries": {
+    "shadcn": {
+      "style": "new-york",
+      "install": "bunx --bun shadcn@latest add \"<installUrl>\""
+    },
+    "watermelon": {
+      "install": "bunx --bun shadcn@latest add \"<installUrl>\""
+    }
+  },
+  "count": 21,
+  "components": [
+    {
+      "name": "accordion",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Disclosure accordion",
+      "componentName": "Accordion",
+      "importPath": "@/components/ui/accordion",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/accordion.json",
+      "dependencies": [
+        "@radix-ui/react-accordion"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/accordion.tsx"
+      ]
+    },
+    {
+      "name": "avatar",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Avatar image with fallback",
+      "componentName": "Avatar",
+      "importPath": "@/components/ui/avatar",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/avatar.json",
+      "dependencies": [
+        "@radix-ui/react-avatar"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/avatar.tsx"
+      ]
+    },
+    {
+      "name": "badge",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Status / tag badge",
+      "componentName": "Badge",
+      "importPath": "@/components/ui/badge",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/badge.json",
+      "dependencies": [
+        "@radix-ui/react-slot"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/badge.tsx"
+      ]
+    },
+    {
+      "name": "button",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Button with variant + size system",
+      "componentName": "Button",
+      "importPath": "@/components/ui/button",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/button.json",
+      "dependencies": [
+        "@radix-ui/react-slot"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/button.tsx"
+      ]
+    },
+    {
+      "name": "card",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Surface container: Card, Header, Title, Content, Footer",
+      "componentName": "Card",
+      "importPath": "@/components/ui/card",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/card.json",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/card.tsx"
+      ]
+    },
+    {
+      "name": "checkbox",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Checkbox",
+      "componentName": "Checkbox",
+      "importPath": "@/components/ui/checkbox",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/checkbox.json",
+      "dependencies": [
+        "@radix-ui/react-checkbox"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/checkbox.tsx"
+      ]
+    },
+    {
+      "name": "dialog",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Modal dialog",
+      "componentName": "Dialog",
+      "importPath": "@/components/ui/dialog",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/dialog.json",
+      "dependencies": [
+        "@radix-ui/react-dialog"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/dialog.tsx"
+      ]
+    },
+    {
+      "name": "input",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Text input",
+      "componentName": "Input",
+      "importPath": "@/components/ui/input",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/input.json",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/input.tsx"
+      ]
+    },
+    {
+      "name": "label",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Form label",
+      "componentName": "Label",
+      "importPath": "@/components/ui/label",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/label.json",
+      "dependencies": [
+        "@radix-ui/react-label"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/label.tsx"
+      ]
+    },
+    {
+      "name": "select",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Select dropdown",
+      "componentName": "Select",
+      "importPath": "@/components/ui/select",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/select.json",
+      "dependencies": [
+        "@radix-ui/react-select"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/select.tsx"
+      ]
+    },
+    {
+      "name": "separator",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Hairline divider",
+      "componentName": "Separator",
+      "importPath": "@/components/ui/separator",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/separator.json",
+      "dependencies": [
+        "@radix-ui/react-separator"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/separator.tsx"
+      ]
+    },
+    {
+      "name": "skeleton",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Loading skeleton",
+      "componentName": "Skeleton",
+      "importPath": "@/components/ui/skeleton",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/skeleton.json",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/skeleton.tsx"
+      ]
+    },
+    {
+      "name": "switch",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Toggle switch",
+      "componentName": "Switch",
+      "importPath": "@/components/ui/switch",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/switch.json",
+      "dependencies": [
+        "@radix-ui/react-switch"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/switch.tsx"
+      ]
+    },
+    {
+      "name": "tabs",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Tabbed sections",
+      "componentName": "Tabs",
+      "importPath": "@/components/ui/tabs",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/tabs.json",
+      "dependencies": [
+        "@radix-ui/react-tabs"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/tabs.tsx"
+      ]
+    },
+    {
+      "name": "textarea",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Multi-line text input",
+      "componentName": "Textarea",
+      "importPath": "@/components/ui/textarea",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/textarea.json",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/textarea.tsx"
+      ]
+    },
+    {
+      "name": "tooltip",
+      "lib": "shadcn",
+      "category": "primitive",
+      "description": "Hover tooltip",
+      "componentName": "Tooltip",
+      "importPath": "@/components/ui/tooltip",
+      "installUrl": "https://ui.shadcn.com/r/styles/new-york/tooltip.json",
+      "dependencies": [
+        "@radix-ui/react-tooltip"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "shadcn/tooltip.tsx"
+      ]
+    },
+    {
+      "name": "alert",
+      "lib": "watermelon",
+      "category": "feedback",
+      "description": "Inline alert callout",
+      "componentName": "Alert",
+      "importPath": "@/components/watermelon-ui/alert",
+      "installUrl": "https://registry.watermelon.sh/alert.json",
+      "dependencies": [
+        "class-variance-authority"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "watermelon/alert.tsx"
+      ]
+    },
+    {
+      "name": "animated-accordion",
+      "lib": "watermelon",
+      "category": "motion",
+      "description": "Accordion with spring open/close",
+      "componentName": "AnimatedAccordion",
+      "importPath": "@/components/watermelon-ui/animated-accordion",
+      "installUrl": "https://registry.watermelon.sh/animated-accordion.json",
+      "dependencies": [
+        "lucide-react",
+        "motion",
+        "radix-ui"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "watermelon/animated-accordion.tsx"
+      ]
+    },
+    {
+      "name": "badge",
+      "lib": "watermelon",
+      "category": "primitive",
+      "description": "Watermelon badge variant",
+      "componentName": "Badge",
+      "importPath": "@/components/watermelon-ui/badge",
+      "installUrl": "https://registry.watermelon.sh/badge.json",
+      "dependencies": [
+        "@radix-ui/react-slot",
+        "class-variance-authority"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "watermelon/badge.tsx"
+      ]
+    },
+    {
+      "name": "card",
+      "lib": "watermelon",
+      "category": "surface",
+      "description": "Watermelon card variant",
+      "componentName": "Card",
+      "importPath": "@/components/watermelon-ui/card",
+      "installUrl": "https://registry.watermelon.sh/card.json",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        "watermelon/card.tsx"
+      ]
+    },
+    {
+      "name": "switch",
+      "lib": "watermelon",
+      "category": "primitive",
+      "description": "Watermelon toggle variant",
+      "componentName": "Switch",
+      "importPath": "@/components/watermelon-ui/switch",
+      "installUrl": "https://registry.watermelon.sh/switch.json",
+      "dependencies": [
+        "@radix-ui/react-switch"
+      ],
+      "registryDependencies": [],
+      "files": [
+        "watermelon/switch.tsx"
+      ]
+    }
+  ],
+  "skipped": []
+}

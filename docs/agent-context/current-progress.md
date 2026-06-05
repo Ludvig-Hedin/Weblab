@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-05-27.
+Last updated: 2026-06-05.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the
@@ -17,7 +17,7 @@ multi-workspace billing, and a desktop shell. Stack target: Next.js 15
 
 The current web product ships:
 
-- project creation from prompt (currently disabled, see below), templates,
+- project creation from prompt, blank frameworks, templates,
   images, Figma, GitHub clone, or local folders, with **framework auto-detection**
   via `@weblab/framework`
 - visual editing on an iframe canvas with code-backed style and structure
@@ -49,13 +49,24 @@ The current web product ships:
 | Vestigial tRPC | only `sandbox` + `components` routers in `apps/web/server/src/router/` — used by the editor → Fastify sandbox lifecycle | rest of routers gone |
 | Webhooks | Convex HTTP actions in `convex/http.ts` (Clerk users, Stripe billing) | Next.js webhook routes |
 
-**Disabled paths until snapshot-fork lands on Vercel:**
+**Disabled / blocked paths until snapshot-fork or follow-up fixes land:**
 
 - `project.fork`, `branch.fork`, `publish` — throw clear errors, tracked as
   `TODO(sandbox-fork)` / `TODO(publish-vercel)`.
-- Prompt-based project create (hero AI input) — toast `UNAVAILABLE_MESSAGE`,
-  tracked as `TODO(sandbox-port)`.
-- GitHub-template imports — same `TODO(sandbox-port)`.
+- Website clone from URL provisions a project, opens the editor, and auto-runs
+  the seeded clone prompt after the 2026-06-05 chat state flush fix.
+- Marketplace Startd template provisions and boots locally after the 2026-06-05
+  legacy Next normalization to Next 12/React 17.
+- GitHub import requires a connected GitHub account; Figma import requires a
+  Figma URL + personal access token; local-folder import requires a native
+  directory picker.
+
+**Working create paths verified on localhost 2026-06-05:** prompt create,
+blank Next.js, blank static HTML, clone-from-URL, and Startd marketplace
+creation opened editor sandboxes with preview frames; clone-from-URL returned
+`/api/chat` 200 and Startd preview returned HTTP 200 directly. Production E2E
+requires a live deployment of these local fixes plus a production auth session;
+see `docs/agent-context/prod-e2e-testing.md`.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /
@@ -66,6 +77,14 @@ in `@weblab/framework` until their scaffolders land.
 
 Newest first. Append in `docs/agent-memory/feature-log.md` for the canonical record.
 
+- **2026-06-05** — Component registry + anti-slop design prompt (F-785). New
+  `component-registry/` folder (16 shadcn/ui + 5 Watermelon UI fetched from their
+  registries, OKLCH design tokens, anti-slop block/template exemplars, fetcher
+  script). The builder agent is now constrained to this catalog + one palette via
+  three cached system-prompt blocks (`<design-system>`, `<component-registry>`,
+  `<anti-slop-checklist>`) wired into both `cache-blocks.ts` and `provider.ts`.
+  Defaults new sites to Next.js+React+shadcn, never invents colors/fonts, matches
+  an existing project's stack/tokens when editing. ADR `2026-06-05`.
 - **2026-05-24** — CodeSandbox archived. Vercel is sole runtime. CSB files +
   `@codesandbox/sdk` kept as `@deprecated` dead code for legacy DB rows.
   See `docs/notes/2026-05-13-vercel-sandbox-provider.md` and ADR `2026-05-24`.

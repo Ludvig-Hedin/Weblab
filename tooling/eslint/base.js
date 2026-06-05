@@ -20,6 +20,9 @@ export default tseslint.config(
             '**/dist/**',
             '**/build/**',
             '**/.next/**',
+            // Curated reference assets fetched from external registries — not part
+            // of any workspace build; imports resolve only inside user projects.
+            '**/component-registry/**',
         ],
     },
     ...jsoncPlugin.configs['flat/recommended-with-json'],

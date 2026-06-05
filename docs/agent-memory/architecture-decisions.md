@@ -18,6 +18,41 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-06-05 — AI builds from a curated component registry + design-token palette, not from scratch
+
+Decision: The website-builder agent (F-785) is constrained to a fixed catalog of
+components and a single design-token source instead of generating arbitrary
+markup/colors. The catalog lives as real source in `component-registry/` (repo
+root, fetched from the shadcn/ui + Watermelon UI registries) and is mirrored as
+typed data in `@weblab/constants` (`COMPONENT_REGISTRY`). Three prompt blocks —
+`<design-system>`, `<component-registry>`, `<anti-slop-checklist>` — are injected
+into the **cached** system prefix via both prompt paths (`cache-blocks.ts`
+stable block and `provider.ts`).
+
+Context: LLMs regress to the training-data mean (shadcn-on-slate, indigo
+gradients, three identical feature cards). Naming components + one palette and
+auditing against an anti-slop checklist pushes output toward committed, on-brand
+craft. Source mandate: `docs/agent-context/design-mandate-source.md`; full field
+guide: `docs/agent-context/ai-slop-field-guide.md`.
+
+Alternatives considered: (a) scaffold all components into every project — bloats
+the inline scaffolder and can't read a repo folder at runtime in prod; (b) inject
+the full 844-line field guide verbatim — too many tokens per request even cached.
+Chose: curated folder + compact mirrored catalog + distilled checklist, install
+on demand via `bunx --bun shadcn@latest add "<installUrl>"`.
+
+Override precedence (encoded in the prompt): attached reference > the existing
+project's own tokens/fonts/stack > defaults. The forbidden-pattern list is
+**defaults, not censorship** — an explicit user request or an existing project's
+convention always wins, so the agent never breaks a site's consistency or refuses
+a deliberate ask.
+
+Placement rationale: the blocks are large but stable, so they belong in the
+Anthropic-cached prefix (amortized cost), not the volatile per-request tail.
+
+Status: Active. Follow-ups in BACKLOG (codegen catalog from manifest; auto-apply
+tokens in `scaffoldNextProject`; extend catalog beyond the 21-component MVP).
+
 ## 2026-06-04 — Copy to Figma uses native clipboard encoding with a vendored Kiwi schema
 
 Decision: "Copy to Figma" (F-783) produces Figma's **native clipboard format**

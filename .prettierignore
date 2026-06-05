@@ -4,3 +4,4 @@ node_modules
 release
 demos
 test/data
+component-registry

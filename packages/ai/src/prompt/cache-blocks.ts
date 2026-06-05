@@ -28,6 +28,9 @@ import {
 import type { MemorySearchResult } from '../memory/types';
 import type { SkillSummary } from '../skills/types';
 import {
+    AI_SLOP_CHECKLIST,
+    COMPONENT_REGISTRY_PROMPT,
+    DESIGN_SYSTEM_PROMPT,
     frameworkSupportsShadcn,
     getSystemPromptForFramework,
     NEXTJS_ADDENDUM,
@@ -73,8 +76,12 @@ function getStableBlock(framework: FrameworkId | null | undefined): string {
     if (cached) return cached;
     let block = '';
     block += wrapXml('role', getSystemPromptForFramework(framework));
+    // Design mandate applies to every framework (incl. static HTML).
+    block += wrapXml('design-system', DESIGN_SYSTEM_PROMPT);
     if (frameworkSupportsShadcn(framework)) {
         block += wrapXml('shadcn-block-catalog', SHADCN_CATALOG_BLOCK);
+        // Curated component catalog + token/stack rules — shadcn frameworks only.
+        block += wrapXml('component-registry', COMPONENT_REGISTRY_PROMPT);
     }
     // NEXTJS_ADDENDUM is already included inside getSystemPromptForFramework
     // for Next.js, but reference it here for grep-discoverability — when a
@@ -82,6 +89,8 @@ function getStableBlock(framework: FrameworkId | null | undefined): string {
     // role wrap, not inside.
     void NEXTJS_ADDENDUM;
     block += wrapXml('shell', SHELL_PROMPT);
+    // Final gate: the anti-slop checklist the agent runs before returning UI.
+    block += wrapXml('anti-slop-checklist', AI_SLOP_CHECKLIST);
     STABLE_PROMPT_CACHE.set(key, block);
     return block;
 }

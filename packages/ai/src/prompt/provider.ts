@@ -20,8 +20,11 @@ import {
     ImageContext,
 } from '../contexts/classes';
 import {
+    AI_SLOP_CHECKLIST,
     ASK_MODE_SYSTEM_PROMPT,
+    COMPONENT_REGISTRY_PROMPT,
     CREATE_NEW_PAGE_SYSTEM_PROMPT,
+    DESIGN_SYSTEM_PROMPT,
     frameworkSupportsShadcn,
     getSystemPromptForFramework,
     SHELL_PROMPT,
@@ -44,10 +47,13 @@ export function getSystemPrompt(
 ) {
     let prompt = '';
     prompt += wrapXml('role', getSystemPromptForFramework(framework));
+    prompt += wrapXml('design-system', DESIGN_SYSTEM_PROMPT);
     if (frameworkSupportsShadcn(framework)) {
         prompt += wrapXml('shadcn-block-catalog', getShadcnBlockCatalogPrompt());
+        prompt += wrapXml('component-registry', COMPONENT_REGISTRY_PROMPT);
     }
     prompt += wrapXml('shell', SHELL_PROMPT);
+    prompt += wrapXml('anti-slop-checklist', AI_SLOP_CHECKLIST);
     prompt += buildMemoriesPrompt(memories);
     prompt += buildSkillsPrompt(skills);
     return prompt;

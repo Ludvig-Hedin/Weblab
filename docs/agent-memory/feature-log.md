@@ -16,6 +16,38 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-05 — Curated component registry + anti-slop design mandate in the AI system prompt
+Author: Claude (Opus 4.8)
+Area: AI prompt (`packages/ai/src/prompt`), constants (`packages/constants`), new `component-registry/` folder
+Summary: Constrained the website-builder agent to a fixed, tweakable component catalog + one design-token palette so generated sites stop reading as "AI slop." Added `component-registry/` (repo root): 21 components fetched from real registries (16 shadcn/ui new-york + 5 Watermelon UI via `scripts/fetch-components.mjs`), `theme/tokens.css` (OKLCH shadcn-var palette: tinted neutrals, impure black/white, one teal whisper accent, flat), `theme/fonts.md`, `lib/utils.ts`, anti-slop block/template exemplars, `registry.config.ts`, `components.json`, `manifest.json`, README. Mirrored the catalog into `@weblab/constants` (`COMPONENT_REGISTRY`) and added three prompt blocks injected into the cached system prefix (both `cache-blocks.ts` and `provider.ts`): `<design-system>` (the design mandate), `<component-registry>` (default Next.js+React+shadcn stack, use-tokens-never-invent, install via `bunx shadcn add <url>`, match-existing-project), `<anti-slop-checklist>` (pre-return gate). Override order: attached reference > existing project's conventions > defaults; the forbidden list is defaults-not-censorship (honor explicit user requests). Full 844-line field guide saved to `docs/agent-context/ai-slop-field-guide.md`. 13 new unit tests; web-client typecheck + constants lint green.
+Files: `component-registry/**`, `packages/constants/src/component-registry.ts`, `packages/ai/src/prompt/constants/{design,components,slop-checklist}.ts`, `packages/ai/src/prompt/{cache-blocks,provider}.ts`, `packages/ai/test/prompt/component-registry.test.ts`, `docs/agent-context/{ai-slop-field-guide,design-mandate-source}.md`
+Links: changelog v3.6; ADR 2026-06-05 (component registry); feature-catalog F-785 / test-plan T-815
+
+## 2026-06-05 — Standard 16px text scale + `text-tiny` token
+Author: Claude (Opus 4.8)
+Area: design system / global CSS (`apps/web/client/src/styles/globals.css`, `packages/ui/src/globals.css`)
+Summary: Fixed app-wide too-small text and the "shrinks on every reload" flash. Root cause was the default root font size: `html[data-font-size='medium']` was 14px, scaling every `rem` (text **and** spacing) to 87.5% (text-xs read 10.5px), and the client applied medium=14px *after* the 16px first paint → one-step shrink. Rebased the appearance scale to small/medium/large = 14/16/18px so medium (default) is a true 16px root. Pinned the standard `--text-*` tokens (xs/sm/base/lg/xl/2xl) and added `--text-tiny` (0.625rem / 10px) for sub-`text-xs` micro labels. Swept 115 hardcoded `text-[10px]`→`text-tiny` and 4 `text-[13/14px]`→`text-sm` across editor/projects/dialogs; landing mockups + an icon-glyph `text-[13px]` left intentional. Editor `text-[11px]`/`text-[12px]` left hardcoded per request (logged in BACKLOG). Whole app now renders at standard density (+14% vs before); architectural note: hardcoded px no longer overrides the density setting.
+Files: `styles/globals.css`, `packages/ui/src/globals.css`, `design-system/_components/demos/data.ts`, 56 UI components
+Links: changelog v3.5
+
+## 2026-06-05 — Project creation blocker fixes
+Author: Codex
+Area: project creation, Vercel sandbox setup, template previews, AI chat send path
+Summary: Fixed the remaining clone-from-URL and Startd blockers from the E2E hardening pass. Clone create now flushes the generated user prompt into AI SDK state before starting regeneration; public template detail pages no longer import a client component helper from a server page; git-import sandbox installs are lockfile-aware and legacy Next templates normalize to Next 12/React 17 so Startd boots on Vercel Sandbox. Added production E2E auth-account guidance for agents.
+Files: `apps/web/client/src/app/project/[id]/_hooks/use-chat/index.tsx`, `apps/web/client/src/app/projects/_components/select/project-preview-utils.ts`, `apps/web/client/src/app/projects/templates/[id]/page.tsx`, `apps/web/server/src/sandbox/index.ts`, `packages/code-provider/src/providers/vercel-sandbox/index.ts`, `docs/agent-context/prod-e2e-testing.md`
+Links: `docs/agent-context/prod-e2e-testing.md`
+
+---
+
+## 2026-06-05 — Project creation E2E hardening pass
+Author: Codex
+Area: project creation, Vercel sandbox setup, editor interactions runtime, optional AI memory
+Summary: Tested project creation locally across blank Next.js, blank static HTML, prompt create, marketplace template, clone URL, and import entry routes. Fixed sandbox auth readiness for local Fastify tRPC, restored runtime metadata into editor bootstrap so static HTML projects use the correct injection/setup path, propagated framework port/dev command into sandbox setup, changed static preload/runtime injection to module scripts, re-seeded missing public interactions runtime files, and made Mem0 memory storage a no-op when `MEM0_API_KEY` is absent. Remaining blockers found: clone URL creates a project but does not auto-run the generated AI prompt, the Startd marketplace template cannot boot (`next` missing), and prod E2E needs a production auth session/deploy.
+Files: `apps/web/client/src/lib/sandbox-server-client.ts`, `apps/web/server/src/router/context.ts`, `apps/web/server/src/router/routes/sandbox.ts`, `apps/web/server/src/sandbox/index.ts`, `apps/web/client/src/app/project/[id]/_adapters/convex-bootstrap.ts`, `apps/web/client/src/components/store/editor/sandbox/*`, `apps/web/client/src/components/store/editor/interactions/index.ts`, `packages/ai/src/memory/*`, `BACKLOG.md`
+Links: `BACKLOG.md` entries "Project creation E2E 2026-06-05" and "Editor cleanup logs `File system not initialized`"
+
+---
+
 ## 2026-06-04 — Copy to Figma (native clipboard, editable layers, no plugin)
 Author: Claude Opus 4.8
 Area: editor canvas (right-click menu, frame toolbar, element overlay), new package `@weblab/figma-clipboard`, preload bridge
