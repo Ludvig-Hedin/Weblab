@@ -80,6 +80,7 @@
       "name": "@weblab/web",
       "devDependencies": {
         "@types/bun": "latest",
+        "concurrently": "^9.2.1",
       },
       "peerDependencies": {
         "typescript": "^5",

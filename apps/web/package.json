@@ -4,7 +4,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "dev": "bun --filter '@weblab/web-client' --filter '@weblab/web-preload' --filter '@weblab/web-server' dev",
+        "dev": "concurrently -k -n client,preload,server -c blue,magenta,green \"bun run dev:client\" \"bun run dev:preload\" \"bun run dev:server\"",
         "dev:client": "bun --filter @weblab/web-client dev",
         "dev:server": "bun --filter @weblab/web-server dev",
         "dev:preload": "bun --filter @weblab/web-preload dev",
@@ -16,7 +16,8 @@
         "docker:restart": "docker compose down && docker compose up"
     },
     "devDependencies": {
-        "@types/bun": "latest"
+        "@types/bun": "latest",
+        "concurrently": "^9.2.1"
     },
     "peerDependencies": {
         "typescript": "^5"
