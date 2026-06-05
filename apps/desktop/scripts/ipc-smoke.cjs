@@ -66,6 +66,18 @@ const PAGE = `<html><head><meta charset="utf-8"></head><body><script>
     r.watchFired = fired;
     const ds = await dev.start(root, 'node server.js', ${DEV_PORT});
     r.devStartOk = ds.error == null && ds.url != null;
+    // The editor canvas IS an iframe pointed at the local dev server. Mount one
+    // against the running server and confirm it renders (cross-origin onload
+    // fires on a successful load; script access stays blocked, which is fine).
+    r.iframeLoaded = await new Promise((res) => {
+      const f = document.createElement('iframe');
+      f.style.display = 'none';
+      f.onload = () => res(true);
+      f.onerror = () => res(false);
+      f.src = 'http://127.0.0.1:${DEV_PORT}/';
+      document.body.appendChild(f);
+      setTimeout(() => res(false), 5000);
+    });
     out(r);
   } catch (e) { out({ bridge: true, error: String((e && e.message) || e) }); }
 })();
@@ -136,7 +148,8 @@ app.whenReady().then(() => {
                 r.listHas &&
                 r.statFile &&
                 r.watchFired &&
-                r.devStartOk;
+                r.devStartOk &&
+                r.iframeLoaded;
             finish(ok ? 0 : 1);
         });
         win.loadURL(`${ORIGIN}/?root=${encodeURIComponent(root)}`);
