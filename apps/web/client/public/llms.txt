@@ -7,6 +7,9 @@ Weblab connects to an existing codebase, reads real components and design tokens
 ## Core Pages
 
 - [Home](https://weblab.build/): AI visual website builder for React teams
+- [Website Builder](https://weblab.build/website-builder): Website builder for teams who own a React or Next.js codebase
+- [Visual Site Builder](https://weblab.build/visual-site-builder): Visual site builder for React and Next.js — design with real components
+- [AI Website Builder](https://weblab.build/ai-website-builder): AI website builder constrained to your real components and design tokens
 - [Features](https://weblab.build/features): Product capabilities and visual editing workflow
 - [AI Visual Editor](https://weblab.build/features/ai): Build UI with AI using real components
 - [Visual Builder](https://weblab.build/features/builder): Visual site builder for existing React codebases

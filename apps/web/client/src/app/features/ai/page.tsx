@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
@@ -81,6 +83,31 @@ export default function AiFeaturesPage() {
                 <AiBenefitsSection />
                 <AiFeaturesIntroSection />
                 <AiFeaturesGridSection />
+                <section className="border-foreground-primary/10 mx-auto w-full max-w-6xl border-t px-4 py-16 sm:px-6 md:px-8">
+                    <p className="text-foreground-tertiary mb-4 text-sm tracking-widest uppercase">
+                        Explore more
+                    </p>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-lg">
+                        <Link
+                            href="/ai-website-builder"
+                            className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-4 transition-colors"
+                        >
+                            AI website builder →
+                        </Link>
+                        <Link
+                            href="/visual-site-builder"
+                            className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-4 transition-colors"
+                        >
+                            Visual site builder →
+                        </Link>
+                        <Link
+                            href="/website-builder"
+                            className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-4 transition-colors"
+                        >
+                            Website builder →
+                        </Link>
+                    </div>
+                </section>
                 <CTASection
                     ctaText={`Start Building with AI Today`}
                     buttonText="Get Started for Free"

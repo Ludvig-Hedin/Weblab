@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { APP_NAME } from '@weblab/constants';
 
 import { CreateManagerProvider } from '@/components/store/create';
@@ -80,6 +82,31 @@ export default function BuilderFeaturesPage() {
                 <BuilderBenefitsSection />
                 <BuilderFeaturesIntroSection />
                 <BuilderFeaturesGridSection />
+                <section className="border-foreground-primary/10 mx-auto w-full max-w-6xl border-t px-4 py-16 sm:px-6 md:px-8">
+                    <p className="text-foreground-tertiary mb-4 text-sm tracking-widest uppercase">
+                        Explore more
+                    </p>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-lg">
+                        <Link
+                            href="/visual-site-builder"
+                            className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-4 transition-colors"
+                        >
+                            Visual site builder →
+                        </Link>
+                        <Link
+                            href="/website-builder"
+                            className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-4 transition-colors"
+                        >
+                            Website builder →
+                        </Link>
+                        <Link
+                            href="/ai-website-builder"
+                            className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-4 transition-colors"
+                        >
+                            AI website builder →
+                        </Link>
+                    </div>
+                </section>
                 <CTASection
                     ctaText={`Bring your team \nto ${APP_NAME} today`}
                     buttonText="Get Started"
