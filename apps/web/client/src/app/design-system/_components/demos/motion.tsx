@@ -33,7 +33,7 @@ export function MotionDemo() {
                         {transitionSpeed !== 1 && (
                             <button
                                 onClick={() => setTransitionSpeed(1)}
-                                className="text-foreground-tertiary hover:text-foreground text-[10px] transition-colors"
+                                className="text-foreground-tertiary hover:text-foreground text-tiny transition-colors"
                             >
                                 reset
                             </button>

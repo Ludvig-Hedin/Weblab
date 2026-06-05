@@ -232,7 +232,7 @@ export const CommentPopover = observer(() => {
                         {/* Main comment */}
                         <div className="border-border/50 border-b p-3">
                             <div className="flex items-start gap-2">
-                                <div className="bg-foreground/12 text-foreground-secondary flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
+                                <div className="bg-foreground/12 text-foreground-secondary flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-tiny font-semibold">
                                     {getInitials(activeComment.authorName)}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -240,7 +240,7 @@ export const CommentPopover = observer(() => {
                                         <span className="text-foreground-primary text-mini truncate font-semibold">
                                             {activeComment.authorName}
                                         </span>
-                                        <span className="text-foreground-tertiary flex-shrink-0 text-[10px]">
+                                        <span className="text-foreground-tertiary flex-shrink-0 text-tiny">
                                             {formatRelativeTime(activeComment.createdAt)}
                                         </span>
                                     </div>
@@ -298,7 +298,7 @@ export const CommentPopover = observer(() => {
                                         });
                                     }}
                                     className={cn(
-                                        'flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors',
+                                        'flex items-center gap-1 rounded-md px-2 py-0.5 text-tiny font-medium transition-colors',
                                         activeComment.resolvedAt
                                             ? 'bg-foreground-success/15 text-foreground-success hover:bg-foreground-success/25'
                                             : 'bg-background-secondary text-foreground-tertiary hover:text-foreground-hover',
@@ -315,7 +315,7 @@ export const CommentPopover = observer(() => {
                                                     setEditingCommentId(activeComment.id);
                                                     setEditingText(activeComment.content);
                                                 }}
-                                                className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-[10px] transition-colors"
+                                                className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-tiny transition-colors"
                                             >
                                                 Edit
                                             </button>
@@ -349,7 +349,7 @@ export const CommentPopover = observer(() => {
                                                     </button>
                                                     <button
                                                         onClick={() => setConfirmDeleteId(null)}
-                                                        className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-[10px] transition-colors"
+                                                        className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-tiny transition-colors"
                                                     >
                                                         Cancel
                                                     </button>
@@ -380,11 +380,11 @@ export const CommentPopover = observer(() => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-baseline justify-between gap-1">
-                                                    <span className="text-foreground-primary truncate text-[10px] font-semibold">
+                                                    <span className="text-foreground-primary truncate text-tiny font-semibold">
                                                         {reply.authorName}
                                                     </span>
                                                     <div className="flex flex-shrink-0 items-center gap-1">
-                                                        <span className="text-foreground-tertiary text-[10px]">
+                                                        <span className="text-foreground-tertiary text-tiny">
                                                             {formatRelativeTime(reply.createdAt)}
                                                         </span>
                                                         {currentUserId === reply.authorId &&

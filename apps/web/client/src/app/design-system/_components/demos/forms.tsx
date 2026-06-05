@@ -147,8 +147,8 @@ function ProfileForm() {
                                     {...field}
                                 />
                             </FormControl>
-                            <div className="text-foreground-tertiary flex justify-between text-[10px] tabular-nums">
-                                <FormMessage className="text-[10px]" />
+                            <div className="text-foreground-tertiary flex justify-between text-tiny tabular-nums">
+                                <FormMessage className="text-tiny" />
                                 <span className="ml-auto">{field.value.length} / 280</span>
                             </div>
                         </FormItem>

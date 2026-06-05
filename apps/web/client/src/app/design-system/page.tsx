@@ -432,7 +432,7 @@ function Shell() {
                         <div className="mb-3 flex items-center gap-3">
                             <BrandWordmark className="h-6" />
                             {totalEdited > 0 && (
-                                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-tiny font-medium text-amber-400">
                                     {totalEdited} custom
                                 </span>
                             )}

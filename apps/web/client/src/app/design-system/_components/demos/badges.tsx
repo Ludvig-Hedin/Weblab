@@ -64,13 +64,13 @@ export function BadgesDemo() {
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="text-foreground-secondary relative inline-flex text-sm">
                         Inbox
-                        <Badge className="absolute -top-2 -right-4 h-4 px-1 text-[10px]">12</Badge>
+                        <Badge className="absolute -top-2 -right-4 h-4 px-1 text-tiny">12</Badge>
                     </div>
                     <div className="text-foreground-secondary relative inline-flex text-sm">
                         Notifications
                         <Badge
                             variant="destructive"
-                            className="absolute -top-2 -right-4 h-4 px-1 text-[10px]"
+                            className="absolute -top-2 -right-4 h-4 px-1 text-tiny"
                         >
                             99+
                         </Badge>

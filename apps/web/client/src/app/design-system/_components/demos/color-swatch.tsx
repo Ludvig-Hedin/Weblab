@@ -79,12 +79,12 @@ export function ColorSwatch({ name, cssVar, value, description, usage }: ColorSw
                     <p className="text-foreground truncate text-xs leading-tight font-medium">
                         {name}
                     </p>
-                    <p className="text-foreground-tertiary truncate font-mono text-[10px] leading-tight">
+                    <p className="text-foreground-tertiary truncate font-mono text-tiny leading-tight">
                         {cssVar}
                     </p>
                     <p
                         className={cn(
-                            'truncate font-mono text-[10px] leading-tight',
+                            'truncate font-mono text-tiny leading-tight',
                             isEdited ? 'text-amber-400' : 'text-foreground-tertiary opacity-70',
                         )}
                     >
@@ -95,7 +95,7 @@ export function ColorSwatch({ name, cssVar, value, description, usage }: ColorSw
                     <button
                         type="button"
                         onClick={() => resetToken(cssVar)}
-                        className="text-foreground-tertiary hover:text-foreground absolute top-2 right-2 text-[10px]"
+                        className="text-foreground-tertiary hover:text-foreground absolute top-2 right-2 text-tiny"
                         title="Reset to default"
                     >
                         reset
@@ -110,7 +110,7 @@ export function ColorSwatch({ name, cssVar, value, description, usage }: ColorSw
                         </p>
                     )}
                     {usage && (
-                        <p className="text-foreground-tertiary font-mono text-[10px] leading-snug">
+                        <p className="text-foreground-tertiary font-mono text-tiny leading-snug">
                             {usage}
                         </p>
                     )}

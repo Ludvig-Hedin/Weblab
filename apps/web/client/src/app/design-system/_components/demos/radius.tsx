@@ -60,10 +60,10 @@ export function RadiusDemo() {
                                             : `calc(${r.value} * ${radiusScale})`,
                                 }}
                             />
-                            <p className="text-foreground-tertiary font-mono text-[10px]">
+                            <p className="text-foreground-tertiary font-mono text-tiny">
                                 {r.name}
                             </p>
-                            <p className="text-foreground-tertiary font-mono text-[10px] opacity-60">
+                            <p className="text-foreground-tertiary font-mono text-tiny opacity-60">
                                 {r.tailwind}
                             </p>
                         </div>

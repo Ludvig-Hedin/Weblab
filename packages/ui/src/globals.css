@@ -161,6 +161,21 @@
     --font-weight-micro: var(--font-weight-normal);
     --font-tracking-micro: 0.005rem;
 
+    /* Standard Tailwind text scale — pinned explicitly as the single source of
+       truth alongside the custom size tokens above. Values equal Tailwind v4's
+       defaults; at the 16px root (see globals.css `data-font-size='medium'`)
+       they render at the documented px: xs 12 / sm 14 / base 16 / lg 18 /
+       xl 20 / 2xl 24. Do NOT express these as a scaled `calc()` — they must be
+       absolute rem so 1rem stays a true 16px. Line-heights inherit Tailwind's
+       defaults (not overridden here). */
+    --text-tiny: 0.625rem; /* 10px @16root — micro UI labels below text-xs (no Tailwind default this small) */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+
     /* Font weights */
     --font-weight-thin: 100;
     --font-weight-extralight: 200;

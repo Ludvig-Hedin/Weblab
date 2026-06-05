@@ -27,14 +27,14 @@ export function TokenControl({ spec }: { spec: ComponentTokenSpec }) {
             <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                     <Label className="text-foreground text-xs font-medium">{spec.label}</Label>
-                    <p className="text-foreground-tertiary truncate font-mono text-[10px]">
+                    <p className="text-foreground-tertiary truncate font-mono text-tiny">
                         {spec.cssVar}
                     </p>
                 </div>
                 {isEdited && (
                     <button
                         onClick={() => resetToken(spec.cssVar)}
-                        className="text-foreground-tertiary hover:text-foreground text-[10px] transition-colors"
+                        className="text-foreground-tertiary hover:text-foreground text-tiny transition-colors"
                         title="Reset to default"
                     >
                         reset
@@ -68,7 +68,7 @@ export function TokenControl({ spec }: { spec: ComponentTokenSpec }) {
             )}
 
             {spec.hint && (
-                <p className="text-foreground-tertiary mt-2 text-[10px] italic">{spec.hint}</p>
+                <p className="text-foreground-tertiary mt-2 text-tiny italic">{spec.hint}</p>
             )}
         </div>
     );
@@ -108,7 +108,7 @@ function ColorControl({
                 className="h-8 flex-1 font-mono text-[11px]"
                 spellCheck={false}
             />
-            <span className="text-foreground-tertiary w-14 font-mono text-[10px]">{hex}</span>
+            <span className="text-foreground-tertiary w-14 font-mono text-tiny">{hex}</span>
         </div>
     );
 }

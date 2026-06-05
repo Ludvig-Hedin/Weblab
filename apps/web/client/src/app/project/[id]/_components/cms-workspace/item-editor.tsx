@@ -543,7 +543,7 @@ function JsonFieldInput({
     return (
         <div className="flex flex-col gap-1.5">
             <div className="border-border bg-background-secondary/40 text-foreground-tertiary text-mini flex items-start gap-2 rounded-md border px-2.5 py-2">
-                <span className="border-border text-foreground-secondary rounded border px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+                <span className="border-border text-foreground-secondary rounded border px-1.5 py-0.5 text-tiny font-medium tracking-wide uppercase">
                     Advanced — JSON only
                 </span>
                 <span className="flex-1 leading-snug">

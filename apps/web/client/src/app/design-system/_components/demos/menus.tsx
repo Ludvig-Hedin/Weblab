@@ -205,7 +205,7 @@ export function MenusDemo() {
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                             <Icons.Cube className="mr-2 h-4 w-4" /> Inspect
-                            <span className="bg-background-success text-foreground-success ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium">
+                            <span className="bg-background-success text-foreground-success ml-auto rounded px-1.5 py-0.5 text-tiny font-medium">
                                 Beta
                             </span>
                         </DropdownMenuItem>

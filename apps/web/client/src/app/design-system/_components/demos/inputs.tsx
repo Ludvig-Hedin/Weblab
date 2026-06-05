@@ -40,9 +40,9 @@ export function InputsDemo() {
                     filter fields — transparent bg, border only.
                 </p>
                 <div className="grid max-w-xl grid-cols-[6rem_1fr] items-center gap-x-4 gap-y-3">
-                    <span className="text-foreground-tertiary font-mono text-[10px]">primary</span>
+                    <span className="text-foreground-tertiary font-mono text-tiny">primary</span>
                     <Input variant="primary" placeholder="Enter value…" />
-                    <span className="text-foreground-tertiary font-mono text-[10px]">ghost</span>
+                    <span className="text-foreground-tertiary font-mono text-tiny">ghost</span>
                     <div className="relative">
                         <Icons.MagnifyingGlass className="text-foreground-tertiary absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <Input variant="ghost" placeholder="Search…" className="pl-9" />
@@ -198,7 +198,7 @@ export function InputsDemo() {
                                 maxLength={280}
                                 className="min-h-20"
                             />
-                            <div className="text-foreground-tertiary text-right text-[10px] tabular-nums">
+                            <div className="text-foreground-tertiary text-right text-tiny tabular-nums">
                                 12 / 280
                             </div>
                         </div>
@@ -454,7 +454,7 @@ export function InputsDemo() {
                         <div className="relative">
                             <Icons.LockClosed className="text-foreground-tertiary pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                             <Input id="ds-iadd-3" defaultValue="hunter2" className="pr-16 pl-9" />
-                            <span className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                            <span className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-1.5 py-0.5 text-tiny font-medium">
                                 12+
                             </span>
                         </div>

@@ -26,7 +26,7 @@ export function AvatarsDemo() {
                                 <AvatarImage src="https://github.com/shadcn.png" alt="User" />
                                 <AvatarFallback className="text-xs">LH</AvatarFallback>
                             </Avatar>
-                            <p className="text-foreground-tertiary font-mono text-[10px]">
+                            <p className="text-foreground-tertiary font-mono text-tiny">
                                 {label}
                             </p>
                         </div>
@@ -40,14 +40,14 @@ export function AvatarsDemo() {
                         <Avatar className="h-10 w-10">
                             <AvatarFallback>LH</AvatarFallback>
                         </Avatar>
-                        <p className="text-foreground-tertiary font-mono text-[10px]">initials</p>
+                        <p className="text-foreground-tertiary font-mono text-tiny">initials</p>
                     </div>
                     <div className="flex flex-col items-center gap-1.5">
                         <Avatar className="h-10 w-10">
                             <AvatarImage src="https://invalid-image.example/notfound.png" alt="?" />
                             <AvatarFallback>?</AvatarFallback>
                         </Avatar>
-                        <p className="text-foreground-tertiary font-mono text-[10px]">
+                        <p className="text-foreground-tertiary font-mono text-tiny">
                             image error
                         </p>
                     </div>
@@ -55,7 +55,7 @@ export function AvatarsDemo() {
                         <Avatar className="bg-background-brand h-10 w-10">
                             <AvatarFallback className="text-foreground-primary">WB</AvatarFallback>
                         </Avatar>
-                        <p className="text-foreground-tertiary font-mono text-[10px]">tinted</p>
+                        <p className="text-foreground-tertiary font-mono text-tiny">tinted</p>
                     </div>
                 </div>
             </Section>
@@ -77,7 +77,7 @@ export function AvatarsDemo() {
                                     className={`border-background absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 ${dot}`}
                                 />
                             </div>
-                            <p className="text-foreground-tertiary font-mono text-[10px]">
+                            <p className="text-foreground-tertiary font-mono text-tiny">
                                 {label}
                             </p>
                         </div>

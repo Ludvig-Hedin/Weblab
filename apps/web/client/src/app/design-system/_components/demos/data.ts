@@ -879,7 +879,7 @@ export const BODY_SCALE_RULES: Array<{
     },
     {
         use: 'Tiny system text (status, counts)',
-        useThis: 'text-micro / text-micro-plus',
+        useThis: 'text-tiny (10px) / text-micro (11px)',
         avoid: 'text-[10px]',
     },
     {

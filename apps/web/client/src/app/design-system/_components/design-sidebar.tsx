@@ -189,7 +189,7 @@ function SidebarBody({
                         onClick={() => onJump(g.id)}
                         title={g.label}
                         className={cn(
-                            'flex h-7 w-7 items-center justify-center rounded font-mono text-[10px] transition-colors',
+                            'flex h-7 w-7 items-center justify-center rounded font-mono text-tiny transition-colors',
                             activeId === g.id
                                 ? 'bg-foreground/10 text-foreground'
                                 : 'text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground',
@@ -240,7 +240,7 @@ function SidebarBody({
                 ))}
             </nav>
 
-            <div className="border-border text-foreground-tertiary shrink-0 border-t px-3 py-2 text-[10px]">
+            <div className="border-border text-foreground-tertiary shrink-0 border-t px-3 py-2 text-tiny">
                 {toc.reduce((n, g) => n + g.children.length, 0)} sections · {toc.length} groups
             </div>
         </div>
@@ -273,7 +273,7 @@ function TocGroup({
             >
                 <span className="truncate">{group.label}</span>
                 {group.children.length > 0 && (
-                    <span className="text-foreground-tertiary font-mono text-[10px]">
+                    <span className="text-foreground-tertiary font-mono text-tiny">
                         {group.children.length}
                     </span>
                 )}

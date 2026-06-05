@@ -437,7 +437,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                             )}
                         >
                             <span className="text-mini truncate">{entry.label}</span>
-                            <span className="text-foreground-tertiary text-[10px]">
+                            <span className="text-foreground-tertiary text-tiny">
                                 {entry.property}
                             </span>
                         </li>

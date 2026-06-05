@@ -82,7 +82,7 @@ export function ControlBar() {
                 </Tooltip>
 
                 {totalEdited > 0 && (
-                    <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                    <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-tiny font-medium text-amber-400">
                         {totalEdited} custom
                     </span>
                 )}

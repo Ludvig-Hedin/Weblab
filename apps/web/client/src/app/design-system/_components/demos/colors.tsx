@@ -25,7 +25,7 @@ export function ColorsDemo() {
                     editedCount > 0 ? (
                         <button
                             onClick={resetAll}
-                            className="text-foreground-tertiary hover:text-foreground text-[10px] transition-colors"
+                            className="text-foreground-tertiary hover:text-foreground text-tiny transition-colors"
                         >
                             reset all
                         </button>

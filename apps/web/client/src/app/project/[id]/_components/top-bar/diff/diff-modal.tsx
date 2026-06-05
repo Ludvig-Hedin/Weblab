@@ -109,7 +109,7 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                                             <div className="flex min-w-0 flex-1 items-center gap-3 pr-4">
                                                 <span
                                                     className={cn(
-                                                        'shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium',
+                                                        'shrink-0 rounded border px-1.5 py-0.5 text-tiny font-medium',
                                                         STATUS_CLASSES[diff.status],
                                                     )}
                                                 >

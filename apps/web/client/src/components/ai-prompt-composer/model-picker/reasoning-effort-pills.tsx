@@ -94,7 +94,7 @@ export const ReasoningEffortPills = ({
 
     return (
         <div className={cn('flex flex-col gap-1.5', className)}>
-            <div className="text-foreground-tertiary flex items-center justify-between text-[10px] font-normal">
+            <div className="text-foreground-tertiary flex items-center justify-between text-tiny font-normal">
                 <span>{effortLabel}</span>
                 <Tooltip>
                     <TooltipTrigger asChild>

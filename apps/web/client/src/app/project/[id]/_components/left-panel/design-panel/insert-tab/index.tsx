@@ -294,7 +294,7 @@ export const InsertTab = observer(() => {
                                     >
                                         <span className="flex items-center gap-1.5">
                                             {label}
-                                            <span className="text-muted-foreground text-[10px] font-normal">
+                                            <span className="text-muted-foreground text-tiny font-normal">
                                                 {presets.length}
                                             </span>
                                         </span>
@@ -347,7 +347,7 @@ export const InsertTab = observer(() => {
                                     >
                                         <span className="flex items-center gap-1.5">
                                             {label}
-                                            <span className="text-muted-foreground text-[10px] font-normal">
+                                            <span className="text-muted-foreground text-tiny font-normal">
                                                 {blocks.length}
                                             </span>
                                         </span>
@@ -453,11 +453,11 @@ const PresetCard = ({ preset, isArmed, onDragStart, onClick }: PresetCardProps) 
             <TooltipContent side="right" hideArrow>
                 <span className="block font-medium">{preset.label}</span>
                 {preset.description && (
-                    <span className="text-muted-foreground block text-[10px]">
+                    <span className="text-muted-foreground block text-tiny">
                         {preset.description}
                     </span>
                 )}
-                <span className="text-muted-foreground mt-0.5 block text-[10px]">
+                <span className="text-muted-foreground mt-0.5 block text-tiny">
                     {disabled
                         ? 'Coming soon'
                         : isArmed
@@ -524,7 +524,7 @@ const BlockCard = ({
                 <span className="text-foreground-primary line-clamp-1 text-[11px] font-medium">
                     {block.label}
                 </span>
-                <span className="text-muted-foreground line-clamp-1 text-[10px]">
+                <span className="text-muted-foreground line-clamp-1 text-tiny">
                     {block.description}
                 </span>
             </div>
@@ -541,8 +541,8 @@ const BlockCard = ({
             <TooltipTrigger asChild>{card}</TooltipTrigger>
             <TooltipContent side="right" hideArrow>
                 <span className="block font-medium">{block.label}</span>
-                <span className="text-muted-foreground block text-[10px]">{block.description}</span>
-                <span className="text-muted-foreground mt-0.5 block text-[10px]">
+                <span className="text-muted-foreground block text-tiny">{block.description}</span>
+                <span className="text-muted-foreground mt-0.5 block text-tiny">
                     {disabled
                         ? 'Click to see install command'
                         : isArmed

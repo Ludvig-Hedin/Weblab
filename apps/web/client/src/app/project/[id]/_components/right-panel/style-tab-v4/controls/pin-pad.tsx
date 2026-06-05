@@ -165,7 +165,7 @@ function SideCell({ side, value, onCommit, glyph, inputRef, style }: SideCellPro
             )}
             style={style}
         >
-            <span className="text-foreground-tertiary inline-flex w-3 shrink-0 items-center justify-center text-[10px] leading-none font-medium">
+            <span className="text-foreground-tertiary inline-flex w-3 shrink-0 items-center justify-center text-tiny leading-none font-medium">
                 {glyph}
             </span>
             <input

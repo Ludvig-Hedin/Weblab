@@ -26,7 +26,7 @@ type BadgeVariant = NonNullable<React.ComponentProps<typeof Badge>['variant']>;
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="space-y-2">
-            <p className="text-foreground-tertiary text-[10px] font-medium">{label}</p>
+            <p className="text-foreground-tertiary text-tiny font-medium">{label}</p>
             <div className="flex flex-wrap items-center gap-2">{children}</div>
         </div>
     );

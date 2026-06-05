@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-5-standard-text-scale',
+        version: '3.5',
+        title: 'Crisper, standard-sized text',
+        description:
+            'The app now renders on a standard 16px type scale, so text is a touch larger and easier to read — and it no longer shrinks for a moment each time a page loads. The Appearance → Font size setting (Small / Medium / Large) now scales every text size together.',
+        date: '2026-06-05',
+        tags: ['Polish', 'Design'],
+    },
+    {
         slug: 'v3-4-copy-to-figma',
         version: '3.4',
         title: 'Copy to Figma',

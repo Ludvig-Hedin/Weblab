@@ -53,13 +53,13 @@ export function TypographyDemo() {
                                     </span>
                                     <div className="flex shrink-0 items-center gap-3">
                                         <div className="text-right opacity-0 transition-opacity group-hover:opacity-100">
-                                            <span className="text-foreground-tertiary font-mono text-[10px]">
+                                            <span className="text-foreground-tertiary font-mono text-tiny">
                                                 {currentSize}rem / {currentWeight}
                                             </span>
                                         </div>
                                         <span
                                             className={cn(
-                                                'text-foreground-tertiary w-24 font-mono text-[10px]',
+                                                'text-foreground-tertiary w-24 font-mono text-tiny',
                                                 isEdited && 'text-amber-400',
                                             )}
                                         >
@@ -108,10 +108,10 @@ export function TypographyDemo() {
                                 Design visually
                             </span>
                             <div className="flex shrink-0 items-center gap-4 text-right">
-                                <span className="text-foreground-tertiary font-mono text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="text-foreground-tertiary font-mono text-tiny opacity-0 transition-opacity group-hover:opacity-100">
                                     {row.size} / {row.note}
                                 </span>
-                                <span className="text-foreground-tertiary w-36 font-mono text-[10px]">
+                                <span className="text-foreground-tertiary w-36 font-mono text-tiny">
                                     {row.label}
                                 </span>
                             </div>
@@ -131,7 +131,7 @@ export function TypographyDemo() {
                 }
             >
                 <div className="border-border overflow-hidden rounded-xl border">
-                    <div className="text-foreground-tertiary bg-foreground/[0.03] grid grid-cols-[1fr_1.4fr_1fr] gap-4 px-4 py-2 font-mono text-[10px]">
+                    <div className="text-foreground-tertiary bg-foreground/[0.03] grid grid-cols-[1fr_1.4fr_1fr] gap-4 px-4 py-2 font-mono text-tiny">
                         <span>Use case</span>
                         <span>Use this</span>
                         <span>Avoid</span>
@@ -181,7 +181,7 @@ export function TypographyDemo() {
                             <p className="text-foreground text-base" style={{ fontWeight: w }}>
                                 Weblab
                             </p>
-                            <p className="text-foreground-tertiary mt-0.5 font-mono text-[10px]">
+                            <p className="text-foreground-tertiary mt-0.5 font-mono text-tiny">
                                 {w}
                             </p>
                         </div>
@@ -221,7 +221,7 @@ function TypographyEditor({
         <div className="bg-foreground/[0.03] border-border border-t px-4 py-4">
             <div className="flex flex-wrap items-end gap-5">
                 <div className="space-y-1.5">
-                    <p className="text-foreground-tertiary text-[10px] font-medium">Font size</p>
+                    <p className="text-foreground-tertiary text-tiny font-medium">Font size</p>
                     <div className="flex items-center gap-1.5">
                         <input
                             type="number"
@@ -233,13 +233,13 @@ function TypographyEditor({
                             className="bg-background border-border text-foreground focus:border-foreground/40 w-16 rounded-md border px-2 py-1.5 font-mono text-xs transition-colors outline-none"
                         />
                         <span className="text-foreground-tertiary text-xs">rem</span>
-                        <span className="text-foreground-tertiary text-[10px] opacity-50">
+                        <span className="text-foreground-tertiary text-tiny opacity-50">
                             {Math.round(currentSize * 16)}px
                         </span>
                     </div>
                 </div>
                 <div className="space-y-1.5">
-                    <p className="text-foreground-tertiary text-[10px] font-medium">Weight</p>
+                    <p className="text-foreground-tertiary text-tiny font-medium">Weight</p>
                     <select
                         value={currentWeight}
                         onChange={(e) => onChange(weightVar, e.target.value)}
@@ -263,7 +263,7 @@ function TypographyEditor({
                     </select>
                 </div>
                 <div className="space-y-1.5">
-                    <p className="text-foreground-tertiary text-[10px] font-medium">Line height</p>
+                    <p className="text-foreground-tertiary text-tiny font-medium">Line height</p>
                     <input
                         type="text"
                         value={currentLeading}
@@ -273,7 +273,7 @@ function TypographyEditor({
                     />
                 </div>
                 <div className="space-y-1.5">
-                    <p className="text-foreground-tertiary text-[10px] font-medium">
+                    <p className="text-foreground-tertiary text-tiny font-medium">
                         Letter spacing
                     </p>
                     <div className="flex items-center gap-1.5">

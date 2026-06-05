@@ -208,7 +208,7 @@ export const ProjectsToolbar = ({
                             <Icons.MixerHorizontal className="h-3.5 w-3.5" />
                             <span>{t('filterLabel')}</span>
                             {activeFilterCount > 0 && (
-                                <span className="text-foreground bg-foreground/12 ml-0.5 rounded-full px-1.5 text-[10px] leading-4">
+                                <span className="text-foreground bg-foreground/12 ml-0.5 rounded-full px-1.5 text-tiny leading-4">
                                     {activeFilterCount}
                                 </span>
                             )}

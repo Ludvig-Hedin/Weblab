@@ -241,7 +241,7 @@ export const TrblGrid = observer(function TrblGrid({
                         {SIDES.map((side) => (
                             <span
                                 key={side}
-                                className="text-foreground-tertiary min-w-0 flex-1 text-center text-[10px] leading-none"
+                                className="text-foreground-tertiary min-w-0 flex-1 text-center text-tiny leading-none"
                             >
                                 {SIDE_LABEL[side]}
                             </span>

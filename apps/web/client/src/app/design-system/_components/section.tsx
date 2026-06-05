@@ -42,13 +42,13 @@ export function Section({
             <div className="group/section mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     {tag && (
-                        <span className="bg-foreground/8 text-foreground-tertiary rounded px-1.5 py-0.5 text-[10px] font-medium">
+                        <span className="bg-foreground/8 text-foreground-tertiary rounded px-1.5 py-0.5 text-tiny font-medium">
                             {tag}
                         </span>
                     )}
                     <h2 className="text-foreground text-sm font-medium">{title}</h2>
                     {editedCount !== undefined && editedCount > 0 && (
-                        <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                        <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-tiny font-medium text-amber-400">
                             {editedCount} edited
                         </span>
                     )}
@@ -68,7 +68,7 @@ export function Section({
                     {editUrl && (
                         <a
                             href={editUrl}
-                            className="border-border text-foreground-tertiary hover:border-foreground/40 hover:text-foreground inline-flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-[10px] transition-colors"
+                            className="border-border text-foreground-tertiary hover:border-foreground/40 hover:text-foreground inline-flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-tiny transition-colors"
                             title={absPath ?? filePath}
                         >
                             <Icons.ExternalLink className="h-3 w-3" />

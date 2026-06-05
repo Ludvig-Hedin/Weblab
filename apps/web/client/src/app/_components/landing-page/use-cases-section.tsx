@@ -558,7 +558,7 @@ function ConnectVisual() {
 
                     <div className="px-5 pt-5 pb-5">
                         <span className="text-style-tagline">Connect repository</span>
-                        <div className="text-foreground-primary mt-2 text-[14px] font-light tracking-tight">
+                        <div className="text-foreground-primary mt-2 text-sm font-light tracking-tight">
                             Open the project you already have.
                         </div>
 

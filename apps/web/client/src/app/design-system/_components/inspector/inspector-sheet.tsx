@@ -42,7 +42,7 @@ export function InspectorSheet() {
                                         onClick={() =>
                                             resetTokens(editedTokens.map((t) => t.cssVar))
                                         }
-                                        className="text-foreground-tertiary hover:text-foreground text-[10px] transition-colors"
+                                        className="text-foreground-tertiary hover:text-foreground text-tiny transition-colors"
                                     >
                                         reset {editedTokens.length}
                                     </button>
@@ -156,7 +156,7 @@ function CodeTab({ id }: { id: string }) {
                 <code>{css}</code>
             </pre>
             {spec.sourcePath && (
-                <p className="text-foreground-tertiary text-[10px]">
+                <p className="text-foreground-tertiary text-tiny">
                     Component source: <code>{spec.sourcePath}</code>
                 </p>
             )}

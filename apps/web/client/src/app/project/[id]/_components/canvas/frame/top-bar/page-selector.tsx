@@ -119,7 +119,7 @@ export const PageSelector = observer(
                     items.push(
                         <div
                             key={`folder-${page.id}`}
-                            className="text-foreground-tertiary mt-2 px-3 pb-0.5 text-[10px] font-medium tracking-widest uppercase first:mt-0"
+                            className="text-foreground-tertiary mt-2 px-3 pb-0.5 text-tiny font-medium tracking-widest uppercase first:mt-0"
                         >
                             {page.name}
                         </div>,

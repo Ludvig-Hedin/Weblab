@@ -190,7 +190,7 @@ export const FontFamilySelector = observer(() => {
                 <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
                     {filteredInstalled.length > 0 && (
                         <div className="divide-border divide-y">
-                            <div className="text-muted-foreground px-1 pb-1 text-[10px]">
+                            <div className="text-muted-foreground px-1 pb-1 text-tiny">
                                 In this project
                             </div>
                             {filteredInstalled.map((font) => (
@@ -209,7 +209,7 @@ export const FontFamilySelector = observer(() => {
                     )}
                     {googleFonts.length > 0 && (
                         <div className="divide-border mt-2 divide-y">
-                            <div className="text-muted-foreground px-1 pb-1 text-[10px]">
+                            <div className="text-muted-foreground px-1 pb-1 text-tiny">
                                 {query.trim() ? 'Google Fonts' : 'Popular Google Fonts'}
                             </div>
                             {googleFonts.map((font) => (

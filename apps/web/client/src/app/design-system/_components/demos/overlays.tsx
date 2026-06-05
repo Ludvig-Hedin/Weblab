@@ -377,7 +377,7 @@ export function OverlaysDemo() {
                             <Icons.MixerHorizontal className="mr-1 h-3.5 w-3.5" />
                             Filter
                             {activeCount > 0 && (
-                                <span className="bg-accent text-accent-foreground ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+                                <span className="bg-accent text-accent-foreground ml-1.5 rounded-full px-1.5 py-0.5 text-tiny font-medium">
                                     {activeCount}
                                 </span>
                             )}
@@ -445,7 +445,7 @@ export function OverlaysDemo() {
                             aria-label="Open errors console"
                         >
                             <Icons.ExclamationTriangle className="h-4 w-4" />
-                            <span className="bg-destructive text-destructive-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-medium">
+                            <span className="bg-destructive text-destructive-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-tiny leading-none font-medium">
                                 3
                             </span>
                         </Button>

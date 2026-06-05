@@ -14,8 +14,8 @@ export function SpacingDemo() {
                                 className="bg-foreground/20 rounded-sm"
                                 style={{ width: `${n * 4}px`, height: `${n * 4}px` }}
                             />
-                            <p className="text-foreground-tertiary font-mono text-[10px]">{n}</p>
-                            <p className="text-foreground-tertiary font-mono text-[10px] opacity-60">
+                            <p className="text-foreground-tertiary font-mono text-tiny">{n}</p>
+                            <p className="text-foreground-tertiary font-mono text-tiny opacity-60">
                                 {n * 4}px
                             </p>
                         </div>

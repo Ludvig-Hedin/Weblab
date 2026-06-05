@@ -19,7 +19,7 @@ export const ComponentCard = ({ data, onDragStart }: ComponentCardProps) => (
             <span className="text-foreground-primary line-clamp-1 text-[11px] font-medium">
                 {data.componentName}
             </span>
-            <span className="text-muted-foreground line-clamp-1 text-[10px]">{data.filePath}</span>
+            <span className="text-muted-foreground line-clamp-1 text-tiny">{data.filePath}</span>
         </div>
     </button>
 );

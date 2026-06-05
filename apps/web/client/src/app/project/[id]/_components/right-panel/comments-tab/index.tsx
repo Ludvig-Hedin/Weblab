@@ -110,13 +110,13 @@ export const CommentsTab = observer(() => {
                             )}
                         >
                             <div className="flex items-center gap-2">
-                                <div className="bg-foreground/12 text-foreground-secondary flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
+                                <div className="bg-foreground/12 text-foreground-secondary flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-tiny font-semibold">
                                     {getInitials(comment.authorName)}
                                 </div>
                                 <span className="text-foreground-primary text-mini flex-1 truncate font-medium">
                                     {comment.authorName}
                                 </span>
-                                <span className="text-foreground-tertiary text-[10px]">
+                                <span className="text-foreground-tertiary text-tiny">
                                     {formatRelativeTime(comment.createdAt)}
                                 </span>
                             </div>
@@ -124,7 +124,7 @@ export const CommentsTab = observer(() => {
                                 {comment.content}
                             </p>
                             {comment.replies.length > 0 && (
-                                <div className="text-foreground-tertiary flex items-center gap-1 text-[10px]">
+                                <div className="text-foreground-tertiary flex items-center gap-1 text-tiny">
                                     <Icons.ChatBubble className="h-3 w-3" />
                                     <span>
                                         {comment.replies.length}{' '}

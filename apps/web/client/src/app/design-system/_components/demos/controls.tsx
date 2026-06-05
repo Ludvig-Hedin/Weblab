@@ -142,7 +142,7 @@ export function ControlsDemo() {
                     <div className="space-y-3">
                         <Label>Stepped (step = 25)</Label>
                         <Slider defaultValue={[50]} min={0} max={100} step={25} />
-                        <div className="text-foreground-tertiary flex justify-between font-mono text-[10px]">
+                        <div className="text-foreground-tertiary flex justify-between font-mono text-tiny">
                             <span>0</span>
                             <span>25</span>
                             <span>50</span>

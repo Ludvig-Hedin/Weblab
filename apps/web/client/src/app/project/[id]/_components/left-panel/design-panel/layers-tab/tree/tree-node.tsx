@@ -61,7 +61,7 @@ const LayerBadge = memo(
     ({ children, className }: { children: React.ReactNode; className?: string }) => (
         <span
             className={cn(
-                'flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] leading-none font-semibold',
+                'flex h-4 min-w-4 items-center justify-center rounded border px-1 text-tiny leading-none font-semibold',
                 className,
             )}
         >

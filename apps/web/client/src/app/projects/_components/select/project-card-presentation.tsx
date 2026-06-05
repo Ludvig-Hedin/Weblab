@@ -109,7 +109,7 @@ export function ProjectCardPresentation({
 
                 <div className="absolute top-3 left-3 z-30">
                     <span
-                        className={`rounded-full border px-2 py-1 text-[10px] font-medium backdrop-blur-md ${storageBadgeClass}`}
+                        className={`rounded-full border px-2 py-1 text-tiny font-medium backdrop-blur-md ${storageBadgeClass}`}
                     >
                         {storageLabel}
                     </span>

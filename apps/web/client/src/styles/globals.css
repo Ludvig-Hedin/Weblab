@@ -48,10 +48,17 @@ body {
 [data-accent='green']   { --accent: #50c24a; --accent-foreground: #ffffff; }
 [data-accent='neutral'] { --accent: #737373; --accent-foreground: #ffffff; }
 
-/* Font size */
-html[data-font-size='small']  { font-size: 13px; }
-html[data-font-size='medium'] { font-size: 14px; }
-html[data-font-size='large']  { font-size: 16px; }
+/* Font size — root scale that every `rem` (text AND spacing) keys off.
+   `medium` is the default and is pinned to the standard 16px browser base so
+   1rem renders true: text-base 16 / text-sm 14 / text-xs 12 — matching a normal
+   Tailwind/shadcn app. `small`/`large` step ±2px for a density preference.
+   Previously medium was 14px, which scaled the whole UI to 87.5% (text-xs read
+   10.5px) and produced a visible shrink on every reload: first paint is the
+   browser's 16px, then the client applied medium=14px after settings hydrated.
+   Keeping medium at 16px removes that flash for the default user. */
+html[data-font-size='small']  { font-size: 14px; }
+html[data-font-size='medium'] { font-size: 16px; }
+html[data-font-size='large']  { font-size: 18px; }
 
 /* Font family — system-first cascade so Mac users get SF Pro automatically.
    Inter (loaded via next/font in layout.tsx) acts as the cross-platform fallback

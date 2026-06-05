@@ -63,7 +63,7 @@ export const SearchResultRow = forwardRef<HTMLButtonElement, SearchResultRowProp
                         />
                     </span>
                     {descriptor && (
-                        <span className="text-foreground-primary/50 truncate text-[10px]">
+                        <span className="text-foreground-primary/50 truncate text-tiny">
                             {descriptor}
                         </span>
                     )}

@@ -261,7 +261,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                                             <summary className="cursor-pointer">
                                                 Show remote version
                                             </summary>
-                                            <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto p-2 text-[10px] break-words whitespace-pre-wrap">
+                                            <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto p-2 text-tiny break-words whitespace-pre-wrap">
                                                 {typeof c.remoteContent === 'string'
                                                     ? c.remoteContent
                                                     : '[binary content]'}

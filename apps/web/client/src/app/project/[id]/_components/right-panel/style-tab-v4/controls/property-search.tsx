@@ -453,7 +453,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                         <React.Fragment key={group.sectionId}>
                             <li
                                 role="presentation"
-                                className="text-foreground-tertiary px-2 pt-2 pb-0.5 text-[10px] select-none first:pt-1"
+                                className="text-foreground-tertiary px-2 pt-2 pb-0.5 text-tiny select-none first:pt-1"
                             >
                                 {group.label}
                             </li>
@@ -477,7 +477,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                                     )}
                                 >
                                     <span className="text-mini truncate">{entry.label}</span>
-                                    <span className="text-foreground-tertiary text-[10px]">
+                                    <span className="text-foreground-tertiary text-tiny">
                                         {entry.property}
                                     </span>
                                 </li>
