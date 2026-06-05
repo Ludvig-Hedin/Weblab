@@ -13,6 +13,7 @@ import { NodeFsProvider } from './providers/nodefs';
 export * from './providers';
 export { CodesandboxProvider } from './providers/codesandbox';
 export { NodeFsProvider } from './providers/nodefs';
+export * from './scaffold-templates';
 export * from './types';
 
 export interface CreateClientOptions {

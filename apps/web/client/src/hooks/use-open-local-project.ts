@@ -6,6 +6,8 @@ import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
+import { getStaticHtmlScaffoldFiles, STATIC_HTML_SCAFFOLD_PORT } from '@weblab/code-provider';
+
 import { Routes } from '@/utils/constants';
 
 // Minimal view of the desktop IPC bridge (apps/desktop/preload.js). Local mode
@@ -16,11 +18,17 @@ interface LocalFsBridge {
         root: string,
         path: string,
     ): Promise<{ content?: string; error?: string; notFound?: boolean }>;
+    write(
+        root: string,
+        path: string,
+        content: string | Uint8Array,
+    ): Promise<{ success?: boolean; error?: string }>;
 }
 
 function getLocalFs(): LocalFsBridge | undefined {
     if (typeof window === 'undefined') return undefined;
-    return (window as unknown as { weblabNative?: { localfs?: LocalFsBridge } }).weblabNative?.localfs;
+    return (window as unknown as { weblabNative?: { localfs?: LocalFsBridge } }).weblabNative
+        ?.localfs;
 }
 
 /** True only inside the Weblab desktop app, where local folders can be opened. */
@@ -126,8 +134,52 @@ export function useOpenLocalProject() {
         }
     };
 
+    const createLocalFolder = async () => {
+        const localfs = getLocalFs();
+        if (!localfs?.write) {
+            toast.error('Local projects are only available in the Weblab desktop app.');
+            return;
+        }
+        if (phase !== 'idle') return;
+
+        try {
+            setPhase('picking');
+            const picked = await localfs.pickFolder();
+            if (!picked?.rootPath) {
+                setPhase('idle');
+                return;
+            }
+            const rootPath = picked.rootPath;
+            const name = rootPath.split(/[\\/]/).filter(Boolean).pop() ?? 'Local project';
+
+            // Scaffold a blank static-HTML project into the chosen folder (the
+            // same file set the cloud uses), then create + open it. The dev
+            // server (`serve`) installs + boots on open via the NodeFs bridge.
+            setPhase('creating');
+            for (const file of getStaticHtmlScaffoldFiles()) {
+                const res = await localfs.write(rootPath, file.path, file.content);
+                if (res.error) throw new Error(`Failed to write ${file.path}: ${res.error}`);
+            }
+
+            const project = await createLocal({
+                name,
+                rootPath,
+                framework: 'static-html',
+                port: STATIC_HTML_SCAFFOLD_PORT,
+            });
+
+            setPhase('opening');
+            router.push(`${Routes.PROJECT}/${project._id}`);
+        } catch (err) {
+            console.error('[useOpenLocalProject] failed to create local project', err);
+            toast.error(err instanceof Error ? err.message : 'Could not create the local project.');
+            setPhase('idle');
+        }
+    };
+
     return {
         openLocalFolder,
+        createLocalFolder,
         phase,
         isBusy: phase !== 'idle',
         isAuthed: !!user,

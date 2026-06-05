@@ -107,7 +107,12 @@ export function ProjectChooserCards({
     const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
     const { handleImportLocalProject, isImporting, progress, isFsAccessSupported } =
         useImportLocalProject();
-    const { openLocalFolder, isBusy: isOpeningLocal, isDesktop } = useOpenLocalProject();
+    const {
+        openLocalFolder,
+        createLocalFolder,
+        isBusy: isOpeningLocal,
+        isDesktop,
+    } = useOpenLocalProject();
 
     // Desktop-only "Open local folder" card. Gate on a mounted flag so SSR and
     // the first client render agree (the IPC bridge only exists in the desktop
@@ -221,6 +226,17 @@ export function ProjectChooserCards({
                         description="Edit a project that stays on your machine. Open it in your code editor too — changes sync both ways, live."
                         cta="Choose a folder"
                         onClick={() => void openLocalFolder()}
+                        busy={isOpeningLocal}
+                        disabled={isBusy}
+                    />
+                )}
+                {showLocalCard && (
+                    <ChooserCard
+                        icon={<Icons.FilePlus className="h-4 w-4" />}
+                        title="New local project"
+                        description="Scaffold a fresh project into an empty folder on your machine and edit it locally — saved straight to disk."
+                        cta="Choose a folder"
+                        onClick={() => void createLocalFolder()}
                         busy={isOpeningLocal}
                         disabled={isBusy}
                     />

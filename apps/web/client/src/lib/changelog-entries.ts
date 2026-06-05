@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-8-local-first-desktop',
+        version: '3.8',
+        title: 'Edit local projects in the desktop app',
+        description:
+            'The desktop app can now open a folder on your machine and edit it live — the project runs its own dev server locally and renders on the canvas, every change saves straight to disk, and edits you make elsewhere (VS Code, your terminal, an AI CLI) sync back both ways. Create a fresh local project or open an existing one; nothing leaves your machine.',
+        date: '2026-06-05',
+        tags: ['Desktop', 'Editor'],
+    },
+    {
         slug: 'v3-7-bigger-component-library',
         version: '3.7',
         title: 'A bigger, on-brand component library',

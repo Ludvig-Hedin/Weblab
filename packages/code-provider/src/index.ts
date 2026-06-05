@@ -17,6 +17,7 @@ export { NodeFsProvider } from './providers/nodefs';
 // builds to `index.browser.ts`, which never sees this line.
 export { VercelSandboxProvider } from './providers/vercel-sandbox';
 export type { VercelSandboxProviderOptions } from './providers/vercel-sandbox';
+export * from './scaffold-templates';
 export * from './types';
 
 export interface CreateClientOptions {
