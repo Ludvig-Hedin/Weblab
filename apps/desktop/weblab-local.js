@@ -17,7 +17,15 @@
  * confined to the per-call project root; `..` / absolute escapes are rejected.
  */
 
-const { ipcMain, dialog } = require('electron');
+let ipcMain;
+let dialog;
+try {
+    ({ ipcMain, dialog } = require('electron'));
+} catch {
+    // Non-Electron context (e.g. a headless node integration test). The core
+    // fs / dev-server / watch functions need no electron; registerLocalIpc()
+    // (the only consumer of ipcMain/dialog) simply won't be called there.
+}
 const { spawn, execFileSync } = require('child_process');
 const fsp = require('fs/promises');
 const path = require('path');
@@ -500,4 +508,16 @@ function disposeLocal() {
     for (const id of [...watchers.keys()]) stopWatch(id);
 }
 
-module.exports = { registerLocalIpc, disposeLocal, resolveWithin, inferPortFromDevScript };
+module.exports = {
+    registerLocalIpc,
+    disposeLocal,
+    resolveWithin,
+    inferPortFromDevScript,
+    // Exported for the headless integration test (real dev-server + watch).
+    ensureInstalled,
+    startDevServer,
+    stopDevServer,
+    runCommand,
+    startWatch,
+    stopWatch,
+};
