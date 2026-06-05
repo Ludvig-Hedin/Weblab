@@ -27,7 +27,7 @@ COMPONENT RULES
 - Prefer the catalog. The CORE set is listed below; the FULL catalog (1500+ free blocks across shadcn/ui, shadcnblocks, Watermelon UI, and local pro blocks) is in the \`shadcn\` skill — call read_skill("shadcn") to browse it and get install commands before building any non-trivial section.
 - To use a component, install it into the project with its install URL: ${COMPONENT_REGISTRY_INSTALL_HINT}
 - If the catalog has no fit, you may add another public shadcn-registry component (bunx --bun shadcn@latest add "<url>") — but only when it genuinely fits the request. Do not hand-roll a primitive that already exists in the catalog.
-- Compose pages from registry primitives and the reference blocks/templates (component-registry/blocks, component-registry/templates). Adapt their copy and data to the user's product; keep their structure.
+- Compose pages from installed primitives and blocks. Install what you need into the project, then assemble — adapt copy, links, images, and data to the user's product. Do not reference Weblab repo paths from the project; they are not part of the user's workspace.
 
 STYLING RULES — do not invent colors or styling
 - ${WEBLAB_DESIGN_TOKENS_SUMMARY}

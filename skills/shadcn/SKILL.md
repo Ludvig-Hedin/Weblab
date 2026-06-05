@@ -73,7 +73,7 @@ Install patterns (run in the user project):
 - shadcn/ui: `bunx --bun shadcn@latest add "https://ui.shadcn.com/r/styles/new-york/<name>.json"`
 - shadcnblocks (free): `bunx --bun shadcn@latest add "https://www.shadcnblocks.com/r/<name>.json"`
 - Watermelon UI: `bunx --bun shadcn@latest add "https://raw.githubusercontent.com/WatermelonCorp/watermellon-registry/main/public/r/<name>.json"`
-- Local pro blocks: copy from component-registry/pro/<category>/<name>.tsx into the project.
+- Local pro blocks: a curated reference set bundled with Weblab (NOT in the user's workspace — do not try to read those paths). Use them as the target pattern and reproduce it with installed shadcn/ui primitives, or install the closest equivalent shadcnblocks/Watermelon block instead.
 
 Counts by source/category (install any item by name with the pattern above):
 
