@@ -12,13 +12,19 @@
  */
 
 /* ── Character stagger ──────────────────────────────────────────────── */
-/* One clipped line; each glyph carries a duplicate 1.3em below it via
- * text-shadow. On hover the glyph rolls up and the duplicate takes its
- * place, staggered per character by `--wl-char-delay`. */
+/* Each glyph is clipped to its own box and carries two real copies: the top
+ * copy is visible at rest; an identical bottom copy sits exactly one box-height
+ * below (top: 100%). On hover BOTH roll up by 100% of the glyph height, so the
+ * top copy exits and the bottom takes its place — staggered per character by
+ * `--wl-char-delay`. Using 100% (not a fixed em) keeps the roll aligned at any
+ * font size or line-height, so the label can never roll out of view. */
 .wl-stagger {
     display: inline-flex;
     white-space: nowrap;
-    line-height: 1.3;
+}
+
+.wl-stagger__row {
+    display: inline-flex;
 }
 
 .wl-stagger__char {
@@ -27,22 +33,31 @@
     overflow: hidden;
 }
 
-.wl-stagger__char > span {
+.wl-stagger__top,
+.wl-stagger__bottom {
     display: inline-block;
-    position: relative;
-    transform: translateY(0) rotate(0.001deg);
+}
+
+/* The bottom copy is parked one full glyph-height below the clip window. */
+.wl-stagger__bottom {
+    position: absolute;
+    top: 100%;
+    left: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .wl-stagger__char > span {
-        text-shadow: 0 1.3em currentColor;
-        transition: transform 0.6s cubic-bezier(0.625, 0.05, 0, 1);
+    .wl-stagger__top,
+    .wl-stagger__bottom {
+        transition: transform 0.55s cubic-bezier(0.625, 0.05, 0, 1);
         transition-delay: var(--wl-char-delay, 0s);
+        will-change: transform;
     }
 
-    .wl-stagger-group:hover .wl-stagger__char > span,
-    .wl-stagger-group:focus-visible .wl-stagger__char > span {
-        transform: translateY(-1.3em) rotate(0.001deg);
+    .wl-stagger-group:hover .wl-stagger__top,
+    .wl-stagger-group:focus-visible .wl-stagger__top,
+    .wl-stagger-group:hover .wl-stagger__bottom,
+    .wl-stagger-group:focus-visible .wl-stagger__bottom {
+        transform: translateY(-100%);
     }
 }
 
