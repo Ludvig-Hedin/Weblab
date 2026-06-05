@@ -57,7 +57,7 @@ export const InputContextPills = observer(() => {
     if (sortedContexts.length === 0) return null;
 
     return (
-        <div className="flex flex-row flex-wrap items-center gap-1.5 px-1 pt-1">
+        <div className="flex flex-row flex-wrap items-center gap-1.5 px-2 pt-2">
             <AnimatePresence mode="popLayout">
                 {sortedContexts.map((context: MessageContext, index: number) => {
                     const key = getStableKey(context, index);
