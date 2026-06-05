@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
+import { AnimatedButton, StaggerText } from '@/app/_components/landing-page/animated';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { isClerkMode, useSafeClerkAuth } from '@/utils/auth/safe-clerk';
@@ -51,11 +52,11 @@ export const AuthButton = () => {
                 variant="ghost"
                 size="sm"
                 asChild
-                className="hidden cursor-pointer rounded-full lg:inline-flex"
+                className="wl-stagger-group hidden cursor-pointer rounded-full lg:inline-flex"
             >
                 <Link href={Routes.DOWNLOAD}>
                     <Icons.Download className="h-3.5 w-3.5" />
-                    {t('download')}
+                    <StaggerText>{t('download')}</StaggerText>
                 </Link>
             </Button>
             {isSignedIn === null ? (
@@ -64,20 +65,25 @@ export const AuthButton = () => {
                 <div className="h-8 w-[7.5rem]" aria-hidden />
             ) : isSignedIn ? (
                 <>
-                    <Button
+                    <AnimatedButton
+                        href={Routes.PROJECTS}
                         variant="secondary"
                         size="sm"
-                        asChild
-                        className="cursor-pointer rounded-full"
+                        className="rounded-full"
                     >
-                        <Link href={Routes.PROJECTS}>{t('projects')}</Link>
-                    </Button>
+                        {t('projects')}
+                    </AnimatedButton>
                     <CurrentUserAvatar className="cursor-pointer hover:opacity-80" />
                 </>
             ) : (
-                <Button variant="outline" size="sm" asChild className="cursor-pointer rounded-full">
-                    <Link href={getSignInUrlClient()}>{t('signIn')}</Link>
-                </Button>
+                <AnimatedButton
+                    href={getSignInUrlClient()}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                >
+                    {t('signIn')}
+                </AnimatedButton>
             )}
         </div>
     );

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
@@ -15,58 +14,12 @@ import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { Routes } from '@/utils/constants';
 import { Create } from './hero/create';
 import { HighDemand } from './hero/high-demand';
+import { AnimatedButton } from './landing-page/animated';
 import { WeblabInterfaceMockup } from './landing-page/weblab-interface-mockup';
 
-const PILL_BASE =
-    'inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-background';
-
-function PrimaryButton({
-    onClick,
-    href,
-    children,
-}: {
-    onClick?: () => void;
-    href?: string;
-    children: React.ReactNode;
-}) {
-    const cls = `${PILL_BASE} bg-foreground text-background hover:bg-foreground/90`;
-    if (href) {
-        return (
-            <Link href={href} className={cls}>
-                {children}
-            </Link>
-        );
-    }
-    return (
-        <button onClick={onClick} className={cls}>
-            {children}
-        </button>
-    );
-}
-
-function SecondaryButton({
-    href,
-    onClick,
-    children,
-}: {
-    href?: string;
-    onClick?: () => void;
-    children: React.ReactNode;
-}) {
-    const cls = `${PILL_BASE} border-foreground/20 text-foreground hover:bg-background-secondary border`;
-    if (href) {
-        return (
-            <Link href={href} className={cls}>
-                {children}
-            </Link>
-        );
-    }
-    return (
-        <button onClick={onClick} className={cls}>
-            {children}
-        </button>
-    );
-}
+// Hero CTAs share the rounded-full pill geometry; AnimatedButton supplies the
+// design-system base via buttonVariants plus the stagger + directional sweep.
+const HERO_PILL = 'h-9 rounded-full px-4 text-sm';
 
 export function HeroV2() {
     const router = useRouter();
@@ -141,25 +94,41 @@ export function HeroV2() {
                     >
                         {user?._id ? (
                             <>
-                                <PrimaryButton href={Routes.PROJECTS}>
+                                <AnimatedButton
+                                    href={Routes.PROJECTS}
+                                    variant="default"
+                                    className={HERO_PILL}
+                                    icon={<Icons.ArrowRight className="h-4 w-4" />}
+                                >
                                     Projects
-                                    <Icons.ArrowRight className="h-4 w-4" />
-                                </PrimaryButton>
-                                <SecondaryButton href={Routes.DOWNLOAD}>
-                                    <Icons.Download className="h-4 w-4" />
+                                </AnimatedButton>
+                                <AnimatedButton
+                                    href={Routes.DOWNLOAD}
+                                    variant="outline"
+                                    className={HERO_PILL}
+                                    leadingIcon={<Icons.Download className="h-4 w-4" />}
+                                >
                                     Download
-                                </SecondaryButton>
+                                </AnimatedButton>
                             </>
                         ) : (
                             <>
-                                <PrimaryButton onClick={handleGetStarted}>
+                                <AnimatedButton
+                                    onClick={handleGetStarted}
+                                    variant="default"
+                                    className={HERO_PILL}
+                                    icon={<Icons.ArrowRight className="h-4 w-4" />}
+                                >
                                     Get started
-                                    <Icons.ArrowRight className="h-4 w-4" />
-                                </PrimaryButton>
-                                <SecondaryButton href={Routes.DOWNLOAD}>
-                                    <Icons.Download className="h-4 w-4" />
+                                </AnimatedButton>
+                                <AnimatedButton
+                                    href={Routes.DOWNLOAD}
+                                    variant="outline"
+                                    className={HERO_PILL}
+                                    leadingIcon={<Icons.Download className="h-4 w-4" />}
+                                >
                                     Download
-                                </SecondaryButton>
+                                </AnimatedButton>
                             </>
                         )}
                     </motion.div>

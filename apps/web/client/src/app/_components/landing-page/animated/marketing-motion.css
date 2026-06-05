@@ -1,0 +1,91 @@
+/* Weblab marketing button motion — character stagger + directional sweep.
+ *
+ * Motion only. Colors are applied via Tailwind utility classes at the call
+ * sites so dark mode and tailwind-merge keep working. Every transform is
+ * gated behind `prefers-reduced-motion: no-preference` so reduced-motion
+ * users get a static, fully readable control with no movement.
+ *
+ * Trigger model:
+ *   - `.wl-stagger-group` on the button/link drives the character roll.
+ *   - `.wl-sweep-btn` on the button drives the directional fill circle.
+ *   - Both also fire on `:focus-visible` so keyboard users see the effect.
+ */
+
+/* ── Character stagger ──────────────────────────────────────────────── */
+/* One clipped line; each glyph carries a duplicate 1.3em below it via
+ * text-shadow. On hover the glyph rolls up and the duplicate takes its
+ * place, staggered per character by `--wl-char-delay`. */
+.wl-stagger {
+    display: inline-flex;
+    white-space: nowrap;
+    line-height: 1.3;
+}
+
+.wl-stagger__char {
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+}
+
+.wl-stagger__char > span {
+    display: inline-block;
+    position: relative;
+    transform: translateY(0) rotate(0.001deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .wl-stagger__char > span {
+        text-shadow: 0 1.3em currentColor;
+        transition: transform 0.6s cubic-bezier(0.625, 0.05, 0, 1);
+        transition-delay: var(--wl-char-delay, 0s);
+    }
+
+    .wl-stagger-group:hover .wl-stagger__char > span,
+    .wl-stagger-group:focus-visible .wl-stagger__char > span {
+        transform: translateY(-1.3em) rotate(0.001deg);
+    }
+}
+
+/* ── Directional sweep ──────────────────────────────────────────────── */
+/* A circle anchored at the cursor position (set in JS via CSS vars) that
+ * scales from 0 → 1 on hover, filling the button from where the pointer
+ * entered. The button's own `overflow: hidden` + radius clip it to shape. */
+.wl-sweep-btn {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.wl-sweep {
+    pointer-events: none;
+    position: absolute;
+    top: var(--wl-y, 50%);
+    left: var(--wl-x, 50%);
+    width: var(--wl-size, 140%);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0) rotate(0.001deg);
+    transform-origin: center;
+    z-index: 0;
+}
+
+/* Keep the label above the sweep circle. */
+.wl-sweep-label {
+    position: relative;
+    z-index: 1;
+}
+
+/* The fill itself is NOT gated: the button's label color flips on hover, so
+ * the sweep must always cover the surface to keep that text readable. Only the
+ * smooth scaling transition is reserved for users who allow motion — reduced
+ * motion gets an instant fill (no animation) with identical contrast. */
+.wl-sweep-btn:hover .wl-sweep,
+.wl-sweep-btn:focus-visible .wl-sweep {
+    transform: translate(-50%, -50%) scale(1) rotate(0.001deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .wl-sweep {
+        transition: transform 0.7s cubic-bezier(0.625, 0.05, 0, 1);
+    }
+}

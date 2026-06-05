@@ -2,10 +2,10 @@
 
 import { motion } from 'motion/react';
 
-import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { Routes } from '@/utils/constants';
+import { AnimatedButton } from '../landing-page/animated';
 import { DownloadButton } from './download-button';
 
 export function FeaturesHero() {
@@ -46,12 +46,14 @@ export function FeaturesHero() {
                     transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    <Button asChild size="lg" className="cursor-pointer">
-                        <a href={Routes.PROJECTS}>
-                            Get Started
-                            <Icons.ArrowRight className="ml-2 h-4 w-4" />
-                        </a>
-                    </Button>
+                    <AnimatedButton
+                        href={Routes.PROJECTS}
+                        size="lg"
+                        className="cursor-pointer"
+                        icon={<Icons.ArrowRight className="h-4 w-4" />}
+                    >
+                        Get Started
+                    </AnimatedButton>
                     <DownloadButton />
                 </motion.div>
             </div>

@@ -4,16 +4,38 @@ import { useTranslations } from 'next-intl';
 import { BrandSymbol, BrandWordmark } from '@weblab/ui/brand';
 
 import { ExternalRoutes, Routes } from '@/utils/constants';
+import { StaggerText } from './animated';
 import { ContactLink } from './contact-link';
 import { LocaleSwitcher } from './locale-switcher';
 import { ThemeSwitcher } from './theme-switcher';
 
 const linkClass =
-    'relative inline-block text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
+    'wl-stagger-group relative inline-block text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
 
 const headingClass = 'text-small text-foreground-tertiary mb-6';
 
 const columnClass = 'flex flex-col gap-4 text-regular';
+
+/** Footer column link — underline grow + per-character stagger on hover. */
+function FooterLink({
+    href,
+    children,
+    title,
+    target,
+    rel,
+}: {
+    href: string;
+    children: string;
+    title?: string;
+    target?: string;
+    rel?: string;
+}) {
+    return (
+        <a href={href} className={linkClass} title={title} target={target} rel={rel}>
+            <StaggerText>{children}</StaggerText>
+        </a>
+    );
+}
 
 export function Footer() {
     const t = useTranslations('landing.footer');
@@ -44,18 +66,14 @@ export function Footer() {
                             <h3 className={headingClass}>{t('company.title')}</h3>
                             <ul className={columnClass}>
                                 <li>
-                                    <a href={Routes.ABOUT} className={linkClass}>
+                                    <FooterLink href={Routes.ABOUT}>
                                         {t('company.about.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
-                                        href={Routes.FAQ}
-                                        className={linkClass}
-                                        title={t('company.faq.title')}
-                                    >
+                                    <FooterLink href={Routes.FAQ} title={t('company.faq.title')}>
                                         {t('company.faq.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
                                     <ContactLink
@@ -64,7 +82,7 @@ export function Footer() {
                                         className={linkClass}
                                         title={t('company.contact.title')}
                                     >
-                                        {t('company.contact.label')}
+                                        <StaggerText>{t('company.contact.label')}</StaggerText>
                                     </ContactLink>
                                 </li>
                             </ul>
@@ -74,53 +92,48 @@ export function Footer() {
                             <h3 className={headingClass}>{t('resources.title')}</h3>
                             <ul className={columnClass}>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={ExternalRoutes.DOCS}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className={linkClass}
                                         title={t('resources.docs.title')}
                                     >
                                         {t('resources.docs.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.BLOG}
-                                        className={linkClass}
                                         title={t('resources.blog.title')}
                                     >
                                         {t('resources.blog.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={ExternalRoutes.GITHUB}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className={linkClass}
                                         title={t('resources.githubRepo.title')}
                                     >
                                         {t('resources.githubRepo.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.CHANGELOG}
-                                        className={linkClass}
                                         title={t('resources.changelog.title')}
                                     >
                                         {t('resources.changelog.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.COMPARE}
-                                        className={linkClass}
                                         title={t('resources.compare.title')}
                                     >
                                         {t('resources.compare.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                             </ul>
                         </div>
@@ -129,31 +142,28 @@ export function Footer() {
                             <h3 className={headingClass}>{t('product.title')}</h3>
                             <ul className={columnClass}>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.PRICING}
-                                        className={linkClass}
                                         title={t('product.pricing.title')}
                                     >
                                         {t('product.pricing.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.DOWNLOAD}
-                                        className={linkClass}
                                         title={t('product.download.title')}
                                     >
                                         {t('product.download.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.PROJECTS}
-                                        className={linkClass}
                                         title={t('product.myProjects.title')}
                                     >
                                         {t('product.myProjects.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                             </ul>
                         </div>
@@ -162,31 +172,28 @@ export function Footer() {
                             <h3 className={headingClass}>{t('legal.title')}</h3>
                             <ul className={columnClass}>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href="/terms-of-service"
-                                        className={linkClass}
                                         title={t('legal.terms.title')}
                                     >
                                         {t('legal.terms.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href="/privacy-policy"
-                                        className={linkClass}
                                         title={t('legal.privacy.title')}
                                     >
                                         {t('legal.privacy.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                                 <li>
-                                    <a
+                                    <FooterLink
                                         href={Routes.SECURITY}
-                                        className={linkClass}
                                         title={t('legal.security.title')}
                                     >
                                         {t('legal.security.label')}
-                                    </a>
+                                    </FooterLink>
                                 </li>
                             </ul>
                         </div>
@@ -216,10 +223,10 @@ export function Footer() {
                         />
                         <a
                             href={Routes.SITEMAP}
-                            className="text-foreground-tertiary/70 hover:text-foreground-secondary transition-colors duration-150"
+                            className="wl-stagger-group text-foreground-tertiary/70 hover:text-foreground-secondary transition-colors duration-150"
                             title={t('legal.sitemap.title')}
                         >
-                            {t('legal.sitemap.label')}
+                            <StaggerText>{t('legal.sitemap.label')}</StaggerText>
                         </a>
                     </div>
                 </div>

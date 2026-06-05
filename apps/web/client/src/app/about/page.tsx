@@ -271,7 +271,6 @@ export default function AboutPage() {
             <CTASection
                 ctaText={`${t('cta.line1')}\n${t('cta.line2')}`}
                 buttonText={t('cta.button')}
-                showSubtext={false}
             />
         </WebsiteLayout>
     );

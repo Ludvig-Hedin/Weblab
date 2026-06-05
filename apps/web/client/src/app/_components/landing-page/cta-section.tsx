@@ -4,27 +4,20 @@ import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { Reveal } from '@/components/motion/reveal';
 import { SplitText } from '@/components/motion/split-text';
+import { AnimatedButton } from './animated';
 
 interface CTASectionProps {
     href?: string;
     onClick?: () => void;
     ctaText?: string;
     buttonText?: string;
-    showSubtext?: boolean;
 }
 
-export function CTASection({
-    href,
-    onClick,
-    ctaText,
-    buttonText,
-    showSubtext = true,
-}: CTASectionProps = {}) {
+export function CTASection({ href, onClick, ctaText, buttonText }: CTASectionProps = {}) {
     const router = useRouter();
     const t = useTranslations('landing.cta');
 
@@ -71,14 +64,14 @@ export function CTASection({
                     ))}
                 </h2>
                 <Reveal delay={0.2} className="flex w-full flex-row items-center justify-end gap-3">
-                    <Button
+                    <AnimatedButton
                         variant="default"
-                        className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors"
+                        className="rounded-full px-4"
                         onClick={href === '/' ? handleHomepageNavigation : handleGetStartedClick}
+                        icon={<Icons.ArrowRight className="h-4 w-4" />}
                     >
                         {resolvedButton}
-                        <Icons.ArrowRight className="h-4 w-4" />
-                    </Button>
+                    </AnimatedButton>
                 </Reveal>
             </div>
         </div>

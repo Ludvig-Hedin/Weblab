@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import { StaggerText } from '@/app/_components/landing-page/animated';
 import { type NavigationLink } from '@/utils/constants/navigation';
 
 interface DropdownMenuProps {
@@ -84,10 +85,10 @@ export function DropdownMenu({ labelKey, links }: DropdownMenuProps) {
                 onClick={() => setIsOpen((v) => !v)}
                 onKeyDown={handleTriggerKeyDown}
                 className={cn(
-                    'text-foreground-secondary hover:text-foreground-primary focus-visible:text-foreground-primary focus-visible:outline-foreground-primary/40 -mx-1 flex items-center gap-1 px-1 py-2 text-sm transition-colors duration-150 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2',
+                    'wl-stagger-group text-foreground-secondary hover:text-foreground-primary focus-visible:text-foreground-primary focus-visible:outline-foreground-primary/40 -mx-1 flex items-center gap-1 px-1 py-2 text-sm transition-colors duration-150 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2',
                 )}
             >
-                {label}
+                <StaggerText>{label}</StaggerText>
                 <motion.span
                     animate={{ rotate: isOpen ? 180 : 0 }}
                     transition={{ duration: 0.2, ease: 'easeInOut' }}

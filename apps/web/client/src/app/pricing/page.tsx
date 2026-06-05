@@ -5,12 +5,12 @@ import { useTranslations } from 'next-intl';
 
 import type { IconProps } from '@weblab/ui/icons';
 import { APP_NAME } from '@weblab/constants';
-import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { PricingTable } from '@/components/ui/pricing-table';
 import { Routes } from '@/utils/constants';
 import { AuthModal } from '../_components/auth-modal';
+import { AnimatedButton } from '../_components/landing-page/animated';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { FAQSection } from '../_components/landing-page/faq-section';
 import { WebsiteLayout } from '../_components/website-layout';
@@ -74,21 +74,21 @@ export default function PricingPage() {
                                 </p>
                             </div>
                             <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row lg:flex-shrink-0">
-                                <Button
+                                <AnimatedButton
                                     className="w-full sm:w-auto sm:min-w-[180px]"
                                     onClick={handleContactUs}
                                     variant="outline"
                                     size="lg"
                                 >
                                     {t('contactUs')}
-                                </Button>
-                                <Button
+                                </AnimatedButton>
+                                <AnimatedButton
                                     className="w-full sm:w-auto sm:min-w-[180px]"
                                     size="lg"
-                                    asChild
+                                    href="/projects"
                                 >
-                                    <a href="/projects">{t('getStarted')}</a>
-                                </Button>
+                                    {t('getStarted')}
+                                </AnimatedButton>
                             </div>
                         </div>
 

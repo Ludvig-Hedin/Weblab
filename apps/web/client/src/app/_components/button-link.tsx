@@ -1,4 +1,6 @@
 // Reusable button-link component
+import { StaggerText } from './landing-page/animated';
+
 export function ButtonLink({
     href,
     children,
@@ -18,10 +20,12 @@ export function ButtonLink({
                 href={href}
                 target={target}
                 rel={rel}
-                className="text-foreground-secondary text-regular hover:text-foreground-primary flex items-center gap-2 pb-2 transition-colors"
+                className="wl-stagger-group text-foreground-secondary text-regular hover:text-foreground-primary flex items-center gap-2 pb-2 transition-colors"
                 style={{ width: 'fit-content' }}
             >
-                {children}
+                {/* String labels get the per-character stagger; richer children
+                    (rare) render as-is. */}
+                {typeof children === 'string' ? <StaggerText>{children}</StaggerText> : children}
                 {rightIcon && (
                     <span className="group-hover:text-foreground-primary ml-2 flex items-center transition-all duration-200 ease-in-out group-hover:translate-x-1.5">
                         {rightIcon}
