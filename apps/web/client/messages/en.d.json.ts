@@ -525,7 +525,7 @@ declare const messages: {
         "headingActions": "Actions",
         "headingShortcuts": "Shortcuts",
         "newProject": "New project",
-        "marketplace": "Browse Marketplace",
+        "marketplace": "Browse Templates",
         "openSettings": "Open Settings",
         "searchProjects": "Search projects"
     },
@@ -536,7 +536,7 @@ declare const messages: {
         "noProjectsYet": "No projects yet",
         "createFirst": "Create your first project",
         "viewAll": "View all projects",
-        "marketplace": "Marketplace",
+        "marketplace": "Templates",
         "searchProjects": "Search projects",
         "clearSearch": "Clear search",
         "newProject": "New project"
@@ -1230,6 +1230,12 @@ declare const messages: {
                         },
                         "miniChat": {
                             "button": "Chat with AI"
+                        },
+                        "aiMenu": {
+                            "trigger": "Edit with AI",
+                            "placeholder": "Describe the change…",
+                            "send": "Send",
+                            "addToChat": "Add to chat"
                         },
                         "openInCode": {
                             "button": "Open in Code"
