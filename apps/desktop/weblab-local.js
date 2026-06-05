@@ -195,7 +195,11 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
     try {
         child = spawn(cmd, {
             cwd: root,
-            env: syncedEnv(),
+            // Pass PORT so frameworks that honor it (Next.js) bind the port the
+            // editor's frame URL was built from. Scripts with an explicit flag
+            // (the static-HTML scaffold's `serve -l <port>`) override it. Keeps
+            // localhost:<port> on the canvas matching the actual dev server.
+            env: { ...syncedEnv(), PORT: String(port) },
             shell: true, // user's own project script — runs through the shell
             stdio: ['ignore', 'pipe', 'pipe'],
         });
