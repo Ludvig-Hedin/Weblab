@@ -57,6 +57,30 @@ Conventions: every phase ends green on `bun typecheck` + its unit tests. Touch o
 
 ---
 
+---
+
+## Phase 1d — integration contract (researched 2026-06-05)
+
+Status of the foundation: **C1 (Electron IPC bridge) + C2 (`LocalProvider`) are DONE, verified, committed** (`d87e511eb`). What remains for a user-triggerable P1 is the open-folder → local-project-create → render path. The schema + seams are fully present:
+
+- `vProjectStorageMode` and `vBranchRuntimeType` (`convex/lib/enums.ts:110-120`) both include `'local'`.
+- `projects.sandboxId` / `sandboxUrl` are **optional** (`schema.ts:279-280`) → a local project sets neither.
+- `branches.sandboxId` is **required** `v.string()` (`schema.ts:300`) → a local branch needs a synthetic non-empty id (e.g. `local:<rootPath-hash>`); `session.ts` local path ignores it (uses `runtime.local.rootPath`).
+- All cloud creates funnel through the `projects.create` mutation / `internal.projects._insertProjectGraph` (`projects.ts:441-559`) which writes project + branch + members + canvas + frames + conversation.
+
+**Build steps:**
+1. **`convex/projectActions.ts` → new `createLocal` action** (mirror `createBlank` minus sandbox provisioning): resolve workspace + `project.create` cap, then a new `internal.projects._insertLocalProjectGraph` mutation that writes:
+   - project: `storageMode:'local'`, `runtimeMetadata:{ framework }`, no sandbox fields.
+   - branch: `runtimeType:'local'`, `runtimeMetadata:{ local:{ rootPath, devCommand?, port? } }`, `sandboxId: 'local:'+hash(rootPath)`.
+   - frames: **`url` = `http://localhost:<port>`** where `<port>` = inferred from the framework default (Next.js 3000 / static-html 3000) or a passed port.
+2. **Desktop-gated UI entry** (`apps/web/client`, gated on `window.weblabNative?.localfs`): "Open local folder" + "New local project" → `pickFolder()` → `createLocal({ rootPath, name: basename(rootPath) })` → route to `/project/<id>`.
+3. **`name`** derived from the folder basename.
+
+**⚠️ The one runtime-verify item:** frame `url` is the iframe `src` (`canvas/frame/view.tsx`), set at create-time. For local the real port is only known after the dev server binds (`LocalProvider.createSession()` returns it). Two options to verify in a running editor:
+   - (a) set frame `url` at create from the inferred port and ensure the dev server binds exactly that port (pass `port` into `runtime.local`), **or**
+   - (b) after `createSession()`, write the returned `previewUrl` back to the frames (a small frames-url update mutation) and reload the iframe.
+   Pick (a) if the inferred port is reliable; fall back to (b). **Must be verified against a running desktop build — a wrong port = blank canvas.** This is why 1d was not built blind.
+
 ## Cross-cutting
 - **Docs:** update `apps/desktop/README`/`RELEASES.md`, `docs/feature-catalog.md` (+ `docs/test-plan.md`), `CLAUDE.md` sandbox note (local mode is now a real runtime), `docs/agent-memory/feature-log.md`.
 - **Backlog:** any deferred edge (full cloud↔local sync engine, non-React element mapping) → `BACKLOG.md`.
