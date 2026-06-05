@@ -77,14 +77,17 @@ in `@weblab/framework` until their scaffolders land.
 
 Newest first. Append in `docs/agent-memory/feature-log.md` for the canonical record.
 
-- **2026-06-05** — Component registry + anti-slop design prompt (F-785). New
-  `component-registry/` folder (16 shadcn/ui + 5 Watermelon UI fetched from their
-  registries, OKLCH design tokens, anti-slop block/template exemplars, fetcher
-  script). The builder agent is now constrained to this catalog + one palette via
-  three cached system-prompt blocks (`<design-system>`, `<component-registry>`,
-  `<anti-slop-checklist>`) wired into both `cache-blocks.ts` and `provider.ts`.
-  Defaults new sites to Next.js+React+shadcn, never invents colors/fonts, matches
-  an existing project's stack/tokens when editing. ADR `2026-06-05`.
+- **2026-06-05** — Component registry + anti-slop design prompt (F-785), then
+  extended to the **full catalog (1533)**. `component-registry/` catalogues all
+  free shadcn/ui (78), shadcnblocks-free (293), Watermelon UI (964) + 198 vendored
+  local pro blocks (catalog-first: install URL + description per item; vendor only
+  pro + core). The builder agent is constrained to this catalog + one OKLCH palette
+  via three cached prompt blocks (`<design-system>`, `<component-registry>`,
+  `<anti-slop-checklist>`) in both `cache-blocks.ts` and `provider.ts`, plus an
+  embedded `shadcn` skill (`read_skill`) carrying the full catalog index. Blank
+  Next.js scaffolds bake the tokens into `globals.css` (on-brand pre-AI). Defaults
+  to Next.js+React+shadcn, never invents colors/fonts, matches an existing
+  project's stack/tokens when editing. ADR `2026-06-05`.
 - **2026-05-24** — CodeSandbox archived. Vercel is sole runtime. CSB files +
   `@codesandbox/sdk` kept as `@deprecated` dead code for legacy DB rows.
   See `docs/notes/2026-05-13-vercel-sandbox-provider.md` and ADR `2026-05-24`.

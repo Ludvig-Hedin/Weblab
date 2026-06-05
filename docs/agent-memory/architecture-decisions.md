@@ -50,8 +50,15 @@ a deliberate ask.
 Placement rationale: the blocks are large but stable, so they belong in the
 Anthropic-cached prefix (amortized cost), not the volatile per-request tail.
 
-Status: Active. Follow-ups in BACKLOG (codegen catalog from manifest; auto-apply
-tokens in `scaffoldNextProject`; extend catalog beyond the 21-component MVP).
+Status: Active. Extended 2026-06-05 to the full free catalog (1533 items) using a
+**catalog-first** model — registry blocks (shadcn/ui, shadcnblocks-free,
+Watermelon UI) are catalogued with install URLs and installed on demand rather
+than vendored (~4500 third-party files would otherwise enter the repo); only the
+198 local pro blocks + a core set are vendored. The full catalog is delivered to
+the agent via an embedded `shadcn` skill (`read_skill`) instead of inlining 1533
+lines in the always-on prompt. Blank Next.js scaffolds bake the tokens into
+`globals.css`. Remaining follow-ups in BACKLOG (codegen the 3-place catalog sync;
+dedupe scaffold tokens vs tokens.css; richer Watermelon descriptions).
 
 ## 2026-06-04 — Copy to Figma uses native clipboard encoding with a vendored Kiwi schema
 

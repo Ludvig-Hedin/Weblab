@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-05 — Full component catalog (1533) + on-brand scaffold + `shadcn` agent skill
+Author: Claude (Opus 4.8)
+Area: component registry, AI skills (`packages/ai/src/skills`), scaffolder (`packages/code-provider`)
+Summary: Extended the F-785 MVP (21 components) to the full free catalog — 1533 items: all free shadcn/ui (78), shadcnblocks-free (293, probe-classified from 3365 via `/r/<name>.json` returning content vs "Authentication failed"), Watermelon UI (964, from the github registry), and 198 local pro blocks vendored from `reference/shadcn-pro-blocks`. Rewrote `scripts/fetch-components.mjs` as a catalog builder: registry blocks are catalogued (name + description + install URL — installed on demand) rather than vendored, so the repo isn't flooded with ~4500 third-party files; only pro + a core set are vendored. shadcnblocks descriptions are real (from `registry.json`); Watermelon's are derived from name stems. Outputs `manifest.json`, human `CATALOG.md`, and `skill-catalog.md`. Blank Next.js scaffolds now bake the Weblab OKLCH tokens into `globals.css` (`NEXTJS_GLOBALS_CSS` in `scaffoldNextProject`) so sites are on-brand before the AI runs. Added an embedded `shadcn` agent skill (`skills/shadcn/SKILL.md` → `bun run generate:skills`) carrying the shadcn design foundations + the full catalog index + install patterns; the `<component-registry>` prompt now points the agent at `read_skill("shadcn")`. Install URLs: shadcn `ui.shadcn.com/r/styles/new-york/<n>.json`, shadcnblocks `shadcnblocks.com/r/<n>.json`, Watermelon raw github (the `registry.watermelon.sh` host serves a SPA, not JSON). web-client typecheck + targeted lint green; prompt suite 27/27.
+Files: `component-registry/{scripts/fetch-components.mjs,manifest.json,CATALOG.md,skill-catalog.md,README.md,pro/**}`, `skills/shadcn/SKILL.md`, `packages/ai/src/skills/{embedded,embedded-summaries}.ts` (regenerated), `packages/ai/src/prompt/constants/components.ts`, `packages/code-provider/src/providers/vercel-sandbox/index.ts`, `packages/ai/test/prompt/component-registry.test.ts`
+Links: changelog v3.7; feature-catalog F-785 / test-plan T-815; BACKLOG follow-ups
+
 ## 2026-06-05 — Curated component registry + anti-slop design mandate in the AI system prompt
 Author: Claude (Opus 4.8)
 Area: AI prompt (`packages/ai/src/prompt`), constants (`packages/constants`), new `component-registry/` folder

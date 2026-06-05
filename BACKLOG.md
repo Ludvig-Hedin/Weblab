@@ -38,22 +38,40 @@ later without re-discovering the context.
 
 ## Open
 
-### Component registry — extend catalog + auto-apply tokens to scaffolded projects
+### Watermelon catalog descriptions are derived, not real
 
-- **Discovered:** 2026-06-05 (component-registry / anti-slop prompt session)
-- **Where:** `component-registry/` (catalog + `scripts/fetch-components.mjs`); `packages/code-provider/src/providers/vercel-sandbox/index.ts` (`scaffoldNextProject`)
-- **Symptom:** MVP only fetched 21 components (16 shadcn + 5 watermelon). And `component-registry/theme/tokens.css` is NOT auto-written into new projects — the AI is told to copy tokens, but a blank scaffold ships without them, so first-build styling relies on the agent doing the copy.
-- **Next step:** (a) append more entries to `CURATED` in the fetcher and re-run `bun run component-registry/scripts/fetch-components.mjs`; (b) write the token CSS into `scaffoldNextProject`'s `globals.css` so new sites are on-brand before the AI touches them.
-- **Risk if ignored:** thin catalog; new sites can still drift from the palette on the first generation.
-- **Tags:** `#enhancement` `#tech-debt`
+- **Discovered:** 2026-06-05 (full-catalog session)
+- **Where:** `component-registry/scripts/fetch-components.mjs` (`deriveDescription` / `STEM_DESC`); 964 Watermelon entries in `manifest.json`
+- **Symptom:** Watermelon registry items carry no title/description, so descriptions are derived from the name stem ("Accordion: collapsible disclosure rows (variant 03)"). A few are awkward (e.g. "aave swap component component"). shadcnblocks descriptions are real; Watermelon's are best-effort.
+- **Next step:** optionally fetch each Watermelon item and summarize its source for a real description, or expand `STEM_DESC`. Low priority — names are already descriptive.
+- **Risk if ignored:** slightly weaker block descriptions for one source.
+- **Tags:** `#enhancement`
 
-### Component catalog is hand-synced in two places (manifest.json ↔ constants)
+### shadcnblocks free set is probe-classified (293/3365) — may miss rate-limited items
+
+- **Discovered:** 2026-06-05 (full-catalog session)
+- **Where:** `component-registry/scripts/fetch-components.mjs` (`catalogShadcnblocksFree`); cache `component-registry/.cache/shadcnblocks-free.json`
+- **Symptom:** free vs pro is detected by probing each `/r/<name>.json` (pro → "Authentication failed"). A rate-limited/transient failure during the run would mis-mark a free block as pro and drop it. Current run found 293 free.
+- **Next step:** re-run with `--skip-shadcnblocks-probe` off periodically; consider ret/backoff on non-200s to avoid false negatives. Cache makes re-runs cheap.
+- **Risk if ignored:** a handful of free shadcnblocks could be missing from the catalog.
+- **Tags:** `#tech-debt`
+
+### Catalog is synced across three places + a manual skill re-append
 
 - **Discovered:** 2026-06-05 (component-registry session)
-- **Where:** `component-registry/manifest.json` (generated) and `packages/constants/src/component-registry.ts` (`COMPONENT_REGISTRY`, hand-mirrored)
-- **Symptom:** adding a component means editing the fetcher AND mirroring the row into constants. Easy to drift.
-- **Next step:** codegen `COMPONENT_REGISTRY` from `manifest.json` at build (small script or a generated `.ts`), making the manifest the single source.
-- **Risk if ignored:** catalog drift — prompt advertises components the folder lacks, or vice versa.
+- **Where:** `component-registry/manifest.json` (generated), `packages/constants/src/component-registry.ts` (`COMPONENT_REGISTRY`, hand-mirrored CORE set), and `skills/shadcn/SKILL.md` (catalog appended from `skill-catalog.md`, then `generate:skills`)
+- **Symptom:** rebuilding the catalog requires: run fetcher → re-append `skill-catalog.md` into `SKILL.md` (replacing the old Catalog section) → `bun run generate:skills`. The constants CORE list is also hand-maintained. Easy to drift.
+- **Next step:** codegen `COMPONENT_REGISTRY` (core) and the `SKILL.md` catalog section from `manifest.json` so the manifest is the single source.
+- **Risk if ignored:** catalog drift between the folder, the prompt CORE set, and the skill body.
+- **Tags:** `#tech-debt`
+
+### Design tokens duplicated: scaffold copy vs tokens.css
+
+- **Discovered:** 2026-06-05 (full-catalog session)
+- **Where:** `packages/code-provider/src/providers/vercel-sandbox/index.ts` (`NEXTJS_GLOBALS_CSS`) and `component-registry/theme/tokens.css`
+- **Symptom:** the OKLCH token values are written in two places — the scaffolder can't read the repo file at runtime in prod, so the CSS is inlined. Editing one and not the other drifts the palette.
+- **Next step:** codegen `NEXTJS_GLOBALS_CSS` from `tokens.css` at build, or move the canonical tokens into `@weblab/constants` and import in both.
+- **Risk if ignored:** blank-scaffold palette can diverge from the registry tokens.
 - **Tags:** `#tech-debt`
 
 ### `@weblab/ai` package lint is red from pre-existing warnings (max-warnings 0)
@@ -1330,6 +1348,23 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### 2026-06-05 — Component registry extended to full catalog + on-brand scaffold
+
+Resolved by the full-catalog session (F-785).
+
+- Catalog grew from the 21-component MVP to **1533** items: all free shadcn/ui
+  (78), shadcnblocks free (293, probe-classified), Watermelon UI (964), and the
+  198 local pro blocks vendored from `reference/shadcn-pro-blocks`. Catalog-first:
+  registry blocks carry name + description + install URL (installed on demand);
+  only pro + a core set are vendored. `manifest.json` + `CATALOG.md` describe all.
+- Blank Next.js scaffolds now ship the Weblab tokens — `NEXTJS_GLOBALS_CSS` baked
+  into `scaffoldNextProject`'s `globals.css`, so sites are on-brand pre-AI.
+- New `shadcn` agent skill (`skills/shadcn/SKILL.md`, embedded via `generate:skills`)
+  carries the design foundations + the full catalog index; the prompt points the
+  agent at `read_skill("shadcn")`.
+- Follow-ups opened above: derived Watermelon descriptions, probe-classified free
+  set, three-place catalog sync, and duplicated scaffold tokens.
 
 ### 2026-06-05 — Project creation E2E clone + Startd blockers
 

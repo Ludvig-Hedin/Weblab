@@ -76,6 +76,7 @@ const SDK_CALL_TIMEOUT_MS = 45_000;
 // forever" time. The `--` separates npm args from script args so
 // both `--turbopack` and `--hostname` reach `next dev`.
 const DEFAULT_DEV_COMMAND = 'npm run dev -- --turbopack --hostname 0.0.0.0';
+const GIT_NEXT_DEV_COMMAND = 'npm run dev -- -H 0.0.0.0';
 // Static HTML dev server. `serve -s` rewrites all routes to index.html
 // so client-side routing works; `-l <port>` binds. Listen on the host
 // interface so Vercel Sandbox's port forwarder can reach it.
@@ -187,6 +188,37 @@ function splitShellCommand(command: string) {
     };
 }
 
+const INSTALL_COMMAND = [
+    'set -e',
+    'legacy_next_major="$(node -e \'try { const p=require("./package.json"); const v=(p.dependencies?.next||p.devDependencies?.next||"").replace(/^[^0-9]*/, ""); const m=parseInt(v.split(".")[0]||"",10); if (Number.isFinite(m) && m < 12) process.stdout.write(String(m)); } catch {} \')"',
+    'if [ -n "$legacy_next_major" ]; then',
+    '  npm pkg set dependencies.next="^12.3.4" dependencies.react="^17.0.2" dependencies.react-dom="^17.0.2" scripts.dev="next dev"',
+    '  rm -f package-lock.json yarn.lock pnpm-lock.yaml bun.lock bun.lockb',
+    '  npm install --legacy-peer-deps --ignore-scripts',
+    'elif [ -f pnpm-lock.yaml ]; then',
+    '  corepack enable >/dev/null 2>&1 || true',
+    '  corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true',
+    '  pnpm install --ignore-scripts',
+    'elif [ -f yarn.lock ]; then',
+    '  corepack enable >/dev/null 2>&1 || true',
+    '  corepack prepare yarn@1.22.22 --activate >/dev/null 2>&1 || true',
+    '  yarn install --frozen-lockfile --ignore-scripts',
+    'else',
+    '  npm install --legacy-peer-deps --ignore-scripts',
+    'fi',
+    // Post-install codegen that `--ignore-scripts` deliberately suppressed.
+    // Best-effort + non-fatal (`|| true`): auth-backed imports commonly rely on
+    // a `prisma generate` postinstall to emit `@prisma/client`; without it the
+    // app boots and 502s. Guarded on the local binary so non-Prisma repos are
+    // untouched. (Other postinstall codegen — patch-package, native builds —
+    // stays intentionally skipped; extend here with the same guarded pattern.)
+    'if [ -x node_modules/.bin/prisma ]; then node_modules/.bin/prisma generate || true; fi',
+    // NOTE: keep this install pipeline in sync with the setup-time copy in
+    // apps/web/server/src/sandbox/index.ts (INSTALL_COMMAND). They have already
+    // drifted once (server-only `startd-theme` special-case) — reconcile
+    // intentional differences rather than letting them diverge silently.
+].join('\n');
+
 // Process patterns that match the dev servers we spawn — Next.js (`next dev`
 // or the post-compile `next-server` worker) and the static-html `serve` CLI.
 // Kept as a list rather than one piped regex because `pgrep` BRE handling of
@@ -260,6 +292,120 @@ async function checkpointAndResume(sandbox: Sandbox, port: number) {
     };
 }
 
+/**
+ * Weblab design tokens baked into every blank Next.js project so it ships
+ * on-brand BEFORE the AI touches it (tinted neutrals, impure black/white, one
+ * teal whisper accent on ring/active only, flat). Maps the shadcn/ui CSS-var
+ * contract via Tailwind v4 `@theme inline`, so catalog components render
+ * correctly and `bg-background` / `text-foreground` / `border-border` work.
+ *
+ * Canonical source: component-registry/theme/tokens.css — keep the two in sync
+ * (tracked in BACKLOG to codegen this from that file).
+ */
+const NEXTJS_GLOBALS_CSS = `@import 'tailwindcss';
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.99 0.002 250);
+  --foreground: oklch(0.2 0.01 250);
+  --card: oklch(0.99 0.002 250);
+  --card-foreground: oklch(0.2 0.01 250);
+  --popover: oklch(0.99 0.002 250);
+  --popover-foreground: oklch(0.2 0.01 250);
+  --primary: oklch(0.22 0.012 250);
+  --primary-foreground: oklch(0.98 0.002 250);
+  --secondary: oklch(0.96 0.004 250);
+  --secondary-foreground: oklch(0.22 0.012 250);
+  --muted: oklch(0.96 0.004 250);
+  --muted-foreground: oklch(0.5 0.012 250);
+  --accent: oklch(0.95 0.005 250);
+  --accent-foreground: oklch(0.22 0.012 250);
+  --destructive: oklch(0.55 0.16 25);
+  --destructive-foreground: oklch(0.98 0.002 250);
+  --border: oklch(0.92 0.004 250);
+  --input: oklch(0.92 0.004 250);
+  --ring: oklch(0.62 0.07 195);
+  --brand-accent: oklch(0.62 0.07 195);
+  --chart-1: oklch(0.3 0.01 250);
+  --chart-2: oklch(0.45 0.012 250);
+  --chart-3: oklch(0.6 0.012 250);
+  --chart-4: oklch(0.74 0.01 250);
+  --chart-5: oklch(0.62 0.07 195);
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: oklch(0.18 0.012 250);
+  --foreground: oklch(0.96 0.003 250);
+  --card: oklch(0.21 0.012 250);
+  --card-foreground: oklch(0.96 0.003 250);
+  --popover: oklch(0.21 0.012 250);
+  --popover-foreground: oklch(0.96 0.003 250);
+  --primary: oklch(0.96 0.003 250);
+  --primary-foreground: oklch(0.2 0.012 250);
+  --secondary: oklch(0.26 0.01 250);
+  --secondary-foreground: oklch(0.96 0.003 250);
+  --muted: oklch(0.26 0.01 250);
+  --muted-foreground: oklch(0.68 0.012 250);
+  --accent: oklch(0.28 0.01 250);
+  --accent-foreground: oklch(0.96 0.003 250);
+  --destructive: oklch(0.62 0.17 25);
+  --destructive-foreground: oklch(0.98 0.002 250);
+  --border: oklch(0.3 0.01 250);
+  --input: oklch(0.32 0.01 250);
+  --ring: oklch(0.6 0.07 195);
+  --brand-accent: oklch(0.62 0.08 195);
+  --chart-1: oklch(0.85 0.01 250);
+  --chart-2: oklch(0.7 0.012 250);
+  --chart-3: oklch(0.56 0.012 250);
+  --chart-4: oklch(0.42 0.01 250);
+  --chart-5: oklch(0.62 0.08 195);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-accent: var(--brand-accent);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: system-ui, sans-serif;
+  }
+}
+`;
+
 async function scaffoldNextProject(sandbox: Sandbox) {
     await sandbox.writeFiles([
         {
@@ -301,7 +447,7 @@ async function scaffoldNextProject(sandbox: Sandbox) {
         },
         {
             path: 'src/app/globals.css',
-            content: "@import 'tailwindcss';\n\nbody {\n  font-family: system-ui, sans-serif;\n}\n",
+            content: NEXTJS_GLOBALS_CSS,
         },
         {
             path: 'public/_weblab/interactions.json',
@@ -520,7 +666,7 @@ export class VercelSandboxProvider extends Provider {
             'Sandbox.create(scaffold)',
         );
         await scaffoldByFramework(sandbox, framework);
-        await sandbox.runCommand(splitShellCommand('npm install'));
+        await sandbox.runCommand(splitShellCommand(INSTALL_COMMAND));
         const checkpoint = await checkpointAndResume(sandbox, port);
         return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
     }
@@ -532,9 +678,13 @@ export class VercelSandboxProvider extends Provider {
         privacy?: 'public' | 'unlisted' | 'private';
         port?: number;
         devCommand?: string;
+        framework?: VercelScaffoldFramework;
     }): Promise<CreateProjectOutput> {
-        const port = input.port ?? DEFAULT_PORT;
-        const devCommand = input.devCommand ?? DEFAULT_DEV_COMMAND;
+        const runtime = FRAMEWORK_RUNTIME[input.framework ?? 'nextjs'];
+        const port = input.port ?? runtime.port;
+        const devCommand =
+            input.devCommand ??
+            (input.framework === 'static-html' ? runtime.devCommand : GIT_NEXT_DEV_COMMAND);
         // Git clone needs a longer ceiling than the snapshot path —
         // Vercel sandbox clones can take up to 5 minutes for large
         // repos. Use the per-sandbox timeout (default 45min) rather
@@ -580,7 +730,7 @@ rm -rf "$tmp"
             });
         }
 
-        await sandbox.runCommand(splitShellCommand('npm install'));
+        await sandbox.runCommand(splitShellCommand(INSTALL_COMMAND));
         const checkpoint = await checkpointAndResume(sandbox, port);
         return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
     }
@@ -751,7 +901,7 @@ cp -a "$src" "$dst"
 
     async setup(_input: SetupInput): Promise<SetupOutput> {
         const sandbox = this.requireSandbox();
-        await sandbox.runCommand(splitShellCommand('npm install'));
+        await sandbox.runCommand(splitShellCommand(INSTALL_COMMAND));
         // Pre-warm the dev server so it starts compiling before the editor
         // opens the preview iframe. Do not spawn duplicate Next dev servers:
         // they can fight over the same .next output and leave preview assets 404ing.

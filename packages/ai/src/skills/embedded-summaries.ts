@@ -7,8 +7,8 @@
  * into the browser bundle (e.g. the Skills settings tab) does NOT ship the full
  * skill content, which can be hundreds of KB across all built-ins.
  *
- * Generated at: 2026-05-29T06:58:28.065Z
- * Skill count:  11
+ * Generated at: 2026-06-05T20:16:20.376Z
+ * Skill count:  12
  */
 import type { SkillSummary } from './types';
 
@@ -44,6 +44,10 @@ export const EMBEDDED_SKILL_SUMMARIES: ReadonlyArray<SkillSummary> = [
     {
         "name": "seo",
         "description": "Apply technical and on-page SEO to Next.js App Router pages — metadata, Open Graph, structured data, sitemaps, canonicals, robots, performance signals."
+    },
+    {
+        "name": "shadcn",
+        "description": "shadcn/ui design system + the full Weblab component catalog (1500+ free blocks across shadcn/ui, shadcnblocks, Watermelon UI, and local pro blocks). Use when building or editing any UI to pick, install, and style components on-brand instead of hand-writing markup."
     },
     {
         "name": "ui-ux-pro-max",

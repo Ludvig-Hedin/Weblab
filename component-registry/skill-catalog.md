@@ -1,0 +1,522 @@
+Total catalogued: 1533 components/blocks across shadcn/ui, shadcnblocks (free), Watermelon UI, and local pro blocks.
+
+Install patterns (run in the user project):
+- shadcn/ui: `bunx --bun shadcn@latest add "https://ui.shadcn.com/r/styles/new-york/<name>.json"`
+- shadcnblocks (free): `bunx --bun shadcn@latest add "https://www.shadcnblocks.com/r/<name>.json"`
+- Watermelon UI: `bunx --bun shadcn@latest add "https://raw.githubusercontent.com/WatermelonCorp/watermellon-registry/main/public/r/<name>.json"`
+- Local pro blocks: copy from component-registry/pro/<category>/<name>.tsx into the project.
+
+Counts by source/category (install any item by name with the pattern above):
+
+### shadcn/ui (78)
+- **block** (22): dashboard-01, login-01, login-02, login-03, login-04, login-05, sidebar-01, sidebar-02, sidebar-03, sidebar-04, sidebar-05, sidebar-06, sidebar-07, sidebar-08, sidebar-09, sidebar-10, sidebar-11, sidebar-12, sidebar-13, sidebar-14, sidebar-15, sidebar-16
+- **primitive** (56): accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, button-group, calendar, card, carousel, chart, checkbox, collapsible, combobox, command, context-menu, dialog, direction, drawer, dropdown-menu, empty, field, form, hover-card, input, input-group, input-otp, item, kbd, label, menubar, native-select, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner, spinner, switch, table, tabs, textarea, toggle, toggle-group, tooltip
+
+### shadcnblocks (free) (293)
+- **about** (1): about3
+- **accept invite** (1): accept-invite1
+- **accordion form** (2): accordion-accordion-form-1, accordion-accordion-form-2
+- **accordion multi level** (4): accordion-accordion-multi-level-1, accordion-accordion-multi-level-2, accordion-accordion-multi-level-3, accordion-accordion-multi-level-4
+- **accordion standard** (7): accordion-accordion-standard-1, accordion-accordion-standard-2, accordion-accordion-standard-3, accordion-accordion-standard-4, accordion-accordion-standard-5, accordion-accordion-standard-6, accordion-accordion-standard-7
+- **accordion subtitle** (4): accordion-accordion-subtitle-1, accordion-accordion-subtitle-2, accordion-accordion-subtitle-3, accordion-accordion-subtitle-4
+- **accordion tabs** (4): accordion-accordion-tabs-1, accordion-accordion-tabs-2, accordion-accordion-tabs-3, accordion-accordion-tabs-4
+- **address book** (1): address-book1
+- **alert dialog confirmation** (6): alert-dialog-alert-dialog-confirmation-1, alert-dialog-alert-dialog-confirmation-2, alert-dialog-alert-dialog-confirmation-3, alert-dialog-alert-dialog-confirmation-4, alert-dialog-alert-dialog-confirmation-5, alert-dialog-alert-dialog-confirmation-6
+- **alert dialog custom actions** (5): alert-dialog-alert-dialog-custom-actions-1, alert-dialog-alert-dialog-custom-actions-2, alert-dialog-alert-dialog-custom-actions-3, alert-dialog-alert-dialog-custom-actions-4, alert-dialog-alert-dialog-custom-actions-5
+- **alert dialog destructive** (7): alert-dialog-alert-dialog-destructive-1, alert-dialog-alert-dialog-destructive-2, alert-dialog-alert-dialog-destructive-3, alert-dialog-alert-dialog-destructive-4, alert-dialog-alert-dialog-destructive-5, alert-dialog-alert-dialog-destructive-6, alert-dialog-alert-dialog-destructive-7
+- **alert dialog form** (7): alert-dialog-alert-dialog-form-1, alert-dialog-alert-dialog-form-2, alert-dialog-alert-dialog-form-3, alert-dialog-alert-dialog-form-4, alert-dialog-alert-dialog-form-5, alert-dialog-alert-dialog-form-6, alert-dialog-alert-dialog-form-7
+- **alert dialog informational** (7): alert-dialog-alert-dialog-informational-1, alert-dialog-alert-dialog-informational-2, alert-dialog-alert-dialog-informational-3, alert-dialog-alert-dialog-informational-4, alert-dialog-alert-dialog-informational-5, alert-dialog-alert-dialog-informational-6, alert-dialog-alert-dialog-informational-7
+- **alert dialog success** (7): alert-dialog-alert-dialog-success-1, alert-dialog-alert-dialog-success-2, alert-dialog-alert-dialog-success-3, alert-dialog-alert-dialog-success-4, alert-dialog-alert-dialog-success-5, alert-dialog-alert-dialog-success-6, alert-dialog-alert-dialog-success-7
+- **alert error** (5): alert-alert-error-1, alert-alert-error-2, alert-alert-error-3, alert-alert-error-4, alert-alert-error-5
+- **alert info** (5): alert-alert-info-1, alert-alert-info-2, alert-alert-info-3, alert-alert-info-4, alert-alert-info-5
+- **alert standard** (5): alert-alert-standard-1, alert-alert-standard-2, alert-alert-standard-3, alert-alert-standard-4, alert-alert-standard-5
+- **alert success** (5): alert-alert-success-1, alert-alert-success-2, alert-alert-success-3, alert-alert-success-4, alert-alert-success-5
+- **alert warning** (5): alert-alert-warning-1, alert-alert-warning-2, alert-alert-warning-3, alert-alert-warning-4, alert-alert-warning-5
+- **announcement composition** (1): announcement-announcement-composition-1
+- **announcement icon** (1): announcement-announcement-icon-1
+- **announcement standard** (1): announcement-announcement-standard-1
+- **announcement tag** (1): announcement-announcement-tag-1
+- **announcement themed** (1): announcement-announcement-themed-1
+- **announcement title** (1): announcement-announcement-title-1
+- **application shell** (2): application-shell1, application-shell3
+- **aspect ratio standard** (7): aspect-ratio-aspect-ratio-standard-1, aspect-ratio-aspect-ratio-standard-2, aspect-ratio-aspect-ratio-standard-3, aspect-ratio-aspect-ratio-standard-4, aspect-ratio-aspect-ratio-standard-5, aspect-ratio-aspect-ratio-standard-6, aspect-ratio-aspect-ratio-standard-7
+- **awards** (2): awards1, awards2
+- **background pattern** (2): background-pattern1, background-pattern2
+- **banner** (2): banner1, banner2
+- **blog** (2): blog7, blog8
+- **blogpost** (2): blogpost1, blogpost2
+- **book a demo** (2): book-a-demo1, book-a-demo2
+- **careers** (2): careers1, careers4
+- **case studies** (2): case-studies2, case-studies3
+- **case study** (2): case-study1, case-study8
+- **changelog** (1): changelog1
+- **chart card** (2): chart-card1, chart-card3
+- **chart group** (1): chart-group1
+- **checkout** (1): checkout1
+- **code example** (1): code-example1
+- **community** (2): community1, community2
+- **compare** (2): compare7, compare8
+- **compare products** (1): compare-products1
+- **compliance** (1): compliance1
+- **component** (36): async-button, aurora-button, avatar-group, background, border-button, button-link, copy-button, counter-button, cover, emoji-picker, expand-button, fold-button, github-stars, gleam-button, glow-button, link-preview, login-button, logo, marquee-button, morph-button, moving-border-button, pattern-placeholder, pattern-template, pinlight-button, price, quantity-input, rating, scrollable-tabslist, shimmer-button, shine-button, slide-text-button, social-button, sparkles, theme-toggle, trace-button, typewriter-button
+- **contact** (2): contact2, contact7
+- **content** (1): content1
+- **cta** (10): cta10, cta11, cta13, cta34, cta35, cta36, cta37, cta38, cta39, cta4
+- **data table** (2): data-table1, data-table4
+- **download** (2): download1, download2
+- **ecommerce footer** (1): ecommerce-footer1
+- **experience** (1): experience1
+- **faq** (3): faq1, faq3, faq5
+- **feature** (16): feature1, feature13, feature15, feature16, feature166, feature17, feature197, feature2, feature239, feature3, feature42, feature43, feature51, feature72, feature73, feature74
+- **footer** (2): footer2, footer7
+- **gallery** (2): gallery4, gallery6
+- **help** (1): help1
+- **hero** (13): hero1, hero115, hero12, hero195, hero206, hero243, hero3, hero34, hero45, hero47, hero67, hero7, hero78
+- **incentives** (1): incentives1
+- **industries** (2): industries1, industries2
+- **integration** (2): integration3, integration9
+- **invite user** (1): invite-user1
+- **leaderboard** (1): leaderboard1
+- **list** (1): list2
+- **live purchase** (1): live-purchase1
+- **login** (2): login1, login2
+- **logos** (4): logos18, logos19, logos3, logos8
+- **navbar** (2): navbar1, navbar5
+- **offer modal** (1): offer-modal4
+- **order summary** (1): order-summary1
+- **payment methods** (1): payment-methods1
+- **pricing** (4): pricing11, pricing2, pricing4, pricing6
+- **process** (1): process1
+- **product card** (1): product-card1
+- **product categories** (1): product-categories1
+- **product detail** (1): product-detail1
+- **product gallery** (1): product-gallery1
+- **product list** (1): product-list1
+- **product quick view** (1): product-quick-view4
+- **product specs** (1): product-specs1
+- **project** (2): project1, project2
+- **projects** (1): projects5
+- **promo banner** (1): promo-banner1
+- **rate card** (1): rate-card2
+- **resource** (2): resource1, resource2
+- **reviews** (1): reviews1
+- **service** (2): service1, service2
+- **services** (2): services12, services4
+- **settings profile** (1): settings-profile1
+- **shader** (1): shader3
+- **shopping cart** (2): shopping-cart1, shopping-cart2
+- **sidebar** (1): sidebar1
+- **signup** (2): signup1, signup2
+- **stats** (2): stats6, stats8
+- **stats card** (1): stats-card1
+- **team** (2): team1, team2
+- **testimonial** (4): testimonial10, testimonial4, testimonial8, testimonial9
+- **timeline** (2): timeline3, timeline9
+- **todo** (2): todo1, todo2
+- **trust strip** (1): trust-strip1
+- **user profile** (1): user-profile1
+- **waitlist** (1): waitlist1
+- **wishlist** (1): wishlist1
+
+### Watermelon UI (964)
+- **aave-swap-component** (1): aave-swap-component
+- **accordion** (20): accordion, accordion-03, accordion-04, accordion-05, accordion-1, accordion-10, accordion-11, accordion-12, accordion-13, accordion-14, accordion-15, accordion-16, accordion-2, accordion-3, accordion-4, accordion-5, accordion-6, accordion-7, accordion-8, accordion-9
+- **accordion-multiselect** (1): accordion-multiselect
+- **activities-card** (1): activities-card
+- **adaptive-slider** (1): adaptive-slider
+- **adaptive-slider-base** (1): adaptive-slider-base
+- **add-cash-disclosure** (1): add-cash-disclosure
+- **ai-input** (5): ai-input-001, ai-input-002, ai-input-003, ai-input-004, ai-input-005
+- **alert** (37): alert, alert-01, alert-02, alert-03, alert-04, alert-05, alert-06, alert-1, alert-10, alert-11, alert-12, alert-13, alert-14, alert-15, alert-16, alert-17, alert-18, alert-19, alert-2, alert-20, alert-21, alert-22, alert-23, alert-24, alert-25, alert-26, alert-27, alert-28, alert-29, alert-3, alert-30, alert-4, alert-5, alert-6, alert-7, alert-8, alert-9
+- **alert-dialog** (4): alert-dialog, alert-dialog-01, alert-dialog-02, alert-dialog-03
+- **alphine-booking-form** (1): alphine-booking-form
+- **alphine-login-form** (1): alphine-login-form
+- **animate-button** (1): animate-button
+- **animated-accordion** (1): animated-accordion
+- **animated-button** (1): animated-button
+- **announcement** (9): announcement-1, announcement-2, announcement-3, announcement-4, announcement-5, announcement-6, announcement-7, announcement-8, announcement-9
+- **audio-player** (1): audio-player
+- **audio-player-with-waveform** (1): audio-player-with-waveform
+- **auth** (6): auth-1, auth-2, auth-3, auth-4, auth-5, auth-6
+- **availability** (1): availability
+- **avatar** (28): avatar, avatar-01, avatar-02, avatar-03, avatar-04, avatar-05, avatar-06, avatar-1, avatar-10, avatar-11, avatar-12, avatar-13, avatar-14, avatar-15, avatar-16, avatar-17, avatar-18, avatar-19, avatar-2, avatar-20, avatar-21, avatar-3, avatar-4, avatar-5, avatar-6, avatar-7, avatar-8, avatar-9
+- **avatar-group** (1): avatar-group
+- **award** (1): award
+- **badge** (28): badge, badge-01, badge-02, badge-03, badge-04, badge-05, badge-1, badge-10, badge-11, badge-12, badge-13, badge-14, badge-15, badge-16, badge-17, badge-18, badge-19, badge-2, badge-20, badge-21, badge-22, badge-3, badge-4, badge-5, badge-6, badge-7, badge-8, badge-9
+- **bento** (17): bento-1, bento-10, bento-11, bento-12, bento-13, bento-14, bento-15, bento-16, bento-17, bento-2, bento-3, bento-4, bento-5, bento-6, bento-7, bento-8, bento-9
+- **blog** (4): blog-1, blog-2, blog-3, blog-4
+- **book** (1): book
+- **breadcrumb** (13): breadcrumb, breadcrumb-01, breadcrumb-02, breadcrumb-03, breadcrumb-04, breadcrumb-1, breadcrumb-2, breadcrumb-3, breadcrumb-4, breadcrumb-5, breadcrumb-6, breadcrumb-7, breadcrumb-8
+- **browser** (1): browser
+- **budget-card** (1): budget-card
+- **budget-card-base** (1): budget-card-base
+- **business-management** (1): business-management
+- **business-operations-dashboard** (1): business-operations-dashboard
+- **button** (47): button, button-01, button-02, button-03, button-04, button-05, button-06, button-07, button-08, button-1, button-10, button-11, button-12, button-13, button-14, button-15, button-16, button-17, button-18, button-19, button-2, button-20, button-21, button-22, button-23, button-24, button-25, button-26, button-27, button-28, button-29, button-3, button-30, button-31, button-32, button-33, button-34, button-35, button-36, button-37, button-38, button-4, button-5, button-6, button-7, button-8, button-9
+- **button-group** (12): button-group-1, button-group-10, button-group-11, button-group-12, button-group-2, button-group-3, button-group-4, button-group-5, button-group-6, button-group-7, button-group-8, button-group-9
+- **calendar** (26): calendar, calendar-1, calendar-10, calendar-11, calendar-12, calendar-13, calendar-14, calendar-15, calendar-16, calendar-17, calendar-18, calendar-19, calendar-2, calendar-20, calendar-21, calendar-22, calendar-23, calendar-24, calendar-25, calendar-3, calendar-4, calendar-5, calendar-6, calendar-7, calendar-8, calendar-9
+- **calendar-widget** (1): calendar-widget
+- **calendar-widget-base** (1): calendar-widget-base
+- **card** (16): card, card-1, card-10, card-11, card-12, card-13, card-14, card-15, card-2, card-3, card-4, card-5, card-6, card-7, card-8, card-9
+- **card-split-accordion** (1): card-split-accordion
+- **card-split-accordion-base** (1): card-split-accordion-base
+- **card-swipe** (1): card-swipe
+- **career** (4): career-1, career-2, career-3, career-4
+- **carousel-navigator** (1): carousel-navigator
+- **carousel-slider** (1): carousel-slider
+- **changeable-pricing-section** (1): changeable-pricing-section
+- **changeable-pricing-section-base** (1): changeable-pricing-section-base
+- **chart** (2): chart, chart-2
+- **checkbox** (17): checkbox, checkbox-1, checkbox-10, checkbox-11, checkbox-12, checkbox-13, checkbox-14, checkbox-15, checkbox-16, checkbox-2, checkbox-3, checkbox-4, checkbox-5, checkbox-6, checkbox-7, checkbox-8, checkbox-9
+- **code** (1): code
+- **code-block** (1): code-block
+- **code-tabs** (1): code-tabs
+- **collapsible** (10): collapsible, collapsible-1, collapsible-2, collapsible-3, collapsible-4, collapsible-5, collapsible-6, collapsible-7, collapsible-8, collapsible-9
+- **collection-grid-disclosure** (1): collection-grid-disclosure
+- **color-watch-selector** (1): color-watch-selector
+- **combobox** (12): combobox-1, combobox-10, combobox-11, combobox-12, combobox-2, combobox-3, combobox-4, combobox-5, combobox-6, combobox-7, combobox-8, combobox-9
+- **command-search** (1): command-search
+- **command-search-base** (1): command-search-base
+- **compose-email-card** (1): compose-email-card
+- **compose-email-card-base** (1): compose-email-card-base
+- **contact** (7): contact-1, contact-2, contact-3, contact-4, contact-5, contact-6, contact-7
+- **contextual-ai-bar** (1): contextual-ai-bar
+- **continuous-pagination** (1): continuous-pagination
+- **continuous-pagination-base** (1): continuous-pagination-base
+- **continuous-tabs** (1): continuous-tabs
+- **continuous-tabs-base** (1): continuous-tabs-base
+- **copy** (1): copy
+- **create-community** (1): create-community
+- **create-community-base** (1): create-community-base
+- **create-new-disclosure** (1): create-new-disclosure
+- **credit-usage-card** (1): credit-usage-card
+- **credit-usage-card-base** (1): credit-usage-card-base
+- **cta** (4): cta-1, cta-2, cta-3, cta-4
+- **cursor** (1): cursor
+- **data-table** (14): data-table, data-table-1, data-table-10, data-table-11, data-table-12, data-table-13, data-table-2, data-table-3, data-table-4, data-table-5, data-table-6, data-table-7, data-table-8, data-table-9
+- **date-picker** (13): date-picker-1, date-picker-10, date-picker-11, date-picker-12, date-picker-13, date-picker-2, date-picker-3, date-picker-4, date-picker-5, date-picker-6, date-picker-7, date-picker-8, date-picker-9
+- **deployment-card** (1): deployment-card
+- **deployment-card-base** (1): deployment-card-base
+- **device** (1): device
+- **dialog** (24): dialog, dialog-1, dialog-10, dialog-11, dialog-12, dialog-13, dialog-14, dialog-15, dialog-16, dialog-17, dialog-18, dialog-19, dialog-2, dialog-20, dialog-21, dialog-22, dialog-23, dialog-3, dialog-4, dialog-5, dialog-6, dialog-7, dialog-8, dialog-9
+- **dialog-stack** (1): dialog-stack
+- **dialog-stack-base** (1): dialog-stack-base
+- **discrete-tabs** (1): discrete-tabs
+- **discrete-tabs-base** (1): discrete-tabs-base
+- **dock** (1): dock
+- **draw-signature** (1): draw-signature
+- **draw-signature-base** (1): draw-signature-base
+- **drawer** (1): drawer
+- **dropdown-disclosure** (1): dropdown-disclosure
+- **dropdown-menu** (15): dropdown-menu, dropdown-menu-1, dropdown-menu-10, dropdown-menu-11, dropdown-menu-12, dropdown-menu-13, dropdown-menu-14, dropdown-menu-2, dropdown-menu-3, dropdown-menu-4, dropdown-menu-5, dropdown-menu-6, dropdown-menu-7, dropdown-menu-8, dropdown-menu-9
+- **e-commerce-dashboard** (1): e-commerce-dashboard
+- **edit-badge** (1): edit-badge
+- **edit-profile** (1): edit-profile
+- **edit-profile-base** (1): edit-profile-base
+- **editable-chip** (1): editable-chip
+- **emoji-spree-choice-chips** (1): emoji-spree-choice-chips
+- **erp-dashboard** (1): erp-dashboard
+- **error** (7): error-1, error-2, error-3, error-4, error-5, error-6, error-7
+- **event-reminders** (1): event-reminders
+- **extended-toolbar** (1): extended-toolbar
+- **family-receive-component** (1): family-receive-component
+- **family-receive-component-base** (1): family-receive-component-base
+- **family-wallet** (1): family-wallet
+- **faq** (5): faq-1, faq-2, faq-3, faq-4, faq-5
+- **feature** (5): feature-1, feature-2, feature-3, feature-4, feature-5
+- **feature-tour** (1): feature-tour
+- **feedback** (1): feedback
+- **feedback-action** (1): feedback-action
+- **feedback-action-base** (1): feedback-action-base
+- **file-upload** (6): file-upload, file-upload-1, file-upload-2, file-upload-3, file-upload-4, file-upload-5
+- **files** (1): files
+- **filter-disclosure** (1): filter-disclosure
+- **filter-disclosure-base** (1): filter-disclosure-base
+- **flip** (1): flip
+- **flip-card** (1): flip-card
+- **flip-clock** (1): flip-clock
+- **floating-disclosure** (1): floating-disclosure
+- **floating-disclosure-base** (1): floating-disclosure-base
+- **floating-input** (1): floating-input
+- **floating-input-base** (1): floating-input-base
+- **fluid-tabs** (1): fluid-tabs
+- **fluid-tabs-base** (1): fluid-tabs-base
+- **footer** (5): footer-1, footer-2, footer-3, footer-4, footer-5
+- **form** (10): form-1, form-10, form-2, form-3, form-4, form-5, form-6, form-7, form-8, form-9
+- **fractional-picker** (1): fractional-picker
+- **fractional-picker-base** (1): fractional-picker-base
+- **frequency-selector** (1): frequency-selector
+- **frequency-selector-base** (1): frequency-selector-base
+- **fund-widget** (1): fund-widget
+- **fund-widget-base** (1): fund-widget-base
+- **gauge** (1): gauge
+- **get-strict-context** (1): get-strict-context
+- **github-stars** (1): github-stars
+- **github-stars-wheel** (1): github-stars-wheel
+- **gooey-menu** (1): gooey-menu
+- **gooey-menu-base** (1): gooey-menu-base
+- **hero** (1): hero1
+- **hover-card** (1): hover-card
+- **hrm** (1): hrm
+- **icon** (1): icon
+- **incident-management** (1): incident-management
+- **inline-action** (1): inline-action
+- **inline-action-base** (1): inline-action-base
+- **inline-disclosure-menu** (1): inline-disclosure-menu
+- **inline-disclosure-menu-base** (1): inline-disclosure-menu-base
+- **inline-edit** (1): inline-edit
+- **inline-edit-base** (1): inline-edit-base
+- **inline-overflow** (1): inline-overflow
+- **inline-table-control** (1): inline-table-control
+- **inline-table-control-base** (1): inline-table-control-base
+- **inline-toast** (1): inline-toast
+- **inline-toast-base** (1): inline-toast-base
+- **input** (1): input
+- **input-mask** (6): input-mask-1, input-mask-2, input-mask-3, input-mask-4, input-mask-5, input-mask-6
+- **input-otp** (10): input-otp-1, input-otp-10, input-otp-2, input-otp-3, input-otp-4, input-otp-5, input-otp-6, input-otp-7, input-otp-8, input-otp-9
+- **integration-card** (1): integration-card
+- **integration-card-base** (1): integration-card-base
+- **integrations** (5): integrations-1, integrations-2, integrations-3, integrations-4, integrations-5
+- **invite-disclosure** (1): invite-disclosure
+- **invoice-generator-dashboard** (1): invoice-generator-dashboard
+- **invoice-manager-dashboard** (1): invoice-manager-dashboard
+- **issue-tracking** (1): issue-tracking
+- **journal-navigation** (1): journal-navigation
+- **journal-navigation-base** (1): journal-navigation-base
+- **knob-slider** (1): knob-slider
+- **knob-slider-base** (1): knob-slider-base
+- **label** (1): label
+- **label-selector** (1): label-selector
+- **labeled-progress-indicator** (1): labeled-progress-indicator
+- **labeled-progress-indicator-base** (1): labeled-progress-indicator-base
+- **layered-progressive-disclosure** (1): layered-progressive-disclosure
+- **lead-dashboard** (1): lead-dashboard
+- **liquid** (1): liquid
+- **list-stack** (1): list-stack
+- **list-stack-base** (1): list-stack-base
+- **luminia-luxe-realestate** (1): luminia-luxe-realestate
+- **macos-sidebar** (1): macos-sidebar
+- **macos-sidebar-base** (1): macos-sidebar-base
+- **mail-dashboard** (1): mail-dashboard
+- **management-bar** (1): management-bar
+- **marquee** (1): marquee
+- **meeting-card** (1): meeting-card
+- **meeting-card-base** (1): meeting-card-base
+- **meetings-dashboard** (1): meetings-dashboard
+- **minimal-carousel** (1): minimal-carousel
+- **minimal-carousel-base** (1): minimal-carousel-base
+- **mobile-video-player** (1): mobile-video-player
+- **morphing-button** (1): morphing-button
+- **morphing-button-base** (1): morphing-button-base
+- **morphing-discovery-bar** (1): morphing-discovery-bar
+- **morphing-discovery-bar-base** (1): morphing-discovery-bar-base
+- **morphing-sidebar-controls** (1): morphing-sidebar-controls
+- **motion-carousel** (1): motion-carousel
+- **navigation** (7): navigation-1, navigation-2, navigation-3, navigation-4, navigation-5, navigation-6, navigation-7
+- **newsletter** (5): newsletter-1, newsletter-2, newsletter-3, newsletter-4, newsletter-5
+- **notification** (4): notification-1, notification-2, notification-3, notification-4
+- **notification-list** (1): notification-list
+- **onboarding-checklist** (1): onboarding-checklist
+- **onboarding-checklist-base** (1): onboarding-checklist-base
+- **onboarding-screen** (1): onboarding-screen
+- **onboarding-screen-base** (1): onboarding-screen-base
+- **onboarding-setup** (1): onboarding-setup
+- **onboarding-setup-base** (1): onboarding-setup-base
+- **option-list** (1): option-list
+- **option-picker** (1): option-picker
+- **pagination** (16): pagination, pagination-1, pagination-10, pagination-11, pagination-12, pagination-13, pagination-14, pagination-15, pagination-2, pagination-3, pagination-4, pagination-5, pagination-6, pagination-7, pagination-8, pagination-9
+- **pagination-animated** (1): pagination-animated
+- **pagination-base** (1): pagination-base
+- **payment-operations-dashboard** (1): payment-operations-dashboard
+- **pin-item** (1): pin-item
+- **pin-item-base** (1): pin-item-base
+- **pin-list** (1): pin-list
+- **playful-todolist** (1): playful-todolist
+- **popover** (13): popover, popover-1, popover-10, popover-11, popover-12, popover-2, popover-3, popover-4, popover-5, popover-6, popover-7, popover-8, popover-9
+- **portfolio-dashboard** (1): portfolio-dashboard
+- **predictive-text** (1): predictive-text
+- **predictive-text-base** (1): predictive-text-base
+- **preview-link-card** (1): preview-link-card
+- **pricing** (5): pricing-1, pricing-2, pricing-3, pricing-4, pricing-5
+- **pricing-widget** (1): pricing-widget
+- **pricing-widget-base** (1): pricing-widget-base
+- **primary-button** (1): primary-button
+- **profile-card** (1): profile-card
+- **profile-card-base** (1): profile-card-base
+- **progress** (1): progress
+- **progressive-input-stack** (1): progressive-input-stack
+- **progressive-input-stack-base** (1): progressive-input-stack-base
+- **project-management-dashboard** (1): project-management-dashboard
+- **quick-feedback** (1): quick-feedback
+- **quick-feedback-base** (1): quick-feedback-base
+- **quick-option-picker** (1): quick-option-picker
+- **quick-option-picker-base** (1): quick-option-picker-base
+- **quick-paste** (1): quick-paste
+- **quick-paste-base** (1): quick-paste-base
+- **quick-switcher** (1): quick-switcher
+- **quick-switcher-base** (1): quick-switcher-base
+- **radial-carousel** (1): radial-carousel
+- **radial-carousel-base** (1): radial-carousel-base
+- **radial-intro** (1): radial-intro
+- **radial-nav** (1): radial-nav
+- **radio-group** (1): radio-group
+- **radiogroup** (13): radiogroup-1, radiogroup-10, radiogroup-11, radiogroup-12, radiogroup-13, radiogroup-2, radiogroup-3, radiogroup-4, radiogroup-5, radiogroup-6, radiogroup-7, radiogroup-8, radiogroup-9
+- **range-selection-slider** (1): range-selection-slider
+- **range-selection-slider-base** (1): range-selection-slider-base
+- **registry** (1): registry
+- **returns-calculator-snippet** (1): returns-calculator-snippet
+- **returns-calculator-snippet-base** (1): returns-calculator-snippet-base
+- **reveal-copy** (1): reveal-copy
+- **reveal-copy-base** (1): reveal-copy-base
+- **ripple** (1): ripple
+- **run-action-button** (1): run-action-button
+- **run-action-button-base** (1): run-action-button-base
+- **run-widget** (1): run-widget
+- **run-widget-base** (1): run-widget-base
+- **sales-dashboard** (1): sales-dashboard
+- **save-toggle** (1): save-toggle
+- **save-toggle-base** (1): save-toggle-base
+- **schedule-button** (1): schedule-button
+- **schedule-date** (1): schedule-date
+- **schedule-date-base** (1): schedule-date-base
+- **scroll-fade** (1): scroll-fade
+- **scroll-island** (1): scroll-island
+- **scroll-island-base** (1): scroll-island-base
+- **scrub-slider** (1): scrub-slider
+- **scrub-slider-base** (1): scrub-slider-base
+- **select** (37): select, select-1, select-10, select-11, select-12, select-13, select-14, select-15, select-16, select-17, select-18, select-19, select-2, select-20, select-21, select-22, select-23, select-24, select-25, select-26, select-27, select-28, select-29, select-3, select-30, select-31, select-32, select-33, select-34, select-35, select-36, select-4, select-5, select-6, select-7, select-8, select-9
+- **select-ai-agent** (1): select-ai-agent
+- **select-ai-agent-base** (1): select-ai-agent-base
+- **send-money** (1): send-money
+- **send-money-base** (1): send-money-base
+- **separator** (1): separator
+- **share-button** (1): share-button
+- **share-sheet** (1): share-sheet
+- **share-sheet-base** (1): share-sheet-base
+- **sheet** (8): sheet, sheet-1, sheet-2, sheet-3, sheet-4, sheet-5, sheet-6, sheet-7
+- **shimmer-button** (1): shimmer-button
+- **shimmer-button-base** (1): shimmer-button-base
+- **show-qr** (1): show-qr
+- **show-qr-base** (1): show-qr-base
+- **shuffle-pinned-item** (1): shuffle-pinned-item
+- **shuffle-pinned-item-base** (1): shuffle-pinned-item-base
+- **sidebar** (1): sidebar
+- **skeleton** (1): skeleton
+- **slot-picker** (1): slot-picker
+- **spinner** (1): spinner
+- **split-button** (1): split-button
+- **split-button-base** (1): split-button-base
+- **split-to-edit** (1): split-to-edit
+- **split-to-edit-base** (1): split-to-edit-base
+- **stats** (4): stats-1, stats-2, stats-3, stats-4
+- **status-indicator** (1): status-indicator
+- **status-picker** (1): status-picker
+- **status-picker-base** (1): status-picker-base
+- **step-indicator** (1): step-indicator
+- **step-indicator-base** (1): step-indicator-base
+- **step-pager** (1): step-pager
+- **step-pager-base** (1): step-pager-base
+- **stepper** (1): stepper
+- **stepper-base** (1): stepper-base
+- **subscription-calendar** (1): subscription-calendar
+- **subscription-calendar-base** (1): subscription-calendar-base
+- **swap-currency-card** (1): swap-currency-card
+- **swap-currency-card-base** (1): swap-currency-card-base
+- **swap-form** (1): swap-form
+- **switch** (19): switch, switch-1, switch-10, switch-11, switch-12, switch-13, switch-14, switch-15, switch-16, switch-17, switch-18, switch-2, switch-3, switch-4, switch-5, switch-6, switch-7, switch-8, switch-9
+- **switch-disclosure** (1): switch-disclosure
+- **switch-mode** (1): switch-mode
+- **switch-mode-base** (1): switch-mode-base
+- **table** (17): table, table-1, table-10, table-11, table-12, table-13, table-14, table-15, table-16, table-2, table-3, table-4, table-5, table-6, table-7, table-8, table-9
+- **tabs** (1): tabs
+- **tags** (1): tags
+- **task-management-dashboard** (1): task-management-dashboard
+- **task-widget-disclosure** (1): task-widget-disclosure
+- **team** (5): team-1, team-2, team-3, team-4, team-5
+- **terminal** (1): terminal
+- **testimonials** (4): testimonials-1, testimonials-2, testimonials-3, testimonials-4
+- **text-gradient** (1): text-gradient
+- **textarea** (22): textarea, textarea-1, textarea-10, textarea-11, textarea-12, textarea-13, textarea-14, textarea-15, textarea-16, textarea-17, textarea-18, textarea-19, textarea-2, textarea-20, textarea-21, textarea-3, textarea-4, textarea-5, textarea-6, textarea-7, textarea-8, textarea-9
+- **theme-toggler** (1): theme-toggler
+- **timed-undo-action** (1): timed-undo-action
+- **timed-undo-action-base** (1): timed-undo-action-base
+- **timeline** (1): timeline
+- **toggle** (1): toggle
+- **toggle-group** (1): toggle-group
+- **tooltip** (16): tooltip, tooltip-1, tooltip-10, tooltip-11, tooltip-12, tooltip-13, tooltip-14, tooltip-15, tooltip-2, tooltip-3, tooltip-4, tooltip-5, tooltip-6, tooltip-7, tooltip-8, tooltip-9
+- **tooltip-animated** (1): tooltip-animated
+- **tooltip-navbar** (1): tooltip-navbar
+- **tooltip-navbar-base** (1): tooltip-navbar-base
+- **tooltip-radix** (1): tooltip-radix
+- **trade-summary** (1): trade-summary
+- **trade-summary-base** (1): trade-summary-base
+- **transaction-list** (1): transaction-list
+- **transaction-list-base** (1): transaction-list-base
+- **transcribe-voice-message** (1): transcribe-voice-message
+- **tree-menu** (1): tree-menu
+- **tree-menu-base** (1): tree-menu-base
+- **uniswap-dialog** (1): uniswap-dialog
+- **uniswap-dialog-base** (1): uniswap-dialog-base
+- **use-auto-height** (1): use-auto-height
+- **use-controlled-state** (1): use-controlled-state
+- **use-data-state** (1): use-data-state
+- **use-is-in-view** (1): use-is-in-view
+- **use-mobile** (1): use-mobile
+- **user-presence-avatar** (1): user-presence-avatar
+- **utils** (1): utils
+- **vertical-tooltip-navbar** (1): vertical-tooltip-navbar
+- **vertical-tooltip-navbar-base** (1): vertical-tooltip-navbar-base
+- **view-on-map** (1): view-on-map
+- **view-on-map-base** (1): view-on-map-base
+- **voice-chat-disclosure** (1): voice-chat-disclosure
+- **voice-note** (1): voice-note
+- **voice-note-base** (1): voice-note-base
+- **voice-transcribe** (1): voice-transcribe
+- **voice-transcribe-base** (1): voice-transcribe-base
+- **waveform-scrub** (1): waveform-scrub
+- **waveform-scrub-base** (1): waveform-scrub-base
+- **weight-widget** (1): weight-widget
+- **weight-widget-base** (1): weight-widget-base
+- **widget** (5): widget-1, widget-2, widget-3, widget-4, widget-5
+- **wiggling-cards** (1): wiggling-cards
+- **wiggling-cards-base** (1): wiggling-cards-base
+- **workflow-management-dashboard** (1): workflow-management-dashboard
+- **x-post** (1): x-post
+
+### Local pro (198)
+- **404** (3): 404-section-1, 404-section-2, 404-section-3
+- **app-shell** (4): app-shell-1, app-shell-2, app-shell-3, app-shell-4
+- **banner** (6): banner-1, banner-2, banner-3, banner-4, banner-5, banner-6
+- **bento-grid** (6): bento-grid-1, bento-grid-2, bento-grid-3, bento-grid-4, bento-grid-5, bento-grid-6
+- **blog** (5): blog-section-1, blog-section-2, blog-section-3, blog-section-4, blog-section-5
+- **button** (10): button-1, button-10, button-2, button-3, button-4, button-5, button-6, button-7, button-8, button-9
+- **card** (8): card-1, card-2, card-3, card-4, card-5, card-6, card-7, card-8
+- **component** (6): logo, nav-main, nav-projects, nav-user, placeholder-logo, team-switcher
+- **contact** (6): contact-section-1, contact-section-2, contact-section-3, contact-section-4, contact-section-5, contact-section-6
+- **cta** (7): cta-section-1, cta-section-2, cta-section-3, cta-section-4, cta-section-5, cta-section-6, cta-section-7
+- **description-list** (4): description-list-1, description-list-2, description-list-3, description-list-4
+- **empty** (4): empty-section-1, empty-section-2, empty-section-3, empty-section-4
+- **example** (2): dashboard-1, landing-page-1
+- **faq** (4): faq-section-1, faq-section-2, faq-section-3, faq-section-4
+- **feature** (14): feature-section-1, feature-section-10, feature-section-11, feature-section-12, feature-section-13, feature-section-14, feature-section-2, feature-section-3, feature-section-4, feature-section-5, feature-section-6, feature-section-7, feature-section-8, feature-section-9
+- **footer** (4): footer-1, footer-2, footer-3, footer-4
+- **header** (6): header-section-1, header-section-2, header-section-3, header-section-4, header-section-5, header-section-6
+- **hero** (9): hero-section-1, hero-section-2, hero-section-3, hero-section-4, hero-section-5, hero-section-6, hero-section-7, hero-section-8, hero-section-9
+- **logo** (6): logo-section-1, logo-section-2, logo-section-3, logo-section-4, logo-section-5, logo-section-6
+- **lp-navbar** (4): lp-navbar-1, lp-navbar-2, lp-navbar-3, lp-navbar-4
+- **navbar** (3): navbar-1, navbar-2, navbar-3
+- **page-header** (8): page-header-1, page-header-2, page-header-3, page-header-4, page-header-5, page-header-6, page-header-7, page-header-8
+- **pattern** (2): patterns-docs, patterns-showcase
+- **pricing** (4): pricing-section-1, pricing-section-2, pricing-section-3, pricing-section-4
+- **rich-text** (5): rich-text-section-1, rich-text-section-2, rich-text-section-3, rich-text-section-4, rich-text-section-5
+- **section** (4): section-1, section-2, section-3, section-4
+- **section-footer** (5): section-footer-1, section-footer-2, section-footer-3, section-footer-4, section-footer-5
+- **section-header** (5): section-header-1, section-header-2, section-header-3, section-header-4, section-header-5
+- **setting** (7): settings-1, settings-2, settings-3, settings-4, settings-5, settings-6, settings-7
+- **sign-in** (10): sign-in-1, sign-in-10, sign-in-2, sign-in-3, sign-in-4, sign-in-5, sign-in-6, sign-in-7, sign-in-8, sign-in-9
+- **sign-up** (7): sign-up-1, sign-up-2, sign-up-3, sign-up-4, sign-up-5, sign-up-6, sign-up-7
+- **stat** (7): stats-section-1, stats-section-2, stats-section-3, stats-section-4, stats-section-5, stats-section-6, stats-section-7
+- **table-header** (4): table-header-1, table-header-2, table-header-3, table-header-4
+- **team** (4): team-section-1, team-section-2, team-section-3, team-section-4
+- **testimonial** (5): testimonials-section-1, testimonials-section-2, testimonials-section-3, testimonials-section-4, testimonials-section-5
+

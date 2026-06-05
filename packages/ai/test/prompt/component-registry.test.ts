@@ -53,6 +53,21 @@ describe('COMPONENT_REGISTRY_PROMPT', () => {
         expect(COMPONENT_REGISTRY_PROMPT).toContain('EXISTING PROJECTS');
         expect(COMPONENT_REGISTRY_PROMPT).toContain('ESCAPE HATCH');
     });
+
+    it('points to the shadcn skill for the full catalog', () => {
+        expect(COMPONENT_REGISTRY_PROMPT).toContain('read_skill("shadcn")');
+    });
+});
+
+describe('embedded shadcn skill', () => {
+    it('is registered and carries the catalog + install patterns', async () => {
+        const { EMBEDDED_SKILLS } = await import('../../src/skills/embedded');
+        const shadcn = EMBEDDED_SKILLS.find((s) => s.name === 'shadcn');
+        expect(shadcn).toBeTruthy();
+        expect(shadcn?.description.toLowerCase()).toContain('shadcn');
+        expect(shadcn?.content).toContain('https://www.shadcnblocks.com/r/');
+        expect(shadcn?.content).toContain('Total catalogued:');
+    });
 });
 
 describe('DESIGN_SYSTEM_PROMPT overrides', () => {

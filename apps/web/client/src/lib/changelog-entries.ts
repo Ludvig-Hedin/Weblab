@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-7-bigger-component-library',
+        version: '3.7',
+        title: 'A bigger, on-brand component library',
+        description:
+            'The AI can now build from 1,500+ vetted components and blocks — every free shadcn/ui, shadcnblocks, and Watermelon UI block, plus a set of premium pro blocks — each with a clear description so it picks the right one. New blank projects also start with the Weblab design tokens already applied, so your site looks intentional from the very first screen.',
+        date: '2026-06-05',
+        tags: ['AI', 'Design'],
+    },
+    {
         slug: 'v3-6-on-brand-by-default',
         version: '3.6',
         title: 'On-brand sites by default',
