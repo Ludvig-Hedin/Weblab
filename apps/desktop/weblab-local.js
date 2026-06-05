@@ -288,7 +288,7 @@ async function runCommand(root, command) {
 const watchers = new Map(); // watchId -> watcher
 let watchSeq = 0;
 
-function startWatch(root, excludes, getWebContents) {
+async function startWatch(root, excludes, getWebContents) {
     if (!chokidar) return { error: 'chokidar_unavailable' };
     const id = `w${++watchSeq}`;
     const ignored = [
@@ -321,6 +321,19 @@ function startWatch(root, excludes, getWebContents) {
     watcher.on('change', (p) => emit('change', p));
     watcher.on('unlink', (p) => emit('remove', p));
     watchers.set(id, watcher);
+    // Wait for chokidar's initial scan to finish before resolving, so edits
+    // made right after watchStart aren't dropped during startup. Fallback after
+    // 3s so a watcher that never emits 'ready' can't hang the caller.
+    await new Promise((resolve) => {
+        let settled = false;
+        const done = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+        };
+        watcher.once('ready', done);
+        setTimeout(done, 3000);
+    });
     return { watchId: id };
 }
 
