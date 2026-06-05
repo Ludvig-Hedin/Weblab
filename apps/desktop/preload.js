@@ -73,6 +73,52 @@ const cliBridge = APP_ORIGIN_AT_PRELOAD && ALLOWED_ORIGINS.has(APP_ORIGIN_AT_PRE
       }
     : undefined;
 
+// Local-first filesystem + dev-server bridge. Same origin gate as the CLI
+// bridge — only attached when the window is on one of our origins. Backs the
+// renderer-side NodeFsProvider in @weblab/code-provider.
+const IS_APP_ORIGIN = !!(APP_ORIGIN_AT_PRELOAD && ALLOWED_ORIGINS.has(APP_ORIGIN_AT_PRELOAD));
+
+const localfsBridge = IS_APP_ORIGIN
+    ? {
+          pickFolder: () => ipcRenderer.invoke('weblab:localfs:pickFolder'),
+          read: (root, p) => ipcRenderer.invoke('weblab:localfs:read', { root, path: p }),
+          write: (root, p, content) =>
+              ipcRenderer.invoke('weblab:localfs:write', { root, path: p, content }),
+          list: (root, p) => ipcRenderer.invoke('weblab:localfs:list', { root, path: p }),
+          stat: (root, p) => ipcRenderer.invoke('weblab:localfs:stat', { root, path: p }),
+          mkdir: (root, p) => ipcRenderer.invoke('weblab:localfs:mkdir', { root, path: p }),
+          remove: (root, p, recursive) =>
+              ipcRenderer.invoke('weblab:localfs:remove', { root, path: p, recursive }),
+          rename: (root, oldPath, newPath) =>
+              ipcRenderer.invoke('weblab:localfs:rename', { root, oldPath, newPath }),
+          copy: (root, sourcePath, targetPath, recursive) =>
+              ipcRenderer.invoke('weblab:localfs:copy', { root, sourcePath, targetPath, recursive }),
+          watchStart: (root, excludes) =>
+              ipcRenderer.invoke('weblab:localfs:watchStart', { root, excludes }),
+          watchStop: (watchId) => ipcRenderer.invoke('weblab:localfs:watchStop', { watchId }),
+          onWatchEvent: (listener) => {
+              const handler = (_event, payload) => listener(payload);
+              ipcRenderer.on('weblab:localfs:watch-event', handler);
+              return () => ipcRenderer.removeListener('weblab:localfs:watch-event', handler);
+          },
+      }
+    : undefined;
+
+const localdevBridge = IS_APP_ORIGIN
+    ? {
+          start: (root, command, port) =>
+              ipcRenderer.invoke('weblab:localdev:start', { root, command, port }),
+          stop: (root) => ipcRenderer.invoke('weblab:localdev:stop', { root }),
+          status: (root) => ipcRenderer.invoke('weblab:localdev:status', { root }),
+          run: (root, command) => ipcRenderer.invoke('weblab:localdev:run', { root, command }),
+          onOutput: (listener) => {
+              const handler = (_event, payload) => listener(payload);
+              ipcRenderer.on('weblab:localdev:output', handler);
+              return () => ipcRenderer.removeListener('weblab:localdev:output', handler);
+          },
+      }
+    : undefined;
+
 const bridge = {
     platform: process.platform,
     target: 'desktop',
@@ -93,6 +139,8 @@ const bridge = {
      */
     openOAuth: (url) => ipcRenderer.invoke('weblab:open-external', url),
     cli: cliBridge,
+    localfs: localfsBridge,
+    localdev: localdevBridge,
 };
 
 contextBridge.exposeInMainWorld('weblabNative', bridge);

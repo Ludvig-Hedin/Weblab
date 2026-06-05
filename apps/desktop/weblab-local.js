@@ -1,0 +1,449 @@
+/**
+ * Bridge between the renderer (Weblab web app inside the BrowserWindow) and the
+ * user's LOCAL machine for local-first project editing. Backs the
+ * `NodeFsProvider` in @weblab/code-provider, which runs in the renderer and
+ * cannot touch Node APIs directly — every filesystem / dev-server / watch
+ * operation is delegated here over IPC.
+ *
+ * Responsibilities:
+ *   1. `weblab:localfs:*`   — pick a folder + real fs CRUD, confined to a root.
+ *   2. `weblab:localdev:*`  — spawn / stop / probe the project's dev server.
+ *   3. file watching        — chokidar on the root; streams change events back
+ *                              to the renderer so external edits (VS Code,
+ *                              Claude Code) reflect live on the canvas.
+ *
+ * Origin gate: every handler verifies the senderFrame's origin against
+ * `allowedOrigins` (defense in depth — mirrors weblab-cli.js). All fs paths are
+ * confined to the per-call project root; `..` / absolute escapes are rejected.
+ */
+
+const { ipcMain, dialog } = require('electron');
+const { spawn, execFileSync } = require('child_process');
+const fsp = require('fs/promises');
+const path = require('path');
+const http = require('http');
+
+// chokidar is an optional dep until `bun install` runs in apps/desktop. Load it
+// lazily so the desktop app still boots (with watch disabled) if it's missing.
+let chokidar = null;
+try {
+    chokidar = require('chokidar');
+} catch {
+    chokidar = null;
+}
+
+function isFromAllowedOrigin(event, allowedOrigins) {
+    try {
+        const senderUrl =
+            (event.senderFrame && event.senderFrame.url) ||
+            (event.sender && event.sender.getURL && event.sender.getURL());
+        if (!senderUrl) return false;
+        return allowedOrigins.has(new URL(senderUrl).origin);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Resolve `relPath` inside `root`, rejecting absolute paths and `..` traversal
+ * that would escape the project root. Returns the absolute on-disk path.
+ */
+function resolveWithin(root, relPath) {
+    if (typeof root !== 'string' || root.length === 0) {
+        throw new Error('invalid_root');
+    }
+    const normRoot = path.resolve(root);
+    const abs = path.resolve(normRoot, relPath == null || relPath === '' ? '.' : relPath);
+    if (abs !== normRoot && !abs.startsWith(normRoot + path.sep)) {
+        throw new Error('path_escape');
+    }
+    return abs;
+}
+
+// --- Shell environment (PATH) -------------------------------------------------
+// GUI-launched apps on macOS/Linux inherit a minimal PATH that often lacks
+// node/npm. Pull the login shell's PATH once so spawned dev servers can find
+// the toolchain. Best-effort + timeout-guarded; falls back to process PATH.
+let cachedEnv = null;
+function syncedEnv() {
+    if (cachedEnv) return cachedEnv;
+    let envPath = process.env.PATH || '';
+    if (process.platform !== 'win32') {
+        try {
+            // execFileSync (no shell string interpolation): the shell binary is
+            // an argv[0], the script is a fixed literal run BY that login shell
+            // to capture its PATH. Avoids the command-injection surface of exec.
+            const shell = process.env.SHELL || '/bin/zsh';
+            const out = execFileSync(shell, ['-lic', 'echo -n "$PATH"'], {
+                timeout: 4000,
+                stdio: ['ignore', 'pipe', 'ignore'],
+            })
+                .toString()
+                .trim();
+            if (out) envPath = out;
+        } catch {
+            // keep process PATH
+        }
+    }
+    cachedEnv = { ...process.env, PATH: envPath };
+    return cachedEnv;
+}
+
+// --- Dev server ---------------------------------------------------------------
+// Mirrors the port inference in apps/web/server/src/sandbox/index.ts so local
+// and cloud agree on how a dev script's port is read.
+function inferPortFromDevScript(devScript) {
+    if (typeof devScript !== 'string') return null;
+    const explicit = /(?:--listen|-l)\s+(?:tcp:\/\/[^:]+:)?(\d{2,5})\b/.exec(devScript)?.[1];
+    const localhost = /(?:localhost|0\.0\.0\.0|127\.0\.0\.1):(\d{2,5})\b/.exec(devScript)?.[1];
+    const raw = explicit ?? localhost;
+    if (!raw) return null;
+    const port = Number.parseInt(raw, 10);
+    return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
+}
+
+async function readDevScript(root) {
+    try {
+        const raw = await fsp.readFile(path.join(root, 'package.json'), 'utf8');
+        const pkg = JSON.parse(raw);
+        return (pkg.scripts && typeof pkg.scripts.dev === 'string' && pkg.scripts.dev) || '';
+    } catch {
+        return '';
+    }
+}
+
+function probePort(port) {
+    return new Promise((resolve) => {
+        const req = http.get(`http://127.0.0.1:${port}`, (res) => {
+            res.destroy();
+            resolve(true);
+        });
+        req.on('error', () => resolve(false));
+        req.setTimeout(1000, () => {
+            req.destroy();
+            resolve(false);
+        });
+    });
+}
+
+const devServers = new Map(); // root -> { child, port, url, output: string[] }
+
+async function startDevServer(root, command, requestedPort, getWebContents) {
+    const existing = devServers.get(root);
+    if (existing && existing.child && existing.child.exitCode === null) {
+        return { port: existing.port, url: existing.url };
+    }
+    const devScript = await readDevScript(root);
+    const port =
+        (Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535
+            ? requestedPort
+            : null) ??
+        inferPortFromDevScript(devScript) ??
+        3000;
+    const cmd = command && String(command).trim().length > 0 ? String(command) : 'npm run dev';
+    let child;
+    try {
+        child = spawn(cmd, {
+            cwd: root,
+            env: syncedEnv(),
+            shell: true, // user's own project script — runs through the shell
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+    } catch (err) {
+        return { error: (err && err.message) || 'spawn_failed' };
+    }
+    const rec = { child, port, url: `http://localhost:${port}`, output: [] };
+    devServers.set(root, rec);
+    const onData = (b) => {
+        const s = b.toString();
+        rec.output.push(s);
+        if (rec.output.length > 500) rec.output.shift();
+        const wc = getWebContents();
+        if (wc) {
+            try {
+                wc.send('weblab:localdev:output', { root, data: s });
+            } catch {
+                // window may have closed
+            }
+        }
+    };
+    child.stdout.on('data', onData);
+    child.stderr.on('data', onData);
+    child.on('exit', () => devServers.delete(root));
+    child.on('error', () => devServers.delete(root));
+
+    // Wait until the dev server actually binds the port (cold compile 30-90s).
+    const deadline = Date.now() + 90000;
+    let listening = false;
+    while (Date.now() < deadline) {
+        if (devServers.get(root) !== rec) break; // crashed
+        if (await probePort(port)) {
+            listening = true;
+            break;
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (!listening && devServers.get(root) !== rec) {
+        return { error: `Dev server exited before binding port ${port}.` };
+    }
+    return { port, url: rec.url };
+}
+
+function stopDevServer(root) {
+    const rec = devServers.get(root);
+    if (rec && rec.child) {
+        try {
+            rec.child.kill();
+        } catch {
+            // ignore
+        }
+    }
+    devServers.delete(root);
+}
+
+async function runCommand(root, command) {
+    return new Promise((resolve) => {
+        let child;
+        try {
+            child = spawn(String(command), {
+                cwd: root,
+                env: syncedEnv(),
+                shell: true,
+                stdio: ['ignore', 'pipe', 'pipe'],
+            });
+        } catch (err) {
+            return resolve({ output: '', exitCode: -1, error: (err && err.message) || 'spawn_failed' });
+        }
+        let out = '';
+        child.stdout.on('data', (b) => (out += b.toString()));
+        child.stderr.on('data', (b) => (out += b.toString()));
+        child.on('error', (err) => resolve({ output: out, exitCode: -1, error: err.message }));
+        child.on('exit', (code) => resolve({ output: out, exitCode: code ?? -1 }));
+    });
+}
+
+// --- Watch --------------------------------------------------------------------
+const watchers = new Map(); // watchId -> watcher
+let watchSeq = 0;
+
+function startWatch(root, excludes, getWebContents) {
+    if (!chokidar) return { error: 'chokidar_unavailable' };
+    const id = `w${++watchSeq}`;
+    const ignored = [
+        /(^|[/\\])\../, // dotfiles/dirs
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/.next/**',
+        '**/dist/**',
+        ...(Array.isArray(excludes) ? excludes : []),
+    ];
+    let watcher;
+    try {
+        watcher = chokidar.watch(root, { ignored, ignoreInitial: true, persistent: true });
+    } catch (err) {
+        return { error: (err && err.message) || 'watch_failed' };
+    }
+    const emit = (type, absPath) => {
+        const wc = getWebContents();
+        if (!wc) return;
+        try {
+            wc.send('weblab:localfs:watch-event', {
+                watchId: id,
+                event: { type, paths: [path.relative(root, absPath)] },
+            });
+        } catch {
+            // window closed
+        }
+    };
+    watcher.on('add', (p) => emit('add', p));
+    watcher.on('change', (p) => emit('change', p));
+    watcher.on('unlink', (p) => emit('remove', p));
+    watchers.set(id, watcher);
+    return { watchId: id };
+}
+
+function stopWatch(watchId) {
+    const w = watchers.get(watchId);
+    if (w) {
+        try {
+            w.close();
+        } catch {
+            // ignore
+        }
+        watchers.delete(watchId);
+    }
+}
+
+// --- Registration -------------------------------------------------------------
+function registerLocalIpc({ allowedOrigins, getWebContents }) {
+    const guard = (event) => isFromAllowedOrigin(event, allowedOrigins);
+
+    ipcMain.handle('weblab:localfs:pickFolder', async (event) => {
+        if (!guard(event)) return null;
+        const result = await dialog.showOpenDialog({
+            properties: ['openDirectory', 'createDirectory'],
+        });
+        if (result.canceled || result.filePaths.length === 0) return null;
+        return { rootPath: result.filePaths[0] };
+    });
+
+    ipcMain.handle('weblab:localfs:read', async (event, { root, path: rel } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            const abs = resolveWithin(root, rel);
+            const content = await fsp.readFile(abs, 'utf8');
+            return { content };
+        } catch (err) {
+            return { error: err.code === 'ENOENT' ? 'not_found' : err.message, notFound: err.code === 'ENOENT' };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:write', async (event, { root, path: rel, content } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            const abs = resolveWithin(root, rel);
+            await fsp.mkdir(path.dirname(abs), { recursive: true });
+            const data = content instanceof Uint8Array ? Buffer.from(content) : String(content ?? '');
+            await fsp.writeFile(abs, data);
+            return { success: true };
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:list', async (event, { root, path: rel } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            const abs = resolveWithin(root, rel);
+            const entries = await fsp.readdir(abs, { withFileTypes: true });
+            return {
+                files: entries.map((e) => ({
+                    name: e.name,
+                    type: e.isDirectory() ? 'directory' : 'file',
+                    isSymlink: e.isSymbolicLink(),
+                })),
+            };
+        } catch (err) {
+            return { error: err.message, files: [] };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:stat', async (event, { root, path: rel } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            const abs = resolveWithin(root, rel);
+            const st = await fsp.lstat(abs);
+            return {
+                type: st.isDirectory() ? 'directory' : 'file',
+                isSymlink: st.isSymbolicLink(),
+                size: st.size,
+                mtime: st.mtimeMs,
+                ctime: st.ctimeMs,
+            };
+        } catch (err) {
+            return { error: err.code === 'ENOENT' ? 'not_found' : err.message, notFound: err.code === 'ENOENT' };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:mkdir', async (event, { root, path: rel } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            await fsp.mkdir(resolveWithin(root, rel), { recursive: true });
+            return { success: true };
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:remove', async (event, { root, path: rel, recursive } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            await fsp.rm(resolveWithin(root, rel), { recursive: recursive !== false, force: true });
+            return { success: true };
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:rename', async (event, { root, oldPath, newPath } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            const from = resolveWithin(root, oldPath);
+            const to = resolveWithin(root, newPath);
+            await fsp.mkdir(path.dirname(to), { recursive: true });
+            await fsp.rename(from, to);
+            return { success: true };
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:copy', async (event, { root, sourcePath, targetPath, recursive } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            const from = resolveWithin(root, sourcePath);
+            const to = resolveWithin(root, targetPath);
+            await fsp.cp(from, to, { recursive: recursive !== false });
+            return { success: true };
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:watchStart', async (event, { root, excludes } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            resolveWithin(root, '.'); // validate root
+            return startWatch(root, excludes, getWebContents);
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localfs:watchStop', async (event, { watchId } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        stopWatch(watchId);
+        return { success: true };
+    });
+
+    ipcMain.handle('weblab:localdev:start', async (event, { root, command, port } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            resolveWithin(root, '.');
+            return await startDevServer(root, command, port, getWebContents);
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    ipcMain.handle('weblab:localdev:stop', async (event, { root } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        stopDevServer(root);
+        return { success: true };
+    });
+
+    ipcMain.handle('weblab:localdev:status', async (event, { root } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        const rec = devServers.get(root);
+        const running = !!(rec && rec.child && rec.child.exitCode === null);
+        return { running, port: rec ? rec.port : undefined, url: rec ? rec.url : undefined };
+    });
+
+    ipcMain.handle('weblab:localdev:run', async (event, { root, command } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            resolveWithin(root, '.');
+            return await runCommand(root, command);
+        } catch (err) {
+            return { error: err.message, output: '', exitCode: -1 };
+        }
+    });
+}
+
+// Kill any spawned dev servers + watchers on app shutdown.
+function disposeLocal() {
+    for (const root of [...devServers.keys()]) stopDevServer(root);
+    for (const id of [...watchers.keys()]) stopWatch(id);
+}
+
+module.exports = { registerLocalIpc, disposeLocal, resolveWithin, inferPortFromDevScript };

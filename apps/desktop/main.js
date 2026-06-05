@@ -2,6 +2,7 @@ const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron')
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { registerIpcHandlers: registerCliIpc } = require('./weblab-cli');
+const { registerLocalIpc, disposeLocal } = require('./weblab-local');
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Weblab';
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
@@ -120,6 +121,21 @@ ipcMain.handle('weblab:open-external', async (_event, url) => {
 registerCliIpc({
     allowedOrigins: ALLOWED_IPC_ORIGINS,
     getWebContents: () => mainWindow?.webContents ?? null,
+});
+
+// Local-first mode: filesystem + dev-server + watch IPC backing NodeFsProvider.
+registerLocalIpc({
+    allowedOrigins: ALLOWED_IPC_ORIGINS,
+    getWebContents: () => mainWindow?.webContents ?? null,
+});
+
+// Tear down any spawned local dev servers + file watchers on shutdown.
+app.on('before-quit', () => {
+    try {
+        disposeLocal();
+    } catch {
+        // best-effort cleanup
+    }
 });
 
 // --- Single-instance + custom protocol registration ---------------------------

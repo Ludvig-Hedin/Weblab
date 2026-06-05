@@ -18,6 +18,7 @@
         "build": "bun run link:node_modules && electron-builder --mac --win --linux"
     },
     "dependencies": {
+        "chokidar": "^3.6.0",
         "electron-updater": "^6.3.9"
     },
     "devDependencies": {
@@ -35,6 +36,7 @@
             "main.js",
             "preload.js",
             "weblab-cli.js",
+            "weblab-local.js",
             "cli/**",
             "assets/**"
         ],
