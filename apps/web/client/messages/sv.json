@@ -379,6 +379,7 @@
             "loginToEdit": "Logga in för att redigera",
             "shareProjects": "Inget kreditkort krävs • Få en webbplats på sekunder",
             "email": "Fortsätt med e-post",
+            "emailLabel": "E-post",
             "emailPlaceholder": "din@epost.se",
             "sendCode": "Skicka kod",
             "sending": "Skickar..."
@@ -783,7 +784,7 @@
                 },
                 "q6": {
                     "question": "Vilka AI-modeller kan jag använda?",
-                    "answer": "Weblab är modellagnostiskt. Välj mellan Claude Opus 4.7 och Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro och Kimi K2.6 – eller kör lokala modeller via Ollama i skrivbordsappen. Du kan även använda din egen API-nyckel. Resonemangsnivån är konfigurerbar per chatt, från Fast till Deep."
+                    "answer": "Weblab är modellagnostiskt. Välj mellan Claude Opus 4.8 och Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro och Kimi K2.6 – eller kör lokala modeller via Ollama i skrivbordsappen. Du kan även använda din egen API-nyckel. Resonemangsnivån är konfigurerbar per chatt, från Fast till Deep."
                 },
                 "q7": {
                     "question": "Sparar Weblab versionshistorik?",
@@ -903,7 +904,7 @@
             },
             "models": {
                 "title": "Välj din modell – eller använd din egen nyckel",
-                "description": "Claude Opus 4.7 och Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus lokala modeller via Ollama i desktop-appen. Justera resonemang från Fast till Deep."
+                "description": "Claude Opus 4.8 och Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus lokala modeller via Ollama i desktop-appen. Justera resonemang från Fast till Deep."
             },
             "openSource": {
                 "title": "Öppen källkod",

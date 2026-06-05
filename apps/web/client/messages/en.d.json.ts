@@ -382,6 +382,7 @@ declare const messages: {
             "loginToEdit": "Sign in to edit",
             "shareProjects": "No credit card required • Get a site in seconds",
             "email": "Continue with email",
+            "emailLabel": "Email",
             "emailPlaceholder": "your@email.com",
             "sendCode": "Send code",
             "sending": "Sending..."
@@ -786,7 +787,7 @@ declare const messages: {
                 },
                 "q6": {
                     "question": "What AI models can I use?",
-                    "answer": "Weblab is model-agnostic. Choose between Claude Opus 4.7 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, and Kimi K2.6 — or run local models via Ollama on the desktop app. You can also bring your own API key. Reasoning effort is configurable per chat, from Fast to Deep."
+                    "answer": "Weblab is model-agnostic. Choose between Claude Opus 4.8 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, and Kimi K2.6 — or run local models via Ollama on the desktop app. You can also bring your own API key. Reasoning effort is configurable per chat, from Fast to Deep."
                 },
                 "q7": {
                     "question": "Does Weblab keep version history?",
@@ -906,7 +907,7 @@ declare const messages: {
             },
             "models": {
                 "title": "Pick your model, or bring your own key",
-                "description": "Claude Opus 4.7 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus local models via Ollama on the desktop app. Dial reasoning from Fast to Deep."
+                "description": "Claude Opus 4.8 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus local models via Ollama on the desktop app. Dial reasoning from Fast to Deep."
             },
             "openSource": {
                 "title": "Open Source",

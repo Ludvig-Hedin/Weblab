@@ -149,6 +149,11 @@ export function ClerkAuthForm({
 
     const hasEmail = email.trim().length > 0;
 
+    // Floating-label gate. Empty + unfocused → the label rests inside the field
+    // (acting as the placeholder). Focused OR has-value → it floats up onto the
+    // top border and the "your@email.com" hint takes over inside the field.
+    const isEmailFloating = isInputFocused || hasEmail;
+
     // Build domain completions from whatever the user has typed. Before the
     // `@`, every common domain is offered; after it, the list narrows to
     // domains that prefix-match what's been typed. A fully-typed known domain
@@ -594,7 +599,11 @@ export function ClerkAuthForm({
                         // suggestion entirely.
                         name="email"
                         id="weblab-sign-in-email"
-                        placeholder={t(transKeys.welcome.login.emailPlaceholder)}
+                        // Hint shows only once the label has floated up, so the
+                        // resting label and the placeholder never overlap.
+                        placeholder={
+                            isEmailFloating ? t(transKeys.welcome.login.emailPlaceholder) : ''
+                        }
                         // Fully rounded, border-only (no fill). h-11 (44px)
                         // matches the OAuth pills. `pr-12` reserves room for the
                         // inline submit arrow; `pl-5` mirrors the pill padding.
@@ -633,6 +642,25 @@ export function ClerkAuthForm({
                         autoFocus
                         maxLength={254}
                     />
+                    {/* Floating label. Rests inside the field as the placeholder
+                        when empty + unfocused; floats onto the top border (with a
+                        `bg-background` chip that cuts the pill outline) once the
+                        field is focused or filled. `pointer-events-none` lets the
+                        click fall through to focus the input — `htmlFor` keeps the
+                        a11y association. Text x is 20px in both states (resting
+                        `left-5`; floated `left-3.5` + `px-1.5`) so it floats
+                        straight up with no horizontal jump. */}
+                    <label
+                        htmlFor="weblab-sign-in-email"
+                        className={cn(
+                            'pointer-events-none absolute z-10 origin-left transition-all duration-200 ease-out motion-reduce:transition-none',
+                            isEmailFloating
+                                ? 'text-mini text-foreground-secondary bg-background top-0 left-3.5 -translate-y-1/2 rounded-full px-1.5'
+                                : 'text-regular text-foreground-tertiary top-1/2 left-5 -translate-y-1/2',
+                        )}
+                    >
+                        {t(transKeys.welcome.login.emailLabel)}
+                    </label>
                     {/* Inline submit. Circular by design — rounded-full is the
                         sanctioned escape for a glyph button nested in a field.
                         Fades + scales in only once the field has content. The
@@ -684,8 +712,14 @@ export function ClerkAuthForm({
                                     onClick={() => applyEmailSuggestion(domain)}
                                     className={cn(
                                         'text-small flex w-full items-center rounded-xl px-4 py-2.5 text-left transition-colors',
+                                        // `bg-accent` is the design-system's
+                                        // "hover inside menus/dropdowns/popovers"
+                                        // token (#f4f4f4 light / #353535 dark).
+                                        // The old `bg-background-hover` (#232323)
+                                        // sat one hex-step off the popover surface
+                                        // (#222222) and was invisible in dark mode.
                                         i === highlightedIndex
-                                            ? 'bg-background-hover text-foreground-primary'
+                                            ? 'bg-accent text-foreground-primary'
                                             : 'text-foreground-secondary',
                                     )}
                                 >
