@@ -175,7 +175,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-72 p-0">
+            <DropdownMenuContent align="end" className="w-72 p-0">
                 <div className="flex items-center gap-2 p-3 select-none">
                     <div className="flex flex-col">
                         <span className="text-smallPlus">{friendlyName}</span>

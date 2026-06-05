@@ -68,7 +68,7 @@ export const UsageSection = observer((_props: { open: boolean }) => {
     };
 
     return (
-        <div className="flex w-full flex-col gap-4 p-4 text-sm">
+        <div className="flex w-full flex-col gap-3 px-4 py-3 text-sm">
             <div className="flex items-center justify-between">
                 <div>
                     {isLoading ? (

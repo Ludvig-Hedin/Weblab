@@ -192,7 +192,7 @@ export const SEMANTIC_TOKENS: ColorTokenData[] = [
     {
         name: 'accent',
         cssVar: '--accent',
-        value: '12 6.5% 15.1%',
+        value: '#353535',
         description: 'Hover/highlight fill for interactive list items and menu rows.',
         usage: 'bg-accent — DropdownMenu/Command highlighted item, NavigationMenu hover.',
     },

@@ -783,7 +783,7 @@
     /* ── shadcn surface contracts (muted / accent / input / ring) ────────── */
     --muted: #1f1f1f;                            /* tertiary button bg, dropdown trigger */
     --muted-foreground: #b2b2b2;                 /* matches --foreground-secondary */
-    --accent: #2e2e2e;                           /* hover inside menus/dropdowns/popovers */
+    --accent: #353535;                           /* hover inside menus/dropdowns/popovers */
     --accent-foreground: #ffffff;
     --input: #1c1c1c;                            /* form input fill */
     --ring: #458ef7;                             /* focus ring uses brand accent */
