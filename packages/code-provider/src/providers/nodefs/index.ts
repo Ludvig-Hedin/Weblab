@@ -280,16 +280,11 @@ export class NodeFsProvider extends Provider {
     }
 
     async setup(_input: SetupInput): Promise<SetupOutput> {
-        const root = this.requireRoot();
-        const fs = requireLocalFs();
-        const dev = requireLocalDev();
-        // Install deps if node_modules is absent (first open of a folder).
-        const nm = await fs.stat(root, 'node_modules');
-        if (nm.notFound || !nm.type) {
-            await dev.run(root, 'npm install');
-        }
-        // Start the dev server (idempotent; waits for the port to bind).
-        await dev.start(root, this.options.devCommand, this.options.port);
+        // The bridge's dev-server start installs deps (package-manager-aware)
+        // when node_modules is absent, so setup just ensures it's booting. Note:
+        // the editor never calls setup() today (the dev task's open() is the
+        // trigger) — kept for completeness + any future caller.
+        await requireLocalDev().start(this.requireRoot(), this.options.devCommand, this.options.port);
         return {};
     }
 
@@ -472,15 +467,21 @@ export class NodeFsTask extends ProviderTask {
     }
 
     async open(): Promise<string> {
+        const root = this.requireRoot();
         if (!this.unsubscribe) {
-            const root = this.requireRoot();
             this.unsubscribe =
                 getNative()?.localdev?.onOutput(({ root: r, data }) => {
                     if (r !== root) return;
                     for (const cb of this.outputCallbacks) cb(data);
                 }) ?? null;
         }
-        return this.id;
+        // open() is the method the editor's task-init reliably calls (run() only
+        // fires on resume), so boot the dev server here. Idempotent on the bridge
+        // side — returns the already-running server if one is up.
+        const res = await requireLocalDev().start(root, this.options.devCommand, this.options.port);
+        if (res.error) return `Failed to start local dev server: ${res.error}\n`;
+        const url = res.url ?? `http://localhost:${this.options.port ?? 3000}`;
+        return `Local dev server running on ${url}\n`;
     }
 
     async run(): Promise<void> {

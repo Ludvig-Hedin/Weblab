@@ -128,11 +128,61 @@ function probePort(port) {
 
 const devServers = new Map(); // root -> { child, port, url, output: string[] }
 
+// Install deps if node_modules is absent. Package-manager-aware (the user's own
+// lockfile decides). Runs WITH lifecycle scripts — unlike the cloud importer
+// (which uses --ignore-scripts for untrusted repos), this is the user's own
+// machine + project, so postinstall codegen (e.g. prisma generate) must run.
+async function ensureInstalled(root, getWebContents) {
+    try {
+        await fsp.stat(path.join(root, 'node_modules'));
+        return; // already installed
+    } catch {
+        // node_modules missing → install below
+    }
+    const installCmd = [
+        'if [ -f pnpm-lock.yaml ]; then corepack enable >/dev/null 2>&1 || true; pnpm install;',
+        'elif [ -f yarn.lock ]; then corepack enable >/dev/null 2>&1 || true; yarn install;',
+        'elif [ -f bun.lockb ] || [ -f bun.lock ]; then bun install;',
+        'else npm install; fi',
+    ].join(' ');
+    await new Promise((resolve) => {
+        let child;
+        try {
+            child = spawn(installCmd, {
+                cwd: root,
+                env: syncedEnv(),
+                shell: true,
+                stdio: ['ignore', 'pipe', 'pipe'],
+            });
+        } catch {
+            return resolve();
+        }
+        const onData = (b) => {
+            const wc = getWebContents();
+            if (wc) {
+                try {
+                    wc.send('weblab:localdev:output', { root, data: b.toString() });
+                } catch {
+                    // window closed
+                }
+            }
+        };
+        child.stdout.on('data', onData);
+        child.stderr.on('data', onData);
+        child.on('exit', () => resolve());
+        child.on('error', () => resolve());
+    });
+}
+
 async function startDevServer(root, command, requestedPort, getWebContents) {
     const existing = devServers.get(root);
     if (existing && existing.child && existing.child.exitCode === null) {
         return { port: existing.port, url: existing.url };
     }
+    // Deps must exist before the dev server can boot. The editor never calls
+    // provider.setup(); the dev task's open()/run() is the only trigger, so
+    // install-if-needed lives here to guarantee a fresh folder is usable.
+    await ensureInstalled(root, getWebContents);
     const devScript = await readDevScript(root);
     const port =
         (Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535

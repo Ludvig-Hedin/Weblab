@@ -177,4 +177,32 @@ describe('NodeFsProvider (local-first)', () => {
         expect(events[0]?.type).toBe('change');
         await watcher.stop();
     });
+
+    test('dev task open() boots the local dev server', async () => {
+        const bridge = installMockBridge({});
+        let startCalls = 0;
+        const origStart = bridge.localdev.start;
+        bridge.localdev.start = async () => {
+            startCalls += 1;
+            return origStart();
+        };
+        const p = new NodeFsProvider({ rootPath: '/proj', port: 4321 });
+        const { task } = await p.getTask({ args: { id: 'dev' } });
+        const out = await task.open();
+        expect(startCalls).toBeGreaterThan(0);
+        expect(out).toContain('http://localhost:4321');
+    });
+
+    test('setup() boots the dev server (no hardcoded npm install)', async () => {
+        const bridge = installMockBridge({});
+        let startCalls = 0;
+        const origStart = bridge.localdev.start;
+        bridge.localdev.start = async () => {
+            startCalls += 1;
+            return origStart();
+        };
+        const p = new NodeFsProvider({ rootPath: '/proj' });
+        await p.setup({});
+        expect(startCalls).toBe(1);
+    });
 });
