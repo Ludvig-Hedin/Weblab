@@ -130,6 +130,7 @@ export function AnimatedButton({
                     rel={rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined)}
                     aria-label={ariaLabel}
                     className={classes}
+                    onClick={onClick}
                     {...handlers}
                 >
                     {inner}
@@ -144,6 +145,7 @@ export function AnimatedButton({
                 rel={rel}
                 aria-label={ariaLabel}
                 className={classes}
+                onClick={onClick}
                 {...handlers}
             >
                 {inner}
