@@ -110,7 +110,7 @@ function PromptOnCanvasAsset() {
                         <div className="border-foreground-primary/10 inline-flex items-center gap-1.5 rounded-md border px-1.5 py-1">
                             <ClaudeIcon className="text-foreground-secondary h-3 w-3" />
                             <span className="text-mini text-foreground-secondary font-light tracking-tight">
-                                Claude Opus 4.7
+                                Claude Opus 4.8
                             </span>
                         </div>
                         {/* Send button */}

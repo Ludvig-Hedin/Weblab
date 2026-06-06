@@ -70,7 +70,7 @@ const MODELS: {
     icon: React.ReactNode;
 }[] = [
     {
-        name: 'Claude Opus 4.7',
+        name: 'Claude Opus 4.8',
         descriptionKey: 'opus',
         icon: <ClaudeIcon className="h-3 w-3" />,
     },

@@ -45,7 +45,7 @@ const featuresFaqs = [
     },
     {
         question: 'Which AI models can I use?',
-        answer: 'Claude Opus 4.7, Sonnet 4.6, Haiku 4.5, GPT-5.5, Gemini 3.1 Pro/Flash, DeepSeek V4, Mistral Codestral, Moonshot Kimi, plus local models via Ollama. Switch any time. Dial reasoning effort from Fast to Deep.',
+        answer: 'Claude Opus 4.8, Sonnet 4.6, Haiku 4.5, GPT-5.5, Gemini 3.1 Pro/Flash, DeepSeek V4, Mistral Codestral, Moonshot Kimi, plus local models via Ollama. Switch any time. Dial reasoning effort from Fast to Deep.',
     },
 ];
 
@@ -73,7 +73,7 @@ export default function FeaturesPage() {
                             tokens
                         </li>
                         <li>
-                            Multi-provider AI — Claude Opus 4.7, GPT-5.5, Gemini 3.1 Pro, DeepSeek,
+                            Multi-provider AI — Claude Opus 4.8, GPT-5.5, Gemini 3.1 Pro, DeepSeek,
                             Mistral, or local Ollama
                         </li>
                         <li>

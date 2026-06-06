@@ -289,7 +289,7 @@ function AiAssistantVisual() {
                         <span className="border-foreground-primary/10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1">
                             <ClaudeIcon className="text-foreground-secondary h-3 w-3" />
                             <span className="text-foreground-secondary text-mini tracking-tight">
-                                Claude Opus 4.7
+                                Claude Opus 4.8
                             </span>
                             <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3" />
                         </span>
