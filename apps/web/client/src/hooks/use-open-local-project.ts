@@ -23,6 +23,13 @@ interface LocalFsBridge {
         path: string,
         content: string | Uint8Array,
     ): Promise<{ success?: boolean; error?: string }>;
+    list(
+        root: string,
+        path: string,
+    ): Promise<{
+        files?: { name: string; type: 'file' | 'directory'; isSymlink: boolean }[];
+        error?: string;
+    }>;
 }
 
 function getLocalFs(): LocalFsBridge | undefined {
@@ -151,6 +158,19 @@ export function useOpenLocalProject() {
             }
             const rootPath = picked.rootPath;
             const name = rootPath.split(/[\\/]/).filter(Boolean).pop() ?? 'Local project';
+
+            // Guard: scaffolding writes package.json/index.html. Refuse a
+            // non-empty folder so we never clobber the user's existing files —
+            // they should use "Open local folder" for an existing project.
+            const existing = await localfs.list(rootPath, '.');
+            const meaningful = (existing.files ?? []).filter((f) => !f.name.startsWith('.'));
+            if (meaningful.length > 0) {
+                toast.error(
+                    'That folder already has files. Pick an empty folder for a new project, or use "Open local folder" to edit it.',
+                );
+                setPhase('idle');
+                return;
+            }
 
             // Scaffold a blank static-HTML project into the chosen folder (the
             // same file set the cloud uses), then create + open it. The dev
