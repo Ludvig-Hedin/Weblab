@@ -15,19 +15,25 @@ type AnimatedVariant = 'default' | 'outline' | 'secondary';
 type AnimatedSize = 'sm' | 'default' | 'lg' | 'pill';
 
 /**
- * Maps a resting variant to its directional-sweep tone. The sweep reveals the
- * inverse surface and the label color flips to stay readable — a restrained,
+ * Maps a resting variant to its directional-sweep tone class. The sweep reveals
+ * the inverse surface and the label color flips to stay readable — a restrained,
  * monochrome invert (no accent color, per brand).
  *
- *  - invert: solid resting (fg fill / bg text) → sweep reveals the background,
- *    label flips to foreground.
- *  - fill:   transparent or low-emphasis resting (fg text) → sweep fills with
- *    the foreground, label flips to background.
+ * The tone's sweep color and hover label color live in `marketing-motion.css`
+ * keyed off these classes, driven by the theme tokens `--foreground` /
+ * `--background`. Doing it in CSS (not Tailwind `group-hover/...` utilities)
+ * means a stale/partial Tailwind build can't drop the hover color and leave the
+ * label invisible once the sweep fills — the CSS ships with the component.
+ *
+ *  - wl-tone-invert: solid resting (fg fill / bg text) → sweep reveals the
+ *    background, label flips to the foreground.
+ *  - wl-tone-fill:   transparent or low-emphasis resting (fg text) → sweep fills
+ *    with the foreground, label flips to the background.
  */
-const TONE: Record<AnimatedVariant, { sweep: string; hoverText: string }> = {
-    default: { sweep: 'bg-background', hoverText: 'group-hover/sweep:text-foreground' },
-    outline: { sweep: 'bg-foreground', hoverText: 'group-hover/sweep:text-background' },
-    secondary: { sweep: 'bg-foreground', hoverText: 'group-hover/sweep:text-background' },
+const TONE_CLASS: Record<AnimatedVariant, string> = {
+    default: 'wl-tone-invert',
+    outline: 'wl-tone-fill',
+    secondary: 'wl-tone-fill',
 };
 
 export interface AnimatedButtonProps {
@@ -92,19 +98,16 @@ export function AnimatedButton({
         el.style.setProperty('--wl-size', `${(115 + offsetFromCenter * 2).toFixed(1)}%`);
     }, []);
 
-    const tone = TONE[variant];
     const classes = cn(
         buttonVariants({ variant, size }),
-        'wl-sweep-btn wl-stagger-group group/sweep',
-        // Fast label color flip so contrast holds while the slower sweep fills.
-        'transition-colors duration-150',
-        tone.hoverText,
+        'wl-sweep-btn wl-stagger-group',
+        TONE_CLASS[variant],
         className,
     );
 
     const inner = (
         <>
-            <span aria-hidden="true" className={cn('wl-sweep', tone.sweep)} />
+            <span aria-hidden="true" className="wl-sweep" />
             <span className="wl-sweep-label inline-flex items-center gap-1.5">
                 {leadingIcon}
                 <StaggerText>{children}</StaggerText>

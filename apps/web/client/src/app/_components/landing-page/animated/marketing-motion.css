@@ -84,10 +84,36 @@
     z-index: 0;
 }
 
-/* Keep the label above the sweep circle. */
+/* Keep the label above the sweep circle; flip its color fast enough that
+ * contrast holds while the slower sweep is still filling. */
 .wl-sweep-label {
     position: relative;
     z-index: 1;
+    transition: color 0.2s cubic-bezier(0.625, 0.05, 0, 1);
+}
+
+/* Tone colors, theme-aware via design tokens. `invert` is for solid CTAs
+ * (resting fg fill → sweep reveals the background, label flips to foreground);
+ * `fill` is for outline/secondary CTAs (resting fg text → sweep fills with the
+ * foreground, label flips to the background). Defined here (not as Tailwind
+ * `group-hover/...` utilities) so a stale Tailwind build can't drop the hover
+ * color and leave the label invisible on the filled sweep. */
+.wl-tone-invert .wl-sweep {
+    background-color: var(--background);
+}
+
+.wl-tone-fill .wl-sweep {
+    background-color: var(--foreground);
+}
+
+.wl-tone-invert.wl-sweep-btn:hover .wl-sweep-label,
+.wl-tone-invert.wl-sweep-btn:focus-visible .wl-sweep-label {
+    color: var(--foreground);
+}
+
+.wl-tone-fill.wl-sweep-btn:hover .wl-sweep-label,
+.wl-tone-fill.wl-sweep-btn:focus-visible .wl-sweep-label {
+    color: var(--background);
 }
 
 /* The fill itself is NOT gated: the button's label color flips on hover, so
