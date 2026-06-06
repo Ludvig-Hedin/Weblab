@@ -129,8 +129,15 @@ export const TopBar = () => {
     const t = useTranslations('projectsTopBar');
     const activeWorkspace = useActiveWorkspaceMaybe();
 
+    // `desktop-drag-region` opts this header into the Electron drag system
+    // (see apps/web/client/src/app/layout.tsx): the container + its structural
+    // children become `-webkit-app-region: drag` so the window can be moved by
+    // the header, while every interactive child (a/button/role=button…) is
+    // carved out as `no-drag` so its clicks still land. Without this class the
+    // global drag-fallback strip swallows clicks on these buttons. No-op on web
+    // (the rules are scoped to [data-desktop]).
     return (
-        <div className="text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center gap-4 p-4">
+        <div className="desktop-drag-region text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center gap-4 p-4">
             <Link href={Routes.HOME} className="flex shrink-0 items-center py-3">
                 <BrandLogo className="h-4" />
             </Link>
