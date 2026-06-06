@@ -13,7 +13,6 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@weblab/ui/input-otp';
 
-import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { sanitizeReturnUrl } from '@/utils/url';
@@ -181,9 +180,6 @@ export default function ClerkVerifyPage() {
             // on a dead-end "contact support" screen — bounce back to /sign-in
             // so they can restart. Log status server-side via the URL hash so
             // ops can grep for it if it ever fires in production.
-            if (env.NODE_ENV !== 'production') {
-                console.warn('[sign-in/verify] unexpected status', result.status, mode);
-            }
             router.replace(`/sign-in?reason=${encodeURIComponent(`status:${result.status}`)}`);
             return;
         } catch (err) {
