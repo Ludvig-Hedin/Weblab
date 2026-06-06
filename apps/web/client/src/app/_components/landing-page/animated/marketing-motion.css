@@ -59,6 +59,14 @@
     .wl-stagger-group:focus-visible .wl-stagger__bottom {
         transform: translateY(-100%);
     }
+
+    /* Footer links roll a touch slower than nav/buttons — calmer and more
+     * deliberate at the foot of the page. Scoped to <footer> so the snappier
+     * default still drives buttons, the mega-menu, and the top bar. */
+    footer .wl-stagger__top,
+    footer .wl-stagger__bottom {
+        transition-duration: 0.75s;
+    }
 }
 
 /* ── Directional sweep ──────────────────────────────────────────────── */
