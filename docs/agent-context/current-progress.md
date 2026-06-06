@@ -77,7 +77,9 @@ verify page navigated immediately after `setActive()` instead of waiting for
 Clerk's signed-in state. Railway variables were corrected and Source redeploy
 was triggered; verify page now waits for `useUser().isSignedIn` before routing
 and retries new-user completion when Clerk only requires name/username fields
-after email verification.
+after email verification. Production Clerk also requires a password for new
+email-code sign-ups, so the verify step now exposes a password continuation
+instead of sending users back through sign-in.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /

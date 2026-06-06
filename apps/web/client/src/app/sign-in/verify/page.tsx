@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { BrandLogo } from '@weblab/ui/brand';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@weblab/ui/input-otp';
 
 import { transKeys } from '@/i18n/keys';
@@ -31,6 +32,7 @@ type ClerkSignUpResult = {
     update?: (params: {
         firstName?: string;
         lastName?: string;
+        password?: string;
         username?: string;
     }) => Promise<ClerkSignUpResult>;
 };
@@ -114,7 +116,10 @@ export default function ClerkVerifyPage() {
     })();
 
     const [otp, setOtp] = useState('');
+    const [password, setPassword] = useState('');
+    const [missingSignUpFields, setMissingSignUpFields] = useState<string[]>([]);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [isCompletingPassword, setIsCompletingPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [resendCountdown, setResendCountdown] = useState(initialCountdown);
     const [isResending, setIsResending] = useState(false);
@@ -182,11 +187,90 @@ export default function ClerkVerifyPage() {
         router.replace(pendingRedirectUrl);
     }, [isSignedIn, isUserLoaded, pendingRedirectUrl, router]);
 
+    async function completeVerifiedResult(result: ClerkSignUpResult) {
+        if (result.status !== 'complete') return false;
+        if (!setActive) {
+            setError('Sign-in is not ready yet. Please try again.');
+            return true;
+        }
+        // Clerk's types declare `createdSessionId` as `string | null`.
+        // For a complete email_code flow it's always set, but the guard keeps
+        // us from silently calling setActive with null if Clerk ever regresses
+        // — that would log the user out of any existing session without
+        // creating a new one.
+        if (!result.createdSessionId) {
+            setError('Sign-in did not complete. Please try again.');
+            setOtp('');
+            return true;
+        }
+        try {
+            sessionStorage.removeItem(SIGN_IN_EMAIL_KEY);
+            sessionStorage.removeItem(SIGN_IN_MODE_KEY);
+            // Drop the durable prefill too — the user is now signed in, so the
+            // next visit to /sign-in is presumably a *different* user on this
+            // device.
+            localStorage.removeItem(LAST_USED_EMAIL_KEY);
+        } catch {
+            // best-effort cleanup
+        }
+        await setActive({ session: result.createdSessionId });
+        const safe = sanitizeReturnUrl(returnUrl);
+        // New users land on /profile-setup so they can pick a name; existing
+        // users go straight to projects (or their returnUrl).
+        const fallback = mode === 'sign-up' ? Routes.PROFILE_SETUP : Routes.PROJECTS;
+        const finalReturnUrl = returnUrl && safe !== Routes.HOME ? safe : fallback;
+        setPendingRedirectUrl(finalReturnUrl);
+        return true;
+    }
+
+    async function handlePasswordComplete() {
+        if (!signUp || !email || !missingSignUpFields.includes('password')) return;
+        if (password.length < 8 || isCompletingPassword || pendingRedirectUrl) return;
+        setIsCompletingPassword(true);
+        setError(null);
+        try {
+            const result = await satisfySupportedSignUpRequirements(
+                await signUp.update({ password }),
+                email,
+            );
+            if (await completeVerifiedResult(result)) return;
+
+            if (result.status === 'missing_requirements') {
+                const missingFields = result.missingFields ?? [];
+                setMissingSignUpFields(missingFields);
+                setError(
+                    missingFields.length > 0
+                        ? `This sign-up needs additional information: ${missingFields.join(', ')}.`
+                        : 'This sign-up needs additional information before it can be completed.',
+                );
+                return;
+            }
+
+            router.replace(`/sign-in?reason=${encodeURIComponent(`status:${result.status}`)}`);
+        } catch (err) {
+            type ClerkAPIErrorLike = {
+                errors?: Array<{ message?: string; longMessage?: string }>;
+                message?: string;
+            };
+            const apiErr = err as ClerkAPIErrorLike;
+            const first = apiErr?.errors?.[0];
+            setError(
+                first?.longMessage ??
+                    first?.message ??
+                    apiErr.message ??
+                    'Could not complete sign-up.',
+            );
+        } finally {
+            setIsCompletingPassword(false);
+        }
+    }
+
     async function handleVerify(value: string) {
         if (value.length !== 6 || isVerifying || pendingRedirectUrl) return;
         if (!isLoaded || !signIn || !signUp || !setActive || !email) return;
         setIsVerifying(true);
         setError(null);
+        setMissingSignUpFields([]);
         try {
             // Call the matching Clerk attempt method for the active mode.
             // `signIn.attemptFirstFactor` finalizes an existing user; for new
@@ -203,39 +287,11 @@ export default function ClerkVerifyPage() {
                     ? await satisfySupportedSignUpRequirements(initialResult, email)
                     : initialResult;
 
-            if (result.status === 'complete') {
-                // Clerk's types declare `createdSessionId` as `string | null`.
-                // For a complete email_code flow it's always set, but the
-                // guard keeps us from silently calling setActive with null if
-                // Clerk ever regresses — that would log the user out of any
-                // existing session without creating a new one.
-                if (!result.createdSessionId) {
-                    setError('Sign-in did not complete. Please try again.');
-                    setOtp('');
-                    return;
-                }
-                try {
-                    sessionStorage.removeItem(SIGN_IN_EMAIL_KEY);
-                    sessionStorage.removeItem(SIGN_IN_MODE_KEY);
-                    // Drop the durable prefill too — the user is now signed
-                    // in, so the next visit to /sign-in is presumably a
-                    // *different* user on this device.
-                    localStorage.removeItem(LAST_USED_EMAIL_KEY);
-                } catch {
-                    // best-effort cleanup
-                }
-                await setActive({ session: result.createdSessionId });
-                const safe = sanitizeReturnUrl(returnUrl);
-                // New users land on /profile-setup so they can pick a name;
-                // existing users go straight to projects (or their returnUrl).
-                const fallback = mode === 'sign-up' ? Routes.PROFILE_SETUP : Routes.PROJECTS;
-                const finalReturnUrl = returnUrl && safe !== Routes.HOME ? safe : fallback;
-                setPendingRedirectUrl(finalReturnUrl);
-                return;
-            }
+            if (await completeVerifiedResult(result)) return;
 
             if (mode === 'sign-up' && result.status === 'missing_requirements') {
                 const missingFields = result.missingFields ?? [];
+                setMissingSignUpFields(missingFields);
                 setError(
                     missingFields.length > 0
                         ? `This sign-up needs additional information: ${missingFields.join(', ')}.`
@@ -380,7 +436,11 @@ export default function ClerkVerifyPage() {
                             maxLength={6}
                             value={otp}
                             onChange={handleOtpChange}
-                            disabled={isVerifying || Boolean(pendingRedirectUrl)}
+                            disabled={
+                                isVerifying ||
+                                Boolean(pendingRedirectUrl) ||
+                                missingSignUpFields.includes('password')
+                            }
                         >
                             <InputOTPGroup>
                                 <InputOTPSlot index={0} />
@@ -392,15 +452,40 @@ export default function ClerkVerifyPage() {
                             </InputOTPGroup>
                         </InputOTP>
                         {error && <p className="text-small text-destructive">{error}</p>}
+                        {missingSignUpFields.includes('password') && (
+                            <div className="space-y-3">
+                                <Input
+                                    type="password"
+                                    value={password}
+                                    onChange={(event) => setPassword(event.target.value)}
+                                    autoComplete="new-password"
+                                    placeholder="Create a password"
+                                    disabled={isCompletingPassword || Boolean(pendingRedirectUrl)}
+                                />
+                                <p className="text-mini text-foreground-secondary">
+                                    Create a password to finish setting up this account.
+                                </p>
+                            </div>
+                        )}
                         <Button
                             variant="outline"
                             className="w-full"
-                            onClick={() => void handleVerify(otp)}
+                            onClick={() =>
+                                missingSignUpFields.includes('password')
+                                    ? void handlePasswordComplete()
+                                    : void handleVerify(otp)
+                            }
                             disabled={
-                                otp.length !== 6 || isVerifying || Boolean(pendingRedirectUrl)
+                                missingSignUpFields.includes('password')
+                                    ? password.length < 8 ||
+                                      isCompletingPassword ||
+                                      Boolean(pendingRedirectUrl)
+                                    : otp.length !== 6 ||
+                                      isVerifying ||
+                                      Boolean(pendingRedirectUrl)
                             }
                         >
-                            {isVerifying || pendingRedirectUrl ? (
+                            {isVerifying || isCompletingPassword || pendingRedirectUrl ? (
                                 <>
                                     <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                                     {t(transKeys.welcome.verify.verifying)}
