@@ -81,7 +81,6 @@ import {
     MixerHorizontalIcon,
     MixerVerticalIcon,
     MobileIcon,
-    MoonIcon,
     Pencil1Icon,
     Pencil2Icon,
     PersonIcon,
@@ -123,6 +122,7 @@ import {
     MailXIcon,
     MessageSquareIcon,
     MicIcon,
+    Moon as MoonIcon,
     SquareCheckIcon,
     SquareXIcon,
 } from 'lucide-react';
