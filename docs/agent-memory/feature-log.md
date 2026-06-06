@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-06 — Production auth E2E hardening
+Author: Codex
+Area: auth, production config, E2E QA
+Summary: Ran local and production smoke/E2E coverage across public pages, signed-in dashboard, project creation, editor mode/preview, clone dialog, marketplace, and GitHub import gate. Local blank Next.js creation reached the editor and preview rendered. Production public pages rendered, but email OTP did not produce an authenticated session; root cause was twofold: the verify page navigated immediately after `setActive()` instead of waiting for Clerk's signed-in state, and Railway production still had Clerk/Convex dev selectors. Fixed the verify-page race and corrected Railway production vars (`CLERK_FRONTEND_API_URL` to the production Clerk frontend and `CONVEX_DEPLOYMENT` to the prod Convex deployment), triggering a Source redeploy.
+Files: `apps/web/client/src/app/sign-in/verify/page.tsx`, `BACKLOG.md`, Railway Source production variables
+Links: `docs/agent-context/prod-e2e-testing.md`; BACKLOG entry "Confirm Railway `NEXT_PUBLIC_CONVEX_URL` = prod Convex (`rapid-crab-113`)"
+
 ## 2026-06-05 — Full component catalog (1533) + on-brand scaffold + `shadcn` agent skill
 Author: Claude (Opus 4.8)
 Area: component registry, AI skills (`packages/ai/src/skills`), scaffolder (`packages/code-provider`)

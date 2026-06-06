@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 // See clerk-auth-form.tsx for why we import from the legacy subpath.
 import { useSignIn, useSignUp } from '@clerk/nextjs/legacy';
 import { useTranslations } from 'next-intl';
@@ -43,10 +44,12 @@ export default function ClerkVerifyPage() {
 
     const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
     const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
+    const { isLoaded: isUserLoaded, isSignedIn } = useUser();
     const isLoaded = isSignInLoaded && isSignUpLoaded;
 
     const [email, setEmail] = useState<string | null>(null);
     const [mode, setMode] = useState<ClerkOtpMode>('sign-in');
+    const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
 
     const initialCountdown = (() => {
         if (!sentAt || Number.isNaN(sentAt)) return 0;
@@ -119,8 +122,13 @@ export default function ClerkVerifyPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        if (!pendingRedirectUrl || !isUserLoaded || !isSignedIn) return;
+        router.replace(pendingRedirectUrl);
+    }, [isSignedIn, isUserLoaded, pendingRedirectUrl, router]);
+
     async function handleVerify(value: string) {
-        if (value.length !== 6 || isVerifying) return;
+        if (value.length !== 6 || isVerifying || pendingRedirectUrl) return;
         if (!isLoaded || !signIn || !signUp || !setActive || !email) return;
         setIsVerifying(true);
         setError(null);
@@ -163,7 +171,7 @@ export default function ClerkVerifyPage() {
                 // existing users go straight to projects (or their returnUrl).
                 const fallback = mode === 'sign-up' ? Routes.PROFILE_SETUP : Routes.PROJECTS;
                 const finalReturnUrl = returnUrl && safe !== Routes.HOME ? safe : fallback;
-                router.push(finalReturnUrl);
+                setPendingRedirectUrl(finalReturnUrl);
                 return;
             }
 
@@ -299,7 +307,7 @@ export default function ClerkVerifyPage() {
                             maxLength={6}
                             value={otp}
                             onChange={handleOtpChange}
-                            disabled={isVerifying}
+                            disabled={isVerifying || Boolean(pendingRedirectUrl)}
                         >
                             <InputOTPGroup>
                                 <InputOTPSlot index={0} />
@@ -315,9 +323,11 @@ export default function ClerkVerifyPage() {
                             variant="outline"
                             className="w-full"
                             onClick={() => void handleVerify(otp)}
-                            disabled={otp.length !== 6 || isVerifying}
+                            disabled={
+                                otp.length !== 6 || isVerifying || Boolean(pendingRedirectUrl)
+                            }
                         >
-                            {isVerifying ? (
+                            {isVerifying || pendingRedirectUrl ? (
                                 <>
                                     <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                                     {t(transKeys.welcome.verify.verifying)}

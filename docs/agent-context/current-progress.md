@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-06-05.
+Last updated: 2026-06-06.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the
@@ -67,6 +67,15 @@ creation opened editor sandboxes with preview frames; clone-from-URL returned
 `/api/chat` 200 and Startd preview returned HTTP 200 directly. Production E2E
 requires a live deployment of these local fixes plus a production auth session;
 see `docs/agent-context/prod-e2e-testing.md`.
+
+**Production E2E update 2026-06-06:** local signed-in dashboard, blank Next.js
+creation, editor mode switch, preview, clone dialog, marketplace, and GitHub
+import gate were re-smoked. Production public pages rendered, but email OTP
+auth exposed two issues: Railway Source had the production Clerk publishable key
+while `CLERK_FRONTEND_API_URL` still pointed at the dev Clerk frontend, and the
+verify page navigated immediately after `setActive()` instead of waiting for
+Clerk's signed-in state. Railway variables were corrected and Source redeploy
+was triggered; verify page now waits for `useUser().isSignedIn` before routing.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /
