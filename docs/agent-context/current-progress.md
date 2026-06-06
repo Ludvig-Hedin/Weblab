@@ -75,7 +75,9 @@ auth exposed two issues: Railway Source had the production Clerk publishable key
 while `CLERK_FRONTEND_API_URL` still pointed at the dev Clerk frontend, and the
 verify page navigated immediately after `setActive()` instead of waiting for
 Clerk's signed-in state. Railway variables were corrected and Source redeploy
-was triggered; verify page now waits for `useUser().isSignedIn` before routing.
+was triggered; verify page now waits for `useUser().isSignedIn` before routing
+and retries new-user completion when Clerk only requires name/username fields
+after email verification.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /

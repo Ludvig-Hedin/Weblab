@@ -24,10 +24,66 @@ const RESEND_COOLDOWN_MS = RESEND_COOLDOWN * 1000;
 const SIGN_IN_EMAIL_KEY = 'weblab-clerk-sign-in-email';
 const SIGN_IN_MODE_KEY = 'weblab-clerk-sign-in-mode';
 type ClerkOtpMode = 'sign-in' | 'sign-up';
+type ClerkSignUpResult = {
+    status: string | null;
+    createdSessionId: string | null;
+    missingFields?: string[];
+    update?: (params: {
+        firstName?: string;
+        lastName?: string;
+        username?: string;
+    }) => Promise<ClerkSignUpResult>;
+};
 // Cross-tab durable key written by the same form on send. We don't clear it
 // on session-end; only on successful verify, when the user has clearly
 // committed to this email and we don't need to keep it staged any more.
 const LAST_USED_EMAIL_KEY = 'weblab-clerk-last-email';
+
+function getEmailNameParts(emailAddress: string) {
+    const [rawLocalPart] = emailAddress.split('@');
+    const localPart = rawLocalPart?.trim() || 'weblab-user';
+    const words = localPart
+        .replace(/[._+-]+/g, ' ')
+        .split(/\s+/)
+        .map((word) => word.replace(/[^a-zA-Z0-9]/g, ''))
+        .filter(Boolean);
+    const [firstWord, ...rest] = words;
+    const fallback = 'Weblab';
+    const capitalize = (word: string) =>
+        word ? word.charAt(0).toUpperCase() + word.slice(1, 32).toLowerCase() : fallback;
+
+    return {
+        firstName: capitalize(firstWord ?? fallback),
+        lastName: rest.length > 0 ? rest.map(capitalize).join(' ') : 'User',
+        username: localPart
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^[_-]+|[_-]+$/g, '')
+            .slice(0, 32),
+    };
+}
+
+async function satisfySupportedSignUpRequirements(result: ClerkSignUpResult, emailAddress: string) {
+    const missingFields = result.missingFields ?? [];
+    if (result.status !== 'missing_requirements' || missingFields.length === 0 || !result.update) {
+        return result;
+    }
+
+    const supportedFields = new Set(['first_name', 'last_name', 'username']);
+    const unsupportedFields = missingFields.filter((field) => !supportedFields.has(field));
+    if (unsupportedFields.length > 0) {
+        return result;
+    }
+
+    const params: Parameters<NonNullable<ClerkSignUpResult['update']>>[0] = {};
+    const nameParts = getEmailNameParts(emailAddress);
+    if (missingFields.includes('first_name')) params.firstName = nameParts.firstName;
+    if (missingFields.includes('last_name')) params.lastName = nameParts.lastName;
+    if (missingFields.includes('username')) params.username = nameParts.username || 'weblab_user';
+
+    return result.update(params);
+}
 
 /**
  * Clerk-backed OTP verify page. Mirrors the Supabase /login/verify layout so
@@ -135,13 +191,17 @@ export default function ClerkVerifyPage() {
             // Call the matching Clerk attempt method for the active mode.
             // `signIn.attemptFirstFactor` finalizes an existing user; for new
             // signups Clerk uses `signUp.attemptEmailAddressVerification`.
-            const result =
+            const initialResult =
                 mode === 'sign-up'
                     ? await signUp.attemptEmailAddressVerification({ code: value })
                     : await signIn.attemptFirstFactor({
                           strategy: 'email_code',
                           code: value,
                       });
+            const result =
+                mode === 'sign-up'
+                    ? await satisfySupportedSignUpRequirements(initialResult, email)
+                    : initialResult;
 
             if (result.status === 'complete') {
                 // Clerk's types declare `createdSessionId` as `string | null`.
@@ -174,11 +234,22 @@ export default function ClerkVerifyPage() {
                 return;
             }
 
+            if (mode === 'sign-up' && result.status === 'missing_requirements') {
+                const missingFields = result.missingFields ?? [];
+                setError(
+                    missingFields.length > 0
+                        ? `This sign-up needs additional information: ${missingFields.join(', ')}.`
+                        : 'This sign-up needs additional information before it can be completed.',
+                );
+                setOtp('');
+                return;
+            }
+
             // Non-'complete' statuses on email_code mean a second factor was
             // required (MFA enrolled mid-flow), the identifier was abandoned,
             // or Clerk needs a step we don't support yet. Don't leave the user
             // on a dead-end "contact support" screen — bounce back to /sign-in
-            // so they can restart. Log status server-side via the URL hash so
+            // so they can restart. Log status server-side via the URL param so
             // ops can grep for it if it ever fires in production.
             router.replace(`/sign-in?reason=${encodeURIComponent(`status:${result.status}`)}`);
             return;
