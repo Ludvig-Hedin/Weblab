@@ -58,6 +58,7 @@ COPY packages/constants/package.json       ./packages/constants/
 COPY packages/db/package.json              ./packages/db/
 COPY packages/email/package.json           ./packages/email/
 COPY packages/figma/package.json           ./packages/figma/
+COPY packages/figma-clipboard/package.json ./packages/figma-clipboard/
 COPY packages/figma-plugin/package.json    ./packages/figma-plugin/
 COPY packages/file-system/package.json     ./packages/file-system/
 COPY packages/fonts/package.json           ./packages/fonts/
