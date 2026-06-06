@@ -189,10 +189,16 @@ export default function ClerkVerifyPage() {
         } catch (err) {
             type ClerkAPIErrorLike = {
                 errors?: Array<{ message?: string; longMessage?: string }>;
+                message?: string;
             };
             const apiErr = err as ClerkAPIErrorLike;
             const first = apiErr?.errors?.[0];
-            setError(first?.longMessage ?? first?.message ?? 'Verification failed.');
+            setError(
+                first?.longMessage ??
+                    first?.message ??
+                    apiErr.message ??
+                    'Verification failed.',
+            );
             setOtp('');
         } finally {
             setIsVerifying(false);
