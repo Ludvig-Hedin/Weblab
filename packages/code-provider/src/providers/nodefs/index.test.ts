@@ -41,7 +41,8 @@ function installMockBridge(seed: Record<string, string> = {}) {
                 };
             },
             async stat(_root: string, path: string) {
-                if (path in files) return { type: 'file' as const, size: files[path].length };
+                if (path in files)
+                    return { type: 'file' as const, size: (files[path] ?? '').length };
                 return { error: 'not_found', notFound: true };
             },
             async mkdir() {
@@ -52,12 +53,12 @@ function installMockBridge(seed: Record<string, string> = {}) {
                 return { success: true };
             },
             async rename(_root: string, oldPath: string, newPath: string) {
-                files[newPath] = files[oldPath];
+                files[newPath] = files[oldPath] ?? '';
                 delete files[oldPath];
                 return { success: true };
             },
             async copy(_root: string, src: string, dst: string) {
-                files[dst] = files[src];
+                files[dst] = files[src] ?? '';
                 return { success: true };
             },
             async watchStart() {
@@ -94,11 +95,12 @@ function installMockBridge(seed: Record<string, string> = {}) {
                 return { output: '', exitCode: 0 };
             },
             onOutput() {
-                return () => {};
+                return () => undefined;
             },
         },
     };
-    (globalThis as unknown as { weblabNative?: AnyBridge }).weblabNative = bridge as unknown as AnyBridge;
+    (globalThis as unknown as { weblabNative?: AnyBridge }).weblabNative =
+        bridge as unknown as AnyBridge;
     return bridge;
 }
 
@@ -122,7 +124,9 @@ describe('NodeFsProvider (local-first)', () => {
     test('readFile surfaces a clear not-found error', async () => {
         installMockBridge({});
         const p = new NodeFsProvider({ rootPath: '/proj' });
-        await expect(p.readFile({ args: { path: 'missing.ts' } })).rejects.toThrow(/File not found/);
+        await expect(p.readFile({ args: { path: 'missing.ts' } })).rejects.toThrow(
+            /File not found/,
+        );
     });
 
     test('listFiles returns top-level entries', async () => {
@@ -149,7 +153,9 @@ describe('NodeFsProvider (local-first)', () => {
     test('missing rootPath throws a clear error', async () => {
         installMockBridge({});
         const p = new NodeFsProvider({ rootPath: null });
-        await expect(p.writeFile({ args: { path: 'x', content: 'y' } })).rejects.toThrow(/rootPath/);
+        await expect(p.writeFile({ args: { path: 'x', content: 'y' } })).rejects.toThrow(
+            /rootPath/,
+        );
     });
 
     test('off-desktop (no bridge) throws a clear error', async () => {
@@ -181,10 +187,9 @@ describe('NodeFsProvider (local-first)', () => {
     test('dev task open() boots the local dev server', async () => {
         const bridge = installMockBridge({});
         let startCalls = 0;
-        const origStart = bridge.localdev.start;
         bridge.localdev.start = async () => {
             startCalls += 1;
-            return origStart();
+            return { port: 4321, url: 'http://localhost:4321' };
         };
         const p = new NodeFsProvider({ rootPath: '/proj', port: 4321 });
         const { task } = await p.getTask({ args: { id: 'dev' } });
@@ -196,10 +201,9 @@ describe('NodeFsProvider (local-first)', () => {
     test('setup() boots the dev server (no hardcoded npm install)', async () => {
         const bridge = installMockBridge({});
         let startCalls = 0;
-        const origStart = bridge.localdev.start;
         bridge.localdev.start = async () => {
             startCalls += 1;
-            return origStart();
+            return { port: 4321, url: 'http://localhost:4321' };
         };
         const p = new NodeFsProvider({ rootPath: '/proj' });
         await p.setup({});
