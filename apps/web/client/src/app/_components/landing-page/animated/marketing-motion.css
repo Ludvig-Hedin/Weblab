@@ -116,6 +116,21 @@
     color: var(--background);
 }
 
+/* Primary (invert) CTAs resolve to an *outlined* button on hover instead of a
+ * borderless filled pill: the sweep reveals the page background, the label
+ * flips to the foreground, and a hairline foreground border fades in. The
+ * border is transparent at rest; with border-box the box size is identical, so
+ * there is no layout shift on hover. */
+.wl-tone-invert.wl-sweep-btn {
+    border: 1px solid transparent;
+    transition: border-color 0.25s cubic-bezier(0.625, 0.05, 0, 1);
+}
+
+.wl-tone-invert.wl-sweep-btn:hover,
+.wl-tone-invert.wl-sweep-btn:focus-visible {
+    border-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+
 /* The fill itself is NOT gated: the button's label color flips on hover, so
  * the sweep must always cover the surface to keep that text readable. Only the
  * smooth scaling transition is reserved for users who allow motion — reduced
