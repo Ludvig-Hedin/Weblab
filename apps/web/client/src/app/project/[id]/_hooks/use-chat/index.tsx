@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { useConvex } from 'convex/react';
 import { usePostHog } from 'posthog-js/react';
+import { flushSync } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
 
 import type {
@@ -230,7 +231,12 @@ export function useChat({
                 messageContext,
                 conversationId,
             );
-            setMessages(jsonClone([...messagesRef.current, newMessage]));
+            const nextMessages = jsonClone([...messagesRef.current, newMessage]);
+
+            flushSync(() => {
+                setMessages(nextMessages);
+            });
+            messagesRef.current = nextMessages;
 
             void regenerate({
                 body: {

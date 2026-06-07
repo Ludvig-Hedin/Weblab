@@ -62,6 +62,19 @@ export function fromConvexProject(doc: ConvexProjectDoc): Project {
     return {
         id: doc._id,
         name: doc.name,
+        metadata: {
+            createdAt: new Date(doc._creationTime),
+            updatedAt: new Date(doc.updatedAt),
+            previewImg: doc.previewImg
+                ? { type: 'url', url: doc.previewImg, updatedAt: new Date(doc.updatedAt) }
+                : null,
+            description: doc.description ?? null,
+            tags: doc.tags ?? [],
+            storageMode: doc.storageMode ?? 'cloud',
+            runtime: doc.runtimeMetadata ?? { framework: 'nextjs' },
+        },
+        // Legacy aliases retained for editor surfaces that still read the
+        // pre-Project.metadata shape during the Convex migration.
         description: doc.description ?? null,
         createdAt: new Date(doc._creationTime),
         updatedAt: new Date(doc.updatedAt),
@@ -71,7 +84,7 @@ export function fromConvexProject(doc: ConvexProjectDoc): Project {
         runtimeMetadata: doc.runtimeMetadata ?? { framework: 'nextjs' },
         // Legacy access mode strings; the editor only branches on
         // 'private' vs 'workspace' vs 'public'.
-        accessMode: (doc.accessMode ?? 'workspace') as never,
+        accessMode: doc.accessMode ?? 'workspace',
         storageMode: (doc.storageMode ?? 'cloud') as never,
         tags: doc.tags ?? [],
         workspaceId: doc.workspaceId ?? null,

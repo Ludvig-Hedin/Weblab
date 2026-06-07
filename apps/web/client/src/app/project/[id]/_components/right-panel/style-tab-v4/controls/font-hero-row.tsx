@@ -38,7 +38,7 @@ export function FontHeroRow({ family, onClick, sampleWeight = 500, className }: 
         >
             <span
                 aria-hidden
-                className="bg-foreground/[0.04] inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[6px] text-[14px] leading-none"
+                className="bg-foreground/[0.04] inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[6px] text-sm leading-none"
                 style={{ fontFamily: family || 'inherit', fontWeight: sampleWeight }}
             >
                 Aa
