@@ -15,29 +15,53 @@ interface DesktopHandoffClientProps {
  *
  * Why a client component (vs. a server-side redirect): Next.js' `redirect()`
  * sends an HTTP 3xx pointing at the `weblab://` URL, and most browsers refuse
- * to follow a cross-scheme 3xx. Setting `window.location.href` inside the
- * page is the pattern that reliably triggers the OS protocol handler.
+ * to follow a cross-scheme 3xx. A client-side scheme launch — a hidden iframe,
+ * with a `window.location.href` fallback — is the pattern that reliably
+ * triggers the OS protocol handler while keeping this page on screen.
  */
 export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
     const [retried, setRetried] = useState(false);
 
     useEffect(() => {
-        // Fire the protocol redirect on mount. We wrap in `setTimeout(0)` so
-        // the initial paint commits first — without it, some browsers swallow
-        // the protocol launch (no user gesture associated with the
-        // navigation) and the user lands on a blank tab with no feedback.
-        //
-        // TODO(bug-hunt): no detection / fallback if `weblab://` isn't
-        // registered (user uninstalled the desktop app, browser blocks
-        // unknown schemes). User stays on the spinner forever; only escape is
-        // the manual "Open Weblab" button. Consider a ~3-5s timeout with a
-        // "Don't have Weblab desktop? Download here" fallback. See
-        // CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 — Desktop auth".
         const deepLink = `weblab://auth/handoff?ticket=${encodeURIComponent(ticket)}`;
-        const id = window.setTimeout(() => {
-            window.location.href = deepLink;
+
+        // Launch the desktop app WITHOUT navigating this tab away. Assigning
+        // `window.location.href = 'weblab://…'` works, but most browsers blank
+        // the tab to about:blank while the OS resolves the handler — so the
+        // user stares at an empty page (worse when handler resolution is slow,
+        // e.g. an unpackaged dev build). Triggering the scheme through a hidden
+        // iframe keeps the "Finishing sign-in…" UI visible in Chromium/Firefox.
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        // setTimeout(0) so the first paint commits before we touch the DOM —
+        // some browsers swallow a protocol launch fired during initial render.
+        const mountId = window.setTimeout(() => {
+            iframe.src = deepLink;
+            document.body.appendChild(iframe);
         }, 0);
-        return () => window.clearTimeout(id);
+
+        // Safari ignores custom-scheme iframe navigations, so fall back to a
+        // top-level navigation — but only while this tab still has focus. Once
+        // the OS "Open Weblab?" prompt appears (the Chromium path), focus
+        // leaves the document, so we skip the fallback to avoid blanking the
+        // page or launching the handler twice.
+        const fallbackId = window.setTimeout(() => {
+            if (document.visibilityState === 'visible' && document.hasFocus()) {
+                window.location.href = deepLink;
+            }
+        }, 1200);
+
+        // TODO(bug-hunt): no detection / fallback if `weblab://` isn't
+        // registered (user uninstalled the desktop app, browser blocks unknown
+        // schemes). User stays on the spinner; only escape is the manual
+        // "Open Weblab" button. Consider a ~3-5s timeout with a "Don't have
+        // Weblab desktop? Download here" fallback. See CODE_REVIEW_BACKLOG.md →
+        // "Bug Hunt 2026-05-28 — Desktop auth".
+        return () => {
+            window.clearTimeout(mountId);
+            window.clearTimeout(fallbackId);
+            iframe.remove();
+        };
     }, [ticket]);
 
     function manualRetry() {
@@ -51,20 +75,20 @@ export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
             <div className="flex w-full max-w-md flex-col items-center gap-8 px-6 text-center">
                 <BrandLogo className="h-5" />
                 <div className="space-y-2">
-                    <h1 className="text-title2 leading-tight">Returning to Weblab…</h1>
+                    <h1 className="text-title2 leading-tight">Finishing sign-in…</h1>
                     <p className="text-foreground-secondary text-regular">
-                        Your browser is handing sign-in back to the desktop app.
+                        Taking you back to the Weblab app.
                     </p>
                 </div>
                 <p className="text-foreground-tertiary text-small">
-                    If the desktop window didn&apos;t come forward, click below.
+                    Didn&apos;t switch back automatically?
                 </p>
                 <button
                     type="button"
                     onClick={manualRetry}
                     className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
                 >
-                    {retried ? 'Open Weblab again' : 'Open Weblab'}
+                    {retried ? 'Try again' : 'Open Weblab'}
                 </button>
             </div>
         </div>

@@ -57,7 +57,7 @@ function HandoffErrorScreen({ message }: { message: string }) {
             <div className="flex w-full max-w-md flex-col items-center gap-8 px-6 text-center">
                 <BrandLogo className="h-5" />
                 <div className="space-y-2">
-                    <h1 className="text-title2 leading-tight">Sign-in handoff failed</h1>
+                    <h1 className="text-title2 leading-tight">Couldn&apos;t finish sign-in</h1>
                     <p className="text-foreground-secondary text-regular">{message}</p>
                 </div>
                 <Link

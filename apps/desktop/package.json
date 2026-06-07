@@ -29,6 +29,13 @@
         "appId": "com.weblab.desktop",
         "productName": "Weblab",
         "copyright": "Copyright © 2025-2026 Weblab",
+        "protocols": [
+            {
+                "name": "Weblab",
+                "schemes": ["weblab"],
+                "role": "Viewer"
+            }
+        ],
         "directories": {
             "output": "dist"
         },
