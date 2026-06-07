@@ -72,7 +72,6 @@ const DEFAULTS: Record<ChatType, Models> = {
  */
 const PREMIUM_MODELS = new Set<Models>([
     OPENROUTER_MODELS.CLAUDE_OPUS_4_8,
-    OPENROUTER_MODELS.CLAUDE_OPUS_4_7,
     OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
 ]);
 

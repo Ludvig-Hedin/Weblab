@@ -50,13 +50,13 @@ const MODEL_DESCRIPTIONS: Record<string, string> = {
     'openai/gpt-5.5': 'Best for deep research and complex knowledge work',
     'anthropic/claude-sonnet-4.6': 'Excels at coding and complex reasoning',
     'anthropic/claude-opus-4.8': 'Most capable Claude for the hardest tasks',
-    'anthropic/claude-opus-4.7': 'Maximum intelligence for complex tasks',
     'google/gemini-3.1-pro-preview': "Google's latest flagship model",
     'deepseek/deepseek-v4-pro': 'High performance open-source reasoning model',
     'moonshotai/kimi-k2.6': 'Efficient model for coding and analysis',
 };
 
-function cloudProviderIconName(modelId: string): string {
+function cloudProviderIconName(modelId: string | undefined): string {
+    if (!modelId) return 'Sparkles';
     if (modelId.startsWith('anthropic/')) return 'ClaudeLogo';
     if (modelId.startsWith('openai/')) return 'OpenAiLogo';
     if (modelId.startsWith('google/')) return 'GeminiMonoLogo';
@@ -74,7 +74,7 @@ function StatusPill({ status }: { status: ProviderStatus }) {
               ? 'Sign in'
               : 'Desktop only';
     return (
-        <span className="text-foreground-tertiary ml-auto pl-2 text-[10px] font-normal whitespace-nowrap">
+        <span className="text-foreground-tertiary ml-auto pl-2 text-tiny font-normal whitespace-nowrap">
             {label}
         </span>
     );
@@ -336,7 +336,7 @@ export const ModelSelectorV2 = ({
                                 const models = ready ? modelsForEntry(entry, status) : [];
 
                                 const groupClass =
-                                    '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
+                                    '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-tiny [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
 
                                 if (loading) {
                                     return (

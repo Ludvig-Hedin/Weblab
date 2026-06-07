@@ -39,7 +39,6 @@ export type ResolvedProvider = 'openrouter' | 'ollama' | 'anthropic-direct';
  */
 const ANTHROPIC_DIRECT_MODEL_MAP: Record<string, string> = {
     'anthropic/claude-opus-4.8': 'claude-opus-4-8',
-    'anthropic/claude-opus-4.7': 'claude-opus-4-7',
     'anthropic/claude-sonnet-4.6': 'claude-sonnet-4-6',
     'anthropic/claude-3.5-haiku': 'claude-3-5-haiku-latest',
 };

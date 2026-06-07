@@ -39,12 +39,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
         cacheCreationUsdPerMTok: 18.75,
         cacheReadUsdPerMTok: 1.5,
     },
-    [OPENROUTER_MODELS.CLAUDE_OPUS_4_7]: {
-        inputUsdPerMTok: 15,
-        outputUsdPerMTok: 75,
-        cacheCreationUsdPerMTok: 18.75,
-        cacheReadUsdPerMTok: 1.5,
-    },
     [OPENROUTER_MODELS.CLAUDE_SONNET_4_6]: {
         inputUsdPerMTok: 3,
         outputUsdPerMTok: 15,
