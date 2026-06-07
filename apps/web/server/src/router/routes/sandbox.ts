@@ -108,10 +108,19 @@ export const sandboxRouter = router({
         }),
 
     setup: publicProcedure
-        .input(z.object({ sandboxId: z.string() }))
+        .input(
+            z.object({
+                sandboxId: z.string(),
+                port: z.number().int().positive().max(65_535).optional(),
+                devCommand: z.string().trim().min(1).optional(),
+            }),
+        )
         .mutation(async ({ input, ctx }) => {
             requireUserId(ctx);
-            await sandbox.setup(input.sandboxId);
+            await sandbox.setup(input.sandboxId, {
+                port: input.port,
+                devCommand: input.devCommand,
+            });
             return { success: true };
         }),
 });

@@ -10,6 +10,7 @@ import type {
 } from '@weblab/models';
 import {
     WEBLAB_INTERACTIONS_CACHE_PATH,
+    WEBLAB_INTERACTIONS_PUBLIC_DIR,
     WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_PATH,
     WEBLAB_INTERACTIONS_PUBLIC_PATH,
     WEBLAB_INTERACTIONS_STATIC_HTML_INITIAL_CSS_PATH,
@@ -28,6 +29,23 @@ import {
 
 import type { EditorEngine } from '../engine';
 import { emitInitialCss } from './css-emitter';
+
+async function ensurePublicInteractionsDir(codeEditor: {
+    createDirectory(path: string): Promise<void>;
+}): Promise<void> {
+    try {
+        await codeEditor.createDirectory(WEBLAB_INTERACTIONS_PUBLIC_DIR);
+    } catch (err) {
+        // "Already exists" may surface as a Node `EEXIST` code or — via the
+        // sandbox provider — as a wrapped error whose only signal is the
+        // message. Accept both so directory creation stays idempotent.
+        const code = (err as { code?: unknown } | undefined)?.code;
+        const message = err instanceof Error ? err.message : String(err);
+        if (code !== 'EEXIST' && !/EEXIST|file exists/i.test(message)) {
+            throw err;
+        }
+    }
+}
 
 export class InteractionsManager {
     private _doc: InteractionsDocument = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
@@ -142,18 +160,15 @@ export class InteractionsManager {
         const branchData = this.editorEngine.branches.activeBranchData;
         const codeEditor = branchData?.codeEditor;
         if (!codeEditor) return;
-        let needsPublicSeed = false;
         try {
             const raw = await codeEditor.readFile(WEBLAB_INTERACTIONS_CACHE_PATH);
             if (typeof raw !== 'string' || raw.trim().length === 0) {
                 this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
-                needsPublicSeed = true;
             } else {
                 const parsed = JSON.parse(raw) as InteractionsDocument;
                 if (parsed.version !== 1 || !Array.isArray(parsed.interactions)) {
                     console.warn('[InteractionsManager] Unsupported document shape');
                     this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
-                    needsPublicSeed = true;
                 } else {
                     this._doc = parsed;
                 }
@@ -161,32 +176,23 @@ export class InteractionsManager {
         } catch {
             // No file yet — empty doc.
             this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
-            needsPublicSeed = true;
         }
 
-        // CSB BLANK template ships without `public/_weblab/interactions.json`,
-        // so every fresh sandbox preview burns repeated 404s on the IX runtime
-        // fetch until the user creates their first interaction. Seed the public
-        // path with the empty document on first load so the runtime gets a
-        // clean 200 instead. Best-effort — a write failure is harmless (the
-        // runtime treats 404 as "no interactions").
-        if (needsPublicSeed) {
-            try {
-                const emptyJson = JSON.stringify(EMPTY_INTERACTIONS_DOCUMENT, null, 2);
-                await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_PATH, emptyJson);
-            } catch (err) {
-                // EEXIST is normal when `public/` already exists in the
-                // template (the underlying recursive-mkdir collides). The
-                // runtime still treats a 404 on the JSON as "no interactions"
-                // so this is purely best-effort. Only log unexpected errors.
-                const message = err instanceof Error ? err.message : String(err);
-                if (!/EEXIST|file exists/i.test(message)) {
-                    console.warn(
-                        '[InteractionsManager] Failed to seed empty interactions.json:',
-                        err,
-                    );
-                }
-            }
+        // Fresh and AI-generated projects can miss the publicly-served mirror,
+        // which makes every preview iframe report 404s while the runtime looks
+        // for interactions. Recreate the mirror from the cache on load.
+        // Best-effort — a write failure is harmless because the runtime treats
+        // 404 as "no interactions".
+        try {
+            const json = JSON.stringify(this._doc, null, 2);
+            await ensurePublicInteractionsDir(codeEditor);
+            await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_PATH, json);
+            await codeEditor.writeFile(
+                WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_PATH,
+                emitInitialCss(this._doc),
+            );
+        } catch (err) {
+            console.warn('[InteractionsManager] Failed to seed interactions runtime files:', err);
         }
     }
 
@@ -435,6 +441,7 @@ export class InteractionsManager {
                     initialCss,
                 );
             } else {
+                await ensurePublicInteractionsDir(codeEditor);
                 await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_PATH, json);
                 await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_PATH, initialCss);
             }

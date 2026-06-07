@@ -232,28 +232,55 @@ export async function injectPreloadScriptIntoStaticHtml(provider: Provider): Pro
     const original = response.file.content;
     const preloadAlready = original.includes(STATIC_HTML_PRELOAD_MARKER);
     const ixAlready = original.includes(STATIC_HTML_IX_RUNTIME_MARKER);
+    // "Needs module" === a marker tag exists with NO `type=` attribute (the old
+    // `defer`-only shape we used to inject). The predicate is kept identical to
+    // the replacement regex below so detection can never flag a tag the replace
+    // step then no-ops on (which previously caused a redundant rewrite + write).
+    // A marker tag carrying a non-module `type` is never produced by our own
+    // injector, so it is intentionally out of scope.
+    const preloadNeedsModule =
+        preloadAlready &&
+        /<script\b(?=[^>]*data-weblab-preload=["']?1["']?)(?![^>]*\btype=)[^>]*>/i.test(original);
+    const ixNeedsModule =
+        ixAlready &&
+        /<script\b(?=[^>]*data-weblab-ix-runtime=["']?1["']?)(?![^>]*\btype=)[^>]*>/i.test(original);
 
-    if (preloadAlready && ixAlready) {
+    if (preloadAlready && ixAlready && !preloadNeedsModule && !ixNeedsModule) {
         return;
     }
 
-    const preloadTag = `<script defer src="/${STATIC_HTML_PRELOAD_FILENAME}" ${STATIC_HTML_PRELOAD_MARKER}></script>`;
-    const ixTag = `<script defer src="/${STATIC_HTML_IX_RUNTIME_FILENAME}" data-interactions-src="/${WEBLAB_INTERACTIONS_STATIC_HTML_PATH}" ${STATIC_HTML_IX_RUNTIME_MARKER}></script>`;
+    const preloadTag = `<script type="module" src="/${STATIC_HTML_PRELOAD_FILENAME}" ${STATIC_HTML_PRELOAD_MARKER}></script>`;
+    const ixTag = `<script type="module" src="/${STATIC_HTML_IX_RUNTIME_FILENAME}" data-interactions-src="/${WEBLAB_INTERACTIONS_STATIC_HTML_PATH}" ${STATIC_HTML_IX_RUNTIME_MARKER}></script>`;
 
     const tagsToInject = [preloadAlready ? null : preloadTag, ixAlready ? null : ixTag]
         .filter((s): s is string => Boolean(s))
         .join('\n    ');
 
-    let modified: string;
-    if (/<\/head\s*>/i.test(original)) {
-        modified = original.replace(/<\/head\s*>/i, `    ${tagsToInject}\n  </head>`);
-    } else if (/<body[\s>]/i.test(original)) {
-        modified = original.replace(
-            /<body([\s>])/i,
-            `<head>\n    ${tagsToInject}\n  </head>\n<body$1`,
+    let modified = original;
+    if (preloadNeedsModule) {
+        modified = modified.replace(
+            /<script\b(?=[^>]*data-weblab-preload=["']?1["']?)(?![^>]*\btype=)([^>]*)>/i,
+            '<script type="module"$1>',
         );
-    } else {
-        modified = `${tagsToInject}\n${original}`;
+    }
+    if (ixNeedsModule) {
+        modified = modified.replace(
+            /<script\b(?=[^>]*data-weblab-ix-runtime=["']?1["']?)(?![^>]*\btype=)([^>]*)>/i,
+            '<script type="module"$1>',
+        );
+    }
+
+    if (!preloadAlready || !ixAlready) {
+        if (/<\/head\s*>/i.test(modified)) {
+            modified = modified.replace(/<\/head\s*>/i, `    ${tagsToInject}\n  </head>`);
+        } else if (/<body[\s>]/i.test(modified)) {
+            modified = modified.replace(
+                /<body([\s>])/i,
+                `<head>\n    ${tagsToInject}\n  </head>\n<body$1`,
+            );
+        } else {
+            modified = `${tagsToInject}\n${modified}`;
+        }
     }
 
     await provider.writeFile({

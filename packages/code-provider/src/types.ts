@@ -263,6 +263,9 @@ export abstract class Provider {
         branch: string;
         subpath?: string;
         privacy?: 'public' | 'unlisted' | 'private';
+        port?: number;
+        devCommand?: string;
+        framework?: ScaffoldFramework;
     }): Promise<CreateProjectOutput> {
         throw new Error('createProjectFromGit must be implemented by subclass');
     }
@@ -283,6 +286,7 @@ export interface StaticProvider {
         privacy?: 'public' | 'unlisted' | 'private';
         port?: number;
         devCommand?: string;
+        framework?: ScaffoldFramework;
     }): Promise<CreateProjectOutput>;
 }
 

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 import type { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
@@ -17,6 +19,51 @@ import type { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify'
 // a missing/invalid token fails that specific call rather than breaking the
 // whole WS connection (and the unrelated components router).
 
+const LOCAL_ENV_KEYS = new Set([
+    'CLERK_JWT_ISSUER_DOMAIN',
+    'VERCEL_TEAM_ID',
+    'VERCEL_PROJECT_ID',
+    'VERCEL_TOKEN',
+]);
+
+function loadLocalEnvFile(filePath: string): void {
+    if (!existsSync(filePath)) return;
+    const content = readFileSync(filePath, 'utf8');
+    for (const rawLine of content.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line);
+        if (!match) continue;
+        const [, key, rawValue] = match;
+        if (!key || rawValue === undefined) continue;
+        if (!LOCAL_ENV_KEYS.has(key)) continue;
+        if (process.env[key] !== undefined) continue;
+        // Only strip an inline `# comment` from UNQUOTED values — a quoted value
+        // may legitimately contain `#`. Unquote afterward so quotes survive
+        // comment handling (stripping before unquoting would corrupt `"a # b"`).
+        const trimmedValue = rawValue.trim();
+        const isQuoted = /^(['"]).*\1$/.test(trimmedValue);
+        const cleaned = isQuoted
+            ? trimmedValue
+            : rawValue.replace(/\s+#.*$/, '').trim();
+        process.env[key] = cleaned.replace(/^(['"])(.*)\1$/, '$2');
+    }
+}
+
+if (process.env.NODE_ENV !== 'production') {
+    const cwd = process.cwd();
+    const candidates = [
+        path.join(cwd, '.env.local'),
+        path.join(cwd, 'apps/web/client/.env.local'),
+        path.join(cwd, '../client/.env.local'),
+        path.join(cwd, '../../..', '.env.local'),
+        path.join(cwd, '../../..', 'apps/web/client/.env.local'),
+    ];
+    for (const candidate of candidates) {
+        loadLocalEnvFile(path.resolve(candidate));
+    }
+}
+
 const issuerDomain = process.env.CLERK_JWT_ISSUER_DOMAIN?.replace(/\/$/, '');
 
 // Lazily-built remote JWKS (cached internally by jose). Null when the issuer
@@ -30,13 +77,32 @@ export interface User {
     name: string[] | string;
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function logAuthDebug(message: string, detail?: unknown): void {
+    if (isProduction) return;
+    if (detail === undefined) {
+        console.warn(`[sandbox-auth] ${message}`);
+        return;
+    }
+    console.warn(`[sandbox-auth] ${message}`, detail);
+}
+
 async function resolveUserId(token: string | undefined): Promise<string | null> {
-    if (!token || !jwks || !issuerDomain) return null;
+    if (!token) {
+        logAuthDebug('missing token');
+        return null;
+    }
+    if (!jwks || !issuerDomain) {
+        logAuthDebug('missing Clerk issuer/JWKS config');
+        return null;
+    }
     try {
         const { payload } = await jwtVerify(token, jwks, { issuer: issuerDomain });
         return typeof payload.sub === 'string' ? payload.sub : null;
-    } catch {
+    } catch (err) {
         // Invalid / expired / wrong-issuer token → treat as unauthenticated.
+        logAuthDebug('token verification failed', err instanceof Error ? err.message : String(err));
         return null;
     }
 }

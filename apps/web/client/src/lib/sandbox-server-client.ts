@@ -24,14 +24,41 @@ import type { AppRouter } from '@weblab/web-server/src/router';
 import { env } from '@/env';
 
 let cachedClient: ReturnType<typeof createTRPCClient<AppRouter>> | null = null;
+let cachedWsClient: ReturnType<typeof createWSClient> | null = null;
 let cachedTokenFetcher: (() => Promise<string | null>) | null = null;
+let resolveAuthReady: (() => void) | null = null;
+const authReadyPromise = new Promise<void>((resolve) => {
+    resolveAuthReady = resolve;
+});
+
+function markAuthReady(): void {
+    resolveAuthReady?.();
+}
+
+async function waitForAuthReady(): Promise<void> {
+    if (cachedTokenFetcher !== null) return;
+    await Promise.race([
+        authReadyPromise,
+        new Promise<void>((resolve) => setTimeout(resolve, 5_000)),
+    ]);
+}
 
 /**
  * Register a Clerk JWT fetcher so the WS connection carries auth. Called by
  * `<SandboxServerAuthBridge>` (mounted under ClerkProvider) on session change.
  */
 export function setSandboxServerAuthFetcher(fetcher: (() => Promise<string | null>) | null): void {
+    if (cachedTokenFetcher === fetcher) {
+        markAuthReady();
+        return;
+    }
     cachedTokenFetcher = fetcher;
+    markAuthReady();
+    if (cachedWsClient) {
+        void cachedWsClient.close();
+        cachedWsClient = null;
+        cachedClient = null;
+    }
 }
 
 function resolveServerUrl(): string {
@@ -59,6 +86,7 @@ export function getSandboxServerClient() {
         // Re-fetch the token on every reconnect so a long-lived editor
         // session picks up a refreshed Clerk JWT without manual reconnect.
         connectionParams: async () => {
+            await waitForAuthReady();
             const token = cachedTokenFetcher ? await cachedTokenFetcher() : null;
             return { token: token ?? '' };
         },
@@ -67,6 +95,7 @@ export function getSandboxServerClient() {
         // file ops.
         retryDelayMs: (attempt: number) => Math.min(30_000, 500 * 2 ** attempt),
     });
+    cachedWsClient = wsClient;
     cachedClient = createTRPCClient<AppRouter>({
         // superjson MUST match the server's transformer (apps/web/server
         // src/router/trpc.ts uses superjson). Mismatch → every response fails

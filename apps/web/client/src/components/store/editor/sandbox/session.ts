@@ -148,7 +148,11 @@ export class SessionManager {
                               },
                           },
                       })
-                    : new VercelBrowserProvider({ sandboxId: activeSandboxId });
+                    : new VercelBrowserProvider({
+                          sandboxId: activeSandboxId,
+                          port: this.branch.runtime.cloud?.port,
+                          devCommand: this.branch.runtime.cloud?.devCommand,
+                      });
 
             runInAction(() => {
                 this.provider = provider;
@@ -313,6 +317,15 @@ export class SessionManager {
         try {
             await Promise.all([task.initTask(), terminal.initTerminal()]);
         } catch (error) {
+            if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.provider = null;
+                    this.sandboxGone = true;
+                    this.connectionError =
+                        error instanceof Error ? error.message : String(error);
+                });
+                throw error;
+            }
             console.error('Failed to initialize terminal sessions:', error);
         }
     }

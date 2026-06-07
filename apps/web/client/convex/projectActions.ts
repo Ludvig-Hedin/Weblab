@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 
 import { VercelSandboxProvider } from '@weblab/code-provider';
 
+import type { Doc } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
 import { deriveRepoName } from './lib/repoName';
@@ -20,6 +21,83 @@ import { mapSandboxProvisionError } from './lib/sandboxErrors';
 // are still readable but never written by new code.
 
 // ─── captureScreenshot ────────────────────────────────────────────────────────
+
+type VercelCredentials = {
+    teamId: string;
+    projectId: string;
+    token: string;
+};
+
+type BranchCloudRuntime = {
+    provider?: string;
+    sandboxId?: string;
+    previewUrl?: string;
+    snapshotId?: string;
+    port?: number;
+    devCommand?: string;
+    runtime?: string;
+};
+
+type BranchWithFrames = {
+    branch: Doc<'branches'>;
+    frames: Array<Pick<Doc<'frames'>, 'url'>>;
+};
+
+function asBranchWithFrames(value: unknown): BranchWithFrames | null {
+    if (!value || typeof value !== 'object') return null;
+    const candidate = value as {
+        branch?: Doc<'branches'>;
+        frames?: Array<Pick<Doc<'frames'>, 'url'>>;
+    };
+    if (!candidate.branch) return null;
+    return {
+        branch: candidate.branch,
+        frames: Array.isArray(candidate.frames) ? candidate.frames : [],
+    };
+}
+
+function getBranchCloudRuntime(branch: Doc<'branches'>): BranchCloudRuntime | null {
+    const metadata = branch.runtimeMetadata as { cloud?: BranchCloudRuntime } | null | undefined;
+    return metadata?.cloud ?? null;
+}
+
+function getVercelCredentials(): VercelCredentials {
+    const teamId = process.env.VERCEL_TEAM_ID;
+    const projectId = process.env.VERCEL_PROJECT_ID;
+    const token = process.env.VERCEL_TOKEN;
+    if (!teamId || !projectId || !token) {
+        throw new Error(
+            'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                '(see apps/web/client/.env.example).',
+        );
+    }
+    return { teamId, projectId, token };
+}
+
+function resolveSandboxPort(input: unknown): number {
+    return typeof input === 'number' && Number.isInteger(input) && input > 0 && input <= 65_535
+        ? input
+        : 3000;
+}
+
+function assertVercelPreviewUrl(url: string): URL {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') {
+        throw new Error('BAD_REQUEST: preview URL must be https');
+    }
+    if (!parsed.hostname.endsWith('.vercel.run')) {
+        throw new Error('BAD_REQUEST: preview URL is not a Vercel sandbox URL');
+    }
+    return parsed;
+}
+
+function toLivenessState(status: number): 'alive' | 'gone' | 'notFound' | 'error' {
+    if (status === 410) return 'gone';
+    if (status === 404) return 'notFound';
+    if (status >= 200 && status < 500) return 'alive';
+    return 'error';
+}
 
 /**
  * Captures a screenshot of the project's preview URL via Firecrawl,
@@ -419,19 +497,12 @@ export const createFromGit = action({
 
         let provisionedSandboxId: string | null = null;
         try {
-            // TODO(bug-hunt): `framework` is read above + persisted into the
-            // project graph, but NOT passed here — so the provider always uses
-            // the Next.js DEFAULT_PORT (3000) + DEFAULT_DEV_COMMAND. A
-            // static-html git import (whose `serve` binds 8080) gets port 3000
-            // persisted (the `?? 8080` below never fires because result.port is
-            // 3000), so the preview 502s forever. Fix: thread `framework` into
-            // createProjectFromGit and map port/devCommand from FRAMEWORK_RUNTIME
-            // like createProject does. Only affects static-html git imports.
             const result = await VercelSandboxProvider.createProjectFromGit({
                 repoUrl: args.repoUrl,
                 branch: args.branch ?? 'main',
                 subpath: args.subpath,
                 privacy: 'private',
+                framework: framework === 'static-html' ? 'static-html' : 'nextjs',
             });
 
             const sandboxId = result.id;
@@ -909,6 +980,112 @@ export const createEmptySandbox = action({
         } catch (error) {
             throw mapSandboxProvisionError(error);
         }
+    },
+});
+
+export const checkSandboxLiveness = action({
+    args: {
+        branchId: v.id('branches'),
+        previewUrl: v.string(),
+    },
+    handler: async (
+        ctx,
+        args,
+    ): Promise<{ state: 'alive' | 'gone' | 'notFound' | 'error'; status?: number }> => {
+        const branchWithFrames = asBranchWithFrames(
+            await ctx.runQuery(internal.branches._getBranchWithFrames, {
+                branchId: args.branchId,
+            }),
+        );
+        if (!branchWithFrames) {
+            throw new Error('NOT_FOUND: branch');
+        }
+        const frameUrls = new Set<string>(branchWithFrames.frames.map((frame) => frame.url));
+        const branchPreviewUrl = getBranchCloudRuntime(branchWithFrames.branch)?.previewUrl;
+        if (!frameUrls.has(args.previewUrl) && branchPreviewUrl !== args.previewUrl) {
+            throw new Error('FORBIDDEN: preview URL does not belong to branch');
+        }
+
+        const url = assertVercelPreviewUrl(args.previewUrl);
+        try {
+            const response = await fetch(url, {
+                method: 'HEAD',
+                redirect: 'manual',
+                signal: AbortSignal.timeout(8_000),
+            });
+            return { state: toLivenessState(response.status), status: response.status };
+        } catch {
+            return { state: 'error' };
+        }
+    },
+});
+
+export const restoreSandbox = action({
+    args: {
+        projectId: v.id('projects'),
+        branchId: v.id('branches'),
+    },
+    handler: async (
+        ctx,
+        args,
+    ): Promise<{ sandboxId: string; previewUrl: string; snapshotId: string; port: number }> => {
+        await ctx.runQuery(internal.projects._requireProjectUpdateCap, {
+            projectId: args.projectId,
+        });
+
+        const branchWithFrames = asBranchWithFrames(
+            await ctx.runQuery(internal.branches._getBranchWithFrames, {
+                branchId: args.branchId,
+            }),
+        );
+        const branch = branchWithFrames?.branch;
+        if (!branch || branch.projectId !== args.projectId) {
+            throw new Error('NOT_FOUND: branch');
+        }
+        if (branch.runtimeType !== 'cloud') {
+            throw new Error('BAD_REQUEST: local branches do not use Vercel Sandbox');
+        }
+
+        const cloud = getBranchCloudRuntime(branch);
+        if (cloud?.provider !== 'vercel_sandbox') {
+            throw new Error('BAD_REQUEST: branch is not backed by Vercel Sandbox');
+        }
+        const snapshotId = cloud.snapshotId;
+        if (typeof snapshotId !== 'string' || snapshotId.length === 0) {
+            throw new Error(
+                "This project can't be restored yet because it has no saved sandbox snapshot.",
+            );
+        }
+
+        const port = resolveSandboxPort(cloud.port);
+        const credentials = getVercelCredentials();
+        const sandbox = await Sandbox.create({
+            source: { type: 'snapshot', snapshotId },
+            ports: [port],
+            timeout: 1_800_000,
+            resources: { vcpus: 2 },
+            ...credentials,
+        });
+        const previewUrl = sandbox.domain(port);
+
+        try {
+            await ctx.runMutation(internal.projects._replaceBranchSandbox, {
+                projectId: args.projectId,
+                branchId: args.branchId,
+                sandboxId: sandbox.sandboxId,
+                previewUrl,
+                snapshotId,
+                provider: 'vercel_sandbox',
+                port,
+                devCommand: cloud.devCommand,
+                runtime: cloud.runtime,
+            });
+        } catch (error) {
+            await sandbox.stop({ blocking: false }).catch(() => undefined);
+            throw error;
+        }
+
+        return { sandboxId: sandbox.sandboxId, previewUrl, snapshotId, port };
     },
 });
 

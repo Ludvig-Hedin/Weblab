@@ -52,6 +52,7 @@ import {
 } from '@weblab/code-provider';
 
 import { getSandboxServerClient } from '@/lib/sandbox-server-client';
+import { isSandboxGoneError } from './errors';
 
 // Browser → Fastify sandbox proxy. File ops, `commandRun`, and dev-server
 // `setup` route through the authed tRPC client (getSandboxServerClient) to the
@@ -66,6 +67,8 @@ import { getSandboxServerClient } from '@/lib/sandbox-server-client';
 
 export interface VercelBrowserProviderOptions {
     sandboxId: string;
+    port?: number | null;
+    devCommand?: string | null;
 }
 
 export class VercelBrowserProvider extends Provider {
@@ -75,6 +78,25 @@ export class VercelBrowserProvider extends Provider {
 
     private get sandboxId() {
         return this.options.sandboxId;
+    }
+
+    private get port() {
+        // Only forward a usable port. A 0 / NaN / out-of-range value would fail
+        // the server's Zod check (`.int().positive().max(65535)`), reject the
+        // whole `setup` mutation (caught + logged), and leave the preview 502ing
+        // forever. Fall through to the server-side default instead.
+        const value = this.options.port;
+        return typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 65_535
+            ? value
+            : undefined;
+    }
+
+    private get devCommand() {
+        // An empty / whitespace-only command would fail the server's
+        // `.trim().min(1)` Zod check and reject `setup`. Fall through to the
+        // server's package.json-derived default instead.
+        const value = this.options.devCommand?.trim();
+        return value && value.length > 0 ? value : undefined;
     }
 
     async initialize(_input: InitializeInput): Promise<InitializeOutput> {
@@ -229,6 +251,12 @@ export class VercelBrowserProvider extends Provider {
             });
             return { output };
         } catch (err) {
+            if (isSandboxGoneError(err)) {
+                console.debug(
+                    '[VercelBrowserProvider] runCommand skipped — sandbox is gone (410).',
+                );
+                throw err;
+            }
             console.error('[VercelBrowserProvider] runCommand failed', err);
             return { output: '' };
         }
@@ -271,8 +299,16 @@ export class VercelBrowserProvider extends Provider {
         try {
             // Idempotent server-side: installs deps if missing and starts the
             // dev server only if one isn't already running.
-            await getSandboxServerClient().sandbox.setup.mutate({ sandboxId: this.sandboxId });
+            await getSandboxServerClient().sandbox.setup.mutate({
+                sandboxId: this.sandboxId,
+                port: this.port,
+                devCommand: this.devCommand,
+            });
         } catch (err) {
+            if (isSandboxGoneError(err)) {
+                console.debug('[VercelBrowserProvider] setup skipped — sandbox is gone (410).');
+                throw err;
+            }
             console.error('[VercelBrowserProvider] setup failed', err);
         }
         return {};
@@ -449,9 +485,16 @@ class VercelBrowserTask extends ProviderTask {
             .sandbox.setup.mutate({ sandboxId: this.sandboxId })
             .then(() => undefined)
             .catch((err) => {
-                console.error('[VercelBrowserProvider] dev server setup failed', err);
                 // Clear so a later reload / self-heal can retry.
                 this.starting = null;
+                if (isSandboxGoneError(err)) {
+                    console.debug(
+                        '[VercelBrowserProvider] dev server setup skipped — sandbox is gone (410).',
+                    );
+                    throw err;
+                }
+                console.error('[VercelBrowserProvider] dev server setup failed', err);
+                throw err;
             });
     }
 
