@@ -1,5 +1,224 @@
 # Code Review Backlog
 
+## CodeRabbit Triage — 2026-06-08
+
+Triaged 8 CodeRabbit findings on the working tree: **4 real → fixed**, **3
+critical-labelled false positives → verified & dismissed**, **1 newly-surfaced
+pre-existing bug → logged**. `bun typecheck` (client + server) exit 0; ESLint on
+all touched files clean.
+
+### Fixed this pass
+
+- **(critical, REAL)** `apps/web/server/src/router/context.ts:41-49` — inline
+  `# comment` was stripped **before** unquoting, corrupting any quoted value
+  containing `#` (`KEY="a # b"` → `a`). Now only strips comments from **unquoted**
+  values, unquotes after. Note: CodeRabbit's *primary* suggestion was itself buggy
+  (unquote-then-strip still corrupts `"a # b"`); used the quoted-skip variant.
+- **(minor, REAL)** `apps/web/client/src/components/store/editor/interactions/index.ts:38-47`
+  — dir-exists check now accepts **both** `err.code === 'EEXIST'` **and** the
+  message regex. CodeRabbit's message→code *replacement* would regress: the
+  sandbox provider can throw a wrapped error carrying only a message, no `.code`.
+  Used `{ code?: unknown }` (repo bans `any`).
+- **(minor, REAL)** `apps/web/client/src/components/ui/input.tsx:11,13` — removed
+  duplicated `dark:dark:` prefixes; also prettier-normalized the file (raw shadcn
+  paste) so it passes `max-warnings 0`.
+- **(minor, REAL)** `text-md` → `text-base` in
+  `apps/web/client/src/components/watermelon-ui/footer-10.tsx:131,133` and
+  `temp-input/footer-10/footer-10.tsx:192,196` (`text-md` is not a valid Tailwind
+  v4 font-size; no custom def in `globals.css`).
+
+### False positives — verified, NO change made
+
+- **`apps/web/client/public/weblab-ix-runtime.js:1` "swapped method mappings"
+  (labelled critical)** — FALSE. Source `apps/web/preload/ix-runtime/index.ts`
+  maps `pauseInteraction`→`pauseAnimationOnElement` and `setScrubTime`→
+  `scrubAnimationOnElement` correctly (lines 65-91, runtime map 108-116). Rebuilt
+  the artifact from source to a temp file → **byte-identical** to the committed
+  one. CodeRabbit misread minifier local-renaming (`l0`/`N0`) in the diff as a swap.
+- **`apps/web/client/src/components/ui/accordion.tsx:5` "invalid radix import"
+  (labelled critical)** — FALSE. `radix-ui` unified package is a dependency
+  (`^1.4.3`), installed, and imported by **16 files** incl. existing
+  `select.tsx`/`button.tsx`/`dialog.tsx` and sibling `sheet.tsx`/
+  `navigation-menu.tsx`. typecheck passes with it.
+- **`apps/web/client/src/components/watermelon-ui/navigation-5.tsx:257,264`
+  `size-4.5`** — FALSE. Tailwind v4 (`^4.1.0`) dynamic spacing makes
+  `size-4.5`/`-4.5`/`-6.5` valid; existing shipping pages (`about/page.tsx`,
+  `contributor-section.tsx`, `Gradient.tsx`, `weblab-interface-mockup.tsx`)
+  already use them and render.
+
+### Newly surfaced (pre-existing, OUTSIDE this diff) → logged, not auto-fixed
+
+- **CR-2026-06-08-001** — invalid `text-md` in **shipping** pages:
+  `apps/web/client/src/app/invitation/[id]/_components/main.tsx:107,136,162` and
+  `apps/web/client/src/app/projects/_components/select-presentation.tsx:222`. Real
+  (invalid v4 class → element inherits parent size). **Not changed**: out of the
+  reviewed diff, and altering visible font-size on live pages needs owner eyes.
+  Fix to `text-base`/`text-sm` per intended size. Type: bug | Impact: user-facing
+  | Risk: low | `open`
+- **CR-2026-06-07-012 UPDATE** — `input.tsx` now formatted + lint-clean. The other
+  3 new shadcn-paste files (`accordion.tsx`, `navigation-menu.tsx`, `sheet.tsx`)
+  still fail `max-warnings 0` on prettier style — `bun format` them or delete per
+  CR-2026-06-07-003 before committing.
+
+---
+
+## Full-Repo Review Pass — 2026-06-07 — uncommitted working-tree review
+
+Reviewed all local changes (38 tracked working-tree mods, +1169/−721, plus
+untracked new files/dirs). **No staged changes, no unpushed commits** (in sync
+with `origin/main`). Three parallel read-only reviewers covered (A) landing/UI +
+new UI libs, (B) editor/sandbox/server, (C) packages/AI/models + auth.
+
+**Verdict:** no BLOCKER/HIGH *correctness* or *security-break* issues. The
+`CLAUDE_OPUS_4_7` model removal is fully self-consistent (0 remaining importers
+repo-wide — verified by grep). Auth desktop-handoff is clean (server-minted
+short-TTL Clerk ticket, same-origin returnUrl, no open-redirect). Build artifacts
+(`weblab-preload-script.js`, `weblab-ix-runtime.js`) rebuild byte-identical from
+source (in sync). `bun typecheck` exit 0. The HIGH items below are all repo-hygiene
+debt in **untracked scratch files** — left for the owner to action because
+deleting dirs on a multi-session tree may destroy another session's in-progress
+inputs.
+
+### Auto-fixed this pass
+
+- **CR-2026-06-07-AF1** — `apps/web/client/src/app/project/[id]/_adapters/convex-bootstrap.ts:73,87,88`
+  — removed three dead `as never` casts on `storageMode`/`accessMode`. The whole
+  object is already `as unknown as Project` (line 91) and sibling field `runtime`
+  (line 74) carries no cast, so the inner casts erased to the same type and only
+  obscured intent. Semantic no-op. `bun typecheck` exit 0 after. Status: `auto-fixed`.
+
+### Open — repo hygiene / design debt (untracked; DO NOT `git add .`)
+
+- **CR-2026-06-07-001** — Scratch dir `temp-input/` at repo root
+  - Area: repo root | Type: design debt | Impact: internal | Risk: low
+  - Summary: 6 files (`ai-slop-checklist.md`, `system-prompt-addition.md`,
+    duplicated `hero-9/` + `footer-10/` component source). Not gitignored; grep
+    confirms **0 importers**. Pollutes repo root, ships duplicate source if added.
+  - Approach: delete `temp-input/`, or add it to `.gitignore`. Never commit.
+  - Status: `open`
+
+- **CR-2026-06-07-002** — `_demo-backup-20260605/` (4064 lines) lives inside `src/`
+  - Area: `apps/web/client/src/app/_components/landing-page/_demo-backup-20260605/` | Type: design debt | Impact: internal (CI risk) | Risk: medium
+  - Summary: backup copies of `weblab-interface-mockup.tsx` + `design-mockup/`.
+    `bun typecheck` currently passes, but the dir IS inside the compiled/linted
+    source tree (tsconfig `include` covers `src/**`, ESLint runs `max-warnings 0`).
+    The moment a stale backup references a changed API it breaks `bun typecheck` /
+    `bun lint`.
+  - Approach: move backups out of `src/` (e.g. `docs/archive/`) or delete. Never
+    keep `.tsx` backups inside a compiled source tree.
+  - Status: `open`
+
+- **CR-2026-06-07-003** — New `components/ui/{accordion,input,navigation-menu,sheet}.tsx` duplicate `@weblab/ui`
+  - Area: `apps/web/client/src/components/ui/` | Type: design debt / ui-enforcement | Impact: internal | Risk: low
+  - Summary: all four duplicate primitives that already exist in
+    `packages/ui/src/components/`, and hardcode raw shadcn `slate-*` tokens
+    (`border-slate-200`, `ring-slate-950/50`, `dark:bg-slate-800/30`) instead of
+    Weblab CSS tokens — off-palette in the dark app, the exact generic-shadcn look
+    the design rules flag. They exist only to feed the watermelon demo fixture.
+  - Approach: delete and point the fixture at `@weblab/ui` equivalents; if the
+    raw-shadcn look is required for the *fake-site* fixture, colocate them under
+    the demo folder with a comment explaining the intentional bypass.
+  - Status: `open`
+
+- **CR-2026-06-07-004** — `watermelon-ui/` fixture: non-brand name, raw input/button, mis-located
+  - Area: `apps/web/client/src/components/watermelon-ui/` (8 files, ~1568 lines) | Type: design debt / ui-enforcement | Impact: internal | Risk: low
+  - Summary: depicts a fake "Halcyon" analytics site shown inside the canvas
+    mockup (intentional fixture, like the pre-existing "Villainterest"). But the
+    folder name signals nothing about being a throwaway fixture, it sits in the
+    shared `components/` tree, and `hero-9.tsx:290` uses a raw `<input>` plus raw
+    styled `<button>`s (~173/299) that violate the global Button/input rules if
+    anyone treats them as reusable.
+  - Approach: rename/relocate to `landing-page/_demo-site/` colocated with the
+    mockup, add a top README/comment marking it fixture-only, and confirm with
+    owner it's intended (not stray scaffolding).
+  - Status: `open`
+
+### Open — correctness / performance (in tracked diff)
+
+- **CR-2026-06-07-005** — Redundant per-load mirror writes
+  - Area: `apps/web/client/src/components/store/editor/interactions/index.ts:179-191` | Type: performance | Impact: internal | Risk: low
+  - Summary: the public mirror (`interactions.json` + initial CSS) is rewritten on
+    **every** `load()`, not only when missing/seeding → 2 redundant sandbox file
+    writes per editor load for projects that already have the mirror. Best-effort +
+    try/caught, so functionally safe — pure waste.
+  - Approach: gate the write on a cheap existence/stale check.
+  - Status: `open`
+
+- **CR-2026-06-07-006** — Preload "needs module" regex word-boundary bug
+  - Area: `apps/web/client/src/components/store/editor/sandbox/preload-script.ts:241-246` | Type: correctness | Impact: internal | Risk: low
+  - Summary: negative lookahead `(?![^>]*\btype=)` — `\b` makes a hyphenated attr
+    like `data-content-type=` match `type=`, so a marker tag carrying such an attr
+    would be wrongly judged "already has type" and skipped. Our injector never
+    emits such attrs today (low real risk), but the regex is wrong.
+  - Approach: tighten the boundary (e.g. require preceding whitespace `\stype=`).
+  - Status: `open`
+
+- **CR-2026-06-07-007** — Static-HTML `type="module"` migration untested
+  - Area: `apps/web/client/src/components/store/editor/sandbox/preload-script.ts:260-271` | Type: tests | Impact: internal | Risk: low
+  - Summary: new `preloadNeedsModule`/`ixNeedsModule` replace paths (migrate old
+    `defer` tags → `type="module"`) have no test coverage; `inject-preload.test.ts`
+    only covers the Next.js layout path. Non-trivial regex deserves a test.
+  - Approach: add a focused test for `injectPreloadScriptIntoStaticHtml`:
+    (a) old `defer` tag → migrated, (b) already-`module` tag → no-op,
+    (c) mixed present/absent markers.
+  - Status: `open`
+
+- **CR-2026-06-07-008** — Git-import framework collapses to `nextjs`
+  - Area: `apps/web/client/convex/projectActions.ts:427` | Type: bug (latent) | Impact: user-facing (future) | Risk: low
+  - Summary: `framework === 'static-html' ? 'static-html' : 'nextjs'` silently maps
+    every non-static framework (vite-react/remix/astro/tanstack) to `nextjs`.
+    Correct today (only those two are wired end-to-end) but will mis-provision once
+    more scaffolders land.
+  - Approach: add a `// TODO` noting it must expand to mirror the upstream
+    `VercelScaffoldFramework` gate when `createProjectFromGit` supports more values.
+  - Status: `open`
+
+### Open — security (pre-existing gap; this diff extends its surface)
+
+- **CR-2026-06-07-009** — Sandbox procedures lack ownership check
+  - Area: `apps/web/server/src/router/routes/sandbox.ts` (whole router) | Type: bug (security) | Impact: user-facing | Risk: medium
+  - Summary: `setup` / file / `commandRun` require only `requireUserId` — no check
+    that the caller owns `sandboxId`. The new `devCommand`/`port` params add
+    executable surface to this gap: any signed-in user who learns a `sandboxId`
+    can run a dev command in it. Already tracked in-code as `TODO(security)`; not
+    introduced by this diff but extended by it.
+  - Approach: resolve `sandboxId → project` via a Convex client and assert
+    `project.edit` before any sandbox op.
+  - Status: `open` (tracked in-code)
+
+### Open — maintainability / style / docs (low priority)
+
+- **CR-2026-06-07-010** — `apps/web/server/src/sandbox/index.ts:77,238` — legacy-Next
+  detection heuristic duplicated verbatim as two inline `node -e` strings → drift
+  risk; extract to one shared snippet constant. Type: refactor | Risk: low | `open`
+- **CR-2026-06-07-011** — `apps/web/server/src/router/context.ts:29-58` — hand-rolled
+  dev `.env.local` loader injecting into `process.env` (gated `NODE_ENV !==
+  production` + fixed `LOCAL_ENV_KEYS` allowlist, no secret logging — blast radius
+  limited). Smell only; optionally reuse a vetted dotenv loader. Type: DX | Risk: low | `open`
+- **CR-2026-06-07-012** — New `components/ui/*` + `watermelon-ui/*` files use
+  double-quote + no-semicolon (raw shadcn paste) diverging from the repo's
+  single-quote/semicolon Prettier config; `bun format`/lint may rewrite or flag
+  under `max-warnings 0`. Run `bun format` on them (or delete per CR-003/004).
+  Type: DX | Risk: low | `open`
+- **CR-2026-06-07-013** — `apps/web/client/content/blog/claude-opus-4-8.mdx:16` —
+  live blog post says Opus 4.8 "joins, rather than replaces, Claude Opus 4.7", but
+  4.7 was removed from the picker in this diff → **user-facing contradiction**.
+  Suggested: delete that sentence (the following sentence flows without it).
+  Type: bug (docs) | Impact: user-facing | Risk: low | `open`
+- **CR-2026-06-07-014** — `docs/agent-context/qa-prod-bug-report.md:491` — lists
+  "Claude Opus 4.7" in the advertised model lineup; now inaccurate. Internal doc,
+  refresh when next touched. Type: docs | Risk: low | `open`
+- **CR-2026-06-07-015** — `apps/web/client/src/app/projects/_components/select/project-preview-utils.ts:3`
+  — new util's doc comment leads with "CodeSandbox preview domains"; repo is
+  Vercel-only now (CSB archived). Reword to lead with the Vercel cases. Type: docs
+  | Risk: low | `open`
+- **CR-2026-06-07-016** — `packages/ai/src/skills/embedded.ts:9` &
+  `embedded-summaries.ts:9` — diff is pure `Generated-at` timestamp churn (skill
+  count + content identical); adds commit noise. Consider excluding from the commit.
+  Type: DX | Risk: low | `open`
+
+---
+
 ## Broken-Feature Fix Pass — 2026-05-27 — promoted flagged items that STOP users
 
 Promoted the user-flow-BREAKING subset out of "Needs human review" and fixed

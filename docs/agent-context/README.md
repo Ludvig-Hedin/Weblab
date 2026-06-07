@@ -57,6 +57,8 @@ Read before touching any UI affordance:
   iframe, MobX engine, sandbox session, code-write flow.
 - [`data-api-architecture.md`](./data-api-architecture.md) — Clerk + Convex,
   vestigial tRPC, REST handlers, migration discipline, security gates.
+- [`prod-e2e-testing.md`](./prod-e2e-testing.md) — production sign-in/test
+  account workflow for authenticated browser QA.
 - [`ai-chat-architecture.md`](./ai-chat-architecture.md) — TipTap composer,
   mention/slash commands, model router, cache blocks, summarizer pipeline,
   observability.
