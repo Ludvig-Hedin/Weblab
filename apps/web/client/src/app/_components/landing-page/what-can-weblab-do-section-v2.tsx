@@ -178,12 +178,37 @@ function ComponentsVisual() {
 
 function CmsVisual() {
     type Status = 'Published' | 'Draft' | 'Scheduled';
-    const entries: { title: string; status: Status; updated: string }[] = [
-        { title: 'Launching Weblab CMS', status: 'Published', updated: '2h' },
-        { title: 'Design tokens, explained', status: 'Published', updated: '1d' },
-        { title: 'How we built the canvas', status: 'Draft', updated: '3d' },
-        { title: 'Q3 roadmap', status: 'Scheduled', updated: '5d' },
-        { title: 'Hiring designers', status: 'Draft', updated: '1w' },
+    const collections: {
+        name: string;
+        count: string;
+        Icon: React.ComponentType<{ className?: string }>;
+        active?: boolean;
+    }[] = [
+        { name: 'Posts', count: '24', Icon: Icons.File, active: true },
+        { name: 'Pages', count: '8', Icon: Icons.Copy },
+        { name: 'Authors', count: '5', Icon: Icons.Person },
+        { name: 'Media', count: '37', Icon: Icons.Image },
+    ];
+    const entries: { title: string; slug: string; status: Status; updated: string }[] = [
+        {
+            title: 'Launching Weblab CMS',
+            slug: '/launching-weblab-cms',
+            status: 'Published',
+            updated: '2h',
+        },
+        {
+            title: 'Design tokens, explained',
+            slug: '/design-tokens',
+            status: 'Published',
+            updated: '1d',
+        },
+        {
+            title: 'How we built the canvas',
+            slug: '/building-the-canvas',
+            status: 'Draft',
+            updated: '3d',
+        },
+        { title: 'Q3 product roadmap', slug: '/q3-roadmap', status: 'Scheduled', updated: '5d' },
     ];
     const cycle = useAmbientCycle(entries.length, 2200);
     return (
@@ -192,122 +217,199 @@ function CmsVisual() {
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                    <span className="text-style-tagline">Posts</span>
-                    <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
-                        {entries.length}
-                    </span>
-                </div>
-                <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+            {/* Header — workspace breadcrumb */}
+            <div className="flex shrink-0 items-center gap-1.5 border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
+                <Icons.Cube className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
+                <span className="text-style-tagline">Content</span>
+                <Icons.ChevronRight className="text-foreground-tertiary/60 h-2.5 w-2.5 shrink-0" />
+                <span className="text-foreground-secondary text-small truncate font-light tracking-tight">
+                    Posts
+                </span>
             </div>
-            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
-                {entries.map((entry, idx) => {
-                    const isActive = idx === cycle.index;
-                    return (
-                        <button
-                            key={entry.title}
-                            type="button"
-                            onClick={() => cycle.setIndex(idx)}
-                            className="group/row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150"
-                        >
-                            {isActive && (
-                                <motion.span
-                                    layoutId="cms-active"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 34,
-                                        mass: 0.45,
-                                    }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
-                                    aria-hidden
-                                />
+            {/* Two-pane: collections rail + entries table */}
+            <div className="flex min-h-0 flex-1">
+                {/* Collections rail */}
+                <div className="flex w-[108px] shrink-0 flex-col gap-0.5 border-r border-black/[0.05] p-1.5 dark:border-white/[0.06]">
+                    <span className="text-foreground-tertiary px-1.5 pt-0.5 pb-1 text-[10px] font-medium tracking-wide uppercase">
+                        Collections
+                    </span>
+                    {collections.map((c) => (
+                        <div
+                            key={c.name}
+                            className={cn(
+                                'relative flex items-center gap-1.5 rounded-[8px] px-1.5 py-1.5',
+                                c.active &&
+                                    'bg-foreground-primary/[0.06] ring-foreground-primary/10 ring-1 ring-inset',
                             )}
-                            <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                                <Icons.File
-                                    className={cn(
-                                        'h-3.5 w-3.5 transition-colors duration-150',
-                                        isActive
-                                            ? 'text-foreground-secondary'
-                                            : 'text-foreground-tertiary',
-                                    )}
-                                />
-                            </span>
+                        >
+                            <c.Icon
+                                className={cn(
+                                    'h-3.5 w-3.5 shrink-0',
+                                    c.active
+                                        ? 'text-foreground-secondary'
+                                        : 'text-foreground-tertiary',
+                                )}
+                            />
                             <span
                                 className={cn(
-                                    'text-small relative flex-1 truncate font-light tracking-tight transition-colors duration-150',
-                                    isActive
+                                    'text-small flex-1 truncate font-light tracking-tight',
+                                    c.active
                                         ? 'text-foreground-primary'
                                         : 'text-foreground-secondary',
                                 )}
                             >
-                                {entry.title}
+                                {c.name}
                             </span>
-                            <CmsStatusDot status={entry.status} />
-                            <span className="text-foreground-tertiary text-mini relative w-6 text-right font-mono tabular-nums">
-                                {entry.updated}
+                            <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
+                                {c.count}
                             </span>
-                        </button>
-                    );
-                })}
+                        </div>
+                    ))}
+                    <div className="text-foreground-tertiary mt-auto flex items-center gap-1.5 rounded-[8px] px-1.5 py-1.5">
+                        <Icons.Plus className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                        <span className="text-small font-light tracking-tight">New</span>
+                    </div>
+                </div>
+                {/* Entries table */}
+                <div className="flex min-w-0 flex-1 flex-col">
+                    {/* Toolbar — search + new */}
+                    <div className="flex shrink-0 items-center gap-2 border-b border-black/[0.04] px-2.5 py-2 dark:border-white/[0.05]">
+                        <div className="bg-foreground-primary/[0.04] ring-foreground-primary/[0.06] flex flex-1 items-center gap-1.5 rounded-[7px] px-2 py-1 ring-1 ring-inset">
+                            <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3 shrink-0" />
+                            <span className="text-foreground-tertiary text-[11px] font-light">
+                                Search posts…
+                            </span>
+                        </div>
+                        <span
+                            className="inline-flex shrink-0 items-center gap-1 rounded-[7px] px-2 py-1 text-[11px] font-medium text-white"
+                            style={{ backgroundColor: 'var(--foreground-brand)' }}
+                        >
+                            <Icons.Plus className="h-3 w-3" />
+                            New
+                        </span>
+                    </div>
+                    {/* Column header */}
+                    <div className="text-foreground-tertiary grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5 border-b border-black/[0.04] px-3 py-1.5 text-[10px] font-medium tracking-wide uppercase dark:border-white/[0.05]">
+                        <span>Title</span>
+                        <span>Status</span>
+                        <span className="text-right">Upd</span>
+                    </div>
+                    {/* Rows */}
+                    <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1">
+                        {entries.map((entry, idx) => {
+                            const isActive = idx === cycle.index;
+                            return (
+                                <button
+                                    key={entry.title}
+                                    type="button"
+                                    onClick={() => cycle.setIndex(idx)}
+                                    className="group/row hover:bg-foreground-primary/[0.04] relative grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5 rounded-[8px] px-2.5 py-1.5 text-left transition-colors duration-150"
+                                >
+                                    {isActive && (
+                                        <motion.span
+                                            layoutId="cms-active"
+                                            transition={{
+                                                type: 'spring',
+                                                stiffness: 380,
+                                                damping: 34,
+                                                mass: 0.45,
+                                            }}
+                                            className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[8px] ring-1 ring-inset"
+                                            aria-hidden
+                                        />
+                                    )}
+                                    <span className="relative flex min-w-0 flex-col gap-0.5">
+                                        <span
+                                            className={cn(
+                                                'text-small truncate font-light tracking-tight transition-colors duration-150',
+                                                isActive
+                                                    ? 'text-foreground-primary'
+                                                    : 'text-foreground-secondary',
+                                            )}
+                                        >
+                                            {entry.title}
+                                        </span>
+                                        <span className="text-foreground-tertiary truncate font-mono text-[10px]">
+                                            {entry.slug}
+                                        </span>
+                                    </span>
+                                    <CmsStatusBadge status={entry.status} />
+                                    <span className="text-foreground-tertiary text-mini relative text-right font-mono tabular-nums">
+                                        {entry.updated}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
         </div>
     );
 }
 
-function CmsStatusDot({ status }: { status: 'Published' | 'Draft' | 'Scheduled' }) {
-    if (status === 'Published') {
+function CmsStatusBadge({ status }: { status: 'Published' | 'Draft' | 'Scheduled' }) {
+    if (status === 'Draft') {
         return (
-            <span
-                role="img"
-                className="bg-foreground-brand relative h-1.5 w-1.5 shrink-0 rounded-full"
-                aria-label="Published"
-            />
+            <span className="bg-foreground-primary/[0.06] relative inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                <span
+                    className="bg-foreground-primary/40 h-1.5 w-1.5 shrink-0 rounded-full"
+                    aria-hidden
+                />
+                <span className="text-foreground-secondary">Draft</span>
+            </span>
         );
     }
-    if (status === 'Scheduled') {
-        return (
-            <span
-                role="img"
-                className="border-foreground-primary/30 relative h-1.5 w-1.5 shrink-0 rounded-full border"
-                aria-label="Scheduled"
-            />
-        );
-    }
+    const color = status === 'Published' ? 'var(--foreground-brand)' : 'var(--foreground-warning)';
     return (
         <span
-            role="img"
-            className="bg-foreground-primary/20 relative h-1.5 w-1.5 shrink-0 rounded-full"
-            aria-label="Draft"
-        />
+            className="relative inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+            style={{
+                backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
+                color,
+            }}
+        >
+            <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: color }}
+                aria-hidden
+            />
+            {status}
+        </span>
     );
 }
 
 function LayersVisual() {
     const t = useTranslations('landing.whatCanWeblabDoV2');
-    type LayerKind = 'body' | 'section' | 'div' | 'component';
+    type LayerKind = 'body' | 'section' | 'div' | 'component' | 'text';
     const layers: {
         name: string;
         kind: LayerKind;
         level: number;
         hasChildren?: boolean;
+        tag?: string;
+        badges?: { label: string; brand?: boolean }[];
+        hidden?: boolean;
     }[] = [
-        { name: 'Home Page', kind: 'body', level: 0, hasChildren: true },
-        { name: 'TopNavigation', kind: 'component', level: 1 },
-        { name: 'Hero', kind: 'section', level: 1, hasChildren: true },
-        { name: 'ImageGrid', kind: 'div', level: 1, hasChildren: true },
+        { name: 'Home Page', kind: 'body', level: 0, hasChildren: true, tag: 'body' },
+        {
+            name: 'TopNavigation',
+            kind: 'component',
+            level: 1,
+            badges: [{ label: 'B', brand: true }],
+        },
+        { name: 'Hero', kind: 'section', level: 1, hasChildren: true, tag: 'section' },
+        { name: 'Heading', kind: 'text', level: 2, tag: 'p' },
+        { name: 'ImageGrid', kind: 'div', level: 1, hasChildren: true, tag: 'div' },
         { name: 'ImageCard', kind: 'component', level: 2 },
         { name: 'ImageCard', kind: 'component', level: 2 },
-        { name: 'ImageCard', kind: 'component', level: 2 },
-        { name: 'Footer', kind: 'section', level: 1 },
+        { name: 'Footer', kind: 'section', level: 1, hidden: true, tag: 'section' },
     ];
-    // Cycle a selection through component-tagged rows (skip non-components for variety)
+    // Cycle a selection through component-tagged rows.
     const componentIndices = layers
         .map((l, i) => (l.kind === 'component' ? i : -1))
         .filter((i) => i >= 0);
     const cycle = useAmbientCycle(componentIndices.length, 2400);
-    const selectedIdx = componentIndices[cycle.index] ?? 4;
+    const selectedIdx = componentIndices[cycle.index] ?? 1;
 
     return (
         <div
@@ -316,7 +418,12 @@ function LayersVisual() {
             onMouseLeave={cycle.onMouseLeave}
         >
             <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-                <span className="text-style-tagline">{t('layersTitle')}</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-style-tagline">{t('layersTitle')}</span>
+                    <span className="text-foreground-tertiary bg-foreground-primary/[0.06] rounded-full px-1.5 py-0.5 font-mono text-[9px] leading-none tabular-nums">
+                        {layers.length}
+                    </span>
+                </div>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
             <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
@@ -335,10 +442,13 @@ function LayersVisual() {
                                 )
                             }
                             className={cn(
-                                'group/layer text-small relative flex h-8 w-full items-center rounded-[10px] pr-1.5 font-light tracking-tight transition-colors duration-150',
+                                'group/layer text-small relative flex h-8 w-full items-center rounded-[8px] pr-1.5 font-light tracking-tight transition-colors duration-150',
+                                'hover:bg-foreground-primary/[0.04]',
                                 isComponent
-                                    ? 'hover:bg-foreground-primary/[0.04] text-purple-500/90 dark:text-purple-300/90'
-                                    : 'text-foreground-secondary hover:bg-foreground-primary/[0.04]',
+                                    ? 'text-foreground-skill'
+                                    : l.hidden
+                                      ? 'text-foreground-tertiary'
+                                      : 'text-foreground-secondary',
                             )}
                         >
                             {isSelected && (
@@ -350,62 +460,80 @@ function LayersVisual() {
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[8px] ring-1 ring-inset"
                                     aria-hidden
                                 />
                             )}
-                            {/* Indent */}
-                            <div className="relative" style={{ width: `${l.level * 14}px` }} />
-                            {/* Disclosure chevron */}
-                            <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-                                {l.hasChildren ? (
-                                    <Icons.ChevronDown className="text-foreground-tertiary h-2.5 w-2.5 opacity-70" />
-                                ) : null}
-                            </span>
-                            {/* Icon */}
-                            <LayerKindIcon
-                                kind={l.kind}
-                                className={cn(
-                                    'relative mr-2 ml-0.5 h-3.5 w-3.5 shrink-0',
-                                    isComponent
-                                        ? 'text-purple-500/90 dark:text-purple-300/90'
-                                        : 'text-foreground-tertiary',
-                                )}
-                            />
-                            <span
-                                className={cn(
-                                    'relative flex-1 truncate text-left',
-                                    isComponent && 'italic',
-                                )}
-                            >
-                                {l.name}
-                            </span>
-                            {/* Component "B" badge if interactive (Footer + ImageCards) — only show for first component to mimic real */}
-                            {isComponent && isSelected && (
-                                <span
-                                    className={cn(
-                                        'relative mr-1 flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] leading-none font-medium',
-                                        'border-foreground-primary/20 bg-foreground-primary/[0.06] text-foreground-secondary',
-                                    )}
-                                >
-                                    B
-                                </span>
-                            )}
                             {isSelected && (
                                 <motion.span
-                                    layoutId="layers-active-dot"
+                                    layoutId="layers-active-bar"
                                     transition={{
                                         type: 'spring',
                                         stiffness: 380,
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="relative ml-1 flex h-1.5 w-1.5 shrink-0"
+                                    className="bg-foreground-brand pointer-events-none absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full"
+                                    aria-hidden
+                                />
+                            )}
+                            {/* Indent guide rails */}
+                            {Array.from({ length: l.level }).map((_, i) => (
+                                <span
+                                    key={i}
+                                    className="relative h-full w-3.5 shrink-0 self-stretch"
                                     aria-hidden
                                 >
-                                    <span className="bg-foreground-brand absolute inset-0 rounded-full" />
-                                </motion.span>
-                            )}
+                                    <span className="bg-foreground-primary/10 absolute top-0 bottom-0 left-[7px] w-px dark:bg-white/10" />
+                                </span>
+                            ))}
+                            {/* Disclosure chevron */}
+                            <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                                {l.hasChildren ? (
+                                    <Icons.ChevronRight className="text-foreground-tertiary h-2.5 w-2.5 rotate-90 opacity-70" />
+                                ) : null}
+                            </span>
+                            {/* Icon */}
+                            <LayerKindIcon
+                                kind={l.kind}
+                                className={cn(
+                                    'relative mr-1.5 ml-0.5 h-3.5 w-3.5 shrink-0',
+                                    isComponent
+                                        ? 'text-foreground-skill'
+                                        : 'text-foreground-tertiary',
+                                    l.hidden && 'opacity-70',
+                                )}
+                            />
+                            <span
+                                className={cn(
+                                    'relative flex-1 truncate text-left',
+                                    isComponent && 'italic',
+                                    l.hidden && 'opacity-70',
+                                )}
+                            >
+                                {l.name}
+                            </span>
+                            {/* Right cluster: element tag / badges + visibility */}
+                            <span className="relative ml-1 flex shrink-0 items-center gap-1.5">
+                                {l.badges ? (
+                                    l.badges.map((b) => (
+                                        <LayerBadgeChip key={b.label} brand={b.brand}>
+                                            {b.label}
+                                        </LayerBadgeChip>
+                                    ))
+                                ) : l.tag ? (
+                                    <span className="text-foreground-tertiary/70 font-mono text-[9px] leading-none">
+                                        {l.tag}
+                                    </span>
+                                ) : null}
+                                {l.hidden ? (
+                                    <Icons.EyeClosed className="text-foreground-tertiary h-3 w-3 opacity-80" />
+                                ) : isSelected ? (
+                                    <Icons.EyeOpen className="text-foreground-secondary h-3 w-3" />
+                                ) : (
+                                    <Icons.EyeOpen className="text-foreground-tertiary h-3 w-3 opacity-0 transition-opacity duration-150 group-hover/layer:opacity-70" />
+                                )}
+                            </span>
                         </button>
                     );
                 })}
@@ -418,24 +546,103 @@ function LayerKindIcon({
     kind,
     className,
 }: {
-    kind: 'body' | 'section' | 'div' | 'component';
+    kind: 'body' | 'section' | 'div' | 'component' | 'text';
     className?: string;
 }) {
     if (kind === 'body') return <Icons.Desktop className={className} />;
     if (kind === 'section') return <Icons.Section className={className} />;
     if (kind === 'component') return <Icons.Component className={className} />;
+    if (kind === 'text') return <Icons.Text className={className} />;
     return <Icons.Box className={className} />;
+}
+
+function LayerBadgeChip({ children, brand }: { children: React.ReactNode; brand?: boolean }) {
+    return (
+        <span
+            className={cn(
+                'flex h-3.5 min-w-3.5 items-center justify-center rounded border px-1 text-[9px] leading-none font-medium',
+                brand
+                    ? 'border-foreground-brand/30 bg-foreground-brand/10 text-foreground-brand'
+                    : 'border-foreground-primary/15 bg-foreground-primary/[0.04] text-foreground-secondary',
+            )}
+        >
+            {children}
+        </span>
+    );
 }
 
 function RevisionVisual() {
     const t = useTranslations('landing.whatCanWeblabDoV2');
-    const versions = [
-        { title: 'New typography and layout', who: 'Alessandro · 3h ago' },
-        { title: 'Save before publishing', who: 'Weblab · 10h ago' },
-        { title: 'Added new background image', who: 'Sandra · 12h ago' },
-        { title: 'Copy improvements and branding', who: 'Jonathan · 3d ago' },
+    type Tint = 'brand' | 'violet' | 'emerald' | 'amber' | 'neutral';
+    const versions: {
+        title: string;
+        author: string;
+        time: string;
+        initial: string;
+        tint: Tint;
+        add: number;
+        del: number;
+        group: 'today' | 'earlier';
+    }[] = [
+        {
+            title: 'New typography and layout',
+            author: 'Alessandro',
+            time: '3h ago',
+            initial: 'A',
+            tint: 'brand',
+            add: 18,
+            del: 4,
+            group: 'today',
+        },
+        {
+            title: 'Save before publishing',
+            author: 'Weblab',
+            time: '10h ago',
+            initial: 'W',
+            tint: 'neutral',
+            add: 6,
+            del: 2,
+            group: 'today',
+        },
+        {
+            title: 'Added background image',
+            author: 'Sandra',
+            time: '12h ago',
+            initial: 'S',
+            tint: 'emerald',
+            add: 24,
+            del: 9,
+            group: 'today',
+        },
+        {
+            title: 'Copy and branding tweaks',
+            author: 'Jonathan',
+            time: '3d ago',
+            initial: 'J',
+            tint: 'amber',
+            add: 9,
+            del: 3,
+            group: 'earlier',
+        },
+        {
+            title: 'Initial draft',
+            author: 'Alessandro',
+            time: '4d ago',
+            initial: 'A',
+            tint: 'violet',
+            add: 120,
+            del: 0,
+            group: 'earlier',
+        },
     ];
     const cycle = useAmbientCycle(versions.length, 3000);
+    // Inline hex so avatar tints render identically regardless of which Tailwind
+    // color palettes the theme ships.
+    const TINT_HEX: Partial<Record<Tint, string>> = {
+        violet: '#8b5cf6',
+        emerald: '#10b981',
+        amber: '#f59e0b',
+    };
     return (
         <div
             className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
@@ -446,60 +653,111 @@ function RevisionVisual() {
                 <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
                 <span className="text-style-tagline">{t('revisionToday')}</span>
             </div>
-            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
+            <div className="flex flex-1 flex-col overflow-hidden p-2">
                 {versions.map((v, idx) => {
+                    const isCurrent = idx === 0;
                     const isActive = idx === cycle.index;
+                    const isLast = idx === versions.length - 1;
+                    const isGroupEnd = !isLast && versions[idx + 1]!.group !== v.group;
+                    const showDivider = idx > 0 && versions[idx - 1]!.group !== v.group;
                     return (
-                        <button
-                            key={v.title}
-                            type="button"
-                            onClick={() => cycle.setIndex(idx)}
-                            className="group/row hover:bg-foreground-primary/[0.03] relative flex w-full items-center justify-between rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150"
-                        >
-                            {isActive && (
-                                <motion.span
-                                    layoutId="revision-active-bg"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 34,
-                                        mass: 0.45,
-                                    }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
-                                    aria-hidden
-                                />
+                        <React.Fragment key={`${v.title}-${idx}`}>
+                            {showDivider && (
+                                <div className="text-foreground-tertiary px-1 pt-2 pb-1 text-[10px] font-medium tracking-wide uppercase">
+                                    Earlier
+                                </div>
                             )}
-                            <div className="relative flex flex-col gap-0.5">
-                                <span className="text-foreground-primary text-small font-light tracking-tight">
-                                    {v.title}
-                                </span>
-                                <span className="text-foreground-tertiary text-mini font-mono">
-                                    {v.who}
-                                </span>
-                            </div>
-                            {isActive ? (
-                                <motion.span
-                                    layoutId="revision-active-pill"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 34,
-                                        mass: 0.45,
-                                    }}
-                                    className="text-mini relative rounded-full px-2 py-0.5 font-medium"
-                                    style={{
-                                        backgroundColor: BRAND_SOFT,
-                                        color: BRAND,
-                                    }}
-                                >
-                                    {t('revisionCurrent')}
-                                </motion.span>
-                            ) : (
-                                <span className="text-foreground-tertiary border-foreground-primary/10 text-mini relative rounded-full border px-2 py-0.5 font-light opacity-0 transition-opacity duration-200 group-hover/row:opacity-100">
-                                    Restore
-                                </span>
-                            )}
-                        </button>
+                            <button
+                                type="button"
+                                onClick={() => cycle.setIndex(idx)}
+                                className="group/row relative flex w-full gap-3 text-left"
+                            >
+                                {/* Timeline rail — avatar node + connector */}
+                                <div className="relative flex w-5 shrink-0 flex-col items-center">
+                                    <span
+                                        className={cn(
+                                            'relative z-10 mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium',
+                                            isCurrent
+                                                ? 'bg-foreground-brand text-white'
+                                                : v.tint === 'neutral'
+                                                  ? 'bg-foreground-primary/[0.06] text-foreground-secondary ring-foreground-primary/10 ring-1 ring-inset'
+                                                  : '',
+                                        )}
+                                        style={
+                                            !isCurrent && TINT_HEX[v.tint]
+                                                ? {
+                                                      backgroundColor: `color-mix(in srgb, ${TINT_HEX[v.tint]} 20%, transparent)`,
+                                                      color: TINT_HEX[v.tint],
+                                                      boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${TINT_HEX[v.tint]} 38%, transparent)`,
+                                                  }
+                                                : undefined
+                                        }
+                                    >
+                                        {v.initial}
+                                    </span>
+                                    {!isLast && !isGroupEnd && (
+                                        <span
+                                            className="bg-foreground-primary/10 mt-1 w-px flex-1"
+                                            aria-hidden
+                                        />
+                                    )}
+                                </div>
+                                {/* Content */}
+                                <div className="group-hover/row:bg-foreground-primary/[0.03] relative flex flex-1 items-start justify-between gap-2 rounded-[8px] px-2 pt-1 pb-4 transition-colors">
+                                    {isActive && (
+                                        <motion.span
+                                            layoutId="revision-active-bg"
+                                            transition={{
+                                                type: 'spring',
+                                                stiffness: 380,
+                                                damping: 34,
+                                                mass: 0.45,
+                                            }}
+                                            className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[8px] ring-1 ring-inset"
+                                            aria-hidden
+                                        />
+                                    )}
+                                    <div className="relative flex min-w-0 flex-col gap-1">
+                                        <span className="text-foreground-primary text-small truncate font-light tracking-tight">
+                                            {v.title}
+                                        </span>
+                                        <span className="text-mini flex min-w-0 items-center gap-1.5 font-mono">
+                                            <span className="text-foreground-tertiary truncate">
+                                                {v.author} · {v.time}
+                                            </span>
+                                            <span className="text-foreground-success shrink-0">
+                                                +{v.add}
+                                            </span>
+                                            <span
+                                                className="shrink-0"
+                                                style={{ color: 'var(--destructive)' }}
+                                            >
+                                                −{v.del}
+                                            </span>
+                                        </span>
+                                    </div>
+                                    {isCurrent ? (
+                                        <span
+                                            className="text-mini relative shrink-0 rounded-full px-2 py-0.5 font-medium"
+                                            style={{ backgroundColor: BRAND_SOFT, color: BRAND }}
+                                        >
+                                            {t('revisionCurrent')}
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className={cn(
+                                                'text-foreground-secondary border-foreground-primary/15 text-mini relative shrink-0 rounded-full border px-2 py-0.5 font-light transition-opacity duration-200',
+                                                isActive
+                                                    ? 'opacity-100'
+                                                    : 'opacity-0 group-hover/row:opacity-100',
+                                            )}
+                                        >
+                                            Restore
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+                        </React.Fragment>
                     );
                 })}
             </div>
@@ -967,8 +1225,16 @@ function CodePanelVisual() {
                             className="invisible px-7 pt-3 pb-4 font-mono text-[12px] leading-[20px] whitespace-pre-wrap"
                             dangerouslySetInnerHTML={{ __html: FULL_CODE_HTML }}
                         />
+                        {/* Faux editor surface in a marketing mockup, not a real form
+                            control. role/aria/tabIndex give the contentEditable <pre>
+                            textbox semantics; <pre> just isn't in jsx-a11y's role
+                            allow-list, so scope-disable the role-transition rule here. */}
+                        {/* eslint-disable jsx-a11y/no-noninteractive-element-to-interactive-role */}
                         <pre
                             ref={preRef}
+                            role="textbox"
+                            aria-label="Code editor"
+                            tabIndex={0}
                             className="absolute inset-0 cursor-text overflow-hidden px-7 pt-3 pb-4 font-mono text-[12px] leading-[20px] whitespace-pre-wrap text-[var(--code-text)] outline-none"
                             contentEditable
                             suppressContentEditableWarning
@@ -980,7 +1246,10 @@ function CodePanelVisual() {
                             {/* DOM is owned by imperative useEffect — keep this body empty so
                                 React never reconciles children into the editable surface. */}
                         </pre>
+                        {/* eslint-enable jsx-a11y/no-noninteractive-element-to-interactive-role */}
                         {selPos && (
+                            // Faux selection toolbar in a marketing mockup, not a real control.
+                            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                             <div
                                 contentEditable={false}
                                 className="pointer-events-none absolute z-20"

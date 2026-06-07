@@ -39,10 +39,10 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {entries.map((entry, idx) => (
-                    <Reveal key={entry.slug} delay={idx * 0.06}>
+                    <Reveal key={entry.slug} delay={idx * 0.06} className="h-full">
                         <Link
                             href={Routes.CHANGELOG}
-                            className="group ring-foreground-primary/10 bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex flex-col gap-3 rounded-[12px] p-5 ring-1 transition-colors"
+                            className="group ring-foreground-primary/10 bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex h-full flex-col gap-3 rounded-[12px] p-5 ring-1 transition-colors"
                         >
                             <div className="flex items-center gap-2">
                                 <span className="border-foreground-primary/20 text-foreground-secondary rounded-full border px-2 py-0.5 text-xs font-medium">

@@ -6,7 +6,8 @@ import { Icons } from '@weblab/ui/icons';
 import { NodeIcon } from '@weblab/ui/node-icon';
 import { cn } from '@weblab/ui/utils';
 
-import { WatermelonSite } from '@/components/watermelon-ui/watermelon-site';
+import type { DesignMockupOverrides, DesignMockupStep } from './design-mockup/design-mockup';
+import { DesignMockup, DesignMockupMobile } from './design-mockup/design-mockup';
 
 type TabId =
     | 'insert'
@@ -111,7 +112,7 @@ type ChatStep =
       }
     | { kind: 'ai'; text: string };
 
-type CanvasEffect = 'features' | 'tweak' | 'reset';
+type CanvasEffect = 'pricing' | 'hero' | 'restyle';
 
 interface ChatRound {
     prompt: string;
@@ -123,22 +124,28 @@ interface ChatRound {
 
 const CHAT_ROUNDS: ChatRound[] = [
     {
-        prompt: 'Add a 3-column feature section below the hero',
-        reasoning:
-            "I'll build a Features section with 3 cards and drop it in right below the hero.",
+        prompt: 'Add a pricing section with 3 tiers',
+        reasoning: "I'll create a Pricing component and add it to the homepage.",
         tools: [
-            { tool: 'create_file', file: 'Features.tsx', detail: 'new file' },
+            { tool: 'create_file', file: 'Pricing.tsx', detail: 'new file' },
             { tool: 'edit_file', file: 'Home.tsx', detail: '1 edit' },
         ],
-        ai: 'Done. Added a 3-column feature section — Activity stream, User segments, and Momentum score — right below the hero.',
-        effect: 'features',
+        ai: 'Done. Added a Pricing section with Starter, Pro, and Enterprise tiers below the hero.',
+        effect: 'pricing',
     },
     {
-        prompt: 'Make the three feature headings consistent',
-        reasoning: 'Setting all three card titles to the same size and weight.',
-        tools: [{ tool: 'edit_file', file: 'Features.tsx', detail: '1 edit' }],
-        ai: 'Updated. The three feature headings now share one type scale.',
-        effect: 'tweak',
+        prompt: 'Make the hero headline larger',
+        reasoning: 'Bumping the h1 to text-7xl and tightening the leading.',
+        tools: [{ tool: 'edit_file', file: 'Hero.tsx', detail: '2 edits' }],
+        ai: 'Updated. The hero headline is now text-7xl with tighter leading.',
+        effect: 'hero',
+    },
+    {
+        prompt: 'Style the image cards with a teal accent border',
+        reasoning: 'Applying border-teal-300 to the Card component.',
+        tools: [{ tool: 'edit_file', file: 'Card.tsx', detail: '1 edit' }],
+        ai: 'Cards now have a teal accent border on hover and selection.',
+        effect: 'restyle',
     },
 ];
 
@@ -160,40 +167,46 @@ interface MockLayer {
     isInstance: boolean;
 }
 
-// Layer tree for the Halcyon site. The 3-column "Features" block is omitted on
-// purpose — the demo AI chat creates it live (see FEATURE_LAYERS + 'features').
 const INITIAL_LAYERS: MockLayer[] = [
-    { id: 'root', name: 'Home', tagName: 'DIV', level: 0, isInstance: false },
-    { id: 'nav', name: 'Navigation', tagName: 'COMPONENT', level: 1, isInstance: true },
+    { id: 'root', name: 'Home Page', tagName: 'DIV', level: 0, isInstance: false },
+    { id: 'nav', name: 'Top Navigation', tagName: 'COMPONENT', level: 1, isInstance: true },
     { id: 'nav-logo', name: 'Logo', tagName: 'DIV', level: 2, isInstance: false },
     { id: 'nav-links', name: 'Nav Links', tagName: 'DIV', level: 2, isInstance: false },
-    { id: 'nav-cta', name: 'Book a demo', tagName: 'BUTTON', level: 2, isInstance: false },
+    { id: 'nav-cta', name: 'Get started', tagName: 'BUTTON', level: 2, isInstance: false },
     { id: 'hero', name: 'Hero', tagName: 'COMPONENT', level: 1, isInstance: true },
-    { id: 'hero-eyebrow', name: 'Eyebrow', tagName: 'DIV', level: 2, isInstance: false },
     { id: 'hero-title', name: 'Headline', tagName: 'H1', level: 2, isInstance: false },
     { id: 'hero-sub', name: 'Subhead', tagName: 'P', level: 2, isInstance: false },
-    { id: 'hero-form', name: 'Email Form', tagName: 'FORM', level: 2, isInstance: false },
-    { id: 'workflow', name: 'Workflow', tagName: 'COMPONENT', level: 1, isInstance: true },
-    { id: 'faq', name: 'FAQ', tagName: 'COMPONENT', level: 1, isInstance: true },
-    { id: 'cta', name: 'CTA', tagName: 'COMPONENT', level: 1, isInstance: true },
+    { id: 'hero-cta-row', name: 'CTA Row', tagName: 'DIV', level: 2, isInstance: false },
+    {
+        id: 'hero-cta-primary',
+        name: 'Start scheming',
+        tagName: 'BUTTON',
+        level: 3,
+        isInstance: false,
+    },
+    {
+        id: 'hero-cta-secondary',
+        name: 'Watch demo',
+        tagName: 'BUTTON',
+        level: 3,
+        isInstance: false,
+    },
+    { id: 'logos', name: 'Logo Strip', tagName: 'DIV', level: 1, isInstance: false },
+    { id: 'pricing', name: 'Pricing', tagName: 'COMPONENT', level: 1, isInstance: true },
+    { id: 'card-starter', name: 'Starter', tagName: 'COMPONENT', level: 2, isInstance: true },
+    { id: 'card-pro', name: 'Pro', tagName: 'COMPONENT', level: 2, isInstance: true },
+    { id: 'card-pro-price', name: '$12 / mo', tagName: 'SPAN', level: 3, isInstance: false },
+    { id: 'card-enterprise', name: 'Enterprise', tagName: 'COMPONENT', level: 2, isInstance: true },
     { id: 'footer', name: 'Footer', tagName: 'COMPONENT', level: 1, isInstance: true },
-];
-
-// Inserted just after the Hero block when the chat adds the feature section.
-const FEATURE_LAYERS: MockLayer[] = [
-    { id: 'features', name: 'Features', tagName: 'COMPONENT', level: 1, isInstance: true },
-    { id: 'feat-1', name: 'Activity stream', tagName: 'COMPONENT', level: 2, isInstance: true },
-    { id: 'feat-2', name: 'User segments', tagName: 'COMPONENT', level: 2, isInstance: true },
-    { id: 'feat-3', name: 'Momentum score', tagName: 'COMPONENT', level: 2, isInstance: true },
 ];
 
 const PAGES = [
     { id: 'home', name: 'Home', active: true },
+    { id: 'about', name: 'About', active: false },
     { id: 'pricing', name: 'Pricing', active: false, badge: 'new' as const },
-    { id: 'docs', name: 'Docs', active: false },
 ];
 
-const COMPONENT_CHIPS = ['Button', 'Card', 'Hero', 'Features', 'FAQ', 'Footer'];
+const COMPONENT_CHIPS = ['Button', 'Card', 'Hero', 'Nav', 'Pricing', 'Footer'];
 
 const RESTYLE_COLORS = [
     { id: 'teal', className: 'border-teal-300', swatch: 'bg-teal-300' },
@@ -448,7 +461,7 @@ const CODE_FILES: Record<string, CodeLine[]> = {
                 { t: '  return ', c: 'kw' },
                 { t: '<', c: 'p' },
                 { t: 'footer', c: 'tag' },
-                { t: '>© 2026 Halcyon</', c: 'text' },
+                { t: '>© 2026 Villainterest</', c: 'text' },
                 { t: 'footer', c: 'tag' },
                 { t: '>', c: 'p' },
             ],
@@ -802,7 +815,7 @@ function PreviewModePanel({ onExit }: { onExit: () => void }) {
                     style={frameStyle}
                 >
                     <div className="h-full w-full overflow-hidden">
-                        <WatermelonSite />
+                        {breakpoint === 'Mobile' ? <DesignMockupMobile /> : <DesignMockup />}
                     </div>
                     {/* Drag handle hints — visual only */}
                     {!fullscreen && (
@@ -1362,9 +1375,7 @@ function useChatSequence(onCanvasEffect: (effect: CanvasEffect) => void): ChatSe
             ]);
             setComposerText('');
             setComposerTyping(false);
-            // Static (reduced-motion) view shows the finished state with the
-            // feature section present.
-            effectRef.current('features');
+            effectRef.current(last.effect);
             return;
         }
 
@@ -1440,9 +1451,7 @@ function useChatSequence(onCanvasEffect: (effect: CanvasEffect) => void): ChatSe
                         const totalEnd = aiDelay + aiRevealMs + ROUND_END_HOLD_MS;
                         after(() => {
                             if (idx + 1 >= CHAT_ROUNDS.length) {
-                                // Reset for full loop — hide the feature section
-                                // again so the "add a section" moment replays.
-                                effectRef.current('reset');
+                                // Reset for full loop.
                                 setMessages([]);
                                 playRound(0);
                             } else {
@@ -1644,15 +1653,13 @@ export function WeblabInterfaceMockup() {
     const [layers, setLayers] = useState<MockLayer[]>(INITIAL_LAYERS);
     const [hoveredLayer, setHoveredLayer] = useState<string | null>(null);
     const [selectedLayer, setSelectedLayer] = useState<string>('hero-title');
-    // The 3-column feature section starts hidden; the demo AI chat reveals it.
-    const [showFeatures, setShowFeatures] = useState(false);
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const [canvasSelected, setCanvasSelected] = useState<'home' | 'mobile' | null>('home');
     const [activeRightTab, setActiveRightTab] = useState<RightTabId>('chat');
     const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'comment'>('cursor');
-    const [zoomPct, setZoomPct] = useState(58);
+    const [zoomPct, setZoomPct] = useState(82);
     const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('dark');
     const [leftPanelPinned, setLeftPanelPinned] = useState(true);
     const [comments, setComments] = useState<
@@ -1670,7 +1677,7 @@ export function WeblabInterfaceMockup() {
             id: 1001,
             x: 18,
             y: 16,
-            text: 'Make the headline a touch bigger',
+            text: 'Make this headline bigger',
             author: 'Mira',
             authorColor: 'bg-pink-500',
         },
@@ -1678,9 +1685,9 @@ export function WeblabInterfaceMockup() {
             id: 1002,
             x: 72,
             y: 22,
-            text: 'Love the new feature cards',
+            text: 'Love the new italic — keep it',
             author: 'Kai',
-            authorColor: 'bg-violet-500',
+            authorColor: 'bg-purple-500',
         },
     ]);
     const [openCommentId, setOpenCommentId] = useState<number | null>(null);
@@ -1731,61 +1738,145 @@ export function WeblabInterfaceMockup() {
         {
             id: 'm',
             name: 'Mira',
-            color: '#ec4899',
             bg: 'bg-pink-500',
             text: 'text-pink-500',
             border: 'border-pink-500',
-            x: 40,
-            y: 16,
+            x: 68,
+            y: 14,
         },
         {
             id: 'k',
             name: 'Kai',
-            color: '#8b5cf6',
-            bg: 'bg-violet-500',
-            text: 'text-violet-500',
-            border: 'border-violet-500',
-            x: 64,
-            y: 21,
+            bg: 'bg-purple-500',
+            text: 'text-purple-500',
+            border: 'border-purple-500',
+            x: 84,
+            y: 72,
         },
         {
             id: 's',
             name: 'Sam',
-            color: '#3b82f6',
             bg: 'bg-blue-500',
             text: 'text-blue-500',
             border: 'border-blue-500',
-            x: 28,
-            y: 26,
+            x: 35,
+            y: 52,
         },
     ]);
 
-    // Chat sequence drives the editor chrome demo. The headline round creates
-    // the 3-column feature section (reveals it in the canvas + inserts it into
-    // the layer tree); a follow-up round tweaks it; the loop resets to hide it
-    // again so the "add a section" moment replays.
+    // Collaborative actions — teammates make subtle, non-disruptive edits:
+    // Kai recolors the Pro card border, Sam tweaks the Starter price. Each
+    // shows a faint dashed outline on its target while the owner cursor snaps
+    // to it, so changes read as deliberate, natural collaborative edits.
+    // (Mira stays present via her cursor + comment pin — no selection box.)
+    type CollabAction =
+        | {
+              kind: 'resize';
+              id: string;
+              ownerId: string;
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+          }
+        | {
+              kind: 'recolor';
+              id: string;
+              ownerId: string;
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+              proAccent: string;
+          }
+        | {
+              kind: 'edit-text';
+              id: string;
+              ownerId: string;
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+              starterPrice: number;
+          };
+    const COLLAB_ACTIONS = useRef<CollabAction[]>([
+        {
+            kind: 'recolor',
+            id: 'pro-card',
+            ownerId: 'k',
+            x: 36,
+            y: 70,
+            w: 28,
+            h: 26,
+            proAccent: 'border-purple-400',
+        },
+        {
+            kind: 'edit-text',
+            id: 'starter-card',
+            ownerId: 's',
+            x: 6,
+            y: 70,
+            w: 28,
+            h: 26,
+            starterPrice: 5,
+        },
+    ]).current;
+    const [activeActionIdx, setActiveActionIdx] = useState(0);
+    useEffect(() => {
+        const id = setInterval(() => {
+            setActiveActionIdx((i) => (i + 1) % COLLAB_ACTIONS.length);
+        }, 4800);
+        return () => clearInterval(id);
+    }, [COLLAB_ACTIONS.length]);
+    const activeCollabAction = COLLAB_ACTIONS[activeActionIdx];
+
+    // Mockup overrides — driven both by chat effects and live collab actions.
+    const mockupOverrides: DesignMockupOverrides = {
+        ...(activeCollabAction?.kind === 'recolor'
+            ? { proAccent: activeCollabAction.proAccent }
+            : {}),
+        ...(activeCollabAction?.kind === 'edit-text'
+            ? { starterPrice: activeCollabAction.starterPrice }
+            : {}),
+    };
+
+    // Drives the SaaS landing-page mockup — current chat round highlights
+    // the section being edited (pricing pulses, hero scales up, cards get
+    // an accent border) so the canvas actually reflects the prompt.
+    const [currentStep, setCurrentStep] = useState<DesignMockupStep>(null);
+
+    // Chat sequence drives canvas demo: each round triggers a visible canvas change.
     const handleCanvasEffect = useCallback(
         (effect: CanvasEffect) => {
             setCanvasSelected('home');
-            if (effect === 'features') {
-                setShowFeatures(true);
+            setCurrentStep(effect);
+            if (effect === 'pricing') {
                 setLayers((prev) => {
-                    if (prev.some((l) => l.id === 'features')) return prev;
-                    const workflowIdx = prev.findIndex((l) => l.id === 'workflow');
+                    if (prev.some((l) => l.id === 'pricing')) return prev;
+                    const footerIdx = prev.findIndex((l) => l.id === 'footer');
+                    const inserted: MockLayer = {
+                        id: 'pricing',
+                        name: 'Pricing Section',
+                        tagName: 'COMPONENT',
+                        level: 1,
+                        isInstance: false,
+                    };
+                    if (footerIdx < 0) return [...prev, inserted];
                     const next = [...prev];
-                    if (workflowIdx < 0) next.push(...FEATURE_LAYERS);
-                    else next.splice(workflowIdx, 0, ...FEATURE_LAYERS);
+                    next.splice(footerIdx, 0, inserted);
                     return next;
                 });
-                setSelectedLayer('features');
+                setSelectedLayer('pricing');
+                setRestyleColor('brand');
                 triggerSaved();
-            } else if (effect === 'tweak') {
-                setSelectedLayer('feat-1');
-                triggerSaved();
-            } else if (effect === 'reset') {
-                setShowFeatures(false);
-                setLayers(INITIAL_LAYERS);
+            } else if (effect === 'hero') {
                 setSelectedLayer('hero-title');
+                setRestyleColor('amber');
+                triggerSaved();
+            } else if (effect === 'restyle') {
+                setSelectedLayer('card-pro');
+                setRestyleColor('teal');
+                triggerSaved();
             }
         },
         [triggerSaved],
@@ -1798,7 +1889,7 @@ export function WeblabInterfaceMockup() {
 
     const [isPanning, setIsPanning] = useState(false);
     const [isSpacePanning, setIsSpacePanning] = useState(false);
-    const [panOffset, setPanOffset] = useState({ x: 80, y: 60 });
+    const [panOffset, setPanOffset] = useState({ x: 80, y: 0 });
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
     const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -1837,29 +1928,27 @@ export function WeblabInterfaceMockup() {
     }, []);
 
     useEffect(() => {
-        // Small local drifts within the visible hero/feature region so cursors
-        // never teleport across the (very tall) page or off-screen.
         const waypoints = [
             [
-                { x: 40, y: 16 },
-                { x: 47, y: 20 },
-                { x: 43, y: 24 },
-                { x: 36, y: 21 },
-                { x: 44, y: 17 },
+                { x: 68, y: 14 },
+                { x: 42, y: 32 },
+                { x: 55, y: 58 },
+                { x: 76, y: 44 },
+                { x: 32, y: 25 },
             ],
             [
-                { x: 64, y: 21 },
-                { x: 70, y: 25 },
-                { x: 66, y: 28 },
-                { x: 60, y: 24 },
-                { x: 68, y: 20 },
+                { x: 84, y: 72 },
+                { x: 62, y: 80 },
+                { x: 48, y: 65 },
+                { x: 70, y: 50 },
+                { x: 85, y: 85 },
             ],
             [
-                { x: 28, y: 26 },
-                { x: 34, y: 29 },
-                { x: 31, y: 23 },
-                { x: 24, y: 27 },
-                { x: 36, y: 25 },
+                { x: 35, y: 52 },
+                { x: 22, y: 38 },
+                { x: 50, y: 28 },
+                { x: 18, y: 70 },
+                { x: 40, y: 60 },
             ],
         ];
         const indices = [0, 0, 0];
@@ -1871,7 +1960,7 @@ export function WeblabInterfaceMockup() {
                     const pos = pts[indices[i]]!;
                     setPresence((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...pos } : p)));
                 },
-                3200 + i * 1300,
+                2400 + i * 1100,
             );
             timers.push(t);
         });
@@ -1882,7 +1971,7 @@ export function WeblabInterfaceMockup() {
     // settles into the comment list. Loops so the canvas always feels
     // alive without spawning endless bubbles.
     useEffect(() => {
-        const fullText = "Bump the 'Start for free' button up a touch";
+        const fullText = "Bump the 'Choose plan' button up a touch";
         let cancelled = false;
         let charTimer: ReturnType<typeof setInterval> | null = null;
         let restartTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1954,8 +2043,8 @@ export function WeblabInterfaceMockup() {
         const deltaX = e.clientX - lastMousePos.x;
         const deltaY = e.clientY - lastMousePos.y;
         setPanOffset({
-            x: Math.max(-1800, Math.min(1800, panOffset.x + deltaX)),
-            y: Math.max(-5000, Math.min(800, panOffset.y + deltaY)),
+            x: Math.max(-600, Math.min(600, panOffset.x + deltaX)),
+            y: Math.max(-400, Math.min(400, panOffset.y + deltaY)),
         });
         setLastMousePos({ x: e.clientX, y: e.clientY });
     };
@@ -2003,7 +2092,7 @@ export function WeblabInterfaceMockup() {
     return (
         <div
             className={cn(
-                'bg-background-canvas border-border relative aspect-[16/10] w-full overflow-hidden rounded-t-[12px] rounded-b-none border border-b-0 shadow-md transition-all duration-1000 ease-out select-none',
+                'bg-background-canvas border-border relative aspect-[16/10] w-full overflow-hidden rounded-t-[12px] rounded-b-none border border-b-0 shadow-2xl transition-all duration-1000 ease-out select-none',
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
             )}
         >
@@ -2016,7 +2105,7 @@ export function WeblabInterfaceMockup() {
             {/* Canvas content (behind chrome) — Design mode */}
             <div
                 className={cn(
-                    'pointer-events-none absolute inset-0 right-44 z-0 flex items-start justify-center gap-12 select-none',
+                    'pointer-events-none absolute inset-0 right-44 z-0 flex items-center justify-center gap-12 select-none',
                     activeMode !== 'design' && 'hidden',
                 )}
                 style={{
@@ -2105,9 +2194,12 @@ export function WeblabInterfaceMockup() {
                             </span>
                         </div>
                     )}
-                    <div className="w-[1180px] overflow-hidden rounded-sm bg-white">
-                        <WatermelonSite showFeatures={showFeatures} />
-                    </div>
+                    <DesignMockup
+                        step={currentStep}
+                        accent={selectedRestyle.className}
+                        overrides={mockupOverrides}
+                        theme={previewTheme}
+                    />
                     {/* Comments anchored to the artboard so they pan/zoom
                         with it. Bubble opens on hover (or while a teammate
                         is typing); click acts as pin. */}
@@ -2181,61 +2273,124 @@ export function WeblabInterfaceMockup() {
                             </div>
                         );
                     })}
-                    {/* Live collaborator cursors — fake presence. Each gently
-                        drifts between nearby waypoints in the visible region. */}
+                    {/* Active collaborative action — only the resize kind
+                        renders the four-handle selection box on the Hero.
+                        Recolor/edit-text actions show a subtle outline +
+                        the owner cursor on the target, so changes read as
+                        a natural edit instead of a moving resize box. */}
+                    {activeCollabAction &&
+                        (() => {
+                            const action = activeCollabAction;
+                            const owner = presence.find((p) => p.id === action.ownerId);
+                            if (!owner) return null;
+                            const isResize = action.kind === 'resize';
+                            return (
+                                <div
+                                    className="pointer-events-none absolute z-[15]"
+                                    style={{
+                                        left: `${action.x}%`,
+                                        top: `${action.y}%`,
+                                        width: `${action.w}%`,
+                                        height: `${action.h}%`,
+                                        transition:
+                                            'left 0.55s cubic-bezier(0.22, 1, 0.36, 1), top 0.55s cubic-bezier(0.22, 1, 0.36, 1), width 0.55s cubic-bezier(0.22, 1, 0.36, 1), height 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
+                                    }}
+                                >
+                                    <div
+                                        className={cn(
+                                            'absolute inset-0 rounded-[2px]',
+                                            isResize
+                                                ? 'border-[1.5px]'
+                                                : 'border-[1px] border-dashed opacity-70',
+                                            owner.border,
+                                        )}
+                                    />
+                                    {isResize &&
+                                        [
+                                            { left: 0, top: 0 },
+                                            { left: '100%', top: 0 },
+                                            { left: 0, top: '100%' },
+                                            { left: '100%', top: '100%' },
+                                        ].map((c, i) => (
+                                            <div
+                                                key={i}
+                                                className={cn(
+                                                    'absolute h-1.5 w-1.5 rounded-sm border border-white shadow-sm',
+                                                    owner.bg,
+                                                )}
+                                                style={{
+                                                    left: c.left,
+                                                    top: c.top,
+                                                    transform: 'translate(-50%, -50%)',
+                                                }}
+                                            />
+                                        ))}
+                                </div>
+                            );
+                        })()}
+                    {/* Live collaborator cursors — fake presence. Active
+                        owner cursor snaps to its action target; others keep
+                        wandering via waypoints. */}
                     {presence.map((p) => {
+                        const action = activeCollabAction;
+                        const isOwner = action?.ownerId === p.id;
+                        const isResize = isOwner && action?.kind === 'resize';
+                        const x = isOwner && action ? action.x + action.w : p.x;
+                        const y =
+                            isOwner && action
+                                ? isResize
+                                    ? action.y + action.h
+                                    : action.y + action.h / 2
+                                : p.y;
                         return (
                             <div
                                 key={p.id}
-                                className="pointer-events-none absolute z-20"
+                                className="pointer-events-none absolute z-20 -translate-x-[2px] -translate-y-[2px]"
                                 style={{
-                                    left: `${p.x}%`,
-                                    top: `${p.y}%`,
+                                    left: `${x}%`,
+                                    top: `${y}%`,
                                     transition:
-                                        'left 1.6s cubic-bezier(0.4, 0, 0.2, 1), top 1.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        'left 0.9s cubic-bezier(0.25, 0.1, 0.25, 1), top 0.9s cubic-bezier(0.25, 0.1, 0.25, 1)',
                                 }}
                             >
-                                {/* Counter-scale by 1/zoom so cursors keep a constant
-                                    on-screen size at any zoom (like the real editor),
-                                    while their anchor (the arrow tip = top-left) stays
-                                    pinned to the world position. */}
-                                <div
-                                    className="relative"
-                                    style={{
-                                        transform: `scale(${100 / zoomPct})`,
-                                        transformOrigin: 'top left',
-                                        transition: 'transform 0.15s ease-out',
-                                    }}
+                                <svg
+                                    className={cn(
+                                        'h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]',
+                                        p.text,
+                                    )}
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
                                 >
-                                    <svg
-                                        width="20"
-                                        height="22"
-                                        viewBox="0 0 20 22"
-                                        fill="none"
-                                        className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.22)]"
-                                    >
-                                        <path
-                                            d="M3.5 2.5 L15.5 14.5 L11 15 L3.5 19 Z"
-                                            fill={p.color}
-                                            stroke="#fff"
-                                            strokeWidth="2.2"
-                                            strokeLinejoin="round"
-                                            strokeLinecap="round"
-                                            paintOrder="stroke"
-                                        />
-                                    </svg>
-                                    <span
-                                        className={cn(
-                                            'absolute top-[15px] left-[12px] inline-block rounded-full px-2 py-0.5 text-[11px] leading-none font-medium whitespace-nowrap text-white shadow-[0_2px_6px_rgba(0,0,0,0.2)]',
-                                            p.bg,
-                                        )}
-                                    >
-                                        {p.name}
-                                    </span>
-                                </div>
+                                    <path d="M2 2 L14 7 L8.5 9 L7 14 Z" />
+                                </svg>
+                                <span
+                                    className={cn(
+                                        'ml-1.5 inline-block rounded-md px-1.5 py-px text-[9px] font-medium text-white ring-1 ring-white/10',
+                                        p.bg,
+                                    )}
+                                >
+                                    {p.name}
+                                </span>
                             </div>
                         );
                     })}
+                </div>
+                <div
+                    data-canvas-element
+                    className={cn(
+                        'pointer-events-auto relative ml-8 flex flex-col items-center rounded-sm border-[0.5px] shadow-xl shadow-black/50 transition-colors',
+                        canvasSelected === 'mobile' ? selectedRestyle.className : 'border-border',
+                    )}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => setCanvasSelected('mobile')}
+                >
+                    <div className="absolute -top-7 left-1/2 z-50 flex h-6 w-full -translate-x-1/2 flex-row items-center gap-2.5 rounded-lg px-1 text-xs backdrop-blur-lg">
+                        <div className="text-foreground-secondary flex flex-1 flex-row items-center gap-1.5 overflow-hidden text-[12px] text-ellipsis whitespace-nowrap">
+                            Home
+                            <Icons.ChevronDown className="text-foreground-secondary mb-0.5 h-4 w-4" />
+                        </div>
+                    </div>
+                    <DesignMockupMobile theme={previewTheme} />
                 </div>
             </div>
 
@@ -2245,7 +2400,7 @@ export function WeblabInterfaceMockup() {
                 <div className="flex min-w-0 items-center gap-1.5">
                     <Icons.WeblabLogo className="h-4.5 w-4.5 shrink-0" />
                     <span className="text-foreground max-w-[110px] truncate text-[11px] font-medium">
-                        Halcyon
+                        Villainterest
                     </span>
                     <Icons.ChevronDown className="text-foreground-tertiary -ml-0.5 h-3.5 w-3.5" />
                     <span className="text-foreground-tertiary mx-0.5 text-[11px]">/</span>
@@ -2332,15 +2487,9 @@ export function WeblabInterfaceMockup() {
                     </button>
                     {/* Members avatar stack — matches presence cursor colors */}
                     <div className="mr-1 flex -space-x-1.5">
-                        <div className="ring-background-chrome flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[10px] leading-none font-semibold text-white ring-2 select-none">
-                            M
-                        </div>
-                        <div className="ring-background-chrome flex h-5 w-5 items-center justify-center rounded-full bg-violet-500 text-[10px] leading-none font-semibold text-white ring-2 select-none">
-                            K
-                        </div>
-                        <div className="ring-background-chrome flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] leading-none font-semibold text-white ring-2 select-none">
-                            S
-                        </div>
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-pink-500 ring-2" />
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-purple-500 ring-2" />
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-blue-500 ring-2" />
                     </div>
                     <div className="bg-background-tertiary text-foreground ml-0.5 flex h-6.5 w-6.5 items-center justify-center overflow-hidden rounded-full text-xs">
                         <img
@@ -2359,7 +2508,7 @@ export function WeblabInterfaceMockup() {
                             publishState === 'published' &&
                                 'border-emerald-300/70 bg-emerald-500/15 text-emerald-200',
                             (publishState === 'live' || publishState === 'idle') &&
-                                'border-teal-700 bg-teal-700 text-white hover:bg-teal-600',
+                                'border-teal-200/70 bg-teal-900/40 text-teal-100 hover:bg-teal-900/60',
                         )}
                     >
                         {publishState === 'publishing' && (
@@ -2927,12 +3076,12 @@ export function WeblabInterfaceMockup() {
                 />
 
                 {/* Zoom-to-fit floating chip — appears when zoomed off the default */}
-                {activeMode === 'design' && zoomPct !== 58 && (
+                {activeMode === 'design' && zoomPct !== 82 && (
                     <button
                         type="button"
                         onClick={() => {
-                            setZoomPct(58);
-                            setPanOffset({ x: 80, y: 60 });
+                            setZoomPct(82);
+                            setPanOffset({ x: 80, y: 0 });
                         }}
                         className="border-border-bar bg-background-bar text-foreground-secondary hover:bg-background-bar-active hover:text-foreground absolute right-[300px] bottom-16 z-30 flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] shadow-md backdrop-blur-2xl"
                     >

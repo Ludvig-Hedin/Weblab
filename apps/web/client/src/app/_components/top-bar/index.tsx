@@ -28,7 +28,7 @@ export const TopBar = () => {
     const t = useTranslations('nav');
 
     return (
-        <div className="text-foreground-secondary relative mx-auto flex h-12 w-full max-w-6xl items-center justify-between px-4 text-sm select-none sm:px-6 md:px-8">
+        <div className="text-foreground-secondary relative mx-auto flex h-12 w-full max-w-[1400px] items-center justify-between px-4 text-sm select-none sm:px-6 md:px-8">
             {/* Left side */}
             <div className="text-foreground-secondary flex items-center gap-4">
                 {LINKS.map((link) => (

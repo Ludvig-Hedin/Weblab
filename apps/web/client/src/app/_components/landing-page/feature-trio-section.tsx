@@ -769,30 +769,45 @@ export function AiAssistantVisual() {
 const TOKEN_COLORS = [
     { name: 'background', swatch: 'bg-[#0F1011]', hex: '#0F1011' },
     { name: 'surface', swatch: 'bg-[#1C1C1D]', hex: '#1C1C1D' },
+    { name: 'border', swatch: 'bg-[#2A2A2B]', hex: '#2A2A2B' },
+    { name: 'muted', swatch: 'bg-[#8A8A8A]', hex: '#8A8A8A' },
     { name: 'foreground', swatch: 'bg-[#F9F9F9]', hex: '#F9F9F9' },
-    { name: 'muted', swatch: 'bg-[#8a8a8a]', hex: '#8A8A8A' },
-    {
-        name: 'brand',
-        swatch: 'bg-[color:var(--foreground-brand)]',
-        hex: '#0F9BFF',
-        active: true,
-    },
+    { name: 'brand', swatch: 'bg-[color:var(--foreground-brand)]', hex: '#0F9BFF' },
+];
+
+const TYPE_SCALE = [
+    { label: 'Display', px: '32', cls: 'text-[22px]' },
+    { label: 'Heading', px: '20', cls: 'text-[16px]' },
+    { label: 'Body', px: '14', cls: 'text-[12px]' },
+];
+
+const SPACING = [
+    { label: '4', cls: 'w-2' },
+    { label: '8', cls: 'w-4' },
+    { label: '12', cls: 'w-6' },
+    { label: '16', cls: 'w-8' },
+];
+
+const RADII = [
+    { label: 'sm', cls: 'rounded-[3px]' },
+    { label: 'md', cls: 'rounded-[6px]' },
+    { label: 'lg', cls: 'rounded-[10px]' },
+    { label: 'full', cls: 'rounded-full' },
 ];
 
 function TokensVisual() {
-    const [active, setActive] = useState('brand');
+    const [active, setActive] = useState(5); // brand
     const [paused, setPaused] = useState(false);
 
     useEffect(() => {
         if (paused) return;
         const id = setInterval(() => {
-            setActive((cur) => {
-                const idx = TOKEN_COLORS.findIndex((c) => c.name === cur);
-                return TOKEN_COLORS[(idx + 1) % TOKEN_COLORS.length]!.name;
-            });
-        }, 2200);
+            setActive((cur) => (cur + 1) % TOKEN_COLORS.length);
+        }, 1800);
         return () => clearInterval(id);
     }, [paused]);
+
+    const activeColor = TOKEN_COLORS[active]!;
 
     return (
         <div
@@ -808,56 +823,107 @@ function TokensVisual() {
                 <span className="text-style-tagline">Tokens</span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
-            <div className="flex flex-col gap-0.5 p-1">
-                <div className="text-style-tagline px-2 pt-1 pb-0.5">Colors</div>
-                {TOKEN_COLORS.map((token) => {
-                    const isActive = token.name === active;
-                    return (
-                        <button
-                            key={token.name}
-                            type="button"
-                            onClick={() => setActive(token.name)}
-                            className="group/tok relative flex w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left transition-colors"
-                        >
-                            {isActive && (
-                                <motion.span
-                                    layoutId="trio-token-bg"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 32,
-                                        mass: 0.45,
-                                    }}
-                                    className="pointer-events-none absolute inset-0 rounded-[8px] bg-black/[0.05] dark:bg-white/[0.06]"
-                                    aria-hidden
-                                />
-                            )}
-                            <span
+            <div className="flex flex-col gap-3 p-3">
+                {/* Colors — palette strip */}
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                        <span className="text-style-tagline">Colors</span>
+                        <span className="font-mono text-[9.5px] text-black/45 tabular-nums dark:text-white/45">
+                            {activeColor.name} · {activeColor.hex}
+                        </span>
+                    </div>
+                    <div className="flex gap-1.5">
+                        {TOKEN_COLORS.map((c, i) => (
+                            <button
+                                key={c.name}
+                                type="button"
+                                onClick={() => setActive(i)}
                                 className={cn(
-                                    'relative h-3 w-3 shrink-0 rounded-[3px] ring-1 ring-inset',
-                                    token.swatch,
+                                    'relative h-8 flex-1 rounded-[6px] ring-1 ring-inset',
+                                    c.swatch,
                                     'ring-black/10 dark:ring-white/15',
                                 )}
-                            />
-                            <span
-                                className={cn(
-                                    'relative truncate font-mono text-[10.5px]',
-                                    isActive
-                                        ? 'text-black dark:text-white'
-                                        : 'text-black/65 dark:text-white/65',
-                                )}
+                                aria-label={c.name}
                             >
-                                {token.name}
-                            </span>
-                            {isActive && (
-                                <span className="bg-foreground-brand relative h-1.5 w-1.5 shrink-0 rounded-full" />
-                            )}
-                            <span className="text-foreground-tertiary relative ml-auto font-mono text-[9.5px] tabular-nums">
-                                {token.hex}
-                            </span>
-                        </button>
-                    );
-                })}
+                                {i === active && (
+                                    <motion.span
+                                        layoutId="trio-token-active"
+                                        transition={{
+                                            type: 'spring',
+                                            stiffness: 380,
+                                            damping: 32,
+                                            mass: 0.45,
+                                        }}
+                                        className="ring-foreground-brand pointer-events-none absolute -inset-[2px] rounded-[8px] ring-2"
+                                        aria-hidden
+                                    />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Type scale specimen */}
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-style-tagline">Type scale</span>
+                    <div className="flex items-end gap-4">
+                        {TYPE_SCALE.map((tp) => (
+                            <div key={tp.px} className="flex flex-col gap-1">
+                                <span
+                                    className={cn(
+                                        'leading-none font-medium tracking-tight text-black/85 dark:text-white/90',
+                                        tp.cls,
+                                    )}
+                                >
+                                    Ag
+                                </span>
+                                <span className="font-mono text-[9px] text-black/40 tabular-nums dark:text-white/40">
+                                    {tp.label} · {tp.px}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Spacing scale */}
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-style-tagline">Spacing</span>
+                    <div className="flex items-end gap-3">
+                        {SPACING.map((s) => (
+                            <div key={s.label} className="flex flex-col items-center gap-1">
+                                <span
+                                    className={cn(
+                                        'bg-foreground-brand/50 h-2.5 rounded-[2px]',
+                                        s.cls,
+                                    )}
+                                />
+                                <span className="font-mono text-[9px] text-black/40 tabular-nums dark:text-white/40">
+                                    {s.label}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Radius scale */}
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-style-tagline">Radius</span>
+                    <div className="flex items-center gap-2.5">
+                        {RADII.map((r) => (
+                            <div key={r.label} className="flex flex-col items-center gap-1">
+                                <span
+                                    className={cn(
+                                        'h-7 w-7 border border-black/15 bg-black/[0.04] dark:border-white/20 dark:bg-white/[0.06]',
+                                        r.cls,
+                                    )}
+                                />
+                                <span className="font-mono text-[9px] text-black/40 dark:text-white/40">
+                                    {r.label}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
