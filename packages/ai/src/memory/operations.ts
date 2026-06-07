@@ -1,7 +1,7 @@
 import type { ChatMessage } from '@weblab/models';
 
 import type { MemorySearchResult } from './types';
-import { getMemoryClient } from './client';
+import { getMemoryClient, isMemoryEnabled } from './client';
 
 const INSTRUCTION_RE = /<instruction>([\s\S]*?)<\/instruction>/;
 
@@ -13,7 +13,8 @@ const INSTRUCTION_RE = /<instruction>([\s\S]*?)<\/instruction>/;
  * Falls back to the raw text when no <instruction> tag is present.
  */
 export function extractInstructionText(rawText: string): string {
-    return INSTRUCTION_RE.exec(rawText)?.[1]?.trim() || rawText.trim();
+    const instruction = INSTRUCTION_RE.exec(rawText)?.[1]?.trim();
+    return instruction && instruction.length > 0 ? instruction : rawText.trim();
 }
 
 /**
@@ -25,6 +26,7 @@ export function extractInstructionText(rawText: string): string {
  * Returns [] on any error so the chat pipeline is never blocked.
  */
 export async function searchMemories(query: string, userId: string): Promise<MemorySearchResult[]> {
+    if (!isMemoryEnabled()) return [];
     try {
         const client = await getMemoryClient();
         // Use top-level user_id (same as add) — not nested in filters —
@@ -49,6 +51,7 @@ export async function addMemoriesFromConversation(
     userId: string,
     projectId: string,
 ): Promise<void> {
+    if (!isMemoryEnabled()) return;
     try {
         const client = await getMemoryClient();
         // `messages` (from onFinish) always ends with the just-completed exchange:

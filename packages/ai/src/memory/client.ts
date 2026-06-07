@@ -2,6 +2,10 @@ import type MemoryClient from 'mem0ai';
 
 let _client: MemoryClient | null = null;
 
+export function isMemoryEnabled(): boolean {
+    return Boolean(process.env.MEM0_API_KEY);
+}
+
 /**
  * Returns a lazy singleton MemoryClient.
  * Reads MEM0_API_KEY directly from process.env (same pattern as OpenRouter key in providers.ts).
