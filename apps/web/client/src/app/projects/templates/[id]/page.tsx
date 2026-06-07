@@ -9,7 +9,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { CreateManagerProvider } from '@/components/store/create';
 import { Routes } from '@/utils/constants';
-import { isNonEmbeddable } from '../../_components/select/project-preview-surface';
+import { isNonEmbeddable } from '../../_components/select/project-preview-utils';
 import { ExternalTemplateActions } from '../../_components/templates/external-template-actions';
 import { ExternalTemplates } from '../../_components/templates/external-templates';
 import {

@@ -6,6 +6,7 @@ import { BrandLogo } from '@weblab/ui/brand';
 import { cn } from '@weblab/ui/utils';
 
 import { getFaviconUrl } from './project-card-utils';
+import { isNonEmbeddable } from './project-preview-utils';
 
 interface ProjectPreviewSurfaceProps {
     projectName: string;
@@ -32,33 +33,6 @@ const PreviewSkeleton = ({ loading }: { loading: boolean }) => (
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.04),transparent_60%)]" />
     </div>
 );
-
-/**
- * Some hosts inject a consent/warning dialog when embedded in an iframe
- * (e.g. CodeSandbox preview domains) and others actively refuse with
- * `X-Frame-Options: DENY` (e.g. vercel.com marketing pages). Skip the
- * iframe for these and fall back to the skeleton — the user can still
- * open the full page by clicking.
- *
- * Exported so other surfaces (e.g. the templates detail page) can use the
- * same logic instead of re-implementing it and drifting.
- */
-export function isNonEmbeddable(url: string): boolean {
-    try {
-        const { hostname } = new URL(url);
-        return (
-            hostname.endsWith('.csb.app') ||
-            hostname.endsWith('.codesandbox.io') ||
-            // Vercel Sandbox dev-server URLs 502 until the dev server binds and
-            // are not meant to be embedded as static thumbnails.
-            hostname.endsWith('.vercel.run') ||
-            hostname === 'vercel.com' ||
-            hostname.endsWith('.vercel.com')
-        );
-    } catch {
-        return false;
-    }
-}
 
 export const ProjectPreviewSurface = ({
     projectName,

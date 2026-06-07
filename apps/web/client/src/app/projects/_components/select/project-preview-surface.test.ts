@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { isNonEmbeddable } from './project-preview-surface';
+import { isNonEmbeddable } from './project-preview-utils';
 
 describe('isNonEmbeddable', () => {
     it('blocks Vercel Sandbox dev-server URLs (they 502 until the dev server binds)', () => {
