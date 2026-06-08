@@ -299,6 +299,9 @@ export class CodeFileSystem extends FileSystem {
     }
 
     private async undobounceSaveIndexToFile(): Promise<void> {
+        if (!this.initialized) {
+            return;
+        }
         try {
             await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
         } catch {

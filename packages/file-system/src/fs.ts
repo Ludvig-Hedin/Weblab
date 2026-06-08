@@ -27,6 +27,10 @@ export class FileSystem {
         return this.basePath;
     }
 
+    protected get initialized(): boolean {
+        return this.isInitialized && this.fs !== null;
+    }
+
     /**
      * SECURITY: resolve `inputPath` against `basePath` and refuse anything
      * that escapes the base. Without this, callers can pass values like

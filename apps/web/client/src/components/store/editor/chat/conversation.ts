@@ -28,6 +28,14 @@ type ConvexConversationDoc = {
     suggestions?: unknown;
 };
 
+let lastActiveConversationStorageWarningShown = false;
+
+function warnLastActiveConversationStorage(operation: 'read' | 'write', error: unknown): void {
+    if (lastActiveConversationStorageWarningShown) return;
+    lastActiveConversationStorageWarningShown = true;
+    console.warn(`Could not ${operation} last active conversation id from browser storage`, error);
+}
+
 function normalizeConversation(doc: ConvexConversationDoc): ChatConversation {
     return {
         id: doc._id,
@@ -85,7 +93,7 @@ export class ConversationManager {
                 lastActiveConversationKey(this.editorEngine.projectId),
             );
         } catch (error) {
-            console.error('Error reading last active conversation id', error);
+            warnLastActiveConversationStorage('read', error);
             return null;
         }
     }
@@ -95,7 +103,7 @@ export class ConversationManager {
         void localforage
             .setItem(lastActiveConversationKey(this.editorEngine.projectId), id)
             .catch((error) => {
-                console.error('Error persisting last active conversation id', error);
+                warnLastActiveConversationStorage('write', error);
             });
     }
 

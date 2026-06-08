@@ -921,6 +921,68 @@ export const update = mutation({
     },
 });
 
+export const _replaceBranchSandbox = internalMutation({
+    args: {
+        projectId: v.id('projects'),
+        branchId: v.id('branches'),
+        sandboxId: v.string(),
+        previewUrl: v.string(),
+        snapshotId: v.string(),
+        provider: v.union(v.literal('vercel_sandbox')),
+        port: v.optional(v.number()),
+        devCommand: v.optional(v.string()),
+        runtime: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const branch = await ctx.db.get(args.branchId);
+        if (!branch || branch.projectId !== args.projectId) {
+            throw new Error('NOT_FOUND: branch');
+        }
+        await requireCap(ctx, 'project.update', { projectId: args.projectId });
+
+        const now = Date.now();
+        await ctx.db.patch(args.projectId, {
+            updatedAt: now,
+            sandboxId: args.sandboxId,
+            sandboxUrl: args.previewUrl,
+        });
+        const runtimeMetadata: Record<string, unknown> =
+            branch.runtimeMetadata && typeof branch.runtimeMetadata === 'object'
+                ? (branch.runtimeMetadata as Record<string, unknown>)
+                : {};
+
+        await ctx.db.patch(args.branchId, {
+            updatedAt: now,
+            sandboxId: args.sandboxId,
+            runtimeMetadata: {
+                ...runtimeMetadata,
+                cloud: {
+                    provider: args.provider,
+                    sandboxId: args.sandboxId,
+                    previewUrl: args.previewUrl,
+                    snapshotId: args.snapshotId,
+                    port: args.port,
+                    devCommand: args.devCommand,
+                    runtime: args.runtime,
+                },
+            },
+        });
+
+        const frames = await ctx.db
+            .query('frames')
+            .withIndex('by_branch', (q) => q.eq('branchId', args.branchId))
+            .collect();
+        await Promise.all(frames.map((frame) => ctx.db.patch(frame._id, { url: args.previewUrl })));
+
+        return {
+            projectId: args.projectId,
+            branchId: args.branchId,
+            sandboxId: args.sandboxId,
+            previewUrl: args.previewUrl,
+        };
+    },
+});
+
 export const addTag = mutation({
     args: { projectId: v.id('projects'), tag: v.string() },
     handler: async (ctx, { projectId, tag }) => {

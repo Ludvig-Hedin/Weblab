@@ -38,6 +38,17 @@ later without re-discovering the context.
 
 ## Open
 
+### Browser FS persistence can fail under heavy editor navigation when storage is full/busy
+
+- **Discovered:** 2026-06-07 (local/prod E2E QA pass)
+- **Where:** editor browser storage/ZenFS persistence path; surfaced in dev logs while cycling project/editor routes.
+- **Symptom:** Dev logs showed `Compaction failed: No space left on device`, `Persisting failed: Another write batch or compaction is already active`, and IndexedDB `AbortError` reads/writes for chat conversation persistence during heavy local editor navigation.
+- **Root cause:** Partially confirmed. Offline project-cache writes could race and keep retrying after storage pressure. A lower-level ZenFS/dev-toolchain persistence path can still report compaction/write contention when the browser/dev cache is already full.
+- **Progress:** 2026-06-08 serialized offline project-cache writes, trims cached frames/conversations, and disables further project-cache writes after quota/abort/backing-store failures. Chat last-active-conversation storage now logs one warning instead of spamming.
+- **Next step:** Add storage-pressure detection to the ZenFS persistence layer itself and show a user-visible degraded-storage warning with a clear "clear local cache" recovery action.
+- **Risk if ignored:** Users with full browser storage can still see noisy lower-level persistence errors and may lose cached editor file state.
+- **Tags:** `#bug` `#editor` `#storage` `#reliability`
+
 ### Pro + exemplar blocks have no runtime delivery to the builder agent
 
 - **Discovered:** 2026-06-05 (review of F-785 full-catalog session)
@@ -100,16 +111,6 @@ later without re-discovering the context.
 - **Why it matters:** design-system guidance (`design-system/_components/demos/data.ts`) recommends tokens over hardcoded px; mixed approaches drift.
 - **Next step:** convert real-text `text-[11px]`→`text-micro` (0.6875rem, exact) and `text-[12px]`→`text-mini` or `text-xs` (both 0.75rem, exact). **Skip** SVG/icon-glyph sizing (e.g. `landing-page/feature-trio-section.tsx` `text-[13px]` inside an `h-3 w-3` box) and landing `design-mockup`. Left out of the 2026-06-05 sweep per "editor can be custom".
 - **Also:** `--text-tiny` (10px) is defined in `@theme` (`packages/ui/src/globals.css`) but not shown in the design-system typography visual scale (`typography.tsx` iterates the `--font-size-*` family, not `--text-*`). Add a row/note there.
-
-### Editor cleanup logs `File system not initialized` after project creation tab churn
-
-- **Discovered:** 2026-06-05 (Codex project-creation E2E session)
-- **Where:** [packages/file-system/src/code-fs.ts](packages/file-system/src/code-fs.ts) cleanup/index flush path
-- **Symptom:** Browser console logs `Error: File system not initialized` from `CodeFileSystem.writeFile -> undobounceSaveIndexToFile -> cleanup` after navigating across multiple freshly-created project tabs.
-- **Root cause:** Cleanup tries to save `.weblab/index.json` even when the file system was never initialized or was already torn down during route changes.
-- **Next step:** Make cleanup/index flush a no-op when the FS is not initialized, or ensure initialization state is stable through route teardown.
-- **Risk if ignored:** No confirmed data loss in this session, but project creation E2E has avoidable console errors and route-change cleanup noise.
-- **Tags:** `#bug` `#editor` `#project-creation`
 
 ### Bug Hunt 2026-06-05 — project creation (needs-review findings)
 
@@ -1366,6 +1367,29 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Expired Vercel sandbox restore/liveness is still unavailable after Convex migration
+
+- **Discovered:** 2026-06-07 (local/prod E2E QA pass)
+- **Resolved:** 2026-06-08 (local validation, not yet deployed to production)
+- **Where:** `apps/web/client/convex/projectActions.ts`; `apps/web/client/convex/projects.ts`; `apps/web/client/src/app/project/[id]/_components/canvas/frame/use-sandbox-liveness.ts`; `apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx`
+- **Fix:** Added Convex-backed preview liveness probing and snapshot restore. The editor now validates branch-owned Vercel preview URLs server-side, detects stopped/reclaimed sandboxes, creates a new Vercel sandbox from the branch snapshot, updates project/branch/frame sandbox metadata, and reloads the editor onto the fresh preview.
+- **Validation:** `bun --filter @weblab/web-client typecheck` passed. Local Convex sync via `bun --filter @weblab/web-client convex:dev:once` was required before browser testing. The previously expired project restored to a new sandbox URL and `curl -I https://sb-7hsurxnx9im0.vercel.run` returned `HTTP/2 200`.
+- **Remaining production note:** Requires deployment plus Convex function deployment before `weblab.build` can serve the fix.
+- **Tags:** `#bug` `#editor` `#sandbox` `#convex`
+
+### 2026-06-07 — Editor FS cleanup and expired-sandbox sync cascade
+
+Resolved by the 2026-06-07 local/prod E2E QA pass.
+
+- `CodeFileSystem` no longer tries to save `.weblab/index.json` when the FS was
+  never initialized or has already torn down during route changes. The
+  project-creation tab-churn console error (`File system not initialized`) is
+  now a guarded no-op.
+- Expired Vercel sandbox sessions now latch 410 as `sandboxGone`, release sync,
+  and skip git/preload work. Local E2E verified the old reclaimed project no
+  longer logs directory deletes or push attempts after the guard.
+- Full sandbox restore was completed in the 2026-06-08 resolved entry above.
 
 ### 2026-06-05 — Component registry extended to full catalog + on-brand scaffold
 

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
+
+import type { Id } from '@convex/_generated/dataModel';
 
 export type SandboxLivenessState = 'unknown' | 'alive' | 'gone' | 'notFound' | 'error';
 
@@ -17,16 +21,38 @@ export type SandboxLivenessState = 'unknown' | 'alive' | 'gone' | 'notFound' | '
  * soft hint timer trips), so we don't spam the network during normal cold
  * boots.
  */
-export function useSandboxLiveness(previewUrl: string, enabled: boolean): SandboxLivenessState {
-    const [state, _setState] = useState<SandboxLivenessState>('unknown');
+export function useSandboxLiveness(
+    branchId: Id<'branches'>,
+    previewUrl: string,
+    enabled: boolean,
+): SandboxLivenessState {
+    const checkLiveness = useAction(api.projectActions.checkSandboxLiveness);
+    const [state, setState] = useState<SandboxLivenessState>('unknown');
 
-    // TODO(convex-migration): sandbox.checkAlive belonged to the legacy forward
-    // router (calls the apps/web/server fastify service). It hasn't been ported to
-    // Convex yet — until then, return 'unknown' so the editor falls back to its
-    // pre-probe behavior rather than spuriously claiming the sandbox is dead.
     useEffect(() => {
-        if (!enabled || !previewUrl) return;
-    }, [previewUrl, enabled]);
+        if (!enabled || !previewUrl) {
+            setState('unknown');
+            return;
+        }
+
+        let cancelled = false;
+        setState('unknown');
+        void checkLiveness({ branchId, previewUrl })
+            .then((result) => {
+                if (!cancelled) {
+                    setState(result.state);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setState('error');
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [branchId, checkLiveness, previewUrl, enabled]);
 
     return state;
 }

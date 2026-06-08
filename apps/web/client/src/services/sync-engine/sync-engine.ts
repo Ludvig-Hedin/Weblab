@@ -227,6 +227,9 @@ export class CodeProviderSync {
 
     private async pullFromSandbox(): Promise<void> {
         const sandboxEntries = await this.getAllSandboxFiles('./');
+        if (this.sandboxGone) {
+            return;
+        }
         const sandboxEntriesSet = new Set(
             sandboxEntries.map((e) => (e.path.startsWith('/') ? e.path : `/${e.path}`)),
         );

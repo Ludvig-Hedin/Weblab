@@ -50,6 +50,13 @@ mode is enabled.
 
 ## Latest Smoke Results
 
+- **2026-06-08:** Local reclaimed-sandbox restore was validated after syncing
+  Convex functions with `bun --filter @weblab/web-client convex:dev:once`; the
+  restored Vercel sandbox URL returned `HTTP/2 200`. Production authenticated
+  editor E2E was not rerun because the in-app browser connection became
+  unavailable and standalone Playwright Chromium failed to launch in this macOS
+  session. Do not treat the restore fix as live on `weblab.build` until the app
+  and Convex functions have been deployed.
 - **2026-06-07:** Unauthenticated production smoke passed for `/`, `/pricing`,
   `/blog`, `/changelog`, `/sign-in`, and `/projects`.
 - `/projects` correctly redirected to `/sign-in?returnUrl=%2Fprojects`.

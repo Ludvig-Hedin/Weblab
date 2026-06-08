@@ -95,9 +95,14 @@ export class SandboxManager {
 
         // React to provider becoming available (now or later)
         this.providerReactionDisposer = reaction(
-            () => this.session.provider,
-            async (provider) => {
+            () => ({ provider: this.session.provider, sandboxGone: this.session.sandboxGone }),
+            async ({ provider, sandboxGone }) => {
                 if (provider) {
+                    if (sandboxGone) {
+                        this.stopOfflineWatcher();
+                        this.releaseSyncEngine();
+                        return;
+                    }
                     // Fresh provider connection (initial boot OR reconnect after
                     // a "Restart sandbox"): give preload injection a clean retry
                     // budget. Without this, a slow first boot that exhausted its
@@ -118,6 +123,9 @@ export class SandboxManager {
                     } else if (this.branch.runtime.type === 'local') {
                         this.stopOfflineWatcher();
                         await this.fs.rebuildIndex();
+                    } else if (this.session.sandboxGone) {
+                        this.stopOfflineWatcher();
+                        this.releaseSyncEngine();
                     } else if (this.suppressSyncInit) {
                         // Replay-in-progress: don't run pullFromSandbox yet.
                         // resumeSyncInit() will fire init manually once the
@@ -138,6 +146,7 @@ export class SandboxManager {
                                 runInAction(() => {
                                     this.session.sandboxGone = true;
                                 });
+                                this.releaseSyncEngine();
                                 console.warn(
                                     '[SandboxManager] Sync engine init aborted — sandbox is gone (410). Waiting for restore.',
                                 );
@@ -153,6 +162,9 @@ export class SandboxManager {
                     // panel lazy-reads from gitManager and version
                     // history is opt-in. Awaiting here blocks the
                     // editor's "ready" signal for no user benefit.
+                    if (this.session.sandboxGone) {
+                        return;
+                    }
                     void this.gitManager.init().catch((err) => {
                         if (isSandboxGoneError(err)) {
                             // Same 410 short-circuit as the sync engine
@@ -161,6 +173,7 @@ export class SandboxManager {
                             runInAction(() => {
                                 this.session.sandboxGone = true;
                             });
+                            this.releaseSyncEngine();
                             return;
                         }
                         console.error('[SandboxManager] gitManager.init failed:', err);
@@ -204,6 +217,10 @@ export class SandboxManager {
         this.suppressSyncInit = false;
         const provider = this.session.provider;
         if (!provider) return;
+        if (this.session.sandboxGone) {
+            this.releaseSyncEngine();
+            return;
+        }
         if (this.session.isOffline) return;
         if (this.branch.runtime.type === 'local') {
             await this.fs.rebuildIndex();
@@ -229,10 +246,17 @@ export class SandboxManager {
         this.offlineWatcher = null;
     }
 
+    private releaseSyncEngine(): void {
+        if (!this.sync) return;
+        this.sync.release();
+        this.sync = null;
+    }
+
     async initializeSyncEngine(provider: Provider) {
-        if (this.sync) {
-            this.sync.release();
-            this.sync = null;
+        this.releaseSyncEngine();
+
+        if (this.session.sandboxGone) {
+            return;
         }
 
         // Defensive: see `init()` above. If we ever reach this branch without
@@ -250,6 +274,10 @@ export class SandboxManager {
         });
 
         await this.sync.start();
+        if (this.session.sandboxGone) {
+            this.releaseSyncEngine();
+            return;
+        }
         await this.ensurePreloadScriptExists();
         await this.fs.rebuildIndex();
     }

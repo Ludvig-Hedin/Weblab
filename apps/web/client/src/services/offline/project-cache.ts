@@ -18,6 +18,37 @@ export interface CachedProjectRecord extends CachedProjectExtras {
 }
 
 let storePromise: Promise<LocalForage> | null = null;
+let cacheWriteQueue: Promise<void> = Promise.resolve();
+let projectCacheWritesDisabled = false;
+
+const MAX_CACHED_CONVERSATIONS = 5;
+const MAX_CACHED_FRAMES = 8;
+
+function isStoragePressureError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+    const message = error.message.toLowerCase();
+    return (
+        error.name === 'AbortError' ||
+        error.name === 'QuotaExceededError' ||
+        message.includes('quota') ||
+        message.includes('no space left') ||
+        message.includes('backing store')
+    );
+}
+
+function disableProjectCacheWrites(operation: string, error: unknown): void {
+    if (projectCacheWritesDisabled) return;
+    projectCacheWritesDisabled = true;
+    console.warn(`[offline] ${operation} disabled: browser storage is unavailable`, error);
+}
+
+function normalizeExtrasForCache(extras: CachedProjectExtras): CachedProjectExtras {
+    return {
+        ...extras,
+        frames: extras.frames?.slice(0, MAX_CACHED_FRAMES),
+        conversations: extras.conversations?.slice(-MAX_CACHED_CONVERSATIONS),
+    };
+}
 
 function getStore(): Promise<LocalForage> {
     if (typeof window === 'undefined') {
@@ -33,19 +64,33 @@ function getStore(): Promise<LocalForage> {
     return storePromise;
 }
 
+function enqueueCacheWrite(write: () => Promise<void>): Promise<void> {
+    const next = cacheWriteQueue.then(write, write);
+    cacheWriteQueue = next.catch(() => undefined);
+    return next;
+}
+
 export async function cacheProject(project: Project, branches: Branch[]): Promise<void> {
     if (typeof window === 'undefined') return;
+    if (projectCacheWritesDisabled) return;
     try {
-        const store = await getStore();
-        const existing = (await store.getItem<CachedProjectRecord>(project.id)) ?? null;
-        const record: CachedProjectRecord = {
-            ...(existing ?? {}),
-            project,
-            branches,
-            cachedAt: Date.now(),
-        };
-        await store.setItem(project.id, record);
+        await enqueueCacheWrite(async () => {
+            if (projectCacheWritesDisabled) return;
+            const store = await getStore();
+            const existing = (await store.getItem<CachedProjectRecord>(project.id)) ?? null;
+            const record: CachedProjectRecord = {
+                ...(existing ?? {}),
+                project,
+                branches,
+                cachedAt: Date.now(),
+            };
+            await store.setItem(project.id, record);
+        });
     } catch (err) {
+        if (isStoragePressureError(err)) {
+            disableProjectCacheWrites('cacheProject', err);
+            return;
+        }
         console.warn('[offline] cacheProject failed', err);
     }
 }
@@ -61,17 +106,25 @@ export async function cacheProjectExtras(
     extras: CachedProjectExtras,
 ): Promise<void> {
     if (typeof window === 'undefined') return;
+    if (projectCacheWritesDisabled) return;
     try {
-        const store = await getStore();
-        const existing = await store.getItem<CachedProjectRecord>(projectId);
-        if (!existing) return;
-        const next: CachedProjectRecord = {
-            ...existing,
-            ...extras,
-            extrasCachedAt: Date.now(),
-        };
-        await store.setItem(projectId, next);
+        await enqueueCacheWrite(async () => {
+            if (projectCacheWritesDisabled) return;
+            const store = await getStore();
+            const existing = await store.getItem<CachedProjectRecord>(projectId);
+            if (!existing) return;
+            const next: CachedProjectRecord = {
+                ...existing,
+                ...normalizeExtrasForCache(extras),
+                extrasCachedAt: Date.now(),
+            };
+            await store.setItem(projectId, next);
+        });
     } catch (err) {
+        if (isStoragePressureError(err)) {
+            disableProjectCacheWrites('cacheProjectExtras', err);
+            return;
+        }
         console.warn('[offline] cacheProjectExtras failed', err);
     }
 }

@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-06-06.
+Last updated: 2026-06-08.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the
@@ -80,6 +80,30 @@ and retries new-user completion when Clerk only requires name/username fields
 after email verification. Production Clerk also requires a password for new
 email-code sign-ups, so the verify step now exposes a password continuation
 instead of sending users back through sign-in.
+
+**Local/prod QA update 2026-06-07:** localhost public routes, sign-in,
+dashboard, project search empty state, blank project dialogs, GitHub import
+gate, marketplace listing, and a fresh blank static-HTML editor project were
+smoked in the in-app browser. Fresh static HTML preview served HTTP 200 and the
+editor became ready across desktop/tablet/phone after cold boot. A reclaimed
+Vercel sandbox project still cannot restore because Convex liveness/restore is
+missing, but the 410 path is now non-destructive: sync/git/preload cascades stop
+once `sandboxGone` is latched. Production unauthenticated smoke passed for `/`,
+`/pricing`, `/blog`, `/changelog`, `/sign-in`, and `/projects`; `/projects`
+redirected to sign-in and `/changelog` showed the live v3.8 June 5 desktop/local
+project update.
+
+**Restore QA update 2026-06-08:** reclaimed Vercel sandbox restore was ported
+to Convex. `projectActions.checkSandboxLiveness` probes branch-owned Vercel
+preview URLs server-side, `projectActions.restoreSandbox` resumes from the
+branch snapshot, and `projects._replaceBranchSandbox` updates project, branch,
+and frame metadata to the new sandbox URL. Local validation required
+`bun --filter @weblab/web-client convex:dev:once`; after sync, the expired
+example.com project restored to `https://sb-7hsurxnx9im0.vercel.run`, and that
+URL returned `HTTP/2 200`. Offline project-cache writes were serialized, capped,
+and disabled after quota/abort/backing-store failures. Lower-level ZenFS/browser
+storage pressure remains open in `BACKLOG.md`; production authenticated E2E
+still requires a deployed build plus a production auth session.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /

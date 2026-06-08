@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
-import { useQuery } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import type { Frame } from '@weblab/models';
@@ -29,12 +29,6 @@ import { BOOT_RESTART_HINT_MS, BOOT_SOFT_HINT_MS, useFrameReload } from './use-f
 import { useSandboxLiveness } from './use-sandbox-liveness';
 import { useSandboxTimeout } from './use-sandbox-timeout';
 import { FrameComponent } from './view';
-import { waitForSandboxReady } from './wait-for-sandbox-ready';
-
-// Ceiling for the post-restart readiness poll. Real cold-boot times
-// run 30–60s on CodeSandbox; the previous hardcoded 5s wait either
-// fired a 502 (too short) or made fast restarts feel sluggish.
-const RESTART_READY_CEILING_MS = 60_000;
 
 // CodeSandbox preview proxy returns 404 (not 502) for fresh sandboxes
 // while the dev server is still binding port 3000. Treating 404 as a
@@ -344,6 +338,7 @@ export const FrameView = observer(
         const branchErrors = editorEngine.branches.getErrorsForBranch(frame.branchId);
         const hasBuildErrors = branchErrors.length > 0;
         const branchData = editorEngine.branches.getBranchDataById(frame.branchId);
+        const restoreSandbox = useAction(api.projectActions.restoreSandbox);
         const preloadScriptReady =
             branchData?.sandbox?.preloadScriptState === PreloadScriptState.INJECTED;
         const isCodeSandboxFrame = useMemo(() => isCodeSandboxPreviewUrl(frame.url), [frame.url]);
@@ -405,7 +400,11 @@ export const FrameView = observer(
         // spinner run forever.
         const livenessEnabled =
             !isFrameReady && (bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1);
-        const livenessState = useSandboxLiveness(frame.url, livenessEnabled);
+        const livenessState = useSandboxLiveness(
+            frame.branchId as Id<'branches'>,
+            frame.url,
+            livenessEnabled,
+        );
 
         const showSoftHint =
             !isFrameReady &&
@@ -436,12 +435,6 @@ export const FrameView = observer(
         const sandboxIsGone =
             livenessState === 'gone' ||
             (livenessState === 'notFound' && bootElapsedMs >= NOTFOUND_GRACE_MS);
-        // TODO(sandbox-port): wire to Convex once a `sandboxActions.restore`
-        // action exists. The tRPC sandbox.restore endpoint was removed during
-        // the Convex migration; restoration is currently a no-op so the CTA
-        // surfaces but cannot recover the sandbox. Track restore-in-flight
-        // state locally so the existing UI affordances (spinner + disabled
-        // button) keep behaving correctly.
         const [isRestorePending, setIsRestorePending] = useState(false);
         const restoreMutation = { isPending: isRestorePending };
         const restoreInFlightRef = useRef(false);
@@ -452,13 +445,12 @@ export const FrameView = observer(
             restoreInFlightRef.current = true;
             setIsRestorePending(true);
             try {
-                // TODO(sandbox-port): restore action is unavailable post-migration.
-                // Surface a soft error so the user understands the manual
-                // retry didn't recover anything; reactive Convex queries will
-                // refresh the canvas automatically once the sandbox is back.
-                throw new Error('Sandbox restore is temporarily unavailable.');
-                // immediateReload();
-                // if (!silent) toast.success('Project restored from snapshot');
+                await restoreSandbox({
+                    projectId: editorEngine.projectId as Id<'projects'>,
+                    branchId: frame.branchId as Id<'branches'>,
+                });
+                if (!silent) toast.success('Project restored from snapshot');
+                window.location.reload();
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 // Surface failures even on the silent path — if auto-restore
