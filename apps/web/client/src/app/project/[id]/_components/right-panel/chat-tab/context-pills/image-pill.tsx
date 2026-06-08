@@ -63,16 +63,19 @@ export const ImagePill = React.forwardRef<
                 {getTruncatedName(context)}
             </span>
 
-            {/* Remove button — faint by default, fully visible on hover/focus */}
+            {/* Remove button — faint by default, fully visible on hover/focus.
+                Matches the size/placement of DraftContextPill's remove button so
+                image chips and element/file chips read consistently in one row. */}
             <button
                 onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     onRemove();
                 }}
-                className="bg-primary absolute -top-1.5 -right-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full p-1 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
+                aria-label={`Remove ${getTruncatedName(context)}`}
+                className="bg-primary absolute -top-1 -right-1 flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full p-0.5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
             >
-                <Icons.CrossL className="text-primary-foreground h-2.5 w-2.5" />
+                <Icons.CrossL className="text-primary-foreground h-2 w-2" />
             </button>
         </motion.span>
     );
