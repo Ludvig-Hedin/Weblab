@@ -1650,7 +1650,7 @@ export function WeblabInterfaceMockup() {
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const [canvasSelected, setCanvasSelected] = useState<'home' | 'mobile' | null>('home');
-    const [activeRightTab, setActiveRightTab] = useState<RightTabId>('chat');
+    const [activeRightTab, setActiveRightTab] = useState<RightTabId>('style');
     const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'comment'>('cursor');
     const [zoomPct, setZoomPct] = useState(58);
     const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('dark');
@@ -1712,6 +1712,24 @@ export function WeblabInterfaceMockup() {
             if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
             if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
             if (publishedTimerRef.current) clearTimeout(publishedTimerRef.current);
+        };
+    }, []);
+
+    // Cycle: style(5s) → chat(18s) → style(4s) → chat(18s) → …
+    useEffect(() => {
+        let cancelled = false;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const run = (phase: 'style' | 'chat') => {
+            if (cancelled) return;
+            setActiveRightTab(phase);
+            const ms = phase === 'style' ? 5000 : 18000;
+            timer = setTimeout(() => run(phase === 'style' ? 'chat' : 'style'), ms);
+        };
+        // Initial state is 'style' via useState; schedule first switch to chat.
+        timer = setTimeout(() => run('chat'), 5000);
+        return () => {
+            cancelled = true;
+            if (timer) clearTimeout(timer);
         };
     }, []);
 
@@ -1798,7 +1816,7 @@ export function WeblabInterfaceMockup() {
 
     const [isPanning, setIsPanning] = useState(false);
     const [isSpacePanning, setIsSpacePanning] = useState(false);
-    const [panOffset, setPanOffset] = useState({ x: 80, y: 60 });
+    const [panOffset, setPanOffset] = useState({ x: 80, y: 110 });
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
     const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -2067,44 +2085,6 @@ export function WeblabInterfaceMockup() {
                             />
                         </div>
                     </div>
-                    {canvasSelected === 'home' && (
-                        <div
-                            data-restyle-pill
-                            className="border-border bg-background-chrome absolute -top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        >
-                            <span className="text-foreground-tertiary px-1.5 text-[10px] font-medium">
-                                Border
-                            </span>
-                            {RESTYLE_COLORS.map((c) => (
-                                <button
-                                    key={c.id}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setRestyleColor(c.id);
-                                        triggerSaved();
-                                    }}
-                                    className={cn(
-                                        'h-4 w-4 rounded-full ring-1 transition-all',
-                                        c.swatch,
-                                        restyleColor === c.id
-                                            ? 'ring-foreground scale-110'
-                                            : 'ring-border',
-                                    )}
-                                    aria-label={`Set border to ${c.id}`}
-                                />
-                            ))}
-                            <span
-                                className={cn(
-                                    'text-foreground-brand ml-1 flex items-center gap-1 px-1.5 text-[10px] font-medium transition-opacity duration-200',
-                                    showSaved ? 'opacity-100' : 'opacity-0',
-                                )}
-                            >
-                                <Icons.Check className="h-3 w-3" />
-                                Saved
-                            </span>
-                        </div>
-                    )}
                     <div className="w-[1180px] overflow-hidden rounded-sm bg-white">
                         <WatermelonSite showFeatures={showFeatures} />
                     </div>
@@ -2209,16 +2189,16 @@ export function WeblabInterfaceMockup() {
                                 >
                                     <svg
                                         width="20"
-                                        height="22"
-                                        viewBox="0 0 20 22"
+                                        height="24"
+                                        viewBox="0 0 20 24"
                                         fill="none"
                                         className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.22)]"
                                     >
                                         <path
-                                            d="M3.5 2.5 L15.5 14.5 L11 15 L3.5 19 Z"
+                                            d="M4 2.5 Q16 11.5 15 14 L10.5 15 L4 20 Q2.5 17 4 2.5 Z"
                                             fill={p.color}
                                             stroke="#fff"
-                                            strokeWidth="2.2"
+                                            strokeWidth="1.8"
                                             strokeLinejoin="round"
                                             strokeLinecap="round"
                                             paintOrder="stroke"
@@ -2226,7 +2206,7 @@ export function WeblabInterfaceMockup() {
                                     </svg>
                                     <span
                                         className={cn(
-                                            'absolute top-[15px] left-[12px] inline-block rounded-full px-2 py-0.5 text-[11px] leading-none font-medium whitespace-nowrap text-white shadow-[0_2px_6px_rgba(0,0,0,0.2)]',
+                                            'absolute top-[22px] left-[14px] inline-block rounded-full px-2 py-1 text-[11px] leading-none font-medium whitespace-nowrap text-white shadow-[0_2px_6px_rgba(0,0,0,0.2)]',
                                             p.bg,
                                         )}
                                     >
@@ -2243,7 +2223,7 @@ export function WeblabInterfaceMockup() {
             <div className="border-border bg-background-chrome relative z-10 grid h-12 grid-cols-3 items-center border-b px-3 backdrop-blur-xl">
                 {/* Left cluster: logo + project breadcrumb + branch + connection */}
                 <div className="flex min-w-0 items-center gap-1.5">
-                    <Icons.WeblabLogo className="h-4.5 w-4.5 shrink-0" />
+                    <Icons.WeblabLogo className="h-3 w-3 shrink-0" />
                     <span className="text-foreground max-w-[110px] truncate text-[11px] font-medium">
                         Halcyon
                     </span>
@@ -2327,7 +2307,7 @@ export function WeblabInterfaceMockup() {
                                 : 'border-border/60 text-foreground-secondary hover:bg-background-secondary hover:text-foreground',
                         )}
                     >
-                        <Icons.EyeOpen className="h-3 w-3" />
+                        <Icons.Play className="h-3 w-3" />
                         Preview
                     </button>
                     {/* Members avatar stack — matches presence cursor colors */}
@@ -2359,7 +2339,7 @@ export function WeblabInterfaceMockup() {
                             publishState === 'published' &&
                                 'border-emerald-300/70 bg-emerald-500/15 text-emerald-200',
                             (publishState === 'live' || publishState === 'idle') &&
-                                'border-teal-700 bg-teal-700 text-white hover:bg-teal-600',
+                                'border-blue-500 bg-blue-500 text-white hover:bg-blue-400',
                         )}
                     >
                         {publishState === 'publishing' && (
