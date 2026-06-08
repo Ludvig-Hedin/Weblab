@@ -211,7 +211,7 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
         activeTab === 'url'
             ? [
                   {
-                      label: 'Reading the source page',
+                      label: 'Reading your site',
                       ready: phase !== 'idle' && phase !== 'scraping-url',
                   },
                   {

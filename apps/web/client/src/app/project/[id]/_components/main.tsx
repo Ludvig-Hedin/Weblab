@@ -180,14 +180,14 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     const heading = hasPendingCreation ? 'Getting ready to build your site' : 'Opening project';
     const steps = hasPendingCreation
         ? [
-              { label: 'Starting your sandbox', ready: readyState.sandbox },
-              { label: 'Preparing the canvas', ready: readyState.canvas },
-              { label: 'Loading the AI chat', ready: readyState.conversations },
+              { label: 'Warming up your workspace', ready: readyState.sandbox },
+              { label: 'Loading the canvas', ready: readyState.canvas },
+              { label: 'Getting AI ready', ready: readyState.conversations },
           ]
         : [
-              { label: 'Starting workspace', ready: readyState.sandbox },
-              { label: 'Preparing canvas', ready: readyState.canvas },
-              { label: 'Loading project history', ready: readyState.conversations },
+              { label: 'Opening your workspace', ready: readyState.sandbox },
+              { label: 'Loading the canvas', ready: readyState.canvas },
+              { label: 'Getting AI ready', ready: readyState.conversations },
           ];
 
     if (!isProjectReady && hasPendingCreation) {

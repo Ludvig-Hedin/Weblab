@@ -54,85 +54,6 @@ interface LoadingStage {
     secondary: string;
 }
 
-type BootStepStatus = 'pending' | 'active' | 'done';
-
-interface BootStep {
-    id: 'starting' | 'installing' | 'booting';
-    label: string;
-    status: BootStepStatus;
-}
-
-/**
- * Derive the 3-step boot progress list from existing observable
- * signals (no SessionManager refactor). Steps are derived, not stored,
- * so a re-render with new signals immediately ticks the right step.
- *
- * Step mapping:
- *  - starting:    boot just kicked off / no liveness signal yet
- *  - installing:  liveness URL not yet alive, taking > 5s (dev server
- *                 still installing deps / binding port)
- *  - booting:     URL is alive — dev server is up, penpal handshake
- *                 + preload script in progress.
- */
-function getBootSteps(input: {
-    bootElapsedMs: number;
-    livenessState: SandboxLivenessState;
-    preloadScriptReady: boolean;
-    isPenpalConnected: boolean;
-}): BootStep[] {
-    const { bootElapsedMs, livenessState, preloadScriptReady, isPenpalConnected } = input;
-
-    // Once penpal is connected and the preload script is in, we're effectively
-    // done — all three steps mark done (the loader unmounts on isFrameReady).
-    const everythingReady = isPenpalConnected && preloadScriptReady;
-
-    // "starting" is done as soon as we have any liveness probe result or the
-    // page has been waiting > ~3s — by then the request was definitely sent.
-    const startingDone =
-        everythingReady ||
-        livenessState === 'alive' ||
-        livenessState === 'gone' ||
-        livenessState === 'notFound' ||
-        bootElapsedMs >= 3_000;
-
-    // "installing" is done once the URL responds alive (dev server up) OR
-    // penpal connects (which implies URL alive even if liveness probe was
-    // never enabled).
-    const installingDone = everythingReady || livenessState === 'alive' || isPenpalConnected;
-
-    // "booting" is done once penpal connects AND preload script is ready.
-    const bootingDone = everythingReady;
-
-    const stepStatus = (done: boolean, prevDone: boolean): BootStepStatus => {
-        if (done) return 'done';
-        if (prevDone) return 'active';
-        return 'pending';
-    };
-
-    return [
-        {
-            id: 'starting',
-            label: 'Starting sandbox',
-            status: startingDone ? 'done' : 'active',
-        },
-        {
-            id: 'installing',
-            label: 'Installing dependencies',
-            status: stepStatus(installingDone, startingDone),
-        },
-        {
-            id: 'booting',
-            label: 'Booting dev server',
-            status: stepStatus(bootingDone, installingDone),
-        },
-    ];
-}
-
-/**
- * Legacy single-line stage — kept for short-creation copy that doesn't
- * use the 3-step list (AI-first creation has its own message). Maps real
- * boot signals to a friendly primary/secondary pair.
- */
 function getLoadingStage(input: {
     bootElapsedMs: number;
     livenessState: SandboxLivenessState;
@@ -149,54 +70,25 @@ function getLoadingStage(input: {
     if (livenessState === 'alive') {
         return {
             primary: 'Compiling your preview',
-            secondary: 'First page is bundling. Usually a few seconds.',
+            secondary: 'Your preview is almost ready…',
         };
     }
     if (bootElapsedMs < 5_000) {
         return {
             primary: 'Starting your preview',
-            secondary: 'Connecting to the sandbox.',
+            secondary: 'Connecting to your project…',
         };
     }
     if (bootElapsedMs < 20_000) {
         return {
-            primary: 'Booting sandbox',
-            secondary: 'Waking the VM and starting the dev server.',
+            primary: 'Starting your workspace',
+            secondary: 'This usually takes 10–30 seconds…',
         };
     }
     return {
-        primary: 'Still booting',
-        secondary: 'Cold boot can take 20–60 seconds on first run.',
+        primary: 'Still starting up',
+        secondary: 'Taking a bit longer than usual — almost there.',
     };
-}
-
-function BootProgressList({ steps }: { steps: BootStep[] }) {
-    return (
-        <ul className="flex flex-col gap-1.5 text-left" aria-label="Sandbox boot progress">
-            {steps.map((step) => (
-                <li
-                    key={step.id}
-                    className={cn(
-                        'flex items-center gap-2 text-xs transition-colors',
-                        step.status === 'done' && 'text-foreground-secondary',
-                        step.status === 'active' && 'text-foreground',
-                        step.status === 'pending' && 'text-foreground-tertiary',
-                    )}
-                >
-                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-                        {step.status === 'done' ? (
-                            <Icons.Check className="h-3 w-3" />
-                        ) : step.status === 'active' ? (
-                            <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
-                        ) : (
-                            <span className="border-foreground-tertiary/40 h-2 w-2 rounded-full border" />
-                        )}
-                    </span>
-                    <span>{step.label}</span>
-                </li>
-            ))}
-        </ul>
-    );
 }
 
 function ErrorLine({ line, index }: { line: string; index: number }) {
@@ -787,38 +679,25 @@ export const FrameView = observer(
                                                 </div>
                                             ) : (
                                                 (() => {
-                                                    const elapsedSeconds = Math.floor(
-                                                        bootElapsedMs / 1000,
-                                                    );
-                                                    const showElapsed = elapsedSeconds >= 5;
-                                                    const isLong = elapsedSeconds >= 15;
-                                                    const steps = getBootSteps({
-                                                        bootElapsedMs,
-                                                        livenessState,
-                                                        preloadScriptReady,
-                                                        isPenpalConnected,
-                                                    });
+                                                    const isLong =
+                                                        bootElapsedMs / 1000 >= 15;
                                                     return (
-                                                        <div className="flex flex-col items-center gap-3">
-                                                            <div className="flex flex-col items-center gap-1 text-center">
-                                                                <p
-                                                                    className={cn(
-                                                                        'text-base font-medium',
-                                                                        isLong
-                                                                            ? 'text-foreground-warning'
-                                                                            : 'text-foreground',
-                                                                    )}
-                                                                >
-                                                                    {loadingStage.primary}
-                                                                    {showElapsed
-                                                                        ? ` — ${elapsedSeconds}s`
-                                                                        : ''}
-                                                                </p>
-                                                            </div>
-                                                            <BootProgressList steps={steps} />
+                                                        <div className="flex flex-col items-center gap-2 text-center">
+                                                            <p
+                                                                className={cn(
+                                                                    'text-base font-medium',
+                                                                    isLong
+                                                                        ? 'text-foreground-warning'
+                                                                        : 'text-foreground',
+                                                                )}
+                                                            >
+                                                                {loadingStage.primary}
+                                                            </p>
+                                                            <p className="text-foreground-tertiary text-small">
+                                                                {loadingStage.secondary}
+                                                            </p>
                                                             {isLong && !showRestartPanel && (
-                                                                <p className="text-foreground-tertiary text-xs">
-                                                                    Taking longer than usual?{' '}
+                                                                <p className="text-foreground-tertiary mt-1 text-xs">
                                                                     <button
                                                                         type="button"
                                                                         onClick={() =>
@@ -829,7 +708,7 @@ export const FrameView = observer(
                                                                     >
                                                                         {isRestarting
                                                                             ? 'Restarting…'
-                                                                            : 'Restart'}
+                                                                            : 'Restart preview'}
                                                                     </button>
                                                                 </p>
                                                             )}

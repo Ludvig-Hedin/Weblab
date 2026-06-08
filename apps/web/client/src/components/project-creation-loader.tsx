@@ -3,8 +3,6 @@
 import type { ReactNode } from 'react';
 
 import { BrandLogo } from '@weblab/ui/brand';
-import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
 
 export interface CreationLoaderStep {
     label: string;
@@ -43,7 +41,6 @@ export function ProjectCreationLoader({
         ? 'bg-background fixed inset-0 z-[200] flex items-center justify-center'
         : 'bg-background flex h-screen w-screen items-center justify-center';
 
-    const activeIndex = steps ? steps.findIndex((step) => !step.ready) : -1;
     const completedCount = steps ? steps.filter((s) => s.ready).length : 0;
     const totalCount = steps?.length ?? 0;
 
@@ -84,39 +81,11 @@ export function ProjectCreationLoader({
                     />
                 </div>
 
-                {/* Steps — index key so dynamic labels don't cause remounts */}
+                {/* Current step — single line, no checklist */}
                 {steps && steps.length > 0 && (
-                    <ul className="flex w-full flex-col gap-2.5">
-                        {steps.map((step, index) => {
-                            const isDone = step.ready;
-                            const isActive = !isDone && index === activeIndex;
-                            return (
-                                <li key={index} className="flex items-center gap-3">
-                                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                                        {isDone ? (
-                                            <Icons.CheckCircled className="text-foreground-positive h-4 w-4" />
-                                        ) : isActive ? (
-                                            <Icons.LoadingSpinner className="text-foreground-primary h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <span className="bg-foreground/15 h-1.5 w-1.5 rounded-full" />
-                                        )}
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            'text-small',
-                                            isDone
-                                                ? 'text-foreground-secondary'
-                                                : isActive
-                                                  ? 'text-foreground-primary font-medium'
-                                                  : 'text-foreground-quadranary',
-                                        )}
-                                    >
-                                        {step.label}
-                                    </span>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                    <p className="text-foreground-tertiary text-small text-center">
+                        {(steps.find((s) => !s.ready) ?? steps[steps.length - 1])?.label}
+                    </p>
                 )}
 
                 {/* Optional watchdog/affordance slot (e.g. Retry on stall). */}
