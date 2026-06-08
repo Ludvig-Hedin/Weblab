@@ -55,6 +55,11 @@ export const ErrorMessage = observer(({ error: chatError, onRetry }: ErrorMessag
             } else {
                 errorMessage = parsed.error || chatError.toString();
             }
+        } else {
+            // Valid JSON but not an object (a bare number/string/null). Fall
+            // back to the raw message so the error never renders as nothing —
+            // an empty render would drop both the text and the Retry button.
+            errorMessage = chatError.message || chatError.toString();
         }
     } catch {
         // Not JSON, use raw error message

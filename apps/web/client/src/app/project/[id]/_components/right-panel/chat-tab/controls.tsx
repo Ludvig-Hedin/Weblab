@@ -37,7 +37,7 @@ export const ChatControls = observer(
         const showFrameworkChip = frameworkAdapter && editorEngine.framework !== 'nextjs';
 
         const handleNewChat = () => {
-            void editorEngine.chat.conversation.startNewConversation();
+            void editorEngine.chat.startNewChat();
             editorEngine.chat.focusChatInput();
         };
 

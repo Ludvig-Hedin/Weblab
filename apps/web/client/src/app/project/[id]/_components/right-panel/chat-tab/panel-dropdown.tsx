@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
-import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -33,26 +32,14 @@ export const ChatPanelDropdown = observer(
         const updateSettings = useMutation(api.users.updateSettings);
         const userSettings = useQuery(api.users.getSettings, {});
 
-        const debouncedUpdateSettings = useMemo(
-            () =>
-                debounce((settings: Partial<ChatSettings>) => {
-                    void updateSettings(settings);
-                }, 300),
-            [updateSettings],
-        );
-
-        useEffect(() => {
-            return () => {
-                debouncedUpdateSettings.cancel();
-            };
-        }, [debouncedUpdateSettings]);
-
+        // Write immediately on toggle. The previous 300ms debounce could be
+        // canceled on unmount before it ever fired (the dropdown closing on
+        // click triggered the cleanup), so toggles silently failed to persist.
         const updateChatSettings = useCallback(
-            (e: React.MouseEvent, settings: Partial<ChatSettings>) => {
-                e.preventDefault();
-                debouncedUpdateSettings(settings);
+            (settings: Partial<ChatSettings>) => {
+                void updateSettings(settings);
             },
-            [debouncedUpdateSettings],
+            [updateSettings],
         );
 
         // TODO(convex-migration): users.getSettings returns the flat DB row; wire fromDbUserSettings or expose a getMappedSettings query
@@ -78,8 +65,11 @@ export const ChatPanelDropdown = observer(
                     </DropdownMenuLabel>
                     <DropdownMenuItem
                         className="text-mini flex items-center justify-between rounded-sm px-2 py-1.5"
-                        onClick={(e) => {
-                            updateChatSettings(e, {
+                        // Keep the menu open so the user sees the toggle flip and
+                        // can change several settings without reopening it.
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={() => {
+                            updateChatSettings({
                                 showSuggestions: !showSuggestions,
                             });
                         }}
@@ -109,8 +99,9 @@ export const ChatPanelDropdown = observer(
 
                     <DropdownMenuItem
                         className="text-mini flex items-center justify-between rounded-sm px-2 py-1.5"
-                        onClick={(e) => {
-                            updateChatSettings(e, {
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={() => {
+                            updateChatSettings({
                                 showMiniChat: !showMiniChat,
                             });
                         }}

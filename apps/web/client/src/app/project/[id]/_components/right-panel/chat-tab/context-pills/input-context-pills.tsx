@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
 
-import type { ImageMessageContext, MessageContext } from '@weblab/models/chat';
+import type { MessageContext } from '@weblab/models/chat';
 import { MessageContextType } from '@weblab/models/chat';
 import { assertNever } from '@weblab/utility';
 
@@ -49,9 +49,17 @@ export const InputContextPills = observer(() => {
     };
 
     const sortedContexts = useMemo(() => {
-        return [...editorEngine.chat.context.context].sort((a, b) => {
-            return typeOrder[a.type] - typeOrder[b.type];
-        });
+        return (
+            [...editorEngine.chat.context.context]
+                // The active branch is implicit context — it's auto-derived from the
+                // current selection and still sent to the model, but rendering it as
+                // a removable chip showed "branch attached" where the user expects to
+                // see the selected element. Hide it from the draft pills.
+                .filter((context) => context.type !== MessageContextType.BRANCH)
+                .sort((a, b) => {
+                    return typeOrder[a.type] - typeOrder[b.type];
+                })
+        );
     }, [editorEngine.chat.context.context]);
 
     if (sortedContexts.length === 0) return null;

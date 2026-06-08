@@ -53,6 +53,18 @@ export class ChatManager {
         return this.conversation.current?.id;
     }
 
+    /**
+     * Start a fresh chat thread. "New chat" means a clean slate, so we drop any
+     * draft context attached to the input before creating the conversation —
+     * this also gives the click a visible effect when `startNewConversation`
+     * dedupes (it no-ops when the current thread is already empty + untitled).
+     * Shared by the header New-chat button and the `/clear` slash command.
+     */
+    async startNewChat(): Promise<void> {
+        this.context.context = [];
+        await this.conversation.startNewConversation();
+    }
+
     setIsStreaming(isStreaming: boolean) {
         this.isStreaming = isStreaming;
     }

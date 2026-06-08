@@ -693,7 +693,7 @@ export const ChatInput = observer(
                     icon: Icons.Trash,
                     keywords: ['reset', 'new', 'clear'],
                     action: () => {
-                        void editorEngine.chat.conversation.startNewConversation();
+                        void editorEngine.chat.startNewChat();
                     },
                 },
                 {

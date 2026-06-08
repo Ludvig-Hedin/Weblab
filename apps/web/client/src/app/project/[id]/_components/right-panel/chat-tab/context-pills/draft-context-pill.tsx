@@ -2,9 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 
 import type { MessageContext } from '@weblab/models/chat';
-import { MessageContextType } from '@weblab/models/chat';
 import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
 
 import { getContextIcon, getTruncatedName } from './helpers';
 
@@ -15,8 +13,6 @@ export const DraftContextPill = React.forwardRef<
         onRemove: () => void;
     }
 >(({ context, onRemove }, ref) => {
-    const isBranch = context.type === MessageContextType.BRANCH;
-
     return (
         <motion.span
             layout="position"
@@ -30,12 +26,10 @@ export const DraftContextPill = React.forwardRef<
                     ease: 'easeOut',
                 },
             }}
-            className={cn(
-                'group border-foreground-tertiary/20 relative flex h-7 flex-row items-center justify-center gap-1 rounded-md border px-2',
-                isBranch
-                    ? 'border-foreground-skill/40 bg-foreground-skill/15 text-foreground-skill'
-                    : 'bg-background-tertiary/50 text-foreground-secondary',
-            )}
+            // Neutral styling for every context type — the branch pill used to
+            // render in skill-purple, which read as a state/error color and
+            // dominated over the actual element/file pills next to it.
+            className="group border-foreground-tertiary/20 bg-background-tertiary/50 text-foreground-secondary relative flex h-7 flex-row items-center justify-center gap-1 rounded-md border px-2"
             ref={ref}
         >
             <div className="flex w-4 items-center justify-center text-center">
@@ -46,9 +40,10 @@ export const DraftContextPill = React.forwardRef<
                         e.stopPropagation();
                         onRemove();
                     }}
-                    className="bg-primary absolute -top-1.5 -right-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full p-1 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
+                    aria-label={`Remove ${getTruncatedName(context)}`}
+                    className="bg-primary absolute -top-1 -right-1 flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full p-0.5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
                 >
-                    <Icons.CrossL className="text-primary-foreground h-2.5 w-2.5" />
+                    <Icons.CrossL className="text-primary-foreground h-2 w-2" />
                 </button>
             </div>
             <span className="text-mini">{getTruncatedName(context)}</span>

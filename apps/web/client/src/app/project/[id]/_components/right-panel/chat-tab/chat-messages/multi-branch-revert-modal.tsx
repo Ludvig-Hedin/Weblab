@@ -34,7 +34,15 @@ export const MultiBranchRevertModal = ({
     const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
     const [isRestoring, setIsRestoring] = useState(false);
 
-    const allAreSelected = selectedBranchIds.length === checkpoints.length;
+    // Only checkpoints with a branchId are selectable — legacy checkpoints are
+    // skipped in the list (and by selectAll). Comparing the selected count
+    // against the full `checkpoints.length` would leave the toggle stuck on
+    // "Select All" whenever a legacy checkpoint is mixed in.
+    const selectableBranchIds = checkpoints
+        .map((cp) => cp.branchId)
+        .filter((id): id is string => !!id);
+    const allAreSelected =
+        selectableBranchIds.length > 0 && selectedBranchIds.length === selectableBranchIds.length;
 
     const toggleBranch = (branchId: string) => {
         setSelectedBranchIds((prev) =>
@@ -43,9 +51,7 @@ export const MultiBranchRevertModal = ({
     };
 
     const selectAll = () => {
-        setSelectedBranchIds(
-            checkpoints.map((cp) => cp.branchId).filter((id): id is string => !!id),
-        );
+        setSelectedBranchIds(selectableBranchIds);
     };
 
     const selectNone = () => {
