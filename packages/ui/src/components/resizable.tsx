@@ -46,17 +46,16 @@ export function useResizable({
         onWidthChange?.(width);
     }, [onWidthChange, width]);
 
-    const handleMouseDown = useCallback(
-        (e: React.MouseEvent) => {
-            isDragging.current = true;
-            startPos.current = e.clientX;
-            startWidth.current = width;
-            liveWidth.current = width;
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-        },
-        [width],
-    );
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        isDragging.current = true;
+        startPos.current = e.clientX;
+        // Read the live ref, not React state — state can lag the DOM width
+        // (it is only committed on mouseup / forceWidth), and a stale base
+        // would make the next drag jump.
+        startWidth.current = liveWidth.current;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    }, []);
 
     const handleMouseMove = useCallback(
         (e: MouseEvent) => {
