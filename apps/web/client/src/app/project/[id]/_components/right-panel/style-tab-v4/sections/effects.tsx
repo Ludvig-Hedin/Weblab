@@ -5,7 +5,7 @@ import { observer } from 'mobx-react-lite';
 
 import type { NamedStyleOption } from '../controls/style-chip-picker';
 import {
-    ColorField,
+    ColorPickerInline,
     ColorRow,
     CustomExpander,
     GroupShell,
@@ -265,7 +265,7 @@ export const EffectsSection = observer(function EffectsSection() {
                             value={outlineColor.value}
                             onCommit={outlineColorSetter.set}
                             pickerContent={
-                                <ColorField
+                                <ColorPickerInline
                                     value={outlineColor.value}
                                     onCommit={outlineColorSetter.set}
                                 />

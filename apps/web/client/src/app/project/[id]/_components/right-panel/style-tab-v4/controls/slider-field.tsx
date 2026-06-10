@@ -48,8 +48,8 @@ export function SliderField({
         <div
             className={
                 disabled
-                    ? 'pointer-events-none flex h-[26px] items-center gap-2 opacity-50 select-none'
-                    : 'flex h-[26px] items-center gap-2'
+                    ? 'pointer-events-none flex h-[28px] items-center gap-2 opacity-50 select-none'
+                    : 'flex h-[28px] items-center gap-2'
             }
         >
             <Slider

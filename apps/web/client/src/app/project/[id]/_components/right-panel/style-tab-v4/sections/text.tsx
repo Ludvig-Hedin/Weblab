@@ -9,7 +9,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import {
-    ColorField,
+    ColorPickerInline,
     ColorRow,
     FontField,
     FontHeroRow,
@@ -273,9 +273,6 @@ export const TextSection = observer(function TextSection() {
     ].filter((v) => v.isSet).length;
     const [customOpen, setCustomOpen] = useState(advancedSetCount > 0);
 
-    // ── Font picker open state ────────────────────────────────────────────────
-    const [fontOpen, setFontOpen] = useState(false);
-
     // setCount removed in v4 — section dot hidden per design brief.
 
     // Weight — parse numeric portion for sample rendering
@@ -327,7 +324,7 @@ export const TextSection = observer(function TextSection() {
                         value={color.value}
                         onCommit={colorSetter.set}
                         pickerContent={
-                            <ColorField value={color.value} onCommit={colorSetter.set} />
+                            <ColorPickerInline value={color.value} onCommit={colorSetter.set} />
                         }
                         mixed={color.mixed}
                     />
@@ -335,24 +332,15 @@ export const TextSection = observer(function TextSection() {
 
                 {/* ── 4. Font ──────────────────────────────────────────── */}
                 <GroupShell label="Font">
-                    {/* Hero row — click toggles inline FontField picker below */}
-                    <FontHeroRow
-                        family={fontFamily.value}
-                        sampleWeight={sampleWeight}
-                        onClick={() => setFontOpen((v) => !v)}
+                    {/* Hero row IS the picker trigger — one click opens the
+                        searchable font popover anchored to the row. */}
+                    <FontField
+                        value={fontFamily.value}
+                        onCommit={fontFamilySetter.set}
+                        trigger={
+                            <FontHeroRow family={fontFamily.value} sampleWeight={sampleWeight} />
+                        }
                     />
-                    {/* FontField owns its own Popover internally; rendered inline
-                        so it appears directly below the hero row. Its Popover
-                        will float via Radix Portal outside the panel bounds. */}
-                    {fontOpen && (
-                        <FontField
-                            value={fontFamily.value}
-                            onCommit={(v) => {
-                                fontFamilySetter.set(v);
-                                setFontOpen(false);
-                            }}
-                        />
-                    )}
 
                     {/* Pair 1: Weight + Size */}
                     <PairRow>

@@ -21,6 +21,12 @@ export interface FontFieldProps {
     value: string;
     /** Commits a raw font-family string (for free-typing / fallback). */
     onCommit: (value: string) => void;
+    /**
+     * Optional custom trigger element (rendered via Radix `asChild`). When
+     * provided, replaces the default outline button — used by v4's
+     * FontHeroRow so one click on the hero row opens the picker directly.
+     */
+    trigger?: React.ReactElement;
 }
 
 /**
@@ -32,7 +38,7 @@ export interface FontFieldProps {
  * Picking a font calls the font store's full install pipeline (so the
  * iframe loads the webface) and then writes the font id to the style.
  */
-export const FontField = observer(function FontField({ value, onCommit }: FontFieldProps) {
+export const FontField = observer(function FontField({ value, onCommit, trigger }: FontFieldProps) {
     const editorEngine = useEditorEngine();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -159,20 +165,25 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button
-                    variant="outline"
-                    aria-label="Font family"
-                    // Same canonical row geometry as every other field — see FIELD_BASE_CLASSES.
-                    className={cn(FIELD_BASE_CLASSES, 'min-w-0 justify-between gap-2 shadow-none')}
-                >
-                    <span
-                        className="min-w-0 truncate text-left"
-                        style={value ? { fontFamily: value } : undefined}
+                {trigger ?? (
+                    <Button
+                        variant="outline"
+                        aria-label="Font family"
+                        // Same canonical row geometry as every other field — see FIELD_BASE_CLASSES.
+                        className={cn(
+                            FIELD_BASE_CLASSES,
+                            'min-w-0 justify-between gap-2 shadow-none',
+                        )}
                     >
-                        {triggerLabel}
-                    </span>
-                    <ChevronDown className="text-muted-foreground size-3.5 shrink-0" />
-                </Button>
+                        <span
+                            className="min-w-0 truncate text-left"
+                            style={value ? { fontFamily: value } : undefined}
+                        >
+                            {triggerLabel}
+                        </span>
+                        <ChevronDown className="text-muted-foreground size-3.5 shrink-0" />
+                    </Button>
+                )}
             </PopoverTrigger>
             <PopoverContent
                 side="bottom"
@@ -193,7 +204,7 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                 <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
                     {filteredInstalled.length > 0 && (
                         <div className="divide-border divide-y">
-                            <div className="text-muted-foreground px-1 pb-1 text-tiny">
+                            <div className="text-muted-foreground text-tiny px-1 pb-1">
                                 In this project
                             </div>
                             {filteredInstalled.map((font) => (
@@ -212,7 +223,7 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                     )}
                     {googleFonts.length > 0 && (
                         <div className="divide-border mt-2 divide-y">
-                            <div className="text-muted-foreground px-1 pb-1 text-tiny">
+                            <div className="text-muted-foreground text-tiny px-1 pb-1">
                                 {query.trim() ? 'Google Fonts' : 'Popular Google Fonts'}
                             </div>
                             {googleFonts.map((font) => (

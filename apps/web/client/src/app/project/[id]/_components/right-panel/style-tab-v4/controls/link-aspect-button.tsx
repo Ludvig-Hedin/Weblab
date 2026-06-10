@@ -24,7 +24,7 @@ export function LinkAspectButton({ locked, onToggle, className }: LinkAspectButt
             aria-label={locked ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
             title={locked ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
             className={cn(
-                'inline-flex h-[26px] w-[28px] cursor-pointer items-center justify-center rounded-[6px] transition-colors outline-none',
+                'inline-flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-[6px] transition-colors outline-none',
                 locked
                     ? 'bg-background-active text-foreground-primary shadow-sm'
                     : 'text-foreground-tertiary hover:bg-background-secondary hover:text-foreground-primary',

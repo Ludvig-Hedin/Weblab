@@ -22,12 +22,20 @@ export function useResizable({
     const isDragging = useRef(false);
     const startPos = useRef(0);
     const startWidth = useRef(0);
+    // Live width during a drag. Mousemove writes the panel's DOM width
+    // directly through `panelRef` and React state is committed ONCE on
+    // mouseup — panels host large subtrees (the editor style tab has dozens
+    // of observer components), and a setState per mousemove re-renders the
+    // whole subtree at pointer frequency, which made dragging visibly laggy.
+    const liveWidth = useRef(defaultWidth);
+    const panelRef = useRef<HTMLDivElement | null>(null);
 
     // Effect to handle forced width changes
     useEffect(() => {
         if (forceWidth !== undefined) {
             setIsAnimating(true);
             setWidth(forceWidth);
+            liveWidth.current = forceWidth;
             // Reset animating after transition completes
             const timer = setTimeout(() => setIsAnimating(false), 300);
             return () => clearTimeout(timer);
@@ -43,6 +51,7 @@ export function useResizable({
             isDragging.current = true;
             startPos.current = e.clientX;
             startWidth.current = width;
+            liveWidth.current = width;
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
         },
@@ -57,15 +66,22 @@ export function useResizable({
             let newWidth =
                 side === 'left' ? startWidth.current + delta : startWidth.current - delta;
             newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-            setWidth(newWidth);
+            liveWidth.current = newWidth;
+            // DOM-direct width: layout updates live (flex siblings reflow via
+            // CSS) without a React render per mousemove.
+            if (panelRef.current) panelRef.current.style.width = `${newWidth}px`;
         },
         [side, minWidth, maxWidth],
     );
 
     const handleMouseUp = useCallback(() => {
+        if (!isDragging.current) return;
         isDragging.current = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        // Single state commit at drag end → one re-render, fires
+        // onWidthChange (persistence, breakpoint flags) once.
+        setWidth(liveWidth.current);
     }, []);
 
     useEffect(() => {
@@ -77,7 +93,7 @@ export function useResizable({
         };
     }, [handleMouseMove, handleMouseUp]);
 
-    return { width, handleMouseDown, isAnimating };
+    return { width, handleMouseDown, isAnimating, panelRef };
 }
 
 // Simplified component using the hook
@@ -103,7 +119,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
     className,
     ...props
 }) => {
-    const { width, handleMouseDown, isAnimating } = useResizable({
+    const { width, handleMouseDown, isAnimating, panelRef } = useResizable({
         defaultWidth,
         minWidth,
         maxWidth,
@@ -114,6 +130,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
 
     return (
         <div
+            ref={panelRef}
             style={{ width: `${width}px` }}
             className={cn(
                 'relative h-full min-w-0 overflow-hidden',

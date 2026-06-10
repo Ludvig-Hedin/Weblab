@@ -34,6 +34,7 @@ export { IconSegment } from './icon-segment';
 export { LinkAspectButton } from './link-aspect-button';
 export { ModeNumberCell } from './mode-number-cell';
 export { ColorRow } from './color-row';
+export { ColorPickerInline } from './color-picker-inline';
 export { PinPad } from './pin-pad';
 export { PerSidePopover } from './per-side-popover';
 export { PerCornerPopover } from './per-corner-popover';

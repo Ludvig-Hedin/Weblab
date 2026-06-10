@@ -58,7 +58,7 @@ export function AlignmentToolbar({ value, onCommit, className }: AlignmentToolba
                 onValueChange={(next) => onCommit((next ?? '') as AlignmentValue | '')}
                 aria-label="Position alignment"
                 className={cn(
-                    'flex h-[26px] w-full items-center justify-between gap-0.5',
+                    'flex h-[28px] w-full items-center justify-between gap-0.5',
                     className,
                 )}
             >

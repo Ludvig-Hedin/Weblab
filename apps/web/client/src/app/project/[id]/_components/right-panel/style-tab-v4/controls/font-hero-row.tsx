@@ -7,11 +7,9 @@ import { cn } from '@weblab/ui/utils';
 
 import { FIELD_BASE_CLASSES } from './constants';
 
-export interface FontHeroRowProps {
+export interface FontHeroRowProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     /** Current font family name (display label). */
     family: string;
-    /** Triggered when the user clicks the row. */
-    onClick?: () => void;
     /** Visual font weight applied to the "Aa" preview chip. */
     sampleWeight?: number;
     className?: string;
@@ -19,34 +17,39 @@ export interface FontHeroRowProps {
 
 /**
  * 36px-tall hero row showing the current font family with a small
- * sample tile rendered IN THE FONT itself. Clicking opens the
- * caller-owned font picker popover (Text section wires this up).
+ * sample tile rendered IN THE FONT itself. Forwards ref + props so it
+ * can be used directly as a Radix `asChild` popover trigger (the Text
+ * section passes it to FontField's `trigger` slot — one click opens
+ * the picker).
  */
-export function FontHeroRow({ family, onClick, sampleWeight = 500, className }: FontHeroRowProps) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={cn(
-                FIELD_BASE_CLASSES,
-                'grid h-[36px] min-w-0 items-center gap-2.5 pr-[10px] pl-[5px] text-left',
-                'grid-cols-[26px_1fr_auto]',
-                className,
-            )}
-            aria-label="Change font"
-            title="Change font"
-        >
-            <span
-                aria-hidden
-                className="bg-foreground/[0.04] inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[6px] text-sm leading-none"
-                style={{ fontFamily: family || 'inherit', fontWeight: sampleWeight }}
+export const FontHeroRow = React.forwardRef<HTMLButtonElement, FontHeroRowProps>(
+    function FontHeroRow({ family, sampleWeight = 500, className, ...rest }, ref) {
+        return (
+            <button
+                ref={ref}
+                type="button"
+                className={cn(
+                    FIELD_BASE_CLASSES,
+                    'grid h-[36px] min-w-0 items-center gap-2.5 pr-[10px] pl-[5px] text-left',
+                    'grid-cols-[26px_1fr_auto]',
+                    className,
+                )}
+                aria-label="Change font"
+                title="Change font"
+                {...rest}
             >
-                Aa
-            </span>
-            <span className="text-foreground-primary text-mini truncate">
-                {family || 'Default'}
-            </span>
-            <ChevronDown className="text-foreground-tertiary size-3 shrink-0" />
-        </button>
-    );
-}
+                <span
+                    aria-hidden
+                    className="bg-foreground/[0.04] inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[6px] text-sm leading-none"
+                    style={{ fontFamily: family || 'inherit', fontWeight: sampleWeight }}
+                >
+                    Aa
+                </span>
+                <span className="text-foreground-primary text-mini min-w-0 truncate">
+                    {family || 'Default'}
+                </span>
+                <ChevronDown className="text-foreground-tertiary size-3 shrink-0" />
+            </button>
+        );
+    },
+);

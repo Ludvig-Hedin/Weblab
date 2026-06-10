@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-10 — Style Panel v4 round 2: select geometry, active states, 1-click pickers, panel-resize perf
+Author: Claude (Fable 5)
+Area: editor right panel (`style-tab-v4`), `@weblab/ui` resizable
+Summary: Owner-reported fixes. (1) Selects rendered 36px tall with a visible border while text inputs were 26px — shadcn `SelectTrigger` sizes/skins itself via variant-prefixed classes (`data-[size=default]:h-9`, `dark:border-[#2d2d2d]`, `dark:bg-[#232323]`) that tailwind-merge cannot reconcile with the plain classes in `FIELD_BASE_CLASSES`; added `SELECT_TRIGGER_FIELD_OVERRIDES` (same-variant overrides) applied in SelectField + LabeledSelectInput. (2) Unified ALL standard fields at 28px (`FIELD_HEIGHT`) — inputs, selects, segments (Flow 32→28, IconSegment 30→28), color row 32→28, chip input, trbl/shadow/slider/alignment rows. (3) Segmented active state was invisible: `bg-background-active` resolves to #2a2a2a on the #222222 field fill — `SEGMENT_ACTIVE_CLASSES` now uses `bg-foreground/15` pill. (4) Font picker was 2 triggers deep and the inline intermediate trigger (showing the full fallback stack) overflowed the panel — `FontField` gained a `trigger` slot, `FontHeroRow` forwards ref/props, Text section now opens the searchable popover in one click. (5) Color rows opened a popover containing ANOTHER trigger (3+ clicks to the real picker) — new `ColorPickerInline` renders `ColorPickerContent` (gradient + sliders + palette) directly in ColorRow's popover; swapped in text/background/border/effects sections. (6) Right-panel resize lag: `useResizable` set React state per mousemove, re-rendering the whole panel subtree at pointer frequency — now writes DOM width directly during drag and commits state once on mouseup (onWidthChange → persistence/breakpoints fire at drag end). Canvas element-resize lag was already fixed by a parallel session's uncommitted RAF-batching diff in `canvas/overlay/elements/rect/resize.tsx` (not committed here — foreign work).
+Files: `packages/ui/src/components/resizable.tsx`, `style-tab-v4/controls/{constants.ts,color-picker-inline.tsx,select-field.tsx,labeled-inputs.tsx,font-hero-row.tsx,color-row.tsx,...}`, `style-tab-v4/sections/{text,background,border,effects}.tsx`, `style-tab-v2/controls/font-field.tsx`
+Links: prior entry below (round 1 consolidation)
+
 ## 2026-06-10 — Style Panel v4 control-grammar consolidation
 Author: Claude (Fable 5)
 Area: editor right panel (`style-tab-v4`)

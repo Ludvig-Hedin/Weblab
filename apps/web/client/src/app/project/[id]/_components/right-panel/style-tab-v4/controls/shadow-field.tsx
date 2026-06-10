@@ -86,7 +86,7 @@ function Stepper({ onStep }: { onStep: (delta: number) => void }) {
     return (
         <div
             className={cn(
-                'bg-background-secondary flex h-[26px] shrink-0 items-center overflow-hidden rounded-[10px] border border-transparent',
+                'bg-background-secondary flex h-[28px] shrink-0 items-center overflow-hidden rounded-[10px] border border-transparent',
             )}
         >
             <button

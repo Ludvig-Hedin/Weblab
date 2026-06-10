@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import {
-    ColorField,
+    ColorPickerInline,
     ColorRow,
     GroupShell,
     IconNumberInput,
@@ -252,7 +252,7 @@ export const BorderSection = observer(function BorderSection() {
                         visible={isBorderSet}
                         onToggleVisible={handleToggleVisible}
                         pickerContent={
-                            <ColorField
+                            <ColorPickerInline
                                 value={borderColor.value}
                                 onCommit={borderColorSetter.set}
                             />

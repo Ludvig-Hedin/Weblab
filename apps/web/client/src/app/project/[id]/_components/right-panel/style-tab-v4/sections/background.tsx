@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import {
-    ColorField,
+    ColorPickerInline,
     ColorRow,
     FlowSegment,
     GroupShell,
@@ -186,7 +186,10 @@ export const BackgroundSection = observer(function BackgroundSection() {
                             value={bgColor.value}
                             onCommit={handleColorCommit}
                             pickerContent={
-                                <ColorField value={bgColor.value} onCommit={handleColorCommit} />
+                                <ColorPickerInline
+                                    value={bgColor.value}
+                                    onCommit={handleColorCommit}
+                                />
                             }
                         />
                     </GroupShell>

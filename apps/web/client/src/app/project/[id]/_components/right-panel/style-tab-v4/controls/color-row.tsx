@@ -217,7 +217,7 @@ export function ColorRow({
         <div
             className={cn(
                 FIELD_BASE_CLASSES,
-                'flex h-[32px] min-w-0 items-center gap-2 pr-[6px] pl-[6px]',
+                'flex h-[28px] min-w-0 items-center gap-2 pr-[6px] pl-[6px]',
                 className,
             )}
         >
@@ -252,7 +252,10 @@ export function ColorRow({
                     />
                 </PopoverTrigger>
                 {pickerContent && (
-                    <PopoverContent align="start" className="w-[260px] p-2">
+                    <PopoverContent
+                        align="start"
+                        className="w-[224px] overflow-hidden rounded-lg p-0 shadow-xl"
+                    >
                         {pickerContent}
                     </PopoverContent>
                 )}

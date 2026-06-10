@@ -37,7 +37,7 @@ export function FlowSegment({
     value,
     options,
     onCommit,
-    height = 32,
+    height = 28,
     ariaLabel,
     className,
 }: FlowSegmentProps) {

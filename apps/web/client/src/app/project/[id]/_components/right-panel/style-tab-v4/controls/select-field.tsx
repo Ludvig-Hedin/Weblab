@@ -3,7 +3,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { cn } from '@weblab/ui/utils';
 
-import { FIELD_BASE_CLASSES } from './constants';
+import { FIELD_BASE_CLASSES, SELECT_TRIGGER_FIELD_OVERRIDES } from './constants';
 
 export interface SelectFieldOption {
     value: string;
@@ -37,7 +37,9 @@ export function SelectField({
 }: SelectFieldProps) {
     return (
         <Select value={value || undefined} onValueChange={onCommit}>
-            <SelectTrigger className={cn(FIELD_BASE_CLASSES, 'shadow-none', className)}>
+            <SelectTrigger
+                className={cn(FIELD_BASE_CLASSES, SELECT_TRIGGER_FIELD_OVERRIDES, className)}
+            >
                 <SelectValue placeholder={placeholder ?? '—'} />
             </SelectTrigger>
             <SelectContent className="max-w-[280px]">

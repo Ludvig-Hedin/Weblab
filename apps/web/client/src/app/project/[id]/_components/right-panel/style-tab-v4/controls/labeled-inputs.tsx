@@ -6,7 +6,12 @@ import { ChevronDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { cn } from '@weblab/ui/utils';
 
-import { FIELD_BASE_CLASSES, INLINE_LABEL_CLASSES, UNIT_PILL_CLASSES } from './constants';
+import {
+    FIELD_BASE_CLASSES,
+    INLINE_LABEL_CLASSES,
+    SELECT_TRIGGER_FIELD_OVERRIDES,
+    UNIT_PILL_CLASSES,
+} from './constants';
 
 interface LabelInlineProps {
     children: React.ReactNode;
@@ -219,7 +224,8 @@ export function LabeledSelectInput({
             <SelectTrigger
                 className={cn(
                     FIELD_BASE_CLASSES,
-                    'flex min-w-0 items-center justify-between gap-2 shadow-none [&>span]:line-clamp-1',
+                    SELECT_TRIGGER_FIELD_OVERRIDES,
+                    'flex min-w-0 items-center justify-between gap-2 [&>span]:line-clamp-1',
                     className,
                 )}
             >

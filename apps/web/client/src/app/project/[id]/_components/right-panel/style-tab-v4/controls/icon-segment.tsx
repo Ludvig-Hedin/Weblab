@@ -37,7 +37,7 @@ export function IconSegment({
     value,
     options,
     onCommit,
-    height = 30,
+    height = 28,
     ariaLabel,
     className,
 }: IconSegmentProps) {

@@ -20,13 +20,28 @@
  *     `stroke-linejoin="round"`, sized 12–14px inside controls.
  */
 
+/** Single row height for every standard field (inputs, selects, segments). */
+export const FIELD_HEIGHT = 28;
+
 /**
  * Canonical Tailwind class string shared by every "field-like" element:
  * inputs, select triggers, segmented buttons, chip containers. Owns the
  * geometry + colors + hover + focus border swap.
  */
 export const FIELD_BASE_CLASSES =
-    'h-[26px] w-full rounded-[10px] border border-transparent bg-background-secondary text-mini text-foreground-primary placeholder:text-muted-foreground hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand focus-visible:border-foreground-brand transition-colors outline-none px-[8px]';
+    'h-[28px] w-full rounded-[10px] border border-transparent bg-background-secondary text-mini text-foreground-primary placeholder:text-muted-foreground hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand focus-visible:border-foreground-brand transition-colors outline-none px-[8px]';
+
+/**
+ * Override classes for shadcn `SelectTrigger`, appended AFTER
+ * FIELD_BASE_CLASSES. The trigger's own base styles size it via
+ * `data-[size=default]:h-9 / px-3 / py-2` and skin it via
+ * `dark:bg-[#232323] dark:border-[#2d2d2d]` — variant-prefixed classes that
+ * tailwind-merge cannot reconcile with the plain `h-[28px] border-transparent`
+ * in FIELD_BASE_CLASSES, so without these the select renders 36px tall with a
+ * visible border while every other field is 28px and borderless.
+ */
+export const SELECT_TRIGGER_FIELD_OVERRIDES =
+    'data-[size=default]:h-[28px] data-[size=default]:px-[8px] data-[size=default]:py-0 dark:bg-background-secondary dark:border-transparent dark:hover:bg-background-tertiary shadow-none';
 
 /**
  * Short-height variant for fields inside segmented or paired containers
@@ -39,9 +54,13 @@ export const FIELD_BASE_CLASSES_SM =
  * Class for the muted-grey active state used by every segmented control
  * in v4 (Flow, Alignment, Background type, etc.). Matches Figma vocabulary —
  * opaque pill, subtle shadow, primary text. NOT brand color.
+ *
+ * Pill fill is `foreground/15`, not `background-active`: the token resolves
+ * to #2a2a2a in dark mode, which is indistinguishable from the #222222 field
+ * fill the segment sits on — the active state was invisible.
  */
 export const SEGMENT_ACTIVE_CLASSES =
-    'data-[state=on]:bg-background-active data-[state=on]:text-foreground-primary data-[state=on]:shadow-sm aria-pressed:bg-background-active aria-pressed:text-foreground-primary aria-pressed:shadow-sm';
+    'data-[state=on]:bg-foreground/15 data-[state=on]:text-foreground-primary data-[state=on]:shadow-sm aria-pressed:bg-foreground/15 aria-pressed:text-foreground-primary aria-pressed:shadow-sm';
 
 /**
  * Inactive segmented item. Secondary (not tertiary) at rest — icon-only

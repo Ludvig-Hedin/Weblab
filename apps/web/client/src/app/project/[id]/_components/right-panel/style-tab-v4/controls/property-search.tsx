@@ -453,7 +453,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                         <React.Fragment key={group.sectionId}>
                             <li
                                 role="presentation"
-                                className="text-foreground-tertiary px-2 pt-2 pb-0.5 text-tiny select-none first:pt-1"
+                                className="text-foreground-tertiary text-tiny px-2 pt-2 pb-0.5 select-none first:pt-1"
                             >
                                 {group.label}
                             </li>

@@ -247,7 +247,7 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
                     const alpha = value.length > 7 ? value.slice(7) : '';
                     onChange(`${e.target.value}${alpha}`);
                 }}
-                className="h-[26px] w-[26px] shrink-0 cursor-pointer rounded-[6px] border-0 bg-transparent p-0"
+                className="h-[28px] w-[28px] shrink-0 cursor-pointer rounded-[6px] border-0 bg-transparent p-0"
             />
             <input
                 type="text"
