@@ -13,7 +13,7 @@ import { FIELD_BASE_CLASSES } from './constants';
 // hover, focus border) — only the select needs `appearance-none` on top.
 const NUMBER_FIELD = FIELD_BASE_CLASSES;
 
-const SELECT_FIELD = `${FIELD_BASE_CLASSES} appearance-none`;
+const SELECT_FIELD = cn(FIELD_BASE_CLASSES, 'appearance-none');
 
 interface LayoutGuidePopoverProps {
     guide: LayoutGuideConfig;

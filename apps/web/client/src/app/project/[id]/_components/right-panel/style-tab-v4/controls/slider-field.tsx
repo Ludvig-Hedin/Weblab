@@ -1,6 +1,7 @@
 'use client';
 
 import { Slider } from '@weblab/ui/slider';
+import { cn } from '@weblab/ui/utils';
 
 import { INLINE_LABEL_CLASSES } from './constants';
 
@@ -67,7 +68,7 @@ export function SliderField({
                 }}
                 className="flex-1"
             />
-            <span className={`${INLINE_LABEL_CLASSES} w-10 text-right tabular-nums`}>
+            <span className={cn(INLINE_LABEL_CLASSES, 'w-10 text-right tabular-nums')}>
                 {Math.round(display)}
                 {suffix ?? ''}
             </span>
