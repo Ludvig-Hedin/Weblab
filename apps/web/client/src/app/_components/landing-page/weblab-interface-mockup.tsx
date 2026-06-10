@@ -2189,16 +2189,16 @@ export function WeblabInterfaceMockup() {
                                 >
                                     <svg
                                         width="20"
-                                        height="24"
-                                        viewBox="0 0 20 24"
+                                        height="22"
+                                        viewBox="0 0 20 22"
                                         fill="none"
                                         className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.22)]"
                                     >
                                         <path
-                                            d="M4 2.5 Q16 11.5 15 14 L10.5 15 L4 20 Q2.5 17 4 2.5 Z"
+                                            d="M3.5 2.5 L15.5 14.5 L11 15 L3.5 19 Z"
                                             fill={p.color}
                                             stroke="#fff"
-                                            strokeWidth="1.8"
+                                            strokeWidth="2.5"
                                             strokeLinejoin="round"
                                             strokeLinecap="round"
                                             paintOrder="stroke"
