@@ -4,6 +4,7 @@ import { makeAutoObservable } from 'mobx';
 import type { BreakpointId } from '@weblab/models';
 import type { BreakpointEntry } from '@weblab/parser';
 import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
+import { getAstFromContent } from '@weblab/parser';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
@@ -27,6 +28,45 @@ import { addResponsiveTailwindToRequest } from './tailwind';
 export class CodeManager {
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
+        this.attachBeforeUnload();
+    }
+
+    /**
+     * Number of writes currently queued/running on `writeChain`. Reloading
+     * while this is non-zero can truncate the file mid-transport (the user
+     * hit exactly this: a rapid element-delete burst + reload left
+     * `page.tsx` ending in `</m` — unparseable, preview dead, later writes
+     * failing at parse). The beforeunload guard below warns instead.
+     */
+    private pendingWrites = 0;
+
+    get hasPendingWrites(): boolean {
+        return this.pendingWrites > 0;
+    }
+
+    private beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
+
+    private attachBeforeUnload() {
+        if (typeof window === 'undefined') return;
+        if (this.beforeUnloadHandler) return;
+        const handler = (e: BeforeUnloadEvent) => {
+            // Fire any debounced source rebases NOW so they at least enqueue
+            // before the page goes away (best effort — unload won't await).
+            this.editorEngine.action.flushPendingRebases();
+            if (!this.hasPendingWrites) return;
+            // In-flight source write: ask the browser to confirm leaving.
+            // An aborted write can persist a truncated, unparseable file.
+            e.preventDefault();
+        };
+        window.addEventListener('beforeunload', handler);
+        this.beforeUnloadHandler = handler;
+    }
+
+    private detachBeforeUnload() {
+        if (typeof window === 'undefined') return;
+        if (!this.beforeUnloadHandler) return;
+        window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+        this.beforeUnloadHandler = null;
     }
 
     /**
@@ -70,7 +110,34 @@ export class CodeManager {
         }
     }
 
-    async writeRequest(requests: CodeDiffRequest[]) {
+    // Serializes source writes. Every write is a read-modify-write (read file →
+    // parse → transform AST → regenerate → write file). The immediate write
+    // (`code.write`) and the debounced responsive write (`writeResponsiveStyle`)
+    // — plus undo/redo — all target the same files with no shared lock, so on a
+    // rapid slider drag they interleave: a later write reads stale content and
+    // clobbers an earlier one, or two regenerations race and leave the file
+    // syntactically broken ("No ast found for file" on the next parse). Chaining
+    // them guarantees each completes before the next reads.
+    private writeChain: Promise<void> = Promise.resolve();
+
+    async writeRequest(requests: CodeDiffRequest[]): Promise<void> {
+        this.pendingWrites += 1;
+        const run = this.writeChain
+            .then(() => this.processWriteRequest(requests))
+            .finally(() => {
+                this.pendingWrites -= 1;
+            });
+        // Swallow errors on the chain itself so one failed write doesn't wedge
+        // every subsequent write; the real result/rejection is returned to the
+        // caller via `run`.
+        this.writeChain = run.then(
+            () => undefined,
+            () => undefined,
+        );
+        return run;
+    }
+
+    private async processWriteRequest(requests: CodeDiffRequest[]) {
         const groupedRequests = await this.groupRequestByFile(requests);
         const codeDiffs = await processGroupedRequests(groupedRequests);
         for (const diff of codeDiffs) {
@@ -87,6 +154,21 @@ export class CodeManager {
             const branchData = this.editorEngine.branches.getBranchDataById(firstRequest.branchId);
             if (!branchData) {
                 throw new Error(`Branch not found for ID: ${firstRequest.branchId}`);
+            }
+
+            // Corruption guard: editor-action output comes from Babel
+            // `generate()` and must re-parse. If it doesn't, something
+            // upstream (stale snapshot, interrupted transform) produced
+            // garbage — refuse to persist it. CodeFileSystem.writeFile
+            // intentionally writes unparseable content for the code-mode
+            // editor (devs may save WIP), so the guard must live HERE on
+            // the action path, not down there. Without it a bad diff
+            // overwrites the user's source with a syntactically broken
+            // file and every subsequent action write fails at parse.
+            if (getAstFromContent(diff.generated) === null) {
+                throw new Error(
+                    `Refusing to write ${diff.path}: generated content does not parse. The edit was not saved — your source file is untouched.`,
+                );
             }
 
             await branchData.codeEditor.writeFile(diff.path, diff.generated);
@@ -132,7 +214,7 @@ export class CodeManager {
 
         for (const request of requests) {
             const branchData = this.editorEngine.branches.getBranchDataById(request.branchId);
-            const codeEditor = branchData?.codeEditor || this.editorEngine.fileSystem;
+            const codeEditor = branchData?.codeEditor ?? this.editorEngine.fileSystem;
 
             const metadata = await codeEditor.getJsxElementMetadata(request.oid);
             if (!metadata) {
@@ -145,9 +227,7 @@ export class CodeManager {
             const path = metadata.path;
 
             let groupedRequest = requestByFile.get(path);
-            if (!groupedRequest) {
-                groupedRequest = { oidToRequest: new Map(), content: fileContent };
-            }
+            groupedRequest ??= { oidToRequest: new Map(), content: fileContent };
             groupedRequest.oidToRequest.set(request.oid, request);
             requestByFile.set(path, groupedRequest);
         }
@@ -198,9 +278,7 @@ export class CodeManager {
             if (!widthById.has(id)) widthById.set(id, f.frame.breakpoint.width);
             if (!branchIdForOid && f.selected) branchIdForOid = f.frame.branchId;
         }
-        if (!branchIdForOid) {
-            branchIdForOid = allFrames[0]!.frame.branchId;
-        }
+        branchIdForOid ??= allFrames[0]!.frame.branchId;
 
         const entries: BreakpointEntry[] = [];
         for (const [id, value] of Object.entries(valuesByBreakpoint)) {
@@ -230,6 +308,7 @@ export class CodeManager {
         if (typeof this.writeResponsiveStyle?.cancel === 'function') {
             this.writeResponsiveStyle.cancel();
         }
+        this.detachBeforeUnload();
     }
 
     async updateElementMetadata({

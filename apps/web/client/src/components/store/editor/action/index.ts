@@ -107,6 +107,17 @@ export class ActionManager {
     }
 
     async updateStyle({ targets }: UpdateStyleAction) {
+        // Snapshot the selection BEFORE applying the edit. The action fans each
+        // selected element out to its sibling responsive frames so the style
+        // lands everywhere, but those sibling frames reuse the same
+        // source-derived domId — so without restricting re-selection below, the
+        // returned sibling domEls would be re-selected too, ballooning the
+        // selection (1→3→9→27…) on every keystroke and thrashing RAM. We only
+        // re-select the nodes that were already selected.
+        const originallySelected = new Set(
+            this.editorEngine.elements.selected.map((el) => `${el.frameId}:${el.domId}`),
+        );
+
         const domEls: DomElement[] = [];
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
@@ -161,7 +172,17 @@ export class ActionManager {
             domEls.push(domEl);
         }
 
-        this.refreshDomElement(domEls);
+        // Refresh only the originally-selected nodes — not the sibling-frame
+        // copies produced by the responsive fan-out. See the snapshot above.
+        // If none of the originally-selected nodes refreshed (e.g. their frame
+        // isn't booted), leave the selection untouched rather than re-selecting
+        // siblings (which resumes the blow-up) or clearing it via click([]).
+        const refreshed = domEls.filter((el) =>
+            originallySelected.has(`${el.frameId}:${el.domId}`),
+        );
+        if (refreshed.length > 0) {
+            this.refreshDomElement(refreshed);
+        }
 
         // After all iframe injections settle, schedule a debounced source-write
         // for each unique (oid, property) the action touched. Source-write is
@@ -377,6 +398,26 @@ export class ActionManager {
         if (newMap) {
             this.editorEngine.ast.updateMap(frameData.frame.id, newMap, domEl.domId);
         }
+    }
+
+    /**
+     * Fire every debounced source-rebase immediately. Called from the
+     * beforeunload guard in CodeManager: a reload inside the 600ms debounce
+     * window would otherwise silently drop the responsive source write
+     * ("my edit didn't save after reload"). The writes are fire-and-forget —
+     * unload won't await them — but enqueueing before navigation is what
+     * gives them a chance to land.
+     */
+    flushPendingRebases() {
+        for (const [key, timer] of this.rebaseTimers) {
+            clearTimeout(timer);
+            const [oid, property] = key.split('::');
+            if (!oid || !property) continue;
+            void this.runSourceRebase(oid, property).catch((error: unknown) => {
+                console.error('Source rebase failed', { oid, property, error });
+            });
+        }
+        this.rebaseTimers.clear();
     }
 
     clear() {
