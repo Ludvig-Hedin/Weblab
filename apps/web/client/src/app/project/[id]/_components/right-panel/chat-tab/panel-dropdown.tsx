@@ -29,7 +29,18 @@ export const ChatPanelDropdown = observer(
         setIsChatHistoryOpen: (isOpen: boolean) => void;
     }) => {
         const t = useTranslations();
-        const updateSettings = useMutation(api.users.updateSettings);
+        // Optimistic update: flip the persisted query value locally the instant
+        // the user clicks so the slider never lags the server round-trip. Convex
+        // reconciles with the real value when the mutation resolves.
+        const updateSettings = useMutation(api.users.updateSettings).withOptimisticUpdate(
+            (localStore, args) => {
+                const current = localStore.getQuery(api.users.getSettings, {});
+                // No row yet (brand-new user) → can't fabricate a full doc with
+                // an _id; the first toggle falls back to the server round-trip.
+                if (!current) return;
+                localStore.setQuery(api.users.getSettings, {}, { ...current, ...args });
+            },
+        );
         const userSettings = useQuery(api.users.getSettings, {});
 
         // Write immediately on toggle. The previous 300ms debounce could be
@@ -43,7 +54,10 @@ export const ChatPanelDropdown = observer(
         );
 
         // TODO(convex-migration): users.getSettings returns the flat DB row; wire fromDbUserSettings or expose a getMappedSettings query
-        const showSuggestions = userSettings?.showSuggestions ?? false;
+        // Defaults mirror the server's DEFAULT_USER_SETTINGS (suggestions on,
+        // mini-chat off) so a user with no row sees the real default, not a
+        // flash of "off" that then snaps on once the query resolves.
+        const showSuggestions = userSettings?.showSuggestions ?? true;
         const showMiniChat = userSettings?.showMiniChat ?? false;
 
         return (

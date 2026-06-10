@@ -43,8 +43,14 @@ const STARTER_SUGGESTIONS = [
     },
 ] as const;
 
-const getLatestAssistantMessageId = (messages: ChatMessage[]) =>
-    [...messages].reverse().find((message) => message.role === 'assistant')?.id ?? null;
+const getLatestAssistantMessageId = (messages: ChatMessage[]) => {
+    // Backward scan — no array copy/reverse, which would otherwise run on every
+    // render (i.e. every token while streaming) for the whole conversation.
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i]?.role === 'assistant') return messages[i]!.id;
+    }
+    return null;
+};
 
 interface ChatMessagesProps {
     messages: ChatMessage[];

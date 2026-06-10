@@ -38,27 +38,34 @@ export const ErrorMessage = observer(({ error: chatError, onRetry }: ErrorMessag
     let errorMessage: string | null = null;
 
     try {
-        const parsed = JSON.parse(chatError.message) as {
-            code: number;
-            error: string;
-            usage: Usage;
-        };
+        // Parse as unknown and narrow — a cast to a fixed object shape makes
+        // the string/primitive branches unreachable to the type checker.
+        const parsed: unknown = JSON.parse(chatError.message);
         if (parsed && typeof parsed === 'object') {
+            const obj = parsed as {
+                code: number;
+                error: string;
+                usage: Usage;
+            };
             if (
-                parsed.code === 402 &&
-                parsed.usage &&
-                typeof parsed.usage.limitCount === 'number' &&
-                (parsed.usage.period === 'day' || parsed.usage.period === 'month')
+                obj.code === 402 &&
+                obj.usage &&
+                typeof obj.usage.limitCount === 'number' &&
+                (obj.usage.period === 'day' || obj.usage.period === 'month')
             ) {
-                usage = parsed.usage;
-                errorMessage = parsed.error || 'Message limit exceeded.';
+                usage = obj.usage;
+                errorMessage = obj.error || 'Message limit exceeded.';
             } else {
-                errorMessage = parsed.error || chatError.toString();
+                errorMessage = obj.error || chatError.toString();
             }
+        } else if (typeof parsed === 'string' && parsed.trim().length > 0) {
+            // A bare JSON string ("just text") — show it directly, not the
+            // quoted raw message.
+            errorMessage = parsed;
         } else {
-            // Valid JSON but not an object (a bare number/string/null). Fall
-            // back to the raw message so the error never renders as nothing —
-            // an empty render would drop both the text and the Retry button.
+            // Valid JSON but not a usable object/string (a bare number/null).
+            // Fall back to the raw message so the error never renders as
+            // nothing — an empty render drops both the text and the Retry button.
             errorMessage = chatError.message || chatError.toString();
         }
     } catch {

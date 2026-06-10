@@ -257,8 +257,10 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
     }
 
     function renderButtons() {
+        // Hover-only on desktop (the requested behavior); `pointer-coarse`
+        // force-shows them on touch, where there is no hover to reveal them.
         return (
-            <div className="flex gap-1 pr-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
+            <div className="flex gap-1 pr-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button

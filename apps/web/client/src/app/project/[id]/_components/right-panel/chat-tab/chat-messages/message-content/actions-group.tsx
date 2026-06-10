@@ -120,7 +120,9 @@ export const ActionsGroup = ({
                             className={cn(
                                 'text-mini',
                                 isStreaming &&
-                                    'animate-shimmer bg-gradient-to-l from-white/30 via-white/85 to-white/30 bg-[length:200%_100%] bg-clip-text text-transparent',
+                                    // Theme-aware shimmer — a white gradient was
+                                    // invisible against the light-mode panel.
+                                    'animate-shimmer from-foreground/40 via-foreground to-foreground/40 bg-gradient-to-l bg-[length:200%_100%] bg-clip-text text-transparent',
                             )}
                         >
                             {summary}
