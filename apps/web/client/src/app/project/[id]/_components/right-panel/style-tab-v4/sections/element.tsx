@@ -347,7 +347,7 @@ export const ElementSection = observer(function ElementSection() {
                                     }}
                                     rows={4}
                                     spellCheck={false}
-                                    className="text-foreground-primary placeholder:text-muted-foreground bg-background-secondary w-full resize-none rounded-[10px] p-2 font-mono text-[11.5px] outline-none"
+                                    className="text-foreground-primary placeholder:text-muted-foreground bg-background-secondary hover:bg-background-tertiary focus-visible:border-foreground-brand w-full resize-none rounded-[10px] border border-transparent p-2 font-mono text-[11.5px] transition-colors outline-none"
                                     placeholder="Paste or type Tailwind classes…"
                                     aria-label="Raw className editor"
                                 />

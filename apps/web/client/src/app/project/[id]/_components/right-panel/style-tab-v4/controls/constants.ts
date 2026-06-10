@@ -47,6 +47,14 @@ export const SEGMENT_ACTIVE_CLASSES =
 export const SEGMENT_INACTIVE_CLASSES =
     'text-foreground-tertiary hover:text-foreground-secondary hover:bg-foreground/5';
 
+/**
+ * Geometry + interaction shared by every item inside a segmented container
+ * (FlowSegment, IconSegment). 9px inner radius = 10px container − ~1px inset.
+ * Compose with SEGMENT_INACTIVE_CLASSES + SEGMENT_ACTIVE_CLASSES.
+ */
+export const SEGMENT_ITEM_CLASSES =
+    'focus-visible:ring-foreground-brand/30 flex h-full cursor-pointer items-center justify-center rounded-[9px] px-0 shadow-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-[3px] active:scale-[0.97] motion-reduce:transition-none';
+
 /** Small group-head action button (22×22). */
 export const ICON_BTN_SM_CLASSES =
     'inline-flex h-[20px] w-[20px] items-center justify-center rounded-xs text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-foreground-brand/40';

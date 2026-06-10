@@ -27,14 +27,16 @@ export interface ChipInputProps {
  * Keyboard model:
  *   - Click a chip → caret lands in the chip; type to edit.
  *   - ←/→ at chip edges walks to the previous/next chip (or the
- *     trailing input past the last chip).
- *   - Backspace on an empty chip removes it and focuses the previous
- *     chip (or the trailing input if it was the only chip).
+ *     trailing input past the last chip) — navigate classes as units.
+ *   - Backspace removes the WHOLE class (a class is a token, not free
+ *     text) when: the chip is empty, the caret is at the chip's left
+ *     edge, or you're in the trailing input — one press per class.
+ *     Mid-text Backspace still edits characters. Delete on an empty
+ *     chip removes it too.
  *   - Enter on a chip commits and jumps to the next chip / trailing input.
  *   - Enter on the trailing input adds whatever was typed (space-split).
  *   - Escape on a chip reverts the chip text and blurs.
- *   - The trailing × on each chip removes it via mouse only — the
- *     primary keyboard-removal path is Backspace on an empty chip.
+ *   - The trailing × on each chip also removes it via mouse.
  */
 export function ChipInput({
     chips,
@@ -115,7 +117,7 @@ export function ChipInput({
         <div
             role="presentation"
             className={cn(
-                'bg-background-secondary hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-[4px] transition-colors',
+                'bg-background-secondary hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand flex min-h-[26px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-[3px] transition-colors',
                 className,
             )}
             onMouseDown={(event) => {
@@ -162,7 +164,15 @@ export function ChipInput({
                                     event.preventDefault();
                                     if (index < chips.length - 1) focusChip(index + 1);
                                     else focusTrailing();
-                                } else if (event.key === 'Backspace' && value === '') {
+                                } else if (
+                                    (event.key === 'Backspace' && (value === '' || atStart)) ||
+                                    (event.key === 'Delete' && value === '')
+                                ) {
+                                    // Backspace on an empty chip OR at a chip's
+                                    // left edge removes the WHOLE class (a class
+                                    // is a token, not free text) — matches the
+                                    // Framer/Webflow mental model. Mid-text
+                                    // Backspace still edits characters normally.
                                     event.preventDefault();
                                     if (!readOnly) {
                                         removeAt(index);
@@ -220,13 +230,19 @@ export function ChipInput({
                             draft.length === 0 &&
                             chips.length > 0
                         ) {
+                            // Remove the whole trailing class in one press
+                            // (was: focus into it, so the next press deleted a
+                            // character). Focus stays here so repeated Backspace
+                            // peels classes off the end.
                             event.preventDefault();
-                            focusChip(chips.length - 1);
+                            if (!readOnly) removeAt(chips.length - 1);
                         } else if (
                             event.key === 'ArrowLeft' &&
                             event.currentTarget.selectionStart === 0 &&
                             chips.length > 0
                         ) {
+                            // Arrow into the last class to navigate between
+                            // them as units (caret lands at its end).
                             event.preventDefault();
                             focusChip(chips.length - 1);
                         }

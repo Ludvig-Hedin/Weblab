@@ -7,6 +7,7 @@ export {
     FIELD_BASE_CLASSES_SM,
     SEGMENT_ACTIVE_CLASSES,
     SEGMENT_INACTIVE_CLASSES,
+    SEGMENT_ITEM_CLASSES,
     ICON_BTN_SM_CLASSES,
     UNIT_PILL_CLASSES,
     GROUP_LABEL_CLASSES,
@@ -51,7 +52,7 @@ export { ColorField } from '../../style-tab-v2/controls/color-field';
 export { SelectField } from './select-field';
 export { TextField } from './text-field';
 export { FontField } from '../../style-tab-v2/controls/font-field';
-export { SliderField } from '../../style-tab-v2/controls/slider-field';
+export { SliderField } from './slider-field';
 export { IconToggleField } from './icon-toggle-field';
 export { InlineButton } from '../../style-tab-v2/controls/inline-button';
 export { ConnectButton } from '../../style-tab-v2/controls/connect-button';

@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-10 — Style Panel v4 control-grammar consolidation
+Author: Claude (Fable 5)
+Area: editor right panel (`style-tab-v4`)
+Summary: Standardized every Style Panel control onto the shared v4 grammar in `controls/constants.ts`. Added `SEGMENT_ITEM_CLASSES` (shared segmented-item geometry, unified 9px inner radius — IconSegment was 6px vs FlowSegment 9px) and a v4-local `SliderField` (drops the cross-version import from `style-tab-v2`, 26px row, tabular-nums readout, disabled state). Replaced drifted one-off field clones with `FIELD_BASE_CLASSES`: LayoutGuidePopover's inline 24px/6px inputs+selects, Advanced section's custom-var name input (visible border + `rounded-sm` → transparent-border 10px field), Element raw-className textarea (gained hover/focus-border states). ChipInput container height aligned 28→26px (p-4→3px). Raw `divide-[var(--border)]` → semantic `divide-border` in SegmentedDisplay/IconToggleField/GrowOverflowRow. Contrast verified against tokens: dark labels `#b2b2b2` secondary, icons-at-rest `#717171` tertiary ≈3.4:1 on field fill (meets UI-component minimum), placeholders `muted-foreground`. Known remaining inconsistencies: hero rows differ intentionally (FontHeroRow 36px vs ColorRow 32px); `FIELD_BASE_CLASSES_SM` (PinPad, 20px/rounded-sm) is a deliberate second scale; v2-imported ColorField/FontField/ConnectButton still pending v4 ports.
+Files: `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/{constants.ts,slider-field.tsx,index.ts,icon-segment.tsx,flow-segment.tsx,layout-guide-popover.tsx,chip-input.tsx,icon-toggle-field.tsx,segmented-display.tsx,grow-overflow-row.tsx}`, `sections/{advanced.tsx,element.tsx}`
+Links: design grammar source `style-tab-v4/DESIGN-BRIEF.md`
+
 ## 2026-06-06 — Production auth E2E hardening
 Author: Codex
 Area: auth, production config, E2E QA

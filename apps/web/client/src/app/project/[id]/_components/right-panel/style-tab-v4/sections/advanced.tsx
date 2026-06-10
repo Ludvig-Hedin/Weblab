@@ -7,9 +7,11 @@ import { observer } from 'mobx-react-lite';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
 import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { CustomExpander, GroupShell, LabeledSelectInput, TextField } from '../controls';
+import { FIELD_BASE_CLASSES } from '../controls/constants';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
@@ -175,8 +177,6 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
     return (
         <div className="group/control flex items-center gap-1.5 px-3 py-1">
             <span className="text-foreground-secondary text-mini shrink-0">--</span>
-            {/* Name input matches FIELD_BASE_CLASSES geometry (h-[26px],
-                rounded-[10px], foreground/5 surface) */}
             <input
                 type="text"
                 value={name}
@@ -205,7 +205,7 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
                 }}
                 placeholder="brand"
                 aria-label="Custom property name"
-                className="border-border bg-background-secondary hover:bg-background-tertiary hover:border-border-hover focus-visible:border-ring focus-visible:ring-foreground-brand/30 text-mini text-foreground-primary placeholder:text-muted-foreground h-[26px] w-24 min-w-0 rounded-sm border px-[10px] transition-colors outline-none focus-visible:ring-[3px]"
+                className={cn(FIELD_BASE_CLASSES, 'w-24 min-w-0 shrink-0')}
             />
             <TextField
                 value={row.value}

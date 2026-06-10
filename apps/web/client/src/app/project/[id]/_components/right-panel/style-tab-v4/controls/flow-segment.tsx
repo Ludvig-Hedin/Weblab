@@ -6,7 +6,11 @@ import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
-import { SEGMENT_ACTIVE_CLASSES, SEGMENT_INACTIVE_CLASSES } from './constants';
+import {
+    SEGMENT_ACTIVE_CLASSES,
+    SEGMENT_INACTIVE_CLASSES,
+    SEGMENT_ITEM_CLASSES,
+} from './constants';
 
 export interface FlowSegmentOption {
     value: string;
@@ -57,7 +61,7 @@ export function FlowSegment({
                                 value={option.value}
                                 aria-label={option.label}
                                 className={cn(
-                                    'focus-visible:ring-foreground-brand/30 flex h-full cursor-pointer items-center justify-center rounded-[9px] px-0 shadow-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-[3px] active:scale-[0.97]',
+                                    SEGMENT_ITEM_CLASSES,
                                     SEGMENT_INACTIVE_CLASSES,
                                     SEGMENT_ACTIVE_CLASSES,
                                 )}

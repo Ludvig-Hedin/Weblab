@@ -5,15 +5,15 @@ import { useCallback } from 'react';
 
 import type { LayoutGuideAlignment, LayoutGuideConfig, LayoutGuideType } from '@weblab/models';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { cn } from '@weblab/ui/utils';
 
-// Tailwind class string for popover number inputs. Mirrors FIELD_BASE_CLASSES_SM
-// from ../controls/constants.ts but kept inline because the popover doesn't
-// need every variant the segmented controls do.
-const NUMBER_FIELD =
-    'h-[24px] w-full rounded-[6px] border border-transparent bg-background-secondary text-mini text-foreground-primary placeholder:text-muted-foreground hover:bg-background-tertiary focus-visible:border-foreground-brand outline-none px-2 text-[12px]';
+import { FIELD_BASE_CLASSES } from './constants';
 
-const SELECT_FIELD =
-    'h-[24px] w-full rounded-[6px] border border-transparent bg-background-secondary text-mini text-foreground-primary hover:bg-background-tertiary focus-visible:border-foreground-brand outline-none px-2 text-[12px] appearance-none';
+// Popover fields share the panel-wide field grammar (height, radius, fill,
+// hover, focus border) — only the select needs `appearance-none` on top.
+const NUMBER_FIELD = FIELD_BASE_CLASSES;
+
+const SELECT_FIELD = `${FIELD_BASE_CLASSES} appearance-none`;
 
 interface LayoutGuidePopoverProps {
     guide: LayoutGuideConfig;
@@ -78,7 +78,7 @@ export function LayoutGuidePopover({
                         aria-label="Layout guide type"
                         value={guide.type}
                         onChange={(e) => handleTypeChange(e.target.value as LayoutGuideType)}
-                        className={`${SELECT_FIELD} w-[110px]`}
+                        className={cn(SELECT_FIELD, 'w-[110px]')}
                     >
                         <option value="grid">Grid</option>
                         <option value="columns">Columns</option>
@@ -247,7 +247,7 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
                     const alpha = value.length > 7 ? value.slice(7) : '';
                     onChange(`${e.target.value}${alpha}`);
                 }}
-                className="size-6 cursor-pointer rounded-[4px] border-0 bg-transparent p-0"
+                className="h-[26px] w-[26px] shrink-0 cursor-pointer rounded-[6px] border-0 bg-transparent p-0"
             />
             <input
                 type="text"
