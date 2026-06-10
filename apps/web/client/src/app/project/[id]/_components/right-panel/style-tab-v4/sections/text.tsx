@@ -388,7 +388,18 @@ export const TextSection = observer(function TextSection() {
                 {/* ── 5. Alignment ─────────────────────────────────────── */}
                 <GroupShell label="Alignment">
                     <IconSegment
-                        value={align.value}
+                        // Browsers compute the `text-align` default as the
+                        // logical `start`/`end` — map to the physical values
+                        // the segment options use so the current alignment
+                        // always lights up (LTR assumption matches the rest
+                        // of the editor).
+                        value={
+                            align.value === 'start'
+                                ? 'left'
+                                : align.value === 'end'
+                                  ? 'right'
+                                  : align.value
+                        }
                         options={TEXT_ALIGN_OPTIONS}
                         onCommit={alignSetter.set}
                         ariaLabel="Text alignment"

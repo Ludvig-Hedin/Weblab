@@ -277,10 +277,8 @@ export const RightPanel = observer(() => {
         writeStored(STORAGE_KEYS.tab, activeTab);
     }, [activeTab]);
 
-    const showStyleDot = hasElementSelection && activeTab !== 'style' && !isCodeMode;
-    const hasAnyInteractions =
-        editorEngine.interactions.isLoaded && editorEngine.interactions.interactions.length > 0;
-    const showInteractionsDot = hasAnyInteractions && activeTab !== 'interactions' && !isCodeMode;
+    // Notification dots on inactive tabs removed per owner feedback — they
+    // read as alerts when nothing needs attention.
 
     // When narrow, only the active tab keeps its text label; inactive tabs and
     // the New Chat button collapse to icon-only so the header never overflows.
@@ -426,9 +424,6 @@ export const RightPanel = observer(() => {
                                                 >
                                                     <Icons.Layout className="h-3 w-3 shrink-0" />
                                                     {showStyleLabel && styleLabel}
-                                                    {showStyleDot && (
-                                                        <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
-                                                    )}
                                                 </TabsTrigger>
                                             );
                                             if (!isCodeMode) return styleTrigger;
@@ -470,9 +465,6 @@ export const RightPanel = observer(() => {
                                                 >
                                                     <Icons.CursorArrow className="h-3 w-3 shrink-0" />
                                                     {showInteractionsLabel && interactionsLabel}
-                                                    {showInteractionsDot && (
-                                                        <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
-                                                    )}
                                                 </TabsTrigger>
                                             );
                                             if (!isCodeMode) return interactionsTrigger;
