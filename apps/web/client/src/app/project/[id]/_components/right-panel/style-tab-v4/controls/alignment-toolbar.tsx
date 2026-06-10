@@ -68,7 +68,7 @@ export function AlignmentToolbar({ value, onCommit, className }: AlignmentToolba
                             <ToggleGroupItem
                                 value={optionValue}
                                 aria-label={label}
-                                className="text-foreground-tertiary data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand hover:bg-foreground/5 hover:text-foreground-primary h-full w-7 shrink-0 rounded-xs transition-colors"
+                                className="text-foreground-secondary data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand hover:bg-foreground/5 hover:text-foreground-primary h-full w-7 shrink-0 rounded-xs transition-colors"
                             >
                                 <Icon className="size-3" />
                             </ToggleGroupItem>

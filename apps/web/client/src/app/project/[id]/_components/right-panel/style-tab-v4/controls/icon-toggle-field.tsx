@@ -89,7 +89,7 @@ export function IconToggleField({
                                 // forces the group to overflow the panel when
                                 // there are 6 options. Focus ring is keyboard-only.
                                 className={cn(
-                                    'text-foreground-tertiary hover:text-foreground-secondary focus-visible:ring-foreground-brand/30 h-full min-w-0 flex-1 shrink cursor-pointer rounded-none px-0 shadow-none transition-[background-color,color,box-shadow,transform] duration-150 outline-none first:rounded-l-[9px] last:rounded-r-[9px] focus-visible:ring-[3px] active:scale-[0.97]',
+                                    'text-foreground-secondary hover:text-foreground-primary focus-visible:ring-foreground-brand/30 h-full min-w-0 flex-1 shrink cursor-pointer rounded-none px-0 shadow-none transition-[background-color,color,box-shadow,transform] duration-150 outline-none first:rounded-l-[9px] last:rounded-r-[9px] focus-visible:ring-[3px] active:scale-[0.97]',
                                     isSet
                                         ? 'data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand'
                                         : 'data-[state=on]:bg-foreground-brand/10 data-[state=on]:text-foreground-brand/90',

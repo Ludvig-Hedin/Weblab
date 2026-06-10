@@ -43,9 +43,13 @@ export const FIELD_BASE_CLASSES_SM =
 export const SEGMENT_ACTIVE_CLASSES =
     'data-[state=on]:bg-background-active data-[state=on]:text-foreground-primary data-[state=on]:shadow-sm aria-pressed:bg-background-active aria-pressed:text-foreground-primary aria-pressed:shadow-sm';
 
-/** Inactive segmented item: tertiary text, subtle hover. */
+/**
+ * Inactive segmented item. Secondary (not tertiary) at rest — icon-only
+ * glyphs at `#717171` read as disabled on the dark field fill; `#b2b2b2`
+ * keeps them clearly available while the active pill still dominates.
+ */
 export const SEGMENT_INACTIVE_CLASSES =
-    'text-foreground-tertiary hover:text-foreground-secondary hover:bg-foreground/5';
+    'text-foreground-secondary hover:text-foreground-primary hover:bg-foreground/5';
 
 /**
  * Geometry + interaction shared by every item inside a segmented container
@@ -55,9 +59,9 @@ export const SEGMENT_INACTIVE_CLASSES =
 export const SEGMENT_ITEM_CLASSES =
     'focus-visible:ring-foreground-brand/30 flex h-full cursor-pointer items-center justify-center rounded-[9px] px-0 shadow-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-[3px] active:scale-[0.97] motion-reduce:transition-none';
 
-/** Small group-head action button (22×22). */
+/** Small group-head action button (20×20). Secondary at rest for legibility. */
 export const ICON_BTN_SM_CLASSES =
-    'inline-flex h-[20px] w-[20px] items-center justify-center rounded-xs text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-foreground-brand/40';
+    'inline-flex h-[20px] w-[20px] items-center justify-center rounded-xs text-foreground-secondary hover:bg-background-tertiary hover:text-foreground-primary transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-foreground-brand/40';
 
 /** Inline unit/keyword pill on numeric fields. */
 export const UNIT_PILL_CLASSES =

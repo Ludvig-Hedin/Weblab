@@ -43,34 +43,52 @@ interface ParsedColor {
     raw: string | null;
 }
 
-/** Convert hsl(h, s%, l%[, a]) → hex via DOM canvas. */
+/**
+ * Resolve ANY CSS color — `hsl()`, named, `lab()`, `oklch()`, `color()`,
+ * `var()`-resolved — to hex + alpha by rasterizing one pixel on a canvas.
+ *
+ * Real pages increasingly compute to modern color spaces: a `getComputedStyle`
+ * read of a plain element now commonly returns `lab(48.496 0 0)` / `oklch(...)`,
+ * which a `rgb()`-only regex can't parse — so the panel was showing the raw
+ * "LAB(48.496 0 0)" string instead of an editable hex. Canvas rasterization
+ * collapses every color space to straight rgba bytes, so the swatch + hex input
+ * always get a real hex.
+ */
 function cssColorToHex(value: string): { hex: string; alpha: number } | null {
     if (typeof document === 'undefined') return null;
-    // Use a fresh detached element + getComputedStyle for browser-native parsing.
-    // The probe MUST be removed even if `getComputedStyle` throws, otherwise the
-    // probe leaks into the DOM. Move the removal into a finally block so the
-    // cleanup runs on every exit path.
-    const probe = document.createElement('span');
     try {
-        probe.style.color = value;
-        document.body.appendChild(probe);
-        const resolved = window.getComputedStyle(probe).color;
-        if (!resolved) return null;
-        const m = /^rgba?\(([^)]+)\)$/.exec(resolved);
-        if (!m?.[1]) return null;
-        const parts = m[1].split(',').map((s) => s.trim());
-        const [r, g, b, a] = parts;
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return null;
+
+        // Validity probe: the browser silently ignores an unparseable color
+        // assignment, leaving `fillStyle` at its prior value. Assigning `value`
+        // over two different defaults and comparing detects that — if `value`
+        // is invalid the two reads differ, so we bail rather than return a
+        // bogus default color.
+        ctx.fillStyle = '#000000';
+        ctx.fillStyle = value;
+        const probeA = ctx.fillStyle;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = value;
+        const probeB = ctx.fillStyle;
+        if (probeA !== probeB) return null;
+
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillRect(0, 0, 1, 1);
+        const data = ctx.getImageData(0, 0, 1, 1).data;
+        const r = data[0] ?? 0;
+        const g = data[1] ?? 0;
+        const b = data[2] ?? 0;
+        const a = data[3] ?? 255;
         return {
-            hex:
-                toHex2(parseInt(r ?? '0', 10)) +
-                toHex2(parseInt(g ?? '0', 10)) +
-                toHex2(parseInt(b ?? '0', 10)),
-            alpha: a ? Math.round(parseFloat(a) * 100) : 100,
+            hex: toHex2(r) + toHex2(g) + toHex2(b),
+            alpha: Math.round((a / 255) * 100),
         };
     } catch {
         return null;
-    } finally {
-        if (probe.parentNode) probe.parentNode.removeChild(probe);
     }
 }
 
@@ -210,7 +228,7 @@ export function ColorRow({
                         type="button"
                         aria-label="Open color picker"
                         title="Open color picker"
-                        className="border-foreground/10 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-xs border outline-none focus-visible:ring-[3px]"
+                        className="border-foreground/25 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-xs border outline-none focus-visible:ring-[3px]"
                         style={(() => {
                             // Mixed → checkerboard-style diagonal stripe to indicate divergent values.
                             if (mixed)

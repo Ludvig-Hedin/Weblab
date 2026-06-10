@@ -89,7 +89,7 @@ const OVERFLOW_OPTIONS: OverflowOption[] = [
 const TOGGLE_GROUP_CLASS =
     'border-transparent bg-background-secondary flex h-[26px] w-full divide-x divide-border rounded-[10px] border';
 const TOGGLE_ITEM_BASE_CLASS =
-    'text-foreground-tertiary hover:text-foreground-primary flex h-full flex-1 cursor-pointer items-center justify-center rounded-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-foreground-brand/30 focus-visible:ring-[3px] focus-visible:ring-inset first:rounded-l-[9px] last:rounded-r-[9px]';
+    'text-foreground-secondary hover:text-foreground-primary flex h-full flex-1 cursor-pointer items-center justify-center rounded-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-foreground-brand/30 focus-visible:ring-[3px] focus-visible:ring-inset first:rounded-l-[9px] last:rounded-r-[9px]';
 const TOGGLE_ITEM_STRONG_ACTIVE =
     'data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand';
 const TOGGLE_ITEM_QUIET_ACTIVE =

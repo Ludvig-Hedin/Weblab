@@ -41,7 +41,7 @@ export function CustomExpander({
                     'group/expander text-mini text-foreground-secondary hover:text-foreground-primary mx-3 mt-0.5 flex w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-xs py-1 transition-colors outline-none',
                 )}
             >
-                <Settings2 className="text-foreground-tertiary size-3 shrink-0" />
+                <Settings2 className="size-3 shrink-0" />
                 <span className="font-medium">{label}</span>
                 {summary && (
                     <span className="text-foreground-tertiary text-micro truncate">
