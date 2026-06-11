@@ -1,5 +1,69 @@
 # Code Review Backlog
 
+## Full-Repo Review Pass — 2026-06-10 — style-panel perf hardening + AI-chat polish
+
+Reviewed all local changes: **19 modified files** (uncommitted style-panel perf
++ concurrency hardening) + **1 new parser test**, plus the top 3 of 5 unpushed
+commits (AI-chat polish). **Verdict: safe.** One real bug found and fixed; the
+rest is pre-existing repo debt surfaced during review. `bun typecheck`
+(web-client) exit 0; ESLint on the edited file clean; new parser test 2/2 pass.
+
+### Auto-fixed this pass (2)
+
+- **CR-2026-06-10-001** — `input-color.tsx` hex field: **Escape committed instead
+  of cancelling, and Enter wrote the edit twice.**
+  - Area: `apps/web/client/src/app/project/[id]/_components/editor-bar/inputs/input-color.tsx` | Type: bug | Impact: user-facing (editor) | Risk: low
+  - Root cause: `commitDraft` read `draft` from a stale render closure, but the
+    `e.currentTarget.blur()` in the keydown handler fires `onBlur=commitDraft`
+    **synchronously** in the same tick. Enter → two AST source writes + two undo
+    entries for one change; Escape → committed the value the user meant to drop.
+  - Fix: added a synchronous `draftRef` mirror so commit reads the live value
+    (`commitDraft` clears the ref first → the blur-triggered second call no-ops;
+    Escape clears via `cancelDraft` before `blur()`).
+  - Status: `auto-fixed`. Verified typecheck + lint; live editor flow (Clerk +
+    sandbox + `:8080`) needs manual confirm.
+- **CR-2026-06-10-002** — removed pre-existing unused `PopoverAnchor` import in
+  the same file (tripped `--max-warnings 0`). Type: DX | Risk: low | `auto-fixed`.
+
+### Open — pre-existing debt surfaced (NOT introduced by this changeset)
+
+- **CR-2026-06-10-003** — ~25 ESLint warnings in `rect/resize.tsx`,
+  `store/editor/style/index.ts`, `store/editor/code/index.ts`
+  (`no-unsafe-*`, `no-floating-promises`, unused `updateWidth/updateHeight/
+  updateWidthHeight`). Verified byte-identical at `HEAD` → not from this work, but
+  these files are part of the diff and the repo gate is `--max-warnings 0`.
+  Type: tech-debt | Risk: low (the unsafe-any fix is medium) | `open`
+- **CR-2026-06-10-004** — `packages/ui/src/components/icons/index.tsx` (~2118+)
+  fails package-level typechecks with `TS2322` `bigint`/`ReactNode`
+  (`@types/react` version skew). Breaks `bun --filter @weblab/file-system
+  typecheck`; `code-fs.ts` itself is clean. Fix: pin one `@types/react` across
+  the workspace. Type: bug (types) | Impact: internal | Risk: low | `open`
+- **CR-2026-06-10-005** — context-pill remove buttons shrunk to `h-3.5 w-3.5`
+  (14px) in `draft-context-pill.tsx` / `image-pill.tsx` — consistent, but under
+  the ~44px touch-target guideline on the touch surfaces the same commit set out
+  to support. Fix: pad the hit area without enlarging the glyph. Type: design
+  debt (a11y) | Impact: user-facing | Risk: low | `open`
+
+### Reviewed and explicitly OK (no action)
+
+- `code-fs.ts` `withWriteLock` + `code/index.ts` `writeChain` — serialization is
+  correct, error-isolated, and **deadlock-free**: traced every wrapped method
+  (`writeFile`/`deleteFile`/`moveFile`/`rebuildIndex`); none re-enter a locked
+  method (`saveIndex` → `super.writeFile` + a debounced write, not `this.writeFile`).
+- `action/index.ts` selection snapshot + `element/index.ts` dedupe — correctly
+  kill the 1→3→9→27 selection blow-up; `refreshed.length > 0` guard avoids
+  clearing selection when sibling frames aren't booted.
+- `history/storage.ts` JSON snapshot before `localforage.setItem` — sound fix for
+  `DataCloneError` on MobX proxies; cost bounded by undo/redo slice caps.
+- `interactions/index.ts` `runInAction` wraps — correct MobX strict-mode handling.
+- `use-input-control.ts` clamp + blur-revert + empty-while-typing guard — correct.
+- `panel-dropdown.tsx` optimistic update + immediate write — fixes the
+  debounce-canceled-on-unmount persistence drop; `showSuggestions ?? true`
+  matches server `DEFAULT_USER_SETTINGS`. `error-message.tsx` parse-as-unknown +
+  string/empty fallback — prevents the empty render that dropped the Retry button.
+
+---
+
 ## CodeRabbit Triage — 2026-06-08
 
 Triaged 8 CodeRabbit findings on the working tree: **4 real → fixed**, **3
@@ -2892,3 +2956,80 @@ RESOLVED by the recent `feat(server)` / `feat(editor)` sandbox-proxy commits:
 
 - No source edits this pass (report-only). Did not run typecheck/lint — nothing
   changed in code.
+
+## Bug Hunt — 2026-06-11 (delete-element → source-write corruption)
+
+User-reported: rapid element deletes + reload left sandbox `src/app/page.tsx` truncated mid-tag (`</m` + EOF), preview unbootable, later edits silently failing.
+
+### Auto-fixed (3)
+- `apps/web/client/src/components/store/editor/code/index.ts` — corruption guard: editor-action writes now re-parse `diff.generated` before persisting; unparseable output is refused with a clear toast instead of overwriting the user's source.
+- `apps/web/client/src/components/store/editor/code/index.ts` — `pendingWrites` counter + `beforeunload` guard: flushes debounced source rebases and asks the browser to confirm leaving while a source write is in flight (an aborted write can persist a truncated file).
+- `apps/web/client/src/components/store/editor/action/index.ts` — `flushPendingRebases()`: fires the 600ms-debounced responsive source writes immediately on unload so edits made just before a reload aren't dropped.
+
+### Needs human review (2)
+- `packages/code-provider/src/providers/vercel-sandbox/index.ts` — sandbox `writeFile` is not atomic (no temp+rename). A transport abort mid-write can persist a truncated file; that is the most plausible mechanism for the `</m` corruption. Suggested fix: write to `<path>.tmp` then `mv` via a sandbox command, or verify `@vercel/sandbox` `writeFiles` atomicity upstream.
+- `packages/file-system/src/code-fs.ts` (`processJsxFile`) — unparseable JSX is still written after a `console.warn` ("will still format"). Intentional for code-mode WIP saves, but consider quarantining writes to files that previously parsed (e.g. require an explicit force flag from code-mode) so a corrupt buffer can't silently replace a healthy file.
+
+## Bug Hunt — 2026-06-11 (canvas editor: destructive boot sync + no-oid edit failures)
+
+User-reported: canvas editor laggy/buggy, error toast on EVERY edit ("Error writing
+requests: No oid found for style change"), `[CodeEditorApi] Index built: 0 elements
+from 0 files`, sandbox `public/_weblab/interactions.json` 404s, MobX strict-mode
+violations on `HistoryManager.undoStack`.
+
+Root cause chain: a still-booting sandbox fails `listFiles`/`runCommand` → errors
+swallowed (empty listing returned) → `pullFromSandbox` treats EVERY local file as
+"deleted in sandbox" and wipes the local FS → the local watcher echoes those
+deletions back to the sandbox via `provider.deleteFiles` (destroying
+`public/_weblab/*` server-side) → OID index built from 0 files → no oid-tagged JSX
+ever pushed → DOM elements have no `data-oid` → every style/resize/move edit throws.
+Note: a prior backlog entry claimed this path was "no longer reachable" — it was,
+via the incomplete-listing branch.
+
+### Auto-fixed (8)
+- `apps/web/client/src/services/sync-engine/sync-engine.ts` — `listingIncomplete`
+  flag: any swallowed listing error (or fully empty listing) now SKIPS the local
+  deletion reconciliation phase. New unit tests cover both branches.
+- `apps/web/client/src/services/sync-engine/sync-engine.ts` — sync-initiated local
+  deletions recorded in `syncDeletedRoots` (15s echo window, prefix-matched); the
+  local watcher no longer pushes them back to the sandbox. User-initiated deletes
+  still propagate (tested).
+- `apps/web/client/src/services/sync-engine/sync-engine.ts` — `retryPullUntilComplete`:
+  background re-pull (5×5s) after an incomplete boot listing, then re-push of
+  oid-tagged JSX, so the editor self-heals without a manual reload.
+- `packages/file-system/src/fs.ts` — phantom `public/public` watcher path: fs.watch
+  fires on the watched directory ITSELF on deletion with `filename === basename(dir)`;
+  joining fabricated a non-existent child path. Now detects the self-event and
+  reports the directory's own path.
+- `apps/web/client/src/components/store/editor/history/index.ts` — MobX strict-mode:
+  all post-`await` stack mutations (`hydrate`, failed-write splice in `push`,
+  `undo`/`redo` pops) wrapped in `runInAction`.
+- `apps/web/client/src/components/store/editor/sandbox/vercel-browser-provider.ts` —
+  `runCommand` / dev-server-setup failures now log `err.message` (+ failing command)
+  instead of an empty object payload.
+- `apps/web/client/src/components/store/editor/sandbox/terminal.ts` — fallback dev
+  runner retries `package.json` read 3×2s and treats empty `runCommand` output as
+  "sandbox still booting" instead of misdiagnosing healthy projects as broken
+  scaffolding; frames manager `reloadView` on an unmounted view downgraded to debug.
+- `apps/web/client/src/components/store/editor/code/index.ts` — write-failure toast
+  uses a stable id (`code-write-error`) so rapid repeat failures update one toast
+  instead of stacking dozens; title now "Couldn't save this edit".
+
+### Needs human review (3)
+- **Static-HTML projects have no OID pipeline at all** — `isJsxFile()` excludes
+  `.html`, so `scaffoldStaticHtmlProject` output never gets `data-oid` attributes,
+  the index is always empty, and every canvas edit fails by design. Needs an HTML
+  oid-injection path (parser + preload) or the editor should gate canvas editing
+  for `static-html` framework projects with a clear message.
+- `vercel-browser-provider.ts` `runCommand` still returns `{ output: '' }` on
+  failure — callers (git manager, terminal) cannot distinguish "command produced
+  nothing" from "transport failed". Changing it to throw is the right fix but
+  touches many git-flow call sites; do it deliberately with caller audits.
+- `sync-engine.ts` `shouldSync` overrides are file-level only: deleting a parent
+  directory bypasses the `WEBLAB_INTERACTIONS_CACHE_PATH` override for children.
+  Mitigated by the echo suppression above, but the override semantics are still
+  surprising.
+
+### Validation
+- `bun typecheck` ✓ (code 0) · scoped eslint: 0 errors (remaining warnings pre-existing)
+- New tests: `apps/web/client/src/services/sync-engine/sync-engine.test.ts` — 5 pass.

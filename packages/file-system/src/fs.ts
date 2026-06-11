@@ -463,11 +463,34 @@ export class FileSystem {
                                 }
                             }
                         } catch (error) {
-                            // File doesn't exist, it was deleted
-                            console.log(`[FileSystem] Detected delete for ${filePath}`);
+                            // File doesn't exist, it was deleted.
+                            // fs.watch also fires on the watched directory
+                            // itself when IT is deleted, with filename equal to
+                            // its own basename — joining that onto relativePath
+                            // fabricates a phantom child like "public/public".
+                            // Detect the self-event and report the directory's
+                            // own path instead.
+                            let deletedPath = filePath;
+                            if (filename === path.basename(dirPath)) {
+                                try {
+                                    await this.fs!.promises.stat(dirPath);
+                                } catch {
+                                    deletedPath = relativePath;
+                                    watchedPaths.delete(dirPath);
+                                }
+                            }
+
+                            if (!deletedPath) {
+                                // The watch root itself vanished — nothing
+                                // meaningful to report downstream.
+                                this.watcherTimeouts.delete(timeoutKey);
+                                return;
+                            }
+
+                            console.log(`[FileSystem] Detected delete for ${deletedPath}`);
                             callback({
                                 type: 'delete',
-                                path: filePath,
+                                path: deletedPath,
                             });
 
                             // Remove from watched paths if it was a directory

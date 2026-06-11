@@ -301,7 +301,9 @@ export class FramesManager {
     reloadView(id: string) {
         const frameData = this.get(id);
         if (!frameData?.view) {
-            console.error('Frame view not found for reload', id);
+            // Frame component hasn't (re)mounted yet — when it does it boots
+            // from the current URL anyway, so a missed reload here is benign.
+            console.debug('[Frames] View not mounted yet, skipping reload for', id);
             return;
         }
         frameData.view.reload();

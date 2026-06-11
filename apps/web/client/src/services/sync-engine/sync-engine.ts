@@ -25,6 +25,14 @@ export interface SyncConfig {
 
 const DEFAULT_EXCLUDES = ['node_modules', '.git', '.next', 'dist', 'build', '.turbo'];
 
+/**
+ * How long a sync-initiated local deletion suppresses the matching local
+ * watcher event from being pushed back to the sandbox. Watcher events are
+ * debounced ~50ms in the FS layer; 15s gives slack for large directory
+ * deletes that emit events over several seconds.
+ */
+const SYNC_DELETE_ECHO_WINDOW_MS = 15_000;
+
 export async function hashContent(content: string | Uint8Array): Promise<string> {
     const encoder = new TextEncoder();
     const data = typeof content === 'string' ? encoder.encode(content) : new Uint8Array(content);
@@ -54,6 +62,24 @@ export class CodeProviderSync {
      * Cleared in stop() so a fresh sandbox (post-restore) starts clean.
      */
     private sandboxGone = false;
+    /**
+     * Set true whenever getAllSandboxFiles swallows a listing error, meaning the
+     * returned entry list may be missing whole subtrees. pullFromSandbox checks
+     * this before its deletion phase — deleting local files because they're
+     * "not in the sandbox" is only safe when the sandbox listing is complete.
+     * A transient listFiles failure during sandbox boot previously returned an
+     * empty list here, which wiped the entire local FS and then echoed those
+     * deletions back into the sandbox via the local watcher.
+     */
+    private listingIncomplete = false;
+    /**
+     * Paths (sandbox-relative, no leading slash) that THIS sync engine deleted
+     * locally (pull reconciliation or remote-delete replay), mapped to the
+     * timestamp of the delete. The local FS watcher consults this so it doesn't
+     * push sync-initiated deletions back to the sandbox as if the user made
+     * them — that echo is what destroyed `public/_weblab` in the sandbox.
+     */
+    private syncDeletedRoots = new Map<string, number>();
     private readonly excludes: string[];
     private readonly excludePatterns: string[];
     private fileHashes = new Map<string, string>();
@@ -185,10 +211,44 @@ export class CodeProviderSync {
             await this.setupWatching();
             // Push any locally modified files (with OIDs) back to sandbox. This is required for the first time sync.
             void this.pushModifiedFilesToSandbox();
+            // A booting sandbox can fail its first listing (transient
+            // listFiles/runCommand errors) which leaves the local FS stale and
+            // the OID index empty — re-pull in the background until we get one
+            // complete pass so the editor self-heals without a manual reload.
+            if (this.listingIncomplete) {
+                void this.retryPullUntilComplete();
+            }
         } catch (error) {
             this.isRunning = false;
             throw error;
         }
+    }
+
+    /**
+     * Background re-pull loop for the boot race where the very first
+     * pullFromSandbox ran against a sandbox that wasn't serving file listings
+     * yet. Bounded attempts; stops early once a pull completes cleanly, the
+     * sync is stopped, or the sandbox is gone.
+     */
+    private async retryPullUntilComplete(maxAttempts = 5, delayMs = 5_000): Promise<void> {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            if (!this.isRunning || this.sandboxGone) return;
+            console.log(`[Sync] Retrying initial pull (attempt ${attempt}/${maxAttempts})…`);
+            try {
+                await this.pullFromSandbox();
+            } catch (error) {
+                if (this.noteSandboxGone(error)) return;
+                console.debug('[Sync] Retry pull failed:', error);
+                continue;
+            }
+            if (!this.listingIncomplete) {
+                console.log('[Sync] Initial pull completed on retry.');
+                void this.pushModifiedFilesToSandbox();
+                return;
+            }
+        }
+        console.warn('[Sync] Initial pull still incomplete after retries — giving up.');
     }
 
     stop(): void {
@@ -226,6 +286,7 @@ export class CodeProviderSync {
     }
 
     private async pullFromSandbox(): Promise<void> {
+        this.listingIncomplete = false;
         const sandboxEntries = await this.getAllSandboxFiles('./');
         if (this.sandboxGone) {
             return;
@@ -236,16 +297,34 @@ export class CodeProviderSync {
 
         const localEntries = await this.fs.listAll();
 
-        // Find entries to delete (exist locally but not in sandbox)
-        const entriesToDelete = localEntries.filter((entry) => {
-            if (!this.shouldSync(entry.path)) return false;
+        // Deleting local entries because they're "not in the sandbox" is only
+        // safe when the sandbox listing is trustworthy. An incomplete listing
+        // (transient listFiles error during boot) or a fully empty one (a real
+        // project always has at least package.json / index.html) means the
+        // sandbox isn't ready — skip reconciliation deletes rather than wiping
+        // the local FS and echoing those deletions back into the sandbox.
+        const canReconcileDeletes = !this.listingIncomplete && sandboxEntries.length > 0;
+        if (!canReconcileDeletes) {
+            console.warn(
+                '[Sync] Sandbox listing incomplete or empty — skipping local deletion reconciliation this pass.',
+            );
+        }
 
-            const sandboxPath = entry.path.startsWith('/') ? entry.path.substring(1) : entry.path;
-            return !sandboxEntriesSet.has(entry.path) && !sandboxEntriesSet.has(sandboxPath);
-        });
+        // Find entries to delete (exist locally but not in sandbox)
+        const entriesToDelete = !canReconcileDeletes
+            ? []
+            : localEntries.filter((entry) => {
+                  if (!this.shouldSync(entry.path)) return false;
+
+                  const sandboxPath = entry.path.startsWith('/')
+                      ? entry.path.substring(1)
+                      : entry.path;
+                  return !sandboxEntriesSet.has(entry.path) && !sandboxEntriesSet.has(sandboxPath);
+              });
 
         for (const entry of entriesToDelete) {
             try {
+                this.markSyncDeleted(entry.path);
                 if (entry.type === 'file') {
                     await this.fs.deleteFile(entry.path);
                     console.log(`[Sync] Deleted file: ${entry.path}`);
@@ -352,6 +431,10 @@ export class CodeProviderSync {
             if (this.noteSandboxGone(error)) {
                 return files;
             }
+            // A swallowed listing error means this subtree is missing from the
+            // result — flag it so pullFromSandbox won't treat absent entries
+            // as sandbox-side deletions.
+            this.listingIncomplete = true;
             console.debug(
                 `[Sync] Error reading directory ${dir}:`,
                 error instanceof Error ? error.message : 'Unknown error',
@@ -359,6 +442,39 @@ export class CodeProviderSync {
         }
 
         return files;
+    }
+
+    /**
+     * Remember that the sync engine itself deleted this local path, so the
+     * local watcher can tell sync-initiated deletions apart from user edits.
+     * Stored without a leading slash to match the watcher's sandboxPath form.
+     */
+    private markSyncDeleted(path: string): void {
+        const key = path.startsWith('/') ? path.substring(1) : path;
+        this.syncDeletedRoots.set(key, Date.now());
+        // Bounded cleanup so the map can't grow unbounded across a long session.
+        if (this.syncDeletedRoots.size > 500) {
+            const cutoff = Date.now() - SYNC_DELETE_ECHO_WINDOW_MS;
+            for (const [k, t] of this.syncDeletedRoots) {
+                if (t < cutoff) this.syncDeletedRoots.delete(k);
+            }
+        }
+    }
+
+    /**
+     * True when `sandboxPath` equals — or sits inside — a path this engine
+     * deleted locally within the echo window. Directory deletes emit one
+     * watcher event per descendant, so prefix matching is required.
+     */
+    private wasSyncDeleted(sandboxPath: string): boolean {
+        const now = Date.now();
+        for (const [root, t] of this.syncDeletedRoots) {
+            if (now - t > SYNC_DELETE_ECHO_WINDOW_MS) continue;
+            if (sandboxPath === root || sandboxPath.startsWith(`${root}/`)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private async pushModifiedFilesToSandbox(): Promise<void> {
@@ -698,6 +814,10 @@ export class CodeProviderSync {
                                     // Check if it's a directory or file
                                     const fileInfo = await this.fs.getInfo(localPath);
 
+                                    // Replaying a sandbox-side delete locally —
+                                    // mark it so the local watcher doesn't push
+                                    // the same delete straight back.
+                                    this.markSyncDeleted(localPath);
                                     if (fileInfo.isDirectory) {
                                         await this.fs.deleteDirectory(localPath);
                                     } else {
@@ -800,8 +920,17 @@ export class CodeProviderSync {
                         break;
                     }
                     case 'delete': {
-                        // Always attempt to sync local deletions to sandbox
-                        // The user initiated this deletion locally, so it should be reflected in the sandbox
+                        // Sync-initiated deletions (pull reconciliation or a
+                        // replayed sandbox-side delete) must NOT be echoed back
+                        // to the sandbox — that loop is how a bad pull once
+                        // destroyed `public/_weblab` server-side.
+                        if (this.wasSyncDeleted(sandboxPath)) {
+                            console.debug(
+                                `[Sync] Skipping echo of sync-initiated delete: ${sandboxPath}`,
+                            );
+                            this.fileHashes.delete(path);
+                            break;
+                        }
 
                         try {
                             await this.provider.deleteFiles({

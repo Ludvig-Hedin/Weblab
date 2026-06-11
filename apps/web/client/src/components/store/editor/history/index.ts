@@ -1,5 +1,5 @@
 import { debounce } from 'lodash';
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { Action } from '@weblab/models/actions';
 import { jsonClone } from '@weblab/utility';
@@ -59,8 +59,12 @@ export class HistoryManager {
         try {
             const saved = await loadHistory(this.branchId);
             if (saved) {
-                this.undoStack = saved.undoStack;
-                this.redoStack = saved.redoStack;
+                // Post-`await` writes run outside makeAutoObservable's implicit
+                // action — wrap so MobX strict-mode accepts them.
+                runInAction(() => {
+                    this.undoStack = saved.undoStack;
+                    this.redoStack = saved.redoStack;
+                });
             }
         } catch (err) {
             console.warn('[HistoryManager] Failed to load persisted history:', err);
@@ -71,7 +75,10 @@ export class HistoryManager {
         try {
             await saveHistory(this.branchId, this.undoStack, this.redoStack);
         } catch (err) {
-            console.warn('[HistoryManager] Failed to persist history:', err);
+            console.warn(
+                '[HistoryManager] Failed to persist history:',
+                err instanceof Error ? err.message : err,
+            );
         }
     };
 
@@ -121,10 +128,14 @@ export class HistoryManager {
             // leaving it would let a later undo emit the inverse of an edit
             // that never landed, corrupting the file. Remove by reference
             // (not a blind pop) so a concurrent push isn't dropped instead.
-            const idx = this.undoStack.lastIndexOf(action);
-            if (idx !== -1) {
-                this.undoStack.splice(idx, 1);
-            }
+            // This runs after the `await` above, outside the implicit action —
+            // mutate inside runInAction or MobX strict-mode rejects it.
+            runInAction(() => {
+                const idx = this.undoStack.lastIndexOf(action);
+                if (idx !== -1) {
+                    this.undoStack.splice(idx, 1);
+                }
+            });
             return;
         }
 
@@ -157,19 +168,26 @@ export class HistoryManager {
             await this.commitTransaction();
         }
 
-        const top = this.undoStack.pop();
-        if (top == null) {
+        // May run after the `await commitTransaction()` above — mutate the
+        // stacks inside an explicit action for MobX strict-mode.
+        const moved = runInAction(() => {
+            const top = this.undoStack.pop();
+            if (top == null) {
+                return null;
+            }
+            this.redoStack.push(top);
+            return top;
+        });
+        if (moved == null) {
             return null;
         }
-        const inverse = undoAction(top);
-
-        this.redoStack.push(top);
+        const inverse = undoAction(moved);
         this.persistDebounced();
 
         // `redoEntry` is the action moved onto the redo stack; the caller hands
         // it back to `rollbackUndo` if applying `inverse` fails, so the stacks
         // stay in sync with the actual file contents.
-        return { inverse, redoEntry: top };
+        return { inverse, redoEntry: moved };
     };
 
     /**
@@ -193,13 +211,20 @@ export class HistoryManager {
             await this.commitTransaction();
         }
 
-        const top = this.redoStack.pop();
-        if (top == null) {
+        // Same post-`await` concern as undo() — explicit action required.
+        const moved = runInAction(() => {
+            const top = this.redoStack.pop();
+            if (top == null) {
+                return null;
+            }
+            const forward = transformRedoAction(top);
+            this.undoStack.push(forward);
+            return { forward, top };
+        });
+        if (moved == null) {
             return null;
         }
-
-        const forward = transformRedoAction(top);
-        this.undoStack.push(forward);
+        const { forward, top } = moved;
         this.persistDebounced();
 
         // `forward` is what was pushed onto the undo stack; `redoEntry` (`top`)

@@ -231,32 +231,59 @@ export class CLISessionImpl implements CLISession {
         // `npm run dev` / `pnpm dev`.
         let devCommand: string | null = null;
         let pkgError: string | null = null;
-        try {
-            const { output } = await this.provider.runCommand({
-                args: { command: 'cat package.json 2>/dev/null || echo "{}"' },
-            });
-            const pkg = JSON.parse(output) as { scripts?: Record<string, string> };
-            if (pkg.scripts?.dev) {
-                devCommand = 'bun run dev';
-            } else if (pkg.scripts?.start) {
-                devCommand = 'bun run start';
-            } else {
+        // A just-booted sandbox can fail the first few runCommand calls (the
+        // provider swallows transport errors and returns an empty string), so a
+        // single read here used to misdiagnose a healthy project as "broken
+        // scaffolding". Retry a few times before giving up.
+        const READ_ATTEMPTS = 3;
+        const READ_RETRY_DELAY_MS = 2_000;
+        for (let attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            try {
+                const { output } = await this.provider.runCommand({
+                    args: { command: 'cat package.json 2>/dev/null || echo "{}"' },
+                });
+                if (output.trim().length === 0) {
+                    // runCommand failed and was swallowed upstream — the shell
+                    // would always have produced at least "{}". Transient.
+                    pkgError =
+                        'Could not reach the sandbox to read package.json — it may still be booting. ' +
+                        'Reload the preview to retry.';
+                    if (attempt < READ_ATTEMPTS) {
+                        await new Promise((resolve) => setTimeout(resolve, READ_RETRY_DELAY_MS));
+                        continue;
+                    }
+                    break;
+                }
+                const pkg = JSON.parse(output) as { scripts?: Record<string, string> };
+                if (pkg.scripts?.dev) {
+                    devCommand = 'bun run dev';
+                } else if (pkg.scripts?.start) {
+                    devCommand = 'bun run start';
+                } else {
+                    pkgError =
+                        'No dev/start script in package.json. Sandbox is missing scaffolding ' +
+                        '(this happens when the project was forked from an empty template). ' +
+                        'Add a "dev" script or recreate the project.';
+                }
+                break;
+            } catch (err) {
                 pkgError =
-                    'No dev/start script in package.json. Sandbox is missing scaffolding ' +
-                    '(this happens when the project was forked from an empty template). ' +
-                    'Add a "dev" script or recreate the project.';
+                    'Could not read package.json — sandbox may be empty or in a broken state. ' +
+                    'Recreate the project from the templates page.';
+                // Re-throw 410 so the outer catch can short-circuit silently
+                // instead of logging a noisy "package.json parse failed" line
+                // for what is really just a reclaimed sandbox.
+                if (isSandboxGoneError(err)) {
+                    throw err;
+                }
+                console.error(
+                    '[CLISession] Fallback dev runner: package.json read failed:',
+                    err instanceof Error ? err.message : err,
+                );
+                if (attempt < READ_ATTEMPTS) {
+                    await new Promise((resolve) => setTimeout(resolve, READ_RETRY_DELAY_MS));
+                }
             }
-        } catch (err) {
-            pkgError =
-                'Could not read package.json — sandbox may be empty or in a broken state. ' +
-                'Recreate the project from the templates page.';
-            // Re-throw 410 so the outer catch can short-circuit silently
-            // instead of logging a noisy "package.json parse failed" line
-            // for what is really just a reclaimed sandbox.
-            if (isSandboxGoneError(err)) {
-                throw err;
-            }
-            console.error('[CLISession] Fallback dev runner: package.json parse failed:', err);
         }
 
         if (!devCommand) {

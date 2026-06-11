@@ -257,7 +257,18 @@ export class VercelBrowserProvider extends Provider {
                 );
                 throw err;
             }
-            console.error('[VercelBrowserProvider] runCommand failed', err);
+            // TODO(bug-hunt): returning `{ output: '' }` here hides transport
+            // failures from callers — git manager / terminal cannot tell
+            // "command printed nothing" from "sandbox unreachable". Throwing is
+            // the right fix but needs a caller audit (see CODE_REVIEW_BACKLOG).
+            // tRPC errors stringify poorly when logged raw — surface the
+            // message so the console line isn't an empty payload.
+            console.error(
+                '[VercelBrowserProvider] runCommand failed:',
+                err instanceof Error ? err.message : String(err),
+                '— command:',
+                input.args.command,
+            );
             return { output: '' };
         }
     }
@@ -493,7 +504,10 @@ class VercelBrowserTask extends ProviderTask {
                     );
                     throw err;
                 }
-                console.error('[VercelBrowserProvider] dev server setup failed', err);
+                console.error(
+                    '[VercelBrowserProvider] dev server setup failed:',
+                    err instanceof Error ? err.message : String(err),
+                );
                 throw err;
             });
     }

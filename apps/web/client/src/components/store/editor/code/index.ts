@@ -99,7 +99,10 @@ export class CodeManager {
             return true;
         } catch (error) {
             console.error('Error writing requests:', error);
-            toast.error('Error writing requests', {
+            // Stable id: rapid repeat failures (e.g. arrow-key nudges while the
+            // sandbox is broken) update one toast instead of stacking dozens.
+            toast.error("Couldn't save this edit", {
+                id: 'code-write-error',
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
             this.editorEngine.branches.activeError.addCodeApplicationError(
