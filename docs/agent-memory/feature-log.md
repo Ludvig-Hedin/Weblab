@@ -823,3 +823,24 @@ Notable in-flight work as of this log's creation (see
 - Marketing/SEO expansion (blog redesign, comparison pages, structured data)
 
 ---
+
+## 2026-06-11 — Canvas editor: destructive boot-sync fix + no-oid edit failures (commit 7291f40f4)
+
+- **What:** Fixed the failure chain that made every canvas edit throw "No oid
+  found for style change": a booting sandbox returning an empty/partial file
+  listing caused `pullFromSandbox` to wipe the local FS and echo those
+  deletions into the real sandbox (destroying `public/_weblab`), leaving the
+  OID index empty so no element could be edited.
+- **How:** sync-engine `listingIncomplete` guard (skip deletion reconciliation
+  on untrustworthy listings), `syncDeletedRoots` echo suppression (sync-made
+  deletes never pushed back), bounded background re-pull self-heal; fs.watch
+  phantom self-delete path fix (`public/public`); MobX `runInAction` for all
+  post-await HistoryManager stack mutations; dev-runner package.json read
+  retry; deduped write-failure toast.
+- **Tests:** new `apps/web/client/src/services/sync-engine/sync-engine.test.ts`
+  (5 cases: incomplete/empty listing safety, complete-listing reconciliation,
+  echo suppression, genuine user delete propagation).
+- **Deferred:** static-HTML projects have NO oid pipeline (BACKLOG.md);
+  `runCommand` empty-output-on-failure semantics (BACKLOG.md).
+- **User-facing:** yes — eliminates the per-keystroke error toast and the
+  project-file destruction that made the editor feel broken.
