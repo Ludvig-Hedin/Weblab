@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { BrandLogo } from '@weblab/ui/brand';
 import { cn } from '@weblab/ui/utils';
 
 import { getFaviconUrl } from './project-card-utils';
@@ -99,7 +98,11 @@ export const ProjectPreviewSurface = ({
     return (
         <div
             ref={containerRef}
-            className={cn('bg-background-canvas relative overflow-hidden rounded-xl', className)}
+            className={cn(
+                'relative overflow-hidden rounded-xl',
+                showPlaceholder ? 'bg-white' : 'bg-background-canvas',
+                className,
+            )}
         >
             <PreviewSkeleton loading={isLoadingPreview} />
 
@@ -158,12 +161,10 @@ export const ProjectPreviewSurface = ({
                 </div>
             )}
 
-            {/* Branded placeholder for a project with no preview yet */}
-            {showPlaceholder && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <BrandLogo className="h-5 opacity-15" />
-                </div>
-            )}
+            {/* White placeholder — blank projects render a white page, so
+                this tile faithfully represents the actual site content
+                while a real screenshot is pending. */}
+            {showPlaceholder && <div className="absolute inset-0 bg-white" />}
 
             {/* Subtle bottom vignette so the info row blends in */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/18 to-transparent" />
