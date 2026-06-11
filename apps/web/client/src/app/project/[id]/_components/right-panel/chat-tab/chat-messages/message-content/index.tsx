@@ -14,6 +14,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { ActionsGroup } from './actions-group';
+import { sanitizeReasoningText } from './sanitize-reasoning';
 import { ToolCallDisplay } from './tool-call-display';
 
 // Languages we recognise as "run in terminal" code blocks.
@@ -147,6 +148,12 @@ const MessageContentComponent = ({
         if (part.type === 'reasoning') {
             const isLastPart = idx === parts.length - 1;
             const isStreamingThisPart = isStream && isLastPart;
+            const reasoningText = sanitizeReasoningText(part.text);
+            // Fully-redacted reasoning (encrypted provider traces) has nothing
+            // to show — skip the accordion instead of rendering an empty one.
+            if (!reasoningText && !isStreamingThisPart) {
+                return null;
+            }
             return (
                 <Reasoning
                     key={`reasoning-${idx}`}
@@ -165,7 +172,7 @@ const MessageContentComponent = ({
                         )}
                     />
                     <ReasoningContent className="text-mini text-foreground-tertiary leading-snug">
-                        {part.text}
+                        {reasoningText}
                     </ReasoningContent>
                 </Reasoning>
             );

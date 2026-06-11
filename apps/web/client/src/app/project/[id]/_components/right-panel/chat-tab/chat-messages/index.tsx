@@ -174,7 +174,12 @@ export const ChatMessages = observer(
                             </span>
                         </div>
                     )}
-                    {error && <ErrorMessage error={error} onRetry={onRegenerateLastAssistant} />}
+                    {/* A stale error from the previous turn must not render a
+                        Retry button while a new stream is already running —
+                        retrying mid-stream stomps the active turn. */}
+                    {error && !isStreaming && (
+                        <ErrorMessage error={error} onRetry={onRegenerateLastAssistant} />
+                    )}
                 </ConversationContent>
                 <ConversationScrollButton />
             </Conversation>

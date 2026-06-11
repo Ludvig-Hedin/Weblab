@@ -719,85 +719,91 @@ export const ChatInput = observer(
         };
 
         return (
-            <AiPromptComposer
-                value={inputValue}
-                onChange={setInputValue}
-                onSubmit={sendMessage}
-                placeholder={getPlaceholderText()}
-                variant="editor-panel"
-                editorRef={editorRef}
-                mentionConfig={mentionConfig}
-                slashCommands={slashCommands}
-                className="text-foreground-tertiary text-small p-4 transition-colors duration-200"
-                surfaceClassName="focus-within:border-border"
-                submitDisabled={inputEmpty || !aiAllowed}
-                disabled={!aiAllowed}
-                showStopButton={isStreaming}
-                onStop={onStop}
-                showMicButton
-                onTranscript={(text) => {
-                    const trimmed = text.trim();
-                    if (!trimmed) return;
-                    const currentText =
-                        editorRef.current?.getText({ blockSeparator: '\n' }).trim() ??
-                        inputValue.trim();
-                    setInputValue(currentText ? `${currentText} ${trimmed}` : trimmed);
-                }}
-                onDrop={handleDrop}
-                onDragStateChange={handleDragStateChange}
-                onPaste={handlePaste}
-                onKeyDown={handleKeyDown}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => {
-                    setIsComposing(false);
-                }}
-                topSlot={
-                    <>
-                        <QueueItems
-                            queuedMessages={queuedMessages}
-                            removeFromQueue={removeFromQueue}
-                            editQueuedMessage={editQueuedMessage}
-                            moveQueuedMessage={moveQueuedMessage}
-                            reorderQueuedMessages={reorderQueuedMessages}
-                        />
-                        <InputContextPills />
-                        <Suggestions
-                            ref={suggestionRef}
-                            suggestions={suggestions}
-                            isStreaming={isStreaming}
-                            disabled={isGeneratingSuggestions}
-                            inputValue={inputValue}
-                            setInput={setInputValue}
-                        />
-                    </>
-                }
-                leftControls={
-                    <>
-                        <ActionButtons
-                            handleImageEvent={handleImageEvent}
-                            processing={isProcessingImage}
-                        />
-                        <ChatModeToggle
-                            chatMode={chatMode}
-                            onChatModeChange={handleChatModeChange}
-                        />
-                        <ModelSelector
-                            value={model}
-                            onChange={onModelChange}
-                            localModels={localModels}
-                            localModelsLoading={localModelsLoading}
-                            reasoningEffort={reasoningEffort}
-                            onReasoningEffortChange={onReasoningEffortChange}
-                        />
-                        {lastUsageMessage?.metadata?.usage && (
-                            <ChatContextWindow
-                                usage={lastUsageMessage?.metadata?.usage}
-                                model={model}
+            <div className="flex flex-col">
+                {/* Suggestions live ABOVE the composer surface, not inside it —
+                    they're conversation-level prompts, not input state. Keeping
+                    them outside the bordered input box stops the composer from
+                    visually ballooning when suggestions arrive. */}
+                <Suggestions
+                    ref={suggestionRef}
+                    suggestions={suggestions}
+                    isStreaming={isStreaming}
+                    disabled={isGeneratingSuggestions}
+                    inputValue={inputValue}
+                    setInput={setInputValue}
+                />
+                <AiPromptComposer
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSubmit={sendMessage}
+                    placeholder={getPlaceholderText()}
+                    variant="editor-panel"
+                    editorRef={editorRef}
+                    mentionConfig={mentionConfig}
+                    slashCommands={slashCommands}
+                    className="text-foreground-tertiary text-small p-4 transition-colors duration-200"
+                    surfaceClassName="focus-within:border-border"
+                    submitDisabled={inputEmpty || !aiAllowed}
+                    disabled={!aiAllowed}
+                    showStopButton={isStreaming}
+                    onStop={onStop}
+                    showMicButton
+                    onTranscript={(text) => {
+                        const trimmed = text.trim();
+                        if (!trimmed) return;
+                        const currentText =
+                            editorRef.current?.getText({ blockSeparator: '\n' }).trim() ??
+                            inputValue.trim();
+                        setInputValue(currentText ? `${currentText} ${trimmed}` : trimmed);
+                    }}
+                    onDrop={handleDrop}
+                    onDragStateChange={handleDragStateChange}
+                    onPaste={handlePaste}
+                    onKeyDown={handleKeyDown}
+                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionEnd={() => {
+                        setIsComposing(false);
+                    }}
+                    topSlot={
+                        <>
+                            <QueueItems
+                                queuedMessages={queuedMessages}
+                                removeFromQueue={removeFromQueue}
+                                editQueuedMessage={editQueuedMessage}
+                                moveQueuedMessage={moveQueuedMessage}
+                                reorderQueuedMessages={reorderQueuedMessages}
                             />
-                        )}
-                    </>
-                }
-            />
+                            <InputContextPills />
+                        </>
+                    }
+                    leftControls={
+                        <>
+                            <ActionButtons
+                                handleImageEvent={handleImageEvent}
+                                processing={isProcessingImage}
+                            />
+                            <ChatModeToggle
+                                chatMode={chatMode}
+                                onChatModeChange={handleChatModeChange}
+                            />
+                            <ModelSelector
+                                value={model}
+                                onChange={onModelChange}
+                                localModels={localModels}
+                                localModelsLoading={localModelsLoading}
+                                reasoningEffort={reasoningEffort}
+                                onReasoningEffortChange={onReasoningEffortChange}
+                            />
+                            {lastUsageMessage?.metadata?.usage && (
+                                <ChatContextWindow
+                                    usage={lastUsageMessage?.metadata?.usage}
+                                    model={model}
+                                />
+                            )}
+                        </>
+                    }
+                />
+            </div>
         );
     },
 );

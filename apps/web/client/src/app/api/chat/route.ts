@@ -34,6 +34,7 @@ import {
     errorHandler,
     getSupabaseUser,
     incrementUsage,
+    validateMessagePayload,
 } from './helpers';
 
 const getConvexToken = async (): Promise<string | undefined> => {
@@ -141,9 +142,8 @@ const ChatRequestBodySchema = z.object({
     reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
 });
 
-const MAX_MESSAGES = 200;
-const MAX_MESSAGE_BYTES = 16 * 1024;
-const MAX_TOTAL_MESSAGE_BYTES = 1 * 1024 * 1024;
+// Message payload caps + validation live in ./helpers/message-limits (unit
+// tested there).
 
 // Upper bound on a single Convex round-trip inside `onFinish`. AI SDK awaits
 // `onFinish` before closing the response, so an unbounded Convex hang held
@@ -177,30 +177,6 @@ async function runWithTimeout<T>(
     } finally {
         if (timer) clearTimeout(timer);
     }
-}
-
-function getSerializedBytes(value: unknown): number {
-    return new TextEncoder().encode(JSON.stringify(value)).length;
-}
-
-function validateMessagePayload(messages: unknown[]): string | null {
-    if (messages.length > MAX_MESSAGES) {
-        return `too many messages (max ${MAX_MESSAGES})`;
-    }
-
-    let totalBytes = 0;
-    for (const message of messages) {
-        const messageBytes = getSerializedBytes(message);
-        if (messageBytes > MAX_MESSAGE_BYTES) {
-            return `message exceeds ${MAX_MESSAGE_BYTES} bytes`;
-        }
-        totalBytes += messageBytes;
-        if (totalBytes > MAX_TOTAL_MESSAGE_BYTES) {
-            return `total message payload exceeds ${MAX_TOTAL_MESSAGE_BYTES} bytes`;
-        }
-    }
-
-    return null;
 }
 
 export async function POST(req: NextRequest) {

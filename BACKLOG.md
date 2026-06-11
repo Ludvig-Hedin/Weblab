@@ -38,6 +38,60 @@ later without re-discovering the context.
 
 ## Open
 
+### Skill registry loads have no timeout (read_skill / list_skills can hang the chat turn)
+
+- **Discovered:** 2026-06-11 (create-with-AI bug hunt)
+- **Where:** packages/ai/src/skills/registry.ts (`loadFromDb` → `scope.trpcCaller.skills.list.query()`)
+- **Symptom:** if the skills source stalls, the server-side `read_skill` execute blocks the stream indefinitely — chat shows "Reading skill …" forever with no error.
+- **Root cause:** no timeout/AbortSignal on the skills query inside `loadSkills`/`loadSkillByName`.
+- **Next step:** wrap the query in `withTimeout` (~10s) and let the tool return an `output-error` so the turn continues.
+- **Risk if ignored:** rare but unrecoverable stuck chats; user must reload.
+- **Tags:** `#bug` `#infra`
+
+### Create handoff: queued prompt not visible in chat until context gather finishes
+
+- **Discovered:** 2026-06-11 (create-with-AI UX pass)
+- **Where:** apps/web/client/src/app/project/[id]/_hooks/use-start-project.tsx (`resumeCreate`) + chat panel
+- **Symptom:** after the editor opens, the chat stays empty for several seconds (sandbox file reads with up to ~6.5s retry backoff) before the user's prompt appears. Toast now fires immediately, but the prompt bubble itself is still late.
+- **Next step:** render the pending `creationRequest` prompt as an optimistic user message (or "queued" pill) in ChatMessages while `hasPendingCreation` is true and the send hasn't fired.
+- **Risk if ignored:** create flow still feels momentarily dead between loader and first stream.
+- **Tags:** `#tech-debt` `#ux`
+
+### Create-flow strings hardcoded in English
+
+- **Discovered:** 2026-06-11
+- **Where:** use-start-project.tsx ("Got your prompt", "Building: …"), main.tsx ("Getting ready to build your site", loader steps/caption)
+- **Symptom:** bypasses next-intl; non-English locales see English.
+- **Next step:** move to `messages/en.json` keys under `editor.creation.*`.
+- **Tags:** `#tech-debt` `#i18n`
+
+### ask_user_question tool resolver can strand the chat spinner
+
+- **Discovered:** 2026-06-11 (stop-button investigation)
+- **Where:** apps/web/client/src/components/tools/tools.ts:37-47 (`AskUserQuestionTool.register` promise never resolves if the question card unmounts / chat type has no card UI)
+- **Symptom:** `isExecutingToolCall` stays true forever → "Working…" spinner that Stop previously couldn't clear (hard-stop now force-clears it, but the underlying promise still leaks).
+- **Next step:** resolve/reject the registered resolver on conversation switch/unmount, or add a timeout with `output-error`.
+- **Tags:** `#bug` `#tech-debt`
+
+### V4 style panel: gradient editor is a "coming soon" stub
+
+- **Discovered:** 2026-06-10 (user report)
+- **Where:** `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/sections/background.tsx:224` (`{type === 'gradient' && <p>Gradient editor — coming soon</p>}`).
+- **Symptom:** Selecting the Gradient background type in the V4 right panel shows a "coming soon" placeholder — no editor. A working gradient editor already exists in the **editor-bar** color dropdown (`editor-bar/inputs/color-picker.tsx` — `Gradient` component + `useGradientUpdate`).
+- **Next step:** Build a V4 gradient section by wiring the existing editor-bar gradient editor (or a shared extract) into `background.tsx`, committing via `useStyleSetter`/`updateMultiple` (backgroundImage + backgroundColor). Fold in the per-move throttle/transaction noted in the perf entry below so stop-dragging doesn't storm source writes.
+- **Risk if ignored:** Gradient fills can't be edited from the main style panel (only the top toolbar). Feature gap, not a regression.
+- **Tags:** `#feature` `#editor` `#style-panel`
+
+### Style panel perf — three deferred follow-ups (gradient drag, double-write, observer granularity)
+
+- **Discovered:** 2026-06-10 (style-panel perf deep-dive; 4 parallel reviewers)
+- **Where / Symptom / Fix sketch (each independent):**
+  1. **Gradient stop drag commits per move** — `apps/web/client/src/app/project/[id]/_components/editor-bar/inputs/color-picker.tsx:454` `handleGradientChange` → `handleGradientUpdateEnd` → `style.updateMultiple({backgroundColor, backgroundImage})` on every `onGradientChange` (line 775) with no throttle/transaction. Dragging a stop fires a full AST round-trip per pointermove → lag on gradient edits. Fix: wrap the drag in `history.startTransaction()/commitTransaction()` (so moves accumulate, one source write on release) like `resize.tsx` dimension/radius drags, keeping live visual via iframe inject. Deferred: the `Gradient` component (`Gradient.tsx`) owns the pointer lifecycle, so the transaction has to hook its drag start/end — needs care to not desync the committed value.
+  2. **Two full AST round-trips + two prettier runs per committed edit** — every style edit does an immediate source write (`code.write` → `processGroupedRequests` parse+generate, then `code-fs.ts` `processJsxFile` → `formatContent` prettier) AND, 600ms later, a responsive-rebase write (`writeResponsiveStyle` → same pipeline again) to the **same file** for the **same property**. On a large file prettier alone is 20–200ms, run twice. Fix: coalesce the immediate + responsive writes (skip/deferred prettier on the optimistic immediate write, or fold the responsive rebase into the immediate write). HIGH RISK — this is the pipeline that was just stabilized against corruption (`writeChain` + `code-fs` lock); change only with a repro harness.
+  3. **Panel re-renders per committed edit (coarse observers)** — `StyleManager.updateStyleNoAction` (`style/index.ts`) replaces `this.selectedStyle` wholesale on every edit; each V4 section is its own `observer` reading `selectedStyle` via `use-style-value.ts`, so one edit re-renders ~13 sections. Per *committed* edit (inputs debounce 500ms), not per keystroke, and inputs hold local state so nothing is lost — so it's polish, not a bug. Fix: finer-grained observers (per input row) and/or avoid replacing `selectedStyle` when only one property changed. Profile before refactoring (MobX reactivity is easy to break).
+- **Risk if ignored:** Gradient editing is laggy; large files feel heavy on each property commit. The exponential-selection + seeding-storm + per-keystroke offenders (the actual "3× RAM / brake" report) are already fixed; these are the residual polish gaps toward "Framer-smooth."
+- **Tags:** `#perf` `#editor` `#tech-debt`
+
 ### Browser FS persistence can fail under heavy editor navigation when storage is full/busy
 
 - **Discovered:** 2026-06-07 (local/prod E2E QA pass)
@@ -1367,6 +1421,16 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Style-panel property edits corrupt source + balloon RAM (exponential selection growth + unsynchronized writes)
+
+- **Discovered:** 2026-06-08 (user report: editing width up/down with shift → errors + 3× RAM)
+- **Resolved:** 2026-06-09 (local validation; not yet deployed)
+- **Where:** `apps/web/client/src/components/store/editor/{action,element,code,interactions,history}/`; `packages/file-system/src/code-fs.ts`; `apps/web/client/src/app/project/[id]/_components/editor-bar/`
+- **Root cause:** `ActionManager.updateStyle` re-selected the responsive sibling-frame fan-out and `ElementsManager.click()` never deduped, so the selection grew 1→3→9→27→81 per keystroke (the captured 81-target batch = 3⁴). That storm of edits drove unsynchronized concurrent source writes (immediate write + debounced responsive write + sync watcher) into a read-modify-write race that corrupted `page.tsx` → `No ast found` → Penpal `destroyed connection` cascade. Duplicate React keys, the MobX `_loaded` strict-mode warning, and the empty `Failed to persist history` were collateral.
+- **Fix:** (1) `click()` dedupes selection by `frameId:domId`; (2) `updateStyle` re-selects only the originally-selected nodes (fan-out still writes everywhere); (3) `CodeManager.writeRequest` serializes editor writes via a promise chain; (4) `CodeFileSystem` serializes `writeFile`/`deleteFile`/`moveFile`/`rebuildIndex` via an instance-wide write lock (covers editor + sandbox watcher + index mutations — this closes the former "Sync layer + index cache" open item); (5) interactions post-`await` observable writes wrapped in `runInAction`; (6) history persists a plain-JSON snapshot (no `DataCloneError`).
+- **Validation:** `bun typecheck` ✓, `bun lint` (touched files, max-warnings 0) ✓, parser suite 159 + 2 new regression tests ✓. Live editor flow not exercisable locally (Clerk auth + sandbox + `:8080` required) — needs manual confirmation.
+- **Tags:** `#bug` `#editor` `#concurrency` `#mobx`
 
 ### Expired Vercel sandbox restore/liveness is still unavailable after Convex migration
 

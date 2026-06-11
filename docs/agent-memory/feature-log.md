@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-11 — Create-with-AI flow unbricked: 16KB cap, hard stop, retry/redacted/suggestions UX
+Author: Claude (Fable 5)
+Area: `/api/chat` route, editor chat (`use-chat`, chat-tab), create handoff (`use-start-project`)
+Summary: Root-caused the "stuck on Reading skill forever" create-flow failure: `/api/chat` rejected any single message over 16KB (`message exceeds 16384 bytes`), but `read_skill` tool outputs (full SKILL.md bodies, 8–30KB) ride inside the next auto-continuation request — so the AI SDK's follow-up POST 400'd silently, freezing the turn after the first skill read and resurfacing the same error on every later send/model switch. Raised caps to 512KB/message + 4MB total, extracted to a unit-tested helper (`helpers/message-limits.ts`), aligned the summarize route. Fixed the dead Stop button: SDK `stop()` only aborts the fetch — added `userStoppedRef` gating `sendAutomaticallyWhen` plus a `hardStop` that clears the tool-execution spinner. UX: error banner + Retry hidden while streaming; Regenerate icon hidden (not just disabled) during streams; `[REDACTED]` provider markers stripped from reasoning (empty reasoning skipped); suggestions moved above the composer surface; "Got your prompt" toast now fires before the slow create-context gather (was after up to ~6.5s of sandbox-file retries); stale `creationRequest` fallback fixed (undefined-vs-null) so `hasPendingCreation` clears once the handoff completes; assistant/stream message spacing+tracking unified.
+Files: `apps/web/client/src/app/api/chat/{route.ts,summarize/route.ts,helpers/message-limits.ts,helpers/message-limits.test.ts}`, `apps/web/client/src/app/project/[id]/_hooks/{use-chat/index.tsx,use-start-project.tsx}`, `right-panel/chat-tab/{chat-input/index.tsx,chat-messages/{index,assistant-message,stream-message}.tsx,chat-messages/message-content/{index.tsx,sanitize-reasoning.ts,sanitize-reasoning.test.ts}}`
+Links: BACKLOG.md follow-ups (skill-load timeout, optimistic prompt bubble, create-flow i18n, ask_user_question resolver leak)
+
 ## 2026-06-10 — Style Panel v4 round 2: select geometry, active states, 1-click pickers, panel-resize perf
 Author: Claude (Fable 5)
 Area: editor right panel (`style-tab-v4`), `@weblab/ui` resizable

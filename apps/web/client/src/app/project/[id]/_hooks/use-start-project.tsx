@@ -69,9 +69,16 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // so re-applying it on every poll would clobber the local pan/zoom — we
     // gate that with `initialCanvasAppliedRef` below. Frames are shared and
     // re-apply safely thanks to the new idempotent `applyFrames`.
+    //
+    // Also enable the live query when the server-rendered bootstrap has empty
+    // frame URLs — this is the optimistic-creation case where `createBlank`
+    // returned before the sandbox was provisioned. The query stays active until
+    // the background `_provisionSandbox` writes real URLs and the frame
+    // component triggers a page reload.
+    const framesPendingSandbox = initialBootstrap?.canvas?.frames.some((f) => !f.url) ?? false;
     const rawBootstrap = useQuery(
         api.projects.getEditorBootstrap,
-        online && !initialBootstrap
+        online && (!initialBootstrap || framesPendingSandbox)
             ? { projectId: editorEngine.projectId as Id<'projects'> }
             : 'skip',
     );
@@ -105,15 +112,21 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             ? liveConversations.map(fromConvexConversation)
             : effectiveBootstrap?.conversations) ?? undefined;
     const conversationsError: { message?: string } | null = null;
+    const livePendingRequest = useQuery(
+        api.projectCreateRequests.getPendingRequest,
+        online && Boolean(effectiveBootstrap)
+            ? { projectId: editorEngine.projectId as Id<'projects'> }
+            : 'skip',
+    );
+    // Only fall back to the server-rendered bootstrap while the live query is
+    // still LOADING (undefined). Once it resolves to `null` (no pending
+    // request — e.g. the handoff completed), the bootstrap copy is stale; a
+    // `??` chain here kept `hasPendingCreation` true forever, which left the
+    // "Building your site" frame overlay stuck after the AI had started.
     const creationRequest =
-        useQuery(
-            api.projectCreateRequests.getPendingRequest,
-            online && Boolean(effectiveBootstrap)
-                ? { projectId: editorEngine.projectId as Id<'projects'> }
-                : 'skip',
-        ) ??
-        effectiveBootstrap?.creationRequest ??
-        undefined;
+        (livePendingRequest === undefined
+            ? effectiveBootstrap?.creationRequest
+            : livePendingRequest) ?? undefined;
     const creationRequestError: { message?: string } | null = null;
     const updateCreateRequest = useMutation(api.projectCreateRequests.updateStatus);
     const [projectReadyState, setProjectReadyState] = useState<ProjectReadyState>({
@@ -357,8 +370,6 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 throw new Error('Project ID mismatch');
             }
 
-            const createContext: MessageContext[] =
-                await editorEngine.chat.context.getCreateContext();
             const imageContexts: ImageMessageContext[] = creationData.context
                 .filter((context) => context.type === CreateRequestContextType.IMAGE)
                 .map((context) => ({
@@ -369,9 +380,6 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                     displayName: 'user image',
                     id: uuidv4(),
                 }));
-
-            const context: MessageContext[] = [...createContext, ...imageContexts];
-            editorEngine.chat.context.addContexts(context);
 
             const userPrompt = creationData.context
                 .filter((context) => context.type === CreateRequestContextType.PROMPT)
@@ -440,6 +448,25 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 prompt = userPrompt;
             }
 
+            // Surface the handoff the moment the editor can act on the
+            // request — BEFORE the slow work below (sandbox file reads for
+            // create-context retry up to ~6.5s, conversation hydration).
+            // Toasting after that work made the first 10–20s in the editor
+            // feel silent and broken.
+            const promptPreview = prompt.length > 80 ? `${prompt.slice(0, 77).trimEnd()}…` : prompt;
+            toast.success('Got your prompt', {
+                description: promptPreview
+                    ? `Building: "${promptPreview}"`
+                    : 'Starting on your project now.',
+            });
+
+            // Create-context (page.tsx + style guide from the freshly-forked
+            // sandbox) — retries internally while the sandbox file system
+            // catches up.
+            const createContext: MessageContext[] =
+                await editorEngine.chat.context.getCreateContext();
+            editorEngine.chat.context.addContexts([...createContext, ...imageContexts]);
+
             const [conversation] = await editorEngine.chat.conversation.getConversations(
                 editorEngine.projectId,
             );
@@ -449,17 +476,6 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             }
 
             await editorEngine.chat.conversation.selectConversation(conversation.id);
-
-            // Surface the handoff explicitly so the user knows their prompt
-            // was received before the AI starts streaming. Without this the
-            // first 5–10s feels silent — they only see the canvas overlay,
-            // not the conversation.
-            const promptPreview = prompt.length > 80 ? `${prompt.slice(0, 77).trimEnd()}…` : prompt;
-            toast.success('Got your prompt', {
-                description: promptPreview
-                    ? `Building: "${promptPreview}"`
-                    : 'Starting on your project now.',
-            });
 
             await editorEngine.chat.sendMessage(prompt, ChatType.CREATE);
 

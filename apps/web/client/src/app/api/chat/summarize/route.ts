@@ -15,8 +15,11 @@ import { checkMessageLimit, decrementUsage, getSupabaseUser, incrementUsage } fr
 // against Weblab's account before the (later) `setSummary` ownership check
 // runs. Matches the bounds applied to `chatActions.generateSuggestions`.
 const MAX_MESSAGES = 200;
-const MAX_MESSAGE_BYTES = 16 * 1024;
-const MAX_TOTAL_BYTES = 1 * 1024 * 1024;
+// Keep in sync with /api/chat: a single message legitimately carries large
+// tool outputs (read_skill bodies, file context). 16KB rejected real
+// conversations and silently disabled summarization for them.
+const MAX_MESSAGE_BYTES = 512 * 1024;
+const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
 
 // Per-conversation cooldown for the background summarizer. The client fires
 // this route during typing / mid-stream; without a gate each keystroke would

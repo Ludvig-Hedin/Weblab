@@ -27,7 +27,9 @@ const AssistantMessageComponent = ({
         ? new Date(message.metadata.createdAt)
         : undefined;
 
-    const showRegenerate = isLatestAssistant && !!onRegenerate;
+    // Hidden entirely while a stream is running — a (disabled) retry icon
+    // next to an actively-working response reads as "something failed".
+    const showRegenerate = isLatestAssistant && !!onRegenerate && !isAnyStreaming;
     const regenerateDisabled = isAnyStreaming || isRegenerating;
 
     const handleRegenerate = async () => {
@@ -44,7 +46,7 @@ const AssistantMessageComponent = ({
     };
 
     return (
-        <div className="group/assistant text-small flex flex-col content-start gap-1.5 px-3 py-2 leading-snug tracking-[-0.005em] text-wrap">
+        <div className="group/assistant text-small flex flex-col content-start gap-2 px-3 py-2 leading-snug tracking-[-0.005em] text-wrap">
             <MessageContent
                 messageId={message.id}
                 parts={message.parts}

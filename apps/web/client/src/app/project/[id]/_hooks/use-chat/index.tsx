@@ -143,11 +143,20 @@ export function useChat({
         [conversationId, projectId, getModel, getOllamaBaseUrl],
     );
 
+    // Set when the user explicitly hits Stop. The AI SDK's `stop()` only
+    // aborts the in-flight fetch — it does NOT prevent
+    // `sendAutomaticallyWhen` from firing a continuation once pending tool
+    // results land, which made the Stop button look like a no-op (the chat
+    // "kept working" right after stopping). The flag gates auto-continuation
+    // and is cleared on the next user-initiated send.
+    const userStoppedRef = useRef(false);
+
     const { addToolResult, messages, error, stop, setMessages, regenerate, status } =
         useAiChat<ChatMessage>({
             id: 'user-chat',
             messages: initialMessages,
-            sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+            sendAutomaticallyWhen: (options) =>
+                !userStoppedRef.current && lastAssistantMessageIsCompleteWithToolCalls(options),
             transport: transport as unknown as DefaultChatTransport<ChatMessage>,
             onToolCall: async (toolCall) => {
                 // Track every concurrent invocation so the spinner stays up
@@ -193,6 +202,22 @@ export function useChat({
             },
         });
 
+    // Hard stop: abort the fetch AND block the pending auto-continuation AND
+    // drop the tool-execution spinner. Without all three the UI stays in
+    // "Working…" with a Stop button that appears to do nothing. In-flight
+    // client tools may still settle in the background — their late
+    // `addToolResult` writes are harmless because continuation is gated off.
+    const hardStop = useCallback(async () => {
+        userStoppedRef.current = true;
+        try {
+            await stop();
+        } catch {
+            // stop() is a no-op if the stream already settled — ignore.
+        }
+        inflightToolCalls.current = 0;
+        setIsExecutingToolCall(false);
+    }, [stop]);
+
     const isStreaming = status === 'streaming' || status === 'submitted' || isExecutingToolCall;
 
     useEffect(() => {
@@ -224,6 +249,7 @@ export function useChat({
 
     const processMessage = useCallback(
         async (content: string, type: ChatType, context?: MessageContext[]) => {
+            userStoppedRef.current = false;
             const messageContext =
                 context || (await editorEngine.chat.context.getContextByChatType(type));
             const newMessage = getUserChatMessageFromString(
@@ -332,6 +358,7 @@ export function useChat({
             };
             message.parts = [{ type: 'text', text: newContent }];
 
+            userStoppedRef.current = false;
             setMessages(jsonClone([...updatedMessages, message]));
 
             void regenerate({
@@ -461,6 +488,7 @@ export function useChat({
     const regenerateLastAssistant = useCallback(async () => {
         if (isStreaming) return;
         posthog.capture('user_regenerate_last_assistant');
+        userStoppedRef.current = false;
         await regenerate({
             body: {
                 chatType: ChatType.EDIT,
@@ -669,7 +697,7 @@ export function useChat({
         messages,
         setMessages,
         error,
-        stop,
+        stop: hardStop,
         isStreaming,
         queuedMessages,
         removeFromQueue,
