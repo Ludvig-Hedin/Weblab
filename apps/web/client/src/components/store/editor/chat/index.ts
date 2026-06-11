@@ -9,6 +9,7 @@ import { ConversationManager } from './conversation';
 
 export const FOCUS_CHAT_INPUT_EVENT = 'focus-chat-input';
 export const OPEN_CHAT_PANEL_EVENT = 'weblab:open-chat-panel';
+export const OPEN_STYLE_PANEL_EVENT = 'weblab:open-style-panel';
 export class ChatManager {
     conversation: ConversationManager;
     context: ChatContext;

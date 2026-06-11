@@ -117,6 +117,17 @@ export class Hotkey {
     // Style panel
     static readonly RESET_STYLE = new Hotkey('alt+backspace', 'Reset focused style');
 
+    // Canvas DOM navigation (Webflow-parity: traverse the element tree)
+    static readonly SELECT_PARENT = new Hotkey('arrowup', 'Select Parent');
+    static readonly SELECT_CHILD = new Hotkey('arrowdown', 'Select First Child');
+    static readonly SELECT_PREV_SIBLING = new Hotkey('arrowleft', 'Select Previous Sibling');
+    static readonly SELECT_NEXT_SIBLING = new Hotkey('arrowright', 'Select Next Sibling');
+
+    // Single-key panel shortcuts (Webflow-parity)
+    static readonly OPEN_NAVIGATOR_PANEL = new Hotkey('z', 'Navigator');
+    static readonly OPEN_ASSETS_PANEL = new Hotkey('j', 'Assets');
+    static readonly OPEN_STYLE_PANEL = new Hotkey('s', 'Style Panel');
+
     // private to disallow creating other instances of this type
     private constructor(
         public readonly command: string,
@@ -160,6 +171,10 @@ export class Hotkey {
                 if (value === '`') {
                     return '`';
                 }
+                if (value === 'arrowup') return '↑';
+                if (value === 'arrowdown') return '↓';
+                if (value === 'arrowleft') return '←';
+                if (value === 'arrowright') return '→';
                 return capitalizeFirstLetter(value);
             })
             .join(' ');
@@ -189,6 +204,10 @@ export function makeReadableCommand(command: string): string {
             if (value === 'period') return '.';
             if (value === 'slash') return '/';
             if (value === '`') return '`';
+            if (value === 'arrowup') return '↑';
+            if (value === 'arrowdown') return '↓';
+            if (value === 'arrowleft') return '←';
+            if (value === 'arrowright') return '→';
             return capitalizeFirstLetter(value);
         })
         .join(' ');

@@ -64,14 +64,17 @@ const HOTKEY_SECTIONS: { titleKey: string; entries: ModalEntry[] }[] = [
     {
         titleKey: 'panels',
         entries: [
+            single(Hotkey.OPEN_NAVIGATOR_PANEL),
             single(Hotkey.SIDEBAR_LAYERS),
             single(Hotkey.SIDEBAR_BRAND),
             single(Hotkey.SIDEBAR_PAGES),
+            single(Hotkey.OPEN_ASSETS_PANEL),
             single(Hotkey.SIDEBAR_IMAGES),
             single(Hotkey.SIDEBAR_BRANCHES),
             single(Hotkey.SIDEBAR_INSERT),
             single(Hotkey.SIDEBAR_SEARCH),
             single(Hotkey.SIDEBAR_COMPONENTS),
+            single(Hotkey.OPEN_STYLE_PANEL),
             single(Hotkey.TOGGLE_TERMINAL),
             single(Hotkey.SHOW_HOTKEYS),
         ],
@@ -89,7 +92,15 @@ const HOTKEY_SECTIONS: { titleKey: string; entries: ModalEntry[] }[] = [
     },
     {
         titleKey: 'canvas',
-        entries: [single(Hotkey.ZOOM_FIT), single(Hotkey.ZOOM_IN), single(Hotkey.ZOOM_OUT)],
+        entries: [
+            single(Hotkey.ZOOM_FIT),
+            single(Hotkey.ZOOM_IN),
+            single(Hotkey.ZOOM_OUT),
+            single(Hotkey.SELECT_PARENT),
+            single(Hotkey.SELECT_CHILD),
+            single(Hotkey.SELECT_PREV_SIBLING),
+            single(Hotkey.SELECT_NEXT_SIBLING),
+        ],
     },
     {
         titleKey: 'layers',
@@ -157,14 +168,17 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
     {
         title: 'Panels',
         keys: [
+            'OPEN_NAVIGATOR_PANEL',
             'SIDEBAR_LAYERS',
             'SIDEBAR_BRAND',
             'SIDEBAR_PAGES',
+            'OPEN_ASSETS_PANEL',
             'SIDEBAR_IMAGES',
             'SIDEBAR_BRANCHES',
             'SIDEBAR_INSERT',
             'SIDEBAR_SEARCH',
             'SIDEBAR_COMPONENTS',
+            'OPEN_STYLE_PANEL',
             'TOGGLE_TERMINAL',
             'SHOW_HOTKEYS',
         ],
@@ -182,7 +196,15 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
     },
     {
         title: 'Canvas',
-        keys: ['ZOOM_FIT', 'ZOOM_IN', 'ZOOM_OUT'],
+        keys: [
+            'ZOOM_FIT',
+            'ZOOM_IN',
+            'ZOOM_OUT',
+            'SELECT_PARENT',
+            'SELECT_CHILD',
+            'SELECT_PREV_SIBLING',
+            'SELECT_NEXT_SIBLING',
+        ],
     },
     {
         title: 'Layers',

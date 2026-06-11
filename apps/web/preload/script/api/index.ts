@@ -2,6 +2,7 @@ import type { ProcessDomResult } from './dom';
 import { findListAncestorOid, setCmsData } from './cms';
 import { buildLayerTree, processDom, processDomNow } from './dom';
 import {
+    getChildElement,
     getChildrenCount,
     getElementAtLoc,
     getElementByDomId,
@@ -87,6 +88,7 @@ const rawMethods = {
     getElementType,
     getParentElement,
     getChildrenCount,
+    getChildElement,
     getOffsetParent,
 
     // Actions

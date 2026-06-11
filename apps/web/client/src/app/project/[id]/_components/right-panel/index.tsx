@@ -17,7 +17,7 @@ import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { OPEN_CHAT_PANEL_EVENT } from '@/components/store/editor/chat';
+import { OPEN_CHAT_PANEL_EVENT, OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
 import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
@@ -209,6 +209,20 @@ export const RightPanel = observer(() => {
         window.addEventListener(OPEN_CHAT_PANEL_EVENT, openChatPanel);
         return () => window.removeEventListener(OPEN_CHAT_PANEL_EVENT, openChatPanel);
     }, [editorEngine.state]);
+
+    useEffect(() => {
+        const openStylePanel = () => {
+            if (editorEngine.state.panelsHidden) {
+                editorEngine.state.togglePanelsHidden();
+            }
+            setIsCollapsed(false);
+            if (!isCodeMode) {
+                setActiveTab('style');
+            }
+        };
+        window.addEventListener(OPEN_STYLE_PANEL_EVENT, openStylePanel);
+        return () => window.removeEventListener(OPEN_STYLE_PANEL_EVENT, openStylePanel);
+    }, [editorEngine.state, isCodeMode]);
 
     const prevHasSelection = useRef(hasElementSelection);
     useEffect(() => {

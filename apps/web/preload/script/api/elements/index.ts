@@ -80,6 +80,14 @@ export const getChildrenCount = (domId: string) => {
     return el.children.length;
 };
 
+export const getChildElement = (domId: string, index: number): DomElement | null => {
+    const el = getHtmlElement(domId);
+    if (!el) return null;
+    const child = el.children[index] as HTMLElement | undefined;
+    if (!child) return null;
+    return getDomElement(child, false);
+};
+
 export const getOffsetParent = (domId: string) => {
     const el = getHtmlElement(domId);
     if (!el) {

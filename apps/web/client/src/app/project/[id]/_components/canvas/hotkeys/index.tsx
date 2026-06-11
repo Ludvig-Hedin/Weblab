@@ -8,6 +8,7 @@ import { toast } from '@weblab/ui/sonner';
 
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
+import { OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { useStateManager } from '@/components/store/state';
 
 export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
@@ -797,6 +798,108 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             enableOnContentEditable: true,
         },
         [getKey('OPEN_PROJECT_SEARCH')],
+    );
+
+    // Single-key panel shortcuts (Webflow-parity)
+    // z → Navigator/Layers panel
+    useHotkeys(
+        getKey('OPEN_NAVIGATOR_PANEL'),
+        () => toggleLeftPanelTab(LeftPanelTabValue.LAYERS),
+        undefined,
+        [getKey('OPEN_NAVIGATOR_PANEL')],
+    );
+    // j → Assets/Images panel
+    useHotkeys(
+        getKey('OPEN_ASSETS_PANEL'),
+        () => toggleLeftPanelTab(LeftPanelTabValue.IMAGES),
+        undefined,
+        [getKey('OPEN_ASSETS_PANEL')],
+    );
+    // s → Style panel (right panel style tab)
+    useHotkeys(
+        getKey('OPEN_STYLE_PANEL'),
+        () => window.dispatchEvent(new Event(OPEN_STYLE_PANEL_EVENT)),
+        undefined,
+        [getKey('OPEN_STYLE_PANEL')],
+    );
+
+    // Canvas DOM navigation — select by tree position (Webflow-parity).
+    // Only fire when a canvas element is selected; otherwise let the browser
+    // handle arrow-key scrolling. preventDefault is called inside the handler
+    // conditionally so scrolling is preserved when nothing is selected.
+    useHotkeys(
+        getKey('SELECT_PARENT'),
+        async (e) => {
+            const selected = editorEngine.elements.selected[0];
+            if (!selected) return;
+            e.preventDefault();
+            const frameData = editorEngine.frames.get(selected.frameId);
+            if (!frameData?.view) return;
+            const parent = await frameData.view.getParentElement(selected.domId);
+            if (!parent?.domId) return;
+            editorEngine.elements.click([parent]);
+        },
+        {},
+        [editorEngine, getKey('SELECT_PARENT')],
+    );
+    useHotkeys(
+        getKey('SELECT_CHILD'),
+        async (e) => {
+            const selected = editorEngine.elements.selected[0];
+            if (!selected) return;
+            e.preventDefault();
+            const frameData = editorEngine.frames.get(selected.frameId);
+            if (!frameData?.view) return;
+            const count = await frameData.view.getChildrenCount(selected.domId);
+            if (count === 0) return;
+            const child = await frameData.view.getChildElement(selected.domId, 0);
+            if (!child?.domId) return;
+            editorEngine.elements.click([child]);
+        },
+        {},
+        [editorEngine, getKey('SELECT_CHILD')],
+    );
+    useHotkeys(
+        getKey('SELECT_PREV_SIBLING'),
+        async (e) => {
+            const selected = editorEngine.elements.selected[0];
+            if (!selected) return;
+            e.preventDefault();
+            const frameData = editorEngine.frames.get(selected.frameId);
+            if (!frameData?.view) return;
+            const [index, parent] = await Promise.all([
+                frameData.view.getElementIndex(selected.domId),
+                frameData.view.getParentElement(selected.domId),
+            ]);
+            if (index <= 0 || !parent?.domId) return;
+            const sibling = await frameData.view.getChildElement(parent.domId, index - 1);
+            if (!sibling?.domId) return;
+            editorEngine.elements.click([sibling]);
+        },
+        {},
+        [editorEngine, getKey('SELECT_PREV_SIBLING')],
+    );
+    useHotkeys(
+        getKey('SELECT_NEXT_SIBLING'),
+        async (e) => {
+            const selected = editorEngine.elements.selected[0];
+            if (!selected) return;
+            e.preventDefault();
+            const frameData = editorEngine.frames.get(selected.frameId);
+            if (!frameData?.view) return;
+            const [index, parent] = await Promise.all([
+                frameData.view.getElementIndex(selected.domId),
+                frameData.view.getParentElement(selected.domId),
+            ]);
+            if (index === -1 || !parent?.domId) return;
+            const parentCount = await frameData.view.getChildrenCount(parent.domId);
+            if (index >= parentCount - 1) return;
+            const sibling = await frameData.view.getChildElement(parent.domId, index + 1);
+            if (!sibling?.domId) return;
+            editorEngine.elements.click([sibling]);
+        },
+        {},
+        [editorEngine, getKey('SELECT_NEXT_SIBLING')],
     );
 
     return <>{children}</>;
