@@ -192,6 +192,17 @@ export const FrameView = observer(
         });
         const isFirstCreation = !!creationRequest;
 
+        // Optimistic-creation path: when `_provisionSandbox` writes the real URL,
+        // `applyFrames` updates frame.url and this effect triggers a full reload so
+        // the editor boots with the correct branch sandboxId from the server.
+        const wasProvisioningRef = useRef(frame.url === '');
+        useEffect(() => {
+            if (wasProvisioningRef.current && frame.url) {
+                wasProvisioningRef.current = false;
+                window.location.reload();
+            }
+        }, [frame.url]);
+
         const {
             reloadKey,
             isPenpalConnected,
@@ -544,7 +555,7 @@ export const FrameView = observer(
                     }}
                 >
                     <ResizeHandles frame={frame} setIsResizing={setIsResizing} />
-                    {shouldMountIframe && (
+                    {shouldMountIframe && frame.url && (
                         <FrameComponent
                             key={reloadKey}
                             frame={frame}
@@ -559,7 +570,7 @@ export const FrameView = observer(
                     )}
                     <GestureScreen frame={frame} isResizing={isResizing} />
 
-                    {!isFrameReady && !shouldTemporarilyUnlockPreview && (
+                    {(!isFrameReady || !frame.url) && !shouldTemporarilyUnlockPreview && (
                         <div
                             // Fully opaque so a still-booting sandbox (HTTP 502
                             // until the dev server is up) never bleeds through.
@@ -573,7 +584,25 @@ export const FrameView = observer(
                                     frame.dimension.height,
                             }}
                         >
-                            {!isPrimaryFrameInBranch && !hasBuildErrors ? (
+                            {!frame.url ? (
+                                // Sandbox not yet provisioned (optimistic-creation path).
+                                // The reload effect above fires when the real URL arrives.
+                                isPrimaryFrameInBranch ? (
+                                    <div className="flex flex-col items-center gap-3 text-center">
+                                        <Icons.LoadingSpinner className="h-8 w-8 animate-spin" />
+                                        <div className="flex flex-col items-center gap-1">
+                                            <p className="text-foreground text-base font-medium">
+                                                Setting up your workspace
+                                            </p>
+                                            <p className="text-foreground-tertiary text-small">
+                                                Preparing your preview…
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Icons.LoadingSpinner className="text-foreground h-8 w-8 animate-spin" />
+                                )
+                            ) : !isPrimaryFrameInBranch && !hasBuildErrors ? (
                                 // Sibling breakpoints: just a spinner. The
                                 // primary frame owns the messaging + CTAs so
                                 // we don't repeat them 3x at small zoom.

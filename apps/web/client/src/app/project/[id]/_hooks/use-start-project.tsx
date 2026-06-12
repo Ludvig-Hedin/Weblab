@@ -90,6 +90,27 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const bootstrap = rawBootstrap ? fromConvexBootstrap(rawBootstrap as never) : undefined;
     const effectiveBootstrap = initialBootstrap ?? bootstrap ?? undefined;
 
+    // Surface background-provisioning failures written by `_provisionSandbox`
+    // → `_markProvisioningFailed`. Read from the LIVE query (not the stale
+    // server bootstrap) — without this, an optimistic-creation project whose
+    // sandbox failed to provision spins on "Setting up your workspace" forever.
+    const provisioningError = (() => {
+        const branches = (
+            rawBootstrap as { branches?: Array<{ runtimeMetadata?: unknown }> } | null | undefined
+        )?.branches;
+        for (const branch of branches ?? []) {
+            const meta = branch.runtimeMetadata;
+            if (
+                meta &&
+                typeof meta === 'object' &&
+                typeof (meta as Record<string, unknown>).provisioningError === 'string'
+            ) {
+                return (meta as { provisioningError: string }).provisioningError;
+            }
+        }
+        return null;
+    })();
+
     // TODO(convex-migration): `userCanvas.getWithFrames` had no direct Convex
     // equivalent at migration time. Bootstrap canvas/frames are still loaded via
     // `getEditorBootstrap`; collaborator polling needs a dedicated Convex query.
@@ -514,9 +535,18 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 (conversationsError as { message?: string } | null)?.message ??
                 (creationRequestError as { message?: string } | null)?.message ??
                 (bootstrapError as { message?: string } | null)?.message ??
+                (provisioningError ? `Workspace setup failed: ${provisioningError}` : null) ??
                 null,
         );
-    }, [online, userError, canvasError, conversationsError, creationRequestError, bootstrapError]);
+    }, [
+        online,
+        userError,
+        canvasError,
+        conversationsError,
+        creationRequestError,
+        bootstrapError,
+        provisioningError,
+    ]);
 
     return {
         isProjectReady: Object.values(projectReadyState).every((value) => value),

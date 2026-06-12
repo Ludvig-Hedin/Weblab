@@ -35,7 +35,6 @@ export function StartBlank() {
                 <ProjectCreationLoader
                     overlay
                     heading={t(transKeys.projects.actions.creatingBlankProject)}
-                    caption={t(transKeys.projects.actions.creatingBlankProjectCaption)}
                     steps={creationSteps}
                 />
             )}

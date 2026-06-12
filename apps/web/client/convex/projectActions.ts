@@ -1,13 +1,13 @@
 'use node';
 
 import { Sandbox } from '@vercel/sandbox';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import { VercelSandboxProvider } from '@weblab/code-provider';
 
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
-import { action } from './_generated/server';
+import { action, internalAction } from './_generated/server';
 import { deriveRepoName } from './lib/repoName';
 import { mapSandboxProvisionError } from './lib/sandboxErrors';
 
@@ -286,6 +286,118 @@ export const captureScreenshot = action({
  * Vercel provider — passing them here throws a friendly error rather
  * than provisioning an empty VM.
  */
+/**
+ * Background sandbox provisioner — scheduled by `createBlank` after the
+ * project graph is optimistically inserted. Provisions a Vercel sandbox,
+ * then patches the project/branch/frames via `_applySandboxToProject` so
+ * the editor's live Convex query picks up the real URL and reloads.
+ */
+export const _provisionSandbox = internalAction({
+    args: {
+        projectId: v.id('projects'),
+        branchId: v.id('branches'),
+        framework: v.union(v.literal('nextjs'), v.literal('static-html')),
+    },
+    handler: async (ctx, args) => {
+        // Every failure path MUST write a marker back to the branch — a
+        // silent return would leave a zombie project whose frames spin on
+        // "Setting up your workspace" forever.
+        const markFailed = async (message: string) => {
+            try {
+                await ctx.runMutation(internal.projects._markProvisioningFailed, {
+                    projectId: args.projectId,
+                    branchId: args.branchId,
+                    error: message,
+                });
+            } catch (markErr) {
+                console.error(
+                    '[_provisionSandbox] Failed to record provisioning failure:',
+                    markErr,
+                );
+            }
+        };
+
+        if (!process.env.VERCEL_TOKEN) {
+            console.error('[_provisionSandbox] VERCEL_TOKEN not configured — cannot provision sandbox');
+            await markFailed(
+                'Sandbox provisioning is not configured on this deployment (missing Vercel credentials).',
+            );
+            return;
+        }
+
+        const framework = args.framework;
+        let provisionedSandboxId: string | null = null;
+
+        try {
+            const result = await VercelSandboxProvider.createProject({
+                source: 'template',
+                id: framework,
+                framework,
+                title: `Project ${args.projectId}`,
+                tags: ['blank', args.projectId],
+                privacy: 'private',
+                snapshotId: framework === 'nextjs' ? process.env.VERCEL_BLANK_SNAPSHOT_ID : undefined,
+            });
+
+            provisionedSandboxId = result.id;
+            const previewUrl = result.previewUrl ?? '';
+            const port = result.port ?? (framework === 'static-html' ? 8080 : 3000);
+
+            if (!previewUrl) {
+                // A sandbox without a preview URL is unusable by the editor —
+                // the frame reload that waits on a non-empty URL would never
+                // fire. Treat as failure (sandbox cleanup runs in the catch).
+                throw new Error('Sandbox was created but returned no preview URL.');
+            }
+
+            await ctx.runMutation(internal.projects._applySandboxToProject, {
+                projectId: args.projectId,
+                branchId: args.branchId,
+                sandboxId: result.id,
+                previewUrl,
+                snapshotId: result.snapshotId,
+                provider: 'vercel_sandbox',
+                port,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
+            });
+
+            provisionedSandboxId = null;
+        } catch (error) {
+            console.error('[_provisionSandbox] Failed to provision sandbox:', error);
+            // Re-use the user-facing mapping (402 billing / 401 auth / 429
+            // rate-limit / 5xx upstream) so the marker is actionable.
+            const mapped = mapSandboxProvisionError(error);
+            const mappedMessage =
+                mapped instanceof ConvexError
+                    ? (mapped.data as { message?: string }).message
+                    : undefined;
+            await markFailed(
+                mappedMessage ??
+                    (error instanceof Error ? error.message : 'Unknown provisioning error'),
+            );
+            if (provisionedSandboxId) {
+                try {
+                    const credentials: VercelCredentials = {
+                        teamId: process.env.VERCEL_TEAM_ID ?? '',
+                        projectId: process.env.VERCEL_PROJECT_ID ?? '',
+                        token: process.env.VERCEL_TOKEN ?? '',
+                    };
+                    if (credentials.teamId && credentials.projectId && credentials.token) {
+                        const sandbox = await Sandbox.get({
+                            sandboxId: provisionedSandboxId,
+                            ...credentials,
+                        });
+                        await sandbox.stop({ blocking: false }).catch(() => undefined);
+                    }
+                } catch (cleanupErr) {
+                    console.warn('[_provisionSandbox] Sandbox cleanup failed:', cleanupErr);
+                }
+            }
+        }
+    },
+});
+
 export const createBlank = action({
     args: {
         framework: v.optional(
@@ -305,10 +417,7 @@ export const createBlank = action({
         if (!me) throw new Error('UNAUTHORIZED');
 
         // Authorization: when caller supplies an explicit workspaceId,
-        // require `project.create` on it BEFORE the Vercel call. Without
-        // this gate a workspace VIEWER (member but no create cap) could burn
-        // paid sandbox quota against any workspace they can see and inject
-        // attacker-controlled sandbox iframes into a shared workspace.
+        // require `project.create` on it BEFORE creating the project.
         // Personal-workspace fallback is unconditionally allowed (own data).
         if (args.workspaceId) {
             await ctx.runQuery(internal.projects._requireProjectCreateCap, {
@@ -318,11 +427,6 @@ export const createBlank = action({
 
         const framework = args.framework ?? 'nextjs';
 
-        // Only nextjs + static-html have Vercel scaffolders today. Other
-        // frameworks are gated by `@weblab/framework`'s `isFrameworkReady`
-        // upstream — this is a defense-in-depth fence so a caller that
-        // bypasses the framework picker doesn't end up with an empty VM
-        // and a permanent 502 preview iframe.
         if (framework !== 'nextjs' && framework !== 'static-html') {
             throw new Error(
                 `Framework "${framework}" is not yet supported on Vercel Sandbox. ` +
@@ -339,108 +443,49 @@ export const createBlank = action({
             );
         }
 
-        let provisionedSandboxId: string | null = null;
-        try {
-            // Provision sandbox via the Vercel provider's per-framework
-            // scaffolder. Returns a fully scaffolded, post-`npm install`,
-            // snapshotted-and-resumed sandbox ready for the editor.
-            const result = await VercelSandboxProvider.createProject({
-                source: 'template',
-                id: framework,
-                framework,
-                title: `Blank project - ${me._id}`,
-                tags: ['blank', String(me._id)],
-                privacy: 'private',
-                // Resume from the pre-baked Next.js snapshot (~13s) instead of
-                // scaffolding + `npm install` from scratch (~60-90s). The
-                // provider only honors this for nextjs and silently falls back
-                // to a fresh scaffold if the snapshot is expired/unset, so an
-                // empty/stale VERCEL_BLANK_SNAPSHOT_ID degrades gracefully.
-                snapshotId:
-                    framework === 'nextjs'
-                        ? process.env.VERCEL_BLANK_SNAPSHOT_ID
-                        : undefined,
-            });
+        // Generate a unique-ish blank project name.
+        const now = new Date();
+        const baseName = `New Project · ${now.toLocaleString(undefined, {
+            month: 'short',
+        })} ${now.getDate()}`;
 
-            const sandboxId = result.id;
-            provisionedSandboxId = sandboxId;
-            const previewUrl = result.previewUrl ?? '';
-            const port =
-                result.port ?? (framework === 'static-html' ? 8080 : 3000);
+        const workspaceId: any =
+            args.workspaceId ??
+            (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
+                userId: me._id,
+            }));
 
-            // Generate a unique-ish blank project name.
-            const now = new Date();
-            const baseName = `New Project · ${now.toLocaleString(undefined, {
-                month: 'short',
-            })} ${now.getDate()}`;
+        const existingCount: number = await ctx.runMutation(
+            internal.projects._countProjectsByNamePrefix,
+            { workspaceId, namePrefix: baseName },
+        );
+        const projectName =
+            existingCount === 0 ? baseName : `${baseName} (${existingCount + 1})`;
 
-            const workspaceId: any =
-                args.workspaceId ??
-                (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
-                    userId: me._id,
-                }));
-
-            const existingCount: number = await ctx.runMutation(
-                internal.projects._countProjectsByNamePrefix,
-                { workspaceId, namePrefix: baseName },
-            );
-            const projectName =
-                existingCount === 0 ? baseName : `${baseName} (${existingCount + 1})`;
-
-            const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
+        // Create the project graph optimistically (empty sandbox refs) so the
+        // editor can open immediately while provisioning runs in the background.
+        const { projectId, branchId } = (await ctx.runMutation(
+            internal.projects._insertProjectGraphOptimistic,
+            {
                 userId: me._id,
                 workspaceId,
                 name: projectName,
                 description: 'Your new blank project',
                 tags: ['blank'],
                 framework,
-                sandboxId,
-                sandboxUrl: previewUrl,
-                cloudProvider: 'vercel_sandbox',
-                port,
-                // Persist the snapshotId so cold-resume reuses the post-
-                // `npm install` checkpoint instead of re-scaffolding +
-                // re-installing on every wake. Persist devCommand so
-                // `VercelSandboxProvider.setup()` re-spawns the correct
-                // dev server on resume — without this, static-HTML
-                // sandboxes silently fall back to Next.js's
-                // DEFAULT_DEV_COMMAND and the preview breaks after the
-                // first wake.
-                snapshotId: result.snapshotId,
-                devCommand: result.devCommand,
-                runtime: result.runtime,
-            });
+            },
+        )) as { projectId: string; branchId: string };
 
-            provisionedSandboxId = null;
-            return { projectId };
-        } catch (error) {
-            if (provisionedSandboxId) {
-                // Vercel sandboxes auto-expire on the configured timeout,
-                // so explicit cleanup is best-effort: prevents paid VM-hours
-                // burning while the sandbox waits to time out.
-                try {
-                    const credentials = {
-                        teamId: process.env.VERCEL_TEAM_ID ?? '',
-                        projectId: process.env.VERCEL_PROJECT_ID ?? '',
-                        token: process.env.VERCEL_TOKEN ?? '',
-                    };
-                    if (credentials.teamId && credentials.projectId && credentials.token) {
-                        const sandbox = await Sandbox.get({
-                            sandboxId: provisionedSandboxId,
-                            ...credentials,
-                        });
-                        await sandbox.stop({ blocking: false }).catch(() => undefined);
-                    }
-                } catch (cleanupErr) {
-                    console.warn('[createBlank] Vercel sandbox cleanup failed', cleanupErr);
-                }
-            }
-            // Re-wrap recognized Vercel provisioning failures (402 billing,
-            // 401/403 auth, 429 rate-limit, 5xx upstream) as ConvexErrors so
-            // the real reason survives prod redaction; unrecognized errors
-            // pass through untouched.
-            throw mapSandboxProvisionError(error);
-        }
+        // Schedule sandbox provisioning. Runs asynchronously — the editor
+        // opens with "Provisioning workspace…" frames and reloads once the
+        // sandbox URL is written back by _provisionSandbox → _applySandboxToProject.
+        await ctx.scheduler.runAfter(0, internal.projectActions._provisionSandbox, {
+            projectId: projectId as Id<'projects'>,
+            branchId: branchId as Id<'branches'>,
+            framework,
+        });
+
+        return { projectId };
     },
 });
 

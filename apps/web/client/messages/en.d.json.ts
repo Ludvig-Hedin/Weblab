@@ -334,7 +334,7 @@ declare const messages: {
             "creatingProject": "Saving your project",
             "openingEditor": "Opening the editor",
             "creatingBlankProject": "Building your project",
-            "creatingBlankProjectCaption": "Spinning up your workspace — this usually takes 20–40 seconds. Hang tight.",
+            "creatingBlankProjectCaption": "Setting up your project…",
             "startBlankProject": "Start blank project"
         },
         "dialogs": {

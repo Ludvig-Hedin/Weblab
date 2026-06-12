@@ -809,6 +809,214 @@ export const _insertProjectGraph = internalMutation({
 });
 
 /**
+ * Optimistic variant of `_insertProjectGraph` — creates the full project/
+ * branch/canvas/frame graph with empty sandbox references so the editor can
+ * open immediately. `_provisionSandbox` fills in the real sandbox data via
+ * `_applySandboxToProject` once provisioning completes.
+ */
+export const _insertProjectGraphOptimistic = internalMutation({
+    args: {
+        userId: v.id('users'),
+        workspaceId: v.id('workspaces'),
+        name: v.string(),
+        description: v.string(),
+        tags: v.array(v.string()),
+        framework: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const ws = await ctx.db.get(args.workspaceId);
+        if (!ws) throw new Error('NOT_FOUND: workspace');
+        if (ws.createdByUserId !== args.userId) {
+            const membership = await ctx.db
+                .query('workspaceMembers')
+                .withIndex('by_workspace_user', (q) =>
+                    q.eq('workspaceId', args.workspaceId).eq('userId', args.userId),
+                )
+                .unique();
+            if (!membership) throw new Error('FORBIDDEN: workspace');
+        }
+
+        const now = Date.now();
+        const projectId = await ctx.db.insert('projects', {
+            name: args.name,
+            description: args.description,
+            tags: args.tags,
+            updatedAt: now,
+            storageMode: 'cloud',
+            runtimeMetadata: { framework: args.framework },
+            workspaceId: args.workspaceId,
+            createdByUserId: args.userId,
+            accessMode: 'workspace',
+            // sandboxId / sandboxUrl filled in by _provisionSandbox
+        });
+
+        const branchId = await ctx.db.insert('branches', {
+            projectId,
+            name: 'main',
+            description: 'Default branch',
+            isDefault: true,
+            updatedAt: now,
+            // sandboxId filled in by _provisionSandbox
+            runtimeType: 'cloud',
+            runtimeMetadata: {
+                cloud: {
+                    provider: 'vercel_sandbox',
+                    // sandboxId / previewUrl / port filled in later
+                },
+            },
+        });
+
+        await ctx.db.insert('projectMembers', {
+            projectId,
+            userId: args.userId,
+            role: 'manager',
+            updatedAt: now,
+        });
+
+        const canvasId = await ctx.db.insert('canvases', { projectId });
+        await ctx.db.insert('userCanvases', {
+            userId: args.userId,
+            canvasId,
+            scale: 0.56,
+            x: 120,
+            y: 120,
+        });
+
+        const defaultFrames = [
+            { name: 'Desktop', width: 1440, height: 900, order: 0 },
+            { name: 'Tablet', width: 768, height: 1024, order: 1 },
+            { name: 'Phone', width: 375, height: 812, order: 2 },
+        ];
+        const groupId = crypto.randomUUID();
+        let xOffset = 0;
+        for (const f of defaultFrames) {
+            await ctx.db.insert('frames', {
+                canvasId,
+                branchId,
+                url: '', // filled in by _provisionSandbox once the sandbox URL is known
+                x: xOffset,
+                y: 0,
+                width: f.width,
+                height: f.height,
+                groupId,
+                breakpointId: f.name.toLowerCase(),
+                breakpointName: f.name,
+                breakpointOrder: f.order,
+            });
+            xOffset += f.width + 40;
+        }
+
+        await ctx.db.insert('conversations', {
+            projectId,
+            displayName: 'New conversation',
+            updatedAt: now,
+        });
+
+        return { projectId: projectId as string, branchId: branchId as string };
+    },
+});
+
+/**
+ * Patches project + branch + frames with real sandbox data after background
+ * provisioning. Called from `_provisionSandbox` (an internal action) so
+ * there is no user auth context — the caller already verified auth before
+ * scheduling, so no `requireCap` here.
+ */
+export const _applySandboxToProject = internalMutation({
+    args: {
+        projectId: v.id('projects'),
+        branchId: v.id('branches'),
+        sandboxId: v.string(),
+        previewUrl: v.string(),
+        snapshotId: v.optional(v.string()),
+        provider: v.union(v.literal('vercel_sandbox')),
+        port: v.optional(v.number()),
+        devCommand: v.optional(v.string()),
+        runtime: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const branch = await ctx.db.get(args.branchId);
+        if (!branch || branch.projectId !== args.projectId) {
+            throw new Error('NOT_FOUND: branch');
+        }
+
+        const now = Date.now();
+        await ctx.db.patch(args.projectId, {
+            updatedAt: now,
+            sandboxId: args.sandboxId,
+            sandboxUrl: args.previewUrl,
+        });
+
+        const runtimeMetadata: Record<string, unknown> =
+            branch.runtimeMetadata && typeof branch.runtimeMetadata === 'object'
+                ? (branch.runtimeMetadata as Record<string, unknown>)
+                : {};
+        // Success clears any failure marker from an earlier attempt.
+        delete runtimeMetadata.provisioningError;
+        await ctx.db.patch(args.branchId, {
+            updatedAt: now,
+            sandboxId: args.sandboxId,
+            runtimeMetadata: {
+                ...runtimeMetadata,
+                cloud: {
+                    provider: args.provider,
+                    sandboxId: args.sandboxId,
+                    previewUrl: args.previewUrl,
+                    snapshotId: args.snapshotId,
+                    port: args.port,
+                    devCommand: args.devCommand,
+                    runtime: args.runtime,
+                },
+            },
+        });
+
+        const frames = await ctx.db
+            .query('frames')
+            .withIndex('by_branch', (q) => q.eq('branchId', args.branchId))
+            .collect();
+        // Only fill frames still waiting on provisioning (url === ''). A user
+        // can add or navigate frames during the provisioning window — blanket
+        // patching would clobber those URLs back to the root preview.
+        await Promise.all(
+            frames
+                .filter((frame) => frame.url === '')
+                .map((frame) => ctx.db.patch(frame._id, { url: args.previewUrl })),
+        );
+    },
+});
+
+/**
+ * Records a sandbox-provisioning failure on the branch so the editor's live
+ * bootstrap query can surface it instead of spinning forever. Written by
+ * `_provisionSandbox` (internal action; auth was verified by `createBlank`
+ * before scheduling).
+ */
+export const _markProvisioningFailed = internalMutation({
+    args: {
+        projectId: v.id('projects'),
+        branchId: v.id('branches'),
+        error: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const branch = await ctx.db.get(args.branchId);
+        if (!branch || branch.projectId !== args.projectId) {
+            throw new Error('NOT_FOUND: branch');
+        }
+        const runtimeMetadata: Record<string, unknown> =
+            branch.runtimeMetadata && typeof branch.runtimeMetadata === 'object'
+                ? (branch.runtimeMetadata as Record<string, unknown>)
+                : {};
+        await ctx.db.patch(args.branchId, {
+            updatedAt: Date.now(),
+            runtimeMetadata: {
+                ...runtimeMetadata,
+                provisioningError: args.error,
+            },
+        });
+    },
+});
+
+/**
  * Action-side authorization helper: throws FORBIDDEN if the caller cannot
  * create projects in the supplied workspace. Used by
  * `projectActions.createBlank` BEFORE the costly CodeSandbox / Vercel

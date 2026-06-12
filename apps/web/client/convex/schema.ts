@@ -296,8 +296,8 @@ export default defineSchema({
         gitCommitSha: v.optional(v.string()),
         gitRepoUrl: v.optional(v.string()),
 
-        // sandbox
-        sandboxId: v.string(),
+        // sandbox — optional during optimistic creation; filled in by _provisionSandbox
+        sandboxId: v.optional(v.string()),
 
         // runtime
         runtimeType: vBranchRuntimeType,
