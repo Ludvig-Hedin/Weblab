@@ -113,6 +113,17 @@ and the parser includes a responsive class rebase step. **Read
 `breakpoints-architecture.md` before changing frame dimensions, the parser
 rebase logic, or breakpoint UI.**
 
+## Component System (Master/Instance)
+
+Code is the source of truth — see ADR 2026-06-12 and catalog F-788/F-789.
+
+- **Discovery**: `discoverComponentsInAst` (`packages/parser/src/component/discover.ts`) runs inside `CodeFileSystem`'s per-write parse pass and on `rebuildIndex`; definitions land in a per-branch component index (`.weblab/cache/components.json`) exposed via `listComponents` / `onComponentsChanged`. HTML partials under `weblab/components/` are discovered via their in-file JSON manifest (`parseComponentManifest`) and carry a content hash (`ComponentDef.version`) used to detect master edits.
+- **Identity**: an element's `instanceId` (`data-oiid`, resolved by `AstManager.findNodeInstance`) exists only on the instance *boundary* and points at the usage-site oid (`<Card data-oid=…>`). Elements inside the master share oids across all rendered instances; structural edits on them ARE master edits.
+- **`ComponentsManager`** (`store/editor/components/`): definitions list, in-context edit session (`editing`), scope checks (`isInEditScope`), prop reads/writes, create-from-selection, unlink, variants, HTML re-stamp orchestration. Master editing is a **sub-state of DESIGN mode** — gesture double-click enters it, ESC/click-outside/banner-Done exit, and `ElementsManager.mouseover/click` enforce the scope.
+- **Per-instance props** are plain JSX attributes at the usage site, written through the existing `CodeDiffRequest` pipeline; `updateNodeProp` understands `{ __remove }` (reset to default) and `{ __jsx }` (expression values).
+- **HTML stamping** (`packages/parser/src/component/html/stamp.ts`): instances are stamped with marker attrs on the root and `${masterOid}~${instanceId}` oids (stable across re-stamps, reversible). Master writes trigger `restampPage` across all pages (idempotent, diff-skipped). The client edit pipeline (`code/requests.ts`) routes per-pipeline — parse5 for `.html`, Babel for JSX.
+- **Canvas language**: purple = components (outline, chip, banner), green = property connections (dots, dotted outlines), blue = plain elements.
+
 ## Common Risks
 
 - Missing `use client` on observer/event-driven components.

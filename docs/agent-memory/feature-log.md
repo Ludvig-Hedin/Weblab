@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-12 — Webflow-style component system (master/instance, properties, variants, slots)
+Author: Claude (Fable 5)
+Area: `@weblab/parser` (`src/component/`), `@weblab/file-system`, editor stores + canvas + right panel
+Summary: Full master/instance component system, code-is-truth. Discovery: AST scan of exported PascalCase JSX components (props from TS types/destructuring, bindings, plain-map + cva variants) runs inside the same `CodeFileSystem` pass as the oid index → per-branch component index (`.weblab/cache/components.json`), so imported projects' components appear automatically and external git edits re-derive everything. UX: double-click an instance enters in-context master editing (scoped selection/hover, canvas dim, "applies to N instances" banner, back crumb, layered ESC); instance Properties section (typed fields, variant dropdown, per-prop reset; overrides = JSX attrs at the usage site, default ⇒ attr removed); master Properties section (create prop from element with the literal hoisted as default, green binding dots + dotted outlines); create component from selection (⌘⌥K, suggested-props review, closure-capture hard-fails with names); variants (module-scope class map + `cn(base, map[variant])`); unlink (⌘⇧U, master inlined with values/variant/children resolved). Static HTML: partials in `weblab/components/*.html` (in-file manifest, `{{prop}}`/`{{variant:class}}`/`data-wb-if`/`<slot>`), instances stamped with `${masterOid}~${instanceId}` oids, master edits re-stamp all pages idempotently; the client edit pipeline now routes per-pipeline (parse5 vs Babel) which also makes plain `.html` canvas edits work for the first time. Colors: purple = components (existing), green = property connections (real green token scale added). Deleted the dead tRPC regex scanner. 40 new parser unit tests.
+Files: `packages/parser/src/component/{discover,props,extract,variants,detach,html/stamp}.ts`, `packages/file-system/src/{code-fs.ts,component-index.ts}`, `packages/models/src/element/component.ts`, `apps/web/client/src/components/store/editor/components/`, `canvas/overlay/{edit-mode-dim,component-edit-banner,elements/component-chip,elements/rect/prop-bound}.tsx`, `right-panel/style-tab-v4/sections/component-{instance,master}.tsx`, `create-component-dialog.tsx`, `top-bar/component-edit-crumb.tsx`
+Links: changelog v4.2; catalog F-788/F-789, tests T-817/T-818; deferred items in BACKLOG ("Component system v1 — deferred follow-ups")
+
 ## 2026-06-11 — Create-with-AI flow unbricked: 16KB cap, hard stop, retry/redacted/suggestions UX
 Author: Claude (Fable 5)
 Area: `/api/chat` route, editor chat (`use-chat`, chat-tab), create handoff (`use-start-project`)

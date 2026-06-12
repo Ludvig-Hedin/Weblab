@@ -9,6 +9,33 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-2-components',
+        version: '4.2',
+        title: 'Components: master/instance editing, properties, and variants',
+        description:
+            'Weblab now has a full component system. Select anything and press ⌘⌥K to turn it into a reusable component — your copy becomes the first instance, and suggested properties (headings, images, links) are hoisted automatically. Double-click any instance to edit the main component in place: the rest of the canvas dims, a banner shows how many instances your changes apply to, and Esc takes you back. Each instance gets its own property values in a new panel at the top of the Style tab — text, images, links, numbers, switches, and a variant picker — with one-click reset back to the component default. Add variants (like “dark” or “outline”) without duplicating the component, drop content into slots, or unlink an instance to make it standalone. It works with components you already have: exported React components in imported projects appear in the Components tab automatically, and static-HTML projects get the same system via editor-managed partials.',
+        date: '2026-06-12',
+        tags: ['Editor', 'Components', 'Design System'],
+    },
+    {
+        slug: 'v4-1-pop-out-preview',
+        version: '4.1',
+        title: 'Pop the preview out into its own window',
+        description:
+            'You can now open your live preview in its own browser tab or window — drag it to a second monitor and watch it update while you keep editing. It hot-reloads on every edit, and (for cloud projects) it quietly recovers on its own when the sandbox cold-boots or recycles: instead of a dead page you get a small “Reconnecting” chip and the preview reloads the moment it’s back. There’s an Auto-recover toggle if you’d rather see the raw page, plus a width selector for quick responsive checks. Open it from the new button next to the Preview play control, or “Pop out” from the full-screen preview.',
+        date: '2026-06-12',
+        tags: ['Editor', 'Preview'],
+    },
+    {
+        slug: 'v4-0-calmer-start-and-drag-drop',
+        version: '4.0',
+        title: 'A calmer start screen, and drag-and-drop a folder to open it',
+        description:
+            'The “Start a new project” screen is lighter: a smaller title and a tidy row of icon buttons (hover for details) instead of a wall of large cards. “Start blank” now opens a cleaner dialog where you choose where it runs — Weblab Cloud or, in the desktop app, Local on your machine (Next.js/React or plain HTML) — then pick a stack. And in the desktop app you can now drag a folder straight from Finder into the window, or drop it on the dock icon, to open it as a project (an empty folder starts a fresh one).',
+        date: '2026-06-12',
+        tags: ['Desktop', 'Design'],
+    },
+    {
         slug: 'v3-9-cleaner-terminal',
         version: '3.9',
         title: 'A cleaner, more integrated terminal',

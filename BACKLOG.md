@@ -38,6 +38,60 @@ later without re-discovering the context.
 
 ## Open
 
+### Component system v1 — deferred follow-ups (F-788/F-789)
+
+- **Discovered:** 2026-06-12 (component-system build session)
+- **Where:** `apps/web/client/src/components/store/editor/components/`, `packages/parser/src/component/`
+- **Symptom:** v1 ships master/instance + properties + variants + slots(children) + unlink for React and HTML; these pieces are intentionally deferred:
+  1. **Convex `componentMeta` table** — display names, descriptions, prop groups/tooltips/order, per-instance rename (`instanceNames`). Nothing structural; schema sketch in the approved plan (`~/.claude/plans/design-webflow-style-component-system-concurrent-sparrow.md`).
+  2. **Undo/redo for instance-prop writes** — `setInstanceProp` goes through `code.writeRequest` directly, bypassing the action/history pipeline. Needs a `write-code`-style action with inverse.
+  3. **Inline prop-override text editing on canvas** — double-clicking prop-bound text inside an instance currently enters master editing; Webflow edits the override in place (dotted-green affordance). Route the text-editor commit through `setInstanceProp` when the element has a `text-child` binding and the session isn't active.
+  4. **Named-slot insertion UI** — `children` works via the normal insert path; named ReactNode slots need a `SET_SLOT_CONTENT` structure change + drop-target resolution (transform sketch in plan §slots).
+  5. **HTML in-canvas master edit routing** — elements inside stamped instances carry `masterOid~instanceId` oids; canvas edits on them currently hit the *page* copy (overwritten on next re-stamp). Route `~`-oids → master partial edit + restamp (`resolveEditTarget` HTML branch in plan §6).
+  6. **node_modules / external component instances** — currently `getDefinitionForInstance` returns null (no chip/panel). Wanted: instance-only mode (literal attrs editable as untyped fields, no master edit/detach).
+  7. **richtext prop creation** — discovery types exist; `createPropFromElement` doesn't generate ReactNode props yet.
+  8. **Design-system page specimens** — green palette swatches added; component chip / edit banner / prop-field specimens still to add to `/design-system`.
+- **Next step:** pick items off in order of user pain; 3 and 5 are the most user-visible.
+- **Risk if ignored:** prop edits not undoable (2); HTML instance edits silently lost on re-stamp (5).
+- **Tags:** `#tech-debt` `#editor`
+
+### Dock / "Open With Weblab" `open-file` doesn't verify the path is a directory
+
+- **Discovered:** 2026-06-12 (caveman-review of desktop folder-drop)
+- **Where:** apps/desktop/main.js `deliverOpenFolder` (`open-file` handler) → renderer `useOpenLocalProject.openLocalFolderAtPath`.
+- **Symptom:** macOS `open-file` can fire for a FILE, not just a folder. `deliverOpenFolder` forwards any string path to the renderer, which calls `localfs.list(rootPath, '.')` — on a file path that errors and surfaces a generic toast.
+- **Root cause:** `CFBundleDocumentTypes` registers `public.folder` only, but the OS / "Open With" can still hand a file path; no `fs.statSync(p).isDirectory()` guard in main before delivering.
+- **Next step:** in `deliverOpenFolder`, guard with `fs.existsSync(p) && fs.statSync(p).isDirectory()`; if it's a file, drop it (or open its parent dir).
+- **Risk if ignored:** confusing error when a file is opened via dock/"Open With"; cosmetic, not data-loss.
+- **Tags:** `#bug` `#desktop`
+
+### "Reset all properties" removes dynamically-bound instance attributes too
+
+- **Discovered:** 2026-06-12 (caveman-review of component instance props)
+- **Where:** apps/web/client/src/components/store/editor/components/index.ts `resetAllInstanceProps`.
+- **Symptom:** it builds `{ __remove: true }` for every key from `getInstancePropValues`, which includes props whose value parsed as `null` (a dynamic expression like `title={foo}`). "Reset all" therefore strips a real dynamic binding, not just literal overrides.
+- **Next step:** skip keys whose parsed value is `null` (dynamic) when building the remove set, or confirm with the user. `resetInstanceProp` (single) has the same property but is explicit per-prop.
+- **Risk if ignored:** a "reset" can silently delete a hand-written dynamic prop on the usage site.
+- **Tags:** `#bug` `#editor`
+
+### Editable instance-prop input overwrites a dynamic binding with a literal silently
+
+- **Discovered:** 2026-06-12 (caveman-review of component instance props)
+- **Where:** apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/sections/component-instance.tsx `PropField`.
+- **Symptom:** when an instance prop is bound to a dynamic expression, `getInstancePropValues` returns `null`; `effective = value ?? prop.defaultValue` shows the *default* in an editable text input. Committing writes a string literal, silently replacing the dynamic expression — with no "dynamic" indicator on editable types (only non-editable props show the italic "dynamic" hint).
+- **Next step:** when `value === null` on an editable prop, render a read-only "dynamic" chip with an explicit "override" affordance instead of a pre-filled input.
+- **Risk if ignored:** user unknowingly clobbers a dynamic prop value.
+- **Tags:** `#bug` `#editor` `#ux`
+
+### Keep `getNextJsScaffoldFiles` in sync with cloud `scaffoldNextProject`
+
+- **Discovered:** 2026-06-12 (caveman-review of local blank scaffolding)
+- **Where:** packages/code-provider/src/scaffold-templates.ts `getNextJsScaffoldFiles` vs packages/code-provider/src/providers/vercel-sandbox/index.ts `scaffoldNextProject`.
+- **Symptom:** the local Next.js blank claims to be "byte-for-byte the same project as a CLOUD blank" (minus an intentional `postcss.config.mjs`). There's no test asserting parity, so the two file sets can drift (deps, `next.config`, tsconfig) unnoticed.
+- **Next step:** add a unit test comparing the two file sets (allowing the documented `postcss.config.mjs` divergence), or extract a shared base.
+- **Risk if ignored:** local vs cloud blanks diverge over time → "works in cloud, not local" surprises.
+- **Tags:** `#test-gap` `#tech-debt`
+
 ### `stopDevServer` doesn't await child exit — restart race can pick a different port
 
 - **Discovered:** 2026-06-12 (bug-hunt after the local-port fix)

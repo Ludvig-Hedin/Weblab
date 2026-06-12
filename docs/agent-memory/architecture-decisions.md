@@ -18,6 +18,14 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-06-12 — Component system: code is the source of truth, no new EditorMode
+Decision: Component definitions (props/slots/variants/bindings) are pure derivations of project source, indexed client-side alongside the oid index; master editing is a sub-state of DESIGN mode, not a new EditorMode; Convex stores only display metadata (deferred).
+Context: Webflow-style master/instance components must work both for Weblab-created projects and imported local Next.js/HTML code, and survive external git edits.
+Alternatives considered: (a) Webflow-style DB-backed definitions + codegen — drifts the moment users edit code externally, fights the import use case; (b) server-side scanning (the old tRPC regex route) — stale, no AST fidelity; (c) `EditorMode.COMPONENT_EDIT` — would require auditing dozens of `=== EditorMode.DESIGN` gates in gesture/hotkeys/overlay and regress silently as new checks land.
+Rationale: discovery rides the existing `CodeFileSystem` parse pass (zero extra parse cost, `rebuildIndex` covers git pulls); React props/variants map to real language constructs (props, class maps/cva) so generated code is idiomatic and hand-editable; HTML projects get the same model via stamped partials with reversible `masterOid~instanceId` oids. Per-instance overrides are plain JSX attrs at the usage site (value == default ⇒ attribute removed) so usage sites stay clean.
+Status: Active. See F-788/F-789 in docs/feature-catalog.md; deferred follow-ups in BACKLOG.
+
+
 ## 2026-06-05 — AI builds from a curated component registry + design-token palette, not from scratch
 
 Decision: The website-builder agent (F-785) is constrained to a fixed catalog of
