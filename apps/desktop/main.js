@@ -412,7 +412,12 @@ function createWindow(initialURL) {
                     ` :is(div,span,h1,h2,h3,h4,h5,h6,p,section,header,nav,img,svg,ul,ol,li)` +
                     `{-webkit-app-region:drag;}` +
                 `[data-desktop="true"] .desktop-drag-region{pointer-events:auto;}` +
-                `[data-desktop="true"] :is(.top-bar,.desktop-drag-region)` +
+                // no-drag is GLOBAL (not scoped to drag containers): Chromium
+                // builds the OS drag region in paint order, so any interactive
+                // element — including ones portaled outside .top-bar — must
+                // punch its own hole or a drag surface painted near it eats
+                // the click as window-drag. Matches the web app's layout.tsx.
+                `[data-desktop="true"]` +
                     ` :is(a,button,[role="button"],[role="menuitem"],[role="tab"],[role="switch"],[role="link"],[role="combobox"],input,select,textarea,[contenteditable="true"],[contenteditable=""]),` +
                 `[data-desktop="true"] .desktop-no-drag{-webkit-app-region:no-drag;}`,
             )

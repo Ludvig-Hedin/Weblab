@@ -159,9 +159,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     the chrome container *and* its non-interactive descendants
                     as drag, then carve out every interactive role/element as
                     `no-drag` so clicks still land. */}
+                {/* Drag fallback strip: only acts as a drag surface while the
+                    page provides NO drag container of its own. Chromium builds
+                    the OS drag region in paint order, so a full-width drag
+                    strip painted above the app re-adds the draggable region
+                    over the no-drag holes carved for header buttons — that
+                    made the top ~26px of every top-bar button swallow clicks
+                    as window-drag. A MutationObserver keeps the strip in sync
+                    across SPA navigations that mount/unmount the top bar. */}
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;function addStrip(){if(!document.body||document.getElementById('weblab-desktop-drag-fallback'))return;var s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.className='desktop-drag-region';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;-webkit-app-region:drag;app-region:drag;';document.body.appendChild(s);}function schedule(){setTimeout(addStrip,0);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}})();`,
+                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;var pending=false;function syncStrip(){pending=false;if(!document.body)return;var s=document.getElementById('weblab-desktop-drag-fallback');if(!s){s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;';document.body.appendChild(s);}var els=document.querySelectorAll('.top-bar,.desktop-drag-region');var hasOwn=false;for(var i=0;i<els.length;i++){if(els[i].id!=='weblab-desktop-drag-fallback'){hasOwn=true;break;}}var v=hasOwn?'no-drag':'drag';s.style.setProperty('-webkit-app-region',v);s.style.setProperty('app-region',v);}function schedule(){if(pending)return;pending=true;setTimeout(syncStrip,50);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}function arm(){if(!document.body){setTimeout(arm,50);return;}new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});}arm();})();`,
                     }}
                 />
                 <style
@@ -175,7 +183,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 [data-desktop='true'] .desktop-drag-region {
   pointer-events: auto;
 }
-[data-desktop='true'] :is(.top-bar, .desktop-drag-region) :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox'], input, select, textarea, [contenteditable='true'], [contenteditable='']),
+/* Global (not scoped to drag containers): interactive elements anywhere must
+   punch holes in the OS drag region — portaled menus, overlays, and headers
+   that aren't inside .top-bar would otherwise have their clicks eaten by a
+   drag surface painted near them. no-drag is a no-op outside drag regions. */
+[data-desktop='true'] :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox'], input, select, textarea, [contenteditable='true'], [contenteditable='']),
 [data-desktop='true'] .desktop-no-drag {
   -webkit-app-region: no-drag;
   app-region: no-drag;
