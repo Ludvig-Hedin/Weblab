@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import type { FrameworkId } from '@weblab/framework';
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
+import type { CreateDestination } from './framework-select-dialog';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
@@ -17,84 +19,62 @@ import { ExternalRoutes, Routes } from '@/utils/constants';
 import { CloneWebsiteDialog } from './clone-website-dialog';
 import { FrameworkSelectDialog } from './framework-select-dialog';
 
-interface ChooserCardProps {
+interface ActionButtonProps {
     icon: React.ReactNode;
-    title: string;
-    description: string;
-    cta: string;
+    label: string;
+    /** Hover description — replaces the old card body copy. */
+    tooltip: string;
     onClick?: () => void;
     href?: string;
     disabled?: boolean;
     busy?: boolean;
 }
 
-function ChooserCard({
-    icon,
-    title,
-    description,
-    cta,
-    onClick,
-    href,
-    disabled,
-    busy,
-}: ChooserCardProps) {
-    const className = cn(
-        'group border-foreground/10 bg-foreground/4 hover:border-foreground/20 hover:bg-foreground/8',
-        'flex h-full min-h-[180px] flex-col justify-between rounded-xl border p-5 text-left transition-colors',
-        'backdrop-blur-[10px]',
-        'disabled:cursor-not-allowed disabled:opacity-60',
-        disabled && 'pointer-events-none opacity-60',
-    );
+/** A compact starting-point action: icon + label, with the detail on hover. */
+function ActionButton({ icon, label, tooltip, onClick, href, disabled, busy }: ActionButtonProps) {
+    const inner = busy ? <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" /> : icon;
 
-    const inner = (
-        <>
-            <div className="flex flex-col gap-3">
-                <div className="border-foreground/10 flex h-10 w-10 items-center justify-center rounded-md border">
-                    {busy ? <Icons.LoadingSpinner className="h-4 w-4 animate-spin" /> : icon}
-                </div>
-                <div className="space-y-1">
-                    <div className="text-foreground text-sm font-medium">{title}</div>
-                    <p className="text-foreground-tertiary text-sm leading-5">{description}</p>
-                </div>
-            </div>
-            <div className="text-foreground-secondary group-hover:text-foreground mt-4 flex items-center gap-2 text-sm">
-                {cta}
-                <Icons.ArrowRight className="h-4 w-4" />
-            </div>
-        </>
-    );
-
-    if (href && !disabled && !busy) {
-        return (
-            <Link href={href} className={className}>
+    const trigger =
+        href && !disabled && !busy ? (
+            <Button asChild variant="outline" size="sm">
+                <Link href={href}>
+                    {inner}
+                    {label}
+                </Link>
+            </Button>
+        ) : (
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onClick}
+                disabled={disabled === true || busy === true}
+            >
                 {inner}
-            </Link>
+                {label}
+            </Button>
         );
-    }
 
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled === true || busy === true}
-            className={className}
-        >
-            {inner}
-        </button>
+        <Tooltip>
+            <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+            <TooltipContent className="max-w-56 text-center">{tooltip}</TooltipContent>
+        </Tooltip>
     );
 }
 
 interface ProjectChooserCardsProps {
-    /** When the AI prompt is mid-creation; disables the secondary cards. */
+    /** When the AI prompt is mid-creation; disables the secondary actions. */
     aiBusy?: boolean;
     /** Whether to render the "Want to keep code on your machine?" footer link. */
     showDesktopFooter?: boolean;
 }
 
 /**
- * Secondary creation paths shown alongside the AI prompt: blank, GitHub, local
- * folder. Used on /projects/new and on the empty-projects state so the user
- * gets one consistent set of starting points wherever they land.
+ * Secondary creation paths shown alongside the AI prompt: blank, clone, GitHub,
+ * and a folder action (open a local folder on desktop, upload one on web). Used
+ * on /projects/new and on the empty-projects state so users get one consistent
+ * set of starting points wherever they land.
  */
 export function ProjectChooserCards({
     aiBusy = false,
@@ -109,19 +89,31 @@ export function ProjectChooserCards({
         useImportLocalProject();
     const {
         openLocalFolder,
-        createLocalFolder,
+        createLocalBlank,
         isBusy: isOpeningLocal,
         isDesktop,
     } = useOpenLocalProject();
 
-    // Desktop-only "Open local folder" card. Gate on a mounted flag so SSR and
-    // the first client render agree (the IPC bridge only exists in the desktop
-    // app), avoiding a hydration mismatch when the card appears.
+    // Desktop-only flag. Gate on a mounted flag so SSR and the first client
+    // render agree (the IPC bridge only exists in the desktop app), avoiding a
+    // hydration mismatch when the desktop-only actions appear.
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
-    const showLocalCard = mounted && isDesktop;
+    const isDesktopApp = mounted && isDesktop;
 
     const isBusy = aiBusy || isCreatingProject || isImporting || isOpeningLocal;
+
+    const onSelectFramework = (framework: FrameworkId, destination: CreateDestination) => {
+        setShowFrameworkDialog(false);
+        // The dialog only offers Next.js / Static HTML under "Local", but guard
+        // here too so a future framework can never reach the disk-scaffold path
+        // it can't handle — anything else falls back to a cloud sandbox.
+        if (destination === 'local' && (framework === 'nextjs' || framework === 'static-html')) {
+            void createLocalBlank(framework);
+        } else {
+            void handleStartBlankProject(framework);
+        }
+    };
 
     const creationSteps = [
         {
@@ -180,70 +172,59 @@ export function ProjectChooserCards({
                 <span className="text-foreground-tertiary text-xs">or pick a starting point</span>
                 <div className="bg-foreground/10 h-px flex-1" />
             </div>
-            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <ChooserCard
-                    icon={<Icons.FilePlus className="h-4 w-4" />}
-                    title="Start blank"
-                    description="An empty project. Choose your stack — React (recommended) or plain HTML."
-                    cta="Choose a framework"
+
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                <ActionButton
+                    icon={<Icons.FilePlus className="h-3.5 w-3.5" />}
+                    label="Start blank"
+                    tooltip="An empty project. Pick your stack — and on desktop, cloud or local."
                     onClick={() => setShowFrameworkDialog(true)}
                     busy={isCreatingProject}
                     disabled={isBusy}
                 />
-                <ChooserCard
-                    icon={<Icons.MagicWand className="h-4 w-4" />}
-                    title="Clone a website"
-                    description="Recreate any site from a URL or a screenshot. The AI rebuilds it as an editable project."
-                    cta="Open the cloner"
-                    onClick={() => setShowCloneDialog(true)}
-                    disabled={isBusy}
-                />
-                <ChooserCard
-                    icon={<Icons.GitHubLogo className="h-4 w-4" />}
-                    title="Import from GitHub"
-                    description="Bring an existing repo. Connect your account once, then pick any repo to open in the editor."
-                    cta="Open GitHub import"
-                    href={Routes.IMPORT_GITHUB}
-                    disabled={isBusy}
-                />
-                <ChooserCard
-                    icon={<Icons.Directory className="h-4 w-4" />}
-                    title="Upload folder"
-                    description={
-                        isFsAccessSupported
-                            ? 'Upload a local project folder to Weblab Cloud. The files become a sandbox you can edit in the browser.'
-                            : 'Upload requires a Chromium-based browser (Chrome, Edge, or Arc).'
-                    }
-                    cta="Choose a folder"
-                    onClick={() => void handleImportLocalProject()}
-                    busy={isImporting}
-                    disabled={isBusy || !isFsAccessSupported}
-                />
-                {showLocalCard && (
-                    <ChooserCard
-                        icon={<Icons.Directory className="h-4 w-4" />}
-                        title="Open local folder"
-                        description="Edit a project that stays on your machine. Open it in your code editor too — changes sync both ways, live."
-                        cta="Choose a folder"
+
+                {isDesktopApp ? (
+                    <ActionButton
+                        icon={<Icons.Directory className="h-3.5 w-3.5" />}
+                        label="Open folder"
+                        tooltip="Open a folder from your machine. Edits sync to disk and your code editor, live."
                         onClick={() => void openLocalFolder()}
                         busy={isOpeningLocal}
                         disabled={isBusy}
                     />
-                )}
-                {showLocalCard && (
-                    <ChooserCard
-                        icon={<Icons.FilePlus className="h-4 w-4" />}
-                        title="New local project"
-                        description="Scaffold a fresh project into an empty folder on your machine and edit it locally — saved straight to disk."
-                        cta="Choose a folder"
-                        onClick={() => void createLocalFolder()}
-                        busy={isOpeningLocal}
-                        disabled={isBusy}
+                ) : (
+                    <ActionButton
+                        icon={<Icons.Upload className="h-3.5 w-3.5" />}
+                        label="Upload folder"
+                        tooltip={
+                            isFsAccessSupported
+                                ? 'Upload a local project folder to Weblab Cloud and edit it in the browser.'
+                                : 'Upload requires a Chromium-based browser (Chrome, Edge, or Arc).'
+                        }
+                        onClick={() => void handleImportLocalProject()}
+                        busy={isImporting}
+                        disabled={isBusy || !isFsAccessSupported}
                     />
                 )}
+
+                <ActionButton
+                    icon={<Icons.MagicWand className="h-3.5 w-3.5" />}
+                    label="Clone a site"
+                    tooltip="Recreate any site from a URL or screenshot. The AI rebuilds it as an editable project."
+                    onClick={() => setShowCloneDialog(true)}
+                    disabled={isBusy}
+                />
+
+                <ActionButton
+                    icon={<Icons.GitHubLogo className="h-3.5 w-3.5" />}
+                    label="GitHub repo"
+                    tooltip="Bring an existing repo. Connect your account once, then pick any repo to open."
+                    href={Routes.IMPORT_GITHUB}
+                    disabled={isBusy}
+                />
             </div>
 
-            {showDesktopFooter && (
+            {showDesktopFooter && !isDesktopApp && (
                 <p className="text-foreground-tertiary mt-6 text-center text-sm">
                     Want to keep code on your machine?{' '}
                     <Link
@@ -261,10 +242,8 @@ export function ProjectChooserCards({
             <FrameworkSelectDialog
                 open={showFrameworkDialog}
                 onOpenChange={setShowFrameworkDialog}
-                onSelect={(framework: FrameworkId) => {
-                    setShowFrameworkDialog(false);
-                    void handleStartBlankProject(framework);
-                }}
+                onSelect={onSelectFramework}
+                localAvailable={isDesktopApp}
             />
 
             <CloneWebsiteDialog open={showCloneDialog} onOpenChange={setShowCloneDialog} />

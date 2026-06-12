@@ -22,6 +22,7 @@
         "dev": "bun --filter @weblab/web dev",
         "test": "bun --filter '*' test",
         "docs": "bun --filter @weblab/docs dev",
+        "dev:desktop": "bun --filter @weblab/desktop dev",
         "dev:admin": "bun --filter @weblab/admin dev",
         "backend:start": "bun --filter @weblab/backend start",
         "db:gen": "bun --filter @weblab/db db:gen",

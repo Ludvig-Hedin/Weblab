@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 /**
  * Build the set of origins this preload considers "us". The CLI bridge is
@@ -143,6 +143,38 @@ const bridge = {
     cli: cliBridge,
     localfs: localfsBridge,
     localdev: localdevBridge,
+    /**
+     * Resolve the absolute filesystem path of a `File` dropped into the window.
+     * `File.path` was removed in Electron 32+, so the renderer cannot read it
+     * directly — it must hand the `File` back here to `webUtils.getPathForFile`.
+     * Origin-gated like the other native bridges.
+     */
+    getPathForDroppedFile: IS_APP_ORIGIN
+        ? (file) => {
+              try {
+                  return webUtils.getPathForFile(file);
+              } catch {
+                  return null;
+              }
+          }
+        : undefined,
+    /**
+     * Subscribe to "open this folder" requests from the main process — fired
+     * when a folder is dropped on the dock icon / opened via "Open With Weblab"
+     * (macOS `open-file`). Returns an unsubscribe function.
+     */
+    onOpenFolder: IS_APP_ORIGIN
+        ? (listener) => {
+              const handler = (_event, payload) => listener(payload);
+              ipcRenderer.on('weblab:open-folder', handler);
+              return () => ipcRenderer.removeListener('weblab:open-folder', handler);
+          }
+        : undefined,
+    /**
+     * Tell the main process the renderer has mounted its folder-drop listener,
+     * so any folder queued from a cold launch-by-drop can be delivered now.
+     */
+    signalReady: IS_APP_ORIGIN ? () => ipcRenderer.send('weblab:renderer-ready') : undefined,
 };
 
 contextBridge.exposeInMainWorld('weblabNative', bridge);

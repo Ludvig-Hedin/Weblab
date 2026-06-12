@@ -11,6 +11,7 @@
     "packageManager": "bun@1.3.1",
     "scripts": {
         "start": "electron .",
+        "dev": "bash scripts/dev.sh",
         "link:node_modules": "node -e \"const fs=require('fs');const path=require('path');const link=path.join(process.cwd(),'node_modules');const target=path.resolve(process.cwd(),'../../node_modules');try{fs.rmSync(link,{recursive:true,force:true});}catch{}fs.symlinkSync(target,link,process.platform==='win32'?'junction':'dir');\"",
         "build:mac": "bun run link:node_modules && electron-builder --mac",
         "build:win": "bun run link:node_modules && electron-builder --win",
@@ -53,7 +54,17 @@
             "target": [
                 { "target": "dmg", "arch": ["universal"] }
             ],
-            "artifactName": "Weblab.dmg"
+            "artifactName": "Weblab.dmg",
+            "extendInfo": {
+                "CFBundleDocumentTypes": [
+                    {
+                        "CFBundleTypeName": "Folder",
+                        "CFBundleTypeRole": "Editor",
+                        "LSHandlerRank": "Alternate",
+                        "LSItemContentTypes": ["public.folder"]
+                    }
+                ]
+            }
         },
         "win": {
             "icon": "assets/icon.ico",

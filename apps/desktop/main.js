@@ -96,6 +96,41 @@ ipcMain.handle('weblab:open-external', async (_event, url) => {
     return openInExternalBrowser(url);
 });
 
+// --- Open a folder dropped on the dock icon / "Open With Weblab" (macOS) -------
+// `open-file` can fire before the window exists or before the user has signed
+// in, so queue the path and flush it once the renderer signals it has mounted
+// the folder-drop listener (`weblab:renderer-ready`). The renderer then runs
+// the same "open local folder" flow used by in-window drag-and-drop.
+let rendererReady = false;
+let pendingOpenFolderPath = null;
+
+function deliverOpenFolder(folderPath) {
+    if (!folderPath || typeof folderPath !== 'string') return;
+    if (rendererReady && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('weblab:open-folder', { rootPath: folderPath });
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+    } else {
+        // Keep only the most recent drop — we open one project at a time.
+        pendingOpenFolderPath = folderPath;
+    }
+}
+
+// Register as early as possible — macOS may emit this before `whenReady`.
+app.on('open-file', (event, folderPath) => {
+    event.preventDefault();
+    deliverOpenFolder(folderPath);
+});
+
+ipcMain.on('weblab:renderer-ready', () => {
+    rendererReady = true;
+    if (pendingOpenFolderPath) {
+        const p = pendingOpenFolderPath;
+        pendingOpenFolderPath = null;
+        deliverOpenFolder(p);
+    }
+});
+
 registerCliIpc({
     allowedOrigins: ALLOWED_IPC_ORIGINS,
     getWebContents: () => mainWindow?.webContents ?? null,
@@ -350,6 +385,14 @@ function createWindow(initialURL) {
         } catch {
             // ignore
         }
+    });
+
+    // A fresh document load means the renderer's folder-drop listener is gone
+    // until it re-mounts and re-signals. Reset the flag so a folder dropped on
+    // the dock mid-reload is queued (not sent into a void) and flushed on the
+    // next `weblab:renderer-ready`. (SPA route changes don't fire this.)
+    mainWindow.webContents.on('did-start-loading', () => {
+        rendererReady = false;
     });
 
     // --- Robustness: surface renderer errors and recover from crashes -------

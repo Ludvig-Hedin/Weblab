@@ -17,6 +17,9 @@ export interface ScaffoldFile {
 /** Port the static-HTML `serve` dev server binds. Matches the cloud scaffold. */
 export const STATIC_HTML_SCAFFOLD_PORT = 8080;
 
+/** Port `next dev` binds for a scaffolded Next.js project (Next's default). */
+export const NEXTJS_SCAFFOLD_PORT = 3000;
+
 export function getStaticHtmlScaffoldFiles(): ScaffoldFile[] {
     return [
         {
@@ -185,3 +188,108 @@ export const WEBLAB_NEXTJS_GLOBALS_CSS = `@import 'tailwindcss';
   }
 }
 `;
+
+/**
+ * Blank Next.js (15 + Tailwind v4 + Turbopack) scaffold file set, written to a
+ * local folder by the desktop NodeFs bridge. Mirrors `scaffoldNextProject` in
+ * providers/vercel-sandbox/index.ts so a LOCAL blank is byte-for-byte the same
+ * project as a CLOUD blank — keep the two in sync.
+ *
+ * Divergence from the cloud set, on purpose: a `postcss.config.mjs` is included
+ * so Tailwind v4 actually compiles when the user opens the folder in their own
+ * editor and runs `next dev` outside Weblab. (`@tailwindcss/postcss` is already
+ * a dependency; without the config Next won't run the PostCSS plugin.)
+ */
+export function getNextJsScaffoldFiles(): ScaffoldFile[] {
+    return [
+        {
+            path: 'package.json',
+            content: JSON.stringify(
+                {
+                    name: 'weblab-nextjs',
+                    private: true,
+                    scripts: {
+                        dev: 'next dev --turbopack',
+                        build: 'next build',
+                        start: 'next start',
+                    },
+                    dependencies: {
+                        '@tailwindcss/postcss': '^4.1.6',
+                        next: '^15.3.2',
+                        react: '^19.0.0',
+                        'react-dom': '^19.0.0',
+                        tailwindcss: '^4.1.6',
+                    },
+                    devDependencies: {
+                        typescript: '^5.8.3',
+                        '@types/node': '^22.15.3',
+                        '@types/react': '^19.0.12',
+                        '@types/react-dom': '^19.0.4',
+                    },
+                },
+                null,
+                2,
+            ),
+        },
+        {
+            path: 'src/app/page.tsx',
+            content:
+                'export default function Page() {\n  return <main className="min-h-screen" />;\n}\n',
+        },
+        {
+            path: 'src/app/layout.tsx',
+            content:
+                'import \'./globals.css\';\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return <html lang="en"><body>{children}</body></html>;\n}\n',
+        },
+        {
+            path: 'src/app/globals.css',
+            content: WEBLAB_NEXTJS_GLOBALS_CSS,
+        },
+        {
+            path: 'postcss.config.mjs',
+            content:
+                "const config = {\n  plugins: { '@tailwindcss/postcss': {} },\n};\n\nexport default config;\n",
+        },
+        {
+            path: 'public/_weblab/interactions.json',
+            content: JSON.stringify(EMPTY_INTERACTIONS_DOCUMENT, null, 2),
+        },
+        {
+            path: 'public/_weblab/interactions-initial.css',
+            content: '',
+        },
+        {
+            path: 'tsconfig.json',
+            content: JSON.stringify(
+                {
+                    compilerOptions: {
+                        target: 'ES2017',
+                        lib: ['dom', 'dom.iterable', 'esnext'],
+                        allowJs: true,
+                        skipLibCheck: true,
+                        strict: true,
+                        noEmit: true,
+                        esModuleInterop: true,
+                        module: 'esnext',
+                        moduleResolution: 'bundler',
+                        resolveJsonModule: true,
+                        isolatedModules: true,
+                        jsx: 'preserve',
+                        incremental: true,
+                        plugins: [{ name: 'next' }],
+                        paths: { '@/*': ['./src/*'] },
+                    },
+                    include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
+                    exclude: ['node_modules'],
+                },
+                null,
+                2,
+            ),
+        },
+        {
+            path: 'next-env.d.ts',
+            content:
+                '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n',
+        },
+    ];
+}

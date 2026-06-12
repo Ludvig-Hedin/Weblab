@@ -10,6 +10,7 @@ import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { Toaster } from '@weblab/ui/sonner';
 
 import { ClerkConvexProviders } from '@/components/clerk-convex-providers';
+import { DesktopFolderDrop } from '@/components/desktop/desktop-folder-drop';
 import { AppQueryClientProvider } from '@/components/query-client-provider';
 import RB2BLoader from '@/components/rb2b-loader';
 import { TelemetryProvider } from '@/components/telemetry-provider';
@@ -244,6 +245,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                         <AuthProvider>
                                             <NextIntlClientProvider>
                                                 {children}
+                                                <DesktopFolderDrop />
                                                 <Toaster />
                                                 <CookieConsent />
                                             </NextIntlClientProvider>
