@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import type {
     AddInteractionAction,
@@ -96,7 +96,11 @@ export class InteractionsManager {
     async init(): Promise<void> {
         await this.loadFromDisk();
         await this.flushNow();
-        this._loaded = true;
+        // Assignment runs after `await`, outside the implicit action created by
+        // makeAutoObservable — wrap it so MobX strict-mode doesn't reject it.
+        runInAction(() => {
+            this._loaded = true;
+        });
         this.attachBeforeUnload();
     }
 
@@ -160,23 +164,30 @@ export class InteractionsManager {
         const branchData = this.editorEngine.branches.activeBranchData;
         const codeEditor = branchData?.codeEditor;
         if (!codeEditor) return;
+        // Resolve into a local first, then commit in a single action — the
+        // assignments below run after `await`, outside makeAutoObservable's
+        // implicit action, which MobX strict-mode forbids.
+        let nextDoc: InteractionsDocument;
         try {
             const raw = await codeEditor.readFile(WEBLAB_INTERACTIONS_CACHE_PATH);
             if (typeof raw !== 'string' || raw.trim().length === 0) {
-                this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
+                nextDoc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
             } else {
                 const parsed = JSON.parse(raw) as InteractionsDocument;
                 if (parsed.version !== 1 || !Array.isArray(parsed.interactions)) {
                     console.warn('[InteractionsManager] Unsupported document shape');
-                    this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
+                    nextDoc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
                 } else {
-                    this._doc = parsed;
+                    nextDoc = parsed;
                 }
             }
         } catch {
             // No file yet — empty doc.
-            this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
+            nextDoc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
         }
+        runInAction(() => {
+            this._doc = nextDoc;
+        });
 
         // Fresh and AI-generated projects can miss the publicly-served mirror,
         // which makes every preview iframe report 404s while the runtime looks
@@ -445,8 +456,12 @@ export class InteractionsManager {
                 await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_PATH, json);
                 await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_PATH, initialCss);
             }
-            this._isDirty = false;
-            this._lastSavedAt = Date.now();
+            const savedAt = Date.now();
+            // Post-`await` writes — commit in an action for MobX strict-mode.
+            runInAction(() => {
+                this._isDirty = false;
+                this._lastSavedAt = savedAt;
+            });
         } catch (err) {
             console.warn('[InteractionsManager] Failed to persist interactions:', err);
         }

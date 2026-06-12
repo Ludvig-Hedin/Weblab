@@ -240,6 +240,26 @@ export class Color {
         return Color.transparent;
     }
 
+    /**
+     * Like `from`, but returns `null` when the input cannot be parsed as a
+     * color instead of silently falling back to `Color.transparent`. Use this
+     * in input fields where an unparseable entry must be rejected/reverted —
+     * `from`'s transparent fallback would otherwise commit transparent to the
+     * user's source for a typo like "redd".
+     */
+    static tryFrom(str: string): Color | null {
+        if (str.includes('oklch') || /^\s*[\d.]+\s+[\d.]+\s+[\d.]+/.test(str)) {
+            const oklchColor = parseOklchValue(str);
+            if (oklchColor) {
+                return oklchColor;
+            }
+        }
+        if (!parseCSSColor(formatHexString(str))) {
+            return null;
+        }
+        return Color.from(str);
+    }
+
     static mix(color0: Color, color1: Color, ratio: number): Color {
         const rgb0 = color0.rgb;
         const rgb1 = color1.rgb;

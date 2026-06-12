@@ -26,7 +26,13 @@ export async function saveHistory(
         undoStack: undoStack.slice(-MAX_UNDO_SIZE),
         redoStack: redoStack.slice(-MAX_REDO_SIZE),
     };
-    await localforage.setItem(historyStorageKey(branchId), data);
+    // localforage persists via IndexedDB's structured-clone algorithm, which
+    // throws DataCloneError on MobX observable proxies, class instances, or DOM
+    // refs that can ride along inside an action (the error often stringifies to
+    // an empty `{}` in the console). Snapshot to plain JSON first so a single
+    // non-cloneable action can't wedge all history persistence.
+    const plain = JSON.parse(JSON.stringify(data)) as PersistedHistory;
+    await localforage.setItem(historyStorageKey(branchId), plain);
 }
 
 export async function loadHistory(

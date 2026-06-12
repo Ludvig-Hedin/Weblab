@@ -2,7 +2,6 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { LayoutMode } from '@weblab/utility';
@@ -42,6 +41,8 @@ export const Width = observer(() => {
                     <div className="flex items-center justify-between">
                         <span className="text-muted-white text-small">Width</span>
                         <InputDropdown
+                            label="Width"
+                            min={0}
                             value={dimensionState.width.num ?? 0}
                             unit={dimensionState.width.unit}
                             dropdownValue={dimensionState.width.dropdownValue}
@@ -54,6 +55,8 @@ export const Width = observer(() => {
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground text-small">Min</span>
                         <InputDropdown
+                            label="Min width"
+                            min={0}
                             value={dimensionState.minWidth.num ?? 0}
                             unit={dimensionState.minWidth.unit}
                             dropdownValue={dimensionState.minWidth.dropdownValue}
@@ -66,6 +69,8 @@ export const Width = observer(() => {
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground text-small">Max</span>
                         <InputDropdown
+                            label="Max width"
+                            min={0}
                             value={dimensionState.maxWidth.num ?? 0}
                             unit={dimensionState.maxWidth.unit}
                             dropdownValue={dimensionState.maxWidth.dropdownValue}

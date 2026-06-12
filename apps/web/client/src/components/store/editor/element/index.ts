@@ -65,7 +65,19 @@ export class ElementsManager {
         this.editorEngine.overlay.state.removeClickRects();
         this.clearSelectedElements();
 
+        // De-duplicate by (frameId, domId). Responsive sibling frames reuse the
+        // same source-derived domId, so a naive selection list can accumulate
+        // the identical node many times — that produces duplicate React keys in
+        // the panels/overlay and, because every edit re-fans the selection out
+        // to sibling frames, an exponential blow-up of selected elements
+        // (1→3→9→27…) on each keystroke. Guarding here caps the set to unique
+        // nodes regardless of how callers build `domEls`.
+        const seen = new Set<string>();
         for (const domEl of domEls) {
+            const key = `${domEl.frameId}:${domEl.domId}`;
+            if (seen.has(key)) {
+                continue;
+            }
             const frameData = this.editorEngine.frames.get(domEl.frameId);
             if (!frameData) {
                 console.error('Frame data not found');
@@ -76,6 +88,7 @@ export class ElementsManager {
                 console.error('No frame view found');
                 continue;
             }
+            seen.add(key);
             const adjustedRect = adaptRectToCanvas(domEl.rect, view);
             const isComponent = !!domEl.instanceId;
             this.editorEngine.overlay.state.addClickRect(

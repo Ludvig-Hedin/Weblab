@@ -66,4 +66,20 @@ describe('ColorUtil', () => {
             expect(Color.from('not-a-color').toHex8()).toEqual('#00000000');
         });
     });
+
+    describe('tryFrom', () => {
+        it('returns null for unparseable input instead of transparent', () => {
+            expect(Color.tryFrom('not-a-color')).toBeNull();
+            expect(Color.tryFrom('redd')).toBeNull();
+            expect(Color.tryFrom('')).toBeNull();
+        });
+
+        it('parses the same values as from()', () => {
+            expect(Color.tryFrom('#ff0000')?.toHex6()).toEqual('#FF0000');
+            expect(Color.tryFrom('ff0000')?.toHex6()).toEqual('#FF0000');
+            expect(Color.tryFrom('red')?.toHex6()).toEqual('#FF0000');
+            expect(Color.tryFrom('rgb(0, 255, 0)')?.toHex6()).toEqual('#00FF00');
+            expect(Color.tryFrom('transparent')?.toHex8()).toEqual('#00000000');
+        });
+    });
 });

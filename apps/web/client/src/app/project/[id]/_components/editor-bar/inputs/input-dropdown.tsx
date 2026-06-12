@@ -22,6 +22,11 @@ interface InputDropdownProps {
     unit?: string;
     dropdownValue: string;
     dropdownOptions?: string[];
+    /** Accessible name for the numeric field (e.g. "Width", "Min width"). */
+    label?: string;
+    /** Clamp bounds for the numeric value (e.g. min 0 for dimensions). */
+    min?: number;
+    max?: number;
     onChange?: (value: number) => void;
     onDropdownChange?: (value: string) => void;
     onUnitChange?: (value: string) => void;
@@ -32,11 +37,21 @@ export const InputDropdown = ({
     unit = 'px',
     dropdownValue = 'Hug',
     dropdownOptions = ['Hug'],
+    label,
+    min,
+    max,
     onChange,
     onDropdownChange,
     onUnitChange,
 }: InputDropdownProps) => {
-    const { localValue, handleKeyDown, handleChange } = useInputControl(value, onChange);
+    const { localValue, handleKeyDown, handleChange, handleBlur } = useInputControl(
+        value,
+        onChange,
+        {
+            min,
+            max,
+        },
+    );
 
     return (
         <div className="flex items-center">
@@ -48,11 +63,15 @@ export const InputDropdown = ({
                     value={localValue}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="text-foreground text-small w-[40px] bg-transparent text-left focus:outline-none"
-                    aria-label="Value input"
+                    onBlur={handleBlur}
+                    className="text-foreground text-small focus-visible:ring-border w-[40px] rounded-sm bg-transparent text-left focus:outline-none focus-visible:ring-1"
+                    aria-label={label ?? 'Value input'}
                 />
                 <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground text-small cursor-pointer transition-colors focus:outline-none">
+                    <DropdownMenuTrigger
+                        aria-label={label ? `${label} unit` : 'Unit'}
+                        className="text-muted-foreground hover:text-foreground text-small focus-visible:ring-border cursor-pointer rounded-sm transition-colors focus:outline-none focus-visible:ring-1"
+                    >
                         {unit}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-[64px] min-w-0">

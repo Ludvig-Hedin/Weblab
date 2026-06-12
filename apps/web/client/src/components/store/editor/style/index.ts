@@ -410,11 +410,15 @@ export class StyleManager {
     }
 
     private onSelectedElementsChanged(selectedElements: DomElement[]) {
+        // Key on frameId + domId: responsive sibling frames share source-derived
+        // domIds, so a domId-only key would treat "same element, different
+        // frame" as an unchanged selection and skip the override re-seed below.
         const newSelected = selectedElements
-            .map((el) => el.domId)
+            .map((el) => `${el.frameId}:${el.domId}`)
             .toSorted()
             .join();
-        if (newSelected !== this.prevSelected) {
+        const selectionChanged = newSelected !== this.prevSelected;
+        if (selectionChanged) {
             this.mode = StyleMode.Root;
         }
         this.prevSelected = newSelected;
@@ -449,9 +453,19 @@ export class StyleManager {
         // the override map. Non-blocking — the inputs re-render via MobX once
         // seeding lands, so users see "Overridden at Tablet" badges on
         // existing responsive Tailwind classes from prior sessions.
-        const primary = selectedElements[0];
-        if (primary) {
-            void this.seedOverridesFromSiblings(primary);
+        //
+        // Guarded on `selectionChanged`: after every style edit, ActionManager
+        // re-clicks the selected element to refresh its rect, which re-fires
+        // this reaction with an IDENTICAL selection. Re-seeding then would fan
+        // out N penpal round-trips per keystroke (one per sibling frame) for
+        // data that hasn't changed — the override map for this oid is already
+        // populated and kept current by `recordOverrides`. Only a genuine
+        // selection change needs a fresh sibling pull.
+        if (selectionChanged) {
+            const primary = selectedElements[0];
+            if (primary) {
+                void this.seedOverridesFromSiblings(primary);
+            }
         }
     }
 

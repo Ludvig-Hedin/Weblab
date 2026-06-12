@@ -471,6 +471,10 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
                 cancelAnimationFrame(rafId);
                 rafId = null;
             }
+            // Commit the last coalesced update like onMouseUp does — dropping
+            // it would leave the preview showing a value the transaction
+            // never recorded.
+            flush();
             void editorEngine.history.commitTransaction();
         };
     };
@@ -490,6 +494,23 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
 
         const captureOverlay = createCaptureOverlay(startEvent);
 
+        // Coalesce per-frame like the dimension drag above. Raw mousemove can
+        // fire 100-200×/s; without this each one pushed a style update +
+        // iframe (penpal) injection, spamming the preview during a radius drag.
+        let rafId: number | null = null;
+        let pendingRadius: string | null = null;
+        const flush = () => {
+            rafId = null;
+            if (pendingRadius !== null) {
+                updateRadius(pendingRadius);
+                pendingRadius = null;
+            }
+        };
+        const queueRadiusUpdate = (radius: string) => {
+            pendingRadius = radius;
+            rafId ??= requestAnimationFrame(flush);
+        };
+
         const onMouseMove = (moveEvent: MouseEvent) => {
             moveEvent.preventDefault();
             moveEvent.stopPropagation();
@@ -502,7 +523,7 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
             const adjustedDelta = adaptValueToCanvas(delta, true);
 
             const newRadius = Math.max(0, startRadius + adjustedDelta);
-            updateRadius(`${Math.round(newRadius)}px`);
+            queueRadiusUpdate(`${Math.round(newRadius)}px`);
         };
 
         const onMouseUp = (upEvent: MouseEvent) => {
@@ -515,6 +536,11 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
             // race can't throw a NotFoundError here and abort the rest of
             // onMouseUp (which commits the resize history transaction).
             captureOverlay.remove();
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            flush(); // commit the final radius before closing the transaction
             editorEngine.history.commitTransaction();
             activeResizeCleanupRef.current = null;
         };
@@ -527,6 +553,14 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             captureOverlay.remove();
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            // Commit the last coalesced update like onMouseUp does — dropping
+            // it would leave the preview showing a value the transaction
+            // never recorded.
+            flush();
             void editorEngine.history.commitTransaction();
         };
     };
