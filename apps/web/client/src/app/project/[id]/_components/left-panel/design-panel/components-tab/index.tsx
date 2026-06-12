@@ -19,9 +19,30 @@ export const ComponentsTab = observer(() => {
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-    // TODO(convex-migration): forward router was tRPC-only and is being removed; restore project component scanning via a Convex action when available
-    const userComponents = [] as ComponentInsertData[];
+    // Discovered from the code-derived component index (code is truth);
+    // updates reactively as files are written or the branch changes.
+    const userComponents = useMemo<ComponentInsertData[]>(
+        () =>
+            editorEngine.components.definitions
+                .filter((def) => def.kind === 'react')
+                .map((def) => ({
+                    componentName: def.name,
+                    filePath: def.filePath,
+                    exportType: def.exportType,
+                    key: def.key,
+                }))
+                .sort((a, b) => a.componentName.localeCompare(b.componentName)),
+        [editorEngine.components.definitions],
+    );
     const isLoadingComponents = false;
+
+    const filteredUserComponents = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return userComponents;
+        return userComponents.filter((c) =>
+            [c.componentName, c.filePath].join(' ').toLowerCase().includes(q),
+        );
+    }, [userComponents, searchQuery]);
 
     const filteredTemplates = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -93,24 +114,26 @@ export const ComponentsTab = observer(() => {
 
             <div className="flex-1 overflow-auto px-3 pb-4">
                 <div className="flex flex-col gap-3">
-                    {/* My Components section */}
+                    {/* Components discovered in the project source */}
                     <div className="mb-1 flex flex-col gap-1.5">
                         <span className="text-foreground-primary text-small px-1 py-1 font-medium">
-                            My Components
+                            Components
                         </span>
                         {isLoadingComponents ? (
                             <p className="text-muted-foreground text-mini px-1 py-4 text-center">
-                                Scanning project…
+                                Indexing components…
                             </p>
-                        ) : !userComponents?.length ? (
+                        ) : !filteredUserComponents.length ? (
                             <p className="text-muted-foreground text-mini px-1 py-4 text-center">
-                                No components found in src/
+                                {searchQuery
+                                    ? 'No matching components'
+                                    : 'No components yet. Exported React components appear here automatically.'}
                             </p>
                         ) : (
                             <div className="flex flex-col gap-1">
-                                {userComponents.map((comp) => (
+                                {filteredUserComponents.map((comp) => (
                                     <ComponentCard
-                                        key={`${comp.filePath}:${comp.componentName}`}
+                                        key={comp.key ?? `${comp.filePath}:${comp.componentName}`}
                                         data={comp}
                                         onDragStart={handleComponentDragStart}
                                     />

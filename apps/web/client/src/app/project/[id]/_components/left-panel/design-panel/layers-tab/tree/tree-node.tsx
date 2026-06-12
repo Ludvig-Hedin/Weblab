@@ -85,6 +85,11 @@ export const TreeNode = memo(
             const editorEngine = useEditorEngine();
             const isWindow = node.data.tagName.toLowerCase() === 'body';
             const nodeRef = useRef<HTMLDivElement>(null);
+            // While a master component is edited in-context, rows outside the
+            // edit scope are dimmed and inert (matching the canvas dim).
+            const outOfEditScope =
+                !!editorEngine.components.editing &&
+                !editorEngine.components.isInEditScope(node.data.frameId, node.data.domId);
             const isText = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(
                 node.data.tagName.toLowerCase(),
             );
@@ -188,6 +193,7 @@ export const TreeNode = memo(
             const nodeClassName = useMemo(
                 () =>
                     cn('flex h-6 w-full cursor-pointer flex-row items-center pr-1', {
+                        'pointer-events-none opacity-40': outOfEditScope,
                         'text-foreground-skill/70':
                             isComponentAncestor(node) && !node.data.instanceId && !hovered,
                         'text-foreground-skill':
@@ -222,7 +228,15 @@ export const TreeNode = memo(
                             (!node.data.instanceId && selected) || isWindowSelected,
                         'bg-foreground-brand': isWindowSelected,
                     }),
-                [hovered, selected, isParentSelected, isWindowSelected, parentGroupEnd, node],
+                [
+                    hovered,
+                    selected,
+                    isParentSelected,
+                    isWindowSelected,
+                    parentGroupEnd,
+                    node,
+                    outOfEditScope,
+                ],
             );
 
             function sideOffset() {
@@ -408,6 +422,35 @@ export const TreeNode = memo(
                                             </LayerBadge>
                                         )}
                                     </div>
+                                )}
+                                {node.data.instanceId && hovered && !selected && (
+                                    <button
+                                        type="button"
+                                        title="Edit component"
+                                        style={{ position: 'absolute', right: '4px' }}
+                                        className="hover:text-foreground-primary text-foreground-tertiary flex h-4 w-4 items-center justify-center"
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation();
+                                            void (async () => {
+                                                const frameData = editorEngine.frames.get(
+                                                    node.data.frameId,
+                                                );
+                                                if (!frameData?.view) return;
+                                                const el: DomElement =
+                                                    await frameData.view.getElementByDomId(
+                                                        node.data.domId,
+                                                        false,
+                                                    );
+                                                if (el) {
+                                                    await editorEngine.components.enterEditMode(
+                                                        el,
+                                                    );
+                                                }
+                                            })();
+                                        }}
+                                    >
+                                        <Icons.Pencil className="h-2.5 w-2.5" />
+                                    </button>
                                 )}
                                 {selected && (
                                     <VisibilityButton

@@ -5,21 +5,31 @@ import {
     WEBLAB_IX_RUNTIME_FILE,
     WEBLAB_PRELOAD_SCRIPT_FILE,
 } from '@weblab/constants';
+import type { ComponentDef } from '@weblab/models';
 import { RouterType } from '@weblab/models';
 import {
     addOidsToAst,
     createTemplateNodeMap,
+    discoverComponentsInAst,
     formatContent,
     getAstFromContent,
     getContentFromAst,
     getContentFromTemplateNode,
     getOidToIxIdMap,
+    htmlPipeline,
     injectWeblabBootstrapScripts,
     preserveIxIds,
 } from '@weblab/parser';
 import { isRootLayoutFile, pathsEqual } from '@weblab/utility';
 
 import type { JsxElementMetadata } from './index-cache';
+import {
+    clearComponentIndexCache,
+    getComponentIndexFromCache,
+    getOrLoadComponentIndex,
+    onComponentIndexChanged,
+    saveComponentIndexToCache,
+} from './component-index';
 import { FileSystem } from './fs';
 import {
     clearIndexCache,
@@ -39,6 +49,7 @@ export class CodeFileSystem extends FileSystem {
     private branchId: string;
     private options: Required<CodeEditorOptions>;
     private indexPath = `${WEBLAB_CACHE_DIRECTORY}/index.json`;
+    private componentIndexPath = `${WEBLAB_CACHE_DIRECTORY}/components.json`;
     private debouncedRebuild = debounce(() => void this.rebuildIndex(), 2000);
 
     constructor(projectId: string, branchId: string, options: CodeEditorOptions = {}) {
@@ -75,6 +86,9 @@ export class CodeFileSystem extends FileSystem {
         return this.withWriteLock(async () => {
             if (this.isJsxFile(path) && typeof content === 'string') {
                 const processedContent = await this.processJsxFile(path, content);
+                await super.writeFile(path, processedContent);
+            } else if (this.isHtmlFile(path) && typeof content === 'string') {
+                const processedContent = await this.processHtmlFile(path, content);
                 await super.writeFile(path, processedContent);
             } else {
                 await super.writeFile(path, content);
@@ -119,6 +133,74 @@ export class CodeFileSystem extends FileSystem {
         }
 
         return formattedContent;
+    }
+
+    /**
+     * `.html` counterpart of `processJsxFile`: stamps `data-oid` attributes via
+     * the parse5 pipeline and refreshes the element index for the file so
+     * static-HTML projects support canvas editing (resolves the long-standing
+     * "always-empty index" gap for scaffoldStaticHtmlProject projects).
+     *
+     * Unlike the JSX path, existing oids in *this* file must NOT be passed as
+     * `globalOids` — the HTML pipeline regenerates any oid found in that set,
+     * which would churn ids on every write. Pass only the other files' oids
+     * to guard cross-file uniqueness.
+     */
+    private async processHtmlFile(path: string, content: string): Promise<string> {
+        const ast = htmlPipeline.parse(content);
+        if (!ast) {
+            console.warn(`Failed to parse ${path}, skipping OID injection`);
+            return content;
+        }
+
+        const globalOids = await this.getOidsExcludingFile(path);
+        const { ast: oidAst, modified } = htmlPipeline.injectOids(ast, { globalOids });
+        const processedContent = modified
+            ? await htmlPipeline.generate(oidAst, content)
+            : content;
+
+        await this.updateHtmlMetadataForFile(path, processedContent);
+        return processedContent;
+    }
+
+    private async updateHtmlMetadataForFile(path: string, content: string): Promise<void> {
+        const index = await this.loadIndex();
+
+        const next: Record<string, JsxElementMetadata> = {};
+        for (const [oid, metadata] of Object.entries(index)) {
+            if (!pathsEqual(metadata.path, path)) {
+                next[oid] = metadata;
+            }
+        }
+
+        // Re-parse the serialized output: injectOids mutates the tree, so the
+        // original parse's source positions are stale.
+        const ast = htmlPipeline.parse(content);
+        if (!ast) return;
+
+        const templateNodeMap = htmlPipeline.buildTemplateNodeMap({
+            ast,
+            filename: path,
+            branchId: this.branchId,
+        });
+
+        for (const [oid, node] of templateNodeMap.entries()) {
+            const code = await getContentFromTemplateNode(node, content);
+            next[oid] = { ...node, oid, code: code || '' };
+        }
+
+        await this.saveIndex(next);
+    }
+
+    private async getOidsExcludingFile(path: string): Promise<Set<string>> {
+        const index = await this.loadIndex();
+        const oids = new Set<string>();
+        for (const [oid, metadata] of Object.entries(index)) {
+            if (!pathsEqual(metadata.path, path)) {
+                oids.add(oid);
+            }
+        }
+        return oids;
     }
 
     /**
@@ -197,6 +279,34 @@ export class CodeFileSystem extends FileSystem {
         }
 
         await this.saveIndex(next);
+        await this.updateComponentIndexForFile(path, ast);
+    }
+
+    /**
+     * Re-derives the component definitions exported by `path` and swaps them
+     * into the component index. Same copy-on-write discipline as the oid
+     * index: defs from other files are kept, this file's defs are replaced.
+     */
+    private async updateComponentIndexForFile(
+        path: string,
+        ast: ReturnType<typeof getAstFromContent>,
+    ): Promise<void> {
+        if (!ast) return;
+        try {
+            const componentIndex = await this.loadComponentIndex();
+            const next: Record<string, ComponentDef> = {};
+            for (const [key, def] of Object.entries(componentIndex)) {
+                if (!pathsEqual(def.filePath, path)) {
+                    next[key] = def;
+                }
+            }
+            for (const def of discoverComponentsInAst(ast, path)) {
+                next[def.key] = def;
+            }
+            await this.saveComponentIndex(next);
+        } catch (error) {
+            console.error(`[CodeEditorApi] Component discovery failed for ${path}:`, error);
+        }
     }
 
     async getJsxElementMetadata(oid: string): Promise<JsxElementMetadata | undefined> {
@@ -230,46 +340,68 @@ export class CodeFileSystem extends FileSystem {
     private async performRebuildIndex(): Promise<void> {
         const startTime = Date.now();
         const index: Record<string, JsxElementMetadata> = {};
+        const componentIndex: Record<string, ComponentDef> = {};
 
         const entries = await this.listAll();
-        const jsxFiles = entries.filter(
-            (entry) => entry.type === 'file' && this.isJsxFile(entry.path),
+        const sourceFiles = entries.filter(
+            (entry) =>
+                entry.type === 'file' && (this.isJsxFile(entry.path) || this.isHtmlFile(entry.path)),
         );
 
         const BATCH_SIZE = 10;
         let processedCount = 0;
 
-        for (let i = 0; i < jsxFiles.length; i += BATCH_SIZE) {
-            const batch = jsxFiles.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < sourceFiles.length; i += BATCH_SIZE) {
+            const batch = sourceFiles.slice(i, i + BATCH_SIZE);
             await Promise.all(
                 batch.map(async (entry) => {
                     try {
                         const content = await this.readFile(entry.path);
-                        if (typeof content === 'string') {
-                            const ast = getAstFromContent(content);
-                            if (!ast) return;
+                        if (typeof content !== 'string') return;
 
-                            const templateNodeMap = createTemplateNodeMap({
-                                ast,
+                        if (this.isHtmlFile(entry.path)) {
+                            const htmlAst = htmlPipeline.parse(content);
+                            if (!htmlAst) return;
+                            const templateNodeMap = htmlPipeline.buildTemplateNodeMap({
+                                ast: htmlAst,
                                 filename: entry.path,
                                 branchId: this.branchId,
                             });
-
-                            const oidToIxId = getOidToIxIdMap(ast);
-
                             for (const [oid, node] of templateNodeMap.entries()) {
                                 const code = await getContentFromTemplateNode(node, content);
-                                const ixId = oidToIxId.get(oid);
-                                index[oid] = {
-                                    ...node,
-                                    oid,
-                                    code: code || '',
-                                    ...(ixId ? { ixId } : {}),
-                                };
+                                index[oid] = { ...node, oid, code: code || '' };
                             }
-
                             processedCount++;
+                            return;
                         }
+
+                        const ast = getAstFromContent(content);
+                        if (!ast) return;
+
+                        const templateNodeMap = createTemplateNodeMap({
+                            ast,
+                            filename: entry.path,
+                            branchId: this.branchId,
+                        });
+
+                        const oidToIxId = getOidToIxIdMap(ast);
+
+                        for (const [oid, node] of templateNodeMap.entries()) {
+                            const code = await getContentFromTemplateNode(node, content);
+                            const ixId = oidToIxId.get(oid);
+                            index[oid] = {
+                                ...node,
+                                oid,
+                                code: code || '',
+                                ...(ixId ? { ixId } : {}),
+                            };
+                        }
+
+                        for (const def of discoverComponentsInAst(ast, entry.path)) {
+                            componentIndex[def.key] = def;
+                        }
+
+                        processedCount++;
                     } catch (error) {
                         console.error(`Error indexing ${entry.path}:`, error);
                     }
@@ -278,10 +410,11 @@ export class CodeFileSystem extends FileSystem {
         }
 
         await this.saveIndex(index);
+        await this.saveComponentIndex(componentIndex);
 
         const duration = Date.now() - startTime;
         console.log(
-            `[CodeEditorApi] Index built: ${Object.keys(index).length} elements from ${processedCount} files in ${duration}ms`,
+            `[CodeEditorApi] Index built: ${Object.keys(index).length} elements, ${Object.keys(componentIndex).length} components from ${processedCount} files in ${duration}ms`,
         );
     }
 
@@ -289,7 +422,7 @@ export class CodeFileSystem extends FileSystem {
         return this.withWriteLock(async () => {
             await super.deleteFile(path);
 
-            if (this.isJsxFile(path)) {
+            if (this.isJsxFile(path) || this.isHtmlFile(path)) {
                 const index = await this.loadIndex();
                 let hasChanges = false;
 
@@ -303,6 +436,18 @@ export class CodeFileSystem extends FileSystem {
                 if (hasChanges) {
                     await this.saveIndex(index);
                 }
+
+                const componentIndex = await this.loadComponentIndex();
+                let hasComponentChanges = false;
+                for (const [key, def] of Object.entries(componentIndex)) {
+                    if (pathsEqual(def.filePath, path)) {
+                        delete componentIndex[key];
+                        hasComponentChanges = true;
+                    }
+                }
+                if (hasComponentChanges) {
+                    await this.saveComponentIndex(componentIndex);
+                }
             }
         });
     }
@@ -311,7 +456,10 @@ export class CodeFileSystem extends FileSystem {
         return this.withWriteLock(async () => {
             await super.moveFile(oldPath, newPath);
 
-            if (this.isJsxFile(oldPath) && this.isJsxFile(newPath)) {
+            const isSourcePair =
+                (this.isJsxFile(oldPath) && this.isJsxFile(newPath)) ||
+                (this.isHtmlFile(oldPath) && this.isHtmlFile(newPath));
+            if (isSourcePair) {
                 const index = await this.loadIndex();
                 let hasChanges = false;
 
@@ -325,6 +473,25 @@ export class CodeFileSystem extends FileSystem {
                 if (hasChanges) {
                     await this.saveIndex(index);
                 }
+
+                // Component keys embed the file path — re-key on move.
+                const componentIndex = await this.loadComponentIndex();
+                const next: Record<string, ComponentDef> = {};
+                let hasComponentChanges = false;
+                for (const [key, def] of Object.entries(componentIndex)) {
+                    if (pathsEqual(def.filePath, oldPath)) {
+                        const newKey = key.includes('#')
+                            ? `${newPath}#${key.split('#').pop()}`
+                            : newPath;
+                        next[newKey] = { ...def, key: newKey, filePath: newPath };
+                        hasComponentChanges = true;
+                    } else {
+                        next[key] = def;
+                    }
+                }
+                if (hasComponentChanges) {
+                    await this.saveComponentIndex(next);
+                }
             }
         });
     }
@@ -332,6 +499,70 @@ export class CodeFileSystem extends FileSystem {
     private async loadIndex(): Promise<Record<string, JsxElementMetadata>> {
         return getOrLoadIndex(this.getCacheKey(), this.indexPath, (path) => this.readFile(path));
     }
+
+    // ── Component index (master/instance component system) ──
+
+    /** All component definitions discovered in the project source. */
+    async listComponents(): Promise<ComponentDef[]> {
+        const index = await this.loadComponentIndex();
+        return Object.values(index);
+    }
+
+    async getComponent(key: string): Promise<ComponentDef | undefined> {
+        const index = await this.loadComponentIndex();
+        return index[key];
+    }
+
+    /** Subscribe to component-index changes. Returns an unsubscribe fn. */
+    onComponentsChanged(cb: (defs: ComponentDef[]) => void): () => void {
+        return onComponentIndexChanged(this.getCacheKey(), cb);
+    }
+
+    /**
+     * Counts JSX usage sites of a component across the indexed source. The
+     * usage element (`<Card …>`) carries its own oid, so its indexed code
+     * snippet starts with the component tag.
+     */
+    async countComponentUsages(componentName: string): Promise<number> {
+        const index = await this.loadIndex();
+        const usagePattern = new RegExp(`^<${componentName}[\\s/>]`);
+        let count = 0;
+        for (const metadata of Object.values(index)) {
+            if (usagePattern.test(metadata.code)) count++;
+        }
+        return count;
+    }
+
+    private async loadComponentIndex(): Promise<Record<string, ComponentDef>> {
+        return getOrLoadComponentIndex(this.getCacheKey(), this.componentIndexPath, (path) =>
+            this.readFile(path),
+        );
+    }
+
+    private async saveComponentIndex(index: Record<string, ComponentDef>): Promise<void> {
+        saveComponentIndexToCache(this.getCacheKey(), index);
+        void this.debouncedSaveComponentIndexToFile();
+    }
+
+    private async undebouncedSaveComponentIndexToFile(): Promise<void> {
+        if (!this.initialized) {
+            return;
+        }
+        try {
+            await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
+        } catch {
+            console.warn(`[CodeEditorApi] Failed to create ${WEBLAB_CACHE_DIRECTORY} directory`);
+        }
+        const index = getComponentIndexFromCache(this.getCacheKey());
+        if (index) {
+            await super.writeFile(this.componentIndexPath, JSON.stringify(index));
+        }
+    }
+
+    private debouncedSaveComponentIndexToFile = debounce(
+        () => void this.undebouncedSaveComponentIndexToFile(),
+        1000,
+    );
 
     private async saveIndex(index: Record<string, JsxElementMetadata>): Promise<void> {
         saveIndexToCache(this.getCacheKey(), index);
@@ -365,12 +596,11 @@ export class CodeFileSystem extends FileSystem {
         if (path.endsWith(WEBLAB_IX_RUNTIME_FILE)) {
             return false;
         }
-        // TODO(bug-hunt): `.html` files never get OIDs, so static-HTML projects
-        // (scaffoldStaticHtmlProject) have an always-empty index and every
-        // canvas edit fails with "No oid found". Either add an HTML
-        // oid-injection path or gate canvas editing for static-html frameworks
-        // with a clear message. See CODE_REVIEW_BACKLOG 2026-06-11.
         return /\.(jsx?|tsx?)$/i.test(path);
+    }
+
+    private isHtmlFile(path: string): boolean {
+        return /\.html?$/i.test(path);
     }
 
     async cleanup(): Promise<void> {
@@ -378,8 +608,12 @@ export class CodeFileSystem extends FileSystem {
         if (getIndexFromCache(cacheKey)) {
             await this.undobounceSaveIndexToFile();
         }
+        if (getComponentIndexFromCache(cacheKey)) {
+            await this.undebouncedSaveComponentIndexToFile();
+        }
 
         clearIndexCache(cacheKey);
+        clearComponentIndexCache(cacheKey);
     }
 
     private getCacheKey(): string {

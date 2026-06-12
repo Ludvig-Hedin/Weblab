@@ -17,6 +17,7 @@ import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 import { transKeys } from '@/i18n/keys';
 import { Members } from '../members';
 import { BranchDisplay } from './branch';
+import { ComponentEditCrumb } from './component-edit-crumb';
 import { ConnectionChip } from './connection-chip';
 import { DiffButton } from './diff';
 import { GitActionsButton } from './git-actions';
@@ -54,6 +55,7 @@ export const TopBar = observer(() => {
                 <ProjectBreadcrumb />
                 <span className="text-foreground-secondary/50 text-small">/</span>
                 <BranchDisplay />
+                <ComponentEditCrumb />
                 <span className="ml-2 hidden md:block">
                     <ConnectionChip />
                 </span>

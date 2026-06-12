@@ -34,6 +34,16 @@ export class ElementsManager {
             console.error('No frame view found');
             return;
         }
+        // While editing a master component, hover is scoped to the entry
+        // instance's subtree — everything else is dimmed and inert.
+        if (
+            this.editorEngine.components.editing &&
+            !this.editorEngine.components.isInEditScope(domEl.frameId, domEl.domId)
+        ) {
+            this.clearHoveredElement();
+            this.editorEngine.overlay.state.removeHoverRect();
+            return;
+        }
         if (this._hovered?.domId && this._hovered.domId === domEl.domId) {
             return;
         }
@@ -62,6 +72,18 @@ export class ElementsManager {
     }
 
     click(domEls: DomElement[]) {
+        // While editing a master component, clicking outside the scope exits
+        // the session (the first click only exits — Webflow behavior).
+        const components = this.editorEngine.components;
+        if (components.editing && domEls.length > 0) {
+            const inScope = domEls.filter((el) => components.isInEditScope(el.frameId, el.domId));
+            if (inScope.length === 0) {
+                components.exitEditMode();
+                return;
+            }
+            domEls = inScope;
+        }
+
         this.editorEngine.overlay.state.removeClickRects();
         this.clearSelectedElements();
 

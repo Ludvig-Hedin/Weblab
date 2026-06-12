@@ -35,6 +35,8 @@ export class OverlayManager {
         const newClickRects: {
             rect: RectDimensions;
             styles: DomElementStyles | null;
+            isComponent: boolean;
+            domId: string;
         }[] = [];
         for (const selectedElement of this.editorEngine.elements.selected) {
             const frameData = this.editorEngine.frames.get(selectedElement.frameId);
@@ -53,13 +55,30 @@ export class OverlayManager {
                 continue;
             }
             const adaptedRect = adaptRectToCanvas(el.rect, view);
-            newClickRects.push({ rect: adaptedRect, styles: el.styles });
+            newClickRects.push({
+                rect: adaptedRect,
+                styles: el.styles,
+                // Preserve the component flag and stable id across refreshes —
+                // dropping them downgraded instance outlines to the element
+                // color (and churned React keys) after every pan/zoom.
+                isComponent: !!el.instanceId,
+                domId: el.domId,
+            });
         }
 
         this.state.removeClickRects();
         for (const clickRect of newClickRects) {
-            this.state.addClickRect(clickRect.rect, clickRect.styles);
+            this.state.addClickRect(
+                clickRect.rect,
+                clickRect.styles,
+                clickRect.isComponent,
+                clickRect.domId,
+            );
         }
+
+        // Keep the master-edit scope rect (dim cutout) in sync with pan/zoom
+        // and post-edit DOM updates.
+        await this.editorEngine.components.refreshScopeRect();
 
         // Refresh text editor position if it's active
         if (this.editorEngine.text.isEditing && this.editorEngine.text.targetElement) {

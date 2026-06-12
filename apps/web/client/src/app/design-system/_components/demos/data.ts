@@ -763,6 +763,20 @@ export const PALETTE = [
         ],
     },
     {
+        label: 'Green',
+        colors: [
+            { name: '100', value: '149 64% 94%' },
+            { name: '200', value: '147 69% 80%' },
+            { name: '300', value: '148 67% 66%' },
+            { name: '400', value: '150 64% 50%' },
+            { name: '500', value: '150 78% 39%' },
+            { name: '600', value: '150 82% 31%' },
+            { name: '700', value: '151 83% 24%' },
+            { name: '800', value: '151 84% 17%' },
+            { name: '900', value: '152 84% 13%' },
+        ],
+    },
+    {
         label: 'Gray',
         colors: [
             { name: '50', value: '0 0% 100%' },

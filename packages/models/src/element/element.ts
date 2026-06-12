@@ -50,4 +50,6 @@ export interface ComponentInsertData {
     componentName: string;
     filePath: string;
     exportType: 'default' | 'named';
+    /** ComponentKey when the insert refers to a discovered project component. */
+    key?: string;
 }

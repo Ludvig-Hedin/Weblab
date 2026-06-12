@@ -86,6 +86,12 @@ export const GestureScreen = observer(
                                 if (editorEngine.text.isEditing) {
                                     await editorEngine.text.end();
                                 }
+                                if (editorEngine.components.editing) {
+                                    // Clicking the page background exits master
+                                    // editing; the first click only exits.
+                                    editorEngine.components.exitEditMode();
+                                    return;
+                                }
                                 editorEngine.frames.select([frame], e.shiftKey);
                                 return;
                             }
@@ -134,7 +140,40 @@ export const GestureScreen = observer(
                                 }
                             }
                             break;
-                        case MouseAction.DOUBLE_CLICK:
+                        case MouseAction.DOUBLE_CLICK: {
+                            // Component instances: double-click enters master
+                            // editing (Webflow behavior). Once inside the edit
+                            // scope, double-click falls through to text edit.
+                            const components = editorEngine.components;
+                            const inScope =
+                                components.editing &&
+                                components.isInEditScope(el.frameId, el.domId);
+                            if (!inScope) {
+                                if (el.instanceId) {
+                                    const entered = await components.enterEditMode(el);
+                                    if (entered) break;
+                                } else {
+                                    // Deep inside an instance: enter the master
+                                    // via the nearest boundary instead of
+                                    // silently editing the component file.
+                                    const boundary = components.findInstanceBoundary(
+                                        el.frameId,
+                                        el.domId,
+                                    );
+                                    if (boundary?.instanceId && frameData.view) {
+                                        const boundaryEl: DomElement =
+                                            await frameData.view.getElementByDomId(
+                                                boundary.domId,
+                                                false,
+                                            );
+                                        if (boundaryEl) {
+                                            const entered =
+                                                await components.enterEditMode(boundaryEl);
+                                            if (entered) break;
+                                        }
+                                    }
+                                }
+                            }
                             if (
                                 el.oid &&
                                 (await frameData.view.isChildTextEditable(el.oid)) === true
@@ -147,6 +186,7 @@ export const GestureScreen = observer(
                                 return;
                             }
                             break;
+                        }
                     }
                 } catch (error) {
                     if (action !== MouseAction.MOVE) {

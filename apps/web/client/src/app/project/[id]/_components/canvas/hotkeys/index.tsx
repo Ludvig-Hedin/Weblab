@@ -146,6 +146,12 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('ESCAPE'),
         () => {
+            // Layered escape: text editing (handled by the editor itself) →
+            // component edit session → clear selection. One ESC per layer.
+            if (!editorEngine.text.isEditing && editorEngine.components.editing) {
+                editorEngine.components.exitEditMode();
+                return;
+            }
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             if (!editorEngine.text.isEditing) {
                 editorEngine.clearUI();

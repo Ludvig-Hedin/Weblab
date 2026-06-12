@@ -9,9 +9,12 @@ import type { ClickRectState } from '@/components/store/editor/overlay/state';
 import { useEditorEngine } from '@/components/store/editor';
 import { CommentPins } from './comment-pins';
 import { CommentPopover } from './comment-popover';
+import { ComponentEditBanner } from './component-edit-banner';
+import { EditModeDim } from './edit-mode-dim';
 import { OverlayButtons } from './elements/buttons';
 import { OverlayAiMenu } from './elements/buttons/ai-menu';
 import { CmsPill } from './elements/cms-pill';
+import { ComponentChip } from './elements/component-chip';
 import { MeasurementOverlay } from './elements/measurement';
 import { ClickRect } from './elements/rect/click';
 import { HoverRect } from './elements/rect/hover';
@@ -54,6 +57,7 @@ export const Overlay = observer(() => {
                 editorEngine.state.editorMode === EditorMode.PREVIEW && 'hidden',
             )}
         >
+            <EditModeDim />
             {!isTextEditing && overlayState.hoverRect && (
                 <HoverRect
                     rect={overlayState.hoverRect.rect}
@@ -74,6 +78,8 @@ export const Overlay = observer(() => {
             {overlayState.clickRects.length > 0 && <OverlayButtons />}
             {overlayState.clickRects.length > 0 && <OverlayAiMenu />}
             {overlayState.clickRects.length > 0 && <CmsPill />}
+            {overlayState.clickRects.length > 0 && <ComponentChip />}
+            <ComponentEditBanner />
             <SnapGuidelines />
             <CommentPins />
             <CommentPopover />

@@ -14,6 +14,7 @@ import { CanvasManager } from './canvas';
 import { ChatManager } from './chat';
 import { CodeManager } from './code';
 import { CommentManager } from './comment';
+import { ComponentsManager } from './components';
 import { CopyManager } from './copy';
 import { CopyToFigmaManager } from './copy/figma';
 import { ElementsManager } from './element';
@@ -82,6 +83,7 @@ export class EditorEngine {
     readonly stylePreferences: StylePreferencesStore = new StylePreferencesStore(this);
     readonly propertiesClipboard: PropertiesClipboardManager = new PropertiesClipboardManager(this);
     readonly code: CodeManager = new CodeManager(this);
+    readonly components: ComponentsManager = new ComponentsManager(this);
     readonly chat: ChatManager = new ChatManager(this);
     readonly interactions: InteractionsManager = new InteractionsManager(this);
     readonly image: ImageManager = new ImageManager(this);
@@ -120,6 +122,7 @@ export class EditorEngine {
         await this.branches.initBranches(branches);
         await this.branches.init();
         await this.interactions.init();
+        this.components.init();
     }
 
     // CR-050: collaborator-driven canvas/frames updates are picked up by
@@ -152,6 +155,7 @@ export class EditorEngine {
         this.chat.clear();
         this.interactions.clear();
         this.code.clear();
+        this.components.clear();
         this.branches.clear();
         this.frameEvent.clear();
         this.screenshot.clear();
