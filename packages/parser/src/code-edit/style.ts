@@ -2,6 +2,7 @@ import { customTwMerge } from '@weblab/utility';
 
 import type { T } from '../packages';
 import { t } from '../packages';
+import { getAstFromContent } from '../parse';
 
 export function addClassToNode(node: T.JSXElement, className: string): void {
     const openingElement = node.openingElement;
@@ -68,6 +69,43 @@ function insertAttribute(element: T.JSXOpeningElement, attribute: string, classN
     element.attributes.push(newClassNameAttr);
 }
 
+/**
+ * Sentinel values understood by {@link updateNodeProp} beyond plain literals:
+ * - `{ __remove: true }` deletes the attribute (used when an instance prop is
+ *   reset to the component default — usage sites stay clean).
+ * - `{ __jsx: '<code>' }` writes the attribute as a JSX expression container
+ *   parsed from the snippet (richtext / slot values).
+ */
+export interface RemovePropSentinel {
+    __remove: true;
+}
+export interface JsxPropSentinel {
+    __jsx: string;
+}
+
+function isRemoveSentinel(value: unknown): value is RemovePropSentinel {
+    return typeof value === 'object' && value !== null && '__remove' in value;
+}
+
+function isJsxSentinel(value: unknown): value is JsxPropSentinel {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        '__jsx' in value &&
+        typeof (value as JsxPropSentinel).__jsx === 'string'
+    );
+}
+
+function parseJsxAttrExpression(code: string): T.Expression | null {
+    // Parse as an expression statement; accepts `<>…</>`, `<div/>`, literals.
+    const ast = getAstFromContent(`(${code});`);
+    const stmt = ast?.program.body[0];
+    if (stmt && t.isExpressionStatement(stmt)) {
+        return stmt.expression;
+    }
+    return null;
+}
+
 export function updateNodeProp(
     node: T.JSXElement,
     key: string,
@@ -79,6 +117,30 @@ export function updateNodeProp(
     ) as T.JSXAttribute | undefined;
 
     if (value === undefined || value === null) {
+        return;
+    }
+
+    if (isRemoveSentinel(value)) {
+        if (existingAttr) {
+            openingElement.attributes = openingElement.attributes.filter(
+                (attr) => attr !== existingAttr,
+            );
+        }
+        return;
+    }
+
+    if (isJsxSentinel(value)) {
+        const expression = parseJsxAttrExpression(value.__jsx);
+        if (!expression) {
+            console.error(`updateNodeProp: failed to parse jsx value for "${key}"`);
+            return;
+        }
+        const container = t.jsxExpressionContainer(expression);
+        if (existingAttr) {
+            existingAttr.value = container;
+        } else {
+            openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier(key), container));
+        }
         return;
     }
 

@@ -1,7 +1,14 @@
 import { makeAutoObservable, reaction, runInAction } from 'mobx';
 
 import type { ComponentDef, DomElement, LayerNode, RectDimensions } from '@weblab/models';
+import type { CreatablePropKind } from '@weblab/parser';
 import { EditorMode } from '@weblab/models';
+import {
+    createPropFromElement,
+    getAstFromContent,
+    getContentFromAst,
+    parseInstancePropValues,
+} from '@weblab/parser';
 
 import type { EditorEngine } from '../engine';
 import { adaptRectToCanvas } from '../overlay/utils';
@@ -38,6 +45,8 @@ export class ComponentsManager {
     editing: ComponentEditSession | null = null;
     /** Scope-root rect in canvas coordinates, kept fresh by overlay refresh. */
     editingScopeRect: RectDimensions | null = null;
+    /** Dotted green outlines for prop-bound elements while editing a master. */
+    propBoundRects: Array<{ propName: string; rect: RectDimensions }> = [];
 
     private unsubscribeIndex: (() => void) | null = null;
     private branchReactionDisposer: (() => void) | null = null;
@@ -204,6 +213,7 @@ export class ComponentsManager {
         if (!this.editing) return;
         this.editing = null;
         this.editingScopeRect = null;
+        this.propBoundRects = [];
         this.editorEngine.overlay.state.removeHoverRect();
     }
 
@@ -286,6 +296,167 @@ export class ComponentsManager {
         runInAction(() => {
             this.editingScopeRect = rect;
         });
+
+        await this.refreshPropBoundRects();
+    }
+
+    /**
+     * Recomputes the dotted green outlines for prop-bound elements inside the
+     * active edit scope. The session definition is re-read from the index so
+     * freshly created props light up immediately.
+     */
+    private async refreshPropBoundRects(): Promise<void> {
+        const session = this.editing;
+        if (!session) {
+            runInAction(() => {
+                this.propBoundRects = [];
+            });
+            return;
+        }
+
+        const def = this.get(session.def.key) ?? session.def;
+        const frameData = this.editorEngine.frames.get(session.frameId);
+        const layerMap = this.editorEngine.ast.mappings.getMapping(session.frameId);
+        if (!frameData?.view || !layerMap) return;
+
+        const boundOids = new Map<string, string>(); // oid -> propName
+        for (const prop of def.props) {
+            for (const binding of prop.bindings) {
+                if ('oid' in binding && binding.oid) {
+                    boundOids.set(binding.oid, prop.name);
+                }
+            }
+        }
+
+        const rects: Array<{ propName: string; rect: RectDimensions }> = [];
+        for (const node of layerMap.values()) {
+            if (!node.oid) continue;
+            const propName = boundOids.get(node.oid);
+            if (!propName) continue;
+            if (!this.isInEditScope(session.frameId, node.domId)) continue;
+            try {
+                const el: DomElement = await frameData.view.getElementByDomId(node.domId, false);
+                if (!el) continue;
+                rects.push({ propName, rect: adaptRectToCanvas(el.rect, frameData.view) });
+            } catch {
+                // Element vanished between layer-map snapshot and DOM read.
+            }
+        }
+
+        runInAction(() => {
+            this.propBoundRects = rects;
+        });
+    }
+
+    // ── Instance properties ──
+
+    /** Statically-known prop values set on the instance usage site. */
+    async getInstancePropValues(
+        el: DomElement,
+    ): Promise<Record<string, string | number | boolean | null>> {
+        if (!el.instanceId) return {};
+        const fileSystem = this.editorEngine.branches.getBranchDataById(el.branchId)?.codeEditor;
+        if (!fileSystem) return {};
+        const metadata = await fileSystem.getJsxElementMetadata(el.instanceId);
+        if (!metadata?.code) return {};
+        return parseInstancePropValues(metadata.code);
+    }
+
+    /**
+     * Writes a per-instance prop override at the usage site. Setting a value
+     * equal to the component default removes the attribute so usage sites
+     * stay clean.
+     */
+    async setInstanceProp(
+        el: DomElement,
+        propName: string,
+        value: string | number | boolean | null,
+    ): Promise<void> {
+        if (!el.instanceId) return;
+        const def = await this.getDefinitionForInstance(el);
+        const spec = def?.props.find((p) => p.name === propName);
+        const isDefault = value === spec?.defaultValue;
+        const attrValue = value === null || isDefault ? { __remove: true } : value;
+
+        await this.editorEngine.code.writeRequest([
+            {
+                oid: el.instanceId,
+                branchId: el.branchId,
+                attributes: { [propName]: attrValue },
+                tagName: null,
+                textContent: null,
+                overrideClasses: null,
+                structureChanges: [],
+            },
+        ]);
+    }
+
+    async resetInstanceProp(el: DomElement, propName: string): Promise<void> {
+        await this.setInstanceProp(el, propName, null);
+    }
+
+    async resetAllInstanceProps(el: DomElement): Promise<void> {
+        if (!el.instanceId) return;
+        const values = await this.getInstancePropValues(el);
+        const names = Object.keys(values);
+        if (names.length === 0) return;
+        await this.editorEngine.code.writeRequest([
+            {
+                oid: el.instanceId,
+                branchId: el.branchId,
+                attributes: Object.fromEntries(names.map((name) => [name, { __remove: true }])),
+                tagName: null,
+                textContent: null,
+                overrideClasses: null,
+                structureChanges: [],
+            },
+        ]);
+    }
+
+    /**
+     * Creates a prop on the master from an element inside it (current literal
+     * becomes the default). Writes the master file; discovery re-derives the
+     * definition on the same write.
+     */
+    async createProp(params: {
+        def: ComponentDef;
+        elementOid: string;
+        propName: string;
+        kind: CreatablePropKind;
+        branchId: string;
+    }): Promise<{ ok: boolean; error?: string }> {
+        const { def, elementOid, propName, kind, branchId } = params;
+        const fileSystem = this.editorEngine.branches.getBranchDataById(branchId)?.codeEditor;
+        if (!fileSystem) return { ok: false, error: 'Branch file system unavailable' };
+
+        const content = await fileSystem.readFile(def.filePath);
+        if (typeof content !== 'string') {
+            return { ok: false, error: `Cannot read ${def.filePath}` };
+        }
+        const ast = getAstFromContent(content);
+        if (!ast) return { ok: false, error: `Cannot parse ${def.filePath}` };
+
+        const result = createPropFromElement(ast, {
+            componentName: def.name,
+            elementOid,
+            propName,
+            kind,
+        });
+        if (!result.modified) {
+            return { ok: false, error: result.error ?? 'Could not create property' };
+        }
+
+        const generated = await getContentFromAst(ast, content);
+        if (getAstFromContent(generated) === null) {
+            return { ok: false, error: 'Generated code does not parse — edit aborted' };
+        }
+        await fileSystem.writeFile(def.filePath, generated);
+        this.editorEngine.posthog.capture('component_prop_created', {
+            component: def.name,
+            kind,
+        });
+        await this.refreshPropBoundRects();
+        return { ok: true };
     }
 
     clear() {
@@ -298,5 +469,6 @@ export class ComponentsManager {
         this.definitions = [];
         this.editing = null;
         this.editingScopeRect = null;
+        this.propBoundRects = [];
     }
 }

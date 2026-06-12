@@ -14,6 +14,8 @@ import { useSectionState } from './hooks/use-section-state';
 import { AdvancedSection } from './sections/advanced';
 import { BackgroundSection } from './sections/background';
 import { BorderSection } from './sections/border';
+import { ComponentInstanceSection } from './sections/component-instance';
+import { ComponentMasterSection } from './sections/component-master';
 import { CursorSection } from './sections/cursor';
 import { EffectsSection } from './sections/effects';
 import { ElementSection } from './sections/element';
@@ -27,6 +29,7 @@ import { TransformsSection } from './sections/transforms';
 import { TransitionsSection } from './sections/transitions';
 
 const DEFAULT_OPEN_SECTIONS = [
+    'component',
     'element',
     'position',
     'layout',
@@ -108,6 +111,8 @@ export const StyleTabV4 = observer(function StyleTabV4() {
                     onValueChange={setOpen}
                     className="w-full max-w-full min-w-0 px-0 pb-6"
                 >
+                    <ComponentInstanceSection />
+                    <ComponentMasterSection />
                     <ElementSection />
                     <PositionSection />
                     <LayoutSection />

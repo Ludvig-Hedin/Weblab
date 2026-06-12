@@ -19,6 +19,7 @@ import { MeasurementOverlay } from './elements/measurement';
 import { ClickRect } from './elements/rect/click';
 import { HoverRect } from './elements/rect/hover';
 import { InsertRect } from './elements/rect/insert';
+import { PropBoundRects } from './elements/rect/prop-bound';
 import { SnapGuidelines } from './elements/snap-guidelines';
 import { TextEditor } from './elements/text';
 import { RemoteCursors } from './remote-cursors';
@@ -58,6 +59,7 @@ export const Overlay = observer(() => {
             )}
         >
             <EditModeDim />
+            <PropBoundRects />
             {!isTextEditing && overlayState.hoverRect && (
                 <HoverRect
                     rect={overlayState.hoverRect.rect}
