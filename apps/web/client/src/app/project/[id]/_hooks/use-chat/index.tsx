@@ -27,9 +27,12 @@ import { handleToolCall } from '@/components/tools';
 import { WeblabCliTransport } from './cli-transport';
 import { OllamaWebTransport } from './ollama-web-transport';
 import {
+    clearPendingTurn,
     clearStreamInFlight,
+    loadPendingTurn,
     loadQueue,
     markStreamInFlight,
+    savePendingTurn,
     saveQueue,
     wasStreamInFlight,
 } from './queue-storage';
@@ -231,13 +234,24 @@ export function useChat({
     // and covers both "while streaming" and "while user is typing" windows.
     useConversationSummarizer({ conversationId, messages, model });
 
+    // Snapshot the interrupted-stream markers during the FIRST render, before
+    // any effect runs: the status effect below clears them on mount (status
+    // starts 'ready'), so reading localStorage inside the recovery effect
+    // would always see them already cleared and recovery would never fire.
+    const [wasInterruptedAtMount] = useState(() => wasStreamInFlight(conversationId));
+    const [pendingTurnAtMount] = useState(() => loadPendingTurn(conversationId));
+
     // Persist in-flight flag so a page reload can detect an interrupted stream
-    // and auto-regenerate instead of silently leaving an incomplete response.
+    // and recover instead of silently leaving an incomplete response. The
+    // pending turn shares the flag's lifecycle: any settle while the page is
+    // alive (finish, error, user stop) clears both — they only survive a
+    // mid-stream unload.
     useEffect(() => {
         if (status === 'streaming' || status === 'submitted') {
             markStreamInFlight(conversationId);
         } else {
             clearStreamInFlight(conversationId);
+            clearPendingTurn(conversationId);
         }
     }, [status, conversationId]);
 
@@ -250,6 +264,11 @@ export function useChat({
     const processMessage = useCallback(
         async (content: string, type: ChatType, context?: MessageContext[]) => {
             userStoppedRef.current = false;
+            // Persist the turn before streaming starts: if the page unloads
+            // mid-stream the route never saves it (abort → refund + return),
+            // so recovery needs the content to re-send. Cleared on settle by
+            // the status effect above.
+            savePendingTurn(conversationId, { content, type });
             const messageContext =
                 context || (await editorEngine.chat.context.getContextByChatType(type));
             const newMessage = getUserChatMessageFromString(
@@ -504,26 +523,53 @@ export function useChat({
     //   - messages must be hydrated (length > 0) so regen targets a real turn,
     //   - status must be settled (status === 'ready') so we don't stomp on an
     //     in-flight stream that some other init path already kicked off.
-    // TODO(bug-hunt): Interrupted-stream recovery can regenerate the WRONG
-    // turn. On abort/disconnect the chat route never persists the interrupted
-    // turn (refund + return, no consumeStream), so the DB-loaded history ends
-    // at the PREVIOUS user message — this auto-regen then re-answers an old
-    // question and the actually-interrupted user message is lost. Fix: persist
-    // the pending user content (e.g. alongside the inflight flag in
-    // localStorage) and re-send it instead of regenerating.
     const autoRegenAttemptedRef = useRef(false);
     useEffect(() => {
         if (autoRegenAttemptedRef.current) return;
-        if (!wasStreamInFlight(conversationId)) return;
-        if (messages.length === 0) return;
+        // Read the mount-time snapshot, NOT localStorage — the status effect
+        // already cleared the flag during the first 'ready' render.
+        if (!wasInterruptedAtMount) return;
+        // Wait for hydration before deciding — unless the very first turn of
+        // the conversation was the one interrupted (nothing to hydrate).
+        if (messages.length === 0 && !pendingTurnAtMount) return;
         if (status !== 'ready') return;
         autoRegenAttemptedRef.current = true;
         clearStreamInFlight(conversationId);
+        clearPendingTurn(conversationId);
         const t = setTimeout(() => {
+            // The route does not persist aborted turns, so the interrupted
+            // USER message may never have reached the DB — in that case the
+            // hydrated history ends at the PREVIOUS user message, and
+            // regenerating would re-answer an old question while the new one
+            // is lost. Re-send the lost turn instead.
+            if (pendingTurnAtMount) {
+                const lastUser = [...messagesRef.current]
+                    .reverse()
+                    .find((m) => m.role === 'user');
+                const lastUserText = lastUser?.parts
+                    ?.map((p) => (p.type === 'text' ? p.text : ''))
+                    .join('')
+                    .trim();
+                if (lastUserText !== pendingTurnAtMount.content.trim()) {
+                    void processMessage(
+                        pendingTurnAtMount.content,
+                        pendingTurnAtMount.type as ChatType,
+                    );
+                    return;
+                }
+            }
             void regenerateLastAssistant();
         }, 800);
         return () => clearTimeout(t);
-    }, [conversationId, messages.length, status, regenerateLastAssistant]);
+    }, [
+        conversationId,
+        messages.length,
+        status,
+        regenerateLastAssistant,
+        wasInterruptedAtMount,
+        pendingTurnAtMount,
+        processMessage,
+    ]);
 
     // Listen for the global "retry stalled tool" event dispatched by
     // ToolCallSimple. Surgical retry: re-run only the stalled tool — not the

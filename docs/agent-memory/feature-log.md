@@ -916,3 +916,11 @@ Notable in-flight work as of this log's creation (see
   logged in BACKLOG), workspace test suite green except pre-existing stale
   `@weblab/backend` script (BACKLOG).
 - **User-facing:** yes — fixes span every primary flow.
+- **Second pass (same day):** fixed two deferred items — (a) interrupted-
+  stream recovery: pending user turn now persisted to localStorage and
+  re-sent when missing from hydrated history; also discovered + fixed that
+  recovery never fired at all (the status effect cleared the inflight flag
+  on mount before the recovery effect read it — markers are now snapshotted
+  in `useState` initializers); 8 new tests in
+  `apps/web/client/test/chat/queue-storage.test.ts`. (b) project-invite
+  expired-pending re-invite blocker ported from the workspaces fix.

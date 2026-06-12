@@ -92,6 +92,62 @@ export function wasStreamInFlight(conversationId: string): boolean {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Pending-turn persistence
+// The chat route does NOT persist an interrupted turn (abort → refund +
+// return), so after a reload the DB history ends at the PREVIOUS user
+// message. We persist the just-sent user turn alongside the inflight flag so
+// recovery can re-send it instead of regenerating an answer to an old
+// question. Lifecycle mirrors the inflight flag: saved on send, cleared
+// whenever the stream settles while the page is alive.
+// ---------------------------------------------------------------------------
+
+export interface PendingTurn {
+    content: string;
+    type: string;
+}
+
+const pendingTurnKey = (conversationId: string) =>
+    `weblab:chat:pending-turn:${QUEUE_VERSION}:${conversationId}`;
+
+export function savePendingTurn(conversationId: string, turn: PendingTurn): void {
+    if (!isBrowser() || !conversationId) return;
+    try {
+        window.localStorage.setItem(pendingTurnKey(conversationId), JSON.stringify(turn));
+    } catch {
+        // Quota exceeded / private mode — silently no-op.
+    }
+}
+
+export function loadPendingTurn(conversationId: string): PendingTurn | null {
+    if (!isBrowser() || !conversationId) return null;
+    try {
+        const raw = window.localStorage.getItem(pendingTurnKey(conversationId));
+        if (!raw) return null;
+        const parsed: unknown = JSON.parse(raw);
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            typeof (parsed as PendingTurn).content !== 'string' ||
+            typeof (parsed as PendingTurn).type !== 'string'
+        ) {
+            return null;
+        }
+        return parsed as PendingTurn;
+    } catch {
+        return null;
+    }
+}
+
+export function clearPendingTurn(conversationId: string): void {
+    if (!isBrowser() || !conversationId) return;
+    try {
+        window.localStorage.removeItem(pendingTurnKey(conversationId));
+    } catch {
+        // Ignore.
+    }
+}
+
 export function clearQueue(conversationId: string): void {
     if (!isBrowser() || !conversationId) return;
     try {

@@ -450,21 +450,26 @@ export const _validateAndInsert = internalMutation({
             }
         }
 
-        // Conflict guard: another pending invitation already exists. Use the
-        // canonical lowercase form so a re-invite with different casing can't
-        // create a duplicate pending row.
-        const existingInvite = await ctx.db
+        // Conflict guard: another LIVE pending invitation already exists. Use
+        // the canonical lowercase form so a re-invite with different casing
+        // can't create a duplicate pending row. A pending row past its
+        // expiresAt does NOT conflict — accept() can't persist the expiry flip
+        // (throws roll back writes), so this is the only write path that can
+        // lazily flip it to EXPIRED. Mirrors workspaces.inviteCreate.
+        const existingInvites = await ctx.db
             .query('projectInvitations')
             .withIndex('by_invitee_email_project', (q) =>
                 q.eq('inviteeEmail', lcEmail).eq('projectId', args.projectId),
             )
-            .first();
-        // TODO(bug-hunt): a PENDING row past its expiresAt permanently blocks
-        // re-inviting this email (accept() can't persist the expiry flip —
-        // throws roll back writes). Mirror workspaces.inviteCreate: treat
-        // pending-but-expired as non-conflicting and flip it to EXPIRED here.
-        if (existingInvite && existingInvite.status === PENDING) {
-            throw new Error('CONFLICT: Invitation cannot be sent to this email.');
+            .collect();
+        const now = Date.now();
+        for (const invite of existingInvites) {
+            if (invite.status !== PENDING) continue;
+            if (invite.expiresAt >= now) {
+                // Live pending invite — genuine conflict.
+                throw new Error('CONFLICT: Invitation cannot be sent to this email.');
+            }
+            await ctx.db.patch(invite._id, { status: EXPIRED });
         }
 
         // Translate memberRole -> legacy role.
@@ -478,7 +483,6 @@ export const _validateAndInsert = internalMutation({
             viewer: 'viewer',
         };
 
-        const now = Date.now();
         const invitationId = await ctx.db.insert('projectInvitations', {
             projectId: args.projectId,
             inviterId: args.actorUserId,
