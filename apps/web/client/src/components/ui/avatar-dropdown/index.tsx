@@ -12,7 +12,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -182,9 +181,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
                         <span className="text-mini text-foreground-secondary">{user?.email}</span>
                     </div>
                 </div>
-                <DropdownMenuSeparator />
                 <UsageSection open={open} />
-                <DropdownMenuSeparator />
                 <div className="p-2">
                     {BUTTONS.map((button) => {
                         const IconComponent = button.icon;
