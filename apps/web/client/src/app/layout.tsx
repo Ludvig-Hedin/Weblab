@@ -159,17 +159,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     the chrome container *and* its non-interactive descendants
                     as drag, then carve out every interactive role/element as
                     `no-drag` so clicks still land. */}
-                {/* Drag fallback strip: only acts as a drag surface while the
-                    page provides NO drag container of its own. Chromium builds
-                    the OS drag region in paint order, so a full-width drag
-                    strip painted above the app re-adds the draggable region
-                    over the no-drag holes carved for header buttons — that
-                    made the top ~26px of every top-bar button swallow clicks
-                    as window-drag. A MutationObserver keeps the strip in sync
-                    across SPA navigations that mount/unmount the top bar. */}
+                {/* Drag fallback strip: only exists while the page provides NO
+                    drag container of its own. Chromium builds the OS drag
+                    region in PAINT ORDER (sequential add/subtract), so a
+                    full-width strip painted above the app either re-adds drag
+                    over the buttons' no-drag holes (strip = drag → top of
+                    every header button swallowed clicks) or subtracts the
+                    whole top 38px (strip = no-drag → window undraggable).
+                    The only safe state when a .top-bar exists is display:none
+                    — an unpainted element contributes nothing, leaving the
+                    top bar draggable with the buttons punched out. A
+                    MutationObserver keeps it in sync across SPA navigations. */}
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;var pending=false;function syncStrip(){pending=false;if(!document.body)return;var s=document.getElementById('weblab-desktop-drag-fallback');if(!s){s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;';document.body.appendChild(s);}var els=document.querySelectorAll('.top-bar,.desktop-drag-region');var hasOwn=false;for(var i=0;i<els.length;i++){if(els[i].id!=='weblab-desktop-drag-fallback'){hasOwn=true;break;}}var v=hasOwn?'no-drag':'drag';s.style.setProperty('-webkit-app-region',v);s.style.setProperty('app-region',v);}function schedule(){if(pending)return;pending=true;setTimeout(syncStrip,50);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}function arm(){if(!document.body){setTimeout(arm,50);return;}new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});}arm();})();`,
+                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;var pending=false;function syncStrip(){pending=false;if(!document.body)return;var s=document.getElementById('weblab-desktop-drag-fallback');if(!s){s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;-webkit-app-region:drag;app-region:drag;';document.body.appendChild(s);}var els=document.querySelectorAll('.top-bar,.desktop-drag-region');var hasOwn=false;for(var i=0;i<els.length;i++){var el=els[i];if(el.id==='weblab-desktop-drag-fallback')continue;if(el.offsetWidth>0&&el.offsetHeight>0){hasOwn=true;break;}}s.style.display=hasOwn?'none':'block';}function schedule(){if(pending)return;pending=true;setTimeout(syncStrip,50);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}function arm(){if(!document.body){setTimeout(arm,50);return;}new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});}arm();})();`,
                     }}
                 />
                 <style
