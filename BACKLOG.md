@@ -38,6 +38,28 @@ later without re-discovering the context.
 
 ## Open
 
+### Optimistic-creation window boots OfflineProvider — edits made before provisioning can clobber the scaffold
+
+- **Discovered:** 2026-06-12 (working-tree review of optimistic creation)
+- **Where:** apps/web/client/src/components/store/editor/sandbox/session.ts (~103), src/services/offline/write-queue.ts, convex/projectActions.ts `_provisionSandbox`
+- **Symptom:** while `sandboxId` is empty (background provisioning), the editor starts OfflineProvider; writes made in that window queue in localforage against an empty ZenFS and replay into the freshly scaffolded sandbox after the auto-reload — potentially clobbering scaffold files — and the editor presents an "offline" state for a brand-new online project.
+- **Next step:** gate editing surfaces (or at least chat sends / file writes) on a provisioned state (`frame.url`), or hold the offline write queue while `provisioningPending`.
+
+### `_insertProjectGraphOptimistic` duplicates `_insertProjectGraph` (~100 lines)
+
+- **Discovered:** 2026-06-12 (working-tree review)
+- **Where:** apps/web/client/convex/projects.ts
+- **Symptom:** none yet — drift risk; future change to frames/canvas/conversation seeding must be made twice. Related: `createBlank`'s name-count + insert run in separate transactions, so two concurrent calls can produce duplicate names (cheaper to hit now that createBlank returns fast).
+- **Next step:** extract a shared insert helper taking optional sandbox fields; make the name suffix collision-tolerant (e.g. retry with count+1 inside the insert mutation).
+
+### `CodeFileSystem.withWriteLock` has no timeout — one hung write wedges all saves silently
+
+- **Discovered:** 2026-06-12 (working-tree review)
+- **Where:** packages/file-system/src/code-fs.ts (`withWriteLock`)
+- **Symptom:** if one `super.writeFile` never settles (dead sandbox socket mid-flight), every later write/delete/move/rebuild queues forever with no surfaced error.
+- **Next step:** per-op watchdog (log + optionally reject after ~30s); add an interleaving unit test for the lock (concurrent writeFile + rebuildIndex preserving OIDs).
+
+
 ### Static-HTML projects have no OID pipeline — every canvas edit fails
 
 - **Discovered:** 2026-06-11 (canvas-editor bug hunt)
