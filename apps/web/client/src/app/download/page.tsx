@@ -65,6 +65,22 @@ export default function DownloadPage() {
                         >
                             Download for Mac with Intel
                         </a>
+                        <p className="text-foreground-tertiary mt-2 text-xs">
+                            Also available for{' '}
+                            <a
+                                href={ExternalRoutes.DOWNLOAD_WIN}
+                                className="hover:text-foreground-secondary underline underline-offset-2 transition-colors"
+                            >
+                                Windows
+                            </a>{' '}
+                            and{' '}
+                            <a
+                                href={ExternalRoutes.DOWNLOAD_LINUX}
+                                className="hover:text-foreground-secondary underline underline-offset-2 transition-colors"
+                            >
+                                Linux
+                            </a>
+                        </p>
                     </div>
                 </motion.div>
 

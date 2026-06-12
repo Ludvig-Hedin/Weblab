@@ -278,6 +278,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-331a | F-331, F-331a, F-331b | M | Open terminal; toolbar still visible; type `echo hi` in input row + Enter; click `+` for a 2nd tab; close it; drag-reorder; drag top edge to resize | Toolbar stays; command runs in PTY; tabs add/close/reorder; height changes + persists across reopen | `[ ]` |
 | T-331b | F-331b, F-480 | M | Toggle AI on; type "list files in this folder" + Enter (preview); Enter again to run; enable auto-run in settings; repeat | First Enter previews a command in the box; second Enter runs it; auto-run runs immediately | `[ ]` |
 | T-480 | F-480 | I | POST `/api/ai/terminal-command` `{instruction:"install three.js", projectId}` | 200 `{ command }` ≈ `bun add three`; 401/403/402 enforced; sanitized single line | `[ ]` |
+| T-481 | F-481, F-018 | I | GET `/api/download/mac`, `/api/download/windows`, `/api/download/linux`, `/api/download/bogus`; click Download on `/download` | First three 302 to the matching `releases/latest/download` asset (browser saves the file, no GitHub page); `bogus` → 404; page links never point at github.com pages | `[ ]` |
 | T-332 | F-333, F-665 | E | Inject runtime error in preview | Listed w/ stack; Quick-Fix opens chat w/ context | `[ ]` |
 | T-333 | F-334 | E | Toggle theme | Preview iframe `data-theme` flips | `[ ]` |
 | T-334 | F-335, F-658 | M | Click restart | Sandbox session resets; frame reconnects | `[ ]` |

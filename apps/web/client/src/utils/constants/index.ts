@@ -55,19 +55,20 @@ export const ExternalRoutes = {
     LINKEDIN: 'https://www.linkedin.com/company/weblab/',
     YOUTUBE: 'https://www.youtube.com/@weblab',
     SUBSTACK: 'https://weblab.substack.com/',
-    DOWNLOAD_MAC: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
-    // The macOS build is a single universal DMG (Intel + Apple Silicon), so the
-    // "Intel" link points at the same artifact — there is no separate x64 build.
-    DOWNLOAD_MAC_INTEL:
-        'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
-    DOWNLOAD_WIN:
-        'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-Setup.exe',
-    DOWNLOAD_LINUX:
-        'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.AppImage',
+    // First-party download endpoints (/api/download/[platform]) — they 302 to
+    // the latest release asset so the browser downloads the installer in
+    // place instead of navigating to a GitHub page. The macOS build is a
+    // single universal DMG (Intel + Apple Silicon), so the "Intel" link
+    // serves the same artifact.
+    DOWNLOAD_MAC: '/api/download/mac',
+    DOWNLOAD_MAC_INTEL: '/api/download/mac-intel',
+    DOWNLOAD_WIN: '/api/download/windows',
+    DOWNLOAD_LINUX: '/api/download/linux',
     // iOS — placeholder until App Store listing is live. Until then point at
     // the TestFlight invite URL or the GitHub release for the unsigned IPA.
     DOWNLOAD_IOS: 'https://testflight.apple.com/join/PLACEHOLDER',
-    DOWNLOAD_PAGE: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest',
+    // Our own download page — never the GitHub releases page.
+    DOWNLOAD_PAGE: '/download',
 };
 
 export const Git = {
