@@ -376,8 +376,17 @@ export class CLISessionImpl implements CLISession {
         const terminal = new TerminalClass!({
             cursorBlink: true,
             fontSize: 12,
-            fontFamily: 'monospace',
+            // Real monospace stack (was the generic 'monospace' → Courier-ish on
+            // most systems). Mirrors what Cursor / VS Code render.
+            fontFamily:
+                "'SF Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, 'Cascadia Code', Menlo, Monaco, Consolas, monospace",
+            lineHeight: 1.4,
+            letterSpacing: 0,
             convertEol: false,
+            // Transparent from birth so the panel's `bg-background` shows through
+            // even before React applies the full theme — no black flash, no
+            // nested "card-in-a-card" rectangle. Full palette set in terminal.tsx.
+            theme: { background: 'rgba(0,0,0,0)' },
             allowTransparency: true,
             disableStdin: false,
             allowProposedApi: true,

@@ -18,31 +18,58 @@ interface TerminalProps {
     isActive?: boolean;
 }
 
+// Both themes render on a TRANSPARENT background so the panel's `bg-background`
+// is the single continuous surface — no pure-black xterm rectangle nested inside
+// the panel (the old `DARK: {}` fell back to xterm's #000 default → the harsh
+// "card-in-a-card" look). Foreground + ANSI palette are tuned to the Weblab
+// tokens so terminal output matches the rest of the editor chrome.
 const TERMINAL_THEME: Record<'LIGHT' | 'DARK', ITheme> = {
     LIGHT: {
-        background: '#ffffff',
+        background: 'rgba(0,0,0,0)',
         foreground: '#2d2d2d',
         cursor: '#333333',
-        cursorAccent: '#ffffff',
+        cursorAccent: '#f7f7f4',
+        selectionBackground: 'rgba(0,0,0,0.12)',
         black: '#2d2d2d',
-        red: '#d64646',
-        green: '#4e9a06',
-        yellow: '#c4a000',
-        blue: '#3465a4',
-        magenta: '#75507b',
-        cyan: '#06989a',
-        white: '#d3d7cf',
-        brightBlack: '#555753',
-        brightRed: '#ef2929',
-        brightGreen: '#8ae234',
-        brightYellow: '#fce94f',
-        brightBlue: '#729fcf',
-        brightMagenta: '#ad7fa8',
-        brightCyan: '#34e2e2',
-        brightWhite: '#eeeeec',
-        selectionBackground: '#bfbfbf',
+        red: '#c0392b',
+        green: '#0b953f',
+        yellow: '#b8860b',
+        blue: '#0169cc',
+        magenta: '#7e3bd0',
+        cyan: '#0e7490',
+        white: '#5c5c5c',
+        brightBlack: '#939393',
+        brightRed: '#e35446',
+        brightGreen: '#16a34a',
+        brightYellow: '#d9a23a',
+        brightBlue: '#3b82f6',
+        brightMagenta: '#9333ea',
+        brightCyan: '#0891b2',
+        brightWhite: '#1a1a1a',
     },
-    DARK: {}, // Use default dark theme
+    DARK: {
+        background: 'rgba(0,0,0,0)',
+        foreground: '#e4e4e4',
+        cursor: '#e4e4e4',
+        cursorAccent: '#181818',
+        selectionBackground: 'rgba(255,255,255,0.16)',
+        black: '#3f3f3f',
+        red: '#e35446',
+        green: '#6fc57e',
+        yellow: '#d9a23a',
+        blue: '#458ef7',
+        magenta: '#bc69ff',
+        cyan: '#3ebaf4',
+        white: '#b2b2b2',
+        brightBlack: '#717171',
+        brightRed: '#ff6b5e',
+        brightGreen: '#84d693',
+        brightYellow: '#f0c75e',
+        brightBlue: '#6fa8ff',
+        brightMagenta: '#cf8bff',
+        brightCyan: '#5fc8f5',
+        brightWhite: '#ffffff',
+    },
 };
 
 export const Terminal = memo(
@@ -56,7 +83,9 @@ export const Terminal = memo(
                   ?.session?.getTerminalSession(terminalSessionId)
             : editorEngine.activeSandbox?.session?.getTerminalSession(terminalSessionId);
         const containerRef = useRef<HTMLDivElement>(null);
-        const { theme } = useTheme();
+        // resolvedTheme (not theme) so 'system' maps to the actual light/dark in
+        // effect — otherwise system-light would wrongly get the dark palette.
+        const { resolvedTheme } = useTheme();
 
         // Mount xterm to DOM
         useEffect(() => {
@@ -91,9 +120,9 @@ export const Terminal = memo(
         useEffect(() => {
             if (terminalSession?.xterm) {
                 terminalSession.xterm.options.theme =
-                    theme === 'light' ? TERMINAL_THEME.LIGHT : TERMINAL_THEME.DARK;
+                    resolvedTheme === 'light' ? TERMINAL_THEME.LIGHT : TERMINAL_THEME.DARK;
             }
-        }, [theme, terminalSession]);
+        }, [resolvedTheme, terminalSession]);
 
         useEffect(() => {
             let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -134,7 +163,7 @@ export const Terminal = memo(
             <div
                 ref={containerRef}
                 className={cn(
-                    'h-full w-full p-2 transition-opacity duration-200',
+                    'h-full w-full px-3 py-2 transition-opacity duration-200',
                     hidden ? 'opacity-0' : 'opacity-100 delay-300',
                 )}
             />

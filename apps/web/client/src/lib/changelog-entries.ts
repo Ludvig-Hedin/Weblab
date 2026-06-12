@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v3-9-cleaner-terminal',
+        version: '3.9',
+        title: 'A cleaner, more integrated terminal',
+        description:
+            'The in-editor terminal now reads as a single calm surface instead of a black box floating inside a panel. Output renders directly on the panel background (no more harsh nested card), tabs are quiet text on a flat header, and everything is set in a proper monospace with comfortable line spacing — closer to the terminal in Cursor or VS Code.',
+        date: '2026-06-12',
+        tags: ['Editor', 'Design'],
+    },
+    {
         slug: 'v3-8-local-first-desktop',
         version: '3.8',
         title: 'Edit local projects in the desktop app',

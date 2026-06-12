@@ -167,9 +167,10 @@ export const TerminalPanel = observer(
                     <div className="bg-border group-hover:bg-foreground-tertiary h-0.5 w-8 rounded-full transition-colors" />
                 </div>
 
-                {/* Tab bar — fully-round muted wrapper, draggable + closable tabs. */}
-                <div className="flex items-center gap-1 px-2 pb-1.5">
-                    <div className="bg-muted flex min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-full p-1">
+                {/* Tab strip — flat header (hairline divider, quiet text tabs) so
+                    the panel reads as one continuous surface, not stacked cards. */}
+                <div className="border-border/50 flex items-center gap-1 border-b px-2 pb-1.5">
+                    <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
                         {tabs.map((tab) => {
                             const isActive = tab.key === activeKey;
                             const closable = tab.type === CLISessionType.TERMINAL;
@@ -198,10 +199,10 @@ export const TerminalPanel = observer(
                                         }
                                     }}
                                     className={cn(
-                                        'group text-small flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 transition-colors select-none',
+                                        'group text-small flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors select-none',
                                         isActive
-                                            ? 'bg-background text-foreground dark:bg-background-tertiary shadow-sm'
-                                            : 'text-foreground/70 hover:text-foreground',
+                                            ? 'bg-background-tertiary text-foreground'
+                                            : 'text-foreground-secondary hover:text-foreground hover:bg-background-secondary',
                                         dragKey === tab.key && 'opacity-50',
                                     )}
                                 >
