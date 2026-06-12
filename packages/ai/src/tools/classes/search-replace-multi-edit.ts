@@ -64,9 +64,12 @@ export class SearchReplaceMultiEditFileTool extends ClientTool {
                     }
 
                     // Simulate the edit for next validation
-                    tempContent = tempContent.replace(edit.old_string, edit.new_string);
+                    tempContent = tempContent.replace(edit.old_string, () => edit.new_string);
                 } else {
-                    tempContent = tempContent.replaceAll(edit.old_string, edit.new_string);
+                    if (!tempContent.includes(edit.old_string)) {
+                        throw new Error(`String not found in file: ${edit.old_string}`);
+                    }
+                    tempContent = tempContent.replaceAll(edit.old_string, () => edit.new_string);
                 }
             }
 
@@ -74,7 +77,13 @@ export class SearchReplaceMultiEditFileTool extends ClientTool {
             // Each edit operates on the result of the previous edit
             for (const edit of args.edits) {
                 if (edit.replace_all) {
-                    content = content.replaceAll(edit.old_string, edit.new_string);
+                    if (!content.includes(edit.old_string)) {
+                        throw new Error(
+                            `String not found in file after previous edits: ${edit.old_string}`,
+                        );
+                    }
+                    // Function replacement so `$`-patterns in new_string are literal.
+                    content = content.replaceAll(edit.old_string, () => edit.new_string);
                 } else {
                     const index = content.indexOf(edit.old_string);
                     if (index === -1) {
@@ -82,7 +91,7 @@ export class SearchReplaceMultiEditFileTool extends ClientTool {
                             `String not found in file after previous edits: ${edit.old_string}`,
                         );
                     }
-                    content = content.replace(edit.old_string, edit.new_string);
+                    content = content.replace(edit.old_string, () => edit.new_string);
                 }
             }
 

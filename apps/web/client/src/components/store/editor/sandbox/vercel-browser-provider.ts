@@ -240,6 +240,13 @@ export class VercelBrowserProvider extends Provider {
     }
 
     async getTask(input: GetTaskInput): Promise<GetTaskOutput> {
+        // TODO(bug-hunt): VercelBrowserTask boots the dev server via
+        // `sandbox.setup` WITHOUT forwarding this provider's `port`/`devCommand`
+        // options (compare `setup()` below, which does). On the task-driven boot
+        // path the server falls back to package.json inference, so a branch
+        // with a custom port or dev command starts on the wrong port/command.
+        // Fix needs a server-contract decision (thread options through the
+        // task → setup route) — deliberately not changed here.
         return { task: new VercelBrowserTask(this.sandboxId, input.args.id) };
     }
 

@@ -189,6 +189,39 @@ export const updateCheckpoints = mutation({
     },
 });
 
+/**
+ * Persist checkpoints onto the conversation's latest user message, resolved
+ * server-side. The client cannot target a row id: live messages carry client
+ * uuids, and `replaceConversationMessages` re-mints every `_id` each turn, so
+ * any id the client holds is stale by the time checkpoints exist.
+ */
+export const updateCheckpointsForLastUserMessage = mutation({
+    args: {
+        conversationId: v.id('conversations'),
+        checkpoints: v.array(
+            v.object({
+                type: v.string(),
+                oid: v.string(),
+                branchId: v.string(),
+                createdAt: v.number(),
+            }),
+        ),
+    },
+    handler: async (ctx, { conversationId, checkpoints }) => {
+        const projectId = await projectIdForConversation(ctx, conversationId);
+        await requireCap(ctx, 'project.use_ai', { projectId });
+        const rows = await ctx.db
+            .query('messages')
+            .withIndex('by_conversation', (q) => q.eq('conversationId', conversationId))
+            .order('desc')
+            .collect();
+        const lastUser = rows.find((r) => r.role === 'user');
+        if (!lastUser) return { ok: false } as const;
+        await ctx.db.patch(lastUser._id, { checkpoints });
+        return { ok: true } as const;
+    },
+});
+
 export const remove = mutation({
     args: { messageIds: v.array(v.id('messages')) },
     handler: async (ctx, { messageIds }) => {
@@ -217,6 +250,12 @@ export const remove = mutation({
     },
 });
 
+// TODO(bug-hunt): re-minting every `_id` here invalidates any stored
+// `summarizedUpToMessageId` cursor (conversation summaries) after a reload —
+// the summary is silently ignored (full history sent to the LLM) and the
+// conversation gets re-summarized, charging another credit. Fix: key the
+// summary cursor on a stable value (message index/count or content hash), or
+// upsert by stable client id instead of delete-all + re-insert.
 export const replaceConversationMessages = mutation({
     args: {
         conversationId: v.id('conversations'),

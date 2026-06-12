@@ -146,7 +146,12 @@ export const FrameComponent = observer(
                 null,
             );
             const isSelected = editorEngine.frames.isSelected(frame.id);
-            const isActiveBranch = editorEngine.branches.activeBranch.id === frame.branchId;
+            // `activeBranch` throws "No branch selected" when no branch is
+            // loaded (e.g. branch init failed) — gate on `hasActiveBranch`
+            // and fall back to "not active" so the canvas keeps rendering.
+            const isActiveBranch =
+                editorEngine.branches.hasActiveBranch &&
+                editorEngine.branches.activeBranch.id === frame.branchId;
             const online = useOnlineStatus();
             const [snapshotHtml, setSnapshotHtml] = useState<string | null>(null);
             const useSnapshot = !online && !!snapshotHtml;

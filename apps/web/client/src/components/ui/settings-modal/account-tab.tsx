@@ -48,7 +48,18 @@ export const AccountTab = observer(() => {
     const handleSave = async () => {
         setIsPending(true);
         try {
-            await updateProfileMutation({ firstName, lastName, displayName });
+            // updateProfile is tri-state (absent / string / null). Map cleared
+            // or whitespace-only inputs to null so the field is actually unset
+            // instead of stored as '' (which reads as "set" downstream).
+            const normalize = (value: string): string | null => {
+                const trimmed = value.trim();
+                return trimmed === '' ? null : trimmed;
+            };
+            await updateProfileMutation({
+                firstName: normalize(firstName),
+                lastName: normalize(lastName),
+                displayName: normalize(displayName),
+            });
             toast.success('Profile updated');
         } catch {
             toast.error('Failed to update profile');

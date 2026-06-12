@@ -320,6 +320,16 @@ export const deleteUserCascade = internalMutation({
             }
             // Team workspaces with this user as creator stay (other members
             // remain). Ownership transfer is required to delete.
+            // TODO(bug-hunt): this orphans sole-member team workspaces. The
+            // cascade above deletes ALL of this user's workspaceMembers rows,
+            // but only `personal` workspaces are cascaded — a team workspace
+            // whose only member was the deleted user is left with zero
+            // members, making it unreachable (no one can view it) and
+            // undeletable (workspaces.remove requires a member with
+            // workspace.delete), with its projects orphaned. Fix: after
+            // removing memberships, delete (via deleteWorkspaceInternal) —
+            // or transfer to another member — any team workspace with zero
+            // remaining workspaceMembers rows.
         }
 
         // Project memberships

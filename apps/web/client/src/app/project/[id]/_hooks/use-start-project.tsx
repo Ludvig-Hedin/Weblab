@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useConvex, useMutation, useQuery } from 'convex/react';
 import { v4 as uuidv4 } from 'uuid';
@@ -49,7 +49,10 @@ export interface EditorBootstrapData {
 
 export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const editorEngine = useEditorEngine();
-    const sandbox = editorEngine.activeSandbox;
+    // `activeSandbox` throws "No branch selected" when branch init failed or
+    // hasn't written `currentBranchId` yet — gate on `hasActiveBranch` so the
+    // hook degrades to "not ready" instead of detonating the editor route.
+    const sandbox = editorEngine.branches.hasActiveBranch ? editorEngine.activeSandbox : null;
     const online = useOnlineStatus();
     const [sandboxError, setSandboxError] = useState<string | null>(null);
     const [dataError, setDataError] = useState<string | null>(null);
@@ -87,7 +90,13 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // written against. The server-rendered `initialBootstrap` (page.tsx) is
     // already mapped via `fromConvexBootstrap`; this covers the client-side
     // refetch path so both feed identical shapes downstream.
-    const bootstrap = rawBootstrap ? fromConvexBootstrap(rawBootstrap as never) : undefined;
+    // Memoized on the raw query result — mapping inline produced a NEW object
+    // every render, and the effects keyed on the derived `canvasWithFrames`
+    // re-fired indefinitely (render → new ref → effect → setState → render…).
+    const bootstrap = useMemo(
+        () => (rawBootstrap ? fromConvexBootstrap(rawBootstrap as never) : undefined),
+        [rawBootstrap],
+    );
     const effectiveBootstrap = initialBootstrap ?? bootstrap ?? undefined;
 
     // Surface background-provisioning failures written by `_provisionSandbox`
@@ -128,10 +137,16 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // them to `ChatConversation` (`id`/`title`) so `applyConversations` and the
     // chat panel see a real `id`. `effectiveBootstrap.conversations` is already
     // mapped (server bootstrap or the mapped client `bootstrap` above).
-    const conversations =
-        (liveConversations
-            ? liveConversations.map(fromConvexConversation)
-            : effectiveBootstrap?.conversations) ?? undefined;
+    // Memoized on the raw query result — an inline `.map()` minted a new array
+    // every render, re-firing the `applyConversations` + cache effects below
+    // in a loop (with an IndexedDB write per cycle) once the query resolved.
+    const conversations = useMemo(
+        () =>
+            (liveConversations
+                ? liveConversations.map(fromConvexConversation)
+                : effectiveBootstrap?.conversations) ?? undefined,
+        [liveConversations, effectiveBootstrap?.conversations],
+    );
     const conversationsError: { message?: string } | null = null;
     const livePendingRequest = useQuery(
         api.projectCreateRequests.getPendingRequest,
@@ -157,21 +172,29 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     });
 
     const updateProjectReadyState = (state: Partial<ProjectReadyState>) => {
-        setProjectReadyState((prev) => ({ ...prev, ...state }));
+        setProjectReadyState((prev) => {
+            // Bail with the SAME reference when nothing changed — effects that
+            // depend on this state object would otherwise re-fire forever
+            // (every call minted a new object even for identical flags).
+            const changed = Object.entries(state).some(
+                ([key, value]) => prev[key as keyof ProjectReadyState] !== value,
+            );
+            return changed ? { ...prev, ...state } : prev;
+        });
     };
 
     useEffect(() => {
-        if (sandbox.session.provider) {
+        if (sandbox?.session.provider) {
             updateProjectReadyState({ sandbox: true });
             setSandboxError(null);
             return;
         }
 
-        if (sandbox.session.connectionError) {
+        if (sandbox?.session.connectionError) {
             updateProjectReadyState({ sandbox: false });
             setSandboxError(sandbox.session.connectionError);
         }
-    }, [sandbox.session.provider, sandbox.session.connectionError]);
+    }, [sandbox?.session.provider, sandbox?.session.connectionError]);
 
     // Offline: hydrate canvas + frames + conversations from the IndexedDB
     // cache so the editor opens with a usable canvas instead of an empty
@@ -234,9 +257,13 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // Offline → online transition: swap the offline shim for the real cloud
     // provider, then drain the durable write queue against it. Failures are
     // logged + surfaced via the queue's dead-letter store.
-    const branchSandboxId = editorEngine.branches.activeBranch?.sandbox?.id ?? null;
+    // `activeBranch` is a throwing getter — `?.` can't save us, gate first.
+    const branchSandboxId = editorEngine.branches.hasActiveBranch
+        ? (editorEngine.branches.activeBranch.sandbox?.id ?? null)
+        : null;
     useEffect(() => {
         if (!online) return;
+        if (!sandbox) return;
         if (!sandbox.session.isOffline) return;
         if (!branchSandboxId) return;
         let cancelled = false;
@@ -308,18 +335,18 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         online,
-        sandbox.session.isOffline,
+        sandbox?.session.isOffline,
         branchSandboxId,
         editorEngine.projectId,
         user?._id,
-        sandbox.session,
+        sandbox?.session,
     ]);
 
     useEffect(() => {
-        if (tabState === 'reactivated' && branchSandboxId && user?._id) {
+        if (tabState === 'reactivated' && sandbox && branchSandboxId && user?._id) {
             void sandbox.session.reconnect(branchSandboxId, user._id);
         }
-    }, [tabState, sandbox.session, branchSandboxId, user?._id]);
+    }, [tabState, sandbox, branchSandboxId, user?._id]);
 
     useEffect(() => {
         if (!canvasWithFrames) return;

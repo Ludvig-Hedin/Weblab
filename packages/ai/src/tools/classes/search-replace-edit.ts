@@ -33,7 +33,11 @@ export class SearchReplaceEditTool extends ClientTool {
 
             let newContent: string;
             if (args.replace_all) {
-                newContent = file.replaceAll(args.old_string, args.new_string);
+                if (!file.includes(args.old_string)) {
+                    throw new Error(`String not found in file: ${args.old_string}`);
+                }
+                // Function replacement so `$`-patterns in new_string are literal.
+                newContent = file.replaceAll(args.old_string, () => args.new_string);
             } else {
                 const firstIndex = file.indexOf(args.old_string);
                 if (firstIndex === -1) {
@@ -50,7 +54,7 @@ export class SearchReplaceEditTool extends ClientTool {
                     );
                 }
 
-                newContent = file.replace(args.old_string, args.new_string);
+                newContent = file.replace(args.old_string, () => args.new_string);
             }
 
             await fileSystem.writeFile(args.file_path, newContent);

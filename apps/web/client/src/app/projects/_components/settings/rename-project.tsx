@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api as convexApi } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -64,6 +65,12 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
             refetch();
         } catch (error) {
             console.error('Failed to rename project:', error);
+            // Surface the failure — silently swallowing it leaves the dialog
+            // open with no feedback. Mirrors delete-project.tsx; the dialog
+            // stays open so the user can retry.
+            toast.error('Failed to rename project', {
+                description: error instanceof Error ? error.message : 'Unknown error',
+            });
         }
     };
 

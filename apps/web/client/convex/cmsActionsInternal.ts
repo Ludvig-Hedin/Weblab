@@ -58,6 +58,12 @@ export const _wizardCreateCollection = internalMutation({
         ),
     },
     handler: async (ctx, { projectId, sourceId, remoteRef, name, slug, fields }) => {
+        // TODO(bug-hunt): unlike cmsCollections.create, this skips slug
+        // validation and the duplicate-slug check — two remote types whose
+        // names slugify identically (or a collision with an existing
+        // collection) persist duplicate slugs, and non-latin names can
+        // persist an empty slug. Reuse validateSlug + dup check here
+        // (suffix on conflict).
         const now = Date.now();
         const description = encodeRemoteRef(remoteRef);
         const collectionId = await ctx.db.insert('cmsCollections', {

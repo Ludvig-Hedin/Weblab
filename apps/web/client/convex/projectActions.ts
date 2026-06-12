@@ -9,7 +9,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
 import { action, internalAction } from './_generated/server';
 import { deriveRepoName } from './lib/repoName';
-import { mapSandboxProvisionError } from './lib/sandboxErrors';
+import { mapSandboxProvisionError, type SandboxErrorData } from './lib/sandboxErrors';
 
 // Node-only actions for the projects domain. These wrap external SDK calls
 // (Firecrawl HTTP API, Vercel Sandbox SDK, sharp image compression,
@@ -455,6 +455,10 @@ export const createBlank = action({
                 userId: me._id,
             }));
 
+        // TODO(bug-hunt): `_countProjectsByNamePrefix` matches by startsWith,
+        // so "New Project · Jun 1" also counts "New Project · Jun 10"–"Jun 19",
+        // inflating the (N) suffix. Match on the exact base name (plus an
+        // optional " (N)" suffix) instead of a raw prefix.
         const existingCount: number = await ctx.runMutation(
             internal.projects._countProjectsByNamePrefix,
             { workspaceId, namePrefix: baseName },
@@ -542,6 +546,12 @@ export const createFromGit = action({
 
         let provisionedSandboxId: string | null = null;
         try {
+            // TODO(bug-hunt): framework mismatch — the validator accepts
+            // vite-react/remix/astro/tanstack-start, but this call collapses
+            // everything non-static-html to 'nextjs' while `_insertProjectGraph`
+            // below persists the *requested* framework into runtimeMetadata.
+            // Either reject unsupported frameworks upfront (like createBlank)
+            // or persist the framework actually provisioned.
             const result = await VercelSandboxProvider.createProjectFromGit({
                 repoUrl: args.repoUrl,
                 branch: args.branch ?? 'main',
@@ -1097,9 +1107,15 @@ export const restoreSandbox = action({
         }
         const snapshotId = cloud.snapshotId;
         if (typeof snapshotId !== 'string' || snapshotId.length === 0) {
-            throw new Error(
-                "This project can't be restored yet because it has no saved sandbox snapshot.",
-            );
+            // ConvexError so the actionable message survives prod redaction
+            // (a plain Error is collapsed to "Server Error" on the client).
+            throw new ConvexError({
+                kind: 'unknown',
+                status: null,
+                message:
+                    "This project can't be restored yet because it has no saved sandbox snapshot.",
+                retryable: false,
+            } satisfies SandboxErrorData);
         }
 
         const port = resolveSandboxPort(cloud.port);
@@ -1246,10 +1262,16 @@ export const fork = action({
         const sourceSnapshotId: string | undefined =
             branches?.[0]?.runtimeMetadata?.cloud?.snapshotId;
         if (!sourceSnapshotId) {
-            throw new Error(
-                "This project can't be cloned yet — it has no saved sandbox snapshot. " +
+            // ConvexError so the actionable message survives prod redaction
+            // (a plain Error is collapsed to "Server Error" on the client).
+            throw new ConvexError({
+                kind: 'unknown',
+                status: null,
+                message:
+                    "This project can't be cloned yet — it has no saved sandbox snapshot. " +
                     'Open it once so it provisions, then try cloning again.',
-            );
+                retryable: false,
+            } satisfies SandboxErrorData);
         }
 
         // Clone into the caller's workspace (NOT the source's), gated on create.
@@ -1295,10 +1317,17 @@ export const fork = action({
             // failed and the provider scaffolded a blank project. Fail rather
             // than hand back an empty clone (silent content loss).
             if (result.snapshotId !== sourceSnapshotId) {
-                throw new Error(
-                    "Couldn't clone this project: its saved snapshot has expired. " +
+                // ConvexError so the actionable message survives prod
+                // redaction; mapSandboxProvisionError in the catch below
+                // passes ConvexErrors through untouched.
+                throw new ConvexError({
+                    kind: 'unknown',
+                    status: null,
+                    message:
+                        "Couldn't clone this project: its saved snapshot has expired. " +
                         'Open the original once to refresh it, then try cloning again.',
-                );
+                    retryable: false,
+                } satisfies SandboxErrorData);
             }
 
             const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {

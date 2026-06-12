@@ -152,6 +152,11 @@ export class CanvasManager {
     }
 
     clear() {
+        // Cancel any pending debounced save BEFORE resetting state — otherwise
+        // a save queued up to 5s earlier fires after the resets below and
+        // clobbers the user's persisted pan/zoom with the defaults.
+        this.saveCanvas.cancel();
+        this._id = '';
         this._scale = DefaultSettings.SCALE;
         this._position = DefaultSettings.PAN_POSITION;
         // Reset toggles to construction defaults so a project switch

@@ -228,6 +228,12 @@ export class PagesManager {
         const normalizedOldPath = normalizePagePath(oldPath);
         const nextPath = getNestedPagePath(getParentPagePath(oldPath), newName);
 
+        // No-op rename (dialog pre-fills the current name) — without this the
+        // route-exists check below matches the page itself and throws.
+        if (nextPath === normalizedOldPath) {
+            return;
+        }
+
         if (doesRouteExist(this.pages, nextPath)) {
             throw new Error('A page with this name already exists');
         }
@@ -261,6 +267,12 @@ export class PagesManager {
         }
 
         const nextPath = getNestedPagePath(getParentPagePath(oldPath), newName);
+
+        // No-op rename — see renamePage.
+        if (nextPath === normalizePagePath(oldPath)) {
+            return;
+        }
+
         if (doesRouteExist(this.pages, nextPath, 'folder')) {
             throw new Error('A folder with this name already exists');
         }
@@ -646,7 +658,26 @@ export class PagesManager {
 
             const urlObj = new URL(url);
             const path = urlObj.pathname;
-            const activePath = this.groupedRoutes ? this.groupedRoutes : path;
+            // Prefer the remembered grouped route only while the frame is
+            // still on the URL navigateTo() stripped the (group) segments
+            // from — otherwise a stale grouped route would override every
+            // subsequent in-iframe navigation (wrong active page highlight).
+            let activePath = path;
+            if (this.groupedRoutes) {
+                const strippedGrouped =
+                    '/' +
+                    this.groupedRoutes
+                        .replace(/\\/g, '/')
+                        .split('/')
+                        .filter(Boolean)
+                        .filter((seg) => !(seg.startsWith('(') && seg.endsWith(')')))
+                        .join('/');
+                if (strippedGrouped === path) {
+                    activePath = this.groupedRoutes;
+                } else {
+                    this.groupedRoutes = '';
+                }
+            }
             this.setActivePath(frameId, activePath);
         } catch (error) {
             console.error('Failed to parse URL:', error);

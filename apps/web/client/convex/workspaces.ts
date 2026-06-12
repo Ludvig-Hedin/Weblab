@@ -221,6 +221,11 @@ export const update = mutation({
             if (!/^[a-z0-9-]+$/.test(slug) || slug.length < 2 || slug.length > 64) {
                 throw new Error('BAD_REQUEST: slug invalid');
             }
+            // Reserved prefix — mirrors the createTeam guard so the reserved
+            // `personal-` namespace can't be claimed via the update path.
+            if (slug.startsWith('personal-')) {
+                throw new Error('BAD_REQUEST: slug cannot start with "personal-"');
+            }
             const collision = await ctx.db
                 .query('workspaces')
                 .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -450,7 +455,7 @@ export const inviteCreate = mutation({
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
             throw new Error('BAD_REQUEST: invalid email');
         }
-        const existingPending = await ctx.db
+        const pendingRows = await ctx.db
             .query('workspaceInvitations')
             .withIndex('by_workspace_email_status', (q) =>
                 q
@@ -458,8 +463,18 @@ export const inviteCreate = mutation({
                     .eq('email', normalizedEmail)
                     .eq('status', 'pending'),
             )
-            .first();
-        if (existingPending) throw new Error('CONFLICT: pending invitation exists');
+            .collect();
+        const now = Date.now();
+        if (pendingRows.some((r) => r.expiresAt >= now)) {
+            throw new Error('CONFLICT: pending invitation exists');
+        }
+        // Expired-but-still-'pending' rows must not block a re-invite — flip
+        // them to 'expired' here (the only write path that can persist the
+        // lazy expiry, since inviteAccept's throw rolls back any patch) and
+        // proceed with the fresh invitation.
+        for (const r of pendingRows) {
+            await ctx.db.patch(r._id, { status: 'expired' });
+        }
 
         const token = randomToken();
         const id = await ctx.db.insert('workspaceInvitations', {
@@ -485,10 +500,19 @@ export const inviteList = query({
     args: { workspaceId: v.id('workspaces') },
     handler: async (ctx, { workspaceId }) => {
         await requireCap(ctx, 'workspace.invite', { workspaceId });
-        return ctx.db
+        const rows = await ctx.db
             .query('workspaceInvitations')
             .withIndex('by_workspace_email_status', (q) => q.eq('workspaceId', workspaceId))
             .collect();
+        // Lazy expiry on read: a row that's still 'pending' but past its
+        // expiresAt is reported with a virtual 'expired' status (mirrors
+        // projectInvitations.list). The stored row is flipped for real the
+        // next time inviteCreate re-invites the same email.
+        const now = Date.now();
+        return rows.map((r) => ({
+            ...r,
+            status: r.status === 'pending' && r.expiresAt < now ? ('expired' as const) : r.status,
+        }));
     },
 });
 
@@ -548,7 +572,10 @@ export const inviteAccept = mutation({
         if (!row) throw new Error('NOT_FOUND: invitation');
         if (row.status !== 'pending') throw new Error('BAD_REQUEST: invitation not pending');
         if (row.expiresAt < Date.now()) {
-            await ctx.db.patch(row._id, { status: 'expired' });
+            // No status patch here: Convex rolls back all writes when a
+            // mutation throws, so a patch-then-throw never persists. Lazy
+            // expiry is handled on read (inviteList) and on re-invite
+            // (inviteCreate).
             throw new Error('BAD_REQUEST: invitation expired');
         }
         // Resolve the caller's email: prefer the Drizzle-stored `users.email`

@@ -54,9 +54,43 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
             refetch();
         } catch (error) {
             console.error('Error cloning project:', error);
-            const errorMessage = error instanceof Error ? error.message : String(error);
 
-            if (errorMessage.includes('502') || errorMessage.includes('sandbox')) {
+            // Convex actions that hit a recognized failure throw a ConvexError
+            // carrying a structured `{ message, retryable }` payload (see
+            // convex/lib/sandboxErrors.ts). Prefer it: a plain Error from a
+            // Convex action is redacted to "Server Error" in prod, so
+            // `error.message` alone is useless there. Mirrors
+            // use-create-blank-project.ts.
+            const structured = (error as { data?: unknown } | null)?.data;
+            const structuredMessage =
+                structured &&
+                typeof structured === 'object' &&
+                typeof (structured as { message?: unknown }).message === 'string'
+                    ? (structured as { message: string }).message
+                    : null;
+            const structuredRetryable =
+                structured &&
+                typeof structured === 'object' &&
+                typeof (structured as { retryable?: unknown }).retryable === 'boolean'
+                    ? (structured as { retryable: boolean }).retryable
+                    : null;
+
+            const errorMessage =
+                structuredMessage ?? (error instanceof Error ? error.message : String(error));
+
+            // Transient classification deliberately does NOT include the bare
+            // substring "sandbox" — that used to match permanent, actionable
+            // fork errors (missing/expired snapshot, billing) and masked them
+            // behind a generic "try again later" toast.
+            const lower = errorMessage.toLowerCase();
+            const isTransient =
+                structuredRetryable ??
+                (/\b50[234]\b/.test(errorMessage) ||
+                    lower.includes('temporarily unavailable') ||
+                    lower.includes('timeout') ||
+                    lower.includes('timed out'));
+
+            if (isTransient) {
                 toast.error('Sandbox service temporarily unavailable', {
                     description:
                         'Please try again in a few moments. Our servers may be experiencing high load.',

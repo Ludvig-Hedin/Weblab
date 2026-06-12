@@ -305,9 +305,10 @@ export const accept = mutation({
         }
         const now = Date.now();
         if (invitation.status === EXPIRED || invitation.expiresAt < now) {
-            if (invitation.status === PENDING) {
-                await ctx.db.patch(invitation._id, { status: EXPIRED, updatedAt: now });
-            }
+            // No status patch here: Convex rolls back all writes when a
+            // mutation throws, so a patch-then-throw never persists. Lazy
+            // expiry is handled on read instead — list() reports a virtual
+            // EXPIRED status for pending-but-past-expiresAt rows.
             throw new Error('BAD_REQUEST: Invitation has expired');
         }
         if (!isEmailMatch(invitation.inviteeEmail, user.email ?? undefined)) {
@@ -458,6 +459,10 @@ export const _validateAndInsert = internalMutation({
                 q.eq('inviteeEmail', lcEmail).eq('projectId', args.projectId),
             )
             .first();
+        // TODO(bug-hunt): a PENDING row past its expiresAt permanently blocks
+        // re-inviting this email (accept() can't persist the expiry flip —
+        // throws roll back writes). Mirror workspaces.inviteCreate: treat
+        // pending-but-expired as non-conflicting and flip it to EXPIRED here.
         if (existingInvite && existingInvite.status === PENDING) {
             throw new Error('CONFLICT: Invitation cannot be sent to this email.');
         }

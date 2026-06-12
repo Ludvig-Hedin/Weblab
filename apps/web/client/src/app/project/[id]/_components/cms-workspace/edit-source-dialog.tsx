@@ -146,10 +146,13 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
             toast.error('Source name is required');
             return;
         }
+        const filteredCreds = Object.fromEntries(
+            Object.entries(creds).filter(([, v]) => v && v.trim() !== ''),
+        );
+        // Sending an empty object would replace (wipe) the stored credentials
+        // blob — treat "rotate checked but every field blank" as keep-existing.
         const credsToSend =
-            rotate && Object.keys(creds).length > 0
-                ? Object.fromEntries(Object.entries(creds).filter(([, v]) => v && v.trim() !== ''))
-                : undefined;
+            rotate && Object.keys(filteredCreds).length > 0 ? filteredCreds : undefined;
         setIsUpdating(true);
         try {
             // Action encrypts `credentials` server-side via lib/cmsCredentials.

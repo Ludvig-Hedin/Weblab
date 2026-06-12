@@ -25,7 +25,12 @@ export function useFrameReload() {
     const reloadCountRef = useRef(0);
     const reloadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const bootTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const bootStartedAtRef = useRef<number>(Date.now());
+    // Wall-clock anchor for the CURRENT boot-wait window. Set when we start
+    // waiting (mount / first disconnect after a healthy period), cleared only
+    // when penpal connects. Intentionally NOT reset on reload attempts —
+    // auto reloads are part of the same wait, and re-anchoring per attempt
+    // made the 60s restart hint / 90s notFound-grace escalations unreachable.
+    const bootStartedAtRef = useRef<number | null>(null);
     const [reloadKey, setReloadKey] = useState(0);
     const [isPenpalConnected, setIsPenpalConnected] = useState(false);
     // Mirror reloadCountRef into state so consumers can react to repeated
@@ -33,9 +38,11 @@ export function useFrameReload() {
     // the auto-retry loop; this is read-only for the UI.
     const [connectionFailureCount, setConnectionFailureCount] = useState(0);
     const [reloadCapped, setReloadCapped] = useState(false);
-    // ms since the iframe started its current boot attempt. Updated
-    // every BOOT_TIMER_TICK_MS while the frame isn't ready, frozen on
-    // connect, reset on reload.
+    // Cumulative ms the frame has been waiting for the current boot, across
+    // auto reload attempts. Updated every BOOT_TIMER_TICK_MS while the frame
+    // isn't ready, frozen on connect. Uncapped — escalation thresholds
+    // (BOOT_RESTART_HINT_MS, NOTFOUND_GRACE_MS) compare against the raw
+    // value; cap only at display time if a consumer ever renders it.
     const [bootElapsedMs, setBootElapsedMs] = useState(0);
 
     const clearScheduledReload = () => {
@@ -140,11 +147,10 @@ export function useFrameReload() {
         }
     }, [isPenpalConnected]);
 
-    // Reset connection state on reload
+    // Reset connection state on reload. The boot-elapsed anchor is
+    // deliberately left alone here — see bootStartedAtRef above.
     useEffect(() => {
         setIsPenpalConnected(false);
-        bootStartedAtRef.current = Date.now();
-        setBootElapsedMs(0);
     }, [reloadKey]);
 
     // Tick the boot-elapsed timer while we're waiting. Stop ticking the
@@ -153,16 +159,22 @@ export function useFrameReload() {
     useEffect(() => {
         if (isPenpalConnected) {
             clearBootTimer();
+            // Healthy — close the boot-wait window. The next disconnect
+            // starts a fresh cumulative anchor.
+            bootStartedAtRef.current = null;
             return;
+        }
+        // Anchor once per wait window (mount, or first disconnect after a
+        // healthy period). Auto reloads re-run the reload effect above but
+        // not this anchor, so elapsed time accumulates across attempts.
+        if (bootStartedAtRef.current === null) {
+            bootStartedAtRef.current = Date.now();
+            setBootElapsedMs(0);
         }
         if (bootTimerRef.current) return;
         bootTimerRef.current = setInterval(() => {
-            // Freeze the displayed value at the restart-hint ceiling. Past this
-            // the loader shows the "Restart sandbox" recovery panel and gentle
-            // self-heal continues in the background, so letting the counter climb
-            // to "3561s" is just noise (and reads as a bug). All escalation
-            // thresholds (soft hint 30s, restart hint 60s) still trigger at the cap.
-            setBootElapsedMs(Math.min(Date.now() - bootStartedAtRef.current, BOOT_RESTART_HINT_MS));
+            const anchor = bootStartedAtRef.current;
+            setBootElapsedMs(anchor === null ? 0 : Date.now() - anchor);
         }, BOOT_TIMER_TICK_MS);
         return clearBootTimer;
     }, [isPenpalConnected]);

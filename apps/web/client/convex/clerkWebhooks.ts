@@ -28,16 +28,24 @@ export const upsertUser = internalMutation({
         const existing = await getUserByClerkIdSafe(ctx, args.clerkUserId);
         const now = Date.now();
         if (existing) {
+            // Non-clobbering name sync: in-app profile edits (Account tab /
+            // profile-setup) write names only to Convex, and Clerk fires
+            // `user.updated` on every sign-in with its own (often stale) name
+            // fields — blindly patching would overwrite the user's edits.
+            // Convex is the source of truth for names once set: only fill
+            // first/last/displayName when the existing values are empty.
+            // Email + avatar always sync from Clerk (it owns those).
             await ctx.db.patch(existing._id, {
                 email: args.email ?? existing.email,
-                firstName: args.firstName ?? existing.firstName,
-                lastName: args.lastName ?? existing.lastName,
-                displayName: args.displayName ?? existing.displayName,
+                firstName: existing.firstName || (args.firstName ?? undefined),
+                lastName: existing.lastName || (args.lastName ?? undefined),
+                displayName: existing.displayName || (args.displayName ?? undefined),
                 avatarUrl: args.avatarUrl ?? existing.avatarUrl,
                 updatedAt: now,
             });
             return existing._id;
         }
+        // `user.created` (no existing row) keeps full-set behavior.
         return ctx.db.insert('users', { ...args, updatedAt: now });
     },
 });

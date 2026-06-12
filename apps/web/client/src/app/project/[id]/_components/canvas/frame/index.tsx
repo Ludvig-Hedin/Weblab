@@ -389,20 +389,17 @@ export const FrameView = observer(
 
         const handleRestartSandbox = async () => {
             if (isRestarting) return;
-            // activeBranch getter throws synchronously when no branch is loaded;
-            // gate via hasActiveBranch first so the user gets a clean toast
-            // instead of an uncaught rejection from `void handleRestartSandbox()`.
-            if (!editorEngine.branches.hasActiveBranch) {
-                toast.error('Sandbox session not available');
-                return;
-            }
-            const branch = editorEngine.branches.activeBranch;
-            const sandbox = editorEngine.branches.getSandboxById(branch.id);
+            // Target the FRAME's own branch, not `branches.activeBranch` —
+            // this handler fires from per-frame UI and the per-frame
+            // auto-restart effect, so when this frame belongs to a non-active
+            // branch the old code restarted the wrong branch's sandbox.
+            // `branchData` is already resolved from `frame.branchId` above.
+            const sandbox = branchData?.sandbox;
             if (!sandbox?.session) {
                 toast.error('Sandbox session not available');
                 return;
             }
-            const sandboxId = branch.sandbox?.id;
+            const sandboxId = branchData?.branch.sandbox?.id;
             if (!sandboxId) {
                 toast.error('Sandbox session not available');
                 return;

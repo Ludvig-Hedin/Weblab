@@ -556,6 +556,18 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     const activeFilterCount = countActiveFilters(filters);
 
     useEffect(() => {
+        // Never sanitize before the projects query and user have resolved:
+        // while `fetchedProjects` is undefined, `projects` is [] and this
+        // effect would strip every projectId from every folder and persist
+        // the wipe. While `user` is undefined, `foldersStorageKey` still
+        // points at the anonymous bucket and we'd persist into the wrong key.
+        if (fetchedProjects === undefined || user === undefined) return;
+        // Skip sanitization when a workspace filter is active — the folder
+        // store is per-user across ALL workspaces, but `projects` here only
+        // contains the filtered workspace's projects, so ids belonging to
+        // other workspaces would be falsely treated as deleted and wiped.
+        if (workspaceId) return;
+
         const validProjectIds = new Set(projects.map((project) => project.id));
         const sanitizedFolders = sanitizeFolders(folders, validProjectIds);
 
@@ -563,7 +575,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
             setFolders(sanitizedFolders);
             void localforage.setItem(foldersStorageKey, sanitizedFolders);
         }
-    }, [folders, foldersStorageKey, projects]);
+    }, [folders, foldersStorageKey, projects, fetchedProjects, user, workspaceId]);
 
     const folderViewModels = useMemo(() => {
         const query = debouncedSearchQuery.trim().toLowerCase();

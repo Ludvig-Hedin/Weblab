@@ -122,6 +122,99 @@ describe('SearchReplaceEditTool', () => {
             ),
         ).rejects.toThrow('file system not found');
     });
+
+    test('should keep $-patterns in new_string literal (single replace)', async () => {
+        let writtenContent = '';
+        const mockFileSystem = {
+            initialize: mock(() => Promise.resolve()),
+            readFile: mock(() => Promise.resolve('const price = PLACEHOLDER;')),
+            writeFile: mock((path: string, content: string) => {
+                writtenContent = content;
+                return Promise.resolve(true);
+            }),
+        };
+        const mockEditorEngine = {
+            branches: {
+                getBranchDataById: mock(() => ({ codeEditor: mockFileSystem })),
+            },
+        } as unknown as EditorEngine;
+
+        const tool = new SearchReplaceEditTool();
+        await tool.handle(
+            {
+                branchId: 'test-branch',
+                file_path: '/test/file.ts',
+                old_string: 'PLACEHOLDER',
+                // `$$` would collapse to `$` and `$&` would re-insert the match
+                // with a string replacement arg.
+                new_string: "'$$10' + `$&` + \"$'\"",
+                replace_all: false,
+            },
+            mockEditorEngine,
+        );
+
+        expect(writtenContent).toBe("const price = '$$10' + `$&` + \"$'\";");
+    });
+
+    test('should keep $-patterns in new_string literal (replace_all)', async () => {
+        let writtenContent = '';
+        const mockFileSystem = {
+            initialize: mock(() => Promise.resolve()),
+            readFile: mock(() => Promise.resolve('X and X')),
+            writeFile: mock((path: string, content: string) => {
+                writtenContent = content;
+                return Promise.resolve(true);
+            }),
+        };
+        const mockEditorEngine = {
+            branches: {
+                getBranchDataById: mock(() => ({ codeEditor: mockFileSystem })),
+            },
+        } as unknown as EditorEngine;
+
+        const tool = new SearchReplaceEditTool();
+        await tool.handle(
+            {
+                branchId: 'test-branch',
+                file_path: '/test/file.ts',
+                old_string: 'X',
+                new_string: '$$',
+                replace_all: true,
+            },
+            mockEditorEngine,
+        );
+
+        expect(writtenContent).toBe('$$ and $$');
+    });
+
+    test('should throw when replace_all target is not found', async () => {
+        const mockFileSystem = {
+            initialize: mock(() => Promise.resolve()),
+            readFile: mock(() => Promise.resolve('Hello world')),
+            writeFile: mock(() => Promise.resolve(true)),
+        };
+        const mockEditorEngine = {
+            branches: {
+                getBranchDataById: mock(() => ({ codeEditor: mockFileSystem })),
+            },
+        } as unknown as EditorEngine;
+
+        const tool = new SearchReplaceEditTool();
+
+        await expect(
+            tool.handle(
+                {
+                    branchId: 'test-branch',
+                    file_path: '/test/file.ts',
+                    old_string: 'NotFound',
+                    new_string: 'Replacement',
+                    replace_all: true,
+                },
+                mockEditorEngine,
+            ),
+        ).rejects.toThrow('String not found in file: NotFound');
+        expect(mockFileSystem.writeFile).not.toHaveBeenCalled();
+    });
 });
 
 describe('SearchReplaceMultiEditFileTool', () => {
@@ -209,5 +302,47 @@ describe('SearchReplaceMultiEditFileTool', () => {
                 mockEditorEngine,
             ),
         ).rejects.toThrow('file system not found');
+    });
+
+    test('should keep $-patterns literal and throw on missing replace_all target', async () => {
+        let writtenContent = '';
+        const mockFileSystem = {
+            initialize: mock(() => Promise.resolve()),
+            readFile: mock(() => Promise.resolve('a a b')),
+            writeFile: mock((path: string, content: string) => {
+                writtenContent = content;
+                return Promise.resolve(true);
+            }),
+        };
+        const mockEditorEngine = {
+            branches: {
+                getBranchDataById: mock(() => ({ codeEditor: mockFileSystem })),
+            },
+        } as unknown as EditorEngine;
+
+        const tool = new SearchReplaceMultiEditFileTool();
+        await tool.handle(
+            {
+                branchId: 'test-branch',
+                file_path: '/test/file.ts',
+                edits: [
+                    { old_string: 'a', new_string: '$$', replace_all: true },
+                    { old_string: 'b', new_string: "$&$'", replace_all: false },
+                ],
+            },
+            mockEditorEngine,
+        );
+        expect(writtenContent).toBe("$$ $$ $&$'");
+
+        await expect(
+            tool.handle(
+                {
+                    branchId: 'test-branch',
+                    file_path: '/test/file.ts',
+                    edits: [{ old_string: 'missing', new_string: 'x', replace_all: true }],
+                },
+                mockEditorEngine,
+            ),
+        ).rejects.toThrow('String not found in file: missing');
     });
 });

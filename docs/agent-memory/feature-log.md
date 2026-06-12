@@ -865,3 +865,54 @@ Notable in-flight work as of this log's creation (see
   `runCommand` empty-output-on-failure semantics (BACKLOG.md).
 - **User-facing:** yes — eliminates the per-keystroke error toast and the
   project-file destruction that made the editor feel broken.
+
+---
+
+## 2026-06-13 — Main-user-flow bug-hunt: ~25 fixes across create/dashboard, editor load, chat/AI, auth, CMS
+
+- **What:** Five parallel read-only bug hunters swept the main user flows;
+  high-confidence findings were verified and fixed, the rest were logged
+  (BACKLOG.md "Bug-hunt 2026-06-13" + `TODO(bug-hunt)` comments in code).
+- **Highlights (user-facing):**
+  - CMS Collections tab crashed on selecting any collection and new bindings
+    could never be configured — raw Convex docs (`_id`) were passed behind
+    `as never` casts into components reading `.id` (collections-tab,
+    bind-dialog). Mapped at the boundary; casts removed.
+  - AI edit tools corrupted `$`-patterns (`$$`→`$`, `$&`→match) in generated
+    code via `String.replace` string-replacement semantics, and `replace_all`
+    silently "succeeded" with zero matches (search-replace-edit +
+    search-replace-multi-edit). Function replacers + not-found guards; 5 new
+    regression tests in `packages/ai/test/tools/edit.test.ts`.
+  - Chat checkpoints never persisted (`updateCheckpoints` always threw on the
+    client uuid) — new Convex mutation `updateCheckpointsForLastUserMessage`
+    resolves the row server-side. Queued chat messages dead-locked when no
+    stream was running — added idle drain effect.
+  - Editor open: indefinite render→effect loop in `use-start-project`
+    (unmemoized Convex query mappings + always-new ready-state object);
+    frame boot-timer escalations (60s restart hint / 90s gone-detection)
+    were mathematically unreachable; cloud liveness probe was one-shot and
+    `notFound` stuck forever; "Restart sandbox" restarted the active branch
+    instead of the frame's branch; pending debounced canvas save clobbered
+    saved pan/zoom on exit; project-switch re-init had no error handling or
+    cancellation; unguarded throwing `activeBranch` getters.
+  - Dashboard: captured screenshots were never displayed and the backfill
+    re-captured (paid Firecrawl) every 30min forever — `loadProjectListCard`
+    now resolves `previewImgStorageId` via `ctx.storage.getUrl`; folder
+    assignments were silently wiped by a sanitize effect racing the projects
+    query (and by workspace filtering); clone errors misclassified as
+    transient; fork/restore errors prod-redacted (now `ConvexError`); rename
+    failures were silent (toast added).
+  - Auth/settings: Clerk `user.updated` webhook clobbered in-app profile
+    edits (now non-clobbering for names); expired workspace invitations
+    permanently blocked re-inviting (rollback-doomed patch-then-throw);
+    account tab sent `''` instead of null; `x-pathname` dropped query
+    strings from post-login deep links; `workspaces.update` missed the
+    `personal-` slug guard.
+  - Pages/CMS: stale `groupedRoutes` overrode in-iframe navigation; no-op
+    rename threw "already exists"; blank "Replace credentials" save wiped
+    stored CMS source credentials.
+- **Validation:** `bun typecheck` ✓, changed-file ESLint 0 errors,
+  `packages/ai` 362 pass, web-client 456 pass (2 pre-existing failures
+  logged in BACKLOG), workspace test suite green except pre-existing stale
+  `@weblab/backend` script (BACKLOG).
+- **User-facing:** yes — fixes span every primary flow.

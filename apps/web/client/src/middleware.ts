@@ -59,7 +59,9 @@ export default clerkMiddleware(async (_auth, request) => {
     // Forward x-pathname so server components like `projects/layout.tsx` can
     // build a correct `returnUrl` after the sign-in redirect.
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-pathname', pathname);
+    // Include the query string — layouts build sign-in returnUrls from this
+    // header, and pathname alone drops e.g. `?tab=members` deep-link state.
+    requestHeaders.set('x-pathname', pathname + request.nextUrl.search);
     return NextResponse.next({ request: { headers: requestHeaders } });
 });
 

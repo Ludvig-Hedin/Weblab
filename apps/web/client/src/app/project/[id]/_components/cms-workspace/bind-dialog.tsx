@@ -431,11 +431,24 @@ export const BindDialog = observer(() => {
         }
     };
 
-    const collectionList = collections ?? [];
-    const itemFields = itemFieldsList ?? [];
-    const items = itemsList ?? [];
-    const repeatFields = repeatFieldsList ?? [];
-    const descendantFields = descendantFieldsList ?? [];
+    // Map Convex docs (`_id`) to the `id`-shaped contracts the sub-forms read —
+    // passing raw docs through made every `<SelectItem value={c.id}>` undefined,
+    // so new bindings could never be configured.
+    const collectionList = (collections ?? []).map((c) => ({ id: c._id, name: c.name }));
+    const mapField = (f: { _id: string; key: string; name: string; type: string }) => ({
+        id: f._id,
+        key: f.key,
+        name: f.name,
+        type: f.type,
+    });
+    const itemFields = (itemFieldsList ?? []).map(mapField);
+    const items = (itemsList ?? []).map((it) => ({
+        id: it._id,
+        slug: it.slug ?? null,
+        values: it.values,
+    }));
+    const repeatFields = (repeatFieldsList ?? []).map(mapField);
+    const descendantFields = (descendantFieldsList ?? []).map(mapField);
 
     return (
         <Dialog open={open} onOpenChange={(o) => (!o ? close() : null)}>
@@ -466,8 +479,8 @@ export const BindDialog = observer(() => {
                     </div>
                 ) : mode === 'list' ? (
                     <RepeatForm
-                        collections={collectionList as never}
-                        fields={repeatFields as never}
+                        collections={collectionList}
+                        fields={repeatFields}
                         collectionId={repeatCollectionId}
                         setCollectionId={(v) => {
                             setRepeatCollectionId(v);
@@ -486,19 +499,19 @@ export const BindDialog = observer(() => {
                         parentConfigured={
                             !!parentBinding && parentBinding.binding.kind === CmsBindingKind.REPEAT
                         }
-                        inheritedCollection={
-                            collectionList.find((c) => c._id === inheritedCollectionId) as never
-                        }
-                        fields={descendantFields as never}
+                        inheritedCollection={collectionList.find(
+                            (c) => c.id === inheritedCollectionId,
+                        )}
+                        fields={descendantFields}
                         fieldKey={currentFieldKey}
                         setFieldKey={setCurrentFieldKey}
                         t={t}
                     />
                 ) : (
                     <ItemForm
-                        collections={collectionList as never}
-                        fields={itemFields as never}
-                        items={items as never}
+                        collections={collectionList}
+                        fields={itemFields}
+                        items={items}
                         collectionId={itemCollectionId}
                         setCollectionId={(v) => {
                             setItemCollectionId(v);

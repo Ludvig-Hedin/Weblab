@@ -465,18 +465,16 @@ export function useChat({
             posthog.capture('user_edit_message', { type: ChatType.EDIT });
 
             if (isStreaming) {
-                // Stop current streaming immediately
+                // Stop current streaming immediately, then process the edit
+                // with immediate priority (higher than queue).
                 stop();
-
-                // Process edit with immediate priority (higher than queue)
-                const context = await editorEngine.chat.context.getContextByChatType(chatType);
                 return await processMessageEdit(messageId, newContent, chatType);
             }
 
             // Normal edit processing when not streaming
             return processMessageEdit(messageId, newContent, chatType);
         },
-        [processMessageEdit, posthog, isStreaming, stop, editorEngine.chat.context],
+        [processMessageEdit, posthog, isStreaming, stop],
     );
 
     // Manual recovery affordance for streams that were interrupted (e.g. tab
@@ -506,6 +504,13 @@ export function useChat({
     //   - messages must be hydrated (length > 0) so regen targets a real turn,
     //   - status must be settled (status === 'ready') so we don't stomp on an
     //     in-flight stream that some other init path already kicked off.
+    // TODO(bug-hunt): Interrupted-stream recovery can regenerate the WRONG
+    // turn. On abort/disconnect the chat route never persists the interrupted
+    // turn (refund + return, no consumeStream), so the DB-loaded history ends
+    // at the PREVIOUS user message — this auto-regen then re-answers an old
+    // question and the actually-interrupted user message is lost. Fix: persist
+    // the pending user content (e.g. alongside the inflight flag in
+    // localStorage) and re-send it instead of regenerating.
     const autoRegenAttemptedRef = useRef(false);
     useEffect(() => {
         if (autoRegenAttemptedRef.current) return;
@@ -625,18 +630,25 @@ export function useChat({
                 const checkpointsWithBranchId = [...oldCheckpoints, ...checkpoints].filter(
                     (cp): cp is GitMessageCheckpoint & { branchId: string } => !!cp.branchId,
                 );
-                void convex.mutation(api.messages.updateCheckpoints, {
-                    messageId: lastUserMessage.id as Id<'messages'>,
-                    checkpoints: checkpointsWithBranchId.map((cp) => ({
-                        type: cp.type,
-                        oid: cp.oid,
-                        branchId: cp.branchId,
-                        createdAt:
-                            cp.createdAt instanceof Date
-                                ? cp.createdAt.getTime()
-                                : Number(cp.createdAt),
-                    })),
-                });
+                // Resolve the target row server-side: `lastUserMessage.id` is a
+                // client uuid (and Convex re-mints row ids every turn), so a
+                // patch by client-held id can never succeed.
+                void convex
+                    .mutation(api.messages.updateCheckpointsForLastUserMessage, {
+                        conversationId: conversationId as Id<'conversations'>,
+                        checkpoints: checkpointsWithBranchId.map((cp) => ({
+                            type: cp.type,
+                            oid: cp.oid,
+                            branchId: cp.branchId,
+                            createdAt:
+                                cp.createdAt instanceof Date
+                                    ? cp.createdAt.getTime()
+                                    : Number(cp.createdAt),
+                        })),
+                    })
+                    .catch((err) => {
+                        console.error('Failed to persist checkpoints:', err);
+                    });
 
                 setMessages(
                     jsonClone(
@@ -665,6 +677,19 @@ export function useChat({
             void processNextQueuedMessage();
         }
     }, [finishReason, conversationId, queuedMessages.length, processNextInQueue]);
+
+    // Idle drain: the finish-reason effect above only fires after a stream
+    // ends with `stop`, which strands the queue when (a) it was restored from
+    // localStorage on mount with no active stream, (b) a message was queued
+    // while idle (sendMessage prepends instead of sending), or (c) the last
+    // stream errored / was aborted / finished with a non-`stop` reason.
+    // `processNextInQueue` re-checks isStreaming + an in-flight guard, so this
+    // can't double-send.
+    useEffect(() => {
+        if (isStreaming || status !== 'ready' || queuedMessages.length === 0) return;
+        const t = setTimeout(() => void processNextInQueue(), 500);
+        return () => clearTimeout(t);
+    }, [isStreaming, status, queuedMessages.length, processNextInQueue]);
 
     useEffect(() => {
         editorEngine.chat.conversation.setConversationLength(messages.length);

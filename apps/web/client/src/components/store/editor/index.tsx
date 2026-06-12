@@ -83,6 +83,10 @@ export const EditorEngineProvider = ({
 
     // Re-initialize when project ID changes.
     useEffect(() => {
+        // Cancellation guard for rapid id changes: each run owns a flag the
+        // cleanup flips, so a stale (superseded) init can never overwrite a
+        // newer engine in state/ref.
+        let cancelled = false;
         const initializeEngine = async () => {
             if (currentProjectId.current !== project.id) {
                 setIsReady(false);
@@ -100,8 +104,21 @@ export const EditorEngineProvider = ({
                     posthog,
                     project.metadata?.runtime?.framework ?? null,
                 );
-                await newEngine.initBranches(branchesRef.current);
-                await newEngine.init();
+                // Mirror the initial-mount path: log and continue instead of
+                // letting an unhandled rejection leave the provider rendering
+                // null forever.
+                try {
+                    await newEngine.initBranches(branchesRef.current);
+                    await newEngine.init();
+                } catch (err) {
+                    console.error('[EditorEngineProvider] project-switch init failed', err);
+                }
+                if (cancelled) {
+                    // A newer project id superseded this run — dispose the
+                    // losing engine instead of leaking its sandbox/listeners.
+                    setTimeout(() => newEngine.clear(), 0);
+                    return;
+                }
                 newEngine.screenshot.lastScreenshotAt =
                     project.metadata?.previewImg?.updatedAt ?? null;
 
@@ -112,7 +129,10 @@ export const EditorEngineProvider = ({
             }
         };
 
-        initializeEngine();
+        void initializeEngine();
+        return () => {
+            cancelled = true;
+        };
     }, [project.id]);
 
     // Apply branch updates without recreating the engine.

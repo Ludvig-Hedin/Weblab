@@ -11,6 +11,11 @@ export type SandboxLivenessState = 'unknown' | 'alive' | 'gone' | 'notFound' | '
 const LOCAL_PROBE_INTERVAL_MS = 1_000;
 const LOCAL_PROBE_TIMEOUT_MS = 4_000;
 
+// How often to re-probe a CLOUD sandbox while its state is still unresolved
+// (404 mid-boot / transient error). Each probe is a server-side HEAD via a
+// Convex action, so keep this much gentler than the local cadence.
+const CLOUD_PROBE_INTERVAL_MS = 12_000;
+
 /**
  * True for a desktop LOCAL dev-server preview URL (http://localhost:PORT).
  * Local branches run on the user's own machine, not a Vercel sandbox, so
@@ -64,8 +69,11 @@ async function probeLocalPreview(url: string): Promise<'alive' | 'notFound'> {
  * canvas reveal the rendered site as soon as the local server is up, instead
  * of waiting on the full preload + penpal handshake.
  *
- * The probe fires once `enabled` flips true, so we don't spam the network
- * during normal cold boots.
+ * Probing starts once `enabled` flips true, so we don't spam the network
+ * during normal cold boots, and keeps re-probing on an interval until the
+ * state resolves to a terminal answer (`alive` / `gone`). A one-shot probe
+ * left transient `notFound`/`error` results sticky forever — which both
+ * suppressed the restart panel and never noticed the dev server coming up.
  */
 export function useSandboxLiveness(
     branchId: Id<'branches'>,
@@ -108,20 +116,40 @@ export function useSandboxLiveness(
         }
 
         // CLOUD (Vercel sandbox): server-side HEAD with full status access.
-        void checkLiveness({ branchId, previewUrl })
-            .then((result) => {
-                if (!cancelled) {
-                    setState(result.state);
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setState('error');
-                }
-            });
+        // Re-probe on an interval until the state resolves to a terminal
+        // answer; `alive` and `gone` stop the loop, `notFound`/`error` keep it
+        // running so a slow-booting dev server is eventually noticed.
+        let timer: ReturnType<typeof setInterval> | null = null;
+        let inFlight = false;
+        const stop = () => {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        };
+        const tick = async () => {
+            // Convex actions have no abort handle — skip the tick instead of
+            // stacking a second probe on top of a slow in-flight one.
+            if (inFlight) return;
+            inFlight = true;
+            let result: SandboxLivenessState = 'error';
+            try {
+                result = (await checkLiveness({ branchId, previewUrl })).state;
+            } catch {
+                result = 'error';
+            } finally {
+                inFlight = false;
+            }
+            if (cancelled) return;
+            setState(result);
+            if (result === 'alive' || result === 'gone') stop();
+        };
+        void tick();
+        timer = setInterval(() => void tick(), CLOUD_PROBE_INTERVAL_MS);
 
         return () => {
             cancelled = true;
+            stop();
         };
     }, [branchId, checkLiveness, previewUrl, enabled]);
 

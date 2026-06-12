@@ -68,8 +68,22 @@ async function loadProjectListCard(ctx: QueryCtx, project: Doc<'projects'>) {
     const frameUrl = defaultBranchFrames[0]?.url ?? null;
     const sandboxPreviewUrl = defaultBranch?.sandboxId ? (frameUrl ?? null) : null;
 
+    // Captured screenshots live in Convex File Storage: captureScreenshot
+    // writes `previewImgStorageId` and nulls previewImgUrl/Path. A storage id
+    // is not renderable by the client, so resolve it to a signed URL here —
+    // without this, cards never show captured thumbnails and the client's
+    // staleness backfill re-captures (paid Firecrawl) every cycle forever.
+    // `updatedPreviewImgAt` is carried through via the `...project` spread so
+    // the client's staleness check works. If the storage file is missing,
+    // getUrl returns null and we fall back to any legacy previewImgUrl.
+    let previewImgUrl = project.previewImgUrl ?? null;
+    if (project.previewImgStorageId) {
+        previewImgUrl = (await ctx.storage.getUrl(project.previewImgStorageId)) ?? previewImgUrl;
+    }
+
     return {
         ...project,
+        ...(previewImgUrl !== null ? { previewImgUrl } : {}),
         defaultBranch,
         defaultBranchSandboxId: defaultBranch?.sandboxId ?? null,
         defaultBranchFrameUrl: frameUrl,
@@ -127,6 +141,11 @@ export const list = query({
         const fetched = await Promise.all(
             filteredMemberships.map((m) => ctx.db.get(m.projectId)),
         );
+        // TODO(bug-hunt): the limit is applied here in membership-index order
+        // (by_user index, ascending _creationTime) BEFORE the updatedAt sort
+        // below — a user with >200 memberships can have recently-updated
+        // projects silently dropped from the list. Sort (or paginate) before
+        // truncating.
         const projects: Doc<'projects'>[] = [];
         for (const project of fetched) {
             if (!project) continue;

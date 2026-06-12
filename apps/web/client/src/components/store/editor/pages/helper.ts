@@ -308,6 +308,13 @@ const getRoutePathFromSegments = (segments: string[]): string => {
     return filteredSegments.length === 0 ? '/' : `/${filteredSegments.join('/')}`;
 };
 
+// TODO(bug-hunt): page CRUD breaks for pages inside route groups. The scan
+// strips `(group)` segments from node paths (see getRoutePathFromSegments),
+// but these helpers rebuild the FS path as basePath + route — for
+// `app/(marketing)/about/page.tsx` the node path is `/about`, so
+// delete/rename/move/metadata resolve `app/about` and fail with "Page not
+// found". Fix: store the real FS-relative path (with group segments) on
+// PageNode and use it for sandbox operations.
 const getSandboxRoutePath = (route: string): string => {
     return normalizePagePath(route).replace(/^\/|\/$/g, '');
 };
@@ -316,6 +323,10 @@ const getRouteDirectoryPath = (basePath: string, route: string): string => {
     return joinPath(basePath, getSandboxRoutePath(route));
 };
 
+// TODO(bug-hunt): hardcodes `page.tsx`, but the scanner accepts
+// page.{tsx,ts,jsx,js} — metadata/schema updates and non-dir deletes fail on
+// .jsx/.js pages in imported projects. Resolve the actual page file from the
+// scan instead of assuming the extension.
 const getPageFilePathForRoute = (basePath: string, route: string): string => {
     return joinPath(getRouteDirectoryPath(basePath, route), 'page.tsx');
 };
