@@ -116,6 +116,12 @@ interface LocalDevBridge {
         command?: string | null,
         port?: number | null,
     ): Promise<{ port?: number; url?: string; error?: string }>;
+    /**
+     * Pick a free dev-server port without starting anything — used at project
+     * create time so the frame URL is built from a port that's guaranteed free
+     * (and uncommon), avoiding a collision with the editor's own :3000.
+     */
+    pickPort?(preferredPort?: number | null): Promise<{ port?: number; error?: string }>;
     stop(root: string): Promise<{ success?: boolean; error?: string }>;
     status(root: string): Promise<{ running: boolean; port?: number; url?: string }>;
     run(root: string, command: string): Promise<{ output?: string; exitCode?: number; error?: string }>;

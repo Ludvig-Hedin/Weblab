@@ -595,8 +595,14 @@ export const createLocal = mutation({
             await requireCap(ctx, 'project.create', { workspaceId: args.workspaceId });
         }
 
+        // Fall back to the uncommon local default (WEBLAB_LOCAL_DEFAULT_PORT in
+        // packages/constants/src/editor.ts — kept as a literal here to avoid
+        // pulling the constants bundle into Convex) rather than :3000, which is
+        // the editor's own dev server and guarantees an EADDRINUSE collision.
         const port =
-            typeof args.port === 'number' && args.port > 0 && args.port <= 65535 ? args.port : 3000;
+            typeof args.port === 'number' && args.port > 0 && args.port <= 65535
+                ? args.port
+                : 31847;
         const previewUrl = `http://localhost:${port}`;
         const now = Date.now();
 

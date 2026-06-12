@@ -38,6 +38,26 @@ later without re-discovering the context.
 
 ## Open
 
+### Local dev-server port re-pick is not propagated to `frame.url` (runtime collision → blank preview)
+
+- **Discovered:** 2026-06-12 (desktop local-port EADDRINUSE fix)
+- **Where:** apps/desktop/weblab-local.js (`startDevServer` → `findFreePort`), apps/web/client/src/components/store/editor/sandbox/{session.ts,index.ts}, convex/projects.ts `createLocal`. See `TODO(local-port-propagation)` in weblab-local.js.
+- **Symptom:** the create flow now picks a free uncommon port and `restart` frees+rebinds the same one, so the common cases match. But if a *foreign* process grabs the project's stored port between sessions, the bridge increments to a different free port while `frame.url` (built at `createLocal`) still points at the old port → the iframe shows a blank/loading frame (no crash). Same for **legacy local projects created before this fix** whose stored `runtime.local.port` is 3000 — they collide with the editor's own :3000 and never match.
+- **Root cause:** the bound port is authoritative on the desktop bridge, but nothing adopts the returned `{url}` back into `frame.url` when it differs from the stored port.
+- **Next step:** after the local dev server reports running, compare its `url` to the branch frames' url; if different, `editorEngine.frames.updateAndSaveToStorage(frameId, { url })` + `reloadView` (SandboxManager has `editorEngine` + `branch`). A one-time migration (or auto-repick-on-open) handles legacy :3000 rows.
+- **Risk if ignored:** rare blank preview on foreign-process collisions; legacy :3000 local projects stay broken until re-created.
+- **Tags:** `#bug` `#tech-debt`
+
+### Static-HTML / explicit-port local projects can still collide (`serve -l 8080` ignores PORT)
+
+- **Discovered:** 2026-06-12 (desktop local-port EADDRINUSE fix)
+- **Where:** packages/code-provider/src/scaffold-templates.ts (`STATIC_HTML_SCAFFOLD_PORT = 8080`), apps/desktop/weblab-local.js (`startDevServer`), apps/web/client/src/hooks/use-open-local-project.ts (`resolveFreeLocalPort` is skipped for non-Next frameworks).
+- **Symptom:** the free-port fix only moves PORT-honoring frameworks (Next.js) to an uncommon port. Static-HTML pins `serve -s -l tcp://0.0.0.0:8080`, and any project with an explicit `-p/--port`/`-l` flag pins its own port; those ignore the PORT env, so an occupied port still fails (and 8080 is a "please avoid" port per the user). Vite (5173) likewise auto-increments on its own without telling the frame.
+- **Root cause:** can't move a dev server off a hardcoded flag port via env; would require rewriting the dev command's port flag to a free port and keeping `frame.url` in sync (and `STATIC_HTML_SCAFFOLD_PORT` is shared with the cloud scaffold, so it can't be blindly changed).
+- **Next step:** for local static-HTML, rewrite the spawned command's `-l <port>` to a free uncommon port (don't touch the cloud constant), and pair with the port-propagation work above so `frame.url` follows.
+- **Risk if ignored:** static-HTML local projects collide on 8080; explicit-port projects crash on a busy port.
+- **Tags:** `#bug` `#tech-debt`
+
 ### Optimistic-creation window boots OfflineProvider — edits made before provisioning can clobber the scaffold
 
 - **Discovered:** 2026-06-12 (working-tree review of optimistic creation)

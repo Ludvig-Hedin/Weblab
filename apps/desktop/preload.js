@@ -108,6 +108,8 @@ const localdevBridge = IS_APP_ORIGIN
     ? {
           start: (root, command, port) =>
               ipcRenderer.invoke('weblab:localdev:start', { root, command, port }),
+          pickPort: (preferredPort) =>
+              ipcRenderer.invoke('weblab:localdev:pickPort', { preferredPort }),
           stop: (root) => ipcRenderer.invoke('weblab:localdev:stop', { root }),
           status: (root) => ipcRenderer.invoke('weblab:localdev:status', { root }),
           run: (root, command) => ipcRenderer.invoke('weblab:localdev:run', { root, command }),

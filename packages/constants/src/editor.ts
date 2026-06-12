@@ -8,6 +8,17 @@ export const APP_TAGLINE = 'Cursor for Designers';
 export const APP_SCHEMA = 'weblab';
 export const HOSTING_DOMAIN = 'weblab.build';
 export const MAX_NAME_LENGTH = 50;
+
+/**
+ * Default dev-server port for LOCAL (desktop) projects. Deliberately an
+ * uncommon, high, registered-range port — NOT 3000 (the Weblab editor's own
+ * dev server), 5173 (Vite), 8080 (static `serve`), or any other well-known
+ * dev port — so a user's local project never collides with the editor or a
+ * second project on first boot. The desktop bridge (apps/desktop/weblab-local.js)
+ * scans upward from this base for a free port; keep the literal there in sync.
+ */
+export const WEBLAB_LOCAL_DEFAULT_PORT = 31847;
+
 export enum EditorAttributes {
     // DOM attributes
     WEBLAB_TOOLBAR = 'weblab-toolbar',

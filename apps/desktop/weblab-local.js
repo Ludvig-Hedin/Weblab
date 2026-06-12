@@ -30,6 +30,7 @@ const { spawn, execFileSync } = require('child_process');
 const fsp = require('fs/promises');
 const path = require('path');
 const http = require('http');
+const net = require('net');
 
 // chokidar is an optional dep until `bun install` runs in apps/desktop. Load it
 // lazily so the desktop app still boots (with watch disabled) if it's missing.
@@ -102,12 +103,86 @@ function syncedEnv() {
 // and cloud agree on how a dev script's port is read.
 function inferPortFromDevScript(devScript) {
     if (typeof devScript !== 'string') return null;
-    const explicit = /(?:--listen|-l)\s+(?:tcp:\/\/[^:]+:)?(\d{2,5})\b/.exec(devScript)?.[1];
+    const explicit =
+        /(?:--port|-p|--listen|-l)\s+(?:tcp:\/\/[^:]+:)?(\d{2,5})\b/.exec(devScript)?.[1];
     const localhost = /(?:localhost|0\.0\.0\.0|127\.0\.0\.1):(\d{2,5})\b/.exec(devScript)?.[1];
     const raw = explicit ?? localhost;
     if (!raw) return null;
     const port = Number.parseInt(raw, 10);
     return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
+}
+
+// --- Free-port selection ------------------------------------------------------
+// Local projects must never collide with the Weblab editor's own dev server
+// (:3000) or each other. We pick an uncommon, high, registered-range port and
+// scan upward for a free one. Keep WEBLAB_LOCAL_BASE_PORT in sync with
+// WEBLAB_LOCAL_DEFAULT_PORT in packages/constants/src/editor.ts.
+const WEBLAB_LOCAL_BASE_PORT = 31847;
+const PORT_SCAN_LIMIT = 256;
+// Never hand out a well-known dev port even if momentarily free — they're the
+// ports other tools (and the editor itself) expect to grab, so squatting on
+// one invites a later collision.
+const AVOID_PORTS = new Set([
+    3000, 3001, 3002, 4000, 4173, 4200, 5000, 5173, 5174, 8000, 8080, 8081, 8888, 9000, 9229,
+]);
+
+// True if something is already listening on `host:port`. We use a CONNECT probe
+// rather than a bind probe on purpose: Node sets SO_REUSEADDR on listeners, so
+// two binds to the same port can BOTH succeed and falsely report "free". A
+// successful TCP connect unambiguously means the port is taken.
+function isPortInUseOn(port, host) {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        let settled = false;
+        const done = (inUse) => {
+            if (settled) return;
+            settled = true;
+            socket.destroy();
+            resolve(inUse);
+        };
+        socket.setTimeout(700);
+        socket.once('connect', () => done(true)); // someone is listening
+        socket.once('timeout', () => done(false));
+        socket.once('error', () => done(false)); // ECONNREFUSED → nothing there
+        try {
+            socket.connect(port, host);
+        } catch {
+            done(false);
+        }
+    });
+}
+
+// A port is free only if nothing is listening on either loopback family. Dev
+// servers vary — `next dev` binds `::` dualstack (the "address already in use
+// :::3000" case), `serve`/Vite bind 0.0.0.0 — and a dualstack listener answers
+// on 127.0.0.1 too, so checking both 127.0.0.1 and ::1 catches every case.
+async function canBindPort(port) {
+    if (await isPortInUseOn(port, '127.0.0.1')) return false;
+    return !(await isPortInUseOn(port, '::1'));
+}
+
+// Pick a free port. Honors `preferred` FIRST when it's bindable — even if it's
+// a "common" port — because the editor's frame URL was built from it and some
+// frameworks (Vite, static `serve`) bind their own port regardless of the PORT
+// env, so second-guessing a free requested port would only cause a mismatch.
+// Only when `preferred` is occupied do we scan upward from the uncommon base
+// (skipping well-known ports), giving the "use the next one if occupied"
+// behavior instead of crashing on EADDRINUSE.
+async function findFreePort(preferred) {
+    const pref =
+        Number.isInteger(preferred) && preferred > 0 && preferred <= 65535 ? preferred : null;
+    if (pref && (await canBindPort(pref))) return pref;
+    for (let i = 0; i < PORT_SCAN_LIMIT; i++) {
+        const p = WEBLAB_LOCAL_BASE_PORT + i;
+        if (p > 65535) break;
+        if (p === pref || AVOID_PORTS.has(p)) continue;
+        // eslint-disable-next-line no-await-in-loop
+        if (await canBindPort(p)) return p;
+    }
+    // Exhausted the uncommon range (absurd in practice). Fall back to the
+    // preferred/base port; if it's occupied the dev server surfaces a clear
+    // EADDRINUSE rather than us silently picking a wrong port.
+    return pref ?? WEBLAB_LOCAL_BASE_PORT;
 }
 
 async function readDevScript(root) {
@@ -192,12 +267,19 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
     // install-if-needed lives here to guarantee a fresh folder is usable.
     await ensureInstalled(root, getWebContents);
     const devScript = await readDevScript(root);
-    const port =
-        (Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535
+    const requested =
+        Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535
             ? requestedPort
-            : null) ??
-        inferPortFromDevScript(devScript) ??
-        3000;
+            : null;
+    // Pick a FREE port — preferring the one the editor's frame URL was built
+    // from, then the dev script's explicit port, then an uncommon base — and
+    // scan to the next free one instead of crashing on EADDRINUSE. PORT is
+    // passed below so PORT-honoring frameworks (Next.js) bind exactly this.
+    // TODO(local-port-propagation): a script with a hardcoded port (static
+    //   `serve -l 8080`) ignores PORT, so an occupied explicit port still
+    //   collides; and if we increment away from `requested` at runtime the
+    //   editor's frame.url won't follow until reload. See BACKLOG.
+    const port = await findFreePort(requested ?? inferPortFromDevScript(devScript));
     const cmd = command && String(command).trim().length > 0 ? String(command) : 'npm run dev';
     let child;
     try {
@@ -505,6 +587,15 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
         }
     });
 
+    ipcMain.handle('weblab:localdev:pickPort', async (event, { preferredPort } = {}) => {
+        if (!guard(event)) return { error: 'origin_mismatch' };
+        try {
+            return { port: await findFreePort(preferredPort) };
+        } catch (err) {
+            return { error: (err && err.message) || 'pick_port_failed' };
+        }
+    });
+
     ipcMain.handle('weblab:localdev:stop', async (event, { root } = {}) => {
         if (!guard(event)) return { error: 'origin_mismatch' };
         stopDevServer(root);
@@ -540,6 +631,8 @@ module.exports = {
     disposeLocal,
     resolveWithin,
     inferPortFromDevScript,
+    findFreePort,
+    canBindPort,
     // Exported for the headless integration test (real dev-server + watch).
     ensureInstalled,
     startDevServer,

@@ -14,11 +14,15 @@
 
 import { afterAll, expect, test } from 'bun:test';
 import http from 'node:http';
+import net from 'node:net';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+    canBindPort,
+    findFreePort,
+    inferPortFromDevScript,
     resolveWithin,
     startDevServer,
     startWatch,
@@ -114,6 +118,44 @@ test.skipIf(!RUNTIME_OK)(
         stopWatch(r.watchId);
     },
     10000,
+);
+
+// Pure (no network) — always runs, even in a sandboxed CI.
+test('inferPortFromDevScript reads an explicit port from common dev scripts', () => {
+    expect(inferPortFromDevScript('next dev --turbopack')).toBeNull();
+    expect(inferPortFromDevScript('next dev -p 4000')).toBe(4000);
+    expect(inferPortFromDevScript('next dev --port 4100')).toBe(4100);
+    expect(inferPortFromDevScript('serve -s -l tcp://0.0.0.0:8080')).toBe(8080);
+    expect(inferPortFromDevScript('vite --host 127.0.0.1:5180')).toBe(5180);
+});
+
+test.skipIf(!RUNTIME_OK)(
+    'findFreePort skips occupied ports (incl. the :::3000 editor case) and defaults uncommon',
+    async () => {
+        // A free, uncommon requested port is honored as-is.
+        const free = await findFreePort(31850);
+        expect(free === 31850 || free >= 31847).toBe(true);
+
+        // Occupy a port on IPv6 :: — how `next dev` binds (":::3000") — and prove
+        // we detect it and pick a DIFFERENT free port instead of crashing.
+        const blocker = net.createServer(() => {});
+        await new Promise((r) => blocker.listen(31851, '::', r));
+        expect(await canBindPort(31851)).toBe(false);
+        const next = await findFreePort(31851);
+        expect(next).not.toBe(31851);
+        expect(next).toBeGreaterThanOrEqual(31847);
+        await new Promise((r) => blocker.close(r));
+
+        // Released ports read free again.
+        expect(await canBindPort(31851)).toBe(true);
+
+        // No preference → uncommon base, never the editor's :3000 / static :8080.
+        const def = await findFreePort(null);
+        expect(def).toBeGreaterThanOrEqual(31847);
+        expect(def).not.toBe(3000);
+        expect(def).not.toBe(8080);
+    },
+    15000,
 );
 
 afterAll(async () => {
