@@ -3,6 +3,7 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { registerIpcHandlers: registerCliIpc } = require('./weblab-cli');
 const { registerLocalIpc, disposeLocal } = require('./weblab-local');
+const { isOAuthHost } = require('./auth-hosts');
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Weblab';
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
@@ -41,26 +42,10 @@ const ALLOWED_IPC_ORIGINS = new Set([
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...
 const PROTOCOL = 'weblab';
 
-// OAuth provider hosts that must NOT render inside any BrowserWindow we
-// control. Google's `accounts.google.com` actively blocks sign-in from
-// embedded Chromium, GitHub/Vercel/Clerk-FAPI all behave subtly differently
-// from a real browser inside Electron (third-party cookie handling, browser
-// fingerprinting, the way some providers validate the OAuth `client_id`),
-// and splitting a flow across multiple cookie jars breaks PKCE.
-//
-// The renderer now drives OAuth through `weblabNative.openExternal(url)` →
-// the user's real default browser. This set is the defense-in-depth net:
-// if anything still tries to navigate or 302-redirect the main window onto
-// a provider host, bounce it to `shell.openExternal` instead of letting it
-// render in-window.
-const BLOCKED_OAUTH_HOSTS = new Set([
-    'accounts.google.com',
-    'appleid.apple.com',
-    'github.com',
-    'vercel.com',
-    'clerk.weblab.build',
-    'accounts.weblab.build',
-]);
+// Which hosts get bounced to the real browser vs. allowed in-window lives in
+// ./auth-hosts.js (unit-tested). Summary: third-party OAuth provider sign-in
+// pages + Clerk's hosted account portal are bounced; Clerk's own FAPI/handshake
+// hosts stay in-window so the dev-mode handshake can complete.
 
 const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
@@ -70,13 +55,6 @@ let mainWindow;
 ipcMain.on('weblab:get-version', (event) => {
     event.returnValue = app.getVersion();
 });
-
-function isOAuthHost(hostname) {
-    for (const host of BLOCKED_OAUTH_HOSTS) {
-        if (hostname === host || hostname.endsWith(`.${host}`)) return true;
-    }
-    return hostname.endsWith('.clerk.accounts.dev');
-}
 
 // Open `url` in the user's default OS browser. OAuth flows now run in the
 // real browser because Google blocks embedded Chromium outright, GitHub /
@@ -313,9 +291,16 @@ function createWindow(initialURL) {
     mainWindow.on('enter-full-screen', () => setFullscreenFlag(true));
     mainWindow.on('leave-full-screen', () => setFullscreenFlag(false));
 
-    mainWindow.once('ready-to-show', () => {
+    if (!app.isPackaged) {
+        // Show immediately in dev so the window is visible while Next.js compiles.
         mainWindow.show();
-    });
+        // Open devtools automatically in dev so renderer errors are visible.
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+    } else {
+        mainWindow.once('ready-to-show', () => {
+            mainWindow.show();
+        });
+    }
 
     // Open external links in the system browser. Also: if the WebContents
     // tries to navigate to a known OAuth provider, hand the URL to the OS
@@ -584,7 +569,12 @@ app.whenReady().then(() => {
     autoUpdater.checkForUpdatesAndNotify();
 
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        } else if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
     });
 });
 
