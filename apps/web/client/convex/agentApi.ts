@@ -329,6 +329,31 @@ function lookupToHttp(
         : errorResponse('NOT_FOUND', 'project not found', 404);
 }
 
+/**
+ * Map an internalQuery rejection to a 500. Only the two `resolveAgentUser`
+ * sentinels mean "agent account misconfigured"; any other error (e.g. a
+ * `.unique()` constraint violation, a DB read failure) is reported as a
+ * generic backend error so the message isn't misleading.
+ */
+function backendErrorResponse(err: unknown): Response {
+    const message = err instanceof Error ? err.message : 'unknown';
+    if (message === 'AGENT_USER_UNCONFIGURED') {
+        return errorResponse(
+            'BACKEND_UNAVAILABLE',
+            'agent account not configured: WEBLAB_AGENT_USER_ID missing',
+            500,
+        );
+    }
+    if (message === 'AGENT_USER_NOT_FOUND') {
+        return errorResponse(
+            'BACKEND_UNAVAILABLE',
+            'agent account not configured: no user matches WEBLAB_AGENT_USER_ID',
+            500,
+        );
+    }
+    return errorResponse('BACKEND_UNAVAILABLE', `agent api error: ${message}`, 500);
+}
+
 function readProjectId(request: Request): string | null {
     const value = new URL(request.url).searchParams.get('projectId');
     return value && value.trim().length > 0 ? value.trim() : null;
@@ -361,11 +386,7 @@ export const agentListProjects = httpAction(async (ctx, request) => {
         const projects = await ctx.runQuery(internal.agentApi._listAgentProjects, {});
         return jsonResponse({ projects });
     } catch (err) {
-        return errorResponse(
-            'BACKEND_UNAVAILABLE',
-            `agent account not configured: ${err instanceof Error ? err.message : 'unknown'}`,
-            500,
-        );
+        return backendErrorResponse(err);
     }
 });
 
@@ -385,11 +406,7 @@ export const agentGetProject = httpAction(async (ctx, request) => {
         }
         return jsonResponse({ project: result.project });
     } catch (err) {
-        return errorResponse(
-            'BACKEND_UNAVAILABLE',
-            `agent account not configured: ${err instanceof Error ? err.message : 'unknown'}`,
-            500,
-        );
+        return backendErrorResponse(err);
     }
 });
 
@@ -409,10 +426,6 @@ export const agentGetProjectStatus = httpAction(async (ctx, request) => {
         }
         return jsonResponse({ status: result.status });
     } catch (err) {
-        return errorResponse(
-            'BACKEND_UNAVAILABLE',
-            `agent account not configured: ${err instanceof Error ? err.message : 'unknown'}`,
-            500,
-        );
+        return backendErrorResponse(err);
     }
 });

@@ -84,6 +84,24 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
         }
     };
 
+    const submitVariant = () => {
+        const trimmed = variantName.trim();
+        if (!trimmed || variantBusy) return;
+        setVariantBusy(true);
+        void editorEngine.components
+            .addVariant(def, session.branchId, trimmed)
+            .then((result) => {
+                if (!result.ok) {
+                    toast.error('Could not add variant', { description: result.error });
+                    return;
+                }
+                toast.success(`Variant "${trimmed}" added`);
+                setVariantOpen(false);
+                setVariantName('');
+            })
+            .finally(() => setVariantBusy(false));
+    };
+
     return (
         <Section id="component" title={`${def.name} · Properties`} setCount={def.props.length}>
             <div className="flex flex-col gap-1 px-3">
@@ -190,30 +208,15 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                                     placeholder="dark"
                                     className="h-7 font-mono text-[11px]"
                                     onChange={(e) => setVariantName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') submitVariant();
+                                    }}
                                 />
                                 <Button
                                     size="sm"
                                     className="h-7 w-full text-[11px]"
                                     disabled={variantBusy || variantName.trim().length === 0}
-                                    onClick={() => {
-                                        const trimmed = variantName.trim();
-                                        if (!trimmed) return;
-                                        setVariantBusy(true);
-                                        void editorEngine.components
-                                            .addVariant(def, session.branchId, trimmed)
-                                            .then((result) => {
-                                                if (!result.ok) {
-                                                    toast.error('Could not add variant', {
-                                                        description: result.error,
-                                                    });
-                                                    return;
-                                                }
-                                                toast.success(`Variant "${trimmed}" added`);
-                                                setVariantOpen(false);
-                                                setVariantName('');
-                                            })
-                                            .finally(() => setVariantBusy(false));
-                                    }}
+                                    onClick={submitVariant}
                                 >
                                     {variantBusy ? 'Adding…' : 'Add variant'}
                                 </Button>
