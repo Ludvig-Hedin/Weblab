@@ -26,7 +26,7 @@ import { GestureScreen } from './gesture';
 import { ResizeHandles } from './resize-handles';
 import { TopBar } from './top-bar';
 import { BOOT_RESTART_HINT_MS, BOOT_SOFT_HINT_MS, useFrameReload } from './use-frame-reload';
-import { useSandboxLiveness } from './use-sandbox-liveness';
+import { isLocalPreviewUrl, useSandboxLiveness } from './use-sandbox-liveness';
 import { useSandboxTimeout } from './use-sandbox-timeout';
 import { FrameComponent } from './view';
 
@@ -245,6 +245,11 @@ export const FrameView = observer(
         const preloadScriptReady =
             branchData?.sandbox?.preloadScriptState === PreloadScriptState.INJECTED;
         const isCodeSandboxFrame = useMemo(() => isCodeSandboxPreviewUrl(frame.url), [frame.url]);
+        // Desktop LOCAL dev server (http://localhost:PORT). These run on the
+        // user's own machine, so the rendered site is reachable the instant the
+        // dev server binds — we don't make the user wait on the full preload +
+        // penpal bridge before showing it (see `localPreviewReady` below).
+        const isLocalFrame = useMemo(() => isLocalPreviewUrl(frame.url), [frame.url]);
         const isFrameReady = isFrameBridgeReady({
             preloadScriptReady,
             isConnecting,
@@ -301,13 +306,25 @@ export const FrameView = observer(
         // is actually responding. If CodeSandbox has recycled it (410 Gone)
         // we surface a restore-from-snapshot CTA instead of letting the
         // spinner run forever.
+        // Cloud sandboxes only get probed after the soft-hint mark (or a penpal
+        // failure) so we don't spam the network during normal cold boots. A
+        // local dev server is a cheap same-machine probe, so we poll it from the
+        // start — that's what reveals the site within a second or two of the
+        // port binding instead of after the 30s soft hint.
         const livenessEnabled =
-            !isFrameReady && (bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1);
+            !isFrameReady &&
+            (isLocalFrame || bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1);
         const livenessState = useSandboxLiveness(
             frame.branchId as Id<'branches'>,
             frame.url,
             livenessEnabled,
         );
+        // For a LOCAL project the rendered site is usable the moment the dev
+        // server responds — don't keep it hidden behind the opaque boot overlay
+        // while the preload + penpal bridge finishes connecting in the
+        // background. Build errors still own the overlay (otherwise the raw
+        // Next.js error page would show through instead of our richer panel).
+        const localPreviewReady = isLocalFrame && livenessState === 'alive' && !hasBuildErrors;
 
         const showSoftHint =
             !isFrameReady &&
@@ -445,13 +462,19 @@ export const FrameView = observer(
             const prev = prevLivenessRef.current;
             prevLivenessRef.current = livenessState;
             if (
+                // Cloud only: the cloud iframe gets stuck on a failed 502 load
+                // and needs a re-fetch once the proxy goes live. A local iframe
+                // already loaded the page (that's why it's `alive`), so reloading
+                // here just flashes the freshly-revealed site for no gain —
+                // penpal connects on its own once the preload script runs.
+                !isLocalFrame &&
                 (prev === 'notFound' || prev === 'error' || prev === 'unknown') &&
                 livenessState === 'alive' &&
                 !isPenpalConnected
             ) {
                 immediateReload();
             }
-        }, [livenessState, immediateReload, isPenpalConnected]);
+        }, [isLocalFrame, livenessState, immediateReload, isPenpalConnected]);
 
         // Auto-recovery for "URL is alive but penpal can't connect":
         // restart the dev server once before surfacing the manual
@@ -570,7 +593,9 @@ export const FrameView = observer(
                     )}
                     <GestureScreen frame={frame} isResizing={isResizing} />
 
-                    {(!isFrameReady || !frame.url) && !shouldTemporarilyUnlockPreview && (
+                    {(!isFrameReady || !frame.url) &&
+                        !localPreviewReady &&
+                        !shouldTemporarilyUnlockPreview && (
                         <div
                             // Fully opaque so a still-booting sandbox (HTTP 502
                             // until the dev server is up) never bleeds through.
