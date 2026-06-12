@@ -486,7 +486,10 @@ export class NodeFsTask extends ProviderTask {
         // side — returns the already-running server if one is up.
         const res = await requireLocalDev().start(root, this.options.devCommand, this.options.port);
         if (res.error) return `Failed to start local dev server: ${res.error}\n`;
-        const url = res.url ?? `http://localhost:${this.options.port ?? 3000}`;
+        // Prefer the bridge's actually-bound url/port. The final fallback is the
+        // uncommon local default (WEBLAB_LOCAL_DEFAULT_PORT) — never :3000, which
+        // is the editor's own dev server and would render the editor in the frame.
+        const url = res.url ?? `http://localhost:${res.port ?? this.options.port ?? 31847}`;
         return `Local dev server running on ${url}\n`;
     }
 

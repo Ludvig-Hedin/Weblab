@@ -337,6 +337,13 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
     return { port, url: rec.url };
 }
 
+// TODO(bug-hunt): restart race. This sends SIGTERM and deletes the record
+// synchronously without awaiting the child's 'exit', so the port may not be
+// released yet. NodeFsTask.restart() does `stop()` then immediately `start()`,
+// so findFreePort can see the dying server still holding the port and pick a
+// DIFFERENT one → frame.url mismatch (or, pre-fix, EADDRINUSE). Fix: make this
+// await the child 'exit' (with a ~3s timeout fallback) and have the IPC `stop`
+// handler + restart() await it. See BACKLOG.
 function stopDevServer(root) {
     const rec = devServers.get(root);
     if (rec && rec.child && rec.child.pid) {
