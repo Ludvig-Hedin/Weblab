@@ -5,6 +5,27 @@ This doc covers three paths: building locally, sharing with friends, and publish
 
 ## Changelog
 
+### v0.2.4
+
+First public release since v0.2.1 — includes everything from the unreleased
+v0.2.2 and v0.2.3 work below.
+
+- **Local-first project mode (foundation).** New IPC bridge + `LocalProvider`
+  let the desktop shell run a project's dev server locally: scaffold a new
+  local project, install dependencies on boot, start/stop the dev server
+  (process group killed cleanly on stop), bind the frame's port, and watch
+  the filesystem with chokidar (startWatch now awaits the watcher's `ready`).
+  Covered by headless integration tests: dev-server boot + watch, canvas
+  rendering the local server, element-select + live restyle against the real
+  preload, and the edit→save→serve loop.
+- **Auth handoff hardening.** The `weblab://` protocol registration and the
+  handoff launch flow moved to a dedicated iframe path, completing the
+  browser-handoff sign-in shipped in v0.2.2.
+- **Website downloads are now first-party.** weblab.build/download serves
+  installers via `/api/download/<platform>` (302 to the latest release
+  asset) — clicking Download saves the file directly instead of sending
+  users to a GitHub page.
+
 ### v0.2.2
 
 - Desktop sign-in now works end-to-end. OAuth (Google/GitHub/Vercel) and email
