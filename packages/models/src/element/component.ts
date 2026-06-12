@@ -82,4 +82,9 @@ export interface ComponentDef {
     hasSpread: boolean;
     /** False when the master can't be safely edited (unparseable, external). */
     editable: boolean;
+    /**
+     * Content hash of the master source, set for HTML partials. Lets the
+     * editor detect master edits in index updates and re-stamp instances.
+     */
+    version?: string;
 }

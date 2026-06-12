@@ -9,9 +9,12 @@ import {
     createPropFromElement,
     detachInstance,
     extractComponent,
+    extractHtmlComponent,
     getAstFromContent,
     getContentFromAst,
+    HTML_COMPONENT_DIR,
     parseInstancePropValues,
+    restampPage,
     suggestPropExtractions,
 } from '@weblab/parser';
 
@@ -115,9 +118,23 @@ export class ComponentsManager {
         if (!fileSystem) return;
 
         this.unsubscribeIndex = fileSystem.onComponentsChanged((defs) => {
+            const previous = this.definitions;
             runInAction(() => {
                 this.definitions = defs;
             });
+            // HTML masters: a changed content hash means the partial was
+            // edited — re-stamp every instance across the project's pages.
+            const changedMasters = defs.filter(
+                (def) =>
+                    def.kind === 'html' &&
+                    def.version &&
+                    previous.some(
+                        (p) => p.key === def.key && p.version && p.version !== def.version,
+                    ),
+            );
+            for (const master of changedMasters) {
+                void this.restampHtmlMaster(master);
+            }
         });
 
         void fileSystem
@@ -474,6 +491,52 @@ export class ComponentsManager {
         return { ok: true };
     }
 
+    // ── HTML stamping orchestration ──
+
+    /**
+     * Re-renders every stamped instance of an edited HTML master across the
+     * project's pages, preserving per-instance props and slot content.
+     * Unchanged pages are skipped to avoid write amplification.
+     */
+    private async restampHtmlMaster(def: ComponentDef): Promise<void> {
+        let fileSystem;
+        try {
+            fileSystem = this.editorEngine.fileSystem;
+        } catch {
+            return;
+        }
+        if (!fileSystem) return;
+
+        try {
+            const masterContent = await fileSystem.readFile(def.filePath);
+            if (typeof masterContent !== 'string') return;
+
+            const entries = await fileSystem.listAll();
+            const pages = entries.filter(
+                (entry) =>
+                    entry.type === 'file' &&
+                    /\.html?$/i.test(entry.path) &&
+                    !entry.path.includes(HTML_COMPONENT_DIR),
+            );
+
+            const writes: Array<{ path: string; content: string }> = [];
+            for (const page of pages) {
+                const pageContent = await fileSystem.readFile(page.path);
+                if (typeof pageContent !== 'string') continue;
+                const result = restampPage(pageContent, masterContent, def.key);
+                if (result.changed) {
+                    writes.push({ path: page.path, content: result.content });
+                }
+            }
+            if (writes.length > 0) {
+                await fileSystem.writeFiles(writes);
+                await this.editorEngine.refreshLayers();
+            }
+        } catch (error) {
+            console.error(`[ComponentsManager] Re-stamp failed for ${def.key}:`, error);
+        }
+    }
+
     // ── Create component from selection / unlink / variants ──
 
     /** Suggested prop extractions for the create-component dialog. */
@@ -511,6 +574,17 @@ export class ComponentsManager {
         if (!metadata) return { ok: false, error: 'Source metadata not found' };
         const content = await fileSystem.readFile(metadata.path);
         if (typeof content !== 'string') return { ok: false, error: 'Cannot read source file' };
+
+        // Static HTML pages: editor-managed stamping instead of JSX extraction.
+        if (/\.html?$/i.test(metadata.path)) {
+            return this.createHtmlComponentFromSelection(el, componentName, {
+                fileSystem,
+                pagePath: metadata.path,
+                pageContent: content,
+                selectedHtml: metadata.code,
+            });
+        }
+
         const ast = getAstFromContent(content);
         if (!ast) return { ok: false, error: 'Cannot parse source file' };
 
@@ -545,6 +619,56 @@ export class ComponentsManager {
         this.editorEngine.posthog.capture('component_created_from_selection', {
             component: componentName,
             props: extractions.length,
+        });
+        return { ok: true };
+    }
+
+    /**
+     * HTML create-from-selection: serializes the subtree into a partial under
+     * `weblab/components/` and replaces the page element with a stamped
+     * instance (marker attrs on the root, `${oid}~${instanceId}` oids).
+     */
+    private async createHtmlComponentFromSelection(
+        el: DomElement,
+        componentName: string,
+        context: {
+            fileSystem: NonNullable<
+                ReturnType<EditorEngine['branches']['getBranchDataById']>
+            >['codeEditor'];
+            pagePath: string;
+            pageContent: string;
+            selectedHtml: string;
+        },
+    ): Promise<{ ok: boolean; error?: string }> {
+        const { fileSystem, pagePath, pageContent, selectedHtml } = context;
+        const kebab = componentName
+            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+            .toLowerCase();
+        const componentKey = `${HTML_COMPONENT_DIR}/${kebab}.html`;
+
+        const extraction = extractHtmlComponent({
+            selectedHtml,
+            componentKey,
+            componentName,
+        });
+        if (!extraction) return { ok: false, error: 'Could not extract the selection' };
+
+        // Replace the selected element with the stamped instance. The code
+        // snippet equals the element's source range, so a single string
+        // replacement is exact.
+        if (!pageContent.includes(selectedHtml)) {
+            return { ok: false, error: 'Source drifted — try again after the page reloads' };
+        }
+        const updatedPage = pageContent.replace(selectedHtml, extraction.stamped);
+
+        await fileSystem.writeFiles([
+            { path: componentKey, content: extraction.masterContent },
+            { path: pagePath, content: updatedPage },
+        ]);
+
+        this.editorEngine.posthog.capture('component_created_from_selection', {
+            component: componentName,
+            kind: 'html',
         });
         return { ok: true };
     }

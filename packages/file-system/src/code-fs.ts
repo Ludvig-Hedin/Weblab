@@ -16,8 +16,10 @@ import {
     getContentFromAst,
     getContentFromTemplateNode,
     getOidToIxIdMap,
+    HTML_COMPONENT_DIR,
     htmlPipeline,
     injectWeblabBootstrapScripts,
+    parseComponentManifest,
     preserveIxIds,
 } from '@weblab/parser';
 import { isRootLayoutFile, pathsEqual } from '@weblab/utility';
@@ -190,6 +192,32 @@ export class CodeFileSystem extends FileSystem {
         }
 
         await this.saveIndex(next);
+        await this.updateHtmlComponentIndexForFile(path, content);
+    }
+
+    /**
+     * HTML component discovery: partials under `weblab/components/` carry an
+     * in-file manifest; a content hash is attached so the editor can detect
+     * master edits in index updates and re-stamp instances.
+     */
+    private async updateHtmlComponentIndexForFile(path: string, content: string): Promise<void> {
+        if (!path.includes(HTML_COMPONENT_DIR)) return;
+        try {
+            const def = parseComponentManifest(content, path);
+            const componentIndex = await this.loadComponentIndex();
+            const next: Record<string, ComponentDef> = {};
+            for (const [key, existing] of Object.entries(componentIndex)) {
+                if (!pathsEqual(existing.filePath, path)) {
+                    next[key] = existing;
+                }
+            }
+            if (def) {
+                next[def.key] = { ...def, version: hashContent(content) };
+            }
+            await this.saveComponentIndex(next);
+        } catch (error) {
+            console.error(`[CodeEditorApi] HTML component discovery failed for ${path}:`, error);
+        }
     }
 
     private async getOidsExcludingFile(path: string): Promise<Set<string>> {
@@ -370,6 +398,15 @@ export class CodeFileSystem extends FileSystem {
                             for (const [oid, node] of templateNodeMap.entries()) {
                                 const code = await getContentFromTemplateNode(node, content);
                                 index[oid] = { ...node, oid, code: code || '' };
+                            }
+                            if (entry.path.includes(HTML_COMPONENT_DIR)) {
+                                const def = parseComponentManifest(content, entry.path);
+                                if (def) {
+                                    componentIndex[def.key] = {
+                                        ...def,
+                                        version: hashContent(content),
+                                    };
+                                }
                             }
                             processedCount++;
                             return;
@@ -619,4 +656,13 @@ export class CodeFileSystem extends FileSystem {
     private getCacheKey(): string {
         return `${this.projectId}/${this.branchId}`;
     }
+}
+
+/** djb2 — cheap, stable content hash for master-edit detection. */
+function hashContent(content: string): string {
+    let hash = 5381;
+    for (let i = 0; i < content.length; i++) {
+        hash = ((hash << 5) + hash + content.charCodeAt(i)) | 0;
+    }
+    return (hash >>> 0).toString(36);
 }

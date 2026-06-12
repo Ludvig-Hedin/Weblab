@@ -19,7 +19,12 @@ import type {
     WriteCodeAction,
 } from '@weblab/models';
 import { CodeActionType } from '@weblab/models';
-import { getAstFromContent, getContentFromAst, transformAst } from '@weblab/parser';
+import {
+    getAstFromContent,
+    getContentFromAst,
+    selectPipeline,
+    transformAst,
+} from '@weblab/parser';
 
 import { getOrCreateCodeDiffRequest } from './helpers';
 import { getInsertedElement } from './insert';
@@ -29,6 +34,21 @@ export async function processGroupedRequests(groupedRequests: FileToRequests): P
     const diffs: CodeDiff[] = [];
     for (const [path, request] of groupedRequests) {
         const { oidToRequest, content } = request;
+
+        // Static-HTML pages route through the parse5 pipeline; JSX through
+        // the Babel transform. Without this branch, canvas edits on .html
+        // files failed at "No ast found for file".
+        const pipeline = selectPipeline(path);
+        if (pipeline && pipeline.id !== 'jsx') {
+            const pipelineAst = pipeline.parse(content);
+            if (!pipelineAst) {
+                throw new Error('No ast found for file');
+            }
+            await pipeline.applyEdits(pipelineAst, oidToRequest);
+            const generated = await pipeline.generate(pipelineAst, content);
+            diffs.push({ original: content, generated, path });
+            continue;
+        }
 
         const ast = getAstFromContent(content);
 

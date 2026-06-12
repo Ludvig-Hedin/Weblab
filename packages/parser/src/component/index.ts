@@ -26,3 +26,20 @@ export {
     type VariantOpResult,
 } from './variants';
 export { detachInstance, type DetachParams, type DetachResult } from './detach';
+export {
+    ATTR_COMPONENT,
+    ATTR_IF,
+    ATTR_INSTANCE,
+    ATTR_PROPS,
+    ATTR_SLOT_CONTENT,
+    detachInstanceHtml,
+    extractHtmlComponent,
+    findInstancesInPage,
+    HTML_COMPONENT_DIR,
+    parseComponentManifest,
+    restampPage,
+    stampInstance,
+    stripComponentMarkers,
+    type HtmlInstance,
+    type HtmlPropValue,
+} from './html/stamp';

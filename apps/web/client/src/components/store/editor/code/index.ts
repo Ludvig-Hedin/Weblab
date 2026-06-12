@@ -4,7 +4,7 @@ import { makeAutoObservable } from 'mobx';
 import type { BreakpointId } from '@weblab/models';
 import type { BreakpointEntry } from '@weblab/parser';
 import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
-import { getAstFromContent } from '@weblab/parser';
+import { getAstFromContent, selectPipeline } from '@weblab/parser';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
@@ -168,10 +168,19 @@ export class CodeManager {
             // the action path, not down there. Without it a bad diff
             // overwrites the user's source with a syntactically broken
             // file and every subsequent action write fails at parse.
-            if (getAstFromContent(diff.generated) === null) {
-                throw new Error(
-                    `Refusing to write ${diff.path}: generated content does not parse. The edit was not saved — your source file is untouched.`,
-                );
+            {
+                // Re-parse with the pipeline that produced the content —
+                // HTML output is valid parse5 but not valid JSX.
+                const pipeline = selectPipeline(diff.path);
+                const reparses =
+                    pipeline && pipeline.id !== 'jsx'
+                        ? pipeline.parse(diff.generated) !== null
+                        : getAstFromContent(diff.generated) !== null;
+                if (!reparses) {
+                    throw new Error(
+                        `Refusing to write ${diff.path}: generated content does not parse. The edit was not saved — your source file is untouched.`,
+                    );
+                }
             }
 
             await branchData.codeEditor.writeFile(diff.path, diff.generated);
