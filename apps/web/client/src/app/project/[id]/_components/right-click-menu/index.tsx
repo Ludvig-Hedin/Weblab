@@ -214,6 +214,43 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
         },
     ];
 
+    const buildComponentItems = (element: DomElement | undefined): MenuItem[] => {
+        const isInstance = !!element?.instanceId;
+        const items: Array<MenuItem | false> = [
+            !isInstance && {
+                label: 'Create component',
+                action: () => {
+                    if (element) editorEngine.components.openCreateDialog(element);
+                },
+                icon: <Icons.Component className="mr-2 h-4 w-4" />,
+                hotkey: Hotkey.CREATE_COMPONENT,
+                disabled: !element?.oid,
+            },
+            isInstance && {
+                label: 'Edit component',
+                action: () => {
+                    if (element) void editorEngine.components.enterEditMode(element);
+                },
+                icon: <Icons.Component className="mr-2 h-4 w-4" />,
+                hotkey: Hotkey.EDIT_COMPONENT,
+            },
+            isInstance && {
+                label: 'Unlink instance',
+                action: () => {
+                    if (!element) return;
+                    void editorEngine.components.unlinkInstance(element).then((result) => {
+                        if (!result.ok) {
+                            console.error('Unlink failed:', result.error);
+                        }
+                    });
+                },
+                icon: <Icons.ComponentInstance className="mr-2 h-4 w-4" />,
+                hotkey: Hotkey.UNLINK_INSTANCE,
+            },
+        ];
+        return items.filter((item): item is MenuItem => item !== false);
+    };
+
     const getMenuItems = (): MenuItem[][] => {
         if (!editorEngine.elements.selected.length) {
             return [WINDOW_ITEMS, FIGMA_FRAME_ITEMS, COMMENT_ITEMS];
@@ -244,6 +281,7 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
 
         return [
             updatedToolItems,
+            buildComponentItems(element),
             GROUP_ITEMS,
             EDITING_ITEMS,
             FIGMA_ELEMENT_ITEMS,

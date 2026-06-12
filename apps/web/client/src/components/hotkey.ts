@@ -95,6 +95,11 @@ export class Hotkey {
     static readonly OPEN_IN_IDE = new Hotkey('mod+shift+e', 'Open in IDE');
     static readonly ZOOM_TO_SELECTION = new Hotkey('mod+shift+0', 'Zoom to Selection');
 
+    // Components (master/instance system)
+    static readonly CREATE_COMPONENT = new Hotkey('mod+alt+k', 'Create Component');
+    static readonly EDIT_COMPONENT = new Hotkey('mod+enter', 'Edit Component');
+    static readonly UNLINK_INSTANCE = new Hotkey('mod+shift+u', 'Unlink Instance');
+
     // Text
     static readonly INSERT_TEXT = new Hotkey('t', 'Insert Text');
     static readonly ENTER = new Hotkey('enter', 'Edit Text');

@@ -49,6 +49,9 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
     const [propName, setPropName] = useState('');
     const [kind, setKind] = useState<CreatablePropKind>('text');
     const [busy, setBusy] = useState(false);
+    const [variantOpen, setVariantOpen] = useState(false);
+    const [variantName, setVariantName] = useState('');
+    const [variantBusy, setVariantBusy] = useState(false);
 
     if (!session) return null;
 
@@ -132,6 +135,82 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                         </div>
                     </PopoverContent>
                 </Popover>
+
+                {/* Variants: list members; "+ Variant" converts the component
+                    to a class-map + variant prop on first use. */}
+                <div className="mt-2 flex flex-col gap-1">
+                    <span className="text-foreground-secondary text-mini font-medium">
+                        Variants
+                    </span>
+                    {def.variants ? (
+                        Object.keys(def.variants.variants).map((name) => (
+                            <div key={name} className="flex h-5 items-center gap-2 text-[11px]">
+                                <span
+                                    aria-hidden
+                                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400"
+                                />
+                                <span className="text-foreground-primary font-mono">{name}</span>
+                                {name === def.variants?.defaultVariant && (
+                                    <span className="text-foreground-tertiary ml-auto">
+                                        default
+                                    </span>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-foreground-tertiary text-tiny">
+                            No variants yet. Add one to create style permutations (e.g. dark,
+                            outline).
+                        </p>
+                    )}
+                    <Popover open={variantOpen} onOpenChange={setVariantOpen}>
+                        <PopoverTrigger asChild>
+                            <button
+                                type="button"
+                                className="text-foreground-tertiary hover:text-foreground-primary mt-0.5 flex h-6 w-full items-center justify-center gap-1 rounded border border-dashed border-purple-500/30 text-[11px] hover:border-purple-500/60"
+                            >
+                                <Icons.Plus className="h-2.5 w-2.5" />
+                                Variant
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" side="left" className="w-48 p-2">
+                            <div className="flex flex-col gap-2">
+                                <LabeledTextInput
+                                    label="Name"
+                                    value={variantName}
+                                    placeholder="dark"
+                                    onCommit={setVariantName}
+                                />
+                                <Button
+                                    size="sm"
+                                    className="h-7 w-full text-[11px]"
+                                    disabled={variantBusy || variantName.trim().length === 0}
+                                    onClick={() => {
+                                        const trimmed = variantName.trim();
+                                        if (!trimmed) return;
+                                        setVariantBusy(true);
+                                        void editorEngine.components
+                                            .addVariant(def, session.branchId, trimmed)
+                                            .then((result) => {
+                                                if (!result.ok) {
+                                                    toast.error('Could not add variant', {
+                                                        description: result.error,
+                                                    });
+                                                    return;
+                                                }
+                                                toast.success(`Variant "${trimmed}" added`);
+                                                setVariantOpen(false);
+                                                setVariantName('');
+                                            })
+                                            .finally(() => setVariantBusy(false));
+                                    }}
+                                >
+                                    {variantBusy ? 'Adding…' : 'Add variant'}
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
             </div>
         </Section>
     );

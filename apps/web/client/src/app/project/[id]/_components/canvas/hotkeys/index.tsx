@@ -496,6 +496,44 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         },
         [getKey('UNGROUP')],
     );
+    useHotkeys(
+        getKey('CREATE_COMPONENT'),
+        () => {
+            const selected = editorEngine.elements.selected[0];
+            if (!selected?.oid || selected.instanceId) {
+                toast.error('Select an element (not a component instance) to create a component.');
+                return;
+            }
+            editorEngine.components.openCreateDialog(selected);
+        },
+        { preventDefault: true },
+        [getKey('CREATE_COMPONENT')],
+    );
+    useHotkeys(
+        getKey('EDIT_COMPONENT'),
+        () => {
+            const selected = editorEngine.elements.selected[0];
+            if (selected?.instanceId) {
+                void editorEngine.components.enterEditMode(selected);
+            }
+        },
+        { preventDefault: true },
+        [getKey('EDIT_COMPONENT')],
+    );
+    useHotkeys(
+        getKey('UNLINK_INSTANCE'),
+        () => {
+            const selected = editorEngine.elements.selected[0];
+            if (!selected?.instanceId) return;
+            void editorEngine.components.unlinkInstance(selected).then((result) => {
+                if (!result.ok) {
+                    toast.error('Could not unlink instance', { description: result.error });
+                }
+            });
+        },
+        { preventDefault: true },
+        [getKey('UNLINK_INSTANCE')],
+    );
 
     // Copy / Paste / Cut / Duplicate
     //

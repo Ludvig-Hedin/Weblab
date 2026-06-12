@@ -1,13 +1,18 @@
 import { makeAutoObservable, reaction, runInAction } from 'mobx';
 
 import type { ComponentDef, DomElement, LayerNode, RectDimensions } from '@weblab/models';
-import type { CreatablePropKind } from '@weblab/parser';
+import type { CreatablePropKind, PropExtraction } from '@weblab/parser';
 import { EditorMode } from '@weblab/models';
 import {
+    addVariantProp,
+    addVariant as addVariantToMap,
     createPropFromElement,
+    detachInstance,
+    extractComponent,
     getAstFromContent,
     getContentFromAst,
     parseInstancePropValues,
+    suggestPropExtractions,
 } from '@weblab/parser';
 
 import type { EditorEngine } from '../engine';
@@ -47,6 +52,16 @@ export class ComponentsManager {
     editingScopeRect: RectDimensions | null = null;
     /** Dotted green outlines for prop-bound elements while editing a master. */
     propBoundRects: Array<{ propName: string; rect: RectDimensions }> = [];
+    /** Element targeted by the open "Create component" dialog, if any. */
+    createDialogTarget: DomElement | null = null;
+
+    openCreateDialog(el: DomElement) {
+        this.createDialogTarget = el;
+    }
+
+    closeCreateDialog() {
+        this.createDialogTarget = null;
+    }
 
     private unsubscribeIndex: (() => void) | null = null;
     private branchReactionDisposer: (() => void) | null = null;
@@ -456,6 +471,168 @@ export class ComponentsManager {
             kind,
         });
         await this.refreshPropBoundRects();
+        return { ok: true };
+    }
+
+    // ── Create component from selection / unlink / variants ──
+
+    /** Suggested prop extractions for the create-component dialog. */
+    async getSuggestedExtractions(el: DomElement): Promise<PropExtraction[]> {
+        if (!el.oid) return [];
+        const fileSystem = this.editorEngine.branches.getBranchDataById(el.branchId)?.codeEditor;
+        if (!fileSystem) return [];
+        const metadata = await fileSystem.getJsxElementMetadata(el.oid);
+        if (!metadata) return [];
+        const content = await fileSystem.readFile(metadata.path);
+        if (typeof content !== 'string') return [];
+        const ast = getAstFromContent(content);
+        if (!ast) return [];
+        return suggestPropExtractions(ast, el.oid);
+    }
+
+    /**
+     * Extracts the selected element's subtree into a new component file and
+     * replaces it with an instance. Chosen extractions become props with the
+     * current literals as defaults.
+     */
+    async createFromSelection(
+        el: DomElement,
+        componentName: string,
+        extractions: PropExtraction[],
+    ): Promise<{ ok: boolean; error?: string }> {
+        if (!el.oid) return { ok: false, error: 'Selection has no source mapping' };
+        if (this.definitions.some((d) => d.name === componentName)) {
+            return { ok: false, error: `A component named "${componentName}" already exists` };
+        }
+        const fileSystem = this.editorEngine.branches.getBranchDataById(el.branchId)?.codeEditor;
+        if (!fileSystem) return { ok: false, error: 'Branch file system unavailable' };
+
+        const metadata = await fileSystem.getJsxElementMetadata(el.oid);
+        if (!metadata) return { ok: false, error: 'Source metadata not found' };
+        const content = await fileSystem.readFile(metadata.path);
+        if (typeof content !== 'string') return { ok: false, error: 'Cannot read source file' };
+        const ast = getAstFromContent(content);
+        if (!ast) return { ok: false, error: 'Cannot parse source file' };
+
+        // Mirror the existing insert convention: `@/` maps to `src/` when the
+        // project has one (same heuristic as toImportPath in the insert path).
+        const usesSrcDir = metadata.path.startsWith('src/');
+        const componentFilePath = usesSrcDir
+            ? `src/components/${componentName}.tsx`
+            : `components/${componentName}.tsx`;
+        const importPath = `@/components/${componentName}`;
+
+        const result = extractComponent(ast, {
+            rootOid: el.oid,
+            componentName,
+            importPath,
+            propExtractions: extractions,
+        });
+        if (!result.ok) return { ok: false, error: result.error };
+
+        const updatedSource = await getContentFromAst(ast, content);
+        if (getAstFromContent(updatedSource) === null) {
+            return { ok: false, error: 'Generated code does not parse — edit aborted' };
+        }
+
+        // Component file first so the import target exists when the page
+        // rebuilds; both writes share the FS write lock.
+        await fileSystem.writeFiles([
+            { path: componentFilePath, content: result.componentFileContent },
+            { path: metadata.path, content: updatedSource },
+        ]);
+
+        this.editorEngine.posthog.capture('component_created_from_selection', {
+            component: componentName,
+            props: extractions.length,
+        });
+        return { ok: true };
+    }
+
+    /** Unlink instance: inline the master at the call site (Webflow detach). */
+    async unlinkInstance(el: DomElement): Promise<{ ok: boolean; error?: string }> {
+        if (!el.instanceId) return { ok: false, error: 'Not a component instance' };
+        const def = await this.getDefinitionForInstance(el);
+        if (!def) return { ok: false, error: 'Component definition not found' };
+
+        const fileSystem = this.editorEngine.branches.getBranchDataById(el.branchId)?.codeEditor;
+        if (!fileSystem) return { ok: false, error: 'Branch file system unavailable' };
+
+        const usage = await fileSystem.getJsxElementMetadata(el.instanceId);
+        if (!usage) return { ok: false, error: 'Usage site not found' };
+        const pageContent = await fileSystem.readFile(usage.path);
+        const masterContent = await fileSystem.readFile(def.filePath);
+        if (typeof pageContent !== 'string' || typeof masterContent !== 'string') {
+            return { ok: false, error: 'Cannot read source files' };
+        }
+        const pageAst = getAstFromContent(pageContent);
+        if (!pageAst) return { ok: false, error: 'Cannot parse the page' };
+
+        const result = detachInstance(pageAst, {
+            instanceOid: el.instanceId,
+            def,
+            masterContent,
+        });
+        if (!result.ok) return { ok: false, error: result.error };
+
+        const updated = await getContentFromAst(pageAst, pageContent);
+        if (getAstFromContent(updated) === null) {
+            return { ok: false, error: 'Generated code does not parse — edit aborted' };
+        }
+        await fileSystem.writeFile(usage.path, updated);
+        this.editorEngine.posthog.capture('component_instance_unlinked', {
+            component: def.name,
+        });
+        return { ok: true };
+    }
+
+    /**
+     * Adds a variant: converts the component to variant-driven styling on
+     * first use (class map + `variant` prop on the root), then appends
+     * members to the existing map.
+     */
+    async addVariant(
+        def: ComponentDef,
+        branchId: string,
+        variantName: string,
+    ): Promise<{ ok: boolean; error?: string }> {
+        const fileSystem = this.editorEngine.branches.getBranchDataById(branchId)?.codeEditor;
+        if (!fileSystem) return { ok: false, error: 'Branch file system unavailable' };
+        const content = await fileSystem.readFile(def.filePath);
+        if (typeof content !== 'string') return { ok: false, error: 'Cannot read component file' };
+        const ast = getAstFromContent(content);
+        if (!ast) return { ok: false, error: 'Cannot parse component file' };
+
+        let opResult;
+        if (def.variants) {
+            opResult = addVariantToMap(ast, {
+                mapName: def.variants.mapName,
+                variantName,
+                copyFrom: def.variants.defaultVariant,
+            });
+        } else {
+            if (!def.rootOid) {
+                return { ok: false, error: 'Component root not resolvable' };
+            }
+            opResult = addVariantProp(ast, {
+                componentName: def.name,
+                elementOid: def.rootOid,
+                initialVariants: ['default', variantName],
+            });
+        }
+        if (!opResult.modified) {
+            return { ok: false, error: opResult.error ?? 'Could not add variant' };
+        }
+
+        const generated = await getContentFromAst(ast, content);
+        if (getAstFromContent(generated) === null) {
+            return { ok: false, error: 'Generated code does not parse — edit aborted' };
+        }
+        await fileSystem.writeFile(def.filePath, generated);
+        this.editorEngine.posthog.capture('component_variant_added', {
+            component: def.name,
+            variant: variantName,
+        });
         return { ok: true };
     }
 

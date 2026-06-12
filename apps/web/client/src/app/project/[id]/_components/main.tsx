@@ -68,6 +68,10 @@ const CmsBindDialog = dynamic(
     () => import('./cms-workspace/bind-dialog').then((m) => m.BindDialog),
     { ssr: false },
 );
+const CreateComponentDialog = dynamic(
+    () => import('./create-component-dialog').then((m) => m.CreateComponentDialog),
+    { ssr: false },
+);
 const CmsDataPusher = dynamic(
     () => import('./cms-workspace/data-pusher').then((m) => m.CmsDataPusher),
     { ssr: false },
@@ -368,6 +372,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                 <FileFinder />
                 <ProjectSearch />
                 <CmsBindDialog />
+                <CreateComponentDialog />
                 <CmsDataPusher />
             </TooltipProvider>
         </ProjectCapabilitiesProvider>
