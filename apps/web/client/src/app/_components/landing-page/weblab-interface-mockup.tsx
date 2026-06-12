@@ -1733,7 +1733,7 @@ export function WeblabInterfaceMockup() {
         };
     }, []);
 
-    const [chatModelLabel, setChatModelLabel] = useState('Sonnet 4.6');
+    const [chatModelLabel, setChatModelLabel] = useState('Opus 4.8');
     const CHAT_MODELS = ['Sonnet 4.6', 'Opus 4.8', 'GPT-5'];
     const [chatComposerMode, setChatComposerMode] = useState<'Build' | 'Ask' | 'Plan'>('Build');
     const [modeMenuOpen, setModeMenuOpen] = useState(false);

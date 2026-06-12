@@ -7,7 +7,7 @@
  * into the browser bundle (e.g. the Skills settings tab) does NOT ship the full
  * skill content, which can be hundreds of KB across all built-ins.
  *
- * Generated at: 2026-06-07T22:27:00.602Z
+ * Generated at: 2026-06-08T19:51:15.324Z
  * Skill count:  12
  */
 import type { SkillSummary } from './types';
