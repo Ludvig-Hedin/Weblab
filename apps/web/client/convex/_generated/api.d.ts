@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as agentApi from "../agentApi.js";
 import type * as aiUsageEvents from "../aiUsageEvents.js";
 import type * as branchActions from "../branchActions.js";
 import type * as branches from "../branches.js";
@@ -97,6 +98,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agentApi: typeof agentApi;
   aiUsageEvents: typeof aiUsageEvents;
   branchActions: typeof branchActions;
   branches: typeof branches;

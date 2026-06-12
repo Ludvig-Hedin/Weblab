@@ -410,6 +410,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 |---|---|---|---|---|---|
 | T-500 | F-500 | I | `sandbox.create` then `start` then `status` then `stop` | Lifecycle transitions return expected payloads | `[ ]` |
 | T-501 | F-501 | U | `listProjectComponents` on fixture project | Returns components via regex | `[ ]` |
+| T-502 | F-482, F-693 | U | `bun --filter @weblab/mcp test` — agent connector + tools + schemas (`packages/mcp/src/agent/*.test.ts`): mocked-fetch happy paths, Bearer/URL wiring, status→error-code mapping (401/403/404/400/5xx/network/bad-shape), zod input validation, confirm-gate, UNSUPPORTED stubs, env config | 32 tests pass; every error maps to the documented code; unsupported tools never hit the network | `[x]` |
 
 ---
 

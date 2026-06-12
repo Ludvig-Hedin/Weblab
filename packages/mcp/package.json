@@ -6,14 +6,17 @@
     "version": "0.0.1",
     "private": true,
     "bin": {
-        "weblab-mcp": "./src/server.ts"
+        "weblab-mcp": "./src/server.ts",
+        "weblab-agent-mcp": "./src/agent/server.ts"
     },
     "scripts": {
         "start": "bun src/server.ts",
+        "start:agent": "bun src/agent/server.ts",
         "clean": "rm -rf node_modules",
         "lint": "eslint . --max-warnings 0",
         "format": "eslint --fix .",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test": "bun test"
     },
     "keywords": [
         "weblab",
@@ -33,6 +36,7 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
+        "@weblab/constants": "*",
         "zod": "^4.1.3"
     }
 }

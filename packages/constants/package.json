@@ -26,6 +26,7 @@
     "homepage": "https://weblab.build",
     "exports": {
         ".": "./src/index.ts",
+        "./editor": "./src/editor.ts",
         "./*": "./src/*/index.ts"
     },
     "devDependencies": {

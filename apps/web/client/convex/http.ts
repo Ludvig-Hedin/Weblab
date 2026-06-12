@@ -2,6 +2,12 @@ import { httpRouter } from 'convex/server';
 import { Webhook } from 'svix';
 
 import type { WebhookEvent } from '@clerk/backend';
+import {
+    agentGetProject,
+    agentGetProjectStatus,
+    agentHealth,
+    agentListProjects,
+} from './agentApi';
 import { internal } from './_generated/api';
 import { httpAction } from './_generated/server';
 
@@ -290,5 +296,16 @@ http.route({
         return new Response('ok', { status: 200 });
     }),
 });
+
+// ─── Agent API (token-authenticated read surface for external AI agents) ──────
+//
+// Handlers + auth live in convex/agentApi.ts. These bypass Next.js + Clerk
+// entirely; auth is the `WEBLAB_AGENT_API_TOKEN` Bearer secret and all data is
+// scoped to the `WEBLAB_AGENT_USER_ID` agent account. Base URL for callers:
+// `https://<deployment>.convex.site/agent/*`.
+http.route({ path: '/agent/health', method: 'GET', handler: agentHealth });
+http.route({ path: '/agent/projects', method: 'GET', handler: agentListProjects });
+http.route({ path: '/agent/project', method: 'GET', handler: agentGetProject });
+http.route({ path: '/agent/project/status', method: 'GET', handler: agentGetProjectStatus });
 
 export default http;
