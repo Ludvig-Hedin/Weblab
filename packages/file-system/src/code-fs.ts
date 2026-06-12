@@ -50,13 +50,36 @@ export class CodeFileSystem extends FileSystem {
         };
     }
 
+    // Serializes every operation that reads-then-writes the shared in-memory
+    // OID index (writeFile / deleteFile / moveFile / rebuildIndex). Without it,
+    // the editor's writes and the sandbox sync watcher's writes interleave:
+    // both read the index, both transform, and the second clobbers the first or
+    // reads it mid-mutation — surfacing as "No metadata found for OID" and, in
+    // the worst case, a corrupted source file. All four entry points below
+    // funnel through `withWriteLock`; none of them call back into a locked
+    // method, so the chain can't deadlock.
+    private writeLock: Promise<void> = Promise.resolve();
+
+    private withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
+        const run = this.writeLock.then(fn);
+        // Keep the chain alive past a rejection so one failed op doesn't wedge
+        // every later op; the real result/error returns to the caller via `run`.
+        this.writeLock = run.then(
+            () => undefined,
+            () => undefined,
+        );
+        return run;
+    }
+
     async writeFile(path: string, content: string | Uint8Array): Promise<void> {
-        if (this.isJsxFile(path) && typeof content === 'string') {
-            const processedContent = await this.processJsxFile(path, content);
-            await super.writeFile(path, processedContent);
-        } else {
-            await super.writeFile(path, content);
-        }
+        return this.withWriteLock(async () => {
+            if (this.isJsxFile(path) && typeof content === 'string') {
+                const processedContent = await this.processJsxFile(path, content);
+                await super.writeFile(path, processedContent);
+            } else {
+                await super.writeFile(path, content);
+            }
+        });
     }
 
     async writeFiles(files: Array<{ path: string; content: string | Uint8Array }>): Promise<void> {
@@ -137,9 +160,16 @@ export class CodeFileSystem extends FileSystem {
     private async updateMetadataForFile(path: string, content: string): Promise<void> {
         const index = await this.loadIndex();
 
+        // Copy-on-write: the cache hands out the live index object by
+        // reference, so mutating it in place across the awaits below would let
+        // unlocked readers (getJsxElementMetadata) observe a half-updated
+        // index — this file's OIDs vanish mid-rebuild and "No metadata found
+        // for OID" fires spuriously. Build the next index in a fresh object
+        // and swap it in atomically via saveIndex.
+        const next: Record<string, JsxElementMetadata> = {};
         for (const [oid, metadata] of Object.entries(index)) {
-            if (pathsEqual(metadata.path, path)) {
-                delete index[oid];
+            if (!pathsEqual(metadata.path, path)) {
+                next[oid] = metadata;
             }
         }
 
@@ -163,10 +193,10 @@ export class CodeFileSystem extends FileSystem {
                 code: code || '',
                 ...(ixId ? { ixId } : {}),
             };
-            index[oid] = metadata;
+            next[oid] = metadata;
         }
 
-        await this.saveIndex(index);
+        await this.saveIndex(next);
     }
 
     async getJsxElementMetadata(oid: string): Promise<JsxElementMetadata | undefined> {
@@ -192,6 +222,12 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async rebuildIndex(): Promise<void> {
+        // Under the same lock as writeFile/deleteFile/moveFile so a full rebuild
+        // can't race a concurrent single-file index update.
+        return this.withWriteLock(() => this.performRebuildIndex());
+    }
+
+    private async performRebuildIndex(): Promise<void> {
         const startTime = Date.now();
         const index: Record<string, JsxElementMetadata> = {};
 
@@ -250,43 +286,47 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async deleteFile(path: string): Promise<void> {
-        await super.deleteFile(path);
+        return this.withWriteLock(async () => {
+            await super.deleteFile(path);
 
-        if (this.isJsxFile(path)) {
-            const index = await this.loadIndex();
-            let hasChanges = false;
+            if (this.isJsxFile(path)) {
+                const index = await this.loadIndex();
+                let hasChanges = false;
 
-            for (const [oid, metadata] of Object.entries(index)) {
-                if (pathsEqual(metadata.path, path)) {
-                    delete index[oid];
-                    hasChanges = true;
+                for (const [oid, metadata] of Object.entries(index)) {
+                    if (pathsEqual(metadata.path, path)) {
+                        delete index[oid];
+                        hasChanges = true;
+                    }
+                }
+
+                if (hasChanges) {
+                    await this.saveIndex(index);
                 }
             }
-
-            if (hasChanges) {
-                await this.saveIndex(index);
-            }
-        }
+        });
     }
 
     async moveFile(oldPath: string, newPath: string): Promise<void> {
-        await super.moveFile(oldPath, newPath);
+        return this.withWriteLock(async () => {
+            await super.moveFile(oldPath, newPath);
 
-        if (this.isJsxFile(oldPath) && this.isJsxFile(newPath)) {
-            const index = await this.loadIndex();
-            let hasChanges = false;
+            if (this.isJsxFile(oldPath) && this.isJsxFile(newPath)) {
+                const index = await this.loadIndex();
+                let hasChanges = false;
 
-            for (const metadata of Object.values(index)) {
-                if (pathsEqual(metadata.path, oldPath)) {
-                    metadata.path = newPath;
-                    hasChanges = true;
+                for (const metadata of Object.values(index)) {
+                    if (pathsEqual(metadata.path, oldPath)) {
+                        metadata.path = newPath;
+                        hasChanges = true;
+                    }
+                }
+
+                if (hasChanges) {
+                    await this.saveIndex(index);
                 }
             }
-
-            if (hasChanges) {
-                await this.saveIndex(index);
-            }
-        }
+        });
     }
 
     private async loadIndex(): Promise<Record<string, JsxElementMetadata>> {
@@ -325,6 +365,11 @@ export class CodeFileSystem extends FileSystem {
         if (path.endsWith(WEBLAB_IX_RUNTIME_FILE)) {
             return false;
         }
+        // TODO(bug-hunt): `.html` files never get OIDs, so static-HTML projects
+        // (scaffoldStaticHtmlProject) have an always-empty index and every
+        // canvas edit fails with "No oid found". Either add an HTML
+        // oid-injection path or gate canvas editing for static-html frameworks
+        // with a clear message. See CODE_REVIEW_BACKLOG 2026-06-11.
         return /\.(jsx?|tsx?)$/i.test(path);
     }
 
