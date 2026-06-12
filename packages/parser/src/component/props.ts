@@ -187,11 +187,13 @@ function addPropToSignature(
             annotation.members.push(member);
         } else if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
             const typeName = annotation.typeName.name;
+            let resolved = false;
             for (const stmt of program.body) {
                 const decl =
                     t.isExportNamedDeclaration(stmt) && stmt.declaration ? stmt.declaration : stmt;
                 if (t.isTSInterfaceDeclaration(decl) && decl.id.name === typeName) {
                     decl.body.body.push(member);
+                    resolved = true;
                     break;
                 }
                 if (
@@ -200,8 +202,17 @@ function addPropToSignature(
                     t.isTSTypeLiteral(decl.typeAnnotation)
                 ) {
                     decl.typeAnnotation.members.push(member);
+                    resolved = true;
                     break;
                 }
+            }
+            if (!resolved && 'typeAnnotation' in param && param.typeAnnotation) {
+                // Cross-file / unresolvable type: widen the annotation to an
+                // intersection so the generated code still type-checks
+                // (`CardProps & { title?: string }`).
+                param.typeAnnotation = t.tsTypeAnnotation(
+                    t.tsIntersectionType([annotation, t.tsTypeLiteral([member])]),
+                );
             }
         }
     }
@@ -230,10 +241,16 @@ function addPropToSignature(
     }
 
     if (t.isIdentifier(param)) {
-        // Plain `props` param: reference via member expression; defaults live
-        // in the annotation only (no destructuring to attach a default to).
+        // Plain `props` param: there's no destructuring to attach a default
+        // to, so the default rides in the expression — `props.title ?? '…'`.
+        // Without it every existing instance (none pass the new attr) would
+        // render empty content the moment the prop is created.
         return {
-            propExpr: t.memberExpression(t.identifier(param.name), t.identifier(propName)),
+            propExpr: t.logicalExpression(
+                '??',
+                t.memberExpression(t.identifier(param.name), t.identifier(propName)),
+                defaultLiteral(defaultValue),
+            ),
         };
     }
 

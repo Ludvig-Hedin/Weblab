@@ -143,16 +143,27 @@ export function addVariantProp(ast: T.File, params: AddVariantPropParams): Varia
     }
     ast.program.body.splice(insertIndex, 0, mapDecl);
 
-    // 3. className -> cn(base, map[variant])
-    const cnCall = t.callExpression(t.identifier('cn'), [
-        t.stringLiteral(baseClasses),
+    // 3. className -> `${base} ${map[variant] ?? ''}` — a template literal
+    // needs no helper import (`cn` is not guaranteed to exist in the
+    // project), and discovery's className scan resolves map[variant] inside
+    // template expressions the same way it does inside cn() calls.
+    const mapLookup = t.logicalExpression(
+        '??',
         t.memberExpression(t.identifier(mapName), t.identifier('variant'), true),
-    ]);
+        t.stringLiteral(''),
+    );
+    const templateValue = t.templateLiteral(
+        [
+            t.templateElement({ raw: `${baseClasses} `, cooked: `${baseClasses} ` }, false),
+            t.templateElement({ raw: '', cooked: '' }, true),
+        ],
+        [mapLookup],
+    );
     if (classAttr) {
-        classAttr.value = t.jsxExpressionContainer(cnCall);
+        classAttr.value = t.jsxExpressionContainer(templateValue);
     } else {
         el.openingElement.attributes.push(
-            t.jsxAttribute(t.jsxIdentifier('className'), t.jsxExpressionContainer(cnCall)),
+            t.jsxAttribute(t.jsxIdentifier('className'), t.jsxExpressionContainer(templateValue)),
         );
     }
 

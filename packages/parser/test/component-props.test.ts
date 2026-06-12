@@ -128,6 +128,42 @@ describe('createPropFromElement', () => {
     });
 });
 
+describe('createPropFromElement on plain-props components', () => {
+    test('keeps the default visible via ?? for props.x access', async () => {
+        const code = `
+            export function Title(props: { other?: string }) {
+                return <h1 data-oid="t1">Hello world</h1>;
+            }
+        `;
+        const { result, output } = await applyCreateProp(code, {
+            componentName: 'Title',
+            elementOid: 't1',
+            propName: 'text',
+            kind: 'text',
+        });
+        expect(result.error).toBeUndefined();
+        // Without the ?? fallback every existing instance would render empty.
+        expect(output).toContain('{props.text ?? "Hello world"}');
+    });
+
+    test('widens cross-file prop types with an intersection', async () => {
+        const code = `
+            import type { CardProps } from './types';
+            export function Card({ title }: CardProps) {
+                return <h3 data-oid="h1">Sub</h3>;
+            }
+        `;
+        const { result, output } = await applyCreateProp(code, {
+            componentName: 'Card',
+            elementOid: 'h1',
+            propName: 'subtitle',
+            kind: 'text',
+        });
+        expect(result.error).toBeUndefined();
+        expect(output).toMatch(/CardProps & \{\s*subtitle\?: string/);
+    });
+});
+
 describe('parseInstancePropValues', () => {
     test('reads literal attrs and boolean shorthand, skips data-*', () => {
         const values = parseInstancePropValues(

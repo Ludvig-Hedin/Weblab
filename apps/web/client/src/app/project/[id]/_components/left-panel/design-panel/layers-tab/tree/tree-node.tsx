@@ -61,7 +61,7 @@ const LayerBadge = memo(
     ({ children, className }: { children: React.ReactNode; className?: string }) => (
         <span
             className={cn(
-                'flex h-4 min-w-4 items-center justify-center rounded border px-1 text-tiny leading-none font-semibold',
+                'text-tiny flex h-4 min-w-4 items-center justify-center rounded border px-1 leading-none font-semibold',
                 className,
             )}
         >
@@ -423,11 +423,16 @@ export const TreeNode = memo(
                                         )}
                                     </div>
                                 )}
-                                {node.data.instanceId && hovered && !selected && (
+                                {node.data.instanceId && hovered && (
                                     <button
                                         type="button"
                                         title="Edit component"
-                                        style={{ position: 'absolute', right: '4px' }}
+                                        // Shifts left of the visibility eye when the
+                                        // row is selected (both anchor right).
+                                        style={{
+                                            position: 'absolute',
+                                            right: selected ? '24px' : '4px',
+                                        }}
                                         className="hover:text-foreground-primary text-foreground-tertiary flex h-4 w-4 items-center justify-center"
                                         onMouseDown={(e) => {
                                             e.stopPropagation();
@@ -442,9 +447,7 @@ export const TreeNode = memo(
                                                         false,
                                                     );
                                                 if (el) {
-                                                    await editorEngine.components.enterEditMode(
-                                                        el,
-                                                    );
+                                                    await editorEngine.components.enterEditMode(el);
                                                 }
                                             })();
                                         }}

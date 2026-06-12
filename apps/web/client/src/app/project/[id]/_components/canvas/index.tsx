@@ -79,6 +79,18 @@ export const Canvas = observer(() => {
             editorEngine.clearUI();
             return;
         }
+        // While editing a master component, a click on the canvas background
+        // exits the session (consumed — same contract as clicking the page
+        // body). Without this, drag-select could start under the dim with the
+        // banner still up.
+        if (
+            editorEngine.state.editorMode === EditorMode.DESIGN &&
+            editorEngine.components.editing
+        ) {
+            editorEngine.components.exitEditMode();
+            return;
+        }
+
         // Start drag selection only in design mode
         if (editorEngine.state.editorMode === EditorMode.DESIGN) {
             const rect = containerRef.current.getBoundingClientRect();

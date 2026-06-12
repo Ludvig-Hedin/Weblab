@@ -139,6 +139,39 @@ describe('detach + strip', () => {
     });
 });
 
+describe('nested instances in slots', () => {
+    test('outer slot scan skips nested-instance slot regions (no content loss on restamp)', () => {
+        const inner = stampInstance(MASTER, {
+            componentKey: 'weblab/components/inner.html',
+            instanceId: 'inner1',
+            props: { title: 'Inner title' },
+            slots: { body: '<em data-oid="pg-em">inner content</em>' },
+        })!;
+        const outer = stampInstance(MASTER, {
+            componentKey: 'weblab/components/card.html',
+            instanceId: 'outer1',
+            props: { title: 'Outer title' },
+            slots: { body: `<span data-oid="pg-span">outer content</span>${inner}` },
+        })!;
+        const page = `<!doctype html><html><body>${outer}</body></html>`;
+
+        const ast = htmlPipeline.parse(page)!;
+        const found = findInstancesInPage(ast.root as never, 'weblab/components/card.html');
+        expect(found).toHaveLength(1);
+        // The outer instance's body slot must contain BOTH the span and the
+        // whole nested instance — not be overwritten by the inner's region.
+        expect(found[0]!.instance.slots.body).toContain('outer content');
+        expect(found[0]!.instance.slots.body).toContain('inner content');
+        expect(found[0]!.instance.slots.body).toContain('data-weblab-instance="inner1"');
+
+        // Restamp the outer master: nested instance + span both survive.
+        const result = restampPage(page, MASTER, 'weblab/components/card.html');
+        expect(result.content).toContain('outer content');
+        expect(result.content).toContain('inner content');
+        expect(result.content).toContain('data-weblab-instance="inner1"');
+    });
+});
+
 describe('extractHtmlComponent', () => {
     test('builds a master partial + stamped replacement', () => {
         const result = extractHtmlComponent({

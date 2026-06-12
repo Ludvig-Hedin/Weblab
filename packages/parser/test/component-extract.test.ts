@@ -111,7 +111,7 @@ describe('extractComponent', () => {
 });
 
 describe('variants', () => {
-    test('addVariantProp converts className to cn(base, map[variant])', async () => {
+    test('addVariantProp converts className to a no-import template literal', async () => {
         const code = `
             export function Card({ title }: { title?: string }) {
                 return <div data-oid="root" className="rounded p-4">{title}</div>;
@@ -126,7 +126,9 @@ describe('variants', () => {
         expect(result.error).toBeUndefined();
         const output = await getContentFromAst(ast, code);
         expect(output).toContain('const cardVariants');
-        expect(output).toContain('cn("rounded p-4", cardVariants[variant])');
+        // Template-literal form — no `cn` helper import required.
+        expect(output).toContain('className={`rounded p-4 ${cardVariants[variant] ?? ""}`}');
+        expect(output).not.toContain('cn(');
         expect(output).toContain('variant = "default"');
         expect(output).toContain(`"default" | "dark"`);
     });
@@ -155,7 +157,121 @@ describe('variants', () => {
     });
 });
 
+describe('variant round-trip with discovery', () => {
+    test('discovery detects the generated template-literal variant form', async () => {
+        const code = `
+            export function Card({ title }: { title?: string }) {
+                return <div data-oid="root" className="rounded p-4">{title}</div>;
+            }
+        `;
+        const ast = getAstFromContent(code)!;
+        addVariantProp(ast, {
+            componentName: 'Card',
+            elementOid: 'root',
+            initialVariants: ['default', 'dark'],
+        });
+        const output = await getContentFromAst(ast, code);
+        const { discoverComponentsInFile } = await import('src/component');
+        const defs = discoverComponentsInFile(output, 'src/Card.tsx');
+        expect(defs[0]?.variants?.mapName).toBe('cardVariants');
+        expect(defs[0]?.props.find((p) => p.name === 'variant')?.type).toBe('variant');
+    });
+});
+
 describe('detachInstance', () => {
+    test('aborts with a clear error when className is unresolvable', () => {
+        const master = `
+            export function Card({ title = 'x', className }: any) {
+                return <div data-oid="m-root" className={cn('p-4', className, somethingDynamic)}>
+                    <h3 data-oid="m-h">{title}</h3>
+                </div>;
+            }
+        `;
+        const page = `
+            import { Card } from '@/components/Card';
+            export default function Home() {
+                return <main data-oid="p-main"><Card data-oid="p-card" /></main>;
+            }
+        `;
+        const def: ComponentDef = {
+            key: 'src/components/Card.tsx#Card',
+            name: 'Card',
+            filePath: 'src/components/Card.tsx',
+            exportType: 'named',
+            kind: 'react',
+            rootOid: 'm-root',
+            props: [
+                {
+                    name: 'title',
+                    type: 'text',
+                    required: false,
+                    defaultValue: 'x',
+                    bindings: [],
+                    editable: true,
+                },
+            ],
+            slots: [],
+            variants: null,
+            hasSpread: false,
+            editable: true,
+        };
+        const pageAst = getAstFromContent(page)!;
+        const result = detachInstance(pageAst, {
+            instanceOid: 'p-card',
+            def,
+            masterContent: master,
+        });
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error).toContain('dynamic');
+    });
+
+    test('keeps page-native oids on spliced slot children', async () => {
+        const master = `
+            export function Panel({ children }: any) {
+                return <div data-oid="m-root"><div data-oid="m-slot">{children}</div></div>;
+            }
+        `;
+        const page = `
+            import { Panel } from '@/components/Panel';
+            export default function Home() {
+                return <Panel data-oid="p-panel"><p data-oid="p-kid">kid</p></Panel>;
+            }
+        `;
+        const def: ComponentDef = {
+            key: 'src/components/Panel.tsx#Panel',
+            name: 'Panel',
+            filePath: 'src/components/Panel.tsx',
+            exportType: 'named',
+            kind: 'react',
+            rootOid: 'm-root',
+            props: [
+                {
+                    name: 'children',
+                    type: 'slot',
+                    required: false,
+                    defaultValue: null,
+                    bindings: [{ kind: 'slot-site', containerOid: 'm-slot' }],
+                    editable: false,
+                },
+            ],
+            slots: [{ name: 'children', containerOid: 'm-slot' }],
+            variants: null,
+            hasSpread: false,
+            editable: true,
+        };
+        const pageAst = getAstFromContent(page)!;
+        const result = detachInstance(pageAst, {
+            instanceOid: 'p-panel',
+            def,
+            masterContent: master,
+        });
+        expect(result.ok).toBe(true);
+        const output = await getContentFromAst(pageAst, page);
+        expect(output).toContain('data-oid="p-kid"');
+        expect(output).not.toContain('m-slot');
+    });
+
     test('inlines master with instance values, resolves variant, drops import', async () => {
         const master = `
             const cardVariants = { default: 'bg-white', dark: 'bg-zinc-900 text-white' };

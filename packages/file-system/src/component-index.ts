@@ -13,6 +13,10 @@ const staticMemoryMap = new Map<string, Record<string, ComponentDef>>();
 const loadingPromises = new Map<string, Promise<Record<string, ComponentDef>>>();
 // projectId/branchId -> listeners
 const listeners = new Map<string, Set<(defs: ComponentDef[]) => void>>();
+// projectId/branchId -> last serialized index, to skip no-op notifications
+// (every JSX write re-derives its file's defs; without this, listeners — and
+// the panels observing them — would re-render on every keystroke).
+const lastSerialized = new Map<string, string>();
 
 export async function getOrLoadComponentIndex(
     cacheKey: string,
@@ -65,6 +69,11 @@ export function saveComponentIndexToCache(
     index: Record<string, ComponentDef>,
 ): void {
     staticMemoryMap.set(cacheKey, { ...index });
+    const serialized = JSON.stringify(index);
+    if (lastSerialized.get(cacheKey) === serialized) {
+        return;
+    }
+    lastSerialized.set(cacheKey, serialized);
     notifyComponentListeners(cacheKey);
 }
 
@@ -78,6 +87,7 @@ export function clearComponentIndexCache(cacheKey: string): void {
     staticMemoryMap.delete(cacheKey);
     loadingPromises.delete(cacheKey);
     listeners.delete(cacheKey);
+    lastSerialized.delete(cacheKey);
 }
 
 export function onComponentIndexChanged(

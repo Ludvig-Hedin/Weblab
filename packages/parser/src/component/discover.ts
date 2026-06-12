@@ -246,10 +246,7 @@ function typeToPropType(type: T.TSType | null): {
 }
 
 function typeText(type: T.TSType): string {
-    // Best-effort source text for read-only display. Falls back to the node
-    // type when the original source range isn't attached.
-    const anyType = type as unknown as { start?: number | null; end?: number | null };
-    void anyType;
+    // Best-effort label for read-only display of unsupported prop types.
     return type.type.replace(/^TS/, '');
 }
 
@@ -482,6 +479,10 @@ function propNameFromExpression(
     memberPropNames: Set<string>,
 ): string | null {
     if (!expr) return null;
+    // `props.title ?? 'default'` — the generated plain-props binding form.
+    if (t.isLogicalExpression(expr) && expr.operator === '??') {
+        return propNameFromExpression(expr.left, propNames, propsParamName, memberPropNames);
+    }
     if (t.isIdentifier(expr) && propNames.has(expr.name)) {
         return expr.name;
     }

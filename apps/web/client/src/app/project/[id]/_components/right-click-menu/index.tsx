@@ -14,6 +14,7 @@ import {
 } from '@weblab/ui/context-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Kbd } from '@weblab/ui/kbd';
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { Hotkey } from '@/components/hotkey';
@@ -240,7 +241,11 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
                     if (!element) return;
                     void editorEngine.components.unlinkInstance(element).then((result) => {
                         if (!result.ok) {
-                            console.error('Unlink failed:', result.error);
+                            toast.error('Could not unlink instance', {
+                                description: result.error,
+                            });
+                        } else {
+                            toast.success('Instance unlinked — it no longer follows the component');
                         }
                     });
                 },

@@ -7,11 +7,12 @@ import type { ComponentPropSpec } from '@weblab/models';
 import type { CreatablePropKind } from '@weblab/parser';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { LabeledTextInput, SelectField } from '../controls';
+import { SelectField } from '../controls';
 import { Section } from './section';
 
 const KIND_OPTIONS: Array<{ value: CreatablePropKind; label: string }> = [
@@ -113,11 +114,19 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                     </PopoverTrigger>
                     <PopoverContent align="end" side="left" className="w-56 p-2">
                         <div className="flex flex-col gap-2">
-                            <LabeledTextInput
-                                label="Name"
+                            {/* Controlled Input (not commit-on-blur): with a
+                                blur-committed field the Create button stays
+                                disabled while typing and the first click only
+                                blurs — looks broken. */}
+                            <Input
+                                autoFocus
                                 value={propName}
                                 placeholder="title"
-                                onCommit={setPropName}
+                                className="h-7 font-mono text-[11px]"
+                                onChange={(e) => setPropName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') void create();
+                                }}
                             />
                             <SelectField
                                 value={kind}
@@ -175,11 +184,12 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                         </PopoverTrigger>
                         <PopoverContent align="end" side="left" className="w-48 p-2">
                             <div className="flex flex-col gap-2">
-                                <LabeledTextInput
-                                    label="Name"
+                                <Input
+                                    autoFocus
                                     value={variantName}
                                     placeholder="dark"
-                                    onCommit={setVariantName}
+                                    className="h-7 font-mono text-[11px]"
+                                    onChange={(e) => setVariantName(e.target.value)}
                                 />
                                 <Button
                                     size="sm"

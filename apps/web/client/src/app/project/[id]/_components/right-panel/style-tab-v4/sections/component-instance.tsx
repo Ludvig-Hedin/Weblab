@@ -38,20 +38,30 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
 
     const instanceId = selected?.instanceId ?? null;
 
-    const reload = useCallback(async () => {
-        if (!selected?.instanceId) {
-            setDef(null);
-            setValues({});
-            return;
-        }
-        const nextDef = await editorEngine.components.getDefinitionForInstance(selected);
-        const nextValues = await editorEngine.components.getInstancePropValues(selected);
-        setDef(nextDef);
-        setValues(nextValues);
-    }, [editorEngine.components, selected]);
+    const reload = useCallback(
+        async (isCancelled?: () => boolean) => {
+            if (!selected?.instanceId) {
+                setDef(null);
+                setValues({});
+                return;
+            }
+            const nextDef = await editorEngine.components.getDefinitionForInstance(selected);
+            const nextValues = await editorEngine.components.getInstancePropValues(selected);
+            // Guard against out-of-order resolution on fast A→B selection
+            // switches — stale results would show the wrong component's props.
+            if (isCancelled?.()) return;
+            setDef(nextDef);
+            setValues(nextValues);
+        },
+        [editorEngine.components, selected],
+    );
 
     useEffect(() => {
-        void reload();
+        let cancelled = false;
+        void reload(() => cancelled);
+        return () => {
+            cancelled = true;
+        };
         // `definitions` in the deps: re-resolve when the index updates (e.g.
         // a prop was just created on the master).
     }, [reload, instanceId, definitions]);

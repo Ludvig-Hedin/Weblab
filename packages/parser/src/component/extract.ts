@@ -65,8 +65,10 @@ export function extractComponent(
     }
     const target = targetPath as NodePath<T.JSXElement>;
 
-    // 2. Closure check: partition referenced identifiers.
-    const extractionNames = new Set(propExtractions.map((p) => p.propName));
+    // 2. Closure check: partition referenced identifiers. No exemptions —
+    // prop extractions only ever replace literals inside the subtree, so an
+    // outer variable sharing a chosen prop name must still be reported
+    // (otherwise the dynamic page value would silently rebind to the prop).
     const neededImports = new Map<string, T.ImportDeclaration>(); // source -> decl(filtered)
     const outerRefs = new Set<string>();
 
@@ -102,10 +104,8 @@ export function extractComponent(
             }
 
             // Module-scope consts/functions of the page or enclosing-scope
-            // values: not extractable in v1 (unless hoisted as a prop).
-            if (!extractionNames.has(name)) {
-                outerRefs.add(name);
-            }
+            // values: not extractable in v1.
+            outerRefs.add(name);
         },
     });
 
@@ -117,14 +117,9 @@ export function extractComponent(
         };
     }
 
-    // 3. Clone the subtree, strip oids (fresh ones minted on write), and
-    //    hoist the chosen literals into props.
-    const cloned = t.cloneNode(target.node, true, false);
-    stripOids(cloned);
-
-    // Re-locate extraction targets inside the clone by their original oids —
-    // stripOids removed them, so resolve BEFORE stripping. Simpler: clone
-    // again with oids, resolve, then strip at the end.
+    // 3. Clone the subtree (keeping oids so extraction targets can be
+    //    located), hoist the chosen literals into props, then strip oids —
+    //    fresh ones are minted when the new file is written.
     const clonedWithOids = t.cloneNode(target.node, true, false);
     const props: Array<{ name: string; kind: PropExtraction['kind']; defaultValue: string }> = [];
 
@@ -273,24 +268,21 @@ function collectImportSpecifier(
 }
 
 function stripOids(node: T.JSXElement): void {
-    const visit = (el: T.JSXElement) => {
-        el.openingElement.attributes = el.openingElement.attributes.filter(
-            (attr) =>
-                !(
-                    t.isJSXAttribute(attr) &&
-                    typeof attr.name.name === 'string' &&
-                    (attr.name.name === EditorAttributes.DATA_WEBLAB_ID ||
-                        attr.name.name === 'data-oid' ||
-                        attr.name.name === 'data-onlook-id')
-                ),
-        );
+    const visit = (el: T.JSXElement | T.JSXFragment) => {
+        if (t.isJSXElement(el)) {
+            el.openingElement.attributes = el.openingElement.attributes.filter(
+                (attr) =>
+                    !(
+                        t.isJSXAttribute(attr) &&
+                        typeof attr.name.name === 'string' &&
+                        (attr.name.name === EditorAttributes.DATA_WEBLAB_ID ||
+                            attr.name.name === 'data-oid' ||
+                            attr.name.name === 'data-onlook-id')
+                    ),
+            );
+        }
         for (const child of el.children) {
-            if (t.isJSXElement(child)) visit(child);
-            if (t.isJSXFragment(child)) {
-                for (const sub of child.children) {
-                    if (t.isJSXElement(sub)) visit(sub);
-                }
-            }
+            if (t.isJSXElement(child) || t.isJSXFragment(child)) visit(child);
         }
     };
     visit(node);
@@ -298,20 +290,20 @@ function stripOids(node: T.JSXElement): void {
 
 function findByOid(root: T.JSXElement, oid: string): T.JSXElement | null {
     if (getOidFromJsxElement(root.openingElement) === oid) return root;
-    for (const child of root.children) {
-        if (t.isJSXElement(child)) {
-            const found = findByOid(child, oid);
-            if (found) return found;
-        } else if (t.isJSXFragment(child)) {
-            for (const sub of child.children) {
-                if (t.isJSXElement(sub)) {
-                    const found = findByOid(sub, oid);
-                    if (found) return found;
-                }
+    const search = (el: T.JSXElement | T.JSXFragment): T.JSXElement | null => {
+        for (const child of el.children) {
+            if (t.isJSXElement(child)) {
+                if (getOidFromJsxElement(child.openingElement) === oid) return child;
+                const found = search(child);
+                if (found) return found;
+            } else if (t.isJSXFragment(child)) {
+                const found = search(child);
+                if (found) return found;
             }
         }
-    }
-    return null;
+        return null;
+    };
+    return search(root);
 }
 
 function addImport(ast: T.File, importDecl: T.ImportDeclaration): void {

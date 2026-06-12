@@ -513,9 +513,16 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         getKey('EDIT_COMPONENT'),
         () => {
             const selected = editorEngine.elements.selected[0];
-            if (selected?.instanceId) {
-                void editorEngine.components.enterEditMode(selected);
-            }
+            if (!selected?.instanceId) return;
+            void editorEngine.components.enterEditMode(selected).then((entered) => {
+                if (!entered) {
+                    toast.error(
+                        editorEngine.components.indexReady
+                            ? 'This component can’t be edited here (external or unresolved).'
+                            : 'Still indexing components — try again in a moment.',
+                    );
+                }
+            });
         },
         { preventDefault: true },
         [getKey('EDIT_COMPONENT')],

@@ -68,10 +68,17 @@ export function detachInstance(pageAst: T.File, params: DetachParams): DetachRes
         return spec?.defaultValue ?? null;
     };
 
-    // 4. Clone + substitute.
+    // 4. Clone + substitute. Master oids are stripped BEFORE splicing the
+    // instance children so slot content keeps its page-native oids
+    // (selection continuity, interactions). Unresolvable dynamic expressions
+    // abort the detach — emitting code that references master-scope
+    // identifiers (cn, variant maps, props) would crash the page.
     const clone = t.cloneNode(rootJsx, true, false);
-    substituteProps(clone, def, propValue, instanceChildren);
     stripAllOids(clone);
+    const substitution = substituteProps(clone, def, propValue, instanceChildren);
+    if (!substitution.ok) {
+        return { ok: false, error: substitution.error };
+    }
 
     // Carry the instance's oid onto the inlined root so selection survives.
     clone.openingElement.attributes.push(
@@ -171,9 +178,19 @@ function substituteProps(
     def: ComponentDef,
     propValue: (name: string) => string | number | boolean | null,
     instanceChildren: T.JSXElement['children'],
-): void {
+): { ok: true } | { ok: false; error: string } {
     const propNames = new Set(def.props.map((p) => p.name));
     const variant = def.variants;
+    /** Dynamic expressions that survive substitution would reference
+     *  master-scope identifiers from the page — collect and abort. */
+    const unresolved: string[] = [];
+    /** Slot children may be spliced at multiple render sites; clone after
+     *  the first splice so the AST never aliases the same nodes. */
+    let childrenSpliced = false;
+    const spliceChildren = (): T.JSXElement['children'] =>
+        childrenSpliced
+            ? instanceChildren.map((c) => t.cloneNode(c, true, false))
+            : ((childrenSpliced = true), instanceChildren);
 
     const isPropIdentifier = (expr: T.Node | null | undefined): string | null => {
         if (expr && t.isIdentifier(expr) && propNames.has(expr.name)) return expr.name;
@@ -190,79 +207,131 @@ function substituteProps(
         return null;
     };
 
-    const resolveClassName = (expr: T.Expression): string | null => {
-        // cn('base', map[variant]) or map[variant] → merged literal classes.
-        if (!variant) return null;
+    const variantClasses = (): string => {
+        if (!variant) return '';
         const chosen = String(propValue(variant.propName) ?? variant.defaultVariant);
-        const variantClasses = variant.variants[chosen] ?? '';
+        return variant.variants[chosen] ?? '';
+    };
 
-        const resolvePart = (part: T.Node): string | null => {
-            if (t.isStringLiteral(part)) return part.value;
-            if (
-                t.isMemberExpression(part) &&
-                t.isIdentifier(part.object) &&
-                part.object.name === variant.mapName
-            ) {
-                return variantClasses;
+    /** Resolves one className part to a literal string, or null. */
+    const resolvePart = (part: T.Node): string | null => {
+        if (t.isStringLiteral(part)) return part.value;
+        // map[variant] / map['x'] / cvaMap({ variant })
+        if (
+            variant &&
+            t.isMemberExpression(part) &&
+            t.isIdentifier(part.object) &&
+            part.object.name === variant.mapName
+        ) {
+            return variantClasses();
+        }
+        if (
+            variant &&
+            t.isCallExpression(part) &&
+            t.isIdentifier(part.callee) &&
+            part.callee.name === variant.mapName
+        ) {
+            return variantClasses();
+        }
+        // `${'a'} ${map[variant] ?? ''}` — the generated template form.
+        if (t.isTemplateLiteral(part)) {
+            let out = '';
+            for (let i = 0; i < part.quasis.length; i++) {
+                out += part.quasis[i]?.value.cooked ?? '';
+                const expr = part.expressions[i];
+                if (expr) {
+                    const resolved = resolvePart(expr as T.Node);
+                    if (resolved === null) return null;
+                    out += resolved;
+                }
             }
-            if (
-                t.isCallExpression(part) &&
-                t.isIdentifier(part.callee) &&
-                part.callee.name === variant.mapName
-            ) {
-                return variantClasses;
+            return out;
+        }
+        // x ?? 'fallback'
+        if (t.isLogicalExpression(part) && part.operator === '??') {
+            const left = resolvePart(part.left);
+            if (left !== null) return left;
+            return resolvePart(part.right);
+        }
+        // cond && 'x' where cond is a prop
+        if (t.isLogicalExpression(part) && part.operator === '&&') {
+            const guard = isPropIdentifier(part.left);
+            if (guard) {
+                if (!propValue(guard)) return '';
+                return resolvePart(part.right);
             }
             return null;
-        };
-
-        if (t.isCallExpression(expr)) {
+        }
+        // className passthrough props resolve to their (string) value.
+        const propName = isPropIdentifier(part);
+        if (propName) {
+            const value = propValue(propName);
+            return value == null ? '' : String(value);
+        }
+        // cn(/clsx(...)) — resolve arg by arg.
+        if (t.isCallExpression(part)) {
             const parts: string[] = [];
-            for (const arg of expr.arguments) {
+            for (const arg of part.arguments) {
                 const resolved = resolvePart(arg as T.Node);
                 if (resolved === null) return null;
                 if (resolved) parts.push(resolved);
             }
-            return parts.join(' ').trim();
+            return parts.join(' ').replace(/\s+/g, ' ').trim();
         }
-        const single = resolvePart(expr);
-        return single;
+        return null;
     };
 
-    const visit = (el: T.JSXElement): void => {
-        // Attributes: attr={prop} → attr="value"; className cn(...) → literal.
-        for (const attr of el.openingElement.attributes) {
-            if (!t.isJSXAttribute(attr) || !attr.value) continue;
-            if (!t.isJSXExpressionContainer(attr.value)) continue;
-            const expr = attr.value.expression;
+    type JsxParent = T.JSXElement | T.JSXFragment;
 
-            if (attr.name.name === 'className' && !t.isJSXEmptyExpression(expr)) {
-                const resolved = resolveClassName(expr);
-                if (resolved !== null) {
-                    attr.value = t.stringLiteral(resolved);
+    const visit = (el: JsxParent): void => {
+        if (t.isJSXElement(el)) {
+            // Attributes: attr={prop} → attr="value"; className → merged literal.
+            for (const attr of el.openingElement.attributes) {
+                if (!t.isJSXAttribute(attr) || !attr.value) continue;
+                if (!t.isJSXExpressionContainer(attr.value)) continue;
+                const expr = attr.value.expression;
+                if (t.isJSXEmptyExpression(expr)) continue;
+
+                if (attr.name.name === 'className') {
+                    if (t.isStringLiteral(expr)) {
+                        attr.value = t.stringLiteral(expr.value);
+                        continue;
+                    }
+                    const resolved = resolvePart(expr);
+                    if (resolved !== null) {
+                        attr.value = t.stringLiteral(resolved);
+                    } else {
+                        unresolved.push('className');
+                    }
                     continue;
                 }
-            }
 
-            const propName = isPropIdentifier(expr);
-            if (propName) {
-                const value = propValue(propName);
-                if (typeof value === 'string') attr.value = t.stringLiteral(value);
-                else if (typeof value === 'number') {
-                    attr.value = t.jsxExpressionContainer(t.numericLiteral(value));
-                } else if (typeof value === 'boolean') {
-                    attr.value = t.jsxExpressionContainer(t.booleanLiteral(value));
+                const propName = isPropIdentifier(expr);
+                if (propName) {
+                    const value = propValue(propName);
+                    if (typeof value === 'string') attr.value = t.stringLiteral(value);
+                    else if (typeof value === 'number') {
+                        attr.value = t.jsxExpressionContainer(t.numericLiteral(value));
+                    } else if (typeof value === 'boolean') {
+                        attr.value = t.jsxExpressionContainer(t.booleanLiteral(value));
+                    } else {
+                        unresolved.push(propName);
+                    }
                 }
             }
         }
 
         // Children: {prop} → text; {prop && el} → keep/remove; {children} → splice.
-        const nextChildren: T.JSXElement['children'] = [];
+        const nextChildren: JsxParent['children'] = [];
         for (const child of el.children) {
             if (t.isJSXExpressionContainer(child)) {
                 const expr = child.expression;
                 const propName = isPropIdentifier(expr);
-                if (propName === 'children' || (propName && def.slots.some((s) => s.name === propName))) {
-                    nextChildren.push(...instanceChildren);
+                if (
+                    propName === 'children' ||
+                    (propName && def.slots.some((s) => s.name === propName))
+                ) {
+                    nextChildren.push(...spliceChildren());
                     continue;
                 }
                 if (propName) {
@@ -283,30 +352,44 @@ function substituteProps(
                         continue;
                     }
                 }
+                if (!t.isJSXEmptyExpression(expr) && !t.isStringLiteral(expr)) {
+                    // Any other expression references master scope.
+                    unresolved.push('expression');
+                }
             }
-            if (t.isJSXElement(child)) visit(child);
+            if (t.isJSXElement(child) || t.isJSXFragment(child)) visit(child);
             nextChildren.push(child);
         }
         el.children = nextChildren;
     };
 
     visit(root);
+
+    if (unresolved.length > 0) {
+        return {
+            ok: false,
+            error: `The component uses dynamic ${[...new Set(unresolved)].join(', ')} that can't be inlined — unlink is not safe for this component`,
+        };
+    }
+    return { ok: true };
 }
 
 function stripAllOids(root: T.JSXElement): void {
-    const strip = (el: T.JSXElement) => {
-        el.openingElement.attributes = el.openingElement.attributes.filter(
-            (attr) =>
-                !(
-                    t.isJSXAttribute(attr) &&
-                    typeof attr.name.name === 'string' &&
-                    (attr.name.name === EditorAttributes.DATA_WEBLAB_ID ||
-                        attr.name.name === 'data-oid' ||
-                        attr.name.name === 'data-onlook-id')
-                ),
-        );
+    const strip = (el: T.JSXElement | T.JSXFragment) => {
+        if (t.isJSXElement(el)) {
+            el.openingElement.attributes = el.openingElement.attributes.filter(
+                (attr) =>
+                    !(
+                        t.isJSXAttribute(attr) &&
+                        typeof attr.name.name === 'string' &&
+                        (attr.name.name === EditorAttributes.DATA_WEBLAB_ID ||
+                            attr.name.name === 'data-oid' ||
+                            attr.name.name === 'data-onlook-id')
+                    ),
+            );
+        }
         for (const child of el.children) {
-            if (t.isJSXElement(child)) strip(child);
+            if (t.isJSXElement(child) || t.isJSXFragment(child)) strip(child);
         }
     };
     strip(root);

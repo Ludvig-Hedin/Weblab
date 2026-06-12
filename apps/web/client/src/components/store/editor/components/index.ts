@@ -50,6 +50,8 @@ export interface ComponentEditSession {
  */
 export class ComponentsManager {
     definitions: ComponentDef[] = [];
+    /** False until the component index has loaded for the active branch. */
+    indexReady = false;
     editing: ComponentEditSession | null = null;
     /** Scope-root rect in canvas coordinates, kept fresh by overlay refresh. */
     editingScopeRect: RectDimensions | null = null;
@@ -108,6 +110,7 @@ export class ComponentsManager {
     private subscribeToActiveFileSystem() {
         this.unsubscribeIndex?.();
         this.unsubscribeIndex = null;
+        this.indexReady = false;
 
         let fileSystem;
         try {
@@ -121,6 +124,7 @@ export class ComponentsManager {
             const previous = this.definitions;
             runInAction(() => {
                 this.definitions = defs;
+                this.indexReady = true;
             });
             // HTML masters: a changed content hash means the partial was
             // edited — re-stamp every instance across the project's pages.
@@ -142,6 +146,7 @@ export class ComponentsManager {
             .then((defs) => {
                 runInAction(() => {
                     this.definitions = defs;
+                    this.indexReady = true;
                 });
             })
             .catch((error) => {
@@ -242,28 +247,67 @@ export class ComponentsManager {
     }
 
     exitEditMode() {
-        if (!this.editing) return;
+        const session = this.editing;
+        if (!session) return;
         this.editing = null;
         this.editingScopeRect = null;
         this.propBoundRects = [];
         this.editorEngine.overlay.state.removeHoverRect();
+
+        // Re-select the entry instance (Webflow behavior). Leaving an inner
+        // master-file element selected is a footgun: the next style edit
+        // would silently write the master — all instances — with no banner.
+        void this.selectEntryInstance(session);
+    }
+
+    private async selectEntryInstance(session: ComponentEditSession): Promise<void> {
+        try {
+            const frameData = this.editorEngine.frames.get(session.frameId);
+            const layerMap = this.editorEngine.ast.mappings.getMapping(session.frameId);
+            if (!frameData?.view || !layerMap) return;
+            const boundary = [...layerMap.values()].find(
+                (n) => n.instanceId === session.entryInstanceId,
+            );
+            if (!boundary) {
+                this.editorEngine.elements.clear();
+                this.editorEngine.overlay.state.removeClickRects();
+                return;
+            }
+            const el: DomElement = await frameData.view.getElementByDomId(boundary.domId, false);
+            if (el) this.editorEngine.elements.click([el]);
+        } catch {
+            // Selection restore is best-effort.
+        }
     }
 
     /**
      * True when the dom node is inside the active edit scope (the entry
      * instance's subtree in the entry frame). Walks the layer-map parents.
+     *
+     * Stale-map tolerance: right after a master edit, HMR regenerates domIds
+     * while the layer map rebuilds on a ~1s debounce. Unknown nodes (or a
+     * stale scope root) are treated as IN scope — exiting the session on an
+     * undecidable node would dump the user out of component editing on the
+     * first click after every edit.
      */
     isInEditScope(frameId: string, domId: string): boolean {
         const session = this.editing;
         if (!session) return true;
         if (frameId !== session.frameId) return false;
 
-        let current: LayerNode | null =
-            this.editorEngine.ast.mappings.getLayerNode(frameId, domId) ?? null;
+        const mappings = this.editorEngine.ast.mappings;
+        const node = mappings.getLayerNode(frameId, domId);
+        if (!node) return true; // undecided — stale map
+        if (!mappings.getLayerNode(frameId, session.scopeRootDomId)) {
+            // Scope root itself is stale; membership is undecidable.
+            return true;
+        }
+
+        let current: LayerNode | null = node;
         while (current) {
             if (current.domId === session.scopeRootDomId) return true;
             current = current.parent
-                ? (this.editorEngine.ast.mappings.getLayerNode(frameId, current.parent) ?? null)
+                ? (mappings.getLayerNode(frameId, current.parent) ?? null)
                 : null;
         }
         return false;
@@ -588,13 +632,24 @@ export class ComponentsManager {
         const ast = getAstFromContent(content);
         if (!ast) return { ok: false, error: 'Cannot parse source file' };
 
-        // Mirror the existing insert convention: `@/` maps to `src/` when the
-        // project has one (same heuristic as toImportPath in the insert path).
         const usesSrcDir = metadata.path.startsWith('src/');
         const componentFilePath = usesSrcDir
             ? `src/components/${componentName}.tsx`
             : `components/${componentName}.tsx`;
-        const importPath = `@/components/${componentName}`;
+
+        // Refuse to overwrite an existing file — the duplicate check above
+        // only covers components that DISCOVERY recognized.
+        const existing = await fileSystem.readFile(componentFilePath).catch(() => null);
+        if (existing != null) {
+            return { ok: false, error: `${componentFilePath} already exists` };
+        }
+
+        const importPath = await this.resolveImportPath(
+            fileSystem,
+            metadata.path,
+            componentFilePath,
+            componentName,
+        );
 
         const result = extractComponent(ast, {
             rootOid: el.oid,
@@ -624,6 +679,53 @@ export class ComponentsManager {
     }
 
     /**
+     * Resolves the import path for a new component: `@/components/<Name>`
+     * when the project's tsconfig declares the `@/*` alias (the Weblab
+     * scaffold convention), otherwise a relative path — imported repos
+     * without the alias would fail to compile on an `@/` import.
+     */
+    private async resolveImportPath(
+        fileSystem: NonNullable<
+            ReturnType<EditorEngine['branches']['getBranchDataById']>
+        >['codeEditor'],
+        pagePath: string,
+        componentFilePath: string,
+        componentName: string,
+    ): Promise<string> {
+        try {
+            const raw = await fileSystem.readFile('tsconfig.json');
+            if (typeof raw === 'string') {
+                // tsconfig allows comments — strip line/block comments first.
+                const json = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+                const parsed = JSON.parse(json) as {
+                    compilerOptions?: { paths?: Record<string, unknown> };
+                };
+                const paths = parsed.compilerOptions?.paths ?? {};
+                if (Object.keys(paths).some((key) => key.startsWith('@/'))) {
+                    return `@/components/${componentName}`;
+                }
+            }
+        } catch {
+            // No tsconfig / unparseable — fall through to relative.
+        }
+
+        // Relative import from the page's directory to the component file.
+        const pageSegments = pagePath.split('/').slice(0, -1);
+        const targetSegments = componentFilePath.replace(/\.tsx?$/, '').split('/');
+        let common = 0;
+        while (
+            common < pageSegments.length &&
+            common < targetSegments.length - 1 &&
+            pageSegments[common] === targetSegments[common]
+        ) {
+            common++;
+        }
+        const ups = pageSegments.length - common;
+        const prefix = ups === 0 ? './' : '../'.repeat(ups);
+        return `${prefix}${targetSegments.slice(common).join('/')}`;
+    }
+
+    /**
      * HTML create-from-selection: serializes the subtree into a partial under
      * `weblab/components/` and replaces the page element with a stamped
      * instance (marker attrs on the root, `${oid}~${instanceId}` oids).
@@ -641,9 +743,7 @@ export class ComponentsManager {
         },
     ): Promise<{ ok: boolean; error?: string }> {
         const { fileSystem, pagePath, pageContent, selectedHtml } = context;
-        const kebab = componentName
-            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-            .toLowerCase();
+        const kebab = componentName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
         const componentKey = `${HTML_COMPONENT_DIR}/${kebab}.html`;
 
         const extraction = extractHtmlComponent({
@@ -661,9 +761,13 @@ export class ComponentsManager {
         }
         const updatedPage = pageContent.replace(selectedHtml, extraction.stamped);
 
+        // Page FIRST: its bare oids must leave the index before the master is
+        // processed, otherwise oid injection sees them as cross-file
+        // duplicates and regenerates the master's oids — severing the
+        // `${masterOid}~${instanceId}` routing link at the moment of creation.
         await fileSystem.writeFiles([
-            { path: componentKey, content: extraction.masterContent },
             { path: pagePath, content: updatedPage },
+            { path: componentKey, content: extraction.masterContent },
         ]);
 
         this.editorEngine.posthog.capture('component_created_from_selection', {

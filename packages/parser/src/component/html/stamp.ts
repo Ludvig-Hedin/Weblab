@@ -283,10 +283,16 @@ export function stampInstance(masterContent: string, instance: HtmlInstance): st
             }
         }
 
-        // Attribute placeholders.
+        // Attribute placeholders. Whitespace is only normalized for `class`
+        // (where an empty variant slot leaves double spaces) — other attr
+        // values keep the user's exact spacing.
         for (const attr of el.attrs) {
             if (attr.value.includes('{{')) {
-                attr.value = substitute(attr.value, resolve).replace(/\s{2,}/g, ' ').trim();
+                const substituted = substitute(attr.value, resolve);
+                attr.value =
+                    attr.name === 'class'
+                        ? substituted.replace(/\s{2,}/g, ' ').trim()
+                        : substituted;
             }
         }
 
@@ -310,13 +316,19 @@ export function stampInstance(masterContent: string, instance: HtmlInstance): st
     for (const el of toRemove) detachNode(el);
 
     // Slots → <div data-wb-slot-content="name">instance content or fallback</div>
+    // The wrapper carries a deterministic oid (`slot-<name>~<instanceId>`) so
+    // re-stamps don't churn the element's identity (or dirty pages whose
+    // content didn't change — oid minting on write would otherwise re-mint a
+    // fresh one every time).
     for (const slot of slotsToFill) {
         const name = getAttr(slot, 'name') ?? 'children';
         const content = instance.slots[name];
+        const wrapperOid = `slot-${name}~${instance.instanceId}`;
+        const wrapperAttrs = `${ATTR_SLOT_CONTENT}="${name}" ${EditorAttributes.DATA_WEBLAB_ID}="${wrapperOid}"`;
         const replacementHtml =
             content !== undefined && content.trim().length > 0
-                ? `<div ${ATTR_SLOT_CONTENT}="${name}">${content}</div>`
-                : `<div ${ATTR_SLOT_CONTENT}="${name}">${serializeChildren(slot)}</div>`;
+                ? `<div ${wrapperAttrs}>${content}</div>`
+                : `<div ${wrapperAttrs}>${serializeChildren(slot)}</div>`;
         const replacementFragment = parseFragment(replacementHtml);
         const replacement = replacementFragment.childNodes[0];
         const parent = slot.parentNode;
@@ -368,13 +380,29 @@ export function findInstancesInPage(
         const slots: Record<string, string> = {};
         for (const slotEl of walkElements(el)) {
             const slotName = getAttr(slotEl, ATTR_SLOT_CONTENT);
-            // Only slot regions whose content diverged from the master
-            // fallback are per-instance; we can't distinguish here, so all
-            // regions are preserved verbatim. Fallback content carries
-            // `~`-scoped oids and is treated as instance content from then on.
-            if (slotName) {
-                slots[slotName] = serializeChildren(slotEl);
+            if (!slotName) continue;
+            // Skip regions belonging to NESTED instances or living inside
+            // another slot region — they're part of this instance's slot
+            // CONTENT (preserved verbatim within it), not its own slots.
+            // Without this, a nested instance whose slot shares a name would
+            // overwrite the outer slot and destroy content on restamp.
+            let owner: Node | null = slotEl.parentNode as Node | null;
+            let belongsToThisInstance = true;
+            while (owner && owner !== (el as Node)) {
+                if (
+                    isElement(owner) &&
+                    (getAttr(owner, ATTR_COMPONENT) !== null ||
+                        getAttr(owner, ATTR_SLOT_CONTENT) !== null)
+                ) {
+                    belongsToThisInstance = false;
+                    break;
+                }
+                owner = ('parentNode' in owner ? (owner as ChildNode).parentNode : null) as
+                    | Node
+                    | null;
             }
+            if (!belongsToThisInstance) continue;
+            slots[slotName] = serializeChildren(slotEl);
         }
 
         results.push({ element: el, instance: { componentKey: key, instanceId, props, slots } });
@@ -428,8 +456,19 @@ export function detachInstanceHtml(
         removeAttr(el, ATTR_COMPONENT);
         removeAttr(el, ATTR_INSTANCE);
         removeAttr(el, ATTR_PROPS);
-        const scoped = [el, ...walkElements(el)];
-        for (const node of scoped) {
+
+        // Walk the detached subtree but stop at NESTED instances — they keep
+        // their markers, slot regions, and `~` oids (they remain linked to
+        // their own master).
+        const scopedWalk = function* (root: Element): Generator<Element> {
+            for (const child of root.childNodes) {
+                if (!isElement(child)) continue;
+                if (getAttr(child, ATTR_COMPONENT) !== null) continue; // nested instance
+                yield child;
+                yield* scopedWalk(child);
+            }
+        };
+        for (const node of [el, ...scopedWalk(el)]) {
             const oid = getAttr(node, EditorAttributes.DATA_WEBLAB_ID);
             if (oid?.includes('~')) {
                 setAttr(node, EditorAttributes.DATA_WEBLAB_ID, createOid());

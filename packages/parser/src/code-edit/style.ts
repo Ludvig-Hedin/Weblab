@@ -84,7 +84,11 @@ export interface JsxPropSentinel {
 }
 
 function isRemoveSentinel(value: unknown): value is RemovePropSentinel {
-    return typeof value === 'object' && value !== null && '__remove' in value;
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        (value as RemovePropSentinel).__remove === true
+    );
 }
 
 function isJsxSentinel(value: unknown): value is JsxPropSentinel {

@@ -40,8 +40,8 @@ export const ComponentChip = observer(() => {
 
     return (
         <div style={containerStyle}>
-            <div className="bg-background-primary border-purple-500/50 text-purple-200 flex h-5 items-center gap-1 rounded-sm border px-1.5 font-mono text-[11px]">
-                <Icons.Component className="h-3 w-3 text-purple-400" />
+            <div className="bg-background-primary flex h-5 items-center gap-1 rounded-sm border border-purple-500/50 px-1.5 font-mono text-[11px] text-purple-700 dark:text-purple-200">
+                <Icons.Component className="h-3 w-3 text-purple-500 dark:text-purple-400" />
                 <span className="max-w-[160px] truncate" title={componentName}>
                     {componentName}
                 </span>
@@ -49,7 +49,7 @@ export const ComponentChip = observer(() => {
                     <TooltipTrigger asChild>
                         <button
                             type="button"
-                            className="hover:text-purple-100 pointer-events-auto -mr-0.5 flex h-4 w-4 items-center justify-center rounded-[3px] text-purple-300 hover:bg-purple-500/20"
+                            className="pointer-events-auto -mr-0.5 flex h-4 w-4 items-center justify-center rounded-[3px] text-purple-600 hover:bg-purple-500/20 hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-100"
                             onClick={() => void editorEngine.components.enterEditMode(el)}
                             aria-label={`Edit ${componentName} component`}
                         >

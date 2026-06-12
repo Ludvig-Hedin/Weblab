@@ -53,6 +53,12 @@ later without re-discovering the context.
   8. **Design-system page specimens** — green palette swatches added; component chip / edit banner / prop-field specimens still to add to `/design-system`.
 - **Next step:** pick items off in order of user pain; 3 and 5 are the most user-visible.
 - **Risk if ignored:** prop edits not undoable (2); HTML instance edits silently lost on re-stamp (5).
+- **Also (low, from the 2026-06-12 review pass):**
+  9. `countComponentUsages` is name-based — same-named components from other files/libraries inflate the banner's "applies to N instances". Filter by resolved import → `def.filePath`.
+  10. `toImportPath` in `store/editor/insert/index.ts` still hardcodes the `@/` alias for Components-tab drag-inserts (create-from-selection now resolves tsconfig paths — reuse `resolveImportPath`).
+  11. Extract leaves now-unused imports in the source page (lint noise, not breakage).
+  12. Raw `<button>`s in component-instance/master sections + chip/tree pencils violate [button-enforcement.md](docs/agent-context/button-enforcement.md) — swap for ghost `<Button>` or add an icon-chip variant.
+  13. Component chip uses `zIndex: 60` (matches CmsPill) — paints over panels when the rect is near edges; both should clamp.
 - **Tags:** `#tech-debt` `#editor`
 
 ### Dock / "Open With Weblab" `open-file` doesn't verify the path is a directory

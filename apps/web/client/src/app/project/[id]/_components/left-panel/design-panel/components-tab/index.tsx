@@ -34,7 +34,7 @@ export const ComponentsTab = observer(() => {
                 .sort((a, b) => a.componentName.localeCompare(b.componentName)),
         [editorEngine.components.definitions],
     );
-    const isLoadingComponents = false;
+    const isLoadingComponents = !editorEngine.components.indexReady;
 
     const filteredUserComponents = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();

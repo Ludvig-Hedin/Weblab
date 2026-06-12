@@ -474,16 +474,21 @@ export class CodeFileSystem extends FileSystem {
                     await this.saveIndex(index);
                 }
 
+                // Copy-on-write, matching updateComponentIndexForFile —
+                // mutating the live cached object would let unlocked readers
+                // observe a half-updated index.
                 const componentIndex = await this.loadComponentIndex();
+                const nextComponentIndex: Record<string, ComponentDef> = {};
                 let hasComponentChanges = false;
                 for (const [key, def] of Object.entries(componentIndex)) {
                     if (pathsEqual(def.filePath, path)) {
-                        delete componentIndex[key];
                         hasComponentChanges = true;
+                    } else {
+                        nextComponentIndex[key] = def;
                     }
                 }
                 if (hasComponentChanges) {
-                    await this.saveComponentIndex(componentIndex);
+                    await this.saveComponentIndex(nextComponentIndex);
                 }
             }
         });

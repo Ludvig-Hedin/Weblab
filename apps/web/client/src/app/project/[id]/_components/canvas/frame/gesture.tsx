@@ -150,6 +150,15 @@ export const GestureScreen = observer(
                                 components.isInEditScope(el.frameId, el.domId);
                             if (!inScope) {
                                 if (el.instanceId) {
+                                    if (!components.indexReady) {
+                                        // Falling through to text-edit here
+                                        // would silently edit the master with
+                                        // no blast-radius banner.
+                                        toast.info(
+                                            'Still indexing components — try again in a moment.',
+                                        );
+                                        break;
+                                    }
                                     const entered = await components.enterEditMode(el);
                                     if (entered) break;
                                 } else {
