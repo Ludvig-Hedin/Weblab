@@ -9,6 +9,7 @@
  */
 
 import type * as agentApi from "../agentApi.js";
+import type * as agentTestSeed from "../agentTestSeed.js";
 import type * as aiUsageEvents from "../aiUsageEvents.js";
 import type * as branchActions from "../branchActions.js";
 import type * as branches from "../branches.js";
@@ -99,6 +100,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   agentApi: typeof agentApi;
+  agentTestSeed: typeof agentTestSeed;
   aiUsageEvents: typeof aiUsageEvents;
   branchActions: typeof branchActions;
   branches: typeof branches;

@@ -83,3 +83,6 @@ fix_hsl.py
 docs/archive/t3code/
 
 agent-temp-input/
+
+# Local MCP server config (may reference local secrets via env interpolation)
+.mcp.json

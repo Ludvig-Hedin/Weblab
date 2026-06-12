@@ -411,6 +411,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-500 | F-500 | I | `sandbox.create` then `start` then `status` then `stop` | Lifecycle transitions return expected payloads | `[ ]` |
 | T-501 | F-501 | U | `listProjectComponents` on fixture project | Returns components via regex | `[ ]` |
 | T-502 | F-482, F-693 | U | `bun --filter @weblab/mcp test` — agent connector + tools + schemas (`packages/mcp/src/agent/*.test.ts`): mocked-fetch happy paths, Bearer/URL wiring, status→error-code mapping (401/403/404/400/5xx/network/bad-shape), zod input validation, confirm-gate, UNSUPPORTED stubs, env config | 32 tests pass; every error maps to the documented code; unsupported tools never hit the network | `[x]` |
+| T-503 | F-482, F-693 | I | API-first QA harness against a live deployment: seed fixtures (`bunx convex run agentTestSeed:seed`) then `bun packages/mcp/src/agent/qa-runner.ts` with `WEBLAB_AGENT_API_URL` + `WEBLAB_AGENT_API_TOKEN` (+ `WEBLAB_QA_FOREIGN_PROJECT_ID`). 15 checks: onboarding/health, returning-user list, read state, ready/pending/failed status, NOT_FOUND/INVALID_INPUT/PERMISSION_DENIED, AUTH_FAILED, BACKEND_UNAVAILABLE, write-gate + logs UNSUPPORTED | 15/15 pass; exit 0; report at `docs/agent-memory/api-agent-qa-report.md` | `[x]` |
 
 ---
 

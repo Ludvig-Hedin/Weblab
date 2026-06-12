@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-12 — Agent API: API-first QA, live wiring, reusable fixtures + harness
+Author: Claude (Opus 4.8)
+Area: `apps/web/client/convex` (new `agentTestSeed.ts`), `@weblab/mcp` (new `agent/qa-runner.ts`), docs
+Summary: QA'd the v1 agent API end-to-end with NO browser — only connector/MCP tool output. Found + fixed a CRITICAL setup gap: the v1 commit ran `convex codegen` (types only) but never **pushed** the functions, so `/agent/*` returned `404 No matching routes` on the dev deployment and both env vars were unset — the surface was entirely unreachable (the prior log entry's "codegen also pushed them" was inaccurate; codegen ≠ deploy). Fixed via `bunx convex dev --once` + `convex env set WEBLAB_AGENT_API_TOKEN` / `WEBLAB_AGENT_USER_ID`. Added a dedicated synthetic agent account (`clerkUserId = user_agent_qa_fixture`, no real Clerk login — the read API only string-matches the id, guaranteeing test-data isolation), an idempotent Convex seed module `agentTestSeed.ts` (seed/reset/info/foreignProjectIdForQa) creating 3 fixtures covering ready/pending/failed provisioning states with no live sandbox, and a runnable harness `qa-runner.ts` (15 checks: onboarding/health, returning-user list, read state, status states, NOT_FOUND/INVALID_INPUT/PERMISSION_DENIED IDOR guard, AUTH_FAILED, BACKEND_UNAVAILABLE, write-gate + logs UNSUPPORTED). Result: 15/15 pass against live dev; MCP `server.ts` also smoke-tested over stdio (tools/list + 2 calls). Zero code defects in `agentApi.ts`/connector. Prod still unconfigured (documented). Report: [api-agent-qa-report.md](api-agent-qa-report.md).
+Files: `apps/web/client/convex/agentTestSeed.ts` (new, internal-only), `packages/mcp/src/agent/qa-runner.ts` (new), `docs/agent-memory/api-agent-qa-report.md` (new), `docs/test-plan.md` (T-503), `.mcp.json` (new, git-ignored), `.gitignore`
+Links: report [api-agent-qa-report.md](api-agent-qa-report.md); setup [weblab-mcp-setup.md](../agent-context/weblab-mcp-setup.md); test T-503; catalog F-482 + F-693
+
 ## 2026-06-12 — Agent API + MCP server v1 (read-first, token-auth, scoped to a test account)
 Author: Claude (Opus 4.8)
 Area: `apps/web/client/convex` (agent httpActions), `@weblab/mcp` (new `agent/` server), `@weblab/constants` (subpath export)
