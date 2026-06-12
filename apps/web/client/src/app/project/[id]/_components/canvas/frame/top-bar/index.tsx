@@ -28,6 +28,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { HoverOnlyTooltip } from '../../../editor-bar/hover-tooltip';
+import { toPreviewableUrl } from '../preview-url';
 import { BranchDisplay } from './branch';
 import { createMouseMoveHandler } from './helpers';
 import { PageSelector } from './page-selector';
@@ -515,7 +516,7 @@ export const TopBar = observer(
                             className={cn(
                                 'absolute top-1/2 right-1 -translate-y-1/2 transition-opacity duration-300',
                             )}
-                            href={frame.url.replace(/\[([^\]]+)\]/g, 'temp-$1')} // Dynamic routes are not supported so we replace them with a temporary value
+                            href={toPreviewableUrl(frame.url)} // Dynamic routes are not supported so we replace them with a temporary value
                             target="_blank"
                             style={{
                                 transform: `scale(${1 / editorEngine.canvas.scale})`,

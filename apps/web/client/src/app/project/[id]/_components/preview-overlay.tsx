@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { openPreviewWindow, toPreviewableUrl } from './canvas/frame/preview-url';
 import { FIX_ERRORS_EVENT } from './right-panel/chat-tab/error';
 import { PublishButton } from './top-bar/publish';
 
@@ -387,7 +388,7 @@ export const PreviewOverlay = observer(() => {
         allFrames.find((data) => data?.selected)?.frame ?? allFrames[0]?.frame ?? null;
     // Dynamic-route segments (`[slug]`) aren't real URLs — same substitution as
     // the per-frame "open in new tab" link uses.
-    const previewUrl = sourceFrame ? sourceFrame.url.replace(/\[([^\]]+)\]/g, 'temp-$1') : null;
+    const previewUrl = sourceFrame ? toPreviewableUrl(sourceFrame.url) : null;
 
     const groupBreakpoints: GroupBreakpoint[] = sourceFrame
         ? editorEngine.frames.getByGroupId(sourceFrame.groupId).map((data) => ({
@@ -466,6 +467,9 @@ export const PreviewOverlay = observer(() => {
     const handleClose = () => editorEngine.state.setEditorMode(EditorMode.DESIGN);
     const handleReload = () => setReloadKey((k) => k + 1);
     const handleToggleFullscreen = () => setFullscreen((v) => !v);
+    const handlePopOut = () => {
+        if (sourceFrame) openPreviewWindow(editorEngine.projectId, sourceFrame.url, 'window');
+    };
 
     const handleFixWithAI = () => {
         editorEngine.state.setEditorMode(EditorMode.DESIGN);
@@ -675,6 +679,23 @@ export const PreviewOverlay = observer(() => {
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" hideArrow>
                                     {fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        aria-label="Open in new window"
+                                        onClick={handlePopOut}
+                                        className="text-foreground-secondary hover:text-foreground-primary hover:bg-background-bar-active h-8 gap-1.5 rounded-md px-2"
+                                    >
+                                        <Icons.ExternalLink className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Pop out</span>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" hideArrow>
+                                    Open in a resilient preview window
                                 </TooltipContent>
                             </Tooltip>
                         </>

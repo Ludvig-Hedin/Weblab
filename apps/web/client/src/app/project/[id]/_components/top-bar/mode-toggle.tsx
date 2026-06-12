@@ -22,6 +22,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { openPreviewWindow } from '../canvas/frame/preview-url';
 
 // All four editor views surfaced inline as the primary mode switcher.
 // Previously Preview + CMS lived as separate icon buttons elsewhere on the
@@ -110,6 +111,16 @@ export const ModeToggle = observer(() => {
     const activeModeItem =
         MODE_TOGGLE_ITEMS.find((item) => item.mode === mode) ?? MODE_TOGGLE_ITEMS[0]!;
     const activeLabel = modeLabel(activeModeItem.mode);
+
+    // Active preview URL — same source the inline PreviewOverlay uses: the
+    // selected frame, else the first frame.
+    const allFrames = editorEngine.frames.getAll();
+    const sourceFrame =
+        allFrames.find((data) => data?.selected)?.frame ?? allFrames[0]?.frame ?? null;
+    const previewUrl = sourceFrame?.url ?? null;
+    const popout = (popMode: 'tab' | 'window') => {
+        if (previewUrl) openPreviewWindow(editorEngine.projectId, previewUrl, popMode);
+    };
 
     return (
         <div className="relative">
@@ -226,6 +237,37 @@ export const ModeToggle = observer(() => {
                         <HotkeyLabel hotkey={Hotkey.PREVIEW} />
                     </TooltipContent>
                 </Tooltip>
+
+                {/* Pop the live preview out into its own tab/window — a resilient
+                    surface that hot-reloads and auto-recovers from sandbox errors. */}
+                <DropdownMenu>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Open preview window"
+                                    disabled={!previewUrl}
+                                    className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-7 w-7 rounded-md"
+                                >
+                                    <Icons.ExternalLink className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="mt-0" hideArrow>
+                            Open preview window
+                        </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onSelect={() => popout('tab')}>
+                            Open in new tab
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => popout('window')}>
+                            Open in new window
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );
