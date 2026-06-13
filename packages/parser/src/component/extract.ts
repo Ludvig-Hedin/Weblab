@@ -261,10 +261,17 @@ function collectImportSpecifier(
         }
         return;
     }
-    collected.set(
-        source,
-        t.importDeclaration([t.cloneNode(specifier, true, false)], t.stringLiteral(source)),
+    const newDecl = t.importDeclaration(
+        [t.cloneNode(specifier, true, false)],
+        t.stringLiteral(source),
     );
+    // Preserve a declaration-level `import type { … }` so strict TS configs
+    // (verbatimModuleSyntax / isolatedModules) don't error (TS1484) on the
+    // moved import in the new component file.
+    if (decl.importKind === 'type') {
+        newDecl.importKind = 'type';
+    }
+    collected.set(source, newDecl);
 }
 
 function stripOids(node: T.JSXElement): void {

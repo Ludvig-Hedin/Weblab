@@ -38,6 +38,29 @@ later without re-discovering the context.
 
 ## Open
 
+### Bug-hunt round 2 2026-06-13 — deferred findings (sync/parser/server/billing sweep)
+
+- **Discovered:** 2026-06-13 (second deep bug-hunt across canvas editing, sync/fs/parser, server+provider, billing/versions, panels; ~35 bugs fixed in the same session — see feature-log). Each item has a matching `TODO(bug-hunt)` comment in code.
+  1. **write-code applies only `diffs[0]`** — `apps/web/client/src/components/store/editor/code/index.ts`: a multi-diff write-code action drops every file after the first, while `reverseWriteCodeAction` reverses all of them (asymmetric inverse); an empty `diffs` array throws "Not implemented". Apply every diff + reject empty up front. `#bug`
+  2. **Parser HTML insert index off by whitespace text nodes** — `packages/parser/src/pipelines/html/index.ts` (`insertChildAt`): element-index from the editor is spliced into parse5 `childNodes` that interleave whitespace `#text` nodes → wrong source position. Mirror the JSX element-index→children-index mapping. `#bug`
+  3. **Parser JSXText written verbatim** — `packages/parser/src/code-edit/text.ts`: user text `{x}` becomes a JSX expression (runtime error); multi-line branch wipes nested elements. Escape braces into string-literal expression containers. `#bug`
+  4. **Tailwind class accumulation** — `packages/parser/src/code-edit/style.ts` (cn()/clsx branch): repeated style edits append `w-[100px] w-[101px] …` with exact-match dedupe only; CSS order wins, not recency, so edits appear not to apply. Resolve utility conflicts. `#bug`
+  5. **Sync init reaction not serialized** — `apps/web/client/src/components/store/editor/sandbox/index.ts` (`initializeSyncEngine`): overlapping reaction runs can release an instance mid-`start()` (zombie watchers). Serialize. `#bug`
+  6. **Server `fileRead` utf8-only** — `apps/web/server/src/sandbox/index.ts`: binary assets (images/fonts) round-tripped through ZenFS get mojibake-corrupted. Detect binary + base64. `#bug`
+  7. **`code-fs` cross-file OID regeneration incomplete** — `packages/file-system/src/code-fs.ts`: `processJsxFile` now passes `getOidsExcludingFile` so NEW duplicated elements get unique oids, but a file copied wholesale with oids already baked in isn't retroactively re-stamped (needs `branchOidMap` wiring). `#tech-debt`
+  8. **Sandbox handle cache unbounded** — `apps/web/server/src/sandbox/index.ts`: handles only evicted on a "gone" error; long-running Railway deploys accumulate stale entries. Add TTL/LRU. `#tech-debt`
+  9. **`withTimeout` orphans paid VM** — `packages/code-provider/src/providers/vercel-sandbox/index.ts`: losing the create race rejects locally but doesn't abort the SDK call; a slow-but-successful `Sandbox.create` runs until its own timeout. Thread an AbortSignal. `#bug`
+  10. **VercelTerminal/VercelTask output subscribers lost across run/restart** — same provider file: `onOutput` binds to the current command only; `run()` replaces it without killing the previous detached process. Keep terminal/task-level subscribers + re-attach. `#bug`
+- **Billing residuals (not money-leaks, lower priority):** chat `FIX`/`CREATE` turns unmetered (`api/chat/route.ts` — confirm intentional or meter); summarizer refund cost-leak (already logged, F-472-adjacent). `#tech-debt`
+- **Tags:** `#bug` `#tech-debt`
+
+### Editor hotkeys/canvas 2026-06-13 — deferred findings (verified-bug fix pass)
+
+- **Discovered:** 2026-06-13 (editor hotkeys + style-control bug fix session; 10 bugs fixed in the same session). Each item has a matching `TODO(bug-hunt)` comment in code.
+  1. **UNDO/REDO hijack native text undo** — `apps/web/client/src/app/project/[id]/_components/canvas/hotkeys/index.tsx` (UNDO/REDO bindings): both run with `enableOnFormTags + enableOnContentEditable`, so cmd+z/cmd+shift+z fire the canvas history even when focus is in a text field, hijacking the browser's native text undo. Possibly intentional Figma parity, but pairs badly with stale-draft commits. Next step: canvas-ownership gate (like COPY/PASTE) or yield when focus is in an editable field with its own undo stack. `#bug`
+  2. **Space / middle-mouse pan-end always forces DESIGN mode** — `canvas/hotkeys/index.tsx` (space keyup) + `canvas/index.tsx` (`middleMouseButtonUp`): both reset to DESIGN on pan-end instead of restoring the mode active before the pan, so panning while in PREVIEW/COMMENT/CMS drops the user into DESIGN. Next step: capture the prior mode on pan-start and restore it. `#bug`
+  3. **Layer eye-toggle desyncs from undo** — `left-panel/design-panel/layers-tab/tree/tree-node.tsx` (`toggleVisibility`): mutates `node.data.isVisible` locally outside the undo action, so undoing the visibility change reverts the style but leaves the eye icon desynced. Next step: drive `isVisible` from committed style, or refresh on undo/redo. `#bug`
+
 ### Bug-hunt 2026-06-13 — deferred findings (main-user-flow sweep)
 
 - **Discovered:** 2026-06-13 (full bug-hunt across create/dashboard, editor load, chat/AI, auth/settings, CMS/pages; ~25 bugs fixed in the same session — see feature-log)
@@ -81,6 +104,7 @@ later without re-discovering the context.
   11. Extract leaves now-unused imports in the source page (lint noise, not breakage).
   12. Raw `<button>`s in component-instance/master sections + chip/tree pencils violate [button-enforcement.md](docs/agent-context/button-enforcement.md) — swap for ghost `<Button>` or add an icon-chip variant.
   13. Component chip uses `zIndex: 60` (matches CmsPill) — paints over panels when the rect is near edges; both should clamp.
+  14. `detachInstanceHtml` leaves an orphan `<div data-wb-slot-content>` wrapper (attr stripped, div kept) — cosmetic stray div in unlinked static HTML; should unwrap to children for parity with React detach.
 - **Tags:** `#tech-debt` `#editor`
 
 ### Dock / "Open With Weblab" `open-file` doesn't verify the path is a directory

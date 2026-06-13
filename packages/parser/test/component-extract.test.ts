@@ -157,6 +157,42 @@ describe('variants', () => {
     });
 });
 
+describe('addVariantProp guards', () => {
+    test('refuses a component that already has a variant prop', () => {
+        const code = `
+            export function Card({ variant = 'default' }: { variant?: 'default' }) {
+                return <div data-oid="root" className="p-4">x</div>;
+            }
+        `;
+        const ast = getAstFromContent(code)!;
+        const result = addVariantProp(ast, {
+            componentName: 'Card',
+            elementOid: 'root',
+            initialVariants: ['default', 'dark'],
+        });
+        expect(result.modified).toBe(false);
+        expect(result.error).toContain('already has a variant');
+    });
+
+    test('escapes backticks/${ in existing className without throwing', async () => {
+        const code = `
+            export function Card() {
+                return <div data-oid="root" className="a\\\`b p-4">x</div>;
+            }
+        `;
+        const ast = getAstFromContent(code)!;
+        // Must not throw "Invalid raw".
+        const result = addVariantProp(ast, {
+            componentName: 'Card',
+            elementOid: 'root',
+            initialVariants: ['default'],
+        });
+        expect(result.error).toBeUndefined();
+        const output = await getContentFromAst(ast, code);
+        expect(getAstFromContent(output)).not.toBeNull();
+    });
+});
+
 describe('variant round-trip with discovery', () => {
     test('discovery detects the generated template-literal variant form', async () => {
         const code = `
@@ -224,6 +260,52 @@ describe('detachInstance', () => {
         expect(result.ok).toBe(false);
         if (result.ok) return;
         expect(result.error).toContain('dynamic');
+    });
+
+    test('aborts (not silently drops) when className uses an unknown helper call', () => {
+        const master = `
+            export function Card({ title = 'x' }: any) {
+                return <div data-oid="m-root" className={cn('base', getTheme())}>
+                    <h3 data-oid="m-h">{title}</h3>
+                </div>;
+            }
+        `;
+        const page = `
+            import { Card } from '@/components/Card';
+            export default function Home() {
+                return <main data-oid="p-main"><Card data-oid="p-card" /></main>;
+            }
+        `;
+        const def: ComponentDef = {
+            key: 'src/components/Card.tsx#Card',
+            name: 'Card',
+            filePath: 'src/components/Card.tsx',
+            exportType: 'named',
+            kind: 'react',
+            rootOid: 'm-root',
+            props: [
+                {
+                    name: 'title',
+                    type: 'text',
+                    required: false,
+                    defaultValue: 'x',
+                    bindings: [],
+                    editable: true,
+                },
+            ],
+            slots: [],
+            variants: null,
+            hasSpread: false,
+            editable: true,
+        };
+        const pageAst = getAstFromContent(page)!;
+        const result = detachInstance(pageAst, {
+            instanceOid: 'p-card',
+            def,
+            masterContent: master,
+        });
+        // getTheme() classes can't be inlined → must abort, not emit className="base".
+        expect(result.ok).toBe(false);
     });
 
     test('keeps page-native oids on spliced slot children', async () => {

@@ -93,6 +93,13 @@ export function addVariantProp(ast: T.File, params: AddVariantPropParams): Varia
         return { modified: false, error: `A variant map "${mapName}" already exists` };
     }
 
+    // Guard BEFORE any mutation: a component that already exposes a `variant`
+    // prop would otherwise get a duplicate binding + duplicate interface
+    // member (TS2300 / SyntaxError → white screen).
+    if (componentHasVariantProp(ast.program, componentName)) {
+        return { modified: false, error: 'Component already has a variant prop' };
+    }
+
     // 1. Locate the element + its className literal.
     let targetEl: T.JSXElement | null = null;
     traverse(ast, {
@@ -152,9 +159,13 @@ export function addVariantProp(ast: T.File, params: AddVariantPropParams): Varia
         t.memberExpression(t.identifier(mapName), t.identifier('variant'), true),
         t.stringLiteral(''),
     );
+    // `raw` must escape backtick and `${` or @babel/types throws "Invalid
+    // raw"; `cooked` keeps the literal classes. (Tailwind strings rarely
+    // contain these, but a thrown builder error is an uncaught crash.)
+    const rawBase = `${baseClasses} `.replace(/[\\`]/g, '\\$&').replace(/\$\{/g, '\\${');
     const templateValue = t.templateLiteral(
         [
-            t.templateElement({ raw: `${baseClasses} `, cooked: `${baseClasses} ` }, false),
+            t.templateElement({ raw: rawBase, cooked: `${baseClasses} ` }, false),
             t.templateElement({ raw: '', cooked: '' }, true),
         ],
         [mapLookup],
@@ -174,6 +185,51 @@ export function addVariantProp(ast: T.File, params: AddVariantPropParams): Varia
     }
 
     return { modified: true };
+}
+
+/** True when the named component's first param already destructures `variant`. */
+function componentHasVariantProp(program: T.Program, componentName: string): boolean {
+    let found = false;
+    const checkFn = (
+        fn: T.FunctionDeclaration | T.FunctionExpression | T.ArrowFunctionExpression,
+    ) => {
+        const param = fn.params[0];
+        if (param && t.isObjectPattern(param)) {
+            found = param.properties.some(
+                (p) => t.isObjectProperty(p) && t.isIdentifier(p.key) && p.key.name === 'variant',
+            );
+        } else if (param && t.isIdentifier(param)) {
+            // Plain `props` param: inspect the annotation for a `variant` member.
+            const annotation =
+                param.typeAnnotation && t.isTSTypeAnnotation(param.typeAnnotation)
+                    ? param.typeAnnotation.typeAnnotation
+                    : null;
+            if (annotation && t.isTSTypeLiteral(annotation)) {
+                found = annotation.members.some(
+                    (m) => t.isTSPropertySignature(m) && t.isIdentifier(m.key) && m.key.name === 'variant',
+                );
+            }
+        }
+    };
+    for (const stmt of program.body) {
+        const decl = t.isExportNamedDeclaration(stmt) && stmt.declaration ? stmt.declaration : stmt;
+        if (t.isFunctionDeclaration(decl) && decl.id?.name === componentName) {
+            checkFn(decl);
+        } else if (t.isVariableDeclaration(decl)) {
+            for (const declarator of decl.declarations) {
+                if (
+                    t.isIdentifier(declarator.id) &&
+                    declarator.id.name === componentName &&
+                    (t.isArrowFunctionExpression(declarator.init) ||
+                        t.isFunctionExpression(declarator.init))
+                ) {
+                    checkFn(declarator.init);
+                }
+            }
+        }
+        if (found) break;
+    }
+    return found;
 }
 
 function addVariantToSignature(

@@ -6,6 +6,9 @@ import { t, traverse } from '../packages';
 import { getAstFromContent } from '../parse';
 import { EditorAttributes } from '@weblab/constants';
 
+/** className-merge helpers whose args are concatenated when inlining. */
+const CLASS_HELPER_NAMES = new Set(['cn', 'clsx', 'classnames', 'cx', 'twMerge', 'tw', 'classNames']);
+
 /**
  * Unlink instance: inlines the master's JSX at the call site, substituting
  * prop identifiers with the instance's values (or defaults), resolving the
@@ -268,8 +271,18 @@ function substituteProps(
             const value = propValue(propName);
             return value == null ? '' : String(value);
         }
-        // cn(/clsx(...)) — resolve arg by arg.
+        // Class-merge helpers only — cn / clsx / classnames / cx / twMerge / tw.
+        // An UNKNOWN call (e.g. getTheme(), useClasses()) returns null → abort,
+        // rather than silently resolving to '' and dropping its runtime classes.
         if (t.isCallExpression(part)) {
+            const calleeName = t.isIdentifier(part.callee)
+                ? part.callee.name
+                : t.isMemberExpression(part.callee) && t.isIdentifier(part.callee.property)
+                  ? part.callee.property.name
+                  : null;
+            if (!calleeName || !CLASS_HELPER_NAMES.has(calleeName)) {
+                return null;
+            }
             const parts: string[] = [];
             for (const arg of part.arguments) {
                 const resolved = resolvePart(arg as T.Node);
