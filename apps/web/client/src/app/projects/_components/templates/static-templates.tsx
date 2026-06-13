@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -95,6 +96,7 @@ export function StaticTemplates({
     isCreating = false,
     availableTemplateIds,
 }: StaticTemplatesProps) {
+    const t = useTranslations('projects.templates');
     const templates = availableTemplateIds
         ? TEMPLATES.filter((template) => availableTemplateIds.has(template.id))
         : TEMPLATES;
@@ -105,7 +107,7 @@ export function StaticTemplates({
 
     return (
         <div className="mt-14">
-            <h2 className="text-foreground mb-4 text-2xl font-normal">Templates</h2>
+            <h2 className="text-foreground mb-4 text-2xl font-normal">{t('sectionTitle')}</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {templates.map((template, index) => (
                     <motion.div
@@ -158,7 +160,7 @@ export function StaticTemplates({
                                     {isCreating ? (
                                         <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
                                     ) : (
-                                        'Use template'
+                                        t('useTemplate')
                                     )}
                                 </Button>
                             </div>

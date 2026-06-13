@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { APP_NAME, IGNORED_UPLOAD_DIRECTORIES, IGNORED_UPLOAD_FILES } from '@weblab/constants';
@@ -36,6 +37,7 @@ declare module 'react' {
 }
 
 export const NewSelectFolder = () => {
+    const t = useTranslations('projects.importLocal');
     const {
         projectData,
         setProjectData,
@@ -368,20 +370,20 @@ export const NewSelectFolder = () => {
     const renderHeader = () => {
         const headerConfig = {
             initial: {
-                title: 'Select your project folder',
-                description: "This is where we'll reference your App",
+                title: t('headerInitialTitle'),
+                description: t('headerInitialDesc'),
             },
             validating: {
-                title: `Verifying compatibility with ${APP_NAME}`,
-                description: `We're checking to make sure this project can work with ${APP_NAME}`,
+                title: t('headerValidatingTitle', { appName: APP_NAME }),
+                description: t('headerValidatingDesc', { appName: APP_NAME }),
             },
             valid: {
-                title: 'Project verified',
-                description: `Your project is ready to import to ${APP_NAME}`,
+                title: t('headerValidTitle'),
+                description: t('headerValidDesc', { appName: APP_NAME }),
             },
             invalid: {
-                title: `This project won't work with ${APP_NAME}`,
-                description: `${APP_NAME} only works with NextJS + React + Tailwind projects`,
+                title: t('headerInvalidTitle', { appName: APP_NAME }),
+                description: t('headerInvalidDesc', { appName: APP_NAME }),
             },
         };
 
@@ -430,7 +432,7 @@ export const NewSelectFolder = () => {
                                 <div className="flex items-center justify-center gap-2">
                                     <Icons.LoadingSpinner className="text-foreground-secondary h-4 w-4 animate-spin" />
                                     <p className="text-foreground-secondary text-sm font-medium">
-                                        Uploading...
+                                        {t('uploading')}
                                     </p>
                                 </div>
                             </div>
@@ -438,7 +440,7 @@ export const NewSelectFolder = () => {
                             <div className="flex gap-3">
                                 <Icons.DirectoryOpen className="text-foreground-secondary h-5 w-5" />
                                 <p className="text-foreground-secondary text-sm font-medium">
-                                    Click to select your folder
+                                    {t('clickToSelectFolder')}
                                 </p>
                             </div>
                         )}
@@ -552,7 +554,7 @@ export const NewSelectFolder = () => {
                     variant="outline"
                     className="px-3 py-2"
                 >
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 {projectData.folderPath ? (
                     <Button
@@ -561,7 +563,7 @@ export const NewSelectFolder = () => {
                         className="px-3 py-2"
                         disabled={isUploading}
                     >
-                        {validation?.isValid ? 'Finish setup' : 'Select a different folder'}
+                        {validation?.isValid ? t('finishSetup') : t('selectDifferentFolder')}
                     </Button>
                 ) : (
                     <Button
@@ -570,22 +572,21 @@ export const NewSelectFolder = () => {
                         onClick={handleClickUpload}
                         className="px-3 py-2"
                     >
-                        Select folder
+                        {t('selectFolder')}
                     </Button>
                 )}
             </StepFooter>
             <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Discard upload?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('discardTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            You&apos;ve already selected a folder. Cancelling now will discard the
-                            uploaded files.
+                            {t('discardDescription')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Keep editing</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmCancel}>Discard</AlertDialogAction>
+                        <AlertDialogCancel>{t('keepEditing')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmCancel}>{t('discard')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

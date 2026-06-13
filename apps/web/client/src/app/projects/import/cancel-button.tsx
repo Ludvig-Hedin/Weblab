@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -17,6 +18,7 @@ interface CancelButtonProps {
 }
 
 export const CancelButton = ({ onCancel }: CancelButtonProps = {}) => {
+    const t = useTranslations('projects.importLocal');
     const router = useRouter();
 
     if (onCancel) {
@@ -35,7 +37,7 @@ export const CancelButton = ({ onCancel }: CancelButtonProps = {}) => {
                     }
                 }}
             >
-                <Icons.CrossL className="h-4 w-4" /> Cancel
+                <Icons.CrossL className="h-4 w-4" /> {t('cancel')}
             </Button>
         );
     }
@@ -47,7 +49,7 @@ export const CancelButton = ({ onCancel }: CancelButtonProps = {}) => {
             className="!border-border cursor-pointer rounded-lg border-[0.5px] px-3 py-2"
         >
             <Link href={Routes.HOME}>
-                <Icons.CrossL className="h-4 w-4" /> Cancel
+                <Icons.CrossL className="h-4 w-4" /> {t('cancel')}
             </Link>
         </Button>
     );

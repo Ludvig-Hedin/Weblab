@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import localforage from 'localforage';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -24,6 +25,7 @@ export function ExternalTemplateActions({
     size = 'default',
     className,
 }: ExternalTemplateActionsProps) {
+    const t = useTranslations('projects.templates');
     const user = useQuery(api.users.me, {});
     const { redirectToSignIn } = useAuthContext();
     const router = useRouter();
@@ -44,17 +46,17 @@ export function ExternalTemplateActions({
         <div className={className ?? 'flex flex-wrap items-center gap-2'}>
             <Button onClick={() => void handleUseTemplate()} size={size}>
                 <Icons.FilePlus className="h-4 w-4" />
-                Use template
+                {t('useTemplate')}
             </Button>
             <Button asChild variant="outline" size={size}>
                 <a href={template.previewUrl} target="_blank" rel="noreferrer">
                     <Icons.EyeOpen className="h-4 w-4" />
-                    Preview
+                    {t('preview')}
                 </a>
             </Button>
             <Button asChild variant="ghost" size={size}>
                 <Link href={`${Routes.PROJECT_TEMPLATES}/${template.id}`}>
-                    Details
+                    {t('details')}
                     <Icons.ArrowRight className="h-4 w-4" />
                 </Link>
             </Button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
@@ -12,6 +13,7 @@ import { useImportGithubProject } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const ConnectGithub = () => {
+    const t = useTranslations('projects.importGitHub');
     const { nextStep, cancel, installation } = useImportGithubProject();
     const { hasInstallation, isConnecting, isChecking, error, redirectToInstallation, refetch } =
         installation;
@@ -22,9 +24,9 @@ export const ConnectGithub = () => {
                 <div className="flex items-start gap-3 py-1">
                     <Icons.Check className="text-foreground-success mt-0.5 h-5 w-5 shrink-0" />
                     <div>
-                        <p className="font-medium">GitHub connected</p>
+                        <p className="font-medium">{t('statusConnected')}</p>
                         <p className="text-foreground-secondary">
-                            Your repositories are ready to use
+                            {t('statusConnectedDesc')}
                         </p>
                     </div>
                 </div>
@@ -36,9 +38,9 @@ export const ConnectGithub = () => {
                 <div className="flex items-start gap-3 py-1">
                     <Icons.LoadingSpinner className="mt-0.5 h-5 w-5 shrink-0 animate-spin" />
                     <div>
-                        <p className="font-medium">Waiting for authorization…</p>
+                        <p className="font-medium">{t('statusConnecting')}</p>
                         <p className="text-foreground-secondary">
-                            Complete the GitHub connection in the new tab, then come back here
+                            {t('statusConnectingDesc')}
                         </p>
                     </div>
                 </div>
@@ -49,9 +51,9 @@ export const ConnectGithub = () => {
             <div className="flex items-start gap-3 py-1">
                 <Icons.GitHubLogo className="mt-0.5 h-5 w-5 shrink-0" />
                 <div>
-                    <p className="font-medium">Connect your GitHub account</p>
+                    <p className="font-medium">{t('statusDisconnected')}</p>
                     <p className="text-foreground-secondary">
-                        Secure, fine-grained access to your repositories
+                        {t('statusDisconnectedDesc')}
                     </p>
                 </div>
             </div>
@@ -71,12 +73,12 @@ export const ConnectGithub = () => {
                     </div>
                 </div>
                 <CardTitle className="text-xl font-normal">
-                    {hasInstallation ? 'GitHub Connected' : 'Connect GitHub'}
+                    {hasInstallation ? t('githubConnected') : t('connectGitHub')}
                 </CardTitle>
                 <CardDescription className="font-normal">
                     {hasInstallation
-                        ? `Your repositories are accessible in ${APP_NAME}`
-                        : `Access your repositories and work with real code in ${APP_NAME}`}
+                        ? t('reposAccessible', { appName: APP_NAME })
+                        : t('accessRepos', { appName: APP_NAME })}
                 </CardDescription>
             </StepHeader>
 
@@ -101,7 +103,7 @@ export const ConnectGithub = () => {
 
             <StepFooter>
                 <Button onClick={cancel} variant="outline">
-                    Cancel
+                    {t('cancel')}
                 </Button>
 
                 {hasInstallation ? (
@@ -113,13 +115,13 @@ export const ConnectGithub = () => {
                             onClick={() => {
                                 void redirectToInstallation();
                             }}
-                            title="Reconfigure GitHub connection"
+                            title={t('configure')}
                         >
                             <Icons.Gear className="h-4 w-4" />
                         </Button>
                         <Button className="px-3 py-2" onClick={nextStep}>
                             <Icons.ArrowRight className="mr-2 h-4 w-4" />
-                            <span>Continue</span>
+                            <span>{t('continue')}</span>
                         </Button>
                     </div>
                 ) : isConnecting ? (
@@ -132,7 +134,7 @@ export const ConnectGithub = () => {
                             }}
                         >
                             <Icons.GitHubLogo className="mr-2 h-4 w-4" />
-                            <span>Open GitHub again</span>
+                            <span>{t('openGitHubAgain')}</span>
                         </Button>
                         <Button
                             className="px-3 py-2"
@@ -146,7 +148,7 @@ export const ConnectGithub = () => {
                             ) : (
                                 <Icons.Reload className="mr-2 h-4 w-4" />
                             )}
-                            <span>{"I've authorized it"}</span>
+                            <span>{t('iveAuthorizedIt')}</span>
                         </Button>
                     </div>
                 ) : (
@@ -158,7 +160,7 @@ export const ConnectGithub = () => {
                         disabled={isChecking}
                     >
                         <Icons.GitHubLogo className="mr-2 h-4 w-4" />
-                        <span>Connect GitHub</span>
+                        <span>{t('connectGitHub')}</span>
                     </Button>
                 )}
             </StepFooter>

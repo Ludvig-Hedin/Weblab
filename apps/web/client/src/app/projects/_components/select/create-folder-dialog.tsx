@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
@@ -20,6 +21,7 @@ export const CreateFolderDialog = ({
     onCreateFolder,
     existingNames,
 }: CreateFolderDialogProps) => {
+    const t = useTranslations('projects.createFolderDialog');
     const [folderName, setFolderName] = useState('');
 
     useEffect(() => {
@@ -49,16 +51,16 @@ export const CreateFolderDialog = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create folder</DialogTitle>
+                    <DialogTitle>{t('title')}</DialogTitle>
                 </DialogHeader>
 
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="folder-name">Folder name</Label>
+                    <Label htmlFor="folder-name">{t('folderNameLabel')}</Label>
                     <Input
                         id="folder-name"
                         value={folderName}
                         onChange={(event) => setFolderName(event.currentTarget.value)}
-                        placeholder="Client work"
+                        placeholder={t('folderNamePlaceholder')}
                         onKeyDown={(event) => {
                             if (event.key === 'Enter') {
                                 event.preventDefault();
@@ -68,17 +70,17 @@ export const CreateFolderDialog = ({
                     />
                     {alreadyExists && (
                         <p className="text-destructive text-xs">
-                            A folder with this name already exists.
+                            {t('alreadyExists')}
                         </p>
                     )}
                 </div>
 
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button onClick={() => void handleCreate()} disabled={isInvalid}>
-                        Create folder
+                        {t('createFolder')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

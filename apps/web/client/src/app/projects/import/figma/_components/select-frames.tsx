@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
@@ -10,6 +11,7 @@ import { useFigmaImport } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaSelectFrames = () => {
+    const t = useTranslations('projects.importFigma');
     const {
         prevStep,
         nextStep,
@@ -28,9 +30,9 @@ export const FigmaSelectFrames = () => {
     return (
         <>
             <StepHeader>
-                <CardTitle>Select frames</CardTitle>
+                <CardTitle>{t('selectFramesTitle')}</CardTitle>
                 <CardDescription>
-                    Choose which frames to import from &quot;{fileName}&quot;.
+                    {t('selectFramesDesc', { fileName })}
                 </CardDescription>
             </StepHeader>
             <StepContent>
@@ -44,19 +46,19 @@ export const FigmaSelectFrames = () => {
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <p className="text-foreground-secondary text-sm">
-                                {selectedFrameIds.size} of {frames.length} selected
+                                {t('selectedCount', { selected: String(selectedFrameIds.size), total: String(frames.length) })}
                             </p>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={allSelected ? deselectAll : selectAll}
                             >
-                                {allSelected ? 'Deselect all' : 'Select all'}
+                                {allSelected ? t('deselectAll') : t('selectAll')}
                             </Button>
                         </div>
                         {frames.length === 0 ? (
                             <p className="text-foreground-secondary py-6 text-center text-sm">
-                                No frames found in this file&apos;s first page.
+                                {t('noFramesFound')}
                             </p>
                         ) : (
                             <CardContent className="max-h-52 overflow-y-auto rounded-md border p-0">
@@ -99,10 +101,10 @@ export const FigmaSelectFrames = () => {
             </StepContent>
             <StepFooter>
                 <Button onClick={prevStep} variant="outline" disabled={isFinalizing}>
-                    Back
+                    {t('back')}
                 </Button>
                 <Button onClick={nextStep} disabled={!canImport || isFinalizing}>
-                    Create Project
+                    {t('createProject')}
                 </Button>
             </StepFooter>
         </>

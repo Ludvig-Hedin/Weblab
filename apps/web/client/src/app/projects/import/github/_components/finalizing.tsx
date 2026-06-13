@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
@@ -11,25 +12,26 @@ import { useImportGithubProject } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FinalizingGithubProject = () => {
+    const t = useTranslations('projects.importGitHub');
     const { repositoryImport, selectedRepo, retry, cancel } = useImportGithubProject();
     const phaseLabel =
         repositoryImport.phase === 'cloning-repository'
-            ? 'Cloning repository. Large repositories can take a few minutes.'
+            ? t('cloningPhase')
             : repositoryImport.phase === 'creating-project'
-              ? 'Creating project'
+              ? t('creatingProjectPhase')
               : repositoryImport.phase === 'opening-editor'
-                ? 'Opening editor'
-                : `We're cloning and setting up your project`;
+                ? t('openingEditorPhase')
+                : t('settingUpDefault');
 
     return (
         <>
             <StepHeader>
                 <CardTitle>
-                    {repositoryImport.error ? 'Import failed' : 'Setting up project…'}
+                    {repositoryImport.error ? t('importFailed') : t('settingUpProject')}
                 </CardTitle>
                 <CardDescription>
                     {repositoryImport.error
-                        ? 'Something went wrong while importing your repository'
+                        ? t('somethingWentWrong')
                         : phaseLabel}
                 </CardDescription>
             </StepHeader>
@@ -55,8 +57,7 @@ export const FinalizingGithubProject = () => {
                                 </div>
                             </div>
                             <p className="text-foreground-secondary text-xs">
-                                Make sure the repository is accessible and you&apos;ve granted
-                                Weblab permission to it.
+                                {t('repoAccessError')}
                             </p>
                         </div>
                     ) : (
@@ -66,12 +67,12 @@ export const FinalizingGithubProject = () => {
             </StepContent>
             <StepFooter>
                 <Button onClick={cancel} disabled={repositoryImport.isImporting} variant="outline">
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 {repositoryImport.error && (
                     <Button onClick={() => void retry()} disabled={repositoryImport.isImporting}>
                         <Icons.Reload className="mr-2 h-4 w-4" />
-                        Retry
+                        {t('retry')}
                     </Button>
                 )}
             </StepFooter>

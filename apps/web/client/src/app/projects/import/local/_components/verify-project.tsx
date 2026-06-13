@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { APP_NAME } from '@weblab/constants';
 import { getFrameworkAdapter } from '@weblab/framework';
@@ -14,6 +15,7 @@ import { useProjectCreation } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const VerifyProject = () => {
+    const t = useTranslations('projects.importLocal');
     const { projectData, prevStep, nextStep, isFinalizing, validateNextJsProject, framework } =
         useProjectCreation();
     const [validation, setValidation] = useState<NextJsProjectValidation | null>(null);
@@ -78,7 +80,7 @@ export const VerifyProject = () => {
                     </div>
                     <Icons.ExclamationTriangle className="text-foreground-warning h-5 w-5" />
                 </div>
-                <p className="text-small text-foreground-primary">{`This folder doesn't look like a ${frameworkName} project`}</p>
+                <p className="text-small text-foreground-primary">{t('projectNotMatchStack', { frameworkName })}</p>
             </div>
         </motion.div>
     );
@@ -87,9 +89,9 @@ export const VerifyProject = () => {
         if (!validation) {
             return (
                 <>
-                    <CardTitle>{`Verifying compatibility with ${APP_NAME}`}</CardTitle>
+                    <CardTitle>{t('verifyingTitle', { appName: APP_NAME })}</CardTitle>
                     <CardDescription>
-                        {`We're checking to make sure this project can work with ${APP_NAME}`}
+                        {t('verifyingDesc', { appName: APP_NAME })}
                     </CardDescription>
                 </>
             );
@@ -97,17 +99,17 @@ export const VerifyProject = () => {
         if (validation.isValid) {
             return (
                 <>
-                    <CardTitle>{'Project verified'}</CardTitle>
-                    <CardDescription>{`Your project is ready to import to ${APP_NAME}`}</CardDescription>
+                    <CardTitle>{t('projectVerified')}</CardTitle>
+                    <CardDescription>{t('projectReadyToImport', { appName: APP_NAME })}</CardDescription>
                 </>
             );
         }
         return (
             <>
-                <CardTitle>{`This project won't work with ${APP_NAME}`}</CardTitle>
+                <CardTitle>{t('projectWontWork', { appName: APP_NAME })}</CardTitle>
                 <CardDescription>
                     {validation.error ??
-                        `This folder doesn't match a ${frameworkName} project layout.`}
+                        t('folderDoesntMatch', { frameworkName })}
                 </CardDescription>
             </>
         );
@@ -133,14 +135,14 @@ export const VerifyProject = () => {
             </StepContent>
             <StepFooter>
                 <Button onClick={prevStep} disabled={isFinalizing} variant="outline">
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     className="px-3 py-2"
                     onClick={validation?.isValid ? nextStep : prevStep}
                     disabled={isFinalizing}
                 >
-                    {validation?.isValid ? 'Finish setup' : 'Select a different folder'}
+                    {validation?.isValid ? t('finishSetup') : t('selectDifferentFolder')}
                 </Button>
             </StepFooter>
         </>

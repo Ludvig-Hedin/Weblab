@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -27,40 +28,12 @@ interface StepDef {
     detail: string;
 }
 
-const STEPS: StepDef[] = [
-    {
-        phase: 'initialising',
-        label: 'Looking up template',
-        detail: 'Fetching template details…',
-    },
-    {
-        phase: 'importing',
-        label: 'Setting up sandbox',
-        detail: 'Preparing your sandbox…',
-    },
-    {
-        phase: 'saving',
-        label: 'Creating project',
-        detail: 'Saving to your workspace…',
-    },
-    { phase: 'redirecting', label: 'Opening workspace', detail: 'Almost there…' },
-];
-
 const PHASE_ORDER: Phase[] = ['initialising', 'importing', 'saving', 'redirecting'];
-
-// Templates with a pre-seeded sandboxId fork in ~2s; templates without one fall
-// back to a full GitHub import that genuinely takes 2-5 minutes for the current
-// monorepo-based examples. The importing-step tip text adapts so users on the
-// slow path know to expect a multi-minute wait instead of giving up after 30s.
-const FAST_IMPORT_TIP = 'Almost there — finalizing your sandbox.';
-const SLOW_IMPORT_TIP =
-    'Cloning the template from GitHub. Larger templates can take a few minutes.';
-const SLOW_IMPORT_LONG_TIP =
-    'Still working — large GitHub templates can take up to five minutes. You can keep this tab open.';
 
 // ─── Content (needs Suspense boundary for useSearchParams) ──────────────────
 
 function CreatingContent() {
+    const t = useTranslations('projects.creating');
     const router = useRouter();
     const params = useSearchParams();
     const templateId = params.get('templateId');
@@ -77,6 +50,25 @@ function CreatingContent() {
 
     const template = templateId ? getExternalTemplate(templateId) : null;
     const isFastImport = Boolean(template?.sandboxId);
+
+    const STEPS: StepDef[] = [
+        {
+            phase: 'initialising',
+            label: t('lookingUpTemplate'),
+            detail: t('fetchingTemplateDetails'),
+        },
+        {
+            phase: 'importing',
+            label: t('settingUpSandbox'),
+            detail: t('preparingSandbox'),
+        },
+        {
+            phase: 'saving',
+            label: t('creatingProject'),
+            detail: t('savingToWorkspace'),
+        },
+        { phase: 'redirecting', label: t('openingWorkspace'), detail: t('almostThere') },
+    ];
 
     // Tick a counter while the slow import is in flight so the tip can
     // escalate from "this can take a few minutes" to "still working" without
@@ -171,10 +163,10 @@ function CreatingContent() {
     if (!template) {
         return (
             <ErrorCard
-                title="Template not found"
-                detail={`No template with id "${templateId ?? ''}" exists.`}
+                title={t('templateNotFound')}
+                detail={t('noTemplateWithId', { id: templateId ?? '' })}
                 backHref={Routes.MARKETPLACE}
-                backLabel="Back to Marketplace"
+                backLabel={t('backToMarketplace')}
                 retryHref={null}
             />
         );
@@ -183,10 +175,10 @@ function CreatingContent() {
     if (phase === 'error') {
         return (
             <ErrorCard
-                title="Something went wrong"
-                detail={errorMessage ?? 'An unknown error occurred.'}
+                title={t('somethingWentWrong')}
+                detail={errorMessage ?? t('unknownError')}
                 backHref={Routes.MARKETPLACE}
-                backLabel="Back to Marketplace"
+                backLabel={t('backToMarketplace')}
                 retryHref={null}
             />
         );
@@ -201,7 +193,7 @@ function CreatingContent() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-foreground text-2xl font-light tracking-tight"
                 >
-                    Creating&nbsp;
+                    {t('creating')}&nbsp;
                     <span className="font-medium">{template.name}</span>
                 </motion.h1>
                 <motion.p
@@ -315,10 +307,10 @@ function CreatingContent() {
                         className="text-foreground/30 max-w-xs text-center text-xs"
                     >
                         {isFastImport
-                            ? FAST_IMPORT_TIP
+                            ? t('tipFastImport')
                             : importDuration > 60
-                              ? SLOW_IMPORT_LONG_TIP
-                              : SLOW_IMPORT_TIP}
+                              ? t('tipSlowImportLong')
+                              : t('tipSlowImport')}
                     </motion.p>
                 )}
             </AnimatePresence>
@@ -370,19 +362,22 @@ function ErrorCard({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
+function CreatingPageFallback() {
+    const t = useTranslations('projects.creating');
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <Icons.LoadingSpinner className="text-foreground/40 h-6 w-6 animate-spin" />
+            <p className="text-foreground-tertiary text-sm">{t('loadingEllipsis')}</p>
+        </div>
+    );
+}
+
 export default function CreatingPage() {
     return (
         <CreateManagerProvider>
             <div className="flex h-screen w-screen flex-col">
                 <div className="flex flex-1 flex-col items-center justify-center px-6">
-                    <Suspense
-                        fallback={
-                            <div className="flex flex-col items-center gap-3">
-                                <Icons.LoadingSpinner className="text-foreground/40 h-6 w-6 animate-spin" />
-                                <p className="text-foreground-tertiary text-sm">Loading…</p>
-                            </div>
-                        }
-                    >
+                    <Suspense fallback={<CreatingPageFallback />}>
                         <CreatingContent />
                     </Suspense>
                 </div>

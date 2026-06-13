@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { Project } from '@weblab/models';
 import { STORAGE_BUCKETS } from '@weblab/constants';
@@ -26,6 +27,7 @@ export function Templates({
     onToggleStar,
     starredTemplates = new Set(),
 }: TemplatesProps) {
+    const t = useTranslations('projects.templates');
     const filteredTemplatesData = useMemo(() => {
         const filtered = templateProjects.filter(
             (project) =>
@@ -47,7 +49,7 @@ export function Templates({
 
     return (
         <div className="mb-12">
-            <h2 className="text-foreground mb-[12px] text-2xl font-normal">Templates</h2>
+            <h2 className="text-foreground mb-[12px] text-2xl font-normal">{t('sectionTitle')}</h2>
 
             <Carousel gap="gap-6">
                 <AnimatePresence mode="popLayout">
@@ -78,7 +80,7 @@ export function Templates({
                                 <TemplateCard
                                     title={project.name}
                                     description={
-                                        project.metadata.description || 'No description available'
+                                        project.metadata.description || t('noDescriptionAvailable')
                                     }
                                     image={
                                         project.metadata.previewImg?.url ||
@@ -106,10 +108,10 @@ export function Templates({
                             transition={{ duration: 0.3 }}
                         >
                             <div className="text-foreground-secondary mb-2 text-lg">
-                                No templates found
+                                {t('noTemplatesFound')}
                             </div>
                             <div className="text-foreground-tertiary text-sm">
-                                Try adjusting your search terms
+                                {t('tryAdjustingSearch')}
                             </div>
                         </motion.div>
                     ) : null}

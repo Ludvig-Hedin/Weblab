@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { format, isValid, parseISO } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
@@ -18,6 +19,7 @@ function formatEntryDate(date: string): string {
 }
 
 export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
+    const t = useTranslations('projects.changelogGrid');
     const entries = CHANGELOG_ENTRIES.slice(0, limit);
 
     return (
@@ -25,15 +27,15 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
             <div className="mb-6 flex items-baseline justify-between">
                 <div>
                     <p className="heading-style-h6 text-foreground-tertiary mb-1">
-                        What&apos;s new
+                        {t('whatsNew')}
                     </p>
-                    <h2 className="heading-style-h4 text-foreground-primary">Changelog</h2>
+                    <h2 className="heading-style-h4 text-foreground-primary">{t('changelog')}</h2>
                 </div>
                 <ButtonLink
                     href={Routes.CHANGELOG}
                     rightIcon={<Icons.ArrowRight className="h-4 w-4" />}
                 >
-                    See all updates
+                    {t('seeAllUpdates')}
                 </ButtonLink>
             </div>
 

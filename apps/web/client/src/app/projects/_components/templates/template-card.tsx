@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
@@ -22,6 +24,7 @@ export function TemplateCard({
     onToggleStar,
     onClick,
 }: TemplateCardProps) {
+    const t = useTranslations('projects.templates');
     const handleClick = () => {
         if (onClick) {
             onClick();
@@ -56,7 +59,7 @@ export function TemplateCard({
 
                     {isNew && (
                         <div className="bg-foreground-brand text-mini text-background absolute top-2 left-2 z-10 rounded-full px-2 py-1 font-medium">
-                            New
+                            {t('newBadge')}
                         </div>
                     )}
                 </div>
@@ -77,7 +80,7 @@ export function TemplateCard({
                                         }}
                                         className="hover:bg-secondary mt-[-2px] flex-shrink-0 rounded-full p-1 transition-colors"
                                         aria-label={
-                                            isStarred ? 'Remove from favorites' : 'Add to favorites'
+                                            isStarred ? t('removeFromFavorites') : t('addToFavorites')
                                         }
                                     >
                                         {isStarred ? (
@@ -88,7 +91,7 @@ export function TemplateCard({
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Mark as favorite</p>
+                                    <p>{t('markAsFavorite')}</p>
                                 </TooltipContent>
                             </Tooltip>
                         )}

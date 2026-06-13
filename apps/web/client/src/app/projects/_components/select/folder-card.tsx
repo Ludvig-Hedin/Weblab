@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { ChevronRight, FolderClosed, FolderOpen } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { timeAgo } from '@weblab/utility';
 
@@ -44,10 +45,11 @@ const PreviewTile = ({ project }: { project?: ProjectListItem }) => {
 };
 
 export const FolderCard = ({ folder, projects, isOpen, onToggle }: FolderCardProps) => {
+    const t = useTranslations('projects.folderCard');
     const projectCount = projects.length;
     const lastUpdated = useMemo(() => {
         if (projects.length === 0) {
-            return 'Empty';
+            return t('empty');
         }
 
         const latest = [...projects].sort(
@@ -56,8 +58,8 @@ export const FolderCard = ({ folder, projects, isOpen, onToggle }: FolderCardPro
                 new Date(left.metadata.updatedAt).getTime(),
         )[0];
 
-        return latest ? `${timeAgo(latest.metadata.updatedAt)} ago` : 'Empty';
-    }, [projects]);
+        return latest ? `${timeAgo(latest.metadata.updatedAt)} ago` : t('empty');
+    }, [projects, t]);
 
     const previewProjects = projects.slice(0, 3);
 
@@ -94,7 +96,7 @@ export const FolderCard = ({ folder, projects, isOpen, onToggle }: FolderCardPro
                                 </span>
                             </div>
                             <div className="mt-1 text-xs text-white/58">
-                                {projectCount} {projectCount === 1 ? 'site' : 'sites'}
+                                {projectCount} {projectCount === 1 ? t('siteSingular') : t('sitePlural')}
                             </div>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-white/52">

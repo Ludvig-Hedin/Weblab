@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import type { FrameworkId } from '@weblab/framework';
 import { listReadyFrameworkAdapters } from '@weblab/framework';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
@@ -22,6 +24,7 @@ import { useProjectCreation } from '../_context';
  * literal flips, they appear automatically via `listReadyFrameworkAdapters`.
  */
 export function FrameworkPicker() {
+    const t = useTranslations('projects.importLocal');
     const { framework, setFramework, isMultiFrameworkEnabled } = useProjectCreation();
 
     if (!isMultiFrameworkEnabled) {
@@ -41,7 +44,7 @@ export function FrameworkPicker() {
                 htmlFor="framework-picker"
                 className="text-foreground-secondary text-xs font-medium"
             >
-                What are you building?
+                {t('whatAreYouBuilding')}
             </label>
             <Select value={framework} onValueChange={(value) => setFramework(value as FrameworkId)}>
                 <SelectTrigger id="framework-picker" className="w-full">

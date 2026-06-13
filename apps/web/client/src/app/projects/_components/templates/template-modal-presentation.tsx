@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -50,6 +51,7 @@ export function TemplateModalPresentation({
     onEditTemplate,
     onUnmarkTemplate,
 }: TemplateModalPresentationProps) {
+    const t = useTranslations('projects.templates');
     return (
         <AnimatePresence>
             {isOpen && (
@@ -90,7 +92,7 @@ export function TemplateModalPresentation({
 
                             {isNew && (
                                 <div className="absolute top-4 left-4 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white">
-                                    New
+                                    {t('newBadge')}
                                 </div>
                             )}
                         </div>
@@ -112,10 +114,10 @@ export function TemplateModalPresentation({
                                     {isCreatingProject ? (
                                         <div className="flex items-center gap-2">
                                             <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                            Creating...
+                                            {t('creating')}
                                         </div>
                                     ) : (
-                                        'Use Template'
+                                        t('useTemplate')
                                     )}
                                 </Button>
 
@@ -128,8 +130,8 @@ export function TemplateModalPresentation({
                                                 onClick={onToggleStar}
                                                 aria-label={
                                                     isStarred
-                                                        ? 'Remove from favorites'
-                                                        : 'Add to favorites'
+                                                        ? t('removeFromFavorites')
+                                                        : t('addToFavorites')
                                                 }
                                             >
                                                 {isStarred ? (
@@ -140,7 +142,7 @@ export function TemplateModalPresentation({
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>Mark as favorite</p>
+                                            <p>{t('markAsFavorite')}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 )}
@@ -150,7 +152,7 @@ export function TemplateModalPresentation({
                                         <Button
                                             variant="outline"
                                             size="lg"
-                                            aria-label="Template options"
+                                            aria-label={t('templateOptions')}
                                         >
                                             <Icons.DotsHorizontal className="h-5 w-5" />
                                         </Button>
@@ -159,13 +161,13 @@ export function TemplateModalPresentation({
                                         {onPreviewTemplate && (
                                             <DropdownMenuItem onClick={onPreviewTemplate}>
                                                 <Icons.EyeOpen className="mr-3 h-4 w-4" />
-                                                Preview
+                                                {t('preview')}
                                             </DropdownMenuItem>
                                         )}
                                         {onEditTemplate && (
                                             <DropdownMenuItem onClick={onEditTemplate}>
                                                 <Icons.Edit className="mr-3 h-4 w-4" />
-                                                Edit
+                                                {t('edit')}
                                             </DropdownMenuItem>
                                         )}
                                         {onUnmarkTemplate && (
@@ -176,7 +178,7 @@ export function TemplateModalPresentation({
                                                     className="text-foreground-secondary focus:text-foreground"
                                                 >
                                                     <Icons.CrossL className="mr-3 h-4 w-4" />
-                                                    Remove Template
+                                                    {t('removeTemplate')}
                                                 </DropdownMenuItem>
                                             </>
                                         )}

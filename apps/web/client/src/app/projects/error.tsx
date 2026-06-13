@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 
@@ -20,6 +21,8 @@ export default function ProjectsErrorBoundary({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const t = useTranslations('projects.errorPage');
+
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') {
             console.error('Projects route error:', error);
@@ -31,25 +34,25 @@ export default function ProjectsErrorBoundary({
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">
             <div className="border-border bg-card w-full max-w-md rounded-2xl border p-8 text-center shadow-2xl">
-                <p className="text-foreground-tertiary text-sm">Dashboard error</p>
+                <p className="text-foreground-tertiary text-sm">{t('dashboardError')}</p>
                 <h1 className="text-foreground mt-3 text-3xl font-semibold">
-                    We couldn&apos;t load your projects
+                    {t('title')}
                 </h1>
                 <p className="text-foreground-secondary mt-4 text-sm leading-6">
-                    This is usually temporary. Try again in a moment, or head back home.
+                    {t('description')}
                 </p>
                 {reference && (
                     <div className="border-border bg-background mt-4 rounded-md border p-3 text-left">
-                        <p className="text-foreground-tertiary text-xs">Error reference</p>
+                        <p className="text-foreground-tertiary text-xs">{t('errorReference')}</p>
                         <p className="text-foreground-secondary mt-1 font-mono text-xs break-all">
                             {reference}
                         </p>
                     </div>
                 )}
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <Button onClick={() => reset()}>Try again</Button>
+                    <Button onClick={() => reset()}>{t('tryAgain')}</Button>
                     <Button variant="outline" asChild>
-                        <Link href={Routes.HOME}>Go home</Link>
+                        <Link href={Routes.HOME}>{t('goHome')}</Link>
                     </Button>
                 </div>
             </div>

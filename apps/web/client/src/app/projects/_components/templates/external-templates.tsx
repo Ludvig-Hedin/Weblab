@@ -6,6 +6,7 @@ import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -25,11 +26,15 @@ interface ExternalTemplatesProps {
 
 export function ExternalTemplates({
     templates,
-    title = 'Starter templates',
-    description = 'Start from a proven template — preview live, or open the details for source and related options.',
+    title,
+    description,
 }: ExternalTemplatesProps) {
+    const t = useTranslations('projects.templates');
     // Fetched once here so each card doesn't instantiate its own hook subscription.
     const user = useQuery(api.users.me, {});
+
+    const resolvedTitle = title ?? t('starterTemplates');
+    const resolvedDescription = description ?? t('starterTemplatesDesc');
 
     if (templates.length === 0) {
         return null;
@@ -38,9 +43,9 @@ export function ExternalTemplates({
     return (
         <section className="w-full">
             <div className="mb-6 flex flex-col gap-1">
-                <h2 className="text-foreground text-lg font-medium tracking-tight">{title}</h2>
+                <h2 className="text-foreground text-lg font-medium tracking-tight">{resolvedTitle}</h2>
                 <p className="text-foreground-tertiary max-w-xl text-xs leading-relaxed">
-                    {description}
+                    {resolvedDescription}
                 </p>
             </div>
             <div className="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
@@ -64,6 +69,7 @@ interface ExternalTemplateCardProps {
 }
 
 function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardProps) {
+    const t = useTranslations('projects.templates');
     const { redirectToSignIn } = useAuthContext();
     const router = useRouter();
 
@@ -111,7 +117,7 @@ function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardPro
                         className="bg-background text-foreground hover:bg-background-secondary border-border gap-2 border"
                     >
                         <Icons.FilePlus className="h-4 w-4" />
-                        Use template
+                        {t('useTemplate')}
                     </Button>
                     {template.previewUrl && (
                         <Button
@@ -127,7 +133,7 @@ function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardPro
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <Icons.EyeOpen className="h-4 w-4" />
-                                Preview
+                                {t('preview')}
                             </a>
                         </Button>
                     )}

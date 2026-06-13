@@ -20,6 +20,8 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
+import { useTranslations } from 'next-intl';
+
 import type { Id } from '@convex/_generated/dataModel';
 import { useAuthContext } from '@/app/auth/auth-context';
 import { readActiveWorkspaceId } from '@/utils/active-workspace';
@@ -57,6 +59,7 @@ export function TemplateModal({
     onUnmarkTemplate,
     user,
 }: TemplateModalProps) {
+    const t = useTranslations('projects.templates');
     const forkTemplate = useAction(api.projectActions.fork);
     const branches = useQuery(api.branches.getByProjectId, {
         projectId: templateProject.id as Id<'projects'>,
@@ -186,10 +189,10 @@ export function TemplateModal({
                                     {isCreatingProject ? (
                                         <div className="flex items-center gap-2">
                                             <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                            Creating...
+                                            {t('creating')}
                                         </div>
                                     ) : (
-                                        'Use Template'
+                                        t('useTemplate')
                                     )}
                                 </Button>
 
@@ -202,8 +205,8 @@ export function TemplateModal({
                                                 onClick={onToggleStar}
                                                 aria-label={
                                                     isStarred
-                                                        ? 'Remove from favorites'
-                                                        : 'Add to favorites'
+                                                        ? t('removeFromFavorites')
+                                                        : t('addToFavorites')
                                                 }
                                             >
                                                 {isStarred ? (
@@ -214,7 +217,7 @@ export function TemplateModal({
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>Mark as favorite</p>
+                                            <p>{t('markAsFavorite')}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 )}
@@ -224,7 +227,7 @@ export function TemplateModal({
                                         <Button
                                             variant="outline"
                                             size="lg"
-                                            aria-label="Template options"
+                                            aria-label={t('templateOptions')}
                                         >
                                             <Icons.DotsHorizontal className="h-5 w-5" />
                                         </Button>
@@ -232,7 +235,7 @@ export function TemplateModal({
                                     <DropdownMenuContent align="end" className="w-48">
                                         <DropdownMenuItem onClick={handlePreviewTemplate}>
                                             <Icons.EyeOpen className="mr-3 h-4 w-4" />
-                                            Preview
+                                            {t('preview')}
                                         </DropdownMenuItem>
                                         {/* <DropdownMenuItem>
                                             <Icons.Share className="w-4 h-4 mr-3" />
@@ -244,7 +247,7 @@ export function TemplateModal({
                                         </DropdownMenuItem> */}
                                         <DropdownMenuItem onClick={handleEditTemplate}>
                                             <Icons.Edit className="mr-3 h-4 w-4" />
-                                            Edit
+                                            {t('edit')}
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         {onUnmarkTemplate && (
@@ -253,7 +256,7 @@ export function TemplateModal({
                                                 className="text-foreground-secondary focus:text-foreground"
                                             >
                                                 <Icons.CrossL className="mr-3 h-4 w-4" />
-                                                Remove Template
+                                                {t('removeTemplate')}
                                             </DropdownMenuItem>
                                         )}
                                     </DropdownMenuContent>

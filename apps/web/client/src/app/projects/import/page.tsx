@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { APP_NAME } from '@weblab/constants';
 import { Card, CardDescription, CardHeader, CardTitle } from '@weblab/ui/card';
@@ -10,6 +11,7 @@ import { useGetBackground } from '@/hooks/use-get-background';
 import { TopBar } from '../_components/top-bar';
 
 const Page = () => {
+    const t = useTranslations('projects.importPage');
     const router = useRouter();
     const handleCardClick = (type: 'local' | 'github' | 'figma') => {
         router.push(`/projects/import/${type}`);
@@ -39,10 +41,9 @@ const Page = () => {
                             <Icons.Upload className="text-primary h-6 w-6" />
                         </div>
                         <div className="space-y-2">
-                            <CardTitle className="text-title3">Import a Local Project</CardTitle>
+                            <CardTitle className="text-title3">{t('localTitle')}</CardTitle>
                             <CardDescription className="text-sm text-balance">
-                                Select a directory from your computer to start working with your
-                                project in {APP_NAME}.
+                                {t('localDescription', { appName: APP_NAME })}
                             </CardDescription>
                         </div>
                     </CardHeader>
@@ -61,10 +62,9 @@ const Page = () => {
                             <Icons.GitHubLogo className="text-primary h-6 w-6" />
                         </div>
                         <div className="space-y-2">
-                            <CardTitle className="text-title3">Import from GitHub</CardTitle>
+                            <CardTitle className="text-title3">{t('githubTitle')}</CardTitle>
                             <CardDescription className="text-sm text-balance">
-                                Connect your GitHub account to access and work with your
-                                repositories
+                                {t('githubDescription')}
                             </CardDescription>
                         </div>
                     </CardHeader>
@@ -81,10 +81,9 @@ const Page = () => {
                             <Icons.Figma className="text-primary h-6 w-6" />
                         </div>
                         <div className="space-y-2">
-                            <CardTitle className="text-title3">Import from Figma</CardTitle>
+                            <CardTitle className="text-title3">{t('figmaTitle')}</CardTitle>
                             <CardDescription className="text-sm text-balance">
-                                Paste a Figma file URL to import your frames as editable React
-                                components in {APP_NAME}.
+                                {t('figmaDescription', { appName: APP_NAME })}
                             </CardDescription>
                         </div>
                     </CardHeader>

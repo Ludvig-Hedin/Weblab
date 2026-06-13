@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
@@ -10,20 +11,21 @@ import { useProjectCreation } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FinalizingProject = () => {
+    const t = useTranslations('projects.importLocal');
     const { isFinalizing, error, retry, cancel, finalizeProgress } = useProjectCreation();
 
     const phaseLabel =
         finalizeProgress.phase === 'creating-sandbox'
-            ? 'Creating sandbox'
+            ? t('creating')
             : finalizeProgress.phase === 'uploading'
-              ? `Uploading ${finalizeProgress.filesUploaded}/${finalizeProgress.totalFiles} files`
+              ? t('uploadingFiles', { uploaded: String(finalizeProgress.filesUploaded), total: String(finalizeProgress.totalFiles) })
               : finalizeProgress.phase === 'installing'
-                ? 'Installing dependencies'
+                ? t('installing')
                 : finalizeProgress.phase === 'creating-project'
-                  ? 'Creating project'
+                  ? t('creatingProject')
                   : finalizeProgress.phase === 'opening-editor'
-                    ? 'Opening editor'
-                    : "We're setting up your project";
+                    ? t('openingEditor')
+                    : t('settingUpDefault');
 
     return (
         <>

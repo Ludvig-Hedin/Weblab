@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
@@ -13,6 +14,7 @@ import { useImportGithubProject } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const SetupGithub = () => {
+    const t = useTranslations('projects.importGitHub');
     const {
         prevStep,
         selectedOrg,
@@ -110,8 +112,8 @@ export const SetupGithub = () => {
     return (
         <>
             <StepHeader>
-                <CardTitle>{'Setup your project'}</CardTitle>
-                <CardDescription>{'Select which repo you want to import'}</CardDescription>
+                <CardTitle>{t('setupTitle')}</CardTitle>
+                <CardDescription>{t('setupDesc')}</CardDescription>
             </StepHeader>
             <StepContent>
                 <motion.div
@@ -124,7 +126,7 @@ export const SetupGithub = () => {
                     <div className="flex flex-col gap-6">
                         <div className="flex flex-col gap-2">
                             <label className="text-foreground-primary text-sm font-medium">
-                                Organization (Optional)
+                                {t('organizationLabel')}
                             </label>
                             <Select
                                 value={selectedOrg?.login || 'all'}
@@ -132,13 +134,13 @@ export const SetupGithub = () => {
                                 disabled={githubData.isLoadingOrganizations}
                             >
                                 <SelectTrigger className="w-full max-w-sm">
-                                    <SelectValue placeholder="All repositories" />
+                                    <SelectValue placeholder={t('allRepositories')} />
                                 </SelectTrigger>
                                 <SelectContent className="max-w-sm">
                                     <SelectItem value="all">
                                         <div className="flex w-full items-center gap-2">
                                             <Icons.Globe className="h-4 w-4" />
-                                            <span>All repositories</span>
+                                            <span>{t('allRepositories')}</span>
                                         </div>
                                     </SelectItem>
                                     {githubData.organizations.map((org: any) => (
@@ -163,7 +165,7 @@ export const SetupGithub = () => {
                             {githubData.isLoadingOrganizations && (
                                 <div className="text-foreground-secondary flex items-center gap-2 text-sm">
                                     <Icons.Shadow className="h-3 w-3 animate-spin" />
-                                    Loading organizations...
+                                    {t('loadingOrganizations')}
                                 </div>
                             )}
                         </div>
@@ -171,7 +173,7 @@ export const SetupGithub = () => {
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                                 <label className="text-foreground-primary text-sm font-medium">
-                                    Repository
+                                    {t('repositoryLabel')}
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -184,7 +186,7 @@ export const SetupGithub = () => {
                                             githubData.isLoadingOrganizations
                                         }
                                         className="bg-background hover:bg-secondary flex h-8 w-8 items-center justify-center rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                                        title="Refresh repositories"
+                                        title={t('refreshRepositories')}
                                     >
                                         <Icons.Reload
                                             className={`text-foreground-tertiary h-4 w-4 ${githubData.isLoadingRepositories || githubData.isLoadingOrganizations ? 'animate-spin' : ''}`}
@@ -214,7 +216,7 @@ export const SetupGithub = () => {
                                                     ref={searchInputRef}
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                                    placeholder="Search repositories"
+                                                    placeholder={t('searchRepositories')}
                                                     className="h-8 pr-7 pl-9 text-sm focus-visible:border-transparent focus-visible:ring-0"
                                                 />
                                                 {searchQuery && (
@@ -248,15 +250,15 @@ export const SetupGithub = () => {
                                     {githubData.isLoadingRepositories ? (
                                         <div className="text-foreground-secondary flex h-full items-center justify-center gap-2 text-sm">
                                             <Icons.Shadow className="h-3 w-3 animate-spin" />
-                                            Loading repositories...
+                                            {t('loadingRepositories')}
                                         </div>
                                     ) : filteredRepositories.length === 0 ? (
                                         <div className="text-foreground-secondary flex h-full items-center justify-center text-sm">
                                             {searchQuery
-                                                ? 'No repositories match your search'
+                                                ? t('noReposMatchSearch')
                                                 : selectedOrg
-                                                  ? `No repositories found for ${selectedOrg.login}`
-                                                  : 'No repositories found'}
+                                                  ? t('noReposForOrg', { orgName: selectedOrg.login })
+                                                  : t('noReposFound')}
                                         </div>
                                     ) : (
                                         <div
@@ -311,8 +313,7 @@ export const SetupGithub = () => {
 
                             {selectedRepo && (
                                 <div className="text-foreground-secondary text-sm">
-                                    Selected:{' '}
-                                    <span className="font-medium">{selectedRepo.full_name}</span>
+                                    {t('selected', { repoName: selectedRepo.full_name })}
                                 </div>
                             )}
                         </div>
@@ -321,12 +322,12 @@ export const SetupGithub = () => {
             </StepContent>
             <StepFooter>
                 <Button onClick={prevStep} variant="outline">
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <div className="flex gap-2">
                     <Button onClick={() => installation.redirectToInstallation()} variant="outline">
                         <Icons.Gear className="mr-2 h-4 w-4" />
-                        Configure
+                        {t('configure')}
                     </Button>
                     <Button
                         className="px-3 py-2"
@@ -338,7 +339,7 @@ export const SetupGithub = () => {
                         ) : (
                             <Icons.Download className="mr-2 h-4 w-4" />
                         )}
-                        <span>{repositoryImport.isImporting ? 'Importing…' : 'Import'}</span>
+                        <span>{repositoryImport.isImporting ? t('importing') : t('import')}</span>
                     </Button>
                 </div>
             </StepFooter>

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
@@ -10,25 +11,26 @@ import { useFigmaImport } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaFinalizing = () => {
+    const t = useTranslations('projects.importFigma');
     const { isFinalizing, finalizeError, retry, cancel, finalizeProgress } = useFigmaImport();
 
     const phaseLabel =
         finalizeProgress.phase === 'creating-sandbox'
-            ? 'Creating sandbox'
+            ? t('creatingPhase')
             : finalizeProgress.phase === 'uploading'
-              ? `Uploading ${finalizeProgress.filesUploaded}/${finalizeProgress.totalFiles} files`
+              ? t('uploadingPhase', { uploaded: String(finalizeProgress.filesUploaded), total: String(finalizeProgress.totalFiles) })
               : finalizeProgress.phase === 'installing'
-                ? 'Installing dependencies'
+                ? t('installingPhase')
                 : finalizeProgress.phase === 'creating-project'
-                  ? 'Creating project'
+                  ? t('creatingProjectPhase')
                   : finalizeProgress.phase === 'opening-editor'
-                    ? 'Opening editor'
-                    : 'Creating your project with the imported frames.';
+                    ? t('openingEditorPhase')
+                    : t('creatingYourProject');
 
     return (
         <>
             <StepHeader>
-                <CardTitle>Setting up project...</CardTitle>
+                <CardTitle>{t('settingUpProject')}</CardTitle>
                 <CardDescription>{phaseLabel}</CardDescription>
             </StepHeader>
             <StepContent>
@@ -48,11 +50,11 @@ export const FigmaFinalizing = () => {
             </StepContent>
             <StepFooter>
                 <Button onClick={cancel} disabled={isFinalizing} variant="outline">
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 {finalizeError && (
                     <Button onClick={retry} disabled={isFinalizing}>
-                        Retry
+                        {t('retry')}
                     </Button>
                 )}
             </StepFooter>

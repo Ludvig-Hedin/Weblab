@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
@@ -12,6 +13,7 @@ import { useFigmaImport } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaCredentials = () => {
+    const t = useTranslations('projects.importFigma');
     const {
         prevStep,
         fileUrl,
@@ -33,9 +35,9 @@ export const FigmaCredentials = () => {
                         <Icons.Figma className="h-6 w-6" />
                     </div>
                 </div>
-                <CardTitle className="text-xl font-normal">Import from Figma</CardTitle>
+                <CardTitle className="text-xl font-normal">{t('title')}</CardTitle>
                 <CardDescription className="font-normal">
-                    Paste a Figma file URL to import your designs as React components.
+                    {t('description')}
                 </CardDescription>
             </StepHeader>
             <StepContent>
@@ -48,7 +50,7 @@ export const FigmaCredentials = () => {
                 >
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="figma-url">Figma File URL</Label>
+                            <Label htmlFor="figma-url">{t('figmaFileUrl')}</Label>
                             <Input
                                 id="figma-url"
                                 type="url"
@@ -62,7 +64,7 @@ export const FigmaCredentials = () => {
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="figma-token">Personal access token</Label>
+                            <Label htmlFor="figma-token">{t('personalAccessToken')}</Label>
                             <Input
                                 id="figma-token"
                                 type="password"
@@ -85,16 +87,16 @@ export const FigmaCredentials = () => {
             </StepContent>
             <StepFooter>
                 <Button onClick={prevStep} variant="outline" disabled={isFetching}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button onClick={() => void fetchFile()} disabled={!canFetch || isFetching}>
                     {isFetching ? (
                         <>
                             <Icons.Shadow className="mr-2 h-4 w-4 animate-spin" />
-                            Fetching...
+                            {t('fetching')}
                         </>
                     ) : (
-                        'Fetch Frames'
+                        t('fetchFrames')
                     )}
                 </Button>
             </StepFooter>
