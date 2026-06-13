@@ -76,6 +76,14 @@ const imageDragDataSchema = z.object({
     mimeType: z.string(),
 });
 
+// Max automatic suggestion retries for the SAME conversation state. A transient
+// network blip should be retried, but a PERSISTENT failure (missing API key,
+// exhausted quota, conversation gone) must NOT auto-retry forever: resetting the
+// dedupe signature on every error re-fires the effect immediately, turning a
+// fail-fast action into an unbounded retry storm that drains Convex usage. After
+// this many attempts we stop until a new message changes the signature.
+const SUGGESTION_MAX_RETRIES = 2;
+
 export const ChatInput = observer(
     ({
         messages,
@@ -110,6 +118,13 @@ export const ChatInput = observer(
             () => currentConversation?.suggestions ?? [],
         );
         const lastSuggestionSignatureRef = useRef<string | null>(null);
+        // Tracks consecutive failures for the current signature so persistent
+        // errors stop retrying instead of looping. Reset when the signature
+        // changes or on success.
+        const suggestionRetryRef = useRef<{ signature: string | null; attempts: number }>({
+            signature: null,
+            attempts: 0,
+        });
         const fileListCacheRef = useRef<{
             items: MentionItem[];
             timestamp: number;
@@ -143,6 +158,7 @@ export const ChatInput = observer(
         const generateSuggestions = async (input: {
             conversationId: string;
             messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+            signature: string;
         }) => {
             setIsGeneratingSuggestions(true);
             try {
@@ -151,12 +167,27 @@ export const ChatInput = observer(
                     messages: input.messages,
                 });
                 setSuggestions(nextSuggestions as ChatSuggestion[]);
+                // Success: clear the failure counter so a future error on a
+                // different state starts with a fresh retry budget.
+                suggestionRetryRef.current = { signature: null, attempts: 0 };
             } catch {
-                // Clear the dedupe signature so the next identical-state
-                // tick is allowed to retry. Without this, a single
-                // transient network blip permanently silences
-                // suggestions for the rest of the conversation.
-                lastSuggestionSignatureRef.current = null;
+                // Count failures per signature. Allow a few retries for the
+                // SAME state (covers a transient network blip), but stop once
+                // the budget is exhausted so a PERSISTENT failure (missing key,
+                // exhausted quota, deleted conversation) can't re-fire the
+                // effect forever and drain backend usage. Leaving the dedupe
+                // signature set is what halts the loop; a NEW message produces a
+                // new signature and gets a fresh budget.
+                const retry = suggestionRetryRef.current;
+                if (retry.signature === input.signature) {
+                    retry.attempts += 1;
+                } else {
+                    retry.signature = input.signature;
+                    retry.attempts = 1;
+                }
+                if (retry.attempts < SUGGESTION_MAX_RETRIES) {
+                    lastSuggestionSignatureRef.current = null;
+                }
             } finally {
                 setIsGeneratingSuggestions(false);
             }
@@ -232,6 +263,7 @@ export const ChatInput = observer(
             void generateSuggestions({
                 conversationId: currentConversation.id,
                 messages: messageInputs,
+                signature,
             });
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [currentConversation, isGeneratingSuggestions, isStreaming, messages]);
