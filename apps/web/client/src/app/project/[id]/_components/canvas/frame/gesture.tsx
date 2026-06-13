@@ -149,6 +149,20 @@ export const GestureScreen = observer(
                                 components.editing &&
                                 components.isInEditScope(el.frameId, el.domId);
                             if (!inScope) {
+                                // Webflow's inline gesture: double-clicking a
+                                // text-bound element inside an instance edits
+                                // THAT instance's value, not the master. Takes
+                                // priority over entering master edit.
+                                if (el.oid && (await frameData.view.isChildTextEditable(el.oid)) === true) {
+                                    const propTarget =
+                                        await components.resolveInstanceTextProp(el);
+                                    if (propTarget) {
+                                        await editorEngine.text.start(el, frameData.view, (content) =>
+                                            components.commitInstanceTextProp(propTarget, content),
+                                        );
+                                        break;
+                                    }
+                                }
                                 if (el.instanceId) {
                                     if (!components.indexReady) {
                                         // Falling through to text-edit here

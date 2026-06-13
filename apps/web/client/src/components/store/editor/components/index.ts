@@ -450,14 +450,24 @@ export class ComponentsManager {
     ): Promise<void> {
         if (!el.instanceId) return;
         const def = await this.getDefinitionForInstance(el);
+        await this.writeInstanceProp(el.instanceId, el.branchId, def, propName, value);
+    }
+
+    private async writeInstanceProp(
+        instanceId: string,
+        branchId: string,
+        def: ComponentDef | null,
+        propName: string,
+        value: string | number | boolean | null,
+    ): Promise<void> {
         const spec = def?.props.find((p) => p.name === propName);
         const isDefault = value === spec?.defaultValue;
         const attrValue = value === null || isDefault ? { __remove: true } : value;
 
         await this.editorEngine.code.writeRequest([
             {
-                oid: el.instanceId,
-                branchId: el.branchId,
+                oid: instanceId,
+                branchId,
                 attributes: { [propName]: attrValue },
                 tagName: null,
                 textContent: null,
@@ -465,6 +475,55 @@ export class ComponentsManager {
                 structureChanges: [],
             },
         ]);
+    }
+
+    /**
+     * If `el` is a text-bound element rendered inside a component instance,
+     * resolves the instance + prop so the editor can edit THAT instance's
+     * value inline (Webflow's "double-click a bound element to edit its
+     * value" gesture) instead of entering master editing. Returns null when
+     * the element isn't text-bound or isn't inside an instance.
+     */
+    async resolveInstanceTextProp(
+        el: DomElement,
+    ): Promise<{ instanceId: string; branchId: string; def: ComponentDef; propName: string } | null> {
+        if (!el.oid) return null;
+        // While editing the master itself we want structural/text edits on the
+        // master, not a per-instance override.
+        if (this.editing) return null;
+
+        const def = await this.getDefinitionForElement(el);
+        if (!def) return null;
+
+        // The clicked element's own oid lives in the master file; find a
+        // text/richtext prop whose binding points at it.
+        const prop = def.props.find(
+            (p) =>
+                (p.type === 'text' || p.type === 'richtext') &&
+                p.editable &&
+                p.bindings.some((b) => b.kind === 'text-child' && b.oid === el.oid),
+        );
+        if (!prop) return null;
+
+        const instanceId =
+            el.instanceId ?? this.findInstanceBoundary(el.frameId, el.domId)?.instanceId ?? null;
+        if (!instanceId) return null;
+
+        return { instanceId, branchId: el.branchId, def, propName: prop.name };
+    }
+
+    /** Commits an inline per-instance text-prop edit (used by the text editor). */
+    async commitInstanceTextProp(
+        target: { instanceId: string; branchId: string; def: ComponentDef; propName: string },
+        value: string,
+    ): Promise<void> {
+        await this.writeInstanceProp(
+            target.instanceId,
+            target.branchId,
+            target.def,
+            target.propName,
+            value,
+        );
     }
 
     async resetInstanceProp(el: DomElement, propName: string): Promise<void> {

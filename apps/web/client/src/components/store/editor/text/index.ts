@@ -10,6 +10,14 @@ export class TextEditingManager {
     private targetDomEl: DomElement | null = null;
     private originalContent: string | null = null;
     private shouldNotStartEditing = false;
+    /**
+     * When set, the inline editor commits its final content through this
+     * callback instead of writing the element's text to source. Used for
+     * per-instance component-prop editing (Webflow's inline-bound-value edit):
+     * the same contenteditable overlay, but the result becomes a JSX attribute
+     * at the instance usage site rather than a master text edit.
+     */
+    private commitOverride: ((newContent: string) => Promise<void>) | null = null;
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -23,8 +31,13 @@ export class TextEditingManager {
         return this.targetDomEl;
     }
 
-    async start(el: DomElement, frameView: IFrameView): Promise<void> {
+    async start(
+        el: DomElement,
+        frameView: IFrameView,
+        commitOverride?: (newContent: string) => Promise<void>,
+    ): Promise<void> {
         try {
+            this.commitOverride = commitOverride ?? null;
             const isEditable = await frameView.isChildTextEditable(el.oid ?? '');
             if (isEditable !== true) {
                 throw new Error(
@@ -119,7 +132,15 @@ export class TextEditingManager {
                 newContent: string;
                 domEl: DomElement;
             };
-            await this.handleEditedText(domEl, newContent, frameData.view);
+            if (this.commitOverride) {
+                // Per-instance prop edit: don't write the master's text; the
+                // override persists the value at the instance usage site. The
+                // live DOM change reverts on the next reprocess and is replaced
+                // by the re-rendered instance.
+                await this.commitOverride(newContent);
+            } else {
+                await this.handleEditedText(domEl, newContent, frameData.view);
+            }
         } catch (error) {
             console.error('Error ending text edit:', error);
         } finally {
@@ -142,6 +163,7 @@ export class TextEditingManager {
             }
         }
         this.targetDomEl = null;
+        this.commitOverride = null;
         this.editorEngine.overlay.state.removeTextEditor();
         // `editorEngine.history` reaches into the active branch's
         // HistoryManager. During teardown — or when the engine has been
@@ -161,19 +183,24 @@ export class TextEditingManager {
         frameView: IFrameView,
     ): Promise<void> {
         try {
-            await this.editorEngine.history.push({
-                type: 'edit-text',
-                targets: [
-                    {
-                        frameId: frameView.id,
-                        branchId: domEl.branchId,
-                        domId: domEl.domId,
-                        oid: domEl.oid,
-                    },
-                ],
-                originalContent: this.originalContent ?? '',
-                newContent,
-            });
+            // Per-instance prop edits don't persist the master text — the
+            // override (run on end) writes the instance attribute instead, so
+            // skip the edit-text history push but keep live visual feedback.
+            if (!this.commitOverride) {
+                await this.editorEngine.history.push({
+                    type: 'edit-text',
+                    targets: [
+                        {
+                            frameId: frameView.id,
+                            branchId: domEl.branchId,
+                            domId: domEl.domId,
+                            oid: domEl.oid,
+                        },
+                    ],
+                    originalContent: this.originalContent ?? '',
+                    newContent,
+                });
+            }
             const adjustedRect = adaptRectToCanvas(domEl.rect, frameView);
             this.editorEngine.overlay.state.updateTextEditor(adjustedRect, {
                 content: newContent,
