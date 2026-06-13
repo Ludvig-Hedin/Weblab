@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
+import { useTranslations } from 'next-intl';
 // Uses Convex `getMappedSettings` / `updateMappedSettings` — they return /
 // accept the nested {chat, ai, appearance, language, git, customShortcuts}
 // shape this file was written against. Optimistic updates removed (Convex
@@ -38,6 +39,7 @@ type PendingAI = {
 };
 
 export const AITab = observer(() => {
+    const t = useTranslations('settings.ai');
     const userSettings = useQuery(api.users.getMappedSettings, {});
     const updateMappedSettings = useMutation(api.users.updateMappedSettings);
     const [savedFlash, setSavedFlash] = useState(false);
@@ -58,7 +60,7 @@ export const AITab = observer(() => {
                 }
             })
             .catch(() => {
-                toast.error('Failed to save AI settings');
+                toast.error(t('toastFailed'));
             })
             .finally(() => {
                 if (isMountedRef.current) setIsSaving(false);
@@ -186,13 +188,13 @@ export const AITab = observer(() => {
     const SaveStatus = () => (
         <span className="text-mini">
             {isSaving ? (
-                <span className="text-foreground-tertiary">Saving…</span>
+                <span className="text-foreground-tertiary">{t('saving')}</span>
             ) : (
                 <span
                     className="text-foreground-secondary transition-opacity duration-300"
                     style={{ opacity: savedFlash ? 1 : 0 }}
                 >
-                    Saved
+                    {t('saved')}
                 </span>
             )}
         </span>
@@ -204,15 +206,15 @@ export const AITab = observer(() => {
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-largePlus">Default model</h2>
+                        <h2 className="text-largePlus">{t('defaultModelTitle')}</h2>
                         <p className="text-regular text-foreground-tertiary">
-                            Pre-selected when you open a new chat.
+                            {t('defaultModelDescription')}
                         </p>
                     </div>
                     <SaveStatus />
                 </div>
                 <div className="space-y-1.5">
-                    <Label className="text-mini">Model</Label>
+                    <Label className="text-mini">{t('modelLabel')}</Label>
                     <Select
                         value={ai?.defaultModel ?? DEFAULT_CHAT_MODEL}
                         onValueChange={(v) => patch({ defaultModel: v })}
@@ -246,16 +248,16 @@ export const AITab = observer(() => {
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-largePlus">Local models</h2>
+                        <h2 className="text-largePlus">{t('localModelsTitle')}</h2>
                         <p className="text-regular text-foreground-tertiary">
-                            Use locally-running models via Ollama.
+                            {t('localModelsDescription')}
                         </p>
                     </div>
                     <SaveStatus />
                 </div>
                 <div className="space-y-3">
                     <div className="space-y-1.5">
-                        <Label className="text-mini">Ollama server URL</Label>
+                        <Label className="text-mini">{t('ollamaUrlLabel')}</Label>
                         <div className="flex items-center gap-2">
                             <Input
                                 className="text-small w-64"
@@ -274,7 +276,7 @@ export const AITab = observer(() => {
                                     )
                                 }
                             >
-                                {localModelsLoading ? 'Detecting…' : 'Detect'}
+                                {localModelsLoading ? t('detecting') : t('detect')}
                             </Button>
                         </div>
                     </div>
@@ -292,18 +294,19 @@ export const AITab = observer(() => {
                         />
                         <p className="text-mini text-foreground-tertiary">
                             {localModelsLoading
-                                ? 'Looking for Ollama…'
+                                ? t('lookingForOllama')
                                 : localModels.length > 0
-                                  ? `${localModels.length} model${localModels.length === 1 ? '' : 's'} detected: ${localModels.map((m) => m.label).join(', ')}`
+                                  ? t('modelsDetected', {
+                                        count: localModels.length,
+                                        models: localModels.map((m) => m.label).join(', '),
+                                    })
                                   : detectionError
-                                    ? `Couldn't reach Ollama: ${detectionError}`
-                                    : 'No local models detected. Make sure Ollama is running.'}
+                                    ? t('couldntReachOllama', { error: detectionError })
+                                    : t('noLocalModels')}
                         </p>
                     </div>
                     <p className="text-micro text-foreground-tertiary leading-snug">
-                        Detection probes Ollama from the Weblab server, not your browser. On hosted
-                        deployments only models reachable from the server are visible — when running
-                        self-hosted or in dev, the server probes your own machine&apos;s localhost.
+                        {t('detectionNote')}
                     </p>
                 </div>
             </section>
@@ -311,31 +314,31 @@ export const AITab = observer(() => {
             {/* Chat behaviour */}
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
-                    <h2 className="text-largePlus">Chat behaviour</h2>
+                    <h2 className="text-largePlus">{t('chatBehaviourTitle')}</h2>
                     <SaveStatus />
                 </div>
                 <div className="space-y-3">
                     <ToggleRow
                         field="showSuggestions"
-                        label="Show prompt suggestions"
-                        description="Keep prompt chips visible in the AI panel."
+                        label={t('showSuggestionsLabel')}
+                        description={t('showSuggestionsDescription')}
                         defaultValue={true}
                     />
                     <ToggleRow
                         field="showMiniChat"
-                        label="Show mini chat on canvas"
-                        description="Inline chat entry point while editing."
+                        label={t('showMiniChatLabel')}
+                        description={t('showMiniChatDescription')}
                     />
                     <ToggleRow
                         field="autoApplyCode"
-                        label="Auto-apply code changes"
-                        description="Apply AI-suggested code without a manual step."
+                        label={t('autoApplyCodeLabel')}
+                        description={t('autoApplyCodeDescription')}
                         defaultValue={true}
                     />
                     <ToggleRow
                         field="expandCodeBlocks"
-                        label="Expand code blocks by default"
-                        description="Show code blocks expanded in the chat."
+                        label={t('expandCodeBlocksLabel')}
+                        description={t('expandCodeBlocksDescription')}
                     />
                 </div>
             </section>

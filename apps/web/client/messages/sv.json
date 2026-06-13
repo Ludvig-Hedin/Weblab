@@ -2854,6 +2854,52 @@
                 "description": "Flaggor som skickas till byggkommandot.",
                 "flagsLabel": "Byggflaggor"
             }
+        },
+        "account": {
+            "profileTitle": "Profil",
+            "avatarSync": "Avataren synkroniseras från din autentiseringsleverantör.",
+            "firstNameLabel": "Förnamn",
+            "firstNamePlaceholder": "Anna",
+            "lastNameLabel": "Efternamn",
+            "lastNamePlaceholder": "Andersson",
+            "displayNameLabel": "Visningsnamn",
+            "displayNamePlaceholder": "anna.andersson",
+            "emailLabel": "E-post",
+            "emailManagedByGoogle": "E-posten hanteras av ditt Google-konto.",
+            "emailManagedByProvider": "E-posten hanteras av din autentiseringsleverantör.",
+            "contactSupport": "Kontakta support",
+            "emailUpdateSuffix": "för att uppdatera din e-post.",
+            "saving": "Sparar…",
+            "saveChanges": "Spara ändringar",
+            "toastSuccess": "Profilen uppdaterades",
+            "toastFailed": "Det gick inte att uppdatera profilen"
+        },
+        "ai": {
+            "defaultModelTitle": "Standardmodell",
+            "defaultModelDescription": "Förvald när du öppnar en ny chatt.",
+            "modelLabel": "Modell",
+            "localModelsTitle": "Lokala modeller",
+            "localModelsDescription": "Använd lokalt körande modeller via Ollama.",
+            "ollamaUrlLabel": "Ollama server-URL",
+            "detecting": "Identifierar…",
+            "detect": "Identifiera",
+            "lookingForOllama": "Söker efter Ollama…",
+            "modelsDetected": "{count, plural, one {# modell hittad: {models}} other {# modeller hittade: {models}}}",
+            "couldntReachOllama": "Kunde inte nå Ollama: {error}",
+            "noLocalModels": "Inga lokala modeller hittades. Kontrollera att Ollama körs.",
+            "detectionNote": "Identifieringen testar Ollama från Weblab-servern, inte din webbläsare. På hostade driftsättningar visas bara modeller som är nåbara från servern — vid självhostad drift eller i dev testar servern din egen dators localhost.",
+            "chatBehaviourTitle": "Chattbeteende",
+            "saving": "Sparar…",
+            "saved": "Sparat",
+            "toastFailed": "Det gick inte att spara AI-inställningarna",
+            "showSuggestionsLabel": "Visa promptförslag",
+            "showSuggestionsDescription": "Håll promptchips synliga i AI-panelen.",
+            "showMiniChatLabel": "Visa minichat på arbetsytan",
+            "showMiniChatDescription": "Inbyggd chattingångspunkt vid redigering.",
+            "autoApplyCodeLabel": "Tillämpa kodändringar automatiskt",
+            "autoApplyCodeDescription": "Tillämpa AI-föreslagna kodändringar utan ett manuellt steg.",
+            "expandCodeBlocksLabel": "Expandera kodblock som standard",
+            "expandCodeBlocksDescription": "Visa kodblock expanderade i chatten."
         }
     }
 }

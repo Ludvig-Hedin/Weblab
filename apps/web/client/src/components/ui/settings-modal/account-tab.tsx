@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
 import { Badge } from '@weblab/ui/badge';
@@ -17,6 +18,7 @@ import { getInitials } from '@weblab/utility';
 import { UserDeleteSection } from './user-delete-section';
 
 export const AccountTab = observer(() => {
+    const t = useTranslations('settings.account');
     const user = useQuery(api.users.me, {});
     const updateProfileMutation = useMutation(api.users.updateProfile);
     const [isPending, setIsPending] = useState(false);
@@ -60,9 +62,9 @@ export const AccountTab = observer(() => {
                 lastName: normalize(lastName),
                 displayName: normalize(displayName),
             });
-            toast.success('Profile updated');
+            toast.success(t('toastSuccess'));
         } catch {
-            toast.error('Failed to update profile');
+            toast.error(t('toastFailed'));
         } finally {
             setIsPending(false);
         }
@@ -73,7 +75,7 @@ export const AccountTab = observer(() => {
             {/* Profile */}
             <section className="space-y-4 py-6">
                 <div className="flex items-center gap-2">
-                    <h2 className="text-largePlus">Profile</h2>
+                    <h2 className="text-largePlus">{t('profileTitle')}</h2>
                     {provider && (
                         <Badge variant="secondary" className="text-mini capitalize">
                             {isGoogle ? 'Google' : provider}
@@ -95,68 +97,68 @@ export const AccountTab = observer(() => {
                             and let it sync from the auth provider until we ship a proper
                             storage-backed upload flow. */}
                         <p className="text-mini text-foreground-tertiary mt-1">
-                            Avatar will sync from your authentication provider.
+                            {t('avatarSync')}
                         </p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                        <Label className="text-mini">First name</Label>
+                        <Label className="text-mini">{t('firstNameLabel')}</Label>
                         <Input
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Jane"
+                            placeholder={t('firstNamePlaceholder')}
                             className="text-small h-8"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-mini">Last name</Label>
+                        <Label className="text-mini">{t('lastNameLabel')}</Label>
                         <Input
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Doe"
+                            placeholder={t('lastNamePlaceholder')}
                             className="text-small h-8"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-mini">Display name</Label>
+                    <Label className="text-mini">{t('displayNameLabel')}</Label>
                     <Input
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="jane.doe"
+                        placeholder={t('displayNamePlaceholder')}
                         className="text-small h-8"
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-mini">Email</Label>
+                    <Label className="text-mini">{t('emailLabel')}</Label>
                     <Input value={user?.email ?? ''} readOnly disabled className="text-small h-8" />
                     {/* Bug fix #28: Replace the dead-end "Email cannot be changed." line with
                         a clear escape hatch (mailto support) until we wire up Supabase's
                         verified-email-change flow. */}
                     <p className="text-mini text-foreground-tertiary">
                         {isGoogle ? (
-                            'Email is managed by your Google account.'
+                            t('emailManagedByGoogle')
                         ) : (
                             <>
-                                Email is managed by your authentication provider.{' '}
+                                {t('emailManagedByProvider')}{' '}
                                 <a
                                     href="mailto:support@weblab.build"
                                     className="hover:text-foreground underline"
                                 >
-                                    Contact support
+                                    {t('contactSupport')}
                                 </a>{' '}
-                                to update your email.
+                                {t('emailUpdateSuffix')}
                             </>
                         )}
                     </p>
                 </div>
 
                 <Button size="sm" onClick={() => void handleSave()} disabled={isPending}>
-                    {isPending ? 'Saving…' : 'Save changes'}
+                    {isPending ? t('saving') : t('saveChanges')}
                 </Button>
             </section>
 

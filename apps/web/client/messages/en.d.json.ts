@@ -2764,6 +2764,52 @@ declare const messages: {
                 "description": "Flags passed to the build command.",
                 "flagsLabel": "Build flags"
             }
+        },
+        "account": {
+            "profileTitle": "Profile",
+            "avatarSync": "Avatar will sync from your authentication provider.",
+            "firstNameLabel": "First name",
+            "firstNamePlaceholder": "Jane",
+            "lastNameLabel": "Last name",
+            "lastNamePlaceholder": "Doe",
+            "displayNameLabel": "Display name",
+            "displayNamePlaceholder": "jane.doe",
+            "emailLabel": "Email",
+            "emailManagedByGoogle": "Email is managed by your Google account.",
+            "emailManagedByProvider": "Email is managed by your authentication provider.",
+            "contactSupport": "Contact support",
+            "emailUpdateSuffix": "to update your email.",
+            "saving": "Saving…",
+            "saveChanges": "Save changes",
+            "toastSuccess": "Profile updated",
+            "toastFailed": "Failed to update profile"
+        },
+        "ai": {
+            "defaultModelTitle": "Default model",
+            "defaultModelDescription": "Pre-selected when you open a new chat.",
+            "modelLabel": "Model",
+            "localModelsTitle": "Local models",
+            "localModelsDescription": "Use locally-running models via Ollama.",
+            "ollamaUrlLabel": "Ollama server URL",
+            "detecting": "Detecting…",
+            "detect": "Detect",
+            "lookingForOllama": "Looking for Ollama…",
+            "modelsDetected": "{count, plural, one {# model detected: {models}} other {# models detected: {models}}}",
+            "couldntReachOllama": "Couldn't reach Ollama: {error}",
+            "noLocalModels": "No local models detected. Make sure Ollama is running.",
+            "detectionNote": "Detection probes Ollama from the Weblab server, not your browser. On hosted deployments only models reachable from the server are visible — when running self-hosted or in dev, the server probes your own machine's localhost.",
+            "chatBehaviourTitle": "Chat behaviour",
+            "saving": "Saving…",
+            "saved": "Saved",
+            "toastFailed": "Failed to save AI settings",
+            "showSuggestionsLabel": "Show prompt suggestions",
+            "showSuggestionsDescription": "Keep prompt chips visible in the AI panel.",
+            "showMiniChatLabel": "Show mini chat on canvas",
+            "showMiniChatDescription": "Inline chat entry point while editing.",
+            "autoApplyCodeLabel": "Auto-apply code changes",
+            "autoApplyCodeDescription": "Apply AI-suggested code without a manual step.",
+            "expandCodeBlocksLabel": "Expand code blocks by default",
+            "expandCodeBlocksDescription": "Show code blocks expanded in the chat."
         }
     }
 };
