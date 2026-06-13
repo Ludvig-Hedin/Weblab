@@ -1199,6 +1199,15 @@ declare const messages: {
                 "syncErrorsTooltip": "Some offline changes failed. Open the offline panel from the corner banner."
             }
         },
+        "offlineBanner": {
+            "offlineTitle": "You're offline.",
+            "offlineCaption": "Edits save locally and sync on reconnect.",
+            "offlinePendingCount": "{count} pending.",
+            "syncingTitle": "Syncing offline changes",
+            "changesRemaining": "{count, plural, one {# change remaining.} other {# changes remaining.}}",
+            "failedCount": "{count} failed.",
+            "details": "Details"
+        },
         "commandPalette": {
             "title": "Command Palette",
             "description": "Run a command, switch modes, or jump to a page.",

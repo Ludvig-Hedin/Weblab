@@ -1196,6 +1196,15 @@
                 "syncErrorsTooltip": "Vissa offline-ändringar misslyckades. Öppna offline-panelen från bannern i hörnet."
             }
         },
+        "offlineBanner": {
+            "offlineTitle": "Du är offline.",
+            "offlineCaption": "Ändringar sparas lokalt och synkroniseras vid återanslutning.",
+            "offlinePendingCount": "{count} väntande.",
+            "syncingTitle": "Synkroniserar offline-ändringar",
+            "changesRemaining": "{count, plural, one {# ändring kvar.} other {# ändringar kvar.}}",
+            "failedCount": "{count} misslyckades.",
+            "details": "Detaljer"
+        },
         "commandPalette": {
             "title": "Kommandopalett",
             "description": "Kör ett kommando, byt läge eller hoppa till en sida.",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
@@ -11,6 +12,7 @@ import { getDeadLetterDepth, getQueueDepth } from '@/services/offline/write-queu
 import { OfflinePanel } from './offline-panel';
 
 export const OfflineBanner = observer(() => {
+    const t = useTranslations('editor.offlineBanner');
     const editorEngine = useEditorEngine();
     const online = useOnlineStatus();
     const isOfflineSession = editorEngine.activeSandbox.session.isOffline;
@@ -72,20 +74,20 @@ export const OfflineBanner = observer(() => {
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         {!online ? (
                             <>
-                                <span className="leading-tight font-medium">You're offline.</span>
+                                <span className="leading-tight font-medium">{t('offlineTitle')}</span>
                                 <span className="leading-snug opacity-65">
-                                    Edits save locally and sync on reconnect.
-                                    {pending > 0 ? ` ${pending} pending.` : ''}
+                                    {t('offlineCaption')}
+                                    {pending > 0 ? ` ${t('offlinePendingCount', { count: String(pending) })}` : ''}
                                 </span>
                             </>
                         ) : (
                             <>
                                 <span className="leading-tight font-medium">
-                                    Syncing offline changes
+                                    {t('syncingTitle')}
                                 </span>
                                 <span className="leading-snug opacity-65">
-                                    {pending} change{pending === 1 ? '' : 's'} remaining.
-                                    {dead > 0 ? ` ${dead} failed.` : ''}
+                                    {t('changesRemaining', { count: pending })}
+                                    {dead > 0 ? ` ${t('failedCount', { count: String(dead) })}` : ''}
                                 </span>
                             </>
                         )}
@@ -106,7 +108,7 @@ export const OfflineBanner = observer(() => {
                     onClick={() => setPanelOpen(true)}
                     className="mt-2 flex items-center gap-1 text-neutral-400 transition-colors hover:text-neutral-100"
                 >
-                    <span className="underline underline-offset-2">Details</span>
+                    <span className="underline underline-offset-2">{t('details')}</span>
                     <Icons.ArrowRight className="h-2.5 w-2.5" />
                 </button>
             </div>
