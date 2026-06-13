@@ -32,7 +32,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Development
 bun dev              # Start the full local stack: Next.js client (3000) + preload + sandbox tRPC server (8080). The :8080 server is required for the editor to connect to a sandbox — without it the preview shows "booting sandbox" forever.
-bun backend:start    # Start Supabase local backend
+bun backend:start    # Start Supabase local backend (Docker — RAM-heavy; only needed for local Supabase, NOT for the dev commands below)
+
+# Frontend-only dev (no Docker — uses REMOTE backend; for UI work when low on RAM)
+bun dev:remote       # Full stack (client + preload + :8080 server) against remote DEV backend (Convex avid-gnat-539 + remote Supabase). Same as `bun dev` — none of these need Docker. Editor/canvas works.
+bun dev:ui           # LIGHTEST: Next.js client only (:3000), remote DEV backend. Skips preload + :8080 server. Best for landing/dashboard/settings UI. The editor canvas won't connect to a sandbox (needs dev:remote).
+bun dev:prod         # Client only (:3000) against PROD backend. Requires apps/web/client/.env.prod.local (copy .env.prod.example, fill prod keys). ⚠️ Local UI writes hit REAL prod data — use for read-only UI verification.
 
 # Build
 bun build            # Build @weblab/web-client for production

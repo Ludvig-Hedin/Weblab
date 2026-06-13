@@ -17,6 +17,7 @@
     "type": "module",
     "scripts": {
         "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; next dev --turbo --port 3000",
+        "dev:prod": "test -f .env.prod.local || { echo '\\n[dev:prod] Missing apps/web/client/.env.prod.local — copy .env.prod.example and fill prod keys, then retry. Aborting so you do NOT silently run against dev.\\n'; exit 1; }; lsof -ti:3000 | xargs kill -9 2>/dev/null; bun --env-file=.env.prod.local next dev --turbo --port 3000",
         "convex:dev": "convex dev",
         "convex:dev:once": "convex dev --once",
         "convex:deploy": "convex deploy --yes",
