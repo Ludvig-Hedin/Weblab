@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import type { PageEditorIcon, PageMetadata } from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
@@ -24,33 +25,6 @@ import {
 import { MetadataForm } from './metadata-form';
 import { useMetadataForm } from './use-metadata-form';
 
-const PAGE_ICON_OPTIONS: Array<{
-    value: PageEditorIcon;
-    label: string;
-    icon: React.ReactNode;
-}> = [
-    {
-        value: 'file',
-        label: 'File',
-        icon: <Icons.File className="h-4 w-4" />,
-    },
-    {
-        value: 'globe',
-        label: 'Globe',
-        icon: <Icons.Globe className="h-4 w-4" />,
-    },
-    {
-        value: 'image',
-        label: 'Image',
-        icon: <Icons.Image className="h-4 w-4" />,
-    },
-    {
-        value: 'button',
-        label: 'Button',
-        icon: <Icons.Button className="h-4 w-4" />,
-    },
-];
-
 export const PageTab = ({
     metadata,
     path,
@@ -62,8 +36,16 @@ export const PageTab = ({
      *  the host surface (the page settings drawer) can re-point to the new path. */
     onPathChange?: (path: string) => void;
 }) => {
+    const t = useTranslations('settings.page');
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
+
+    const PAGE_ICON_OPTIONS: Array<{ value: PageEditorIcon; label: string; icon: React.ReactNode }> = [
+        { value: 'file', label: t('iconFile'), icon: <Icons.File className="h-4 w-4" /> },
+        { value: 'globe', label: t('iconGlobe'), icon: <Icons.Globe className="h-4 w-4" /> },
+        { value: 'image', label: t('iconImage'), icon: <Icons.Image className="h-4 w-4" /> },
+        { value: 'button', label: t('iconButton'), icon: <Icons.Button className="h-4 w-4" /> },
+    ];
     const domains = useQuery(api.domains.getAll, { projectId });
     const baseUrl = domains?.published?.url ?? domains?.preview?.url;
     const page = editorEngine.pages.getPageByPath(path);
@@ -188,7 +170,7 @@ export const PageTab = ({
 
     const availableFolders = useMemo(() => {
         return [
-            { value: '/', label: 'Root (/)' },
+            { value: '/', label: t('folderRoot') },
             ...editorEngine.pages.flatFolders
                 .filter((folder) => folder.path !== path && !folder.path.startsWith(`${path}/`))
                 .map((folder) => ({
@@ -250,7 +232,7 @@ export const PageTab = ({
             new URL(trimmed);
             return null;
         } catch {
-            return 'Canonical must be a full URL, e.g. https://example.com/page';
+            return t('canonicalError');
         }
     };
 
@@ -283,8 +265,8 @@ export const PageTab = ({
             setSchemaMarkup(formatted);
             setSchemaError(null);
         } catch (error) {
-            setSchemaError(error instanceof Error ? error.message : 'Invalid JSON');
-            toast.error('Cannot format — the JSON is invalid.');
+            setSchemaError(error instanceof Error ? error.message : t('invalidJson'));
+            toast.error(t('toastFormatFailed'));
         }
     };
 
@@ -296,7 +278,7 @@ export const PageTab = ({
         const canonicalValidationError = validateCanonical(canonical);
         if (canonicalValidationError) {
             setCanonicalError(canonicalValidationError);
-            toast.error('Canonical URL is invalid.', {
+            toast.error(t('toastCanonicalInvalid'), {
                 description: canonicalValidationError,
             });
             return;
@@ -306,7 +288,7 @@ export const PageTab = ({
         const schemaValidationError = validateSchemaMarkup(schemaMarkup);
         if (schemaValidationError) {
             setSchemaError(schemaValidationError);
-            toast.error('Schema markup is not valid JSON.', {
+            toast.error(t('toastSchemaInvalid'), {
                 description: schemaValidationError,
             });
             return;
@@ -319,7 +301,7 @@ export const PageTab = ({
             !fetchedHasPassword &&
             password.trim().length < 4
         ) {
-            toast.error('Password must be at least 4 characters.');
+            toast.error(t('toastPasswordTooShort'));
             return;
         }
 
@@ -392,7 +374,7 @@ export const PageTab = ({
                     };
                 } catch (error) {
                     console.error('Failed to upload Open Graph image:', error);
-                    toast.error('Failed to upload social preview image.');
+                    toast.error(t('toastOgImageFailed'));
                     return;
                 }
             }
@@ -429,11 +411,11 @@ export const PageTab = ({
                 setPassword('');
             }
 
-            toast.success('Page settings updated successfully.');
+            toast.success(t('toastSaveSuccess'));
         } catch (error) {
             console.error('Failed to update page settings:', error);
-            toast.error('Failed to update page settings.', {
-                description: error instanceof Error ? error.message : 'Please try again.',
+            toast.error(t('toastSaveFailed'), {
+                description: error instanceof Error ? error.message : t('toastSaveFailedDesc'),
             });
         } finally {
             setIsSaving(false);
@@ -442,25 +424,23 @@ export const PageTab = ({
 
     const detailsSection = (
         <div className="text-foreground-weblab flex flex-col gap-4">
-            <h2 className="text-title3">Editor Details</h2>
+            <h2 className="text-title3">{t('editorDetailsTitle')}</h2>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Name</p>
-                    <p className="text-small">Shown inside the editor and settings lists.</p>
+                    <p className="text-regular font-medium">{t('nameLabel')}</p>
+                    <p className="text-small">{t('nameDesc')}</p>
                 </div>
                 <Input
                     value={displayName}
-                    placeholder={page?.defaultName ?? 'Page name'}
+                    placeholder={page?.defaultName ?? t('namePlaceholder')}
                     onChange={(event) => setDisplayName(event.target.value)}
                     disabled={editorEngine.pages.isScanning}
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Editor Icon</p>
-                    <p className="text-small">
-                        Visual only. This does not change the site favicon.
-                    </p>
+                    <p className="text-regular font-medium">{t('editorIconLabel')}</p>
+                    <p className="text-small">{t('editorIconDesc')}</p>
                 </div>
                 <Select
                     value={editorIcon}
@@ -468,7 +448,7 @@ export const PageTab = ({
                     disabled={editorEngine.pages.isScanning || isRoot}
                 >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select an icon" />
+                        <SelectValue placeholder={t('editorIconPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                         {PAGE_ICON_OPTIONS.map((option) => (
@@ -484,20 +464,20 @@ export const PageTab = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Slug</p>
-                    <p className="text-small">Controls the last route segment for this page.</p>
+                    <p className="text-regular font-medium">{t('slugLabel')}</p>
+                    <p className="text-small">{t('slugDesc')}</p>
                 </div>
                 <Input
                     value={slug}
-                    placeholder="page-slug"
+                    placeholder={t('slugPlaceholder')}
                     onChange={(event) => setSlug(event.target.value.toLowerCase())}
                     disabled={editorEngine.pages.isScanning || isRoot}
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Folder</p>
-                    <p className="text-small">Moves the page into a route folder prefix.</p>
+                    <p className="text-regular font-medium">{t('folderLabel')}</p>
+                    <p className="text-small">{t('folderDesc')}</p>
                 </div>
                 <Select
                     value={folderPath}
@@ -505,7 +485,7 @@ export const PageTab = ({
                     disabled={editorEngine.pages.isScanning || isRoot}
                 >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select folder" />
+                        <SelectValue placeholder={t('folderPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                         {availableFolders.map((folder) => (
@@ -518,10 +498,8 @@ export const PageTab = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Preview Path</p>
-                    <p className="text-small">
-                        The route that will be saved when you apply changes.
-                    </p>
+                    <p className="text-regular font-medium">{t('previewPathLabel')}</p>
+                    <p className="text-small">{t('previewPathDesc')}</p>
                 </div>
                 <div className="border-border bg-background-secondary/40 text-miniPlus flex h-10 items-center rounded-md border px-3">
                     {nextPath}
@@ -529,16 +507,13 @@ export const PageTab = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Canonical URL</p>
-                    <p className="text-small">
-                        Point search engines to your preferred page URL to avoid duplicate content.
-                        Writes <code>metadata.alternates.canonical</code>.
-                    </p>
+                    <p className="text-regular font-medium">{t('canonicalUrlLabel')}</p>
+                    <p className="text-small">{t('canonicalUrlDesc')}</p>
                 </div>
                 <div className="flex flex-col gap-1">
                     <Input
                         value={canonical}
-                        placeholder="https://example.com/page"
+                        placeholder={t('canonicalUrlPlaceholder')}
                         inputMode="url"
                         onChange={(event) => {
                             setCanonical(event.target.value);
@@ -554,14 +529,11 @@ export const PageTab = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Sitemap indexing</p>
-                    <p className="text-small">
-                        Controls whether search engines can index this page. Writes{' '}
-                        <code>metadata.robots.index</code>.
-                    </p>
+                    <p className="text-regular font-medium">{t('sitemapLabel')}</p>
+                    <p className="text-small">{t('sitemapDesc')}</p>
                 </div>
                 <div className="border-border bg-background-secondary/40 flex items-center justify-between rounded-md border px-3 py-2">
-                    <span className="text-miniPlus">{isIndexed ? 'Indexable' : 'Noindex'}</span>
+                    <span className="text-miniPlus">{isIndexed ? t('indexable') : t('noindex')}</span>
                     <Switch
                         checked={isIndexed}
                         onCheckedChange={(checked) => setIsIndexed(Boolean(checked))}
@@ -570,11 +542,11 @@ export const PageTab = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Draft</p>
-                    <p className="text-small">Editor-only status for work that is not ready.</p>
+                    <p className="text-regular font-medium">{t('draftLabel')}</p>
+                    <p className="text-small">{t('draftDesc')}</p>
                 </div>
                 <div className="border-border bg-background-secondary/40 flex items-center justify-between rounded-md border px-3 py-2">
-                    <span className="text-miniPlus">{isDraft ? 'Draft' : 'Ready'}</span>
+                    <span className="text-miniPlus">{isDraft ? t('draftOn') : t('draftOff')}</span>
                     <Switch
                         checked={isDraft}
                         onCheckedChange={(checked) => setIsDraft(Boolean(checked))}
@@ -583,14 +555,12 @@ export const PageTab = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex max-w-52 flex-col">
-                    <p className="text-regular font-medium">Published</p>
-                    <p className="text-small">
-                        Editor-only published state shown in the page settings.
-                    </p>
+                    <p className="text-regular font-medium">{t('publishedLabel')}</p>
+                    <p className="text-small">{t('publishedDesc')}</p>
                 </div>
                 <div className="border-border bg-background-secondary/40 flex items-center justify-between rounded-md border px-3 py-2">
                     <span className="text-miniPlus">
-                        {isPublished ? 'Published' : 'Unpublished'}
+                        {isPublished ? t('publishedOn') : t('publishedOff')}
                     </span>
                     <Switch
                         checked={isPublished}
@@ -600,7 +570,7 @@ export const PageTab = ({
             </div>
             {isRoot && (
                 <div className="border-border bg-background-secondary/40 text-small text-foreground-secondary rounded-md border px-3 py-2">
-                    Home is locked to `/` and always uses the Home icon in the editor.
+                    {t('homeRootNote')}
                 </div>
             )}
         </div>
@@ -609,10 +579,9 @@ export const PageTab = ({
     const accessSection = (
         <div className="text-foreground-weblab flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-                <h2 className="text-title3">Access control</h2>
+                <h2 className="text-title3">{t('accessControlTitle')}</h2>
                 <p className="text-small text-foreground-secondary">
-                    Manage who can access this page once published. Changes take effect on your next
-                    publish.
+                    {t('accessControlDesc')}
                 </p>
             </div>
             <div
@@ -621,8 +590,8 @@ export const PageTab = ({
                 className="border-border bg-background-secondary/40 inline-flex rounded-md border p-1"
             >
                 {[
-                    { value: 'public' as const, label: 'Public' },
-                    { value: 'password' as const, label: 'Anyone with the password' },
+                    { value: 'public' as const, label: t('accessPublic') },
+                    { value: 'password' as const, label: t('accessPassword') },
                 ].map((option) => {
                     const selected = accessType === option.value;
                     return (
@@ -647,23 +616,23 @@ export const PageTab = ({
             </div>
             {accessType === 'public' ? (
                 <p className="text-mini text-foreground-tertiary">
-                    Anyone on the internet can access this page once published.
+                    {t('accessPublicDesc')}
                 </p>
             ) : (
                 <div className="flex flex-col gap-2">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex max-w-52 flex-col">
-                            <p className="text-regular font-medium">Password</p>
+                            <p className="text-regular font-medium">{t('passwordLabel')}</p>
                             <p className="text-small">
                                 {fetchedHasPassword
-                                    ? 'Leave blank to keep the current password.'
-                                    : 'Used as the Basic Auth password on the published site.'}
+                                    ? t('passwordKeepBlank')
+                                    : t('passwordSetInitial')}
                             </p>
                         </div>
                         <Input
                             type="password"
                             value={password}
-                            placeholder={fetchedHasPassword ? '••••••••' : 'Set a password'}
+                            placeholder={fetchedHasPassword ? '••••••••' : t('passwordPlaceholder')}
                             autoComplete="new-password"
                             spellCheck={false}
                             maxLength={256}
@@ -672,8 +641,7 @@ export const PageTab = ({
                         />
                     </div>
                     <p className="text-mini text-foreground-tertiary">
-                        Effective after the next publish. The password is hashed before storage; we
-                        never persist plaintext.
+                        {t('passwordEffective')}
                     </p>
                 </div>
             )}
@@ -684,17 +652,16 @@ export const PageTab = ({
         <div className="text-foreground-weblab flex flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col gap-1">
-                    <h2 className="text-title3">Schema markup</h2>
+                    <h2 className="text-title3">{t('schemaMarkupTitle')}</h2>
                     <p className="text-small text-foreground-secondary">
-                        JSON-LD injected as a script tag on this page. Helps search and answer
-                        engines understand the page.{' '}
+                        {t('schemaMarkupDesc')}{' '}
                         <a
                             href="https://schema.org/docs/gs.html"
                             target="_blank"
                             rel="noreferrer"
                             className="text-foreground-brand underline-offset-2 hover:underline"
                         >
-                            Learn more
+                            {t('schemaMarkupLearnMore')}
                         </a>
                     </p>
                 </div>
@@ -705,7 +672,7 @@ export const PageTab = ({
                     onClick={handleFormatSchemaMarkup}
                     disabled={editorEngine.pages.isScanning || isSaving || !schemaMarkup.trim()}
                 >
-                    Format JSON
+                    {t('formatJson')}
                 </Button>
             </div>
             <Textarea
@@ -736,7 +703,7 @@ export const PageTab = ({
                 <p className="text-mini text-red">{schemaError}</p>
             ) : (
                 <p className="text-mini text-foreground-tertiary">
-                    Leave empty to remove the script from the page.
+                    {t('schemaMarkupHint')}
                 </p>
             )}
         </div>
@@ -748,12 +715,12 @@ export const PageTab = ({
                 <div className="flex items-center gap-2 px-6 pt-4">
                     {!isPublished && (
                         <Button variant="outline" size="compact" disabled>
-                            Unpublished
+                            {t('unpublishedBadge')}
                         </Button>
                     )}
                     {isDraft && (
                         <Button variant="outline" size="compact" disabled>
-                            Draft
+                            {t('draftBadge')}
                         </Button>
                     )}
                 </div>
@@ -763,7 +730,7 @@ export const PageTab = ({
                     <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
                         <div className="text-foreground-secondary flex items-center gap-3">
                             <Icons.LoadingSpinner className="h-5 w-5 animate-spin" />
-                            <span className="text-regular">Fetching metadata...</span>
+                            <span className="text-regular">{t('fetchingMetadata')}</span>
                         </div>
                     </div>
                 ) : (

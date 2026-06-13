@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useQuery } from 'convex/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import type { CustomDomainVerification } from '@weblab/db/src/schema/domain/custom/verification';
@@ -47,6 +48,7 @@ const adaptVerification = (
 };
 
 export const DomainVerificationProvider = ({ children }: { children: ReactNode }) => {
+    const t = useTranslations('settings.domain.verification');
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
 
@@ -96,14 +98,14 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
                 projectId,
             });
             if (!verificationRequest) {
-                setError('Failed to create domain verification');
+                setError(t('errorCreateFailed'));
                 setVerificationState(VerificationState.INPUTTING_DOMAIN);
                 return;
             }
             setError(null);
         } catch (error) {
             setError(
-                error instanceof Error ? error.message : 'Failed to create domain verification',
+                error instanceof Error ? error.message : t('errorCreateFailed'),
             );
             // Reset back to the input state on failure — otherwise the state
             // stays at CREATING_VERIFICATION, which keeps the domain input
@@ -118,7 +120,7 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
     const removeVerificationRequest = async () => {
         try {
             if (!verificationRaw) {
-                setError('No verification request to remove');
+                setError(t('errorNoRemove'));
                 return;
             }
             await removeDomainVerification({
@@ -128,7 +130,7 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
             setError(null);
         } catch (error) {
             setError(
-                error instanceof Error ? error.message : 'Failed to remove verification request',
+                error instanceof Error ? error.message : t('errorRemoveFailed'),
             );
         }
     };
@@ -136,21 +138,21 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
     const verifyVerificationRequest = async () => {
         try {
             if (!verificationRaw) {
-                setError('No verification request to verify');
+                setError(t('errorNoVerify'));
                 return;
             }
             const { success, failureReason } = await verifyDomain({
                 verificationId: verificationRaw._id as Id<'customDomainVerification'>,
             });
             if (!success || failureReason) {
-                setError(failureReason ?? 'Failed to verify domain');
+                setError(failureReason ?? t('errorVerifyFailed'));
                 return;
             }
             setVerificationState(VerificationState.VERIFIED);
-            toast.success('Domain verified');
+            toast.success(t('toastVerified'));
             setError(null);
         } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to verify domain');
+            setError(error instanceof Error ? error.message : t('errorVerifyFailed'));
         }
     };
 
@@ -162,13 +164,13 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
                 projectId,
             });
             if (!success || failureReason) {
-                setError(failureReason ?? 'Failed to reuse domain');
+                setError(failureReason ?? t('errorReuseFailed'));
                 return;
             }
             setVerificationState(VerificationState.VERIFIED);
             setError(null);
         } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to reuse domain');
+            setError(error instanceof Error ? error.message : t('errorReuseFailed'));
         }
     };
 

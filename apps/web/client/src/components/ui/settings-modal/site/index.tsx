@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { DefaultSettings } from '@weblab/constants';
 import { type PageMetadata } from '@weblab/models';
@@ -47,6 +48,7 @@ function extractFaviconUrls(icons: PageMetadata['icons']): { light?: string; dar
 }
 
 export const SiteTab = observer(() => {
+    const t = useTranslations('settings.site');
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
     const domains = useQuery(api.domains.getAll, { projectId });
@@ -140,7 +142,7 @@ export const SiteTab = observer(() => {
                 }
             } catch (error) {
                 console.error('Failed to upload favicon:', error);
-                toast.error('Failed to upload favicon. Please try again.');
+                toast.error(t('toastFaviconFailed'));
                 return;
             }
             if (lightFaviconPath && darkFaviconPath) {
@@ -166,7 +168,7 @@ export const SiteTab = observer(() => {
                     // Mirror the favicon branch above: surface the failure
                     // so the user knows the OG image won't be saved.
                     console.error('Failed to upload OG image:', error);
-                    toast.error('Failed to upload OG image. Please try again.');
+                    toast.error(t('toastOgImageFailed'));
                     return;
                 }
                 updatedMetadata.openGraph = {
@@ -187,12 +189,10 @@ export const SiteTab = observer(() => {
             setUploadedFavicon(null);
             setUploadedFaviconDark(null);
             setIsDirty(false);
-            toast.success('Site metadata has been updated successfully.', {});
+            toast.success(t('toastSaveSuccess'));
         } catch (error) {
             console.error('Failed to update metadata:', error);
-            toast.error('Failed to update site metadata. Please try again.', {
-                description: 'Failed to update site metadata. Please try again.',
-            });
+            toast.error(t('toastSaveFailed'));
         } finally {
             setIsSaving(false);
         }
@@ -201,14 +201,14 @@ export const SiteTab = observer(() => {
     return (
         <div className="text-regular">
             <div className="flex flex-col gap-2 p-6">
-                <h2 className="text-largePlus">Site Settings</h2>
+                <h2 className="text-largePlus">{t('title')}</h2>
             </div>
             <div className="relative">
                 {editorEngine.pages.isScanning ? (
                     <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
                         <div className="text-foreground-secondary flex items-center gap-3">
                             <Icons.LoadingSpinner className="h-5 w-5 animate-spin" />
-                            <span className="text-small">Fetching metadata...</span>
+                            <span className="text-small">{t('fetchingMetadata')}</span>
                         </div>
                     </div>
                 ) : (

@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
 
 export const LegacyPromotion = () => {
+    const t = useTranslations('pricing.legacyPromo');
     const legacySubscriptions = useQuery(api.subscriptions.getLegacySubscriptions, {});
     const code = legacySubscriptions?.stripePromotionCode;
     const [isCopied, setIsCopied] = useState(false);
@@ -56,10 +58,10 @@ export const LegacyPromotion = () => {
         if (copied) {
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 3000);
-            toast.success('Copied to clipboard');
+            toast.success(t('toastCopied'));
         } else {
-            toast.error('Could not copy code', {
-                description: 'Select and copy it manually from the panel.',
+            toast.error(t('toastCopyFailed'), {
+                description: t('toastCopyFailedDesc'),
             });
         }
     };
@@ -74,12 +76,12 @@ export const LegacyPromotion = () => {
                     exit={{ opacity: 0 }}
                 >
                     <p className="text-left font-semibold text-blue-100">
-                        Pro Desktop Users get 1 month free!
+                        {t('title')}
                     </p>
 
                     {/* Coupon Code Section */}
                     <p className="mb-3 text-left text-sm text-blue-200">
-                        Use this code to redeem your free month of Tier 1 Pro
+                        {t('subtitle')}
                     </p>
 
                     <div className="flex items-center justify-between rounded bg-blue-900 px-3 py-2">
@@ -96,7 +98,7 @@ export const LegacyPromotion = () => {
                             ) : (
                                 <Icons.Copy className="h-4 w-4" />
                             )}
-                            {isCopied ? 'Copied' : 'Copy'}
+                            {isCopied ? t('copied') : t('copy')}
                         </Button>
                     </div>
                 </motion.div>

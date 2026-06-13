@@ -3,6 +3,7 @@ import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { PageNode } from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
@@ -32,15 +33,15 @@ import {
     requestPersistentStorage,
 } from '@/services/offline/project-cache';
 
-function formatRelative(ms: number): string {
+function formatRelative(ms: number, t: (key: string, values?: Record<string, unknown>) => string): string {
     const diff = Date.now() - ms;
-    if (diff < 60_000) return 'just now';
+    if (diff < 60_000) return t('justNow');
     const minutes = Math.floor(diff / 60_000);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return t('minutesAgo', { minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return t('hoursAgo', { hours });
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return t('daysAgo', { days });
 }
 
 function formatDate(ms: number): string {
@@ -78,6 +79,11 @@ const NO_FOLDER_VALUE = 'none';
 const NEW_FOLDER_VALUE = '__new__';
 
 export const ProjectTab = observer(() => {
+    const t = useTranslations('settings.project');
+    // Loose adapter so plain-string key helpers (e.g. formatRelative) can call t without TS narrowing errors.
+    const tStr = (key: string, values?: Record<string, unknown>) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        t(key as Parameters<typeof t>[0], values as any);
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
 
@@ -125,15 +131,15 @@ export const ProjectTab = observer(() => {
                 // project's URL so the first offline visit doesn't fall
                 // through to /offline. Safe no-op if SW isn't installed.
                 await precacheNavigationUrls([`/project/${editorEngine.projectId}`, '/projects']);
-                toast.success('Project marked as available offline.');
+                toast.success(t('toastOfflineOn'));
             } else {
                 await unpinOffline({ projectId });
                 await evictCachedProject(editorEngine.projectId);
-                toast.success('Project removed from offline access.');
+                toast.success(t('toastOfflineOff'));
             }
         } catch (error) {
             console.error('Failed to toggle offline pin:', error);
-            toast.error('Could not update offline availability.');
+            toast.error(t('toastOfflineFailed'));
         } finally {
             setOfflineBusy(false);
         }
@@ -164,7 +170,7 @@ export const ProjectTab = observer(() => {
             setCopiedId(true);
             setTimeout(() => setCopiedId(false), 1500);
         } catch {
-            toast.error('Could not copy Site ID');
+            toast.error(t('toastCopyIdFailed'));
         }
     };
 
@@ -195,7 +201,7 @@ export const ProjectTab = observer(() => {
         } catch (error) {
             console.error('Failed to save folders:', error);
             setFolders(previous);
-            toast.error('Could not update folder.');
+            toast.error(t('toastFolderFailed'));
         }
     };
 
@@ -206,7 +212,7 @@ export const ProjectTab = observer(() => {
         }
         const folderId = value === NO_FOLDER_VALUE ? null : value;
         await persistFolders(moveProjectIdsToFolder(folders, [projectId], folderId));
-        toast.success(folderId ? 'Project moved to folder.' : 'Project removed from folder.');
+        toast.success(folderId ? t('toastFolderMoved') : t('toastFolderRemoved'));
     };
 
     const handleCreateFolder = async (name: string) => {
@@ -219,7 +225,7 @@ export const ProjectTab = observer(() => {
             updatedAt: new Date().toISOString(),
         };
         await persistFolders([...cleared, folder]);
-        toast.success('Folder created.');
+        toast.success(t('toastFolderCreated'));
     };
 
     // Form state
@@ -276,10 +282,10 @@ export const ProjectTab = observer(() => {
                 });
             }
 
-            toast.success('Project settings updated successfully.');
+            toast.success(t('toastSaveSuccess'));
         } catch (error) {
             console.error('Failed to update project settings:', error);
-            toast.error('Failed to update project settings. Please try again.');
+            toast.error(t('toastSaveFailed'));
         } finally {
             setIsSaving(false);
         }
@@ -302,15 +308,15 @@ export const ProjectTab = observer(() => {
         <div className="text-regular flex h-full flex-col">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6 pb-24">
                 <div className="flex flex-col gap-4">
-                    <h2 className="text-largePlus">Overview</h2>
+                    <h2 className="text-largePlus">{t('overviewTitle')}</h2>
                     <div className="space-y-3">
-                        <OverviewRow label="Site ID">
+                        <OverviewRow label={t('siteIdLabel')}>
                             <code className="text-mini truncate font-mono">{projectId}</code>
                             <Button
                                 variant="ghost"
                                 size="icon-xs"
                                 type="button"
-                                aria-label="Copy Site ID"
+                                aria-label={t('copyId')}
                                 onClick={() => void copyProjectId()}
                             >
                                 {copiedId ? (
@@ -320,20 +326,20 @@ export const ProjectTab = observer(() => {
                                 )}
                             </Button>
                         </OverviewRow>
-                        <OverviewRow label="Pages">
+                        <OverviewRow label={t('pagesLabel')}>
                             <span>{editorEngine.pages.isScanning ? '—' : pagesCount}</span>
                         </OverviewRow>
-                        <OverviewRow label="Last published">
+                        <OverviewRow label={t('lastPublished')}>
                             <span>
-                                {lastPublishedAt ? formatRelative(lastPublishedAt) : 'Never'}
+                                {lastPublishedAt ? formatRelative(lastPublishedAt, tStr) : t('never')}
                             </span>
                         </OverviewRow>
-                        <OverviewRow label="Last updated">
+                        <OverviewRow label={t('lastUpdated')}>
                             <span>
-                                {project?.updatedAt ? formatRelative(project.updatedAt) : '—'}
+                                {project?.updatedAt ? formatRelative(project.updatedAt, tStr) : '—'}
                             </span>
                         </OverviewRow>
-                        <OverviewRow label="Created">
+                        <OverviewRow label={t('created')}>
                             <span>
                                 {project?._creationTime ? formatDate(project._creationTime) : '—'}
                             </span>
@@ -343,10 +349,10 @@ export const ProjectTab = observer(() => {
                 <Separator />
 
                 <div className="flex flex-col gap-4">
-                    <h2 className="text-largePlus">Metadata</h2>
+                    <h2 className="text-largePlus">{t('metadataTitle')}</h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-muted-foreground">Name</p>
+                            <p className="text-muted-foreground">{t('nameLabel')}</p>
                             <Input
                                 id="name"
                                 value={formData.name}
@@ -356,22 +362,22 @@ export const ProjectTab = observer(() => {
                             />
                         </div>
                         <div className="flex items-center justify-between">
-                            <p className="text-muted-foreground">Folder</p>
+                            <p className="text-muted-foreground">{t('folderLabel')}</p>
                             <Select
                                 value={currentFolderId ?? NO_FOLDER_VALUE}
                                 onValueChange={(v) => void handleFolderChange(v)}
                             >
                                 <SelectTrigger className="w-2/3">
-                                    <SelectValue placeholder="No folder" />
+                                    <SelectValue placeholder={t('noFolder')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={NO_FOLDER_VALUE}>No folder</SelectItem>
+                                    <SelectItem value={NO_FOLDER_VALUE}>{t('noFolder')}</SelectItem>
                                     {folders.map((folder) => (
                                         <SelectItem key={folder.id} value={folder.id}>
                                             {folder.name}
                                         </SelectItem>
                                     ))}
-                                    <SelectItem value={NEW_FOLDER_VALUE}>+ New folder…</SelectItem>
+                                    <SelectItem value={NEW_FOLDER_VALUE}>{t('newFolder')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -381,14 +387,13 @@ export const ProjectTab = observer(() => {
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <h2 className="text-largePlus">Offline</h2>
+                        <h2 className="text-largePlus">{t('offlineTitle')}</h2>
                         <p className="text-small text-foreground-secondary">
-                            Cache this project so you can open and edit it without a network
-                            connection. Edits queue locally and sync when you reconnect.
+                            {t('offlineDesc')}
                         </p>
                     </div>
                     <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Available offline</p>
+                        <p className="text-muted-foreground">{t('availableOffline')}</p>
                         <Switch
                             checked={!!isPinnedOffline}
                             disabled={offlineBusy}
@@ -398,19 +403,19 @@ export const ProjectTab = observer(() => {
                         />
                     </div>
                     <div className="text-mini flex items-center justify-between">
-                        <p className="text-muted-foreground">Last cached</p>
+                        <p className="text-muted-foreground">{t('lastCached')}</p>
                         <p className="text-foreground-secondary">
                             {cachedRecord
-                                ? formatRelative(cachedRecord.cachedAt)
-                                : 'Not yet cached'}
+                                ? formatRelative(cachedRecord.cachedAt, tStr)
+                                : t('notYetCached')}
                         </p>
                     </div>
                     <div className="text-mini flex items-center justify-between">
-                        <p className="text-muted-foreground">Frames cached</p>
+                        <p className="text-muted-foreground">{t('framesCached')}</p>
                         <p className="text-foreground-secondary">
                             {cachedRecord?.frames?.length
-                                ? `${cachedRecord.frames.length} frame${cachedRecord.frames.length === 1 ? '' : 's'}`
-                                : 'No canvas snapshot yet'}
+                                ? t('framesCount', { count: cachedRecord.frames.length })
+                                : t('noSnapshot')}
                         </p>
                     </div>
                 </div>
@@ -418,14 +423,14 @@ export const ProjectTab = observer(() => {
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <h2 className="text-largePlus">Commands</h2>
+                        <h2 className="text-largePlus">{t('commandsTitle')}</h2>
                         <p className="text-small text-foreground-secondary">
-                            {"Only update these if you know what you're doing!"}
+                            {t('commandsWarning')}
                         </p>
                     </div>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-muted-foreground">Install</p>
+                            <p className="text-muted-foreground">{t('installLabel')}</p>
                             <Input
                                 id="install"
                                 value={formData.install}
@@ -435,7 +440,7 @@ export const ProjectTab = observer(() => {
                             />
                         </div>
                         <div className="flex items-center justify-between">
-                            <p className="text-muted-foreground">Run</p>
+                            <p className="text-muted-foreground">{t('runLabel')}</p>
                             <Input
                                 id="run"
                                 value={formData.run}
@@ -445,7 +450,7 @@ export const ProjectTab = observer(() => {
                             />
                         </div>
                         <div className="flex items-center justify-between">
-                            <p className="text-muted-foreground">Build</p>
+                            <p className="text-muted-foreground">{t('buildLabel')}</p>
                             <Input
                                 id="build"
                                 value={formData.build}
@@ -471,7 +476,7 @@ export const ProjectTab = observer(() => {
                         onClick={handleDiscard}
                         disabled={!isDirty || isSaving}
                     >
-                        <span>Discard changes</span>
+                        <span>{t('discardChanges')}</span>
                     </Button>
                     <Button
                         variant="secondary"
@@ -483,7 +488,7 @@ export const ProjectTab = observer(() => {
                         disabled={!isDirty || isSaving}
                     >
                         {isSaving && <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />}
-                        <span>{isSaving ? 'Saving...' : 'Save changes'}</span>
+                        <span>{isSaving ? t('saving') : t('saveChanges')}</span>
                     </Button>
                 </div>
             </div>
