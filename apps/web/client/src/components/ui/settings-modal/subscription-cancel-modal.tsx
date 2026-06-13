@@ -14,12 +14,14 @@ interface SubscriptionCancelModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onConfirmCancel: () => void;
+    isBusy?: boolean;
 }
 
 export const SubscriptionCancelModal = ({
     open,
     onOpenChange,
     onConfirmCancel,
+    isBusy = false,
 }: SubscriptionCancelModalProps) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,6 +37,7 @@ export const SubscriptionCancelModal = ({
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
+                        disabled={isBusy}
                         className="order-2 sm:order-1"
                     >
                         Keep Subscription
@@ -42,9 +45,10 @@ export const SubscriptionCancelModal = ({
                     <Button
                         variant="destructive"
                         onClick={onConfirmCancel}
+                        disabled={isBusy}
                         className="order-1 sm:order-2"
                     >
-                        Cancel Subscription
+                        {isBusy ? 'Cancelling…' : 'Cancel Subscription'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -16,6 +16,7 @@ import { Icons } from '@weblab/ui/icons';
 import { Skeleton } from '@weblab/ui/skeleton';
 import { toast } from '@weblab/ui/sonner';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import type { BillingPaymentMethod } from './use-billing-details';
 import { formatCardBrand, formatCardExpiry } from './format';
 
@@ -32,6 +33,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
 
     const [busyId, setBusyId] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     const handleSetDefault = async (id: string) => {
         setBusyId(id);
@@ -48,6 +50,14 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
     };
 
     const handleDelete = async (id: string) => {
+        // Confirm first — removing a saved card is destructive with no undo.
+        const ok = await confirm({
+            title: 'Remove payment method?',
+            description: 'This card will be removed from your account.',
+            confirmLabel: 'Remove',
+            destructive: true,
+        });
+        if (!ok) return;
         setBusyId(id);
         try {
             await deletePaymentMethod({ paymentMethodId: id });
@@ -157,6 +167,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
                     ))}
                 </div>
             )}
+            {confirmDialog}
         </div>
     );
 };

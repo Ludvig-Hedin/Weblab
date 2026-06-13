@@ -80,7 +80,7 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
                                 void handleDeleteProject();
                             }}
                         >
-                            {t(transKeys.projects.actions.delete)}
+                            {isDeleting ? 'Deleting…' : t(transKeys.projects.actions.delete)}
                         </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>

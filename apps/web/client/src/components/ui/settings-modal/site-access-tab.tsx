@@ -17,6 +17,7 @@ import { getInitials } from '@weblab/utility';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 type MemberRole = 'manager' | 'editor' | 'reviewer' | 'viewer';
 
@@ -55,6 +56,7 @@ export const SiteAccessTab = observer(() => {
     const [isInviting, setIsInviting] = useState(false);
     const [busyUserId, setBusyUserId] = useState<string | null>(null);
     const [busyInviteId, setBusyInviteId] = useState<string | null>(null);
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     const pendingInvites = (invitations ?? []).filter((i) => i.status === 'pending');
 
@@ -87,11 +89,22 @@ export const SiteAccessTab = observer(() => {
         }
     };
 
-    const handleRemove = async (userId: Id<'users'>) => {
+    const handleRemove = async (userId: Id<'users'>, isMe: boolean) => {
+        // Destructive + immediate: removing a member (or leaving, which drops
+        // your own access) must confirm first — there's no undo.
+        const ok = await confirm({
+            title: isMe ? 'Leave this site?' : 'Remove member?',
+            description: isMe
+                ? 'You will lose access to this project unless you are re-invited.'
+                : 'This member will immediately lose access to the project.',
+            confirmLabel: isMe ? 'Leave' : 'Remove',
+            destructive: true,
+        });
+        if (!ok) return;
         setBusyUserId(userId);
         try {
             await removeMember({ projectId, userId });
-            toast.success('Member removed');
+            toast.success(isMe ? 'Left the site' : 'Member removed');
         } catch (error) {
             toast.error(errorMessage(error, 'Could not remove the member.'));
         } finally {
@@ -240,7 +253,7 @@ export const SiteAccessTab = observer(() => {
                                             aria-label={isMe ? 'Leave site' : 'Remove member'}
                                             title={isMe ? 'Leave site' : 'Remove member'}
                                             disabled={busyUserId === u.id}
-                                            onClick={() => void handleRemove(u.id)}
+                                            onClick={() => void handleRemove(u.id, isMe)}
                                         >
                                             <Icons.Trash className="h-4 w-4" />
                                         </Button>
@@ -286,6 +299,7 @@ export const SiteAccessTab = observer(() => {
                     </div>
                 </section>
             )}
+            {confirmDialog}
         </div>
     );
 });

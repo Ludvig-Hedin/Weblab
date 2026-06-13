@@ -92,6 +92,7 @@ export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
                 open={isCancelModalOpen}
                 onOpenChange={setIsCancelModalOpen}
                 onConfirmCancel={() => void handleConfirmCancel()}
+                isBusy={isBusy}
             />
         </div>
     );

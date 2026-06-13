@@ -22,6 +22,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
     const t = useTranslations();
     const updateProject = useMutation(convexApi.projects.update);
     const [showRenameDialog, setShowRenameDialog] = useState(false);
+    const [isRenaming, setIsRenaming] = useState(false);
     const [projectName, setProjectName] = useState(project.name);
     // Reject whitespace-only names too — `length === 0` previously let `"   "` through (issue #41).
     const isProjectNameEmpty = useMemo(() => projectName.trim().length === 0, [projectName]);
@@ -33,6 +34,8 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
     const handleRenameProject = async () => {
         const trimmedName = projectName.trim();
         if (trimmedName.length === 0) return;
+        if (isRenaming) return;
+        setIsRenaming(true);
         const now = new Date();
 
         try {
@@ -71,6 +74,8 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
             toast.error('Failed to rename project', {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
+        } finally {
+            setIsRenaming(false);
         }
     };
 
@@ -96,7 +101,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            if (isProjectNameEmpty) return;
+                            if (isProjectNameEmpty || isRenaming) return;
                             void handleRenameProject();
                         }}
                     >
@@ -133,7 +138,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={isProjectNameEmpty}
+                                disabled={isProjectNameEmpty || isRenaming}
                                 className="rounded-md text-sm"
                             >
                                 {t(transKeys.projects.actions.rename)}

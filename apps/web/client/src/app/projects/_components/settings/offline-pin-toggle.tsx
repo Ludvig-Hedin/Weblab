@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useConvex, useMutation, useQuery } from 'convex/react';
 
@@ -27,9 +28,14 @@ export function OfflinePinToggle({ project }: { project: Project }) {
     const isPinned = useQuery(api.projectOffline.isPinned, { projectId });
     const pinOffline = useMutation(api.projectOffline.pin);
     const unpinOffline = useMutation(api.projectOffline.unpin);
+    const [isPending, setIsPending] = useState(false);
 
     const handleToggle = async (event: Event) => {
         event.preventDefault();
+        // The toggle fans out to several network calls; guard against a fast
+        // reopen-and-reclick re-firing pin/unpin mid-flight.
+        if (isPending) return;
+        setIsPending(true);
         try {
             if (isPinned) {
                 await unpinOffline({ projectId });
@@ -60,11 +66,14 @@ export function OfflinePinToggle({ project }: { project: Project }) {
         } catch (err) {
             console.error('Failed to toggle offline pin', err);
             toast.error('Could not update offline availability.');
+        } finally {
+            setIsPending(false);
         }
     };
 
     return (
         <DropdownMenuItem
+            disabled={isPending}
             onSelect={(event) => {
                 void handleToggle(event);
             }}
