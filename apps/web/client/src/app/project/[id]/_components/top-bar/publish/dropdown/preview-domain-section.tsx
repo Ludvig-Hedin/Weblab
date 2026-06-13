@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -17,6 +18,7 @@ import { useSelectedProvider } from './selected-provider';
 import { UrlSection } from './url';
 
 export const PreviewDomainSection = observer(() => {
+    const t = useTranslations('editor.publish.previewDomain');
     const editorEngine = useEditorEngine();
     const { selectedProvider } = useSelectedProvider();
     const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +40,7 @@ export const PreviewDomainSection = observer(() => {
             });
             if (!created) {
                 console.error('Failed to create preview domain');
-                toast.error('Failed to create preview domain');
+                toast.error(t('toastCreateFailed'));
                 return;
             }
             await publish();
@@ -50,13 +52,13 @@ export const PreviewDomainSection = observer(() => {
     const publish = async (): Promise<void> => {
         if (!project) {
             console.error('No project found');
-            toast.error('No project found');
+            toast.error(t('toastNoProject'));
             return;
         }
         const sandboxId = editorEngine.branches.activeBranch?.sandbox?.id;
         if (!sandboxId) {
             console.error('No sandbox found');
-            toast.error('No sandbox found');
+            toast.error(t('toastNoSandbox'));
             return;
         }
         setIsLoading(true);

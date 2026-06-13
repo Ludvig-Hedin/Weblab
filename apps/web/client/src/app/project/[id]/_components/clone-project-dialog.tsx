@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     AlertDialog,
@@ -33,6 +34,7 @@ interface CloneProjectDialogProps {
 
 export const CloneProjectDialog = observer(
     ({ isOpen, onClose, projectName }: CloneProjectDialogProps) => {
+        const t = useTranslations('editor.clone');
         const editorEngine = useEditorEngine();
         const router = useRouter();
         const cloneProject = useAction(api.projectActions.fork);
@@ -78,7 +80,7 @@ export const CloneProjectDialog = observer(
 
         const handleCloneCurrentProject = async () => {
             if (!editorEngine.projectId) {
-                toast.error('No project to clone');
+                toast.error(t('toastNoProject'));
                 return;
             }
 
@@ -97,12 +99,12 @@ export const CloneProjectDialog = observer(
                 });
 
                 if (clonedProject) {
-                    toast.success('Project cloned successfully');
+                    toast.success(t('toastSuccess'));
                     onClose();
                     router.push(`${Routes.PROJECT}/${clonedProject.projectId}`);
                 } else {
-                    toast.error('Failed to clone project', {
-                        description: 'No project was returned from the server.',
+                    toast.error(t('toastFailed'), {
+                        description: t('toastServerError'),
                     });
                 }
             } catch (error) {
@@ -110,12 +112,11 @@ export const CloneProjectDialog = observer(
                 const errorMessage = error instanceof Error ? error.message : String(error);
 
                 if (errorMessage.includes('502') || errorMessage.includes('sandbox')) {
-                    toast.error('Sandbox service temporarily unavailable', {
-                        description:
-                            'Please try again in a few moments. Our servers may be experiencing high load.',
+                    toast.error(t('toastUnavailable'), {
+                        description: t('toastHighLoad'),
                     });
                 } else {
-                    toast.error('Failed to clone project', {
+                    toast.error(t('toastFailed'), {
                         description: errorMessage,
                     });
                 }
@@ -128,17 +129,17 @@ export const CloneProjectDialog = observer(
             <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Clone Project</AlertDialogTitle>
+                        <AlertDialogTitle>{t('dialogTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Create a copy of this project with all settings preserved.
+                            {t('dialogDesc')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="flex w-full flex-col gap-2">
-                        <Label htmlFor="clone-name">Project Name</Label>
+                        <Label htmlFor="clone-name">{t('projectNameLabel')}</Label>
                         <Input
                             id="clone-name"
                             type="text"
-                            placeholder="Enter name for cloned project"
+                            placeholder={t('projectNamePlaceholder')}
                             value={cloneProjectName}
                             onChange={(e) => setCloneProjectName(e.target.value)}
                         />
@@ -148,7 +149,7 @@ export const CloneProjectDialog = observer(
                                 isCloneProjectNameEmpty ? 'opacity-100' : 'opacity-0',
                             )}
                         >
-                            Project name can't be empty
+                            {t('validationEmpty')}
                         </p>
                     </div>
                     <AlertDialogFooter>
@@ -157,7 +158,7 @@ export const CloneProjectDialog = observer(
                             onClick={() => handleOpenChange(false)}
                             disabled={isCloningCurrentProject}
                         >
-                            Cancel
+                            {t('cancel')}
                         </Button>
                         <Button
                             disabled={isCloneProjectNameEmpty || isCloningCurrentProject}
@@ -166,10 +167,10 @@ export const CloneProjectDialog = observer(
                             {isCloningCurrentProject ? (
                                 <>
                                     <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                    Cloning...
+                                    {t('cloning')}
                                 </>
                             ) : (
-                                'Clone Project'
+                                t('clone')
                             )}
                         </Button>
                     </AlertDialogFooter>

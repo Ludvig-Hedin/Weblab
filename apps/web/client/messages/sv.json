@@ -1727,6 +1727,211 @@
       "fit": "Anpassa zoom",
       "reset": "Zooma 100 %",
       "double": "Zooma 200 %"
+    },
+    "members": {
+      "row": {
+        "removed": "{name} borttagen från projektet",
+        "you": "(du)",
+        "confirmRemove": "Ta bort?",
+        "toastRemoveFailed": "Det gick inte att ta bort medlemmen"
+      },
+      "invitation": {
+        "pending": "Väntande inbjudan",
+        "copiedTooltip": "Kopierat till urklipp",
+        "copyLinkTooltip": "Kopiera inbjudningslänk",
+        "cancelTooltip": "Avbryt inbjudan",
+        "toastCopied": "Inbjudningslänk kopierades till urklipp",
+        "toastCopyFailed": "Det gick inte att kopiera inbjudningslänken",
+        "toastCancelFailed": "Det gick inte att avbryta inbjudan"
+      },
+      "invite": {
+        "placeholder": "Lägg till e-postadress",
+        "roleManager": "Manager",
+        "roleManagerDesc": "Kan redigera, publicera och hantera åtkomst",
+        "roleEditor": "Redaktör",
+        "roleEditorDesc": "Kan redigera och använda AI",
+        "roleReviewer": "Granskare",
+        "roleReviewerDesc": "Kan visa och kommentera",
+        "roleViewer": "Visare",
+        "roleViewerDesc": "Kan bara visa",
+        "invite": "Bjud in",
+        "toastSent": "Inbjudan skickad",
+        "toastFailed": "Det gick inte att bjuda in medlemmen"
+      },
+      "content": {
+        "title": "Bjud in teammedlemmar",
+        "loading": "Laddar medlemmar..."
+      },
+      "suggested": {
+        "title": "Föreslagna teammedlemmar",
+        "desc": "Bjud in relevanta personer att samarbeta"
+      }
+    },
+    "git": {
+      "toastGitUnavailable": "Git är inte tillgängligt förrän sandbox är redo",
+      "toastNoChanges": "Inga ändringar att committa",
+      "toastNoBranchName": "Den här grenen saknar git-grennamn",
+      "toastNotLinked": "Den här grenen är inte kopplad till ett GitHub-repo",
+      "toastNeedFeatureBranch": "Skapa en funktionsgren innan du öppnar en pull request",
+      "toastNoStagedChanges": "Inga stagade ändringar att committa",
+      "toastCommitFailed": "Commit misslyckades",
+      "toastPushFailed": "Push misslyckades",
+      "toastCommittedPushed": "Committad och pushad",
+      "toastExistingPR": "Befintlig pull request öppnad",
+      "toastCreatedPR": "Pull request skapad",
+      "toastCommitted": "Committad",
+      "toastActionFailed": "Git-åtgärd misslyckades",
+      "toastNoActiveBranch": "Ingen aktiv gren",
+      "errorStatusUnavailable": "Git-status är inte tillgänglig förrän sandbox är redo.",
+      "errorStatusFailed": "Det gick inte att hämta git-status.",
+      "commitMsgPlaceholder": "Lämna tomt för att auto-generera ett commit-meddelande",
+      "branchLabel": "Gren",
+      "changesLabel": "Ändringar",
+      "changesCount": "{count, plural, one {# fil} other {# filer}}",
+      "includeUnstaged": "Inkludera ostage:ade",
+      "stageFilesWarning": "Stagea minst en fil innan du committar bara stagade ändringar.",
+      "commitMsgLabel": "Commit-meddelande",
+      "nextStepsLabel": "Nästa steg",
+      "actionCommit": "Committa",
+      "actionCommitPush": "Committa & pusha",
+      "actionCommitPR": "Committa & skapa PR",
+      "dialogTitle": "Committa dina ändringar",
+      "dialogDesc": "Granska och committa dina ändringar till git",
+      "working": "Arbetar...",
+      "continue": "Fortsätt",
+      "gitActionsLabel": "Git-åtgärder",
+      "dropdownCommit": "Committa",
+      "dropdownCommitPush": "Committa & pusha",
+      "dropdownCreatePR": "Skapa PR",
+      "dropdownCreateBranch": "Skapa gren",
+      "toastSwitchFailed": "Det gick inte att byta gren",
+      "stagedFilesReady": "{count, plural, one {# stagead fil redo att committa.} other {# stagade filer redo att committa.}}"
+    },
+    "publish": {
+      "url": {
+        "toastCopied": "Kopierat till urklipp",
+        "toastFailed": "Det gick inte att kopiera till urklipp"
+      },
+      "previewDomain": {
+        "toastCreateFailed": "Det gick inte att skapa förhandsvisningsdomän",
+        "toastNoProject": "Inget projekt hittades",
+        "toastNoSandbox": "Ingen sandbox hittades"
+      },
+      "deployHistory": {
+        "toastStarted": "Omuppladdning startad",
+        "toastFailed": "Omuppladdning misslyckades"
+      },
+      "hosting": {
+        "toastPasteFirst": "Klistra in en API-token först.",
+        "toastConnected": "{provider} ansluten.",
+        "toastValidationFailed": "Token-validering misslyckades.",
+        "toastValidationError": "Validering misslyckades.",
+        "toastSaveFailed": "Det gick inte att spara anslutningen.",
+        "toastDisconnected": "Kopplade från {provider}.",
+        "toastDisconnectFailed": "Det gick inte att koppla från.",
+        "tokenPlaceholder": "Klistra in din token",
+        "tokenAutoFillPlaceholder": "Fylls i automatiskt om du testar först"
+      }
+    },
+    "bottomBar": {
+      "restart": {
+        "toastNoSession": "Sandbox-session ej tillgänglig",
+        "toastFailed": "Det gick inte att starta om sandbox",
+        "toastSuccess": "Sandbox startades om",
+        "toastError": "Ett fel uppstod vid omstart av sandbox",
+        "restarting": "Startar om ({seconds}s)…",
+        "restart": "Starta om sandbox"
+      }
+    },
+    "clone": {
+      "toastNoProject": "Inget projekt att klona",
+      "toastSuccess": "Projektet klonades",
+      "toastFailed": "Det gick inte att klona projektet",
+      "toastServerError": "Inget projekt returnerades från servern.",
+      "toastUnavailable": "Sandbox-tjänsten är tillfälligt otillgänglig",
+      "toastHighLoad": "Försök igen om en liten stund. Våra servrar kan vara överbelastade.",
+      "dialogTitle": "Klona projekt",
+      "dialogDesc": "Skapa en kopia av det här projektet med alla inställningar bevarade.",
+      "projectNameLabel": "Projektnamn",
+      "projectNamePlaceholder": "Ange namn på klonat projekt",
+      "validationEmpty": "Projektnamnet får inte vara tomt",
+      "cancel": "Avbryt",
+      "cloning": "Klonar...",
+      "clone": "Klona projekt"
+    },
+    "createComponent": {
+      "toastFailed": "Det gick inte att skapa komponenten",
+      "toastSuccess": "Komponent {name} skapad",
+      "dialogTitle": "Skapa komponent",
+      "dialogDesc": "Urvalet blir en återanvändbar komponent; den här kopian blir dess första instans.",
+      "namePlaceholder": "KomponentNamn",
+      "nameHint": "PascalCase, t.ex. HeroCard",
+      "propsTitle": "Föreslagna egenskaper",
+      "propsDesc": "Markerade värden kan redigeras per instans; omarkerade förblir fasta.",
+      "cancel": "Avbryt",
+      "creating": "Skapar…",
+      "create": "Skapa"
+    },
+    "offlinePanel": {
+      "toastStillOffline": "Fortfarande offline. Anslut och försök igen.",
+      "toastNotConnected": "Sandbox är inte ansluten än. Vänta en stund och försök igen.",
+      "toastOfflineMode": "Sandbox är fortfarande i offline-läge. Ladda om projektet för att återansluta, synka sedan.",
+      "toastSyncSuccess": "{count, plural, one {Synkade # ändring} other {Synkade # ändringar}}",
+      "toastSyncFailed": "Synkronisering misslyckades",
+      "toastRequeued": "Inköad för synkronisering.",
+      "toastRetryFailed": "Åtförsök misslyckades",
+      "dialogTitle": "Offline-synk",
+      "online": "Online",
+      "offline": "Offline",
+      "statusPending": "{count, plural, one {# väntande} other {# väntande}}",
+      "statusDeadLetter": "{count} dead-letter",
+      "statusConflict": "{count, plural, one {# konflikt} other {# konflikter}}",
+      "syncNow": "Synka nu",
+      "pendingTitle": "Väntande ändringar",
+      "noPending": "Inga köade ändringar.",
+      "deadLetterTitle": "Dead letter",
+      "noDeadLetter": "Inga poster har misslyckats efter försök.",
+      "retry": "Försök igen",
+      "conflictsTitle": "Konflikter",
+      "noConflicts": "Inga fjärrändringar skrevs över av dina offline-redigeringar.",
+      "dismiss": "Avfärda",
+      "yourVersionKept": "Din version behölls. Upptäckt {date}.",
+      "showRemoteVersion": "Visa fjärrversion",
+      "binaryContent": "[binärt innehåll]",
+      "close": "Stäng",
+      "discardDeadLetterTitle": "Kassera alla dead-letter-poster?",
+      "discardDeadLetterDesc": "Deras innehåll går förlorat. Det går inte att ångra.",
+      "discardConfirm": "Kassera",
+      "toastDeadLetterCleared": "Dead letter rensad."
+    },
+    "chat": {
+      "multiBranchRevert": {
+        "toastSelectFirst": "Välj minst en gren att återställa",
+        "toastAllFailed": "Det gick inte att återställa alla valda grenar",
+        "toastFailed": "Det gick inte att återställa grenar",
+        "dialogTitle": "Återställ flera grenar",
+        "dialogDesc": "Välj de grenar du vill återställa till sitt föregående tillstånd.",
+        "selectNone": "Avmarkera alla",
+        "selectAll": "Markera alla",
+        "cancel": "Avbryt",
+        "restoring": "Återställer...",
+        "restore": "Återställ valda"
+      }
+    },
+    "canvas": {
+      "hotkeys": {
+        "toastSelectFirst": "Välj ett element först för att redigera inline",
+        "toastLocateFailed": "Kan inte hitta elementets källkod."
+      }
+    },
+    "code": {
+      "unsavedChanges": {
+        "messageSingle": "Du har osparade ändringar. Vill du verkligen stänga den här filen?",
+        "messagePlural": "Du har osparade ändringar. Vill du verkligen stänga {count} filer?",
+        "discard": "Kasta",
+        "save": "Spara",
+        "cancel": "Avbryt"
+      }
     }
   },
   "help": {

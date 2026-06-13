@@ -1727,6 +1727,211 @@
       "fit": "Zoom Fit",
       "reset": "Zoom 100%",
       "double": "Zoom 200%"
+    },
+    "members": {
+      "row": {
+        "removed": "{name} removed from project",
+        "you": "(you)",
+        "confirmRemove": "Remove?",
+        "toastRemoveFailed": "Failed to remove member"
+      },
+      "invitation": {
+        "pending": "Pending Invitation",
+        "copiedTooltip": "Copied to clipboard",
+        "copyLinkTooltip": "Copy Invitation Link",
+        "cancelTooltip": "Cancel Invitation",
+        "toastCopied": "Invitation link copied to clipboard",
+        "toastCopyFailed": "Failed to copy invitation link",
+        "toastCancelFailed": "Failed to cancel invitation"
+      },
+      "invite": {
+        "placeholder": "Add email address",
+        "roleManager": "Manager",
+        "roleManagerDesc": "Can edit, publish, and manage access",
+        "roleEditor": "Editor",
+        "roleEditorDesc": "Can edit and use AI",
+        "roleReviewer": "Reviewer",
+        "roleReviewerDesc": "Can view and comment",
+        "roleViewer": "Viewer",
+        "roleViewerDesc": "Can view only",
+        "invite": "Invite",
+        "toastSent": "Invitation sent",
+        "toastFailed": "Failed to invite member"
+      },
+      "content": {
+        "title": "Invite Team Members",
+        "loading": "Loading members..."
+      },
+      "suggested": {
+        "title": "Suggested Teammates",
+        "desc": "Invite relevant people to collaborate"
+      }
+    },
+    "git": {
+      "toastGitUnavailable": "Git is unavailable until the sandbox is ready",
+      "toastNoChanges": "No changes to commit",
+      "toastNoBranchName": "This branch does not have a git branch name yet",
+      "toastNotLinked": "This branch is not linked to a GitHub repository",
+      "toastNeedFeatureBranch": "Create a feature branch before opening a pull request",
+      "toastNoStagedChanges": "No staged changes to commit",
+      "toastCommitFailed": "Commit failed",
+      "toastPushFailed": "Push failed",
+      "toastCommittedPushed": "Committed and pushed",
+      "toastExistingPR": "Opened existing pull request",
+      "toastCreatedPR": "Created pull request",
+      "toastCommitted": "Committed",
+      "toastActionFailed": "Git action failed",
+      "toastNoActiveBranch": "No active branch",
+      "errorStatusUnavailable": "Git status is unavailable until the sandbox is ready.",
+      "errorStatusFailed": "Failed to load git status.",
+      "commitMsgPlaceholder": "Leave blank to autogenerate a commit message",
+      "branchLabel": "Branch",
+      "changesLabel": "Changes",
+      "changesCount": "{count, plural, one {# file} other {# files}}",
+      "includeUnstaged": "Include unstaged",
+      "stageFilesWarning": "Stage at least one file before committing staged changes only.",
+      "commitMsgLabel": "Commit message",
+      "nextStepsLabel": "Next steps",
+      "actionCommit": "Commit",
+      "actionCommitPush": "Commit & push",
+      "actionCommitPR": "Commit & create PR",
+      "dialogTitle": "Commit your changes",
+      "dialogDesc": "Review and commit your changes to git",
+      "working": "Working...",
+      "continue": "Continue",
+      "gitActionsLabel": "Git actions",
+      "dropdownCommit": "Commit",
+      "dropdownCommitPush": "Commit & push",
+      "dropdownCreatePR": "Create PR",
+      "dropdownCreateBranch": "Create branch",
+      "toastSwitchFailed": "Failed to switch branch",
+      "stagedFilesReady": "{count, plural, one {# staged file ready to commit.} other {# staged files ready to commit.}}"
+    },
+    "publish": {
+      "url": {
+        "toastCopied": "Copied to clipboard",
+        "toastFailed": "Failed to copy to clipboard"
+      },
+      "previewDomain": {
+        "toastCreateFailed": "Failed to create preview domain",
+        "toastNoProject": "No project found",
+        "toastNoSandbox": "No sandbox found"
+      },
+      "deployHistory": {
+        "toastStarted": "Redeploy started",
+        "toastFailed": "Redeploy failed"
+      },
+      "hosting": {
+        "toastPasteFirst": "Paste an API token first.",
+        "toastConnected": "{provider} connected.",
+        "toastValidationFailed": "Token validation failed.",
+        "toastValidationError": "Validation failed.",
+        "toastSaveFailed": "Failed to save connection.",
+        "toastDisconnected": "Disconnected {provider}.",
+        "toastDisconnectFailed": "Failed to disconnect.",
+        "tokenPlaceholder": "Paste your token",
+        "tokenAutoFillPlaceholder": "Filled in automatically if you Test first"
+      }
+    },
+    "bottomBar": {
+      "restart": {
+        "toastNoSession": "Sandbox session not available",
+        "toastFailed": "Failed to restart sandbox",
+        "toastSuccess": "Sandbox restarted successfully",
+        "toastError": "An error occurred while restarting the sandbox",
+        "restarting": "Restarting ({seconds}s)…",
+        "restart": "Restart Sandbox"
+      }
+    },
+    "clone": {
+      "toastNoProject": "No project to clone",
+      "toastSuccess": "Project cloned successfully",
+      "toastFailed": "Failed to clone project",
+      "toastServerError": "No project was returned from the server.",
+      "toastUnavailable": "Sandbox service temporarily unavailable",
+      "toastHighLoad": "Please try again in a few moments. Our servers may be experiencing high load.",
+      "dialogTitle": "Clone Project",
+      "dialogDesc": "Create a copy of this project with all settings preserved.",
+      "projectNameLabel": "Project Name",
+      "projectNamePlaceholder": "Enter name for cloned project",
+      "validationEmpty": "Project name can’t be empty",
+      "cancel": "Cancel",
+      "cloning": "Cloning...",
+      "clone": "Clone Project"
+    },
+    "createComponent": {
+      "toastFailed": "Could not create component",
+      "toastSuccess": "Component {name} created",
+      "dialogTitle": "Create component",
+      "dialogDesc": "The selection becomes a reusable component; this copy becomes its first instance.",
+      "namePlaceholder": "ComponentName",
+      "nameHint": "PascalCase, e.g. HeroCard",
+      "propsTitle": "Suggested properties",
+      "propsDesc": "Checked values become editable per instance; unchecked stay fixed.",
+      "cancel": "Cancel",
+      "creating": "Creating…",
+      "create": "Create"
+    },
+    "offlinePanel": {
+      "toastStillOffline": "Still offline. Reconnect and try again.",
+      "toastNotConnected": "Sandbox not connected yet. Wait a moment and retry.",
+      "toastOfflineMode": "Sandbox is still in offline mode. Reload the project to reconnect, then sync.",
+      "toastSyncSuccess": "{count, plural, one {Synced # change} other {Synced # changes}}",
+      "toastSyncFailed": "Sync failed",
+      "toastRequeued": "Re-queued for sync.",
+      "toastRetryFailed": "Retry failed",
+      "dialogTitle": "Offline sync",
+      "online": "Online",
+      "offline": "Offline",
+      "statusPending": "{count, plural, one {# pending} other {# pending}}",
+      "statusDeadLetter": "{count} dead-letter",
+      "statusConflict": "{count, plural, one {# conflict} other {# conflicts}}",
+      "syncNow": "Sync now",
+      "pendingTitle": "Pending writes",
+      "noPending": "No queued changes.",
+      "deadLetterTitle": "Dead letter",
+      "noDeadLetter": "No records have failed past retry.",
+      "retry": "Retry",
+      "conflictsTitle": "Conflicts",
+      "noConflicts": "No remote changes were overwritten by your offline edits.",
+      "dismiss": "Dismiss",
+      "yourVersionKept": "Your version was kept. Detected {date}.",
+      "showRemoteVersion": "Show remote version",
+      "binaryContent": "[binary content]",
+      "close": "Close",
+      "discardDeadLetterTitle": "Discard all dead-letter records?",
+      "discardDeadLetterDesc": "Their content will be lost. This cannot be undone.",
+      "discardConfirm": "Discard",
+      "toastDeadLetterCleared": "Dead letter cleared."
+    },
+    "chat": {
+      "multiBranchRevert": {
+        "toastSelectFirst": "Please select at least one branch to revert",
+        "toastAllFailed": "Failed to restore all selected branches",
+        "toastFailed": "Failed to restore branches",
+        "dialogTitle": "Restore Multiple Branches",
+        "dialogDesc": "Select the branches you want to restore to their previous state.",
+        "selectNone": "Select None",
+        "selectAll": "Select All",
+        "cancel": "Cancel",
+        "restoring": "Restoring...",
+        "restore": "Restore Selected"
+      }
+    },
+    "canvas": {
+      "hotkeys": {
+        "toastSelectFirst": "Select an element first to inline-edit",
+        "toastLocateFailed": "Can’t locate this element’s source."
+      }
+    },
+    "code": {
+      "unsavedChanges": {
+        "messageSingle": "You have unsaved changes. Are you sure you want to close this file?",
+        "messagePlural": "You have unsaved changes. Are you sure you want to close {count} files?",
+        "discard": "Discard",
+        "save": "Save",
+        "cancel": "Cancel"
+      }
     }
   },
   "help": {

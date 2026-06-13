@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { DefaultSettings, EditorAttributes } from '@weblab/constants';
@@ -13,6 +14,7 @@ import { useStateManager } from '@/components/store/state';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 
 export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
+    const t = useTranslations('editor.canvas.hotkeys');
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
     // Read the current binding for a hotkey key, preferring user-customized
@@ -119,12 +121,12 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             if (editorEngine.state.editorMode !== EditorMode.DESIGN) return;
             const selected = editorEngine.elements.selected[0];
             if (!selected) {
-                toast.info('Select an element first to inline-edit');
+                toast.info(t('toastSelectFirst'));
                 return;
             }
             const oid = selected.instanceId ?? selected.oid;
             if (!oid) {
-                toast.error("Can't locate this element's source.");
+                toast.error(t('toastLocateFailed'));
                 return;
             }
             void editorEngine.ide.openInlineEditFromCanvas(oid);

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@weblab/ui/button';
@@ -32,12 +33,6 @@ import { useEditorEngine } from '@/components/store/editor';
 
 type CommitAction = 'commit' | 'commit-push' | 'commit-pr';
 
-const ACTION_LABELS: Record<CommitAction, string> = {
-    commit: 'Commit',
-    'commit-push': 'Commit & push',
-    'commit-pr': 'Commit & create PR',
-};
-
 const ACTION_ICONS: Record<CommitAction, React.ReactNode> = {
     commit: <Icons.Commit className="h-4 w-4 shrink-0" />,
     'commit-push': <Icons.Upload className="h-4 w-4 shrink-0" />,
@@ -51,6 +46,10 @@ interface CommitModalProps {
 }
 
 const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModalProps) => {
+    const t = useTranslations('editor.git') as (
+        key: string,
+        values?: Record<string, string | number>,
+    ) => string;
     const editorEngine = useEditorEngine();
     const createPullRequest = useAction(api.githubActions.createPullRequest);
 
@@ -84,7 +83,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
         if (!gitManager) {
             setFileCount(0);
             setDiffStat(null);
-            setGitInfoError('Git status is unavailable until the sandbox is ready.');
+            setGitInfoError(t('errorStatusUnavailable'));
             return;
         }
 
@@ -103,7 +102,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
             setFileCount(0);
             setStagedFileCount(0);
             setDiffStat(null);
-            setGitInfoError('Failed to load git status.');
+            setGitInfoError(t('errorStatusFailed'));
         }
     }
 
@@ -112,7 +111,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
         try {
             const gitManager = editorEngine.activeSandbox?.gitManager;
             if (!gitManager) {
-                toast.error('Git is unavailable until the sandbox is ready');
+                toast.error(t('toastGitUnavailable'));
                 return;
             }
             const message = commitMessage.trim() || undefined;
@@ -124,20 +123,20 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                 undefined;
 
             if (includeUnstaged && fileCount === 0) {
-                toast.error('No changes to commit');
+                toast.error(t('toastNoChanges'));
                 return;
             }
             if (action === 'commit-pr') {
                 if (!branchName) {
-                    toast.error('This branch does not have a git branch name yet');
+                    toast.error(t('toastNoBranchName'));
                     return;
                 }
                 if (!repoUrl) {
-                    toast.error('This branch is not linked to a GitHub repository');
+                    toast.error(t('toastNotLinked'));
                     return;
                 }
                 if (baseBranch && branchName === baseBranch) {
-                    toast.error('Create a feature branch before opening a pull request');
+                    toast.error(t('toastNeedFeatureBranch'));
                     return;
                 }
             }
@@ -150,7 +149,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
             } else {
                 const hasStagedChanges = await gitManager.hasStagedChanges();
                 if (!hasStagedChanges) {
-                    toast.error('No staged changes to commit');
+                    toast.error(t('toastNoStagedChanges'));
                     return;
                 }
                 await gitManager.ensureGitConfig();
@@ -163,7 +162,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
             }
 
             if (!commitResult.success) {
-                toast.error('Commit failed', {
+                toast.error(t('toastCommitFailed'), {
                     description: commitResult.error ?? undefined,
                 });
                 return;
@@ -172,16 +171,16 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
             if (action === 'commit-push') {
                 const pushResult = await gitManager.push();
                 if (!pushResult.success) {
-                    toast.error('Push failed', {
+                    toast.error(t('toastPushFailed'), {
                         description: pushResult.error ?? undefined,
                     });
                     return;
                 }
-                toast.success('Committed and pushed');
+                toast.success(t('toastCommittedPushed'));
             } else if (action === 'commit-pr' && prBranchName && prRepoUrl) {
                 const pushResult = await gitManager.pushBranch(prBranchName, true);
                 if (!pushResult.success) {
-                    toast.error('Push failed', {
+                    toast.error(t('toastPushFailed'), {
                         description: pushResult.error ?? undefined,
                     });
                     return;
@@ -206,18 +205,18 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                       }
                     : undefined;
                 if (prResult.existing) {
-                    toast.success('Opened existing pull request', toastOptions);
+                    toast.success(t('toastExistingPR'), toastOptions);
                 } else {
-                    toast.success('Created pull request', toastOptions);
+                    toast.success(t('toastCreatedPR'), toastOptions);
                 }
             } else {
-                toast.success('Committed');
+                toast.success(t('toastCommitted'));
             }
 
             onOpenChange(false);
         } catch (error) {
             console.error('Git action failed:', error);
-            toast.error('Git action failed');
+            toast.error(t('toastActionFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -240,18 +239,16 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     <div className="mb-1 flex items-center gap-2">
                         <Icons.Commit className="h-5 w-5" />
                         <DialogTitle className="text-title3 font-semibold">
-                            Commit your changes
+                            {t('dialogTitle')}
                         </DialogTitle>
                     </div>
-                    <DialogDescription className="sr-only">
-                        Review and commit your changes to git
-                    </DialogDescription>
+                    <DialogDescription className="sr-only">{t('dialogDesc')}</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
                     {/* Branch */}
                     <div className="text-small flex items-center justify-between">
-                        <span className="text-foreground-secondary">Branch</span>
+                        <span className="text-foreground-secondary">{t('branchLabel')}</span>
                         <div className="text-foreground-primary flex items-center gap-1.5">
                             <Icons.Branch className="h-3.5 w-3.5" />
                             <span>{branchName}</span>
@@ -260,12 +257,10 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 
                     {/* Changes */}
                     <div className="text-small flex items-center justify-between">
-                        <span className="text-foreground-secondary">Changes</span>
+                        <span className="text-foreground-secondary">{t('changesLabel')}</span>
                         <div className="flex items-center gap-2">
                             {fileCount !== null && (
-                                <span>
-                                    {fileCount} {fileCount === 1 ? 'file' : 'files'}
-                                </span>
+                                <span>{t('changesCount', { count: fileCount })}</span>
                             )}
                             {diffStat && (
                                 <>
@@ -290,7 +285,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                             htmlFor="include-unstaged"
                             className="text-small cursor-pointer select-none"
                         >
-                            Include unstaged
+                            {t('includeUnstaged')}
                         </label>
                         <Switch
                             id="include-unstaged"
@@ -302,20 +297,20 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     {!includeUnstaged && stagedFileCount !== null && (
                         <p className="text-foreground-secondary text-mini">
                             {stagedFileCount === 0
-                                ? 'Stage at least one file before committing staged changes only.'
-                                : `${stagedFileCount} staged ${stagedFileCount === 1 ? 'file' : 'files'} ready to commit.`}
+                                ? t('stageFilesWarning')
+                                : t('stagedFilesReady', { count: stagedFileCount })}
                         </p>
                     )}
 
                     {/* Commit message */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <span className="text-small font-medium">Commit message</span>
+                            <span className="text-small font-medium">{t('commitMsgLabel')}</span>
                         </div>
                         <Textarea
                             value={commitMessage}
                             onChange={(e) => setCommitMessage(e.target.value)}
-                            placeholder="Leave blank to autogenerate a commit message"
+                            placeholder={t('commitMsgPlaceholder')}
                             className="text-small resize-none"
                             rows={3}
                             disabled={isLoading}
@@ -324,7 +319,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 
                     {/* Next steps */}
                     <div className="space-y-1">
-                        <p className="text-small font-medium">Next steps</p>
+                        <p className="text-small font-medium">{t('nextStepsLabel')}</p>
                         <div className="border-border divide-border divide-y overflow-hidden rounded-md border">
                             {(['commit', 'commit-push', 'commit-pr'] as CommitAction[]).map((a) => (
                                 <button
@@ -340,7 +335,13 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                                     )}
                                 >
                                     {ACTION_ICONS[a]}
-                                    <span className="flex-1">{ACTION_LABELS[a]}</span>
+                                    <span className="flex-1">
+                                        {a === 'commit'
+                                            ? t('actionCommit')
+                                            : a === 'commit-push'
+                                              ? t('actionCommitPush')
+                                              : t('actionCommitPR')}
+                                    </span>
                                     {action === a && (
                                         <Icons.Check className="text-foreground-primary h-4 w-4 shrink-0" />
                                     )}
@@ -359,10 +360,10 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                         {isLoading ? (
                             <>
                                 <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                Working...
+                                {t('working')}
                             </>
                         ) : (
-                            'Continue'
+                            t('continue')
                         )}
                     </Button>
                 </DialogFooter>
@@ -372,6 +373,10 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 });
 
 export const GitActionsButton = observer(() => {
+    const t = useTranslations('editor.git') as (
+        key: string,
+        values?: Record<string, string | number>,
+    ) => string;
     const editorEngine = useEditorEngine();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -387,7 +392,7 @@ export const GitActionsButton = observer(() => {
         setDropdownOpen(false);
         const activeBranchId = editorEngine.branches.activeBranch?.id;
         if (!activeBranchId) {
-            toast.error('No active branch');
+            toast.error(t('toastNoActiveBranch'));
             return;
         }
         try {
@@ -411,7 +416,7 @@ export const GitActionsButton = observer(() => {
                     onClick={() => openModal('commit')}
                 >
                     <Icons.Cube className="h-3.5 w-3.5" />
-                    <span className="hidden md:inline">Commit</span>
+                    <span className="hidden md:inline">{t('dropdownCommit')}</span>
                 </Button>
                 <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                     <DropdownMenuTrigger asChild>
@@ -428,28 +433,28 @@ export const GitActionsButton = observer(() => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel>Git actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t('gitActionsLabel')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             className="flex items-center gap-2"
                             onSelect={() => openModal('commit')}
                         >
                             <Icons.Commit className="h-4 w-4" />
-                            <span>Commit</span>
+                            <span>{t('dropdownCommit')}</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="flex items-center gap-2"
                             onSelect={() => openModal('commit-push')}
                         >
                             <Icons.Upload className="h-4 w-4" />
-                            <span>Commit & push</span>
+                            <span>{t('dropdownCommitPush')}</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="flex items-center gap-2"
                             onSelect={() => openModal('commit-pr')}
                         >
                             <Icons.GitHubLogo className="h-4 w-4" />
-                            <span>Create PR</span>
+                            <span>{t('dropdownCreatePR')}</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -457,7 +462,7 @@ export const GitActionsButton = observer(() => {
                             onSelect={handleCreateBranch}
                         >
                             <Icons.Branch className="h-4 w-4" />
-                            <span>Create branch</span>
+                            <span>{t('dropdownCreateBranch')}</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

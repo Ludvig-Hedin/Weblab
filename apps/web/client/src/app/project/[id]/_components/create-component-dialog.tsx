@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { PropExtraction } from '@weblab/parser';
 import {
@@ -27,6 +28,7 @@ import { useEditorEngine } from '@/components/store/editor';
  * into `components/<Name>.tsx` and swaps the selection for an instance.
  */
 export const CreateComponentDialog = observer(() => {
+    const t = useTranslations('editor.createComponent');
     const editorEngine = useEditorEngine();
     const target = editorEngine.components.createDialogTarget;
 
@@ -61,10 +63,10 @@ export const CreateComponentDialog = observer(() => {
                 extractions,
             );
             if (!result.ok) {
-                toast.error('Could not create component', { description: result.error });
+                toast.error(t('toastFailed'), { description: result.error });
                 return;
             }
-            toast.success(`Component ${name.trim()} created`);
+            toast.success(t('toastSuccess', { name: name.trim() }));
             editorEngine.components.closeCreateDialog();
         } finally {
             setBusy(false);
@@ -82,11 +84,10 @@ export const CreateComponentDialog = observer(() => {
                 <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2">
                         <Icons.Component className="h-4 w-4 text-purple-400" />
-                        Create component
+                        {t('dialogTitle')}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        The selection becomes a reusable component; this copy becomes its first
-                        instance.
+                        {t('dialogDesc')}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
@@ -95,7 +96,7 @@ export const CreateComponentDialog = observer(() => {
                         <Input
                             autoFocus
                             value={name}
-                            placeholder="ComponentName"
+                            placeholder={t('namePlaceholder')}
                             className="h-8 font-mono text-[12px]"
                             onChange={(e) => setName(e.target.value)}
                             onKeyDown={(e) => {
@@ -105,14 +106,14 @@ export const CreateComponentDialog = observer(() => {
                         <span className="text-foreground-tertiary text-tiny font-mono">
                             {validName
                                 ? `components/${name.trim()}.tsx`
-                                : 'PascalCase, e.g. HeroCard'}
+                                : t('nameHint')}
                         </span>
                     </div>
 
                     {suggestions.length > 0 && (
                         <div className="flex flex-col gap-1">
                             <span className="text-foreground-secondary text-mini font-medium">
-                                Suggested properties
+                                {t('propsTitle')}
                             </span>
                             <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
                                 {suggestions.map((suggestion) => {
@@ -142,7 +143,7 @@ export const CreateComponentDialog = observer(() => {
                                 })}
                             </div>
                             <span className="text-foreground-tertiary text-tiny">
-                                Checked values become editable per instance; unchecked stay fixed.
+                                {t('propsDesc')}
                             </span>
                         </div>
                     )}
@@ -154,10 +155,10 @@ export const CreateComponentDialog = observer(() => {
                         size="sm"
                         onClick={() => editorEngine.components.closeCreateDialog()}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button size="sm" disabled={!validName || busy} onClick={() => void create()}>
-                        {busy ? 'Creating…' : 'Create'}
+                        {busy ? t('creating') : t('create')}
                     </Button>
                 </AlertDialogFooter>
             </AlertDialogContent>

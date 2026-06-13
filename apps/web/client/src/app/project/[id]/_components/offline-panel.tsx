@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
@@ -34,6 +35,7 @@ function bytes(content?: string | Uint8Array): number {
 }
 
 export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
+    const t = useTranslations('editor.offlinePanel');
     const editorEngine = useEditorEngine();
     const online = useOnlineStatus();
     const { confirm, dialog: confirmDialog } = useConfirm();
@@ -66,21 +68,19 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
         try {
             const isOnline = await pingOnlineStatus();
             if (!isOnline) {
-                toast.error('Still offline. Reconnect and try again.');
+                toast.error(t('toastStillOffline'));
                 return;
             }
             const sandbox = editorEngine.activeSandbox;
             const provider = sandbox.session.provider;
             if (!provider) {
-                toast.error('Sandbox not connected yet. Wait a moment and retry.');
+                toast.error(t('toastNotConnected'));
                 return;
             }
             if (sandbox.session.isOffline) {
                 // Replay against the offline shim would silently drain the
                 // queue (writeFile is a no-op). Defer and tell the user.
-                toast.error(
-                    'Sandbox is still in offline mode. Reload the project to reconnect, then sync.',
-                );
+                toast.error(t('toastOfflineMode'));
                 return;
             }
             // Pause sync engine init for the same reason the auto reconnect
@@ -90,19 +90,13 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
             sandbox.suppressSyncInitForReplay();
             try {
                 const result = await replayQueue(provider, editorEngine.projectId);
-                toast.success(
-                    `Synced ${result.drained} change${result.drained === 1 ? '' : 's'}.${
-                        result.deadLettered > 0
-                            ? ` ${result.deadLettered} moved to dead letter.`
-                            : ''
-                    }`,
-                );
+                toast.success(t('toastSyncSuccess', { count: result.drained }));
             } finally {
                 await sandbox.resumeSyncInit();
             }
             await refresh();
         } catch (err) {
-            toast.error('Sync failed', {
+            toast.error(t('toastSyncFailed'), {
                 description: err instanceof Error ? err.message : 'Unknown error',
             });
         } finally {
@@ -113,10 +107,10 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
     const handleRetry = async (record: DeadLetterRecord) => {
         try {
             await retryDeadLetterRecord(record);
-            toast.success('Re-queued for sync.');
+            toast.success(t('toastRequeued'));
             await refresh();
         } catch (err) {
-            toast.error('Retry failed', {
+            toast.error(t('toastRetryFailed'), {
                 description: err instanceof Error ? err.message : 'Unknown error',
             });
         }
@@ -124,14 +118,14 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
 
     const handleClearDead = async () => {
         const ok = await confirm({
-            title: 'Discard all dead-letter records?',
-            description: 'Their content will be lost. This cannot be undone.',
-            confirmLabel: 'Discard',
+            title: t('discardDeadLetterTitle'),
+            description: t('discardDeadLetterDesc'),
+            confirmLabel: t('discardConfirm'),
             destructive: true,
         });
         if (!ok) return;
         await clearDeadLetter();
-        toast.success('Dead letter cleared.');
+        toast.success(t('toastDeadLetterCleared'));
         await refresh();
     };
 
@@ -140,14 +134,15 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Offline sync</DialogTitle>
+                        <DialogTitle>{t('dialogTitle')}</DialogTitle>
                     </DialogHeader>
 
                     <div className="flex items-center justify-between text-xs">
                         <div className="text-muted-foreground">
-                            {online ? 'Online' : 'Offline'} · {pending.length} pending ·{' '}
-                            {dead.length} dead-letter · {conflicts.length} conflict
-                            {conflicts.length === 1 ? '' : 's'}
+                            {online ? t('online') : t('offline')} ·{' '}
+                            {t('statusPending', { count: pending.length })} ·{' '}
+                            {t('statusDeadLetter', { count: String(dead.length) })} ·{' '}
+                            {t('statusConflict', { count: conflicts.length })}
                         </div>
                         <Button
                             size="sm"
@@ -156,14 +151,14 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                             onClick={() => void handleSyncNow()}
                         >
                             {busy && <Icons.LoadingSpinner className="mr-2 h-3 w-3 animate-spin" />}
-                            Sync now
+                            {t('syncNow')}
                         </Button>
                     </div>
 
                     <section className="mt-4">
-                        <h3 className="text-sm font-medium">Pending writes</h3>
+                        <h3 className="text-sm font-medium">{t('pendingTitle')}</h3>
                         {pending.length === 0 ? (
-                            <p className="text-muted-foreground mt-1 text-xs">No queued changes.</p>
+                            <p className="text-muted-foreground mt-1 text-xs">{t('noPending')}</p>
                         ) : (
                             <ul className="border-border/50 mt-2 max-h-64 divide-y overflow-y-auto rounded-md border text-xs">
                                 {pending.map((r) => (
@@ -185,7 +180,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
 
                     <section className="mt-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium">Dead letter</h3>
+                            <h3 className="text-sm font-medium">{t('deadLetterTitle')}</h3>
                             {dead.length > 0 && (
                                 <Button
                                     size="sm"
@@ -198,7 +193,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                         </div>
                         {dead.length === 0 ? (
                             <p className="text-muted-foreground mt-1 text-xs">
-                                No records have failed past retry.
+                                {t('noDeadLetter')}
                             </p>
                         ) : (
                             <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
@@ -213,7 +208,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                                                 variant="ghost"
                                                 onClick={() => void handleRetry(r)}
                                             >
-                                                Retry
+                                                {t('retry')}
                                             </Button>
                                         </div>
                                         {r.lastError && (
@@ -230,10 +225,10 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                     </section>
 
                     <section className="mt-4">
-                        <h3 className="text-sm font-medium">Conflicts</h3>
+                        <h3 className="text-sm font-medium">{t('conflictsTitle')}</h3>
                         {conflicts.length === 0 ? (
                             <p className="text-muted-foreground mt-1 text-xs">
-                                No remote changes were overwritten by your offline edits.
+                                {t('noConflicts')}
                             </p>
                         ) : (
                             <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
@@ -250,21 +245,22 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                                                     void dismissConflict(c.id).then(refresh);
                                                 }}
                                             >
-                                                Dismiss
+                                                {t('dismiss')}
                                             </Button>
                                         </div>
                                         <p className="text-muted-foreground">
-                                            Your version was kept. Detected{' '}
-                                            {new Date(c.detectedAt).toLocaleString()}.
+                                            {t('yourVersionKept', {
+                                                date: new Date(c.detectedAt).toLocaleString(),
+                                            })}
                                         </p>
                                         <details className="text-muted-foreground/80">
                                             <summary className="cursor-pointer">
-                                                Show remote version
+                                                {t('showRemoteVersion')}
                                             </summary>
                                             <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto p-2 text-tiny break-words whitespace-pre-wrap">
                                                 {typeof c.remoteContent === 'string'
                                                     ? c.remoteContent
-                                                    : '[binary content]'}
+                                                    : t('binaryContent')}
                                             </pre>
                                         </details>
                                     </li>
@@ -275,7 +271,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
 
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                            Close
+                            {t('close')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

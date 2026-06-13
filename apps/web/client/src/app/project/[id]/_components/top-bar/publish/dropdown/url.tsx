@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -8,20 +9,21 @@ import { toast } from '@weblab/ui/sonner';
 import { getValidUrl } from '@weblab/utility';
 
 export const UrlSection = ({ url, isCopyable }: { url: string; isCopyable: boolean }) => {
+    const t = useTranslations('editor.publish.url');
     const [isCopied, setIsCopied] = useState(false);
     const validUrl = getValidUrl(url);
 
     const copyUrl = async () => {
         try {
             await navigator.clipboard.writeText(validUrl);
-            toast.success('Copied to clipboard');
+            toast.success(t('toastCopied'));
             setIsCopied(true);
             setTimeout(() => {
                 setIsCopied(false);
             }, 2000);
         } catch (error) {
             console.error('Failed to copy URL to clipboard:', error);
-            toast.error('Failed to copy to clipboard');
+            toast.error(t('toastFailed'));
         }
     };
 

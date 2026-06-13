@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { GitMessageCheckpoint } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -30,6 +31,7 @@ export const MultiBranchRevertModal = ({
     onOpenChange,
     checkpoints,
 }: MultiBranchRevertModalProps) => {
+    const t = useTranslations('editor.chat.multiBranchRevert');
     const editorEngine = useEditorEngine();
     const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
     const [isRestoring, setIsRestoring] = useState(false);
@@ -61,7 +63,7 @@ export const MultiBranchRevertModal = ({
     const handleRevert = async () => {
         try {
             if (selectedBranchIds.length === 0) {
-                toast.error('Please select at least one branch to revert');
+                toast.error(t('toastSelectFirst'));
                 return;
             }
 
@@ -80,10 +82,10 @@ export const MultiBranchRevertModal = ({
             const failCount = results.length - successCount;
 
             if (failCount > 0) {
-                toast.error('Failed to restore all selected branches');
+                toast.error(t('toastAllFailed'));
             }
         } catch (error) {
-            toast.error('Failed to restore branches', {
+            toast.error(t('toastFailed'), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {
@@ -97,9 +99,9 @@ export const MultiBranchRevertModal = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Restore Multiple Branches</DialogTitle>
+                    <DialogTitle>{t('dialogTitle')}</DialogTitle>
                     <DialogDescription className="pt-2">
-                        Select the branches you want to restore to their previous state.
+                        {t('dialogDesc')}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-2 py-4">
@@ -111,7 +113,7 @@ export const MultiBranchRevertModal = ({
                                 onClick={selectNone}
                                 disabled={isRestoring}
                             >
-                                Select None
+                                {t('selectNone')}
                             </Button>
                         ) : (
                             <Button
@@ -120,7 +122,7 @@ export const MultiBranchRevertModal = ({
                                 onClick={selectAll}
                                 disabled={isRestoring}
                             >
-                                Select All
+                                {t('selectAll')}
                             </Button>
                         )}
                     </div>
@@ -163,7 +165,7 @@ export const MultiBranchRevertModal = ({
                         disabled={isRestoring}
                         className="order-2 sm:order-1"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         variant="outline"
@@ -171,7 +173,7 @@ export const MultiBranchRevertModal = ({
                         disabled={isRestoring || selectedBranchIds.length === 0}
                         className="order-1 sm:order-2"
                     >
-                        {isRestoring ? 'Restoring...' : 'Restore Selected'}
+                        {isRestoring ? t('restoring') : t('restore')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

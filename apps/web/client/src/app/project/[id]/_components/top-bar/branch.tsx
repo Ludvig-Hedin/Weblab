@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -16,6 +17,10 @@ import { BranchControls } from '../branch/branch-controls';
 import { BranchList } from '../branch/branch-list';
 
 export const BranchDisplay = observer(() => {
+    const t = useTranslations('editor.git') as (
+        key: string,
+        values?: Record<string, string | number>,
+    ) => string;
     const editorEngine = useEditorEngine();
     const activeBranch = editorEngine.branches.activeBranch;
     const allBranches = editorEngine.branches.allBranches;
@@ -27,7 +32,7 @@ export const BranchDisplay = observer(() => {
             setIsOpen(false);
         } catch (error) {
             console.error('Failed to switch branch:', error);
-            toast.error('Failed to switch branch', {
+            toast.error(t('toastSwitchFailed'), {
                 description: error instanceof Error ? error.message : undefined,
             });
         }

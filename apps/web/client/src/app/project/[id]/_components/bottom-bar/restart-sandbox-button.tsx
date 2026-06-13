@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
@@ -18,6 +19,7 @@ import { waitForSandboxReady } from '../canvas/frame/wait-for-sandbox-ready';
 const RESTART_READY_CEILING_MS = 60_000;
 
 export const RestartSandboxButton = observer(({ className }: { className?: string }) => {
+    const t = useTranslations('editor.bottomBar.restart');
     const editorEngine = useEditorEngine();
     const branches = editorEngine.branches;
     const [restarting, setRestarting] = useState(false);
@@ -167,7 +169,7 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
             restartGraceUntilRef.current = Date.now() + RESTART_READY_CEILING_MS;
             const sandbox = branches.getSandboxById(activeBranch.id);
             if (!sandbox?.session) {
-                toast.error('Sandbox session not available');
+                toast.error(t('toastNoSession'));
                 setRestarting(false);
                 restartGraceUntilRef.current = null;
                 return;
@@ -179,7 +181,7 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
 
             const success = await sandbox.session.restartDevServer();
             if (!success) {
-                toast.error('Failed to restart sandbox');
+                toast.error(t('toastFailed'));
                 setRestarting(false);
                 setRestartElapsedSec(0);
                 restartGraceUntilRef.current = null;
@@ -228,7 +230,7 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
                     console.error('Failed to reload frame:', frame.frame.id, frameError);
                 }
             });
-            toast.success('Sandbox restarted successfully', {
+            toast.success(t('toastSuccess'), {
                 icon: <Icons.Cube className="h-4 w-4" />,
             });
             setRestarting(false);
@@ -239,7 +241,7 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
             restartGraceUntilRef.current = Date.now() + 5_000;
         } catch (error) {
             console.error('Error restarting sandbox:', error);
-            toast.error('An error occurred while restarting the sandbox');
+            toast.error(t('toastError'));
             setRestarting(false);
             setRestartElapsedSec(0);
             restartGraceUntilRef.current = null;
@@ -281,7 +283,7 @@ export const RestartSandboxButton = observer(({ className }: { className?: strin
                 </button>
             </TooltipTrigger>
             <TooltipContent sideOffset={5} hideArrow>
-                {restarting ? `Restarting (${restartElapsedSec}s)…` : 'Restart Sandbox'}
+                {restarting ? t('restarting', { seconds: String(restartElapsedSec) }) : t('restart')}
             </TooltipContent>
         </Tooltip>
     );

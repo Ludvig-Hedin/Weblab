@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useMutation, useQuery } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import {
     EXTERNAL_HOSTING_PROVIDERS,
@@ -39,6 +40,7 @@ const PROVIDER_TOKEN_HINTS: Record<HostingProvider, string> = {
 };
 
 export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
+    const t = useTranslations('editor.publish.hosting');
     const [provider, setProvider] = useState<HostingProvider>(HostingProvider.VERCEL);
     const [token, setToken] = useState('');
     const [accountLabel, setAccountLabel] = useState('');
@@ -60,7 +62,7 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
 
     const handleTest = async () => {
         if (!token.trim()) {
-            toast.error('Paste an API token first.');
+            toast.error(t('toastPasteFirst'));
             return;
         }
         setIsValidating(true);
@@ -71,16 +73,18 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
             });
             if (result.ok) {
                 toast.success(
-                    `Connected to ${result.accountLabel ?? HOSTING_PROVIDER_LABELS[provider]}`,
+                    t('toastConnected', {
+                        provider: result.accountLabel ?? HOSTING_PROVIDER_LABELS[provider],
+                    }),
                 );
                 if (!accountLabel && result.accountLabel) {
                     setAccountLabel(result.accountLabel);
                 }
             } else {
-                toast.error(result.message ?? 'Token validation failed.');
+                toast.error(result.message ?? t('toastValidationFailed'));
             }
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Validation failed.');
+            toast.error(err instanceof Error ? err.message : t('toastValidationError'));
         } finally {
             setIsValidating(false);
         }
@@ -88,7 +92,7 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
 
     const handleSave = async () => {
         if (!token.trim()) {
-            toast.error('Paste an API token first.');
+            toast.error(t('toastPasteFirst'));
             return;
         }
         setIsCreating(true);
@@ -98,10 +102,10 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
                 token: token.trim(),
                 accountLabel: accountLabel.trim() || undefined,
             });
-            toast.success(`${HOSTING_PROVIDER_LABELS[provider]} connected.`);
+            toast.success(t('toastConnected', { provider: HOSTING_PROVIDER_LABELS[provider] }));
             reset();
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to save connection.');
+            toast.error(err instanceof Error ? err.message : t('toastSaveFailed'));
         } finally {
             setIsCreating(false);
         }
@@ -111,9 +115,9 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
         setIsRemoving(true);
         try {
             await remove({ id: id as Id<'hostingProviderConnections'> });
-            toast.success(`Disconnected ${label}.`);
+            toast.success(t('toastDisconnected', { provider: label }));
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to disconnect.');
+            toast.error(err instanceof Error ? err.message : t('toastDisconnectFailed'));
         } finally {
             setIsRemoving(false);
         }
@@ -199,7 +203,7 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
                         <Input
                             id="hosting-token"
                             type="password"
-                            placeholder="Paste your token"
+                            placeholder={t('tokenPlaceholder')}
                             value={token}
                             onChange={(event) => setToken(event.target.value)}
                         />
@@ -213,7 +217,7 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
                         </label>
                         <Input
                             id="hosting-account-label"
-                            placeholder="Filled in automatically if you Test first"
+                            placeholder={t('tokenAutoFillPlaceholder')}
                             value={accountLabel}
                             onChange={(event) => setAccountLabel(event.target.value)}
                         />

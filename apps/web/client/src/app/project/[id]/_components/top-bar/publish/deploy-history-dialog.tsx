@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import stripAnsi from 'strip-ansi';
 
 import { DeploymentStatus, DeploymentType, HOSTING_PROVIDER_LABELS } from '@weblab/models';
@@ -58,6 +59,7 @@ const UNKNOWN_STATUS_PILL = {
 };
 
 export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
+    const t = useTranslations('editor.publish.deployHistory');
     const editorEngine = useEditorEngine();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -82,11 +84,13 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
             await runDeployment({
                 deploymentId: (created as { _id: Id<'deployments'> })._id,
             });
-            toast.success('Redeploy started');
+            toast.success(t('toastStarted'));
             onOpenChange(false);
         } catch (err) {
             console.error(err);
-            toast.error(err instanceof Error ? err.message : 'Failed to redeploy');
+            toast.error(t('toastFailed'), {
+                description: err instanceof Error ? err.message : undefined,
+            });
         } finally {
             setIsRedeploying(false);
         }
