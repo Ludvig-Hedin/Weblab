@@ -764,6 +764,24 @@
         "typescript": "^5.5.4",
       },
     },
+    "packages/wireframe-blocks": {
+      "name": "@weblab/wireframe-blocks",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.4.2",
+      },
+      "devDependencies": {
+        "@types/react": "^19.0.12",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "eslint": "^9.0.0",
+        "react": "^19.0.0",
+        "typescript": "^5.5.4",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
     "tooling/eslint": {
       "name": "@weblab/eslint",
       "version": "0.1.0",
@@ -2718,6 +2736,8 @@
     "@weblab/web-preload": ["@weblab/web-preload@workspace:apps/web/preload"],
 
     "@weblab/web-server": ["@weblab/web-server@workspace:apps/web/server"],
+
+    "@weblab/wireframe-blocks": ["@weblab/wireframe-blocks@workspace:packages/wireframe-blocks"],
 
     "@workflow/serde": ["@workflow/serde@4.1.0-beta.2", "", {}, "sha512-8kkeoQKLDaKXefjV5dbhBj2aErfKp1Mc4pb6tj8144cF+Em5SPbyMbyLCHp+BVrFfFVCBluCtMx+jjvaFVZGww=="],
 

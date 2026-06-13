@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-13 — AI Wireframes (Relume-style): brief → sitemap → wireframe → style guide → real code
+Author: Claude (Opus 4.8)
+Area: new package `@weblab/wireframe-blocks`, new route `project/[id]/wireframe`, Convex (`wireframes.ts`, `wireframeActions.ts`, `wireframeEmit.ts`, 6 schema tables)
+Summary: Built the full Relume-style flow as an **isolated** surface (plain React + Convex, deliberately NOT wired into the MobX EditorEngine, so it cannot disturb the editor). Brief form → AI sitemap (`generateSitemap`) → editable page/section tree (the sitemap is the source of truth; sitemap↔wireframe sections are paired 1:1 with in-transaction cascade on delete + mirrored reorder) → AI wireframes that map every section to a **real** block and fill brief-specific copy → one-concept style guide (token overrides on the shadcn CSS-var contract) → styled Design pages → **Create code** which emits a real Next.js project on Vercel Sandbox (mirrors `createFromFigma`) and opens the editor. Key decisions: (1) blocks are ~15 curated, **self-contained, dependency-free token-styled** section components derived from the vendored pro blocks — one artifact renders in the canvas AND is copied verbatim into the emitted project (boots on any Tailwind+tokens Next app, local or cloud, zero extra installs); (2) **no hallucinated blocks** — the wireframe action constrains `blockId` to `z.enum(WIREFRAME_BLOCK_IDS)`, then `coerceBlockId` + per-block `safeParse(content)` at the mutation boundary guarantee a valid block + valid content always; (3) reused the proven `generateObject`+OpenRouter pattern with a bounded invalid-JSON retry. Validation: package + convex + web-client all green (typecheck/lint), 24 unit tests, runtime env keys (OPENROUTER + VERCEL_*) confirmed set on dev Convex.
+Files: `packages/wireframe-blocks/**` (blocks, `meta.ts`, `browser.ts`, `style-guide.ts`, `emit/*`, tests), `apps/web/client/convex/{schema.ts, wireframes.ts, wireframeActions.ts, wireframeEmit.ts, lib/wireframeOrder.ts}`, `apps/web/client/src/app/project/[id]/wireframe/**`, `docs/feature-catalog.md` (section 30, F-790…F-794, F-625…F-630, F-706), `docs/test-plan.md` (T-821…T-825), changelog v4.4
+Links: changelog v4.4; BACKLOG (deferred: local-native FS emit, per-section AI regenerate, contrast warn, real font loading, expand block set, infinite-canvas pan)
+
 ## 2026-06-13 — +15 built-in agent skills
 Author: Claude (Opus 4.8)
 Area: AI skills — `<repoRoot>/skills/`, `packages/ai/src/skills/{embedded,embedded-summaries}.ts`

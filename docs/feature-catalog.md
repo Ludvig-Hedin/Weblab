@@ -623,7 +623,7 @@ See F-151 to F-160. Plus:
 
 ## 26. Convex Schema Tables
 
-> Source of truth: [convex/schema.ts](apps/web/client/convex/schema.ts). 45 tables.
+> Source of truth: [convex/schema.ts](apps/web/client/convex/schema.ts). 51 tables.
 
 | ID | Tag | Table | Purpose |
 |---|---|---|---|
@@ -672,6 +672,12 @@ See F-151 to F-160. Plus:
 | F-622 | `#convex` `#billing` `#deprecated` | `legacySubscriptions` | Legacy sub records |
 | F-623 | `#convex` `#editor` | `cursors` | Live cursor positions |
 | F-624 | `#convex` `#ai` | `aiUsageEvents` | Token usage events |
+| F-625 | `#convex` `#ai` | `wireframeDocs` | Wireframe doc per project (brief, status, active style guide) |
+| F-626 | `#convex` `#ai` | `sitemapPages` | Sitemap pages (source of truth) |
+| F-627 | `#convex` `#ai` | `sitemapSections` | Sitemap sections (linked 1:1 to wireframe sections) |
+| F-628 | `#convex` `#ai` | `wireframePages` | Wireframe pages (derived from sitemap) |
+| F-629 | `#convex` `#ai` | `wireframeSections` | Wireframe sections (real blockId + content) |
+| F-630 | `#convex` `#ai` | `styleGuides` | Style-guide concepts (token overrides) |
 
 ---
 
@@ -729,7 +735,7 @@ See F-151 to F-160. Plus:
 
 ## 28. Shared Packages
 
-> Source: [packages/*](packages/). 28 packages.
+> Source: [packages/*](packages/). 29 packages.
 
 | ID | Tag | Package | Path | Purpose |
 |---|---|---|---|---|
@@ -760,6 +766,7 @@ See F-151 to F-160. Plus:
 | F-703 | `#package` | `@weblab/penpal` | [packages/penpal](packages/penpal) | Iframe RPC (Penpal-based) |
 | F-704 | `#package` | `@weblab/growth` | [packages/growth](packages/growth) | Referrals / attribution / share |
 | F-705 | `#package` | `@weblab/scripts` | [packages/scripts](packages/scripts) | Build + setup scripts |
+| F-706 | `#package` `#ai` | `@weblab/wireframe-blocks` | [packages/wireframe-blocks](packages/wireframe-blocks) | AI wireframes block registry: ~15 prop-driven self-contained section blocks (all 13 categories), Zod content schemas + defaults, `coerceBlockId`/`variantsForBlock`, browser renderers (`/browser`), pure code emitter + bundled block-source assets, style-guide token helpers. Backs both the canvas render and code emit (F-790…F-794) |
 
 ---
 
@@ -825,6 +832,20 @@ See F-151 to F-160. Plus:
 
 ---
 
+## 30. AI Wireframes (Relume-style)
+
+> Brief → sitemap → wireframes → style guide → design → real Next.js code. Isolated workspace at [project/[id]/wireframe/](apps/web/client/src/app/project/%5Bid%5D/wireframe/) (plain React + Convex, NOT the MobX EditorEngine). Sitemap is the source of truth; wireframe sections are paired 1:1 with sitemap sections. Renders real, prop-driven section blocks from [@weblab/wireframe-blocks](packages/wireframe-blocks/) (self-contained, token-styled; the same source emits into the generated project).
+
+| ID | Tags | Path | Purpose |
+|---|---|---|---|
+| F-790 | `#editor` `#ai` | [project/[id]/wireframe/](apps/web/client/src/app/project/%5Bid%5D/wireframe/) | Isolated 4-tab workspace (Sitemap / Wireframe / Style Guide / Design). Sub-features: brief form, editable page/section tree with add/delete/reorder + section-prompt editing, grayscale real-block wireframe frames with per-section swap-variant / edit-copy / reorder / delete / add + responsive + zoom, style-guide token editor + live styled preview, styled design pages, per-section React error boundary. |
+| F-791 | `#ai` `#convex` | [convex/wireframeActions.ts](apps/web/client/convex/wireframeActions.ts) | AI generation: `generateSitemap`, `generateWireframe` (blockId constrained to `z.enum(WIREFRAME_BLOCK_IDS)` + coerce + schema-validate ⇒ no hallucinated blocks), `generateStyleGuide`. `generateObject` + OpenRouter + bounded retry. |
+| F-792 | `#convex` | [convex/wireframes.ts](apps/web/client/convex/wireframes.ts) | CRUD + bidirectional sitemap↔wireframe sync (in-transaction cascade on delete, mirrored reorder), content validated against the block schema at the mutation boundary. Tables (section 26): `wireframeDocs`, `sitemapPages`, `sitemapSections`, `wireframePages`, `wireframeSections`, `styleGuides`. |
+| F-793 | `#ai` `#convex` | [convex/wireframeEmit.ts](apps/web/client/convex/wireframeEmit.ts) | `emitToCloud` — composes pages + self-contained block sources + style-guide globals into a real Next.js project on Vercel Sandbox (mirrors `createFromFigma`), opens the editor. Local-desktop native-FS emit deferred (BACKLOG). |
+| F-794 | `#convex` | [packages/wireframe-blocks](packages/wireframe-blocks/) | Block registry package: ~15 curated prop-driven section blocks across all 13 categories (derived from vendored pro blocks, dependency-free), Zod content schemas + defaults, `coerceBlockId`/`variantsForBlock`, browser renderers, pure code emitter + bundled block-source assets, style-guide token helpers. |
+
+---
+
 ## Glossary
 
 - **Workspace** — top-level tenant containing projects + members + billing.
@@ -873,6 +894,8 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-06-13 | F-552, F-616, F-433 | **+15 built-in agent skills** (extends WS4 of the 2026-05-29 skills spec). Copied 15 `SKILL.md`s into `<repoRoot>/skills/` and regenerated `embedded.ts` + `embedded-summaries.ts` via `bun run generate:skills` (12 → 27 embedded skills). New: `ai-slop-audit`, `ai-tells`, `beautiful-web-design`, `benchmark`, `browse`, `design-consultation`, `document-release`, `documentation-sync`, `inconsistency-hunter`, `local-review`, `nano-banana`, `remotion-best-practices`, `review`, `transitions-dev`, `ux-assesment` (6 already existed: `apple-design`, `bug-hunt`, `design-audit`, `react-best-practices`, `seo`, `ux-polish`). Default-on for the builder agent (`EMBEDDED_SKILLS` always load) and listed in the Skills tab for users to enable (`EMBEDDED_SKILL_SUMMARIES` → `@weblab/ai/client`). Embedded as-is per existing precedent; gstack/CLI-workflow skills (`browse`, `benchmark`, `local-review`, `review`, `document-release`) reference external tooling absent in-product — only name+description hit the system prompt, full body fetched on demand. `#ai` `#skills`. |
+| 2026-06-13 | F-790, F-791, F-792, F-793, F-794 | **AI Wireframes (Relume-style)**: new isolated workspace `project/[id]/wireframe` (brief → sitemap → wireframe → style guide → design → real Next.js code). New package `@weblab/wireframe-blocks` (F-794) holds ~15 prop-driven, self-contained token-styled section blocks (all 13 categories, derived from the vendored pro blocks) with Zod content schemas + a pure code emitter that copies block source verbatim into the generated project. Convex: 6 new tables (section 26), `wireframes.ts` CRUD with bidirectional sitemap↔wireframe cascade (F-792), 3 `generateObject` AI actions with blockId-enum constraint + coerce + schema-validate so the model cannot hallucinate a block (F-791), and `wireframeEmit.emitToCloud` mirroring `createFromFigma` to spin up a real project (F-793). UI is plain React + Convex (no EditorEngine) so it can't disturb the editor. 24 unit tests (T-821…T-824). `#ai` `#editor` `#convex`. |
 | 2026-06-12 | F-482, F-693 | **Agent API + MCP server v1** (read-first, token-auth): new Convex HTTP surface `<deployment>.convex.site/agent/*` (F-482, `convex/agentApi.ts` + routes in `http.ts`) — Bearer-token auth (`WEBLAB_AGENT_API_TOKEN`, constant-time, closed by default) with all data scoped to one dedicated agent account (`WEBLAB_AGENT_USER_ID`) so it only sees its own projects (test data, never prod users). Endpoints: health, list-projects, get-project, project-status → owner-scoped internal queries. New stdio MCP server `weblab-agent-mcp` in `@weblab/mcp` (F-693, `src/agent/`): typed connector + zod tool/response schemas + 6 tools (4 read + honest UNSUPPORTED stubs for create-project and read-logs, with confirm-gating for the write). Bypasses Clerk/Next.js — browser flows untouched. `@weblab/constants` gained a `./editor` subpath export to import `APP_NAME` without dragging the models→ai JSX graph into the standalone process. 32 unit tests (T-502). Setup/design docs: [weblab-mcp-setup.md](docs/agent-context/weblab-mcp-setup.md), [weblab-agent-api-map.md](docs/agent-context/weblab-agent-api-map.md). `#convex` `#agent` `#api`. |
 | 2026-06-12 | F-787, F-182, F-204 | **Standalone pop-out preview window**: new route `project/[id]/preview` + `standalone-preview.tsx` open the live dev server in its own tab/window. Hot reload is free (the dev server's HMR pushes to any tab on its URL); the wrapper adds liveness-driven **auto-recover** (reuses `checkSandboxLiveness` + `planReload` — escalating retries → 15s self-heal) with a toggle + "Reconnecting" chip so a cold-boot/recycle self-heals instead of showing a dead page. Cannot suppress Next's own in-iframe compile overlay (cross-origin). Entry points: top-bar dropdown in `mode-toggle.tsx` (F-204, tab/window) + "Pop out" in `preview-overlay.tsx` (F-182). New helper `canvas/frame/preview-url.ts` dedupes the `[slug]`→`temp-slug` substitution across the 3 call sites and routes local (`localhost`) URLs to the raw URL (https wrapper can't iframe http). Unit-tested T-816. `#editor`. |
 | 2026-05-26 | F-001 … F-763 | Initial comprehensive catalog v2 — replaces v1 (Convex backend reflected, route inventory verified against filesystem). |

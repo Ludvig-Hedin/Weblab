@@ -1,0 +1,51 @@
+{
+    "name": "@weblab/wireframe-blocks",
+    "description": "Real, prop-driven section blocks + content schemas powering the AI wireframes feature. Renders in the canvas and emits as standalone Next.js source.",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "main": "src/index.ts",
+    "module": "src/index.ts",
+    "types": "src/index.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Ludvig-Hedin/Weblab.git"
+    },
+    "scripts": {
+        "clean": "rm -rf node_modules",
+        "lint": "eslint . --max-warnings 0",
+        "format": "eslint --fix .",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test",
+        "generate:emit-assets": "bun run scripts/bundle-emit-assets.mjs"
+    },
+    "keywords": [
+        "weblab",
+        "wireframe",
+        "blocks"
+    ],
+    "author": {
+        "name": "Weblab",
+        "email": "contact@weblab.build"
+    },
+    "license": "Apache-2.0",
+    "homepage": "https://weblab.build",
+    "exports": {
+        ".": "./src/index.ts",
+        "./browser": "./src/browser.ts"
+    },
+    "devDependencies": {
+        "@types/react": "^19.0.12",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "eslint": "^9.0.0",
+        "react": "^19.0.0",
+        "typescript": "^5.5.4"
+    },
+    "peerDependencies": {
+        "react": "^19.0.0"
+    },
+    "dependencies": {
+        "zod": "^4.4.2"
+    }
+}

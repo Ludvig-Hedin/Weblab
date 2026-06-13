@@ -64,6 +64,7 @@ import type * as lib_skillHelpers from "../lib/skillHelpers.js";
 import type * as lib_skillImport from "../lib/skillImport.js";
 import type * as lib_stripeWebhook from "../lib/stripeWebhook.js";
 import type * as lib_usageMath from "../lib/usageMath.js";
+import type * as lib_wireframeOrder from "../lib/wireframeOrder.js";
 import type * as lib_workspaceSlug from "../lib/workspaceSlug.js";
 import type * as messages from "../messages.js";
 import type * as pageAccess from "../pageAccess.js";
@@ -90,6 +91,9 @@ import type * as userActions from "../userActions.js";
 import type * as userActionsInternal from "../userActionsInternal.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
+import type * as wireframeActions from "../wireframeActions.js";
+import type * as wireframeEmit from "../wireframeEmit.js";
+import type * as wireframes from "../wireframes.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -155,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "lib/skillImport": typeof lib_skillImport;
   "lib/stripeWebhook": typeof lib_stripeWebhook;
   "lib/usageMath": typeof lib_usageMath;
+  "lib/wireframeOrder": typeof lib_wireframeOrder;
   "lib/workspaceSlug": typeof lib_workspaceSlug;
   messages: typeof messages;
   pageAccess: typeof pageAccess;
@@ -181,6 +186,9 @@ declare const fullApi: ApiFromModules<{
   userActionsInternal: typeof userActionsInternal;
   users: typeof users;
   utils: typeof utils;
+  wireframeActions: typeof wireframeActions;
+  wireframeEmit: typeof wireframeEmit;
+  wireframes: typeof wireframes;
   workspaces: typeof workspaces;
 }>;
 

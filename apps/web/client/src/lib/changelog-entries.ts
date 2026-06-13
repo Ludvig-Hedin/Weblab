@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-4-ai-wireframes',
+        version: '4.4',
+        title: 'AI wireframes: from a brief to a real site',
+        description:
+            'A new Relume-style workflow turns a short brief into a working site. Describe your company, audience, and offer, and Weblab drafts a sitemap in seconds — pages and sections you can rename, reorder, add to, and re-prompt. Click Generate Wireframes and every section is mapped to a real, reusable block from our library and filled with copy specific to you; edit text inline, swap block variants, or regenerate. Generate a style guide (colors, type, radius), apply it, and the Design tab shows your pages fully styled. When you’re happy, hit Create code and Weblab spins up a real Next.js project from your design and opens it in the editor — no throwaway prototypes. It lives in its own workspace so it never gets in the way of the editor.',
+        date: '2026-06-13',
+        tags: ['AI', 'Wireframes', 'Editor', 'Design'],
+    },
+    {
         slug: 'v4-3-figma-import',
         version: '4.3',
         title: 'Import your designs straight from Figma',

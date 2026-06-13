@@ -578,6 +578,18 @@ Per package (F-680 … F-705) at least one smoke test.
 
 ---
 
+## 30. AI Wireframes (Relume-style)
+
+| ID | Feature | Type | Scenario | Expected | Status |
+|---|---|---|---|---|---|
+| T-821 | F-794 | U | Block registry integrity (`packages/wireframe-blocks/src/registry.test.ts`) | Unique ids; every `defaultContent` parses its Zod schema; all 13 categories present; every meta block has a renderer + no orphan renderers; `coerceBlockId` never returns an invalid id (real id, category name, garbage+category, garbage) | `[x]` |
+| T-822 | F-793, F-794 | U | Code emit (`packages/wireframe-blocks/src/emit.test.ts`) | `normalizeSlug`/`pagePathForSlug` dedupe collisions; `emitPageFile` imports each block once + inlines content + valid empty `<main>`; `buildEmitFiles` yields a bootable set (page per page, `_ui`, every used block) with self-contained sources (no `@/components/ui`, `@weblab/*`, `lucide-react`, `next/image`); style-guide globals applied | `[x]` |
+| T-823 | F-792 | U | Order/slug helpers (`convex/lib/wireframeOrder.test.ts`) | `slugify` (never empty), `dedupeSlug`, `nextOrder`, `moveInArray` (immutable + clamped), `reindex` dense 0..n | `[x]` |
+| T-824 | F-791, F-790 | U | Style-guide helpers (`packages/wireframe-blocks/src/style-guide.test.ts`) | `asStyleGuideTokens` narrows JSON; `styleGuideToCssVars` emits set tokens + body font only; `styleGuideToGlobalsAppend` produces `:root` override + font rules, empty for `{}` | `[x]` |
+| T-825 | F-790, F-791, F-793 | E (auth + project) | brief → Generate sitemap (<30s) → edit → Generate wireframes (every section a real block) → edit copy → refresh (stable) → Style Guide generate + apply → Design styled → Create code → editor opens bootable project | All steps succeed; copy editable; persisted across refresh; emitted project boots | `[ ]` manual |
+
+---
+
 ## Open Questions
 
 - [ ] E2E runner — Playwright (recommended) vs Cypress?

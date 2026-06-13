@@ -863,4 +863,97 @@ export default defineSchema({
         .index('by_conversation', ['conversationId'])
         .index('by_model_createdAt', ['model', 'createdAt'])
         .index('by_createdAt', ['createdAt']),
+
+    // =========================================================================
+    // AI Wireframes (Relume-style: brief → sitemap → wireframe → style guide →
+    // design). The sitemap is the source of truth; wireframe sections link back
+    // to sitemap sections and cascade on delete (Convex has no FK cascade — the
+    // bidirectional cleanup lives in convex/wireframes.ts mutations).
+    // =========================================================================
+    wireframeDocs: defineTable({
+        projectId: v.id('projects'),
+        // Bounded brief captured from the workspace form (never an unbounded list).
+        brief: v.object({
+            companyName: v.string(),
+            industry: v.optional(v.string()),
+            audience: v.optional(v.string()),
+            offer: v.optional(v.string()),
+            tone: v.optional(v.string()),
+            references: v.optional(v.string()),
+            pageCount: v.optional(v.number()),
+        }),
+        status: v.union(
+            v.literal('brief'),
+            v.literal('sitemap'),
+            v.literal('wireframe'),
+            v.literal('styleGuide'),
+            v.literal('design'),
+        ),
+        activeStyleGuideId: v.optional(v.id('styleGuides')),
+        updatedAt: v.number(),
+    }).index('by_project', ['projectId']),
+
+    sitemapPages: defineTable({
+        docId: v.id('wireframeDocs'),
+        title: v.string(),
+        slug: v.string(),
+        description: v.optional(v.string()),
+        order: v.number(),
+        parentPageId: v.optional(v.id('sitemapPages')),
+    })
+        .index('by_doc', ['docId'])
+        .index('by_doc_order', ['docId', 'order'])
+        .index('by_doc_slug', ['docId', 'slug']),
+
+    sitemapSections: defineTable({
+        docId: v.id('wireframeDocs'),
+        pageId: v.id('sitemapPages'),
+        title: v.string(),
+        description: v.string(),
+        intent: v.string(),
+        suggestedBlockType: v.string(),
+        order: v.number(),
+        linkedWireframeSectionId: v.optional(v.id('wireframeSections')),
+    })
+        .index('by_doc', ['docId'])
+        .index('by_page', ['pageId'])
+        .index('by_page_order', ['pageId', 'order']),
+
+    wireframePages: defineTable({
+        docId: v.id('wireframeDocs'),
+        sitemapPageId: v.id('sitemapPages'),
+        title: v.string(),
+        slug: v.string(),
+        order: v.number(),
+    })
+        .index('by_doc', ['docId'])
+        .index('by_sitemap_page', ['sitemapPageId']),
+
+    wireframeSections: defineTable({
+        docId: v.id('wireframeDocs'),
+        wireframePageId: v.id('wireframePages'),
+        sitemapSectionId: v.optional(v.id('sitemapSections')),
+        blockId: v.string(),
+        blockCategory: v.string(),
+        blockVariantId: v.optional(v.string()),
+        // Per-block editable copy; shape varies by block, so stored as `v.any()`
+        // and validated against the block's Zod schema at the mutation boundary
+        // (mirrors the existing `projects.runtimeMetadata: v.any()` pattern).
+        content: v.any(),
+        order: v.number(),
+    })
+        .index('by_doc', ['docId'])
+        .index('by_page', ['wireframePageId'])
+        .index('by_page_order', ['wireframePageId', 'order'])
+        .index('by_sitemap_section', ['sitemapSectionId']),
+
+    styleGuides: defineTable({
+        docId: v.id('wireframeDocs'),
+        conceptName: v.string(),
+        // Token overrides on the shadcn CSS-var contract; bounded object,
+        // validated at the mutation boundary.
+        tokens: v.any(),
+        isActive: v.boolean(),
+        updatedAt: v.number(),
+    }).index('by_doc', ['docId']),
 });
