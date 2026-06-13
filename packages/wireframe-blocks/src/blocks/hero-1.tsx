@@ -1,4 +1,7 @@
-import { ActionButton, Eyebrow, Placeholder } from './_ui';
+import { ArrowRight } from 'lucide-react';
+
+import { Button } from '../vendor/ui/button';
+import { Eyebrow, Media } from './_ui';
 
 export interface Hero1Content {
     eyebrow?: string;
@@ -23,15 +26,21 @@ export default function Hero1({ content }: { content: Hero1Content }) {
                     <p className="text-muted-foreground max-w-prose text-lg leading-relaxed text-pretty">
                         {content.subheading}
                     </p>
-                    <div className="flex flex-wrap items-center gap-4 pt-2">
-                        <ActionButton label={content.primaryCtaLabel} />
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                        <Button size="lg" asChild>
+                            <a href="#">{content.primaryCtaLabel}</a>
+                        </Button>
                         {content.secondaryCtaLabel ? (
-                            <ActionButton label={content.secondaryCtaLabel} variant="ghost" />
+                            <Button size="lg" variant="ghost" asChild>
+                                <a href="#">
+                                    {content.secondaryCtaLabel} <ArrowRight />
+                                </a>
+                            </Button>
                         ) : null}
                     </div>
                 </div>
                 <div className="w-full flex-1">
-                    <Placeholder ratio="aspect-[4/3]" />
+                    <Media ratio="aspect-[4/3]" />
                 </div>
             </div>
         </section>

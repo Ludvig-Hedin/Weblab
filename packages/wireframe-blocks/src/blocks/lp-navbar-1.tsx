@@ -1,5 +1,6 @@
 import type { NavLink } from './_ui';
-import { ActionButton, LogoMark } from './_ui';
+import { Button } from '../vendor/ui/button';
+import { LogoMark } from './_ui';
 
 export interface LpNavbar1Content {
     logoText: string;
@@ -24,7 +25,9 @@ export default function LpNavbar1({ content }: { content: LpNavbar1Content }) {
                         </li>
                     ))}
                 </ul>
-                <ActionButton label={content.ctaLabel} />
+                <Button asChild>
+                    <a href="#">{content.ctaLabel}</a>
+                </Button>
             </nav>
         </header>
     );

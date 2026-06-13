@@ -1,3 +1,9 @@
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '../vendor/ui/accordion';
 import { Eyebrow } from './_ui';
 
 export interface FaqItem {
@@ -24,21 +30,18 @@ export default function Faq2({ content }: { content: Faq2Content }) {
                         {content.heading}
                     </h2>
                 </div>
-                <div className="divide-border border-border mt-10 divide-y border-t">
+                <Accordion type="single" collapsible className="mt-10 w-full">
                     {content.items.map((item, i) => (
-                        <details key={i} className="group py-5">
-                            <summary className="text-foreground flex cursor-pointer items-center justify-between gap-4 text-base font-medium marker:content-['']">
+                        <AccordionItem key={i} value={`item-${i}`}>
+                            <AccordionTrigger className="text-left text-base font-medium">
                                 {item.question}
-                                <span className="text-muted-foreground transition-transform group-open:rotate-45">
-                                    +
-                                </span>
-                            </summary>
-                            <p className="text-muted-foreground mt-3 text-sm leading-relaxed text-pretty">
+                            </AccordionTrigger>
+                            <AccordionContent className="text-muted-foreground text-sm leading-relaxed">
                                 {item.answer}
-                            </p>
-                        </details>
+                            </AccordionContent>
+                        </AccordionItem>
                     ))}
-                </div>
+                </Accordion>
             </div>
         </section>
     );

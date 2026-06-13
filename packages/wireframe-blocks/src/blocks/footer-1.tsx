@@ -1,4 +1,5 @@
 import type { NavLink } from './_ui';
+import { Separator } from '../vendor/ui/separator';
 import { LogoMark } from './_ui';
 
 export interface FooterColumn {
@@ -44,9 +45,8 @@ export default function Footer1({ content }: { content: Footer1Content }) {
                         </div>
                     ))}
                 </div>
-                <div className="border-border mt-12 border-t pt-6">
-                    <p className="text-muted-foreground text-sm">{content.note}</p>
-                </div>
+                <Separator className="my-8" />
+                <p className="text-muted-foreground text-sm">{content.note}</p>
             </div>
         </footer>
     );

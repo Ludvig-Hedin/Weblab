@@ -1,4 +1,8 @@
-import { ActionButton, Eyebrow, IconCheck } from './_ui';
+import { Check } from 'lucide-react';
+
+import { Button } from '../vendor/ui/button';
+import { Card, CardContent, CardHeader } from '../vendor/ui/card';
+import { Eyebrow } from './_ui';
 
 export interface PricingPlan {
     name: string;
@@ -37,15 +41,11 @@ export default function Pricing2({ content }: { content: Pricing2Content }) {
                 </div>
                 <div className="mt-12 grid gap-6 md:grid-cols-3">
                     {content.plans.map((plan, i) => (
-                        <div
+                        <Card
                             key={i}
-                            className={`flex flex-col gap-6 rounded-2xl border p-6 ${
-                                plan.highlighted
-                                    ? 'border-foreground bg-card shadow-sm'
-                                    : 'border-border bg-card'
-                            }`}
+                            className={plan.highlighted ? 'border-foreground shadow-sm' : ''}
                         >
-                            <div className="flex flex-col gap-2">
+                            <CardHeader>
                                 <h3 className="text-foreground text-lg font-medium">{plan.name}</h3>
                                 {plan.description ? (
                                     <p className="text-muted-foreground text-sm">
@@ -62,23 +62,28 @@ export default function Pricing2({ content }: { content: Pricing2Content }) {
                                         </span>
                                     ) : null}
                                 </p>
-                            </div>
-                            <ActionButton
-                                label={plan.ctaLabel}
-                                variant={plan.highlighted ? 'primary' : 'secondary'}
-                            />
-                            <ul className="flex flex-col gap-3">
-                                {plan.features.map((feature, j) => (
-                                    <li
-                                        key={j}
-                                        className="text-muted-foreground flex items-start gap-2.5 text-sm"
-                                    >
-                                        <IconCheck />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-6">
+                                <Button
+                                    variant={plan.highlighted ? 'default' : 'secondary'}
+                                    className="w-full"
+                                    asChild
+                                >
+                                    <a href="#">{plan.ctaLabel}</a>
+                                </Button>
+                                <ul className="flex flex-col gap-3">
+                                    {plan.features.map((feature, j) => (
+                                        <li
+                                            key={j}
+                                            className="text-muted-foreground flex items-start gap-2.5 text-sm"
+                                        >
+                                            <Check className="text-foreground mt-0.5 h-4 w-4 shrink-0" />
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </div>

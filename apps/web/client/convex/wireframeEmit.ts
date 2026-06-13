@@ -3,10 +3,15 @@
 import { Sandbox } from '@vercel/sandbox';
 import { ConvexError, v } from 'convex/values';
 
-import { VercelSandboxProvider, WEBLAB_NEXTJS_GLOBALS_CSS } from '@weblab/code-provider';
+import {
+    getNextJsScaffoldFiles,
+    VercelSandboxProvider,
+    WEBLAB_NEXTJS_GLOBALS_CSS,
+} from '@weblab/code-provider';
 import {
     asStyleGuideTokens,
     buildEmitFiles,
+    mergeEmitDeps,
     styleGuideToGlobalsAppend,
     type EmitPage,
 } from '@weblab/wireframe-blocks';
@@ -61,6 +66,13 @@ export const emitToCloud = action({
             WEBLAB_NEXTJS_GLOBALS_CSS + styleGuideToGlobalsAppend(asStyleGuideTokens(data.activeTokens));
         const files = buildEmitFiles(emitPages, { globalsCss });
 
+        // Add the shadcn primitive deps (radix/lucide/cva/clsx/tailwind-merge) to
+        // the scaffold's package.json so `bun install` can resolve the emitted
+        // real shadcn components.
+        const basePkg =
+            getNextJsScaffoldFiles().find((f) => f.path === 'package.json')?.content ?? '{}';
+        files.push({ path: 'package.json', content: mergeEmitDeps(basePkg) });
+
         const projectName = data.brief.companyName?.trim() || 'Wireframe site';
 
         let provisionedSandboxId: string | null = null;
@@ -85,6 +97,21 @@ export const emitToCloud = action({
 
             const sandbox = await Sandbox.get({ sandboxId, teamId, projectId: vercelProjectId, token });
             await sandbox.writeFiles(files.map((f) => ({ path: f.path, content: f.content })));
+
+            // Install the newly added shadcn/radix deps so the dev server resolves
+            // the emitted real components. (The base deps are pre-installed in the
+            // snapshot; this only fetches the additions.)
+            const install = await sandbox.runCommand({
+                cmd: 'bash',
+                args: ['-lc', 'bun install'],
+                cwd: '/vercel/sandbox',
+            });
+            if (install.exitCode !== 0) {
+                const out = await install.output('both');
+                throw new Error(
+                    `[wireframeEmit] dependency install failed (exit ${install.exitCode}): ${out.slice(0, 800)}`,
+                );
+            }
 
             const workspaceId: Id<'workspaces'> = await ctx.runMutation(
                 internal.projects._resolvePersonalWorkspaceForAction,

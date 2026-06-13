@@ -1,4 +1,6 @@
-import { AvatarDot, Eyebrow, Stars } from './_ui';
+import { Avatar, AvatarFallback } from '../vendor/ui/avatar';
+import { Card, CardContent } from '../vendor/ui/card';
+import { Eyebrow, Stars } from './_ui';
 
 export interface Testimonial {
     quote: string;
@@ -27,26 +29,27 @@ export default function Testimonials1({ content }: { content: Testimonials1Conte
                 </div>
                 <div className="mt-12 grid gap-6 md:grid-cols-3">
                     {content.testimonials.map((item, i) => (
-                        <figure
-                            key={i}
-                            className="border-border flex flex-col gap-4 rounded-xl border p-6"
-                        >
-                            <Stars />
-                            <blockquote className="text-foreground text-base leading-relaxed text-pretty">
-                                “{item.quote}”
-                            </blockquote>
-                            <figcaption className="mt-auto flex items-center gap-3">
-                                <AvatarDot className="h-9 w-9" />
-                                <span className="flex flex-col">
-                                    <span className="text-foreground text-sm font-medium">
-                                        {item.author}
+                        <Card key={i}>
+                            <CardContent className="flex h-full flex-col gap-4">
+                                <Stars />
+                                <blockquote className="text-foreground text-base leading-relaxed text-pretty">
+                                    “{item.quote}”
+                                </blockquote>
+                                <figcaption className="mt-auto flex items-center gap-3">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarFallback />
+                                    </Avatar>
+                                    <span className="flex flex-col">
+                                        <span className="text-foreground text-sm font-medium">
+                                            {item.author}
+                                        </span>
+                                        <span className="text-muted-foreground text-sm">
+                                            {item.role}
+                                        </span>
                                     </span>
-                                    <span className="text-muted-foreground text-sm">
-                                        {item.role}
-                                    </span>
-                                </span>
-                            </figcaption>
-                        </figure>
+                                </figcaption>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </div>

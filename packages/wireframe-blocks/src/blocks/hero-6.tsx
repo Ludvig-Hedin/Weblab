@@ -1,4 +1,7 @@
-import { ActionButton, Eyebrow } from './_ui';
+import { ArrowRight } from 'lucide-react';
+
+import { Button } from '../vendor/ui/button';
+import { Eyebrow } from './_ui';
 
 export interface Hero6Content {
     eyebrow?: string;
@@ -22,10 +25,16 @@ export default function Hero6({ content }: { content: Hero6Content }) {
                 <p className="text-muted-foreground max-w-2xl text-lg leading-relaxed text-pretty">
                     {content.subheading}
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-                    <ActionButton label={content.primaryCtaLabel} />
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <Button size="lg" asChild>
+                        <a href="#">{content.primaryCtaLabel}</a>
+                    </Button>
                     {content.secondaryCtaLabel ? (
-                        <ActionButton label={content.secondaryCtaLabel} variant="ghost" />
+                        <Button size="lg" variant="ghost" asChild>
+                            <a href="#">
+                                {content.secondaryCtaLabel} <ArrowRight />
+                            </a>
+                        </Button>
                     ) : null}
                 </div>
             </div>

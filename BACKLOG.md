@@ -40,17 +40,17 @@ later without re-discovering the context.
 
 ### AI Wireframes — deferred follow-ups (MVP shipped 2026-06-13)
 
-- **Discovered:** 2026-06-13 (AI wireframes feature build — F-790…F-794). MVP is complete and green; these are scoped enhancements deferred to keep the MVP focused + safe.
+- **Discovered:** 2026-06-13 (AI wireframes feature build — F-790…F-794). The feature is complete and green: real shadcn blocks render in-canvas and emit as real code to **both** local (desktop NodeFs bridge) and cloud (Vercel Sandbox). These are scoped enhancements.
 - **Where:** `packages/wireframe-blocks/`, `apps/web/client/convex/wireframeEmit.ts`, `apps/web/client/src/app/project/[id]/wireframe/`
 - **Items:**
-  1. **Local-desktop native-FS emit** — `wireframeEmit.emitToCloud` only creates a *cloud* Vercel-Sandbox project. Desktop/local projects (`storageMode:'local'`, `NodeFsProvider` in the Electron renderer) need a client-side emit hook that writes the same `buildEmitFiles(...)` set into the existing local project root via `window.weblabNative.localfs` and then `router.push('/project/<id>')` — must NOT call `_insertProjectGraph`. Shares the pure `buildEmitFiles`; only the write transport differs. `#tech-debt`
-  2. **Per-section AI regenerate** — wireframe "regenerate" is page/all-level only; add a per-section action that re-runs `generateObject` for one section (new copy / alternate block) instead of the user swapping variants manually. `#tech-debt`
-  3. **Style-guide contrast guard** — `styleGuideToCssVars`/the token editor don't warn when fg/bg or primary/primary-foreground fall below a readable luminance ratio (spec edge case "style guide breaks contrast"). Add a luminance check + inline warning. `#tech-debt`
-  4. **Real font loading** — `fontHeading`/`fontBody` are applied as `font-family` name + system fallback only; the Google webfont isn't actually loaded in the live preview or the emitted project (emit can't add a top `@import` after `@import 'tailwindcss'`). Inject a `<link>` in the emitted `layout.tsx` and a preview-scoped font loader. `#tech-debt`
-  5. **Expand curated block set** — only ~15 of the 214 vendored pro blocks are registered (1–2 per category). Grow toward fuller coverage (more variants per category) by adding prop-driven blocks to `packages/wireframe-blocks/src/blocks/` + `meta.ts` + regenerating emit assets; consider codegen from the manifest. `#tech-debt`
-  6. **Infinite-canvas pan** — Sitemap is a card tree and Wireframe/Design are scaled frame strips with zoom controls (robust, no fragile custom canvas). A true zoom/pan infinite canvas (like the screenshots) is a polish follow-up. `#tech-debt`
-  7. **Emit-asset drift guard** — `packages/wireframe-blocks/src/emit/emit-assets.generated.ts` is committed; add a CI step that re-runs `bun run generate:emit-assets` and fails on diff so block-source edits can't desync from the bundle. `#test-gap` `#infra`
-- **Risk if ignored:** all enhancements, not regressions — the MVP works end-to-end (cloud emit, all 13 categories, generation, editing, persistence).
+  1. **Per-section AI regenerate** — wireframe "regenerate" is page/all-level only; add a per-section action that re-runs `generateObject` for one section (new copy / alternate block) instead of the user swapping variants manually. `#tech-debt`
+  2. **Style-guide contrast guard** — `styleGuideToCssVars`/the token editor don't warn when fg/bg or primary/primary-foreground fall below a readable luminance ratio (spec edge case "style guide breaks contrast"). Add a luminance check + inline warning. `#tech-debt`
+  3. **Real font loading** — `fontHeading`/`fontBody` are applied as `font-family` name + system fallback only; the Google webfont isn't actually loaded in the live preview or the emitted project (emit can't add a top `@import` after `@import 'tailwindcss'`). Inject a `<link>` in the emitted `layout.tsx` and a preview-scoped font loader. `#tech-debt`
+  4. **Expand curated block set** — only ~15 of the 214 vendored pro blocks are registered (1–2 per category). Grow toward fuller coverage by adding prop-driven blocks to `packages/wireframe-blocks/src/blocks/` (+ any new primitives under `src/vendor/ui`) + `meta.ts` + regenerating emit assets; consider codegen from the manifest. `#tech-debt`
+  5. **Infinite-canvas pan** — Sitemap is a card tree and Wireframe/Design are scaled frame strips with zoom controls (robust, no fragile custom canvas). A true zoom/pan infinite canvas (like the screenshots) is a polish follow-up. `#tech-debt`
+  6. **Emit-asset drift guard** — `packages/wireframe-blocks/src/emit/emit-assets.generated.ts` is committed; add a CI step that re-runs `bun run generate:emit-assets` and fails on diff so block/primitive source edits can't desync from the bundle. `#test-gap` `#infra`
+  7. **Cloud emit creates a new project** — `emitToCloud` provisions a fresh Vercel-Sandbox project (mirrors `createFromFigma`); local emit writes into the current project root. Consider unifying so cloud also emits into the current project's sandbox when one is live. `#tech-debt`
+- **Risk if ignored:** all enhancements, not regressions — the feature works end-to-end (real shadcn blocks, local + cloud emit, all 13 categories, generation, editing, persistence).
 - **Tags:** `#tech-debt` `#ai`
 
 ### Bug-hunt round 2 2026-06-13 — deferred findings (sync/parser/server/billing sweep)
@@ -1706,3 +1706,14 @@ Fixed in this session (code-level verified: `bun typecheck` exit 0, scoped lint 
 - **F-301** `formatRelativeTime` → `"NaNm ago"` — [comments-tab/index.tsx:16](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L16). Added `Number.isNaN` + negative-diff guards.
 
 **Still Open (intentionally deferred — cosmetic or broad, NOT user-stopping):** F-402 backdrop-close dirty-check + ARIA/focus-trap (broad — needs Radix Dialog swap + state-manager `isDirty`); F-333 duplicate keys / CopyButton timeout; F-360 error-leak / email-normalize; F-334 wildcard postMessage; F-332 xterm refresh; pervasive raw-`<button>` + i18n sweep; ImageBackground dead stub; F-313 catalog row should note object-fit-only scope.
+
+### 2026-06-13 — Home AI-tell elevation: copy + system-font swap (partial)
+
+Shipped (code-verified: `bun typecheck` exit 0, scoped eslint 0 errors; both i18n keys confirmed rendered):
+- Reworded 2 home AI-tell strings in `apps/web/client/messages/en.json` (English only): `landing.whatCanWeblabDoV2.subhead` (was "Everything in one canvas. No tabs, no handoffs, no translation losses.") and `landing.featureTrio.heading` (was "Pick your model, own your terminal, work with an AI that ships.").
+- Swapped default body font Inter → pure system stack (`system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`) in `packages/ui/src/globals.css` + `apps/web/client/src/styles/globals.css`, and removed the `next/font` Inter load from `apps/web/client/src/app/layout.tsx`. SF Pro on Mac, Segoe UI on Windows, no web-font download.
+
+Deferred:
+- **i18n locale drift** — the 2 reworded strings are updated in `en.json` only. `sv/es/ja/ko/zh` still carry translations of the old phrasing. Re-translate `landing.whatCanWeblabDoV2.subhead` + `landing.featureTrio.heading` in the 5 non-English message files.
+- **Off-home copy tells (flagged, not edited — home-only scope):** `landing.testimonials` "Tens of thousands of builders love Weblab" (unverifiable; conflicts with "90+ contributors") and `landing.andSoMuchMore` "...and so much more". Rewrite when scope widens beyond home.
+- **Parked home elevation plan** (approved direction: editorial-premium, owned electric blue, elevate both modes — type pivot superseded by owner's system-ui choice): hero proof strip (GitHub stars / contributors / Apache-2.0 / model wordmarks), accent shift off `#0083ff`, section trim (8→4 cards), `transition-all`→explicit transitions + add `:focus-visible` rings (`faq-dropdown.tsx:37`, `model-agnostic-section.tsx:149`), replace cream/Midjourney landing assets. Owner kept hero H1 + subhead as-is.

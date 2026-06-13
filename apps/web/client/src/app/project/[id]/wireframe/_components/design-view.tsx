@@ -6,7 +6,7 @@ import { Minus, Monitor, Plus, Smartphone, Tablet } from 'lucide-react';
 import { Button } from '@weblab/ui/button';
 import { asStyleGuideTokens, styleGuideToCssVars } from '@weblab/wireframe-blocks';
 
-import type { FullDoc } from './types';
+import type { FullDoc, ProjectId } from './types';
 import { BlockFrame } from './block-frame';
 import { EmitButton } from './emit-button';
 import { FramePreview } from './frame-preview';
@@ -16,9 +16,11 @@ type Responsive = keyof typeof WIDTHS;
 
 export function DesignView({
     full,
+    projectId,
     onGotoWireframe,
 }: {
     full: FullDoc;
+    projectId: ProjectId;
     onGotoWireframe: () => void;
 }) {
     const [responsive, setResponsive] = useState<Responsive>('desktop');
@@ -89,7 +91,7 @@ export function DesignView({
                             <Plus />
                         </Button>
                     </div>
-                    <EmitButton docId={full.doc._id} />
+                    <EmitButton full={full} projectId={projectId} />
                 </div>
             </div>
             <div className="flex-1 overflow-auto px-6 py-6">

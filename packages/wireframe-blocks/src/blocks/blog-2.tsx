@@ -1,4 +1,6 @@
-import { AvatarDot, Eyebrow, Placeholder } from './_ui';
+import { Avatar, AvatarFallback } from '../vendor/ui/avatar';
+import { Card, CardContent } from '../vendor/ui/card';
+import { Eyebrow, Media } from './_ui';
 
 export interface BlogPost {
     title: string;
@@ -33,26 +35,30 @@ export default function Blog2({ content }: { content: Blog2Content }) {
                         </p>
                     ) : null}
                 </div>
-                <div className="mt-12 grid gap-8 md:grid-cols-3">
+                <div className="mt-12 grid gap-6 md:grid-cols-3">
                     {content.posts.map((post, i) => (
-                        <article key={i} className="flex flex-col gap-4">
-                            <Placeholder ratio="aspect-[16/10]" />
-                            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                                {post.category}
-                            </span>
-                            <h3 className="text-foreground text-lg leading-snug font-medium">
-                                {post.title}
-                            </h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                                {post.excerpt}
-                            </p>
-                            <div className="mt-auto flex items-center gap-3 pt-2">
-                                <AvatarDot className="h-7 w-7" />
-                                <span className="text-muted-foreground text-sm">
-                                    {post.author} · {post.date}
+                        <Card key={i} className="overflow-hidden pt-0">
+                            <Media ratio="aspect-[16/10]" className="rounded-none border-0" />
+                            <CardContent className="flex flex-col gap-3">
+                                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                                    {post.category}
                                 </span>
-                            </div>
-                        </article>
+                                <h3 className="text-foreground text-lg leading-snug font-medium">
+                                    {post.title}
+                                </h3>
+                                <p className="text-muted-foreground text-sm leading-relaxed">
+                                    {post.excerpt}
+                                </p>
+                                <div className="mt-2 flex items-center gap-2.5">
+                                    <Avatar className="h-7 w-7">
+                                        <AvatarFallback />
+                                    </Avatar>
+                                    <span className="text-muted-foreground text-sm">
+                                        {post.author} · {post.date}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </div>

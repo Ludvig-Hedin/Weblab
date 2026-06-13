@@ -1,3 +1,4 @@
+import { Card, CardContent, CardHeader, CardTitle } from '../vendor/ui/card';
 import { Eyebrow } from './_ui';
 
 export interface FeatureGridItem {
@@ -30,18 +31,22 @@ export default function FeatureGrid10({ content }: { content: FeatureGrid10Conte
                         </p>
                     ) : null}
                 </div>
-                <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {content.items.map((item, i) => (
-                        <div
-                            key={i}
-                            className="border-border flex flex-col gap-3 rounded-xl border p-6"
-                        >
-                            <span className="bg-muted h-9 w-9 rounded-lg" aria-hidden="true" />
-                            <h3 className="text-foreground text-lg font-medium">{item.title}</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                                {item.description}
-                            </p>
-                        </div>
+                        <Card key={i}>
+                            <CardHeader>
+                                <span
+                                    className="bg-muted mb-2 h-9 w-9 rounded-lg"
+                                    aria-hidden="true"
+                                />
+                                <CardTitle>{item.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground text-sm leading-relaxed">
+                                    {item.description}
+                                </p>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </div>

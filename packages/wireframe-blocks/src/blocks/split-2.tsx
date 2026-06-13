@@ -1,11 +1,11 @@
-import { ActionButton, Eyebrow, Placeholder } from './_ui';
+import { Button } from '../vendor/ui/button';
+import { Eyebrow, Media } from './_ui';
 
 export interface Split2Content {
     eyebrow?: string;
     heading: string;
     subheading: string;
     ctaLabel?: string;
-    /** Which side the media sits on. */
     imageSide: 'left' | 'right';
 }
 
@@ -28,13 +28,13 @@ export default function Split2({ content }: { content: Split2Content }) {
                         {content.subheading}
                     </p>
                     {content.ctaLabel ? (
-                        <div className="pt-2">
-                            <ActionButton label={content.ctaLabel} />
-                        </div>
+                        <Button asChild>
+                            <a href="#">{content.ctaLabel}</a>
+                        </Button>
                     ) : null}
                 </div>
                 <div className={mediaRight ? '' : 'lg:order-1'}>
-                    <Placeholder ratio="aspect-[5/4]" />
+                    <Media ratio="aspect-[5/4]" />
                 </div>
             </div>
         </section>

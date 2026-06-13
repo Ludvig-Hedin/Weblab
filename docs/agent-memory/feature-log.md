@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-13 — AI Wireframes correction: real shadcn blocks + local-AND-cloud emit
+Author: Claude (Opus 4.8)
+Area: `@weblab/wireframe-blocks`, `apps/web/client/convex/wireframeEmit.ts`, `wireframe/_components/emit-button.tsx`
+Summary: The first pass missed two EXPLICIT user requirements — "real blocks, max fidelity" and "local AND cloud". Corrected both. (1) The 15 blocks now render with the **real standard shadcn primitives** (Button/Card/Accordion/Avatar/Separator, vendored into the package under `src/vendor/ui` from `component-registry/shadcn` — the standard-Tailwind set, NOT `@weblab/ui`'s custom-utility primitives which would break in a plain-Tailwind emitted project) + lucide icons. The SAME source renders in-canvas and emits. (2) `emitToCloud` now also ships the vendored primitives + `cn` + radix/lucide deps (`EMIT_DEPS`/`mergeEmitDeps`) and runs `bun install` in the Vercel sandbox; a new client path in `emit-button.tsx` writes the identical file set into a LOCAL desktop project via `window.weblabNative.localfs`/`localdev` + `bun install`. Content schemas/CRUD/AI actions/UI flow unchanged. 20 package tests green; package + convex + web-client typecheck + lint clean.
+Files: `packages/wireframe-blocks/src/{blocks/*.tsx, vendor/ui/*, vendor/lib/utils.ts, emit/build-emit.ts, emit/emit-assets.generated.ts, emit.test.ts}`, `scripts/bundle-emit-assets.mjs`, `apps/web/client/convex/wireframeEmit.ts`, `apps/web/client/src/app/project/[id]/wireframe/_components/{emit-button.tsx, design-view.tsx, wireframe-workspace.tsx}`, docs (feature-catalog F-793/F-794, BACKLOG)
+Links: same feature as below; supersedes the "self-contained token blocks / cloud-only" notes in the entry beneath this one
+
 ## 2026-06-13 — AI Wireframes (Relume-style): brief → sitemap → wireframe → style guide → real code
 Author: Claude (Opus 4.8)
 Area: new package `@weblab/wireframe-blocks`, new route `project/[id]/wireframe`, Convex (`wireframes.ts`, `wireframeActions.ts`, `wireframeEmit.ts`, 6 schema tables)

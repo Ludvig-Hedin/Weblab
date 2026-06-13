@@ -95,7 +95,11 @@ export function WireframeWorkspace({
                 )}
                 {mode === 'styleGuide' && <StyleGuideView full={fullDoc} />}
                 {mode === 'design' && (
-                    <DesignView full={fullDoc} onGotoWireframe={() => setMode('wireframe')} />
+                    <DesignView
+                        full={fullDoc}
+                        projectId={projectId}
+                        onGotoWireframe={() => setMode('wireframe')}
+                    />
                 )}
             </main>
         </div>
