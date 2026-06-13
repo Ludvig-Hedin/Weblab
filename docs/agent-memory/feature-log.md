@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-13 — +15 built-in agent skills
+Author: Claude (Opus 4.8)
+Area: AI skills — `<repoRoot>/skills/`, `packages/ai/src/skills/{embedded,embedded-summaries}.ts`
+Summary: Added 15 of the user's personal Claude skills as Weblab built-ins (12 → 27 embedded): `ai-slop-audit`, `ai-tells`, `beautiful-web-design`, `benchmark`, `browse`, `design-consultation`, `document-release`, `documentation-sync`, `inconsistency-hunter`, `local-review`, `nano-banana`, `remotion-best-practices`, `review`, `transitions-dev`, `ux-assesment`. 6 of the requested 21 already existed (`apple-design`, `bug-hunt`, `design-audit`, `react-best-practices`, `seo`, `ux-polish`) and were left untouched. Mechanism = the existing WS4 path: copy `SKILL.md` only (the generator reads just SKILL.md — matches every existing project skill, e.g. `apple-design` has 19 source files but only SKILL.md is vendored) → `bun run generate:skills`. Default-on for the builder agent and listed in the Skills settings tab for users to enable. Embedded as-is per precedent; gstack/CLI-workflow skills reference external tooling absent in-product but only their name+description reach the system prompt.
+Files: skills/{ai-slop-audit,ai-tells,beautiful-web-design,benchmark,browse,design-consultation,document-release,documentation-sync,inconsistency-hunter,local-review,nano-banana,remotion-best-practices,review,transitions-dev,ux-assesment}/SKILL.md; packages/ai/src/skills/embedded.ts; packages/ai/src/skills/embedded-summaries.ts
+Links: docs/feature-catalog.md change log (2026-06-13); spec docs/superpowers/specs/2026-05-29-skills-image-gen-design.md (WS4)
+
 ## 2026-06-13 — Docker-free frontend dev commands (remote/prod backend)
 Author: Claude (Opus 4.8)
 Area: dev tooling — root `package.json`, `apps/web/client/package.json`, env template
