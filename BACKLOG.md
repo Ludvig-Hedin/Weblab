@@ -38,6 +38,14 @@ later without re-discovering the context.
 
 ## Open
 
+### Figma import — finalize step needs sandbox wiring (gated as "Coming soon")
+
+- **Discovered:** 2026-06-13 (round-4 broken-feature sweep)
+- **Where:** `apps/web/client/src/app/projects/import/figma/_context/index.tsx` (`forkSandbox`/`startOrphanSandbox`/`orphanBulkUpload` throw stubs, `TODO(sandbox-port)`); entry gated in `apps/web/client/src/app/projects/import/page.tsx`
+- **Symptom:** the first two import steps (fetch frames, select frames) use live Convex actions, but "Create Project" hits unconditional throw stubs. The import card is now disabled with a "Coming soon" badge so users don't invest effort then fail.
+- **Next step:** when the sandbox-provisioning port lands (same blocker as `project.fork`/prompt-create), wire `forkSandbox`/`orphanBulkUpload` to the real provisioning + sandbox-server upload (the local-import context `local/_context/index.tsx` is a working template) and re-enable the card.
+- **Risk if ignored:** feature stays unavailable (but no longer presents as broken). `#bug` (deferred)
+
 ### Bug-hunt round 2 2026-06-13 — deferred findings (sync/parser/server/billing sweep)
 
 - **Discovered:** 2026-06-13 (second deep bug-hunt across canvas editing, sync/fs/parser, server+provider, billing/versions, panels; ~35 bugs fixed in the same session — see feature-log). Each item has a matching `TODO(bug-hunt)` comment in code.

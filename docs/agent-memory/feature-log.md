@@ -1017,3 +1017,29 @@ Notable in-flight work as of this log's creation (see
 - **Validation:** `bun typecheck` clean; parser 200 pass (1 new); changed-file
   ESLint 0 errors.
 - **User-facing:** yes — domain settings + responsive editing.
+
+---
+
+## 2026-06-13 — Round 4: broken-feature wiring + UX-polish (12 fixes)
+
+- **What:** Hunted reachable-but-broken features ("looks done, fails when used")
+  + ran /ux-polish on settings/dashboard. Every finding verified against code
+  before fixing.
+- **Feature wiring (commit 54a2055be):**
+  - Width/Height "Hug" collapsed elements to 0px (keyword `fit-content` parsed
+    to 0); Min/Max mode pills were dead no-ops (guard rejected min/max). Both
+    fixed in `handleLayoutChange`.
+  - "Add font" wrote fonts.ts but skipped Tailwind config + root-layout
+    variable, so the font wasn't served until a remount — now wired (+ Add
+    button toast).
+  - Delete Account and Disconnect GitHub were "temporarily unavailable" stubs
+    despite complete backends (`api.userActions.remove`,
+    `api.users.disconnectGitHub`) — wired up.
+  - Figma import presented as working but its finalize step hits unconditional
+    `TODO(sandbox-port)` throw stubs — gated the card as "Coming soon" until
+    the sandbox port lands (full wiring deferred, see BACKLOG).
+- **UX-polish (commit cb9b5e088):** confirm dialogs on one-click destructive
+  actions (remove member / leave site, remove payment method); double-submit
+  guards (rename project, offline-pin toggle); busy state threaded into the
+  cancel-subscription modal; "Deleting…" label on project delete.
+- **Validation:** bun typecheck clean; changed-file ESLint 0 errors.
