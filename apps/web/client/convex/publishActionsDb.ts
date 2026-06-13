@@ -37,7 +37,10 @@ export const _loadDomainsForUrls = internalQuery({
             .collect();
         return {
             preview: preview.map((d) => ({ fullDomain: d.fullDomain })),
-            custom: custom.map((d) => ({ fullDomain: d.fullDomain })),
+            // Skip soft-deleted ('cancelled') custom domains.
+            custom: custom
+                .filter((d) => d.status !== 'cancelled')
+                .map((d) => ({ fullDomain: d.fullDomain })),
         };
     },
 });

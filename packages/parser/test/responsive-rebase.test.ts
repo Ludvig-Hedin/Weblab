@@ -56,6 +56,24 @@ describe('rebaseToMobileFirst', () => {
         expect(out.map((e) => e.value)).toEqual(['4px', '8px', '16px']);
     });
 
+    test('two breakpoints collide in the same prefix band → one class, larger minWidth wins', () => {
+        // Desktop frame resized from 1024 down to 900 — still in the `md:` band
+        // (768 ≤ 900 < 1024), so Tablet (768) and resized-Desktop (900) both map
+        // to `md:`. Must emit a single `md:` class, not `md:8px md:16px` which
+        // twMerge would silently collapse to the last value downstream.
+        const out = rebaseToMobileFirst([
+            { ...PHONE, value: '4px' },
+            { ...TABLET, value: '8px' },
+            { id: 'desktop', minWidth: 900, name: 'Desktop', value: '16px' },
+        ]);
+        const mdEntries = out.filter((e) => e.tailwindPrefix === 'md:');
+        expect(mdEntries).toHaveLength(1);
+        expect(mdEntries[0]?.value).toBe('16px');
+        // No two emitted entries share a prefix.
+        const prefixes = out.map((e) => e.tailwindPrefix);
+        expect(new Set(prefixes).size).toBe(prefixes.length);
+    });
+
     test('all three same → single base emit', () => {
         const out = rebaseToMobileFirst([
             { ...PHONE, value: '12px' },

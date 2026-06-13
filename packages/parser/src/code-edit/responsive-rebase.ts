@@ -124,7 +124,13 @@ export function rebaseToMobileFirst(
         if (e.value !== undefined) prev = e.value;
     }
 
-    // Third pass: emit only entries that differ from the previous emit.
+    // Third pass: emit at most ONE class per Tailwind prefix band. Walking
+    // smallest → largest, skip entries whose value is unchanged, and when two
+    // entries resolve to the SAME prefix — e.g. a frame resized into another
+    // breakpoint's band, since 768 and 900 both map to `md:` — overwrite the
+    // earlier emit with the larger-minWidth value. Min-width cascade (and the
+    // downstream twMerge) keep the later/larger class, so emitting both would
+    // produce invalid `md:p-8 md:p-16` and silently drop one value.
     const out: RebasedEntry[] = [];
     let lastEmitted: string | undefined;
     const prefixes = options.tailwindPrefixes ?? DEFAULT_TAILWIND_PREFIXES;
@@ -132,11 +138,21 @@ export function rebaseToMobileFirst(
     for (const e of ascending) {
         if (e.value === undefined) continue;
         if (e.value === lastEmitted && !isFirst) continue;
+        const tailwindPrefix = isFirst ? '' : tailwindPrefixForWidth(e.minWidth, prefixes);
+        const prior = out[out.length - 1];
+        if (prior && tailwindPrefix !== '' && prior.tailwindPrefix === tailwindPrefix) {
+            // Same band as the previous emit — the larger minWidth wins.
+            prior.id = e.id;
+            prior.minWidth = e.minWidth;
+            prior.value = e.value;
+            lastEmitted = e.value;
+            continue;
+        }
         out.push({
             id: e.id,
             minWidth: e.minWidth,
             value: e.value,
-            tailwindPrefix: isFirst ? '' : tailwindPrefixForWidth(e.minWidth, prefixes),
+            tailwindPrefix,
         });
         lastEmitted = e.value;
         isFirst = false;

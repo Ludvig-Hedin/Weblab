@@ -988,3 +988,32 @@ Notable in-flight work as of this log's creation (see
   + "Editor hotkeys/canvas") with matching `TODO(bug-hunt)` comments.
 - **User-facing:** yes — money path, canvas editing, file integrity, typing in
   every editor input.
+
+---
+
+## 2026-06-13 — Bug-hunt round 3: 2 verified bugs (domain removal, responsive rebase)
+
+- **What:** Third sweep on fresh areas (breakpoints/rebase, REST/upload, domains,
+  overlay/interaction) with a strict "prove the trigger or don't report" rule.
+  Two surfaces came back clean (REST/upload, overlay/desktop-drag). Two
+  provable bugs found, each independently re-verified before fixing.
+- **Fix 1 — removed custom domain never clears (5 read sites).** `_customRemove`
+  soft-deletes a custom domain by patching its row to `status: 'cancelled'`,
+  but every read (`domains.customGet`, `domains.getAll`, `customGetOwnedDomains`,
+  `projects.loadProjectListCard`, `publishActionsDb`) did `.first()`/`.collect()`
+  with NO status filter — so the Custom Domain tab rendered `<Verified/>`
+  forever for a removed domain, the danger-zone unpublish block lingered, the
+  site base URL + dashboard "Visit site" link pointed at the removed domain,
+  and the domain stayed in the owned-domains list. All reads now exclude
+  `status === 'cancelled'`.
+- **Fix 2 — responsive rebase drops an override on a band collision.** When a
+  breakpoint frame is resized into another breakpoint's Tailwind band (e.g.
+  desktop dragged from 1024 to 900 — both 768 and 900 map to `md:`),
+  `rebaseToMobileFirst` emitted two entries with the same prefix
+  (`md:p-8 md:p-16`), and twMerge silently kept only the last, dropping the
+  user's tablet value from source. Pass 3 now emits at most one class per
+  prefix band (larger minWidth wins, matching min-width cascade). Regression
+  test added.
+- **Validation:** `bun typecheck` clean; parser 200 pass (1 new); changed-file
+  ESLint 0 errors.
+- **User-facing:** yes — domain settings + responsive editing.

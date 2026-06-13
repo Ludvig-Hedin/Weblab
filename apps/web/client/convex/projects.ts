@@ -52,10 +52,15 @@ async function loadProjectListCard(ctx: QueryCtx, project: Doc<'projects'>) {
         .query('previewDomains')
         .withIndex('by_project', (q) => q.eq('projectId', project._id))
         .first();
-    const publishedDomain = await ctx.db
-        .query('projectCustomDomains')
-        .withIndex('by_project', (q) => q.eq('projectId', project._id))
-        .first();
+    // Exclude soft-deleted ('cancelled') rows so a removed custom domain stops
+    // driving the dashboard card's "Visit site" link.
+    const publishedDomain =
+        (
+            await ctx.db
+                .query('projectCustomDomains')
+                .withIndex('by_project', (q) => q.eq('projectId', project._id))
+                .collect()
+        ).find((d) => d.status !== 'cancelled') ?? null;
 
     const previewDomainStr = previewDomain?.fullDomain ?? null;
     const publishedDomainStr = publishedDomain?.fullDomain ?? null;

@@ -47,10 +47,17 @@ export const getAll = query({
             .query('previewDomains')
             .withIndex('by_project', (q) => q.eq('projectId', projectId))
             .first();
-        const published = await ctx.db
-            .query('projectCustomDomains')
-            .withIndex('by_project', (q) => q.eq('projectId', projectId))
-            .first();
+        // Exclude soft-deleted rows: `_customRemove` patches removed domains to
+        // status 'cancelled' instead of deleting them, so an unfiltered
+        // `.first()` would keep returning a removed domain (stale danger-zone
+        // unpublish block + wrong site base URL).
+        const published =
+            (
+                await ctx.db
+                    .query('projectCustomDomains')
+                    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+                    .collect()
+            ).find((d) => d.status !== 'cancelled') ?? null;
         return {
             preview: preview ? toDomainInfoFromPreview(preview) : null,
             published: published ? toDomainInfoFromPublished(published) : null,
@@ -74,10 +81,15 @@ export const customGet = query({
     args: { projectId: v.id('projects') },
     handler: async (ctx, { projectId }) => {
         await requireCap(ctx, 'project.view', { projectId });
-        const customDomain = await ctx.db
-            .query('projectCustomDomains')
-            .withIndex('by_project', (q) => q.eq('projectId', projectId))
-            .first();
+        // Exclude soft-deleted ('cancelled') rows — otherwise the Custom Domain
+        // tab renders <Verified/> forever for a domain the user already removed.
+        const customDomain =
+            (
+                await ctx.db
+                    .query('projectCustomDomains')
+                    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+                    .collect()
+            ).find((d) => d.status !== 'cancelled') ?? null;
         return customDomain ? toDomainInfoFromPublished(customDomain) : null;
     },
 });
@@ -132,7 +144,10 @@ export const customGetOwnedDomains = query({
             ),
         );
         const out = new Set<string>();
-        for (const list of domainsLists) for (const d of list) out.add(d.fullDomain);
+        // Skip soft-deleted ('cancelled') rows so removed domains don't linger
+        // in the owned-domains list.
+        for (const list of domainsLists)
+            for (const d of list) if (d.status !== 'cancelled') out.add(d.fullDomain);
         return [...out];
     },
 });
