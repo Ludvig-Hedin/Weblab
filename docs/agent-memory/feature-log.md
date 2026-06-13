@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-13 — Docker-free frontend dev commands (remote/prod backend)
+Author: Claude (Opus 4.8)
+Area: dev tooling — root `package.json`, `apps/web/client/package.json`, env template
+Summary: Added `bun dev:ui` (client only, :3000, remote DEV backend — lightest, skips preload + :8080 sandbox server), `bun dev:remote` (full stack, alias of `bun dev`, named for clarity), and `bun dev:prod` (client only against PROD backend). Motivation: run the local frontend for UI work without Docker/local Supabase when low on RAM. Key finding: `bun dev` already targets the remote DEV backend and needs no Docker — Docker only comes from `bun backend:start` (local Supabase). `dev:prod` loads `apps/web/client/.env.prod.local` via `bun --env-file`, exploiting that Next's `@next/env` never overwrites pre-set `process.env`, so the file overrides `.env.local`. Guarded to abort loudly if the file is missing (bun silently ignores a missing `--env-file`, exit 0 — would otherwise run against dev unnoticed). Convex prod (`rapid-crab-113`) prefilled in the template; Supabase/Clerk prod left as placeholders (prod Supabase host not found in repo).
+Files: `package.json` (dev:remote/dev:ui/dev:prod), `apps/web/client/package.json` (dev:prod with missing-file guard), `apps/web/client/.env.prod.example` (new, committed; real `.env.prod.local` gitignored), `CLAUDE.md` + `docs/agent-context/development-setup.md` (commands documented)
+Links: commit 243ad8408; no changelog (dev-tooling, not user-facing)
+
 ## 2026-06-13 — Figma import wired end-to-end (was gated "Coming soon")
 Author: Claude (Opus 4.8)
 Area: `apps/web/client/convex` (new `createFromFigma` action), `@weblab/figma` (shared builder), `/projects/import/figma`

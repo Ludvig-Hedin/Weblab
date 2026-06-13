@@ -12,7 +12,10 @@
 
 ```bash
 bun install
-bun dev                  # Next.js client (:3000)
+bun dev                  # Full stack: client (:3000) + preload + :8080 sandbox server
+bun dev:remote           # Same as `bun dev`, named for clarity — remote DEV backend, no Docker
+bun dev:ui               # LIGHTEST: client only (:3000), remote DEV backend, no preload/:8080
+bun dev:prod             # Client only against PROD backend (needs apps/web/client/.env.prod.local)
 bun docs                 # Fumadocs site
 bunx convex dev          # apply Convex schema + watch functions
 ```
@@ -20,7 +23,24 @@ bunx convex dev          # apply Convex schema + watch functions
 Root scripts of interest:
 
 - `bun build` — builds the web client.
-- `bun dev` — starts the web workspace development process.
+- `bun dev` — full local stack (client + preload + :8080 sandbox server).
+- `bun dev:remote` — alias of `bun dev`; explicit name signalling remote DEV
+  backend + no Docker. Editor/canvas works.
+- `bun dev:ui` — **frontend-only, no Docker.** Next.js client only (:3000)
+  against the remote DEV backend (Convex `avid-gnat-539` + remote Supabase,
+  per `.env.local`). Skips the preload watcher and the :8080 sandbox server,
+  so it is the lightest option for landing/dashboard/settings UI work when low
+  on RAM. The editor canvas will not connect to a sandbox (use `dev:remote`).
+- `bun dev:prod` — client only (:3000) against the **PROD** backend. Requires
+  `apps/web/client/.env.prod.local` (copy `.env.prod.example`, fill prod
+  Supabase + Clerk keys; Convex prod `rapid-crab-113` is prefilled). Loads it
+  via `bun --env-file`, which sets `process.env` before Next boots — Next never
+  overwrites pre-set vars, so the file overrides `.env.local`. Guarded to abort
+  if the file is missing (bun silently ignores a missing `--env-file`, which
+  would otherwise run against dev unnoticed). ⚠️ Local UI writes hit REAL prod
+  data — use for read-only UI verification.
+- None of the `dev:*` commands need Docker; Docker is only `bun backend:start`
+  (local Supabase), which is not part of the active dev loop.
 - `bun test` — runs workspace tests.
 - `bun lint` — lints all workspaces (max-warnings 0).
 - `bun format` — runs workspace format/fix scripts.
