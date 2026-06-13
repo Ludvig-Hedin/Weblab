@@ -72,7 +72,7 @@ export const VersionRow = observer(
         const updateCommitDisplayName = async (name: string) => {
             const branchData = editorEngine.branches.activeBranchData;
             if (!branchData) {
-                toast.error('No active branch');
+                toast.error(t('noActiveBranch'));
                 return;
             }
 

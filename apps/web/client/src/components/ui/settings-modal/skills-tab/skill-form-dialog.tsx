@@ -95,7 +95,7 @@ export function SkillFormDialog({
                     description,
                     content,
                 });
-                toast.success(`Updated skill "${name}"`);
+                toast.success(t('formSaveSuccess', { name }));
             } else {
                 await createSkill({
                     ...(scope === 'project' && projectId
@@ -105,11 +105,11 @@ export function SkillFormDialog({
                     description,
                     content,
                 });
-                toast.success(`Saved skill "${name}"`);
+                toast.success(t('formCreateSuccess', { name }));
             }
             onOpenChange(false);
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to save skill');
+            toast.error(err instanceof Error ? err.message : t('formSaveFailed'));
         } finally {
             setIsSaving(false);
         }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
@@ -8,6 +9,7 @@ import { toast } from '@weblab/ui/sonner';
 import { useEditorEngine } from '@/components/store/editor';
 
 export const NoVersions = observer(() => {
+    const t = useTranslations('settings.versions');
     const editorEngine = useEditorEngine();
     const [isCreating, setIsCreating] = useState(false);
 
@@ -25,10 +27,10 @@ export const NoVersions = observer(() => {
                 throw new Error(result.error || 'Failed to create backup');
             }
 
-            toast.success('Backup created successfully!');
+            toast.success(t('toastCreateSuccess'));
             editorEngine.posthog.capture('versions_create_first_commit');
         } catch (error) {
-            toast.error('Failed to create backup', {
+            toast.error(t('toastCreateFailed'), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {
@@ -38,9 +40,9 @@ export const NoVersions = observer(() => {
 
     return (
         <div className="mt-4 flex flex-col items-center gap-2 rounded border border-dashed p-12">
-            <div className="">No backups</div>
+            <div className="">{t('noVersionsTitle')}</div>
             <div className="text-muted-foreground text-center">
-                Create your first backup with the <br /> current version
+                {t('noVersionsDesc')}
             </div>
             <Button variant="outline" size="sm" onClick={handleCreateBackup} disabled={isCreating}>
                 {isCreating ? (
@@ -48,7 +50,7 @@ export const NoVersions = observer(() => {
                 ) : (
                     <Icons.Plus className="mr-2 h-4 w-4" />
                 )}
-                {isCreating ? 'Saving...' : 'Create backup'}
+                {isCreating ? t('saving') : t('createBackup')}
             </Button>
         </div>
     );

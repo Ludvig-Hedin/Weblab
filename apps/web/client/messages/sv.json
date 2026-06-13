@@ -3093,7 +3093,12 @@
             "toastRestoreFailed": "Det gick inte att återställa säkerhetskopian",
             "toastGitNotInit": "Git ej initierat",
             "toastCreateFailed": "Det gick inte att skapa säkerhetskopian",
-            "toastCreateSuccess": "Säkerhetskopian skapades!"
+            "toastCreateSuccess": "Säkerhetskopian skapades!",
+            "noActiveBranch": "Ingen aktiv gren",
+            "noVersionsTitle": "Inga säkerhetskopior",
+            "noVersionsDesc": "Skapa din första säkerhetskopia med den aktuella versionen",
+            "createBackup": "Skapa säkerhetskopia",
+            "saving": "Sparar..."
         },
         "dangerZone": {
             "title": "Riskzon",
@@ -3156,7 +3161,10 @@
             "formSaving": "Sparar…",
             "badgeBuiltIn": "Inbyggd",
             "badgeGlobal": "Global",
-            "badgeProject": "Det här projektet"
+            "badgeProject": "Det här projektet",
+            "formSaveSuccess": "Färdighet \"{name}\" uppdaterad",
+            "formCreateSuccess": "Färdighet \"{name}\" sparad",
+            "formSaveFailed": "Det gick inte att spara färdigheten"
         },
         "delete": {
             "sectionTitle": "Ta bort konto",
@@ -3181,6 +3189,61 @@
             "confirmDeleteButton": "Ja, ta bort mitt konto",
             "toastFailed": "Det gick inte att ta bort kontot",
             "toastSuccess": "Kontot har tagits bort"
+        },
+        "siteAccess": {
+            "title": "Webbplatstillgång",
+            "description": "Hantera vem som kan komma åt den här webbplatsen och ange deras roll.",
+            "inviteLabel": "Bjud in via e-post",
+            "invitePlaceholder": "kollega@foretag.se",
+            "inviteButton": "Bjud in",
+            "inviting": "Bjuder in...",
+            "membersTitle": "Medlemmar",
+            "loadingMembers": "Laddar medlemmar…",
+            "noMembers": "Inga medlemmar ännu. Bjud in någon ovan.",
+            "you": "(Du)",
+            "leaveSite": "Lämna webbplatsen",
+            "removeMember": "Ta bort medlem",
+            "pendingTitle": "Väntande inbjudningar",
+            "invitedAs": "Inbjuden som {role}",
+            "pending": "Väntar",
+            "revoke": "Återkalla",
+            "roleManager": "Hanterare",
+            "roleEditor": "Redaktör",
+            "roleReviewer": "Granskare",
+            "roleViewer": "Läsare",
+            "toastInvalidEmail": "Ange en giltig e-postadress",
+            "toastInviteSent": "Inbjudan skickad till {email}",
+            "toastInviteFailed": "Det gick inte att skicka inbjudan. Försök igen.",
+            "toastRoleUpdated": "Roll uppdaterad",
+            "toastRoleFailed": "Det gick inte att ändra rollen.",
+            "toastLeft": "Lämnade webbplatsen",
+            "toastMemberRemoved": "Medlem borttagen",
+            "toastRemoveFailed": "Det gick inte att ta bort medlemmen.",
+            "toastRevoked": "Inbjudan återkallad",
+            "toastRevokeFailed": "Det gick inte att återkalla inbjudan.",
+            "confirmLeaveTitle": "Lämna den här webbplatsen?",
+            "confirmLeaveDesc": "Du förlorar tillgången till det här projektet om du inte bjuds in igen.",
+            "confirmLeaveBtn": "Lämna",
+            "confirmRemoveTitle": "Ta bort medlem?",
+            "confirmRemoveDesc": "Den här medlemmen förlorar omedelbart tillgången till projektet.",
+            "confirmRemoveBtn": "Ta bort"
+        },
+        "seo": {
+            "title": "SEO",
+            "description": "Sidrubrikerna, beskrivningarna och Open Graph finns i fliken Webbplats. Här styr du crawlers och maskinläsbara filer som serveras från din webbplatsrot.",
+            "save": "Spara",
+            "loading": "Laddar…",
+            "robotsTxtTitle": "robots.txt",
+            "robotsTxtDesc": "Styr vilka crawlers som får indexera din webbplats. Serveras på /robots.txt.",
+            "blockAiBots": "Blockera AI-botar",
+            "allowAllCrawlers": "Tillåt alla crawlers",
+            "blockAllCrawlers": "Blockera alla crawlers",
+            "llmsTxtTitle": "llms.txt",
+            "llmsTxtDesc": "Vägledning för LLM:er och AI-assistenter om din webbplats. Serveras på /llms.txt.",
+            "sitemapTitle": "sitemap.xml",
+            "sitemapDesc": "En anpassad webbplatskarta som serveras på /sitemap.xml. Lämna standard om du genererar en vid byggtiden.",
+            "toastSaveSuccess": "{path} sparad",
+            "toastSaveFailed": "Det gick inte att skriva {path}. Kontrollera att projektet körs."
         }
     }
 }

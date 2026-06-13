@@ -1878,15 +1878,31 @@
                     "purpose": "Payment processing",
                     "region": "US / EU"
                 },
-                "railway": { "name": "Railway", "purpose": "Application hosting", "region": "US" },
+                "railway": {
+                    "name": "Railway",
+                    "purpose": "Application hosting",
+                    "region": "US"
+                },
                 "github": {
                     "name": "GitHub",
                     "purpose": "OAuth sign-in + repository sync",
                     "region": "US"
                 },
-                "posthog": { "name": "PostHog", "purpose": "Product analytics", "region": "EU" },
-                "gleap": { "name": "Gleap", "purpose": "User feedback widget", "region": "EU" },
-                "resend": { "name": "Resend", "purpose": "Transactional email", "region": "EU" }
+                "posthog": {
+                    "name": "PostHog",
+                    "purpose": "Product analytics",
+                    "region": "EU"
+                },
+                "gleap": {
+                    "name": "Gleap",
+                    "purpose": "User feedback widget",
+                    "region": "EU"
+                },
+                "resend": {
+                    "name": "Resend",
+                    "purpose": "Transactional email",
+                    "region": "EU"
+                }
             },
             "note": "* Active only when configured. Disabled integrations send no data to that subprocessor.",
             "lastUpdated": "Last updated {date}"
@@ -2056,7 +2072,10 @@
             "product": {
                 "label": "Product",
                 "links": {
-                    "ai": { "title": "AI", "description": "AI-powered design" },
+                    "ai": {
+                        "title": "AI",
+                        "description": "AI-powered design"
+                    },
                     "aiFrontend": {
                         "title": "AI for Frontend",
                         "description": "AI constrained to your design system"
@@ -2090,16 +2109,31 @@
                         "title": "Documentation",
                         "description": "Learn how to use Weblab"
                     },
-                    "blog": { "title": "Blog", "description": "News and updates" },
-                    "github": { "title": "GitHub", "description": "View the source code" }
+                    "blog": {
+                        "title": "Blog",
+                        "description": "News and updates"
+                    },
+                    "github": {
+                        "title": "GitHub",
+                        "description": "View the source code"
+                    }
                 }
             },
             "about": {
                 "label": "About",
                 "links": {
-                    "aboutUs": { "title": "About Us", "description": "Learn about our mission" },
-                    "faq": { "title": "FAQ", "description": "Common questions" },
-                    "security": { "title": "Security", "description": "How we handle your data" }
+                    "aboutUs": {
+                        "title": "About Us",
+                        "description": "Learn about our mission"
+                    },
+                    "faq": {
+                        "title": "FAQ",
+                        "description": "Common questions"
+                    },
+                    "security": {
+                        "title": "Security",
+                        "description": "How we handle your data"
+                    }
                 }
             }
         }
@@ -2619,16 +2653,36 @@
             "brandHomeAria": "Weblab home",
             "company": {
                 "title": "Company",
-                "about": { "label": "About" },
-                "faq": { "label": "FAQ", "title": "Frequently Asked Questions" },
-                "contact": { "label": "Contact", "title": "Contact Weblab support" }
+                "about": {
+                    "label": "About"
+                },
+                "faq": {
+                    "label": "FAQ",
+                    "title": "Frequently Asked Questions"
+                },
+                "contact": {
+                    "label": "Contact",
+                    "title": "Contact Weblab support"
+                }
             },
             "resources": {
                 "title": "Resources",
-                "docs": { "label": "Docs", "title": "View Weblab documentation" },
-                "blog": { "label": "Blog", "title": "Read the Weblab blog" },
-                "githubRepo": { "label": "GitHub Repo", "title": "View Weblab on GitHub" },
-                "changelog": { "label": "Changelog", "title": "See what's new in Weblab" },
+                "docs": {
+                    "label": "Docs",
+                    "title": "View Weblab documentation"
+                },
+                "blog": {
+                    "label": "Blog",
+                    "title": "Read the Weblab blog"
+                },
+                "githubRepo": {
+                    "label": "GitHub Repo",
+                    "title": "View Weblab on GitHub"
+                },
+                "changelog": {
+                    "label": "Changelog",
+                    "title": "See what's new in Weblab"
+                },
                 "compare": {
                     "label": "Compare",
                     "title": "See how Weblab compares to alternatives"
@@ -2636,32 +2690,68 @@
             },
             "product": {
                 "title": "Product",
-                "pricing": { "label": "Pricing", "title": "View Weblab pricing" },
+                "pricing": {
+                    "label": "Pricing",
+                    "title": "View Weblab pricing"
+                },
                 "download": {
                     "label": "Download",
                     "title": "Download Weblab for Mac, Windows, Linux & iOS"
                 },
-                "myProjects": { "label": "My Projects", "title": "View your projects" }
+                "myProjects": {
+                    "label": "My Projects",
+                    "title": "View your projects"
+                }
             },
             "legal": {
                 "title": "Legal",
-                "terms": { "label": "Terms of Service", "title": "Read our Terms of Service" },
-                "privacy": { "label": "Privacy Policy", "title": "Read our Privacy Policy" },
-                "security": { "label": "Security", "title": "How Weblab handles your data" },
-                "sitemap": { "label": "Sitemap", "title": "View the sitemap" },
+                "terms": {
+                    "label": "Terms of Service",
+                    "title": "Read our Terms of Service"
+                },
+                "privacy": {
+                    "label": "Privacy Policy",
+                    "title": "Read our Privacy Policy"
+                },
+                "security": {
+                    "label": "Security",
+                    "title": "How Weblab handles your data"
+                },
+                "sitemap": {
+                    "label": "Sitemap",
+                    "title": "View the sitemap"
+                },
                 "copyright": "© {year} Weblab"
             },
             "workflows": {
                 "title": "Workflows",
-                "claudeCode": { "label": "Claude Code", "title": "Use Weblab with Claude Code" },
-                "vibeCoding": { "label": "Vibe Coding", "title": "Vibe coding for teams" }
+                "claudeCode": {
+                    "label": "Claude Code",
+                    "title": "Use Weblab with Claude Code"
+                },
+                "vibeCoding": {
+                    "label": "Vibe Coding",
+                    "title": "Vibe coding for teams"
+                }
             },
             "features": {
                 "title": "Features",
-                "overview": { "label": "Feature overview", "title": "View all Weblab features" },
-                "ai": { "label": "AI", "title": "AI-powered development tools" },
-                "visualBuilder": { "label": "Visual Builder", "title": "Visual builder tools" },
-                "prototyping": { "label": "Prototyping", "title": "Rapid prototyping features" },
+                "overview": {
+                    "label": "Feature overview",
+                    "title": "View all Weblab features"
+                },
+                "ai": {
+                    "label": "AI",
+                    "title": "AI-powered development tools"
+                },
+                "visualBuilder": {
+                    "label": "Visual Builder",
+                    "title": "Visual builder tools"
+                },
+                "prototyping": {
+                    "label": "Prototyping",
+                    "title": "Rapid prototyping features"
+                },
                 "aiFrontend": {
                     "label": "AI for Frontend",
                     "title": "AI constrained to your design system"
@@ -2669,7 +2759,10 @@
             },
             "followUs": {
                 "title": "Follow Us",
-                "github": { "label": "GitHub", "title": "View Weblab on GitHub" }
+                "github": {
+                    "label": "GitHub",
+                    "title": "View Weblab on GitHub"
+                }
             },
             "languageSwitcher": {
                 "label": "Language"
@@ -3000,7 +3093,12 @@
             "toastRestoreFailed": "Failed to restore backup",
             "toastGitNotInit": "Git not initialized",
             "toastCreateFailed": "Failed to create backup",
-            "toastCreateSuccess": "Backup created successfully!"
+            "toastCreateSuccess": "Backup created successfully!",
+            "noActiveBranch": "No active branch",
+            "noVersionsTitle": "No backups",
+            "noVersionsDesc": "Create your first backup with the current version",
+            "createBackup": "Create backup",
+            "saving": "Saving..."
         },
         "dangerZone": {
             "title": "Danger Zone",
@@ -3063,7 +3161,10 @@
             "formSaving": "Saving…",
             "badgeBuiltIn": "Built-in",
             "badgeGlobal": "Global",
-            "badgeProject": "This project"
+            "badgeProject": "This project",
+            "formSaveSuccess": "Updated skill \"{name}\"",
+            "formCreateSuccess": "Saved skill \"{name}\"",
+            "formSaveFailed": "Failed to save skill"
         },
         "delete": {
             "sectionTitle": "Delete Account",
@@ -3088,6 +3189,61 @@
             "confirmDeleteButton": "Yes, Delete My Account",
             "toastFailed": "Failed to delete account",
             "toastSuccess": "Account deleted successfully"
+        },
+        "siteAccess": {
+            "title": "Site access",
+            "description": "Manage who can access this site and set their role.",
+            "inviteLabel": "Invite by email",
+            "invitePlaceholder": "teammate@company.com",
+            "inviteButton": "Invite",
+            "inviting": "Inviting...",
+            "membersTitle": "Members",
+            "loadingMembers": "Loading members…",
+            "noMembers": "No members yet. Invite someone above.",
+            "you": "(You)",
+            "leaveSite": "Leave site",
+            "removeMember": "Remove member",
+            "pendingTitle": "Pending invitations",
+            "invitedAs": "Invited as {role}",
+            "pending": "Pending",
+            "revoke": "Revoke",
+            "roleManager": "Manager",
+            "roleEditor": "Editor",
+            "roleReviewer": "Reviewer",
+            "roleViewer": "Viewer",
+            "toastInvalidEmail": "Enter a valid email address",
+            "toastInviteSent": "Invitation sent to {email}",
+            "toastInviteFailed": "Could not send the invitation. Please try again.",
+            "toastRoleUpdated": "Role updated",
+            "toastRoleFailed": "Could not change the role.",
+            "toastLeft": "Left the site",
+            "toastMemberRemoved": "Member removed",
+            "toastRemoveFailed": "Could not remove the member.",
+            "toastRevoked": "Invitation revoked",
+            "toastRevokeFailed": "Could not revoke the invitation.",
+            "confirmLeaveTitle": "Leave this site?",
+            "confirmLeaveDesc": "You will lose access to this project unless you are re-invited.",
+            "confirmLeaveBtn": "Leave",
+            "confirmRemoveTitle": "Remove member?",
+            "confirmRemoveDesc": "This member will immediately lose access to the project.",
+            "confirmRemoveBtn": "Remove"
+        },
+        "seo": {
+            "title": "SEO",
+            "description": "Page titles, descriptions, and Open Graph live in the Site tab. Here you control crawlers and machine-readable files served from your site root.",
+            "save": "Save",
+            "loading": "Loading…",
+            "robotsTxtTitle": "robots.txt",
+            "robotsTxtDesc": "Controls which crawlers may index your site. Served at /robots.txt.",
+            "blockAiBots": "Block AI bots",
+            "allowAllCrawlers": "Allow all crawlers",
+            "blockAllCrawlers": "Block all crawlers",
+            "llmsTxtTitle": "llms.txt",
+            "llmsTxtDesc": "Guidance for LLMs and AI assistants about your site. Served at /llms.txt.",
+            "sitemapTitle": "sitemap.xml",
+            "sitemapDesc": "A custom sitemap served at /sitemap.xml. Leave the default if you generate one at build time.",
+            "toastSaveSuccess": "Saved {path}",
+            "toastSaveFailed": "Could not write {path}. Make sure the project is running."
         }
     }
 }

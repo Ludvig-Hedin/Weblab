@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -54,6 +55,7 @@ const FileEditorSection = observer(
         mono?: boolean;
         children?: (insert: (text: string) => void) => React.ReactNode;
     }) => {
+        const t = useTranslations('settings.seo');
         const editorEngine = useEditorEngine();
         const [value, setValue] = useState('');
         const [saved, setSaved] = useState('');
@@ -97,9 +99,9 @@ const FileEditorSection = observer(
             try {
                 await editorEngine.activeSandbox.writeFile(path, value);
                 setSaved(value);
-                toast.success(`Saved ${path}`);
+                toast.success(t('toastSaveSuccess', { path }));
             } catch {
-                toast.error(`Could not write ${path}. Make sure the project is running.`);
+                toast.error(t('toastSaveFailed', { path }));
             } finally {
                 setSaving(false);
             }
@@ -128,14 +130,14 @@ const FileEditorSection = observer(
                         disabled={!isDirty || saving || loading}
                     >
                         {saving && <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />}
-                        Save
+                        {t('save')}
                     </Button>
                 </div>
                 {children && <div className="flex flex-wrap gap-2">{children(insert)}</div>}
                 <Textarea
                     value={loading ? '' : value}
                     onChange={(e) => setValue(e.target.value)}
-                    placeholder={loading ? 'Loading…' : placeholder}
+                    placeholder={loading ? t('loading') : placeholder}
                     disabled={loading}
                     spellCheck={false}
                     className={mono ? 'text-small min-h-40 font-mono' : 'text-small min-h-40'}
@@ -146,19 +148,19 @@ const FileEditorSection = observer(
 );
 
 export const SeoTab = observer(() => {
+    const t = useTranslations('settings.seo');
     return (
         <div className="divide-border flex flex-col divide-y px-6">
             <section className="space-y-1 py-6">
-                <h2 className="text-largePlus">SEO</h2>
+                <h2 className="text-largePlus">{t('title')}</h2>
                 <p className="text-regular text-foreground-secondary">
-                    Page titles, descriptions, and Open Graph live in the Site tab. Here you control
-                    crawlers and machine-readable files served from your site root.
+                    {t('description')}
                 </p>
             </section>
 
             <FileEditorSection
-                title="robots.txt"
-                description="Controls which crawlers may index your site. Served at /robots.txt."
+                title={t('robotsTxtTitle')}
+                description={t('robotsTxtDesc')}
                 path="public/robots.txt"
                 defaultContent={DEFAULT_ROBOTS}
                 placeholder={DEFAULT_ROBOTS}
@@ -172,7 +174,7 @@ export const SeoTab = observer(() => {
                             className="h-7"
                             onClick={() => insert(AI_BLOCK)}
                         >
-                            Block AI bots
+                            {t('blockAiBots')}
                         </Button>
                         <Button
                             variant="outline"
@@ -180,7 +182,7 @@ export const SeoTab = observer(() => {
                             className="h-7"
                             onClick={() => insert('User-agent: *\nDisallow:')}
                         >
-                            Allow all crawlers
+                            {t('allowAllCrawlers')}
                         </Button>
                         <Button
                             variant="outline"
@@ -188,15 +190,15 @@ export const SeoTab = observer(() => {
                             className="h-7"
                             onClick={() => insert('User-agent: *\nDisallow: /')}
                         >
-                            Block all crawlers
+                            {t('blockAllCrawlers')}
                         </Button>
                     </>
                 )}
             </FileEditorSection>
 
             <FileEditorSection
-                title="llms.txt"
-                description="Guidance for LLMs and AI assistants about your site. Served at /llms.txt."
+                title={t('llmsTxtTitle')}
+                description={t('llmsTxtDesc')}
                 path="public/llms.txt"
                 defaultContent={DEFAULT_LLMS}
                 placeholder={DEFAULT_LLMS}
@@ -204,8 +206,8 @@ export const SeoTab = observer(() => {
             />
 
             <FileEditorSection
-                title="sitemap.xml"
-                description="A custom sitemap served at /sitemap.xml. Leave the default if you generate one at build time."
+                title={t('sitemapTitle')}
+                description={t('sitemapDesc')}
                 path="public/sitemap.xml"
                 defaultContent={DEFAULT_SITEMAP}
                 placeholder={DEFAULT_SITEMAP}

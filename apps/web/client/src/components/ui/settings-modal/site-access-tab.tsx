@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
 import { Badge } from '@weblab/ui/badge';
@@ -21,13 +22,6 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 
 type MemberRole = 'manager' | 'editor' | 'reviewer' | 'viewer';
 
-const ROLES: { value: MemberRole; label: string }[] = [
-    { value: 'manager', label: 'Manager' },
-    { value: 'editor', label: 'Editor' },
-    { value: 'reviewer', label: 'Reviewer' },
-    { value: 'viewer', label: 'Viewer' },
-];
-
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 // Surface the human part of a thrown `Error('CODE: message')`, falling back.
@@ -39,8 +33,16 @@ const errorMessage = (error: unknown, fallback: string): string => {
 };
 
 export const SiteAccessTab = observer(() => {
+    const t = useTranslations('settings.siteAccess');
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
+
+    const ROLES: { value: MemberRole; label: string }[] = [
+        { value: 'manager', label: t('roleManager') },
+        { value: 'editor', label: t('roleEditor') },
+        { value: 'reviewer', label: t('roleReviewer') },
+        { value: 'viewer', label: t('roleViewer') },
+    ];
 
     const me = useQuery(api.users.me, {});
     const members = useQuery(api.projectMembers.list, { projectId });
@@ -62,16 +64,16 @@ export const SiteAccessTab = observer(() => {
 
     const handleInvite = async () => {
         if (!isEmail(email)) {
-            toast.error('Enter a valid email address');
+            toast.error(t('toastInvalidEmail'));
             return;
         }
         setIsInviting(true);
         try {
             await createInvite({ projectId, inviteeEmail: email.trim(), memberRole: inviteRole });
             setEmail('');
-            toast.success(`Invitation sent to ${email.trim()}`);
+            toast.success(t('toastInviteSent', { email: email.trim() }));
         } catch (error) {
-            toast.error(errorMessage(error, 'Could not send the invitation. Please try again.'));
+            toast.error(errorMessage(error, t('toastInviteFailed')));
         } finally {
             setIsInviting(false);
         }
@@ -81,9 +83,9 @@ export const SiteAccessTab = observer(() => {
         setBusyUserId(userId);
         try {
             await updateRole({ projectId, userId, memberRole: role });
-            toast.success('Role updated');
+            toast.success(t('toastRoleUpdated'));
         } catch (error) {
-            toast.error(errorMessage(error, 'Could not change the role.'));
+            toast.error(errorMessage(error, t('toastRoleFailed')));
         } finally {
             setBusyUserId(null);
         }
@@ -93,20 +95,18 @@ export const SiteAccessTab = observer(() => {
         // Destructive + immediate: removing a member (or leaving, which drops
         // your own access) must confirm first — there's no undo.
         const ok = await confirm({
-            title: isMe ? 'Leave this site?' : 'Remove member?',
-            description: isMe
-                ? 'You will lose access to this project unless you are re-invited.'
-                : 'This member will immediately lose access to the project.',
-            confirmLabel: isMe ? 'Leave' : 'Remove',
+            title: isMe ? t('confirmLeaveTitle') : t('confirmRemoveTitle'),
+            description: isMe ? t('confirmLeaveDesc') : t('confirmRemoveDesc'),
+            confirmLabel: isMe ? t('confirmLeaveBtn') : t('confirmRemoveBtn'),
             destructive: true,
         });
         if (!ok) return;
         setBusyUserId(userId);
         try {
             await removeMember({ projectId, userId });
-            toast.success(isMe ? 'Left the site' : 'Member removed');
+            toast.success(isMe ? t('toastLeft') : t('toastMemberRemoved'));
         } catch (error) {
-            toast.error(errorMessage(error, 'Could not remove the member.'));
+            toast.error(errorMessage(error, t('toastRemoveFailed')));
         } finally {
             setBusyUserId(null);
         }
@@ -116,9 +116,9 @@ export const SiteAccessTab = observer(() => {
         setBusyInviteId(id);
         try {
             await revokeInvite({ id });
-            toast.success('Invitation revoked');
+            toast.success(t('toastRevoked'));
         } catch (error) {
-            toast.error(errorMessage(error, 'Could not revoke the invitation.'));
+            toast.error(errorMessage(error, t('toastRevokeFailed')));
         } finally {
             setBusyInviteId(null);
         }
@@ -128,16 +128,16 @@ export const SiteAccessTab = observer(() => {
         <div className="divide-border flex flex-col divide-y px-6">
             <section className="space-y-4 py-6">
                 <div>
-                    <h2 className="text-largePlus">Site access</h2>
+                    <h2 className="text-largePlus">{t('title')}</h2>
                     <p className="text-regular text-foreground-secondary">
-                        Manage who can access this site and set their role.
+                        {t('description')}
                     </p>
                 </div>
 
                 {/* Invite */}
                 <div className="flex items-end gap-2">
                     <div className="flex flex-1 flex-col gap-2">
-                        <Label className="text-mini">Invite by email</Label>
+                        <Label className="text-mini">{t('inviteLabel')}</Label>
                         <Input
                             type="email"
                             value={email}
@@ -145,7 +145,7 @@ export const SiteAccessTab = observer(() => {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') void handleInvite();
                             }}
-                            placeholder="teammate@company.com"
+                            placeholder={t('invitePlaceholder')}
                             className="bg-background"
                             spellCheck={false}
                             autoCapitalize="off"
@@ -176,22 +176,22 @@ export const SiteAccessTab = observer(() => {
                         {isInviting && (
                             <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                         )}
-                        Invite
+                        {isInviting ? t('inviting') : t('inviteButton')}
                     </Button>
                 </div>
             </section>
 
             {/* Members */}
             <section className="space-y-3 py-6">
-                <h3 className="text-regularPlus">Members</h3>
+                <h3 className="text-regularPlus">{t('membersTitle')}</h3>
                 {members === undefined ? (
                     <div className="text-foreground-secondary flex items-center gap-2 py-2">
                         <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                        <span className="text-small">Loading members…</span>
+                        <span className="text-small">{t('loadingMembers')}</span>
                     </div>
                 ) : members.length === 0 ? (
                     <p className="text-small text-foreground-secondary py-2">
-                        No members yet. Invite someone above.
+                        {t('noMembers')}
                     </p>
                 ) : (
                     <div className="flex flex-col gap-2">
@@ -217,7 +217,7 @@ export const SiteAccessTab = observer(() => {
                                                 {isMe && (
                                                     <span className="text-foreground-secondary">
                                                         {' '}
-                                                        (You)
+                                                        {t('you')}
                                                     </span>
                                                 )}
                                             </p>
@@ -250,8 +250,8 @@ export const SiteAccessTab = observer(() => {
                                         <Button
                                             variant="ghost"
                                             size="icon-sm"
-                                            aria-label={isMe ? 'Leave site' : 'Remove member'}
-                                            title={isMe ? 'Leave site' : 'Remove member'}
+                                            aria-label={isMe ? t('leaveSite') : t('removeMember')}
+                                            title={isMe ? t('leaveSite') : t('removeMember')}
                                             disabled={busyUserId === u.id}
                                             onClick={() => void handleRemove(u.id, isMe)}
                                         >
@@ -268,7 +268,7 @@ export const SiteAccessTab = observer(() => {
             {/* Pending invitations */}
             {pendingInvites.length > 0 && (
                 <section className="space-y-3 py-6">
-                    <h3 className="text-regularPlus">Pending invitations</h3>
+                    <h3 className="text-regularPlus">{t('pendingTitle')}</h3>
                     <div className="flex flex-col gap-2">
                         {pendingInvites.map((invite) => (
                             <div
@@ -278,12 +278,12 @@ export const SiteAccessTab = observer(() => {
                                 <div className="min-w-0">
                                     <p className="text-regular truncate">{invite.inviteeEmail}</p>
                                     <p className="text-mini text-foreground-secondary">
-                                        Invited as {invite.memberRole ?? 'viewer'}
+                                        {t('invitedAs', { role: invite.memberRole ?? 'viewer' })}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className="text-mini">
-                                        Pending
+                                        {t('pending')}
                                     </Badge>
                                     <Button
                                         variant="ghost"
@@ -291,7 +291,7 @@ export const SiteAccessTab = observer(() => {
                                         disabled={busyInviteId === invite._id}
                                         onClick={() => void handleRevoke(invite._id)}
                                     >
-                                        Revoke
+                                        {t('revoke')}
                                     </Button>
                                 </div>
                             </div>
