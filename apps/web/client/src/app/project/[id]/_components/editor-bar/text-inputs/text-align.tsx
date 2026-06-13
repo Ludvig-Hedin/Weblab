@@ -2,6 +2,8 @@
 
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -18,6 +20,7 @@ import { HoverOnlyTooltip } from '../hover-tooltip';
 import { ToolbarButton } from '../toolbar-button';
 
 export const TextAlignSelector = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { handleTextAlignChange, textState } = useTextControl();
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'text-align-dropdown',
@@ -26,7 +29,7 @@ export const TextAlignSelector = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Text Align"
+                content={t('textAlign')}
                 side="bottom"
                 className="mt-1"
                 hideArrow

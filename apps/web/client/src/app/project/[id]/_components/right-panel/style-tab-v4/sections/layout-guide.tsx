@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { v4 as uuid } from 'uuid';
 
 import type { Frame, LayoutGuideConfig, LayoutGuideType } from '@weblab/models';
@@ -26,11 +27,7 @@ const DEFAULT_NEW_GUIDE: Omit<LayoutGuideConfig, 'id'> = {
     gutter: 16,
 };
 
-const TYPE_LABEL: Record<LayoutGuideType, string> = {
-    grid: 'Grid',
-    columns: 'Columns',
-    rows: 'Rows',
-};
+// TYPE_LABEL defined inside LayoutGuideSection to use translations
 
 /**
  * Figma-style **Layout guide** section. Lives in the frame-level right panel
@@ -50,6 +47,7 @@ export const LayoutGuideSection = observer(function LayoutGuideSection({
 }: {
     frame: Frame;
 }) {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     // Memoize the guides array reference so callbacks that close over it
     // don't get re-created every render. Without this, eslint
@@ -99,19 +97,18 @@ export const LayoutGuideSection = observer(function LayoutGuideSection({
 
     const sectionActions = useMemo(
         () => (
-            <IconButtonSm label="Add layout guide" onClick={addGuide}>
+            <IconButtonSm label={t('layoutGuide.addLayoutGuide')} onClick={addGuide}>
                 <Icons.Plus className="size-3" />
             </IconButtonSm>
         ),
-        [addGuide],
+        [addGuide, t],
     );
 
     return (
-        <Section id="layoutGuide" title="Layout guide" setCount={setCount} actions={sectionActions}>
+        <Section id="layoutGuide" title={t('section.layoutGuide')} setCount={setCount} actions={sectionActions}>
             {guides.length === 0 ? (
                 <div className="text-foreground-tertiary px-3 py-2 text-[11px]">
-                    No guides on this frame. Click{' '}
-                    <span className="text-foreground-secondary">+</span> to add one.
+                    {t('layoutGuide.noGuides')}
                 </div>
             ) : (
                 <div className="flex flex-col">
@@ -146,14 +143,20 @@ function LayoutGuideRow({
     onChange,
     onRemove,
 }: LayoutGuideRowProps) {
-    const typeLabel = TYPE_LABEL[guide.type];
-    const summary = summarizeGuide(guide);
+    const t = useTranslations('editor.stylePanel');
+    const rowTypeLabel: Record<LayoutGuideType, string> = {
+        grid: t('layoutGuide.grid'),
+        columns: t('layoutGuide.columns'),
+        rows: t('layoutGuide.rows'),
+    };
+    const typeLabel = rowTypeLabel[guide.type];
+    const summary = summarizeGuide(guide, t);
     return (
         <div className="hover:bg-background-secondary/60 group flex items-center gap-2 px-3 py-1.5 transition-colors">
             <button
                 type="button"
-                aria-label={guide.visible ? 'Hide layout guide' : 'Show layout guide'}
-                title={guide.visible ? 'Hide layout guide' : 'Show layout guide'}
+                aria-label={guide.visible ? t('layoutGuide.hideLayoutGuide') : t('layoutGuide.showLayoutGuide')}
+                title={guide.visible ? t('layoutGuide.hideLayoutGuide') : t('layoutGuide.showLayoutGuide')}
                 onClick={() => onChange({ visible: !guide.visible })}
                 className="text-foreground-tertiary hover:text-foreground-primary inline-flex size-[20px] items-center justify-center rounded-xs transition-colors"
             >
@@ -183,19 +186,25 @@ function LayoutGuideRow({
                     </button>
                 }
             />
-            <IconButtonSm label="Remove layout guide" onClick={onRemove}>
+            <IconButtonSm label={t('layoutGuide.removeLayoutGuide')} onClick={onRemove}>
                 <Icons.Trash className="size-3" />
             </IconButtonSm>
         </div>
     );
 }
 
-function summarizeGuide(g: LayoutGuideConfig): string {
+function summarizeGuide(g: LayoutGuideConfig, t: ReturnType<typeof useTranslations<'editor.stylePanel'>>): string {
     if (g.type === 'grid') {
         return `${g.size ?? 10}px`;
     }
     const count = g.count ?? 0;
     const noun =
-        g.type === 'columns' ? (count === 1 ? 'column' : 'columns') : count === 1 ? 'row' : 'rows';
+        g.type === 'columns'
+            ? count === 1
+                ? t('layoutGuide.column')
+                : t('layoutGuide.columns')
+            : count === 1
+              ? t('layoutGuide.row')
+              : t('layoutGuide.rows');
     return `${count} ${noun}`;
 }

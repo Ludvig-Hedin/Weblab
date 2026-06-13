@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
@@ -39,6 +40,7 @@ export const InlineEditPrompt = ({
     projectId,
     onApply,
 }: InlineEditPromptProps) => {
+    const t = useTranslations('editor.leftPanel.codePanel');
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const abortRef = useRef<AbortController | null>(null);
     const [instruction, setInstruction] = useState(session.instruction);
@@ -269,7 +271,7 @@ export const InlineEditPrompt = ({
                                 close();
                             }
                         }}
-                        placeholder="Tell Weblab what to change…"
+                        placeholder={t('inlineEditPlaceholder')}
                         rows={1}
                         className={cn(
                             'flex-1 resize-none bg-transparent outline-none',
@@ -284,8 +286,8 @@ export const InlineEditPrompt = ({
                 <div className="flex items-center justify-between gap-2">
                     <span className="text-mini text-foreground-tertiary">
                         {session.preview && !session.streaming
-                            ? '⏎ Accept · Esc Reject'
-                            : '⏎ Generate · Esc Cancel'}
+                            ? t('inlineAcceptReject')
+                            : t('inlineGenerateCancel')}
                     </span>
                     <div className="flex items-center gap-1">
                         {session.preview && !session.streaming && (
@@ -294,13 +296,13 @@ export const InlineEditPrompt = ({
                                     onClick={close}
                                     className="text-mini text-foreground-tertiary hover:text-foreground-primary rounded px-2 py-1"
                                 >
-                                    Reject
+                                    {t('inlineReject')}
                                 </button>
                                 <button
                                     onClick={accept}
                                     className="text-mini bg-primary/30 text-foreground-primary hover:bg-primary/50 rounded px-2 py-1"
                                 >
-                                    Accept
+                                    {t('inlineAccept')}
                                 </button>
                             </>
                         )}
@@ -309,7 +311,7 @@ export const InlineEditPrompt = ({
                 {session.error && (
                     <div className="text-mini text-destructive flex flex-col gap-0.5">
                         <span>{session.error}</span>
-                        <span className="text-foreground-tertiary">Press ⏎ to retry</span>
+                        <span className="text-foreground-tertiary">{t('inlineRetry')}</span>
                     </div>
                 )}
             </div>

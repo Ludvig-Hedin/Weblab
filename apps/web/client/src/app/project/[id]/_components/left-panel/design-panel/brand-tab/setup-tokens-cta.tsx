@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 
@@ -13,6 +14,7 @@ import { useEditorEngine } from '@/components/store/editor';
  * scaffolds one in place — no need to bounce the user to another panel.
  */
 export const SetupTokensCta = observer(function SetupTokensCta() {
+    const t = useTranslations('editor.leftPanel.brand');
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const [busy, setBusy] = useState(false);
@@ -25,14 +27,13 @@ export const SetupTokensCta = observer(function SetupTokensCta() {
     return (
         <div className="bg-background-secondary border-border flex flex-col gap-3 rounded-lg border p-4">
             <div className="text-foreground-primary text-small font-medium">
-                Set up design tokens
+                {t('setupTokens')}
             </div>
             <div className="text-foreground-secondary text-mini leading-relaxed">
-                Adds a <code>@theme</code> block with light/dark variables and starter text styles
-                to your project&apos;s globals.css. Non-destructive — your existing styles are kept.
+                {t('setupTokensDescription')}
             </div>
             <Button size="sm" className="self-start" disabled={busy} onClick={handleSetup}>
-                {busy ? 'Setting up…' : 'Set up tokens'}
+                {busy ? t('settingUp') : t('setUpTokens')}
             </Button>
         </div>
     );

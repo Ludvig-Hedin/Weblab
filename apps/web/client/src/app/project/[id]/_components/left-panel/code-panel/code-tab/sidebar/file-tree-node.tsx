@@ -3,6 +3,7 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactElement } from 'react';
 import type { NodeApi } from 'react-arborist';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 
 import type { FileEntry } from '@weblab/file-system/hooks';
@@ -46,6 +47,7 @@ export const FileTreeNode = ({
     onDeleteFile,
     onAddToChat,
 }: FileTreeNodeProps) => {
+    const t = useTranslations('editor.leftPanel.codePanel');
     const [isEditing, setIsEditing] = useState(false);
     const [editingName, setEditingName] = useState(node.data.name);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -121,7 +123,7 @@ export const FileTreeNode = ({
     const handleCopyPath = async () => {
         try {
             await navigator.clipboard.writeText(node.data.path);
-            toast.success('Path copied');
+            toast.success(t('pathCopied'));
         } catch (error) {
             console.error('Failed to copy path:', error);
         }
@@ -130,7 +132,7 @@ export const FileTreeNode = ({
     const handleCopyName = async () => {
         try {
             await navigator.clipboard.writeText(node.data.name);
-            toast.success('Name copied');
+            toast.success(t('nameCopied'));
         } catch (error) {
             console.error('Failed to copy name:', error);
         }
@@ -145,7 +147,7 @@ export const FileTreeNode = ({
     };
 
     const deleteItem: MenuItem = {
-        label: 'Delete',
+        label: t('delete'),
         action: () => setShowDeleteDialog(true),
         icon: <Icons.Trash className="text-destructive h-4 w-4" />,
         separator: false,
@@ -155,13 +157,13 @@ export const FileTreeNode = ({
     const menuItems: MenuItem[] = isDirectory
         ? [
               {
-                  label: 'Copy Path',
+                  label: t('copyPath'),
                   action: handleCopyPath,
                   icon: <Icons.Copy className="h-4 w-4" />,
                   separator: false,
               },
               {
-                  label: 'Copy Name',
+                  label: t('copyName'),
                   action: handleCopyName,
                   icon: <Icons.File className="h-4 w-4" />,
                   separator: true,
@@ -170,25 +172,25 @@ export const FileTreeNode = ({
           ]
         : [
               {
-                  label: 'Add to Chat',
+                  label: t('addToChat'),
                   action: handleAddToChat,
                   icon: <Icons.Plus className="h-4 w-4" />,
                   separator: false,
               },
               {
-                  label: 'Copy Path',
+                  label: t('copyPath'),
                   action: handleCopyPath,
                   icon: <Icons.Copy className="h-4 w-4" />,
                   separator: false,
               },
               {
-                  label: 'Copy Name',
+                  label: t('copyName'),
                   action: handleCopyName,
                   icon: <Icons.File className="h-4 w-4" />,
                   separator: false,
               },
               {
-                  label: 'Rename',
+                  label: t('rename'),
                   action: handleRename,
                   icon: <Icons.Edit className="h-4 w-4" />,
                   separator: true,
@@ -259,17 +261,17 @@ export const FileTreeNode = ({
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            Delete {isDirectory ? 'Folder' : 'File'}
+                            {isDirectory ? t('deleteFolder') : t('deleteFile')}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete "{node.data.name}"?
+                            {t('deleteFileConfirm', { name: node.data.name })}
                             {isDirectory
-                                ? ' This will permanently delete the folder and all its contents.'
-                                : ' This action cannot be undone.'}
+                                ? ` ${t('deleteFolderExtra')}`
+                                : ` ${t('deleteFileExtra')}`}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => {
                                 onDeleteFile(node.data.path);
@@ -277,7 +279,7 @@ export const FileTreeNode = ({
                             }}
                             className="bg-destructive text-primary-foreground hover:bg-destructive/80"
                         >
-                            Delete
+                            {t('delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

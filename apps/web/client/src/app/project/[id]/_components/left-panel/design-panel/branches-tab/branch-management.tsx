@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import type { Branch } from '@weblab/models';
@@ -18,6 +19,7 @@ interface BranchManagementProps {
 }
 
 export const BranchManagement = observer(({ branch }: BranchManagementProps) => {
+    const t = useTranslations('editor.leftPanel.branches');
     const editorEngine = useEditorEngine();
     const removeBranchMutation = useMutation(api.branches.remove);
     const [isRenaming, setIsRenaming] = useState(false);
@@ -156,16 +158,16 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                 >
                     <Icons.ArrowLeft className="h-4 w-4" />
                 </Button>
-                <h2 className="text-foreground text-small font-normal">Branch Settings</h2>
+                <h2 className="text-foreground text-small font-normal">{t('branchSettings')}</h2>
             </div>
 
             <div className="border-border space-y-4 border-b p-4">
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <label className="text-foreground text-small">Name</label>
+                        <label className="text-foreground text-small">{t('name')}</label>
                         {isActiveBranch && (
                             <span className="text-mini text-foreground-skill bg-foreground-skill/15 rounded px-2 py-1">
-                                Active
+                                {t('active')}
                             </span>
                         )}
                     </div>
@@ -203,7 +205,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
 
             <div className="flex-1 space-y-3 p-4">
                 <div className="space-y-2">
-                    <h3 className="text-foreground text-small">Actions</h3>
+                    <h3 className="text-foreground text-small">{t('actions')}</h3>
                     <div className="flex w-full flex-col items-center gap-2">
                         <Button
                             variant="outline"
@@ -214,12 +216,12 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                             {isForking ? (
                                 <div className="flex items-center gap-2">
                                     <Icons.LoadingSpinner className="h-4 w-4" />
-                                    <span>Forking...</span>
+                                    <span>{t('forking')}</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <Icons.Branch className="h-4 w-4" />
-                                    <span>Fork</span>
+                                    <span>{t('fork')}</span>
                                 </div>
                             )}
                         </Button>
@@ -238,12 +240,12 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                             {isDeleting ? (
                                 <div className="flex items-center gap-2">
                                     <Icons.LoadingSpinner className="h-4 w-4" />
-                                    <span>Deleting...</span>
+                                    <span>{t('deleting')}</span>
                                 </div>
                             ) : (
                                 <div className="text-destructive flex items-center gap-2">
                                     <Icons.Trash className="h-4 w-4" />
-                                    <span>Delete</span>
+                                    <span>{t('delete')}</span>
                                 </div>
                             )}
                         </Button>

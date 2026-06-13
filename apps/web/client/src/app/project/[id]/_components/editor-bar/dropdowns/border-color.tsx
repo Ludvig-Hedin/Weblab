@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -16,6 +18,7 @@ import { ColorPickerContent } from '../inputs/color-picker';
 import { ToolbarButton } from '../toolbar-button';
 
 export const BorderColor = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const { borderExists } = useBoxControl('border');
     const initialColor = editorEngine.style.selectedStyle?.styles.computed.borderColor;
@@ -38,7 +41,7 @@ export const BorderColor = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Border Color"
+                content={t('borderColor')}
                 side="bottom"
                 className="mt-1"
                 hideArrow

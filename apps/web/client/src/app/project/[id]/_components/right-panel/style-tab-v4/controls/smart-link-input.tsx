@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -75,9 +76,11 @@ export function SmartLinkInput({
     onCommit,
     pages = [],
     files = [],
-    placeholder = 'Page, file, email, or URL',
+    placeholder,
     className,
 }: SmartLinkInputProps) {
+    const t = useTranslations('editor.stylePanel');
+    const resolvedPlaceholder = placeholder ?? t('smartLink.placeholder');
     const [draft, setDraft] = React.useState(value);
     const [open, setOpen] = React.useState(false);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -136,7 +139,7 @@ export function SmartLinkInput({
         if (EMAIL_RE.test(q)) {
             list.push({
                 id: 'email-fallback',
-                label: `Send email to ${q}`,
+                label: t('smartLink.sendEmailTo', { email: q }),
                 href: `mailto:${q}`,
                 kind: 'email',
             });
@@ -144,7 +147,7 @@ export function SmartLinkInput({
         if (PHONE_RE.test(q)) {
             list.push({
                 id: 'phone-fallback',
-                label: `Call ${q}`,
+                label: t('smartLink.callPhone', { phone: q }),
                 href: `tel:${q.replace(/[^\d+]/g, '')}`,
                 kind: 'phone',
             });
@@ -156,14 +159,14 @@ export function SmartLinkInput({
             if (url) {
                 list.push({
                     id: 'external-fallback',
-                    label: `Go to ${url}`,
+                    label: t('smartLink.goTo', { url }),
                     href: url,
                     kind: 'external',
                 });
             }
         }
         return list.slice(0, 12);
-    }, [draft, pages, files]);
+    }, [draft, pages, files, t]);
 
     const grouped = React.useMemo(() => {
         const groups: Record<LinkSuggestion['kind'], LinkSuggestion[]> = {
@@ -228,7 +231,7 @@ export function SmartLinkInput({
                             ref={inputRef}
                             type="text"
                             value={draft}
-                            placeholder={placeholder}
+                            placeholder={resolvedPlaceholder}
                             spellCheck={false}
                             onFocus={() => setOpen(true)}
                             onChange={(e) => {
@@ -277,11 +280,11 @@ export function SmartLinkInput({
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                     {flatList.length === 0 ? (
-                        <div className="text-muted-foreground text-mini px-2 py-2">No matches</div>
+                        <div className="text-muted-foreground text-mini px-2 py-2">{t('smartLink.noMatches')}</div>
                     ) : (
                         <>
                             {grouped.page.length > 0 && (
-                                <DropdownSection title="Pages">
+                                <DropdownSection title={t('smartLink.pages')}>
                                     {grouped.page.map((s) => (
                                         <DropdownItem
                                             key={s.id}
@@ -295,7 +298,7 @@ export function SmartLinkInput({
                                 </DropdownSection>
                             )}
                             {grouped.file.length > 0 && (
-                                <DropdownSection title="Files">
+                                <DropdownSection title={t('smartLink.files')}>
                                     {grouped.file.map((s) => (
                                         <DropdownItem
                                             key={s.id}
@@ -309,7 +312,7 @@ export function SmartLinkInput({
                                 </DropdownSection>
                             )}
                             {grouped.email.length > 0 && (
-                                <DropdownSection title="Email">
+                                <DropdownSection title={t('smartLink.email')}>
                                     {grouped.email.map((s) => (
                                         <DropdownItem
                                             key={s.id}
@@ -323,7 +326,7 @@ export function SmartLinkInput({
                                 </DropdownSection>
                             )}
                             {grouped.phone.length > 0 && (
-                                <DropdownSection title="Phone">
+                                <DropdownSection title={t('smartLink.phone')}>
                                     {grouped.phone.map((s) => (
                                         <DropdownItem
                                             key={s.id}
@@ -337,7 +340,7 @@ export function SmartLinkInput({
                                 </DropdownSection>
                             )}
                             {grouped.external.length > 0 && (
-                                <DropdownSection title="Or use">
+                                <DropdownSection title={t('smartLink.orUse')}>
                                     {grouped.external.map((s) => (
                                         <DropdownItem
                                             key={s.id}

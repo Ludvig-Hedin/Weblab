@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ActionElement } from '@weblab/models/actions';
 import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
@@ -34,39 +35,8 @@ import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
 // ── Data ─────────────────────────────────────────────────────────────────────
-
-const TEXT_ALIGN_OPTIONS = [
-    { value: 'left', label: 'Left', icon: <IconAlignLeft size={13} /> },
-    { value: 'center', label: 'Center', icon: <IconAlignCenter size={13} /> },
-    { value: 'right', label: 'Right', icon: <IconAlignRight size={13} /> },
-    { value: 'justify', label: 'Justify', icon: <IconAlignJustify size={13} /> },
-] as const;
-
-const FONT_WEIGHT_OPTIONS = [
-    { value: '100', label: '100 — Thin' },
-    { value: '200', label: '200 — Extra light' },
-    { value: '300', label: '300 — Light' },
-    { value: '400', label: '400 — Normal' },
-    { value: '500', label: '500 — Medium' },
-    { value: '600', label: '600 — Semi-bold' },
-    { value: '700', label: '700 — Bold' },
-    { value: '800', label: '800 — Extra bold' },
-    { value: '900', label: '900 — Black' },
-] as const;
-
-const TEXT_TRANSFORM_OPTIONS = [
-    { value: 'none', label: 'None' },
-    { value: 'uppercase', label: 'Uppercase' },
-    { value: 'lowercase', label: 'Lowercase' },
-    { value: 'capitalize', label: 'Capitalize' },
-] as const;
-
-const TEXT_DECORATION_OPTIONS = [
-    { value: 'none', label: 'None' },
-    { value: 'underline', label: 'Underline' },
-    { value: 'line-through', label: 'Strikethrough' },
-    { value: 'overline', label: 'Overline' },
-] as const;
+// Option arrays with static labels (values are CSS identifiers used as display labels)
+// are left at module level. Options with translated labels are defined inside TextSection.
 
 // ── ContentField ─────────────────────────────────────────────────────────────
 
@@ -86,6 +56,7 @@ interface ContentFieldProps {
  * field is shown read-only — the row is still present, just not writable.
  */
 function ContentField({ value, editable, onCommit }: ContentFieldProps) {
+    const t = useTranslations('editor.stylePanel');
     const [draft, setDraft] = useState(value);
     const lastValueRef = useRef(value);
     const ref = useRef<HTMLTextAreaElement | null>(null);
@@ -103,8 +74,8 @@ function ContentField({ value, editable, onCommit }: ContentFieldProps) {
             value={draft}
             rows={2}
             readOnly={!editable}
-            aria-label="Element text content"
-            placeholder={editable ? 'Element text…' : 'No editable text'}
+            aria-label={t('text.contentAriaLabel')}
+            placeholder={editable ? t('text.contentEditablePlaceholder') : t('text.contentReadonlyPlaceholder')}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={() => {
                 if (skipBlurCommitRef.current) {
@@ -149,6 +120,41 @@ function ContentField({ value, editable, onCommit }: ContentFieldProps) {
  *   6. Case & Decoration — LabeledSelectInput pair (text-transform + text-decoration-line)
  */
 export const TextSection = observer(function TextSection() {
+    const t = useTranslations('editor.stylePanel');
+
+    const TEXT_ALIGN_OPTIONS = [
+        { value: 'left', label: 'Left', icon: <IconAlignLeft size={13} /> },
+        { value: 'center', label: 'Center', icon: <IconAlignCenter size={13} /> },
+        { value: 'right', label: 'Right', icon: <IconAlignRight size={13} /> },
+        { value: 'justify', label: 'Justify', icon: <IconAlignJustify size={13} /> },
+    ] as const;
+
+    const FONT_WEIGHT_OPTIONS = [
+        { value: '100', label: '100 — Thin' },
+        { value: '200', label: '200 — Extra light' },
+        { value: '300', label: '300 — Light' },
+        { value: '400', label: '400 — Normal' },
+        { value: '500', label: '500 — Medium' },
+        { value: '600', label: '600 — Semi-bold' },
+        { value: '700', label: '700 — Bold' },
+        { value: '800', label: '800 — Extra bold' },
+        { value: '900', label: '900 — Black' },
+    ] as const;
+
+    const TEXT_TRANSFORM_OPTIONS = [
+        { value: 'none', label: 'None' },
+        { value: 'uppercase', label: 'Uppercase' },
+        { value: 'lowercase', label: 'Lowercase' },
+        { value: 'capitalize', label: 'Capitalize' },
+    ] as const;
+
+    const TEXT_DECORATION_OPTIONS = [
+        { value: 'none', label: 'None' },
+        { value: 'underline', label: 'Underline' },
+        { value: 'line-through', label: 'Strikethrough' },
+        { value: 'overline', label: 'Overline' },
+    ] as const;
+
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const selected = editorEngine.elements.selected[0];
@@ -280,15 +286,15 @@ export const TextSection = observer(function TextSection() {
     const sampleWeight = Number.isNaN(weightNum) ? 400 : weightNum;
 
     return (
-        <Section id="text" title="Text">
+        <Section id="text" title={t('section.text')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* ── 1. Style ─────────────────────────────────────────── */}
-                <GroupShell label="Style">
+                <GroupShell label={t('text.style')}>
                     <div className="group/control flex items-center">
                         <StyleChipPicker
                             value={activeStyle?.name ?? ''}
                             options={styleOptions}
-                            kind="Text Style"
+                            kind={t('text.textStyleKind')}
                             onApply={(name) => void tokens.applyTextStyleToSelected(name)}
                             onDetach={() => void tokens.applyTextStyleToSelected(null)}
                             onToggleCustom={() => setCustomOpen((v) => !v)}
@@ -302,7 +308,7 @@ export const TextSection = observer(function TextSection() {
                 </GroupShell>
 
                 {/* ── 2. Content ───────────────────────────────────────── */}
-                <GroupShell label="Content">
+                <GroupShell label={t('text.content')}>
                     <div
                         className={cn(
                             'min-w-0',
@@ -319,7 +325,7 @@ export const TextSection = observer(function TextSection() {
                 </GroupShell>
 
                 {/* ── 3. Color ─────────────────────────────────────────── */}
-                <GroupShell label="Color">
+                <GroupShell label={t('text.color')}>
                     <ColorRow
                         value={color.value}
                         onCommit={colorSetter.set}
@@ -331,7 +337,7 @@ export const TextSection = observer(function TextSection() {
                 </GroupShell>
 
                 {/* ── 4. Font ──────────────────────────────────────────── */}
-                <GroupShell label="Font">
+                <GroupShell label={t('text.font')}>
                     {/* Hero row IS the picker trigger — one click opens the
                         searchable font popover anchored to the row. */}
                     <FontField
@@ -345,7 +351,7 @@ export const TextSection = observer(function TextSection() {
                     {/* Pair 1: Weight + Size */}
                     <PairRow>
                         <LabeledSelectInput
-                            label="Weight"
+                            label={t('text.weight')}
                             value={fontWeight.value}
                             options={FONT_WEIGHT_OPTIONS}
                             onCommit={fontWeightSetter.set}
@@ -357,7 +363,7 @@ export const TextSection = observer(function TextSection() {
                             onCommit={fontSizeSetter.set}
                             units={['px', 'rem', 'em']}
                             defaultUnit="px"
-                            aria-label="Font size"
+                            aria-label={t('text.fontSize')}
                             mixed={fontSize.mixed}
                         />
                     </PairRow>
@@ -370,7 +376,7 @@ export const TextSection = observer(function TextSection() {
                             onCommit={lineHeightSetter.set}
                             units={['', 'px', 'rem', 'em', '%']}
                             defaultUnit=""
-                            aria-label="Line height"
+                            aria-label={t('text.lineHeight')}
                             mixed={lineHeight.mixed}
                         />
                         <IconNumberInput
@@ -379,14 +385,14 @@ export const TextSection = observer(function TextSection() {
                             onCommit={letterSpacingSetter.set}
                             units={['em', 'rem', 'px']}
                             defaultUnit="em"
-                            aria-label="Letter spacing"
+                            aria-label={t('text.letterSpacing')}
                             mixed={letterSpacing.mixed}
                         />
                     </PairRow>
                 </GroupShell>
 
                 {/* ── 5. Alignment ─────────────────────────────────────── */}
-                <GroupShell label="Alignment">
+                <GroupShell label={t('text.alignment')}>
                     <IconSegment
                         // Browsers compute the `text-align` default as the
                         // logical `start`/`end` — map to the physical values
@@ -402,22 +408,22 @@ export const TextSection = observer(function TextSection() {
                         }
                         options={TEXT_ALIGN_OPTIONS}
                         onCommit={alignSetter.set}
-                        ariaLabel="Text alignment"
+                        ariaLabel={t('text.textAlignment')}
                     />
                 </GroupShell>
 
                 {/* ── 6. Case & Decoration ─────────────────────────────── */}
-                <GroupShell label="Case & Decoration">
+                <GroupShell label={t('text.caseDecoration')}>
                     <PairRow>
                         <LabeledSelectInput
-                            label="Case"
+                            label={t('text.case')}
                             value={textTransform.value}
                             options={TEXT_TRANSFORM_OPTIONS}
                             onCommit={textTransformSetter.set}
                             mixed={textTransform.mixed}
                         />
                         <LabeledSelectInput
-                            label="Decor"
+                            label={t('text.decor')}
                             value={textDecoration.value}
                             options={TEXT_DECORATION_OPTIONS}
                             onCommit={textDecorationSetter.set}
@@ -427,12 +433,12 @@ export const TextSection = observer(function TextSection() {
                 </GroupShell>
 
                 {/* ── 7. Text shadow ───────────────────────────────────── */}
-                <GroupShell label="Text shadow">
+                <GroupShell label={t('text.textShadow')}>
                     <LabeledTextInput
                         value={textShadow.value}
                         onCommit={textShadowSetter.set}
                         placeholder="0 1px 2px rgba(0,0,0,0.2)"
-                        aria-label="Text shadow"
+                        aria-label={t('text.textShadow')}
                         mixed={textShadow.mixed}
                     />
                 </GroupShell>

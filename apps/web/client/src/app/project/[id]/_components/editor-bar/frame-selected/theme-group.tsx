@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { SystemTheme } from '@weblab/models/assets';
 import { Icons } from '@weblab/ui/icons';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@weblab/ui/select';
@@ -11,12 +13,13 @@ import { type FrameData } from '@/components/store/editor/frames';
 import { HoverOnlyTooltip } from '../hover-tooltip';
 
 export function ThemeGroup({ frameData }: { frameData: FrameData }) {
+    const t = useTranslations('editor.editorBar');
     const [theme, setTheme] = useState<SystemTheme>(SystemTheme.SYSTEM);
     const [isOpen, setIsOpen] = useState(false);
     const themeOptions = [
-        { value: SystemTheme.SYSTEM, label: 'System', icon: Icons.Laptop },
-        { value: SystemTheme.DARK, label: 'Dark', icon: Icons.Moon },
-        { value: SystemTheme.LIGHT, label: 'Light', icon: Icons.Sun },
+        { value: SystemTheme.SYSTEM, label: t('themeSystem'), icon: Icons.Laptop },
+        { value: SystemTheme.DARK, label: t('themeDark'), icon: Icons.Moon },
+        { value: SystemTheme.LIGHT, label: t('themeLight'), icon: Icons.Sun },
     ];
 
     useEffect(() => {
@@ -46,14 +49,14 @@ export function ThemeGroup({ frameData }: { frameData: FrameData }) {
         setTheme(newTheme);
         const success = await frameData.view?.setTheme(newTheme);
         if (!success) {
-            toast.error('Failed to change theme');
+            toast.error(t('failedToChangeTheme'));
             setTheme(previousTheme);
         }
     }
 
     const selectedOption = themeOptions.find((option) => option.value === theme) ?? {
         value: SystemTheme.SYSTEM,
-        label: 'System',
+        label: t('themeSystem'),
         icon: Icons.Laptop,
     };
     const SelectedIcon = selectedOption.icon;
@@ -64,7 +67,7 @@ export function ThemeGroup({ frameData }: { frameData: FrameData }) {
             onValueChange={(value) => void changeTheme(value as SystemTheme)}
             onOpenChange={setIsOpen}
         >
-            <HoverOnlyTooltip content="Theme" side="bottom" sideOffset={10} disabled={isOpen}>
+            <HoverOnlyTooltip content={t('theme')} side="bottom" sideOffset={10} disabled={isOpen}>
                 <SelectTrigger
                     size="sm"
                     className="group border-border/0 text-muted-foreground hover:border-border hover:bg-background-tertiary/20 hover:text-foreground min-w-[112px] rounded-lg border focus-visible:ring-0 focus-visible:ring-offset-0"

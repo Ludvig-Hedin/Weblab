@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
@@ -39,6 +41,7 @@ const PADDING_ICON_MAP: Record<string, typeof Icons.PaddingEmpty> = {
 };
 
 export const Padding = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { boxState, handleBoxChange, handleUnitChange, handleIndividualChange } =
         useBoxControl('padding');
 
@@ -123,7 +126,7 @@ export const Padding = observer(() => {
         }
 
         // If values are different
-        return 'Mixed';
+        return t('mixed');
     };
 
     const PaddingIcon = getPaddingIcon();
@@ -131,7 +134,7 @@ export const Padding = observer(() => {
 
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
-            <HoverOnlyTooltip content="Padding" side="bottom">
+            <HoverOnlyTooltip content={t('padding')} side="bottom">
                 <DropdownMenuTrigger asChild>
                     <ToolbarButton
                         isOpen={isOpen}
@@ -156,7 +159,7 @@ export const Padding = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
                         }`}
                     >
-                        {areAllPaddingsEqual ? 'All sides' : 'Mixed'}
+                        {areAllPaddingsEqual ? t('allSides') : t('mixed')}
                     </button>
                     <button
                         onClick={() => setActiveTab(PaddingTab.INDIVIDUAL)}
@@ -166,7 +169,7 @@ export const Padding = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
                         }`}
                     >
-                        Individual
+                        {t('individual')}
                     </button>
                 </div>
                 {activeTab === PaddingTab.ALL ? (

@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -8,6 +10,7 @@ import {
 import { Icons } from '@weblab/ui/icons';
 
 export const StateDropdown = () => {
+    const t = useTranslations('editor.editorBar');
     return (
         <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
@@ -17,7 +20,7 @@ export const StateDropdown = () => {
                     className="text-muted-foreground border-border/0 hover:bg-background-tertiary/20 hover:text-foreground hover:border-border data-[state=open]:bg-background-tertiary/20 data-[state=open]:text-foreground data-[state=open]:border-border flex cursor-pointer items-center gap-2 rounded-lg border hover:border focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none active:border-0 data-[state=open]:border"
                 >
                     <Icons.StateCursor className="h-4 min-h-4 w-4 min-w-4" />
-                    <span className="text-small">State</span>
+                    <span className="text-small">{t('state')}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="mt-1 min-w-[120px] rounded-lg p-1">

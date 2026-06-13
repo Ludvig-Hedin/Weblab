@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import type { TailwindColor } from '@weblab/models/style';
 import type { GradientState } from '@weblab/ui/color-picker';
 import type { Palette } from '@weblab/utility';
@@ -114,6 +116,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
     isCreatingNewColor,
     hideGradient = false,
 }) => {
+    const t = useTranslations('editor.editorBar');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [palette, setPalette] = useState<Palette>(color.palette);
     const [searchQuery, setSearchQuery] = useState('');
@@ -639,27 +642,27 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                                 value={TabValue.BRAND}
                                 className="hover:bg-background-secondary hover:text-foreground-primary text-mini flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 transition-colors"
                             >
-                                Brand
+                                {t('brandTab')}
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value={TabValue.CUSTOM}
                                 className="hover:bg-background-secondary hover:text-foreground-primary text-mini flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 transition-colors"
                             >
-                                Custom
+                                {t('customTab')}
                             </TabsTrigger>
                             {!hideGradient && (
                                 <TabsTrigger
                                     value={TabValue.GRADIENT}
                                     className="hover:bg-background-secondary hover:text-foreground-primary text-mini flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 transition-colors"
                                 >
-                                    Gradient
+                                    {t('gradientTab')}
                                 </TabsTrigger>
                             )}
                         </div>
                         {!isCreatingNewColor && (
                             <HoverOnlyTooltip
-                                content="Remove Color"
+                                content={t('removeColor')}
                                 side="bottom"
                                 className="mt-1"
                                 hideArrow
@@ -696,7 +699,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                                 <Input
                                     ref={inputRef}
                                     type="text"
-                                    placeholder="Search colors"
+                                    placeholder={t('searchColors')}
                                     className="text-mini rounded-none border-none pr-8 pl-7"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -781,7 +784,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                         />
 
                         <div className="flex w-full flex-row items-center justify-between px-2 py-1">
-                            <span className="text-foreground-secondary text-small">Presets</span>
+                            <span className="text-foreground-secondary text-small">{t('presets')}</span>
                             <button
                                 className={`text-mini flex h-6 w-6 items-center justify-center rounded px-1 py-1 transition-colors ${
                                     viewMode === 'grid'

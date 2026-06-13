@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { CustomExpander, GroupShell, LabeledTextInput, SliderField } from '../controls';
 import { useStyleSetter } from '../hooks/use-style-setter';
@@ -15,6 +16,7 @@ import { Section } from './section';
  * Ported to v4 grammar: GroupShell wrapping each row, content in gap-3 wrapper.
  */
 export const TransformsSection = observer(function TransformsSection() {
+    const t = useTranslations('editor.stylePanel');
     const perspective = useStyleValue('perspective');
     const rotate = useStyleValue('rotate');
     const transform = useStyleValue('transform');
@@ -52,9 +54,9 @@ export const TransformsSection = observer(function TransformsSection() {
     }, [advancedSetCount]);
 
     return (
-        <Section id="transforms" title="Transforms">
+        <Section id="transforms" title={t('section.transforms')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
-                <GroupShell label="Perspective" onReset={() => perspectiveSetter.set('')}>
+                <GroupShell label={t('transforms.perspective')} onReset={() => perspectiveSetter.set('')}>
                     <SliderField
                         value={perspective.value}
                         onCommit={perspectiveSetter.set}
@@ -64,7 +66,7 @@ export const TransformsSection = observer(function TransformsSection() {
                     />
                 </GroupShell>
 
-                <GroupShell label="Rotate" onReset={() => rotateSetter.set('')}>
+                <GroupShell label={t('transforms.rotate')} onReset={() => rotateSetter.set('')}>
                     <SliderField
                         value={rotate.value}
                         onCommit={rotateSetter.set}
@@ -79,18 +81,18 @@ export const TransformsSection = observer(function TransformsSection() {
                     onOpenChange={setCustomOpen}
                     summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
                 >
-                    <GroupShell label="Transform" onReset={() => transformSetter.set('')}>
+                    <GroupShell label={t('transforms.transform')} onReset={() => transformSetter.set('')}>
                         <LabeledTextInput
-                            label="Value"
+                            label={t('transforms.value')}
                             value={transform.value}
                             onCommit={transformSetter.set}
                             placeholder="translate(0,0) scale(1)"
                         />
                     </GroupShell>
 
-                    <GroupShell label="Origin" onReset={() => transformOriginSetter.set('')}>
+                    <GroupShell label={t('transforms.origin')} onReset={() => transformOriginSetter.set('')}>
                         <LabeledTextInput
-                            label="Value"
+                            label={t('transforms.value')}
                             value={transformOrigin.value}
                             onCommit={transformOriginSetter.set}
                             placeholder="center center"
@@ -98,20 +100,20 @@ export const TransformsSection = observer(function TransformsSection() {
                     </GroupShell>
 
                     <GroupShell
-                        label="Perspective origin"
+                        label={t('transforms.perspectiveOrigin')}
                         onReset={() => perspectiveOriginSetter.set('')}
                     >
                         <LabeledTextInput
-                            label="Value"
+                            label={t('transforms.value')}
                             value={perspectiveOrigin.value}
                             onCommit={perspectiveOriginSetter.set}
                             placeholder="50% 50%"
                         />
                     </GroupShell>
 
-                    <GroupShell label="Style" onReset={() => transformStyleSetter.set('')}>
+                    <GroupShell label={t('transforms.transformStyle')} onReset={() => transformStyleSetter.set('')}>
                         <LabeledTextInput
-                            label="Value"
+                            label={t('transforms.value')}
                             value={transformStyle.value}
                             onCommit={transformStyleSetter.set}
                             placeholder="flat | preserve-3d"
@@ -119,11 +121,11 @@ export const TransformsSection = observer(function TransformsSection() {
                     </GroupShell>
 
                     <GroupShell
-                        label="Backface visibility"
+                        label={t('transforms.backfaceVisibility')}
                         onReset={() => backfaceVisibilitySetter.set('')}
                     >
                         <LabeledTextInput
-                            label="Value"
+                            label={t('transforms.value')}
                             value={backfaceVisibility.value}
                             onCommit={backfaceVisibilitySetter.set}
                             placeholder="visible | hidden"

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -53,6 +55,7 @@ const useOpacityControl = () => {
 };
 
 export const Opacity = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { opacity, handleOpacityChange } = useOpacityControl();
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -76,7 +79,7 @@ export const Opacity = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Layer Opacity"
+                content={t('layerOpacity')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -98,7 +101,7 @@ export const Opacity = observer(() => {
                             onChange={onInputChange}
                             onClick={(e) => e.stopPropagation()}
                             className="data-[state=open]:text-foreground text-small focus:text-foreground-primary group-hover:text-foreground-primary text-muted-foreground !hide-spin-buttons no-focus-ring w-8 [appearance:textfield] border-none !bg-transparent px-1 text-left transition-colors duration-150 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-                            aria-label="Opacity percentage"
+                            aria-label={t('opacityPercentage')}
                         />
                         <span
                             onClick={(e) => e.stopPropagation()}

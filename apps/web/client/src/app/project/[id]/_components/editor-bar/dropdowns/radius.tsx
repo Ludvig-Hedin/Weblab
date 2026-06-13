@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
@@ -15,6 +17,7 @@ import { SpacingInputs } from '../inputs/spacing-inputs';
 import { ToolbarButton } from '../toolbar-button';
 
 export const Radius = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const [activeTab, setActiveTab] = useState('all');
     const { boxState, handleBoxChange, handleUnitChange, handleIndividualChange } =
         useBoxControl('radius');
@@ -100,7 +103,7 @@ export const Radius = observer(() => {
         }
 
         // If values are different
-        return 'Mixed';
+        return t('mixed');
     };
 
     const RadiusIcon = getRadiusIcon();
@@ -109,7 +112,7 @@ export const Radius = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Radius"
+                content={t('radius')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -144,7 +147,7 @@ export const Radius = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover',
                         )}
                     >
-                        All sides
+                        {t('allSides')}
                     </button>
                     <button
                         onClick={() => setActiveTab('individual')}
@@ -155,7 +158,7 @@ export const Radius = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover',
                         )}
                     >
-                        Individual
+                        {t('individual')}
                     </button>
                 </div>
                 {activeTab === 'all' ? (

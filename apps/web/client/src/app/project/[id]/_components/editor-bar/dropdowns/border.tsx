@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
@@ -20,6 +22,7 @@ export enum BorderTab {
 }
 
 export const Border = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { boxState, handleBoxChange, handleUnitChange, handleIndividualChange, borderExists } =
         useBoxControl('border');
 
@@ -79,7 +82,7 @@ export const Border = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Border"
+                content={t('border')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -122,7 +125,7 @@ export const Border = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
                         }`}
                     >
-                        All sides
+                        {t('allSides')}
                     </button>
                     <button
                         onClick={() => setActiveTab(BorderTab.INDIVIDUAL)}
@@ -132,7 +135,7 @@ export const Border = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
                         }`}
                     >
-                        Individual
+                        {t('individual')}
                     </button>
                 </div>
                 {activeTab === BorderTab.ALL ? (

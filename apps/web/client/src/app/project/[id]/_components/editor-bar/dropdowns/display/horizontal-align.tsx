@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons';
 
 import type { CssValue } from '.';
@@ -31,6 +33,7 @@ const horizontalAlignOptions: Record<string, CssValue> = {
 };
 
 export const HorizontalAlignInput = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const [value, setValue] = useState<string>(
         editorEngine.style.selectedStyle?.styles.computed.justifyContent ?? 'flex-start',
@@ -51,7 +54,7 @@ export const HorizontalAlignInput = observer(() => {
 
     return (
         <div className="flex items-center gap-0">
-            <span className="text-muted-foreground text-small w-20">Horizontal</span>
+            <span className="text-muted-foreground text-small w-20">{t('horizontal')}</span>
             <InputRadio
                 options={Object.values(horizontalAlignOptions)}
                 value={value}

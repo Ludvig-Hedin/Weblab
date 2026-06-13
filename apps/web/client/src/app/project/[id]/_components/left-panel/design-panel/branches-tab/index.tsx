@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { BranchTabValue } from '@weblab/models';
 import {
@@ -24,6 +25,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { BranchManagement } from './branch-management';
 
 export const BranchesTab = observer(() => {
+    const t = useTranslations('editor.leftPanel.branches');
     const editorEngine = useEditorEngine();
     const { branches } = editorEngine;
     const [hoveredBranchId, setHoveredBranchId] = useState<string | null>(null);
@@ -129,8 +131,8 @@ export const BranchesTab = observer(() => {
         <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b p-4">
                 <span className="text-muted-foreground text-mini">
-                    {branches.allBranches.length} branch
-                    {branches.allBranches.length === 1 ? '' : 'es'}
+                    {branches.allBranches.length}{' '}
+                    {branches.allBranches.length === 1 ? 'branch' : 'branches'}
                 </span>
                 <Popover open={createOpen} onOpenChange={setCreateOpen}>
                     <PopoverTrigger asChild>
@@ -141,15 +143,15 @@ export const BranchesTab = observer(() => {
                     <PopoverContent align="end" className="w-72 p-3">
                         <div className="space-y-3">
                             <div>
-                                <p className="text-small font-medium">Create Branch</p>
+                                <p className="text-small font-medium">{t('createBranch')}</p>
                                 <p className="text-muted-foreground text-mini">
-                                    Fork the current branch or start from a blank sandbox.
+                                    {t('createBranchDescription')}
                                 </p>
                             </div>
                             <Input
                                 value={branchName}
                                 onChange={(event) => setBranchName(event.target.value)}
-                                placeholder="Optional branch name"
+                                placeholder={t('branchNamePlaceholder')}
                                 disabled={isCreating}
                             />
                             <div className="grid grid-cols-2 gap-2">
@@ -159,7 +161,7 @@ export const BranchesTab = observer(() => {
                                     disabled={isCreating}
                                     onClick={() => setCreateMode('fork')}
                                 >
-                                    Fork Current
+                                    {t('forkCurrent')}
                                 </Button>
                                 <Button
                                     variant={createMode === 'blank' ? 'secondary' : 'outline'}
@@ -167,7 +169,7 @@ export const BranchesTab = observer(() => {
                                     disabled={isCreating}
                                     onClick={() => setCreateMode('blank')}
                                 >
-                                    Blank Branch
+                                    {t('blankBranch')}
                                 </Button>
                             </div>
                             <Button
@@ -178,12 +180,12 @@ export const BranchesTab = observer(() => {
                                 {isCreating ? (
                                     <>
                                         <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                        Creating...
+                                        {t('creating')}
                                     </>
                                 ) : createMode === 'fork' ? (
-                                    'Create from Current Branch'
+                                    t('createFromCurrent')
                                 ) : (
-                                    'Create Blank Branch'
+                                    t('createBlank')
                                 )}
                             </Button>
                         </div>
@@ -198,7 +200,7 @@ export const BranchesTab = observer(() => {
                         <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search branches"
+                            placeholder={t('searchBranches')}
                             className="text-small h-8 pl-7"
                         />
                     </div>
@@ -213,14 +215,13 @@ export const BranchesTab = observer(() => {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Switch branches with unsaved changes?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('switchUnsaved')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            You have edits that aren&apos;t committed to this branch. Switching now
-                            won&apos;t save them on the current branch.
+                            {t('switchUnsavedDescription')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={async () => {
                                 const branchId = pendingSwitchBranchId;
@@ -230,7 +231,7 @@ export const BranchesTab = observer(() => {
                                 }
                             }}
                         >
-                            Switch anyway
+                            {t('switchAnyway')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -240,7 +241,7 @@ export const BranchesTab = observer(() => {
                 <div className="space-y-1 p-2">
                     {filteredBranches.length === 0 && (
                         <div className="text-muted-foreground text-mini py-6 text-center">
-                            No branches match &quot;{searchQuery}&quot;
+                            {t('noBranchesMatch', { query: searchQuery })}
                         </div>
                     )}
                     {filteredBranches.map((branch) => {
@@ -285,7 +286,7 @@ export const BranchesTab = observer(() => {
                                             e.stopPropagation();
                                             handleManageBranch(branch.id);
                                         }}
-                                        title="Manage branch"
+                                        title={t('manageBranch')}
                                     >
                                         <Icons.Gear className="h-3 w-3" />
                                     </Button>

@@ -2,6 +2,8 @@
 
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { LayoutMode } from '@weblab/utility';
@@ -13,6 +15,7 @@ import { InputDropdown } from '../inputs/input-dropdown';
 import { ToolbarButton } from '../toolbar-button';
 
 export const Height = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { dimensionState, handleDimensionChange, handleUnitChange, handleLayoutChange } =
         useDimensionControl('height');
 
@@ -23,7 +26,7 @@ export const Height = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Height"
+                content={t('height')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -39,9 +42,9 @@ export const Height = observer(() => {
             <DropdownMenuContent align="start" className="mt-1 w-[280px] space-y-3 rounded-lg p-3">
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-white text-small">Height</span>
+                        <span className="text-muted-white text-small">{t('height')}</span>
                         <InputDropdown
-                            label="Height"
+                            label={t('height')}
                             min={0}
                             value={dimensionState.height.num ?? 0}
                             unit={dimensionState.height.unit}
@@ -53,9 +56,9 @@ export const Height = observer(() => {
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-small">Min</span>
+                        <span className="text-muted-foreground text-small">{t('min')}</span>
                         <InputDropdown
-                            label="Min height"
+                            label={t('minHeight')}
                             min={0}
                             value={dimensionState.minHeight.num ?? 0}
                             unit={dimensionState.minHeight.unit}
@@ -67,9 +70,9 @@ export const Height = observer(() => {
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-small">Max</span>
+                        <span className="text-muted-foreground text-small">{t('max')}</span>
                         <InputDropdown
-                            label="Max height"
+                            label={t('maxHeight')}
                             min={0}
                             value={dimensionState.maxHeight.num ?? 0}
                             unit={dimensionState.maxHeight.unit}

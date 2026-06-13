@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -34,6 +36,7 @@ export const layoutTypeOptions: Record<string, CssValue> = {
 };
 
 export const Display = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const [layoutType, setLayoutType] = useState(
         editorEngine.style.selectedStyle?.styles.computed.display ?? 'block',
@@ -50,7 +53,7 @@ export const Display = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Display"
+                content={t('display')}
                 side="bottom"
                 className="mt-1"
                 hideArrow

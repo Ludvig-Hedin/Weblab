@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import type { Font } from '@weblab/models';
 import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -20,6 +22,7 @@ import { ToolbarButton } from '../../toolbar-button';
 import { FontFamily } from './font-family';
 
 export const FontFamilySelector = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const { handleFontFamilyChange, textState } = useTextControl();
     const { isOpen, onOpenChange } = useDropdownControl({
@@ -154,7 +157,7 @@ export const FontFamilySelector = observer(() => {
             }}
         >
             <HoverOnlyTooltip
-                content="Font Family"
+                content={t('fontFamily')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -164,7 +167,7 @@ export const FontFamilySelector = observer(() => {
                     <ToolbarButton
                         isOpen={isOpen}
                         className="flex items-center gap-2 px-3"
-                        aria-label="Font Family Selector"
+                        aria-label={t('fontFamilySelector')}
                     >
                         <span className="text-small truncate">
                             {toNormalCase(textState.fontFamily) || 'Sans Serif'}
@@ -182,9 +185,9 @@ export const FontFamilySelector = observer(() => {
                         autoFocus
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search Google Fonts…"
+                        placeholder={t('searchGoogleFonts')}
                         className="h-8 text-sm"
-                        aria-label="Search fonts"
+                        aria-label={t('searchFonts')}
                     />
                 </div>
                 <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
@@ -240,7 +243,7 @@ export const FontFamilySelector = observer(() => {
                         variant="secondary"
                         size="sm"
                         className="text-small w-full rounded-md font-medium"
-                        aria-label="Manage Brand fonts"
+                        aria-label={t('manageBrandFonts')}
                         tabIndex={0}
                         onClick={() => {
                             editorEngine.state.setBrandTab(BrandTabValue.FONTS);
@@ -248,7 +251,7 @@ export const FontFamilySelector = observer(() => {
                             onOpenChange(false);
                         }}
                     >
-                        Manage / upload fonts
+                        {t('manageUploadFonts')}
                     </Button>
                 </div>
             </DropdownMenuContent>

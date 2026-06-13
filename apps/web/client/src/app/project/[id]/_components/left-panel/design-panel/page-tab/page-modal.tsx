@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { RouterType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -42,6 +43,7 @@ export function PageModal({
     initialName = '',
     supportsFolderOperations,
 }: PageModalProps) {
+    const t = useTranslations('editor.leftPanel.pages');
     const editorEngine = useEditorEngine();
     const [pageName, setPageName] = useState('');
     const [warning, setWarning] = useState('');
@@ -54,13 +56,26 @@ export function PageModal({
     }, [baseRoute, pageName, mode]);
     const [isComposing, setIsComposing] = useState(false);
 
-    const itemLabel = itemType === 'folder' ? 'Folder' : 'Page';
     const canManageFolders =
         supportsFolderOperations ??
         editorEngine.activeSandbox.routerConfig?.type === RouterType.APP;
-    const title = mode === 'create' ? `Create a New ${itemLabel}` : `Rename ${itemLabel}`;
-    const buttonText = mode === 'create' ? `Create ${itemLabel}` : `Rename ${itemLabel}`;
-    const loadingText = mode === 'create' ? 'Creating...' : 'Renaming...';
+    const title =
+        mode === 'create'
+            ? itemType === 'folder'
+                ? t('createNewFolder')
+                : t('createNewPage')
+            : itemType === 'folder'
+              ? t('renameFolder')
+              : t('renamePage');
+    const buttonText =
+        mode === 'create'
+            ? itemType === 'folder'
+                ? t('createFolder')
+                : t('createPage')
+            : itemType === 'folder'
+              ? t('renameFolder')
+              : t('renamePage');
+    const loadingText = mode === 'create' ? t('creatingPage') : t('renamingPage');
 
     // Reset page name when modal opens
     useEffect(() => {
@@ -76,7 +91,7 @@ export function PageModal({
         }
 
         if (itemType === 'folder' && !canManageFolders) {
-            setWarning('Folders are only supported for App Router projects');
+            setWarning(t('foldersAppRouterOnly'));
             return;
         }
 
@@ -106,7 +121,7 @@ export function PageModal({
         }
 
         if (itemType === 'folder' && !canManageFolders) {
-            setWarning('Folders are only supported for App Router projects');
+            setWarning(t('foldersAppRouterOnly'));
             return;
         }
 
@@ -148,8 +163,8 @@ export function PageModal({
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>
                         {itemType === 'folder'
-                            ? `This folder will prefix routes as ${fullPath}`
-                            : `This page will be ${fullPath} on your site`}
+                            ? t('folderWillBe', { path: fullPath })
+                            : t('pageWillBe', { path: fullPath })}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -163,8 +178,8 @@ export function PageModal({
                             className={cn(warning && 'border-destructive')}
                             placeholder={
                                 itemType === 'folder'
-                                    ? 'marketing or blog'
-                                    : 'about-us or [blog] for a dynamic page'
+                                    ? t('folderPlaceholder')
+                                    : t('pagePlaceholder')
                             }
                             disabled={isLoading}
                             onKeyDown={(e) => {
@@ -189,7 +204,7 @@ export function PageModal({
                         onClick={() => onOpenChange(false)}
                         disabled={isLoading}
                     >
-                        Cancel
+                        {t('cancelPage')}
                     </Button>
                     <Button
                         variant="outline"

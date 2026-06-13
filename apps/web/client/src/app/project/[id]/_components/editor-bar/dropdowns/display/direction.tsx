@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons';
 
 import type { CssValue } from '.';
@@ -20,6 +22,7 @@ const directionOptions: Record<string, CssValue> = {
 };
 
 export const DirectionInput = () => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const [value, setValue] = useState<string>(
         editorEngine.style.selectedStyle?.styles.computed.flexDirection ?? 'column',
@@ -40,7 +43,7 @@ export const DirectionInput = () => {
 
     return (
         <div className="flex items-center gap-0">
-            <span className="text-muted-foreground text-small w-20">Direction</span>
+            <span className="text-muted-foreground text-small w-20">{t('direction')}</span>
             <InputRadio
                 options={Object.values(directionOptions)}
                 value={value}

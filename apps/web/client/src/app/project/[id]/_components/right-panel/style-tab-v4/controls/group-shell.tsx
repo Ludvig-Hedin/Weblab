@@ -2,6 +2,7 @@
 
 import type { MouseEvent, ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -52,6 +53,7 @@ export function GroupShell({
     gap = 6,
     onReset,
 }: GroupShellProps) {
+    const t = useTranslations('editor.stylePanel');
     const showHead = label !== undefined || actions !== undefined;
     const handleLabelClick = (event: MouseEvent<HTMLButtonElement>) => {
         if (event.altKey && onReset) {
@@ -68,7 +70,7 @@ export function GroupShell({
                         <button
                             type="button"
                             onClick={handleLabelClick}
-                            title="⌥-click to reset"
+                            title={t('common.altClickToReset')}
                             className={cn(
                                 GROUP_LABEL_CLASSES,
                                 'hover:text-foreground-primary cursor-pointer text-left transition-colors',
@@ -87,8 +89,8 @@ export function GroupShell({
                                     e.stopPropagation();
                                     onReset();
                                 }}
-                                aria-label="Reset"
-                                title="Reset"
+                                aria-label={t('common.reset')}
+                                title={t('common.reset')}
                                 className="text-foreground-tertiary hover:text-foreground-primary flex size-4 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
                             >
                                 <X className="size-2.5" />

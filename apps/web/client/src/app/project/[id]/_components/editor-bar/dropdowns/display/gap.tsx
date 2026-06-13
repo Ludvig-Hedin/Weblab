@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { stringToParsedValue } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { InputIcon } from '../../inputs/input-icon';
 
 export const GapInput = () => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const { num, unit } = stringToParsedValue(
         editorEngine.style.selectedStyle?.styles.computed.gap?.toString() ?? '12px',
@@ -23,7 +26,7 @@ export const GapInput = () => {
 
     return (
         <div className="flex w-full items-center gap-0">
-            <span className="text-muted-foreground text-small w-20">Gap</span>
+            <span className="text-muted-foreground text-small w-20">{t('gap')}</span>
             <div className="flex-1">
                 <InputIcon
                     value={numValue}

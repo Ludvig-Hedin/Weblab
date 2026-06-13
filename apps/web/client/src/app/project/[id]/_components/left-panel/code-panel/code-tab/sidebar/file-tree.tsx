@@ -2,6 +2,7 @@
 
 import type { NodeApi, RowRendererProps, TreeApi } from 'react-arborist';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Tree } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 
@@ -33,6 +34,7 @@ export const FileTree = ({
     selectedFilePath,
     onAddToChat,
 }: FileTreeProps) => {
+    const t = useTranslations('editor.leftPanel.codePanel');
     const treeRef = useRef<TreeApi<FileEntry>>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -199,11 +201,11 @@ export const FileTree = ({
                 {isLoading ? (
                     <div className="text-foreground-tertiary text-small flex h-full flex-col items-center justify-start pt-4">
                         <div className="border-foreground-hover mb-2 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
-                        <span>Loading files...</span>
+                        <span>{t('loadingFiles')}</span>
                     </div>
                 ) : filteredFiles.length === 0 ? (
                     <div className="text-foreground-tertiary text-small flex h-full flex-col items-center justify-start pt-4">
-                        {fileEntries.length === 0 ? 'No files found' : 'No files match your search'}
+                        {fileEntries.length === 0 ? t('noFilesFound') : t('noFilesMatch')}
                     </div>
                 ) : (
                     <Tree

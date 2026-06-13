@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { EditorFile } from './shared/types';
 
@@ -25,6 +26,7 @@ export const StatusBar = ({
     hasUnsavedChanges,
     lastSavedAt,
 }: StatusBarProps) => {
+    const t = useTranslations('editor.leftPanel.codePanel');
     const [now, setNow] = useState(() => Date.now());
 
     useEffect(() => {
@@ -48,7 +50,7 @@ export const StatusBar = ({
                 {hasUnsavedChanges && (
                     <span className="text-foreground-brand flex items-center gap-1">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
-                        Unsaved
+                        {t('unsaved')}
                     </span>
                 )}
                 {savedLabel && <span>{savedLabel}</span>}

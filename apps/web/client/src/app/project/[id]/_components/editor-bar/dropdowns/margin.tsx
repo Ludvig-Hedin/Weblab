@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
@@ -48,6 +50,7 @@ const MARGIN_ICON_MAP: Record<string, typeof Icons.MarginEmpty> = {
 };
 
 export const Margin = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { boxState, handleBoxChange, handleUnitChange, handleIndividualChange } =
         useBoxControl('margin');
     const editorEngine = useEditorEngine();
@@ -147,7 +150,7 @@ export const Margin = observer(() => {
         }
 
         // If values are different
-        return 'Mixed';
+        return t('mixed');
     };
 
     const MarginIcon = getMarginIcon();
@@ -156,7 +159,7 @@ export const Margin = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Margin"
+                content={t('margin')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -186,7 +189,7 @@ export const Margin = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
                         }`}
                     >
-                        {areAllMarginsEqual ? 'All sides' : 'Mixed'}
+                        {areAllMarginsEqual ? t('allSides') : t('mixed')}
                     </button>
                     <button
                         onClick={() => setActiveTab(MarginTab.INDIVIDUAL)}
@@ -196,7 +199,7 @@ export const Margin = observer(() => {
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
                         }`}
                     >
-                        Individual
+                        {t('individual')}
                     </button>
                 </div>
                 {activeTab === MarginTab.ALL ? (

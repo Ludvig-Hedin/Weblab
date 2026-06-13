@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import type { ImageContentData } from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
 import { LeftPanelTabValue } from '@weblab/models';
@@ -25,6 +27,7 @@ import { HoverOnlyTooltip } from '../hover-tooltip';
 import { ToolbarButton } from '../toolbar-button';
 
 export const InputImage = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -136,7 +139,7 @@ export const InputImage = observer(() => {
         <div className="flex flex-col gap-2">
             <DropdownMenu open={isOpen} onOpenChange={handleOpenChange} modal={false}>
                 <HoverOnlyTooltip
-                    content="Image Fill"
+                    content={t('imageFill')}
                     side="bottom"
                     className="mt-1"
                     hideArrow
@@ -174,7 +177,7 @@ export const InputImage = observer(() => {
                     <div className="flex flex-col">
                         {/* Header */}
                         <div className="flex items-center justify-between p-3">
-                            <h3 className="text-foreground text-small font-medium">Image Fill</h3>
+                            <h3 className="text-foreground text-small font-medium">{t('imageFill')}</h3>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -252,7 +255,7 @@ export const InputImage = observer(() => {
                             >
                                 <div className="flex items-center gap-2">
                                     <Icons.Library className="h-4 w-4" />
-                                    Select from library
+                                    {t('selectFromLibrary')}
                                 </div>
                             </Button>
                             <Button
@@ -267,7 +270,7 @@ export const InputImage = observer(() => {
                                     ) : (
                                         <Icons.Upload className="h-4 w-4" />
                                     )}
-                                    {isUploading ? 'Uploading...' : 'Upload from computer'}
+                                    {isUploading ? t('uploading') : t('uploadFromComputer')}
                                 </div>
                             </Button>
 
@@ -286,7 +289,7 @@ export const InputImage = observer(() => {
                                 >
                                     <div className="flex items-center gap-2">
                                         <Icons.CrossL className="h-4 w-4" />
-                                        Remove background
+                                        {t('removeBackground')}
                                     </div>
                                 </Button>
                             )}

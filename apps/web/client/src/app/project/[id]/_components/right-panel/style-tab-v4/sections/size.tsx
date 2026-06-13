@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     GroupShell,
@@ -82,6 +83,8 @@ function extractUnit(value: string, fallback = 'px'): string {
  *   LabeledNumberInput for flex-grow + LabeledSelectInput for overflow.
  */
 export const SizeSection = observer(function SizeSection() {
+    const t = useTranslations('editor.stylePanel');
+
     // ── Style reads ──────────────────────────────────────────────────────
 
     const width = useStyleValue('width');
@@ -197,11 +200,11 @@ export const SizeSection = observer(function SizeSection() {
     // ── Render ───────────────────────────────────────────────────────────
 
     return (
-        <Section id="size" title="Size">
+        <Section id="size" title={t('section.size')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* ── Dimensions ─────────────────────────────────────── */}
                 <GroupShell
-                    label="Dimensions"
+                    label={t('size.dimensions')}
                     onReset={() =>
                         setMultiple([
                             { property: 'width', value: '' },
@@ -220,7 +223,7 @@ export const SizeSection = observer(function SizeSection() {
                             keywords={DIMENSION_KEYWORDS}
                             units={DIMENSION_UNITS}
                             defaultUnit="px"
-                            ariaLabel="Width"
+                            ariaLabel={t('size.width')}
                             mixed={width.mixed}
                         />
                         <LinkAspectButton locked={aspectLocked} onToggle={handleToggleAspectLock} />
@@ -231,7 +234,7 @@ export const SizeSection = observer(function SizeSection() {
                             keywords={DIMENSION_KEYWORDS}
                             units={DIMENSION_UNITS}
                             defaultUnit="px"
-                            ariaLabel="Height"
+                            ariaLabel={t('size.height')}
                             mixed={height.mixed}
                         />
                     </div>
@@ -239,7 +242,7 @@ export const SizeSection = observer(function SizeSection() {
 
                 {/* ── Constraints ────────────────────────────────────── */}
                 <GroupShell
-                    label="Constraints"
+                    label={t('size.constraints')}
                     onReset={() =>
                         setMultiple([
                             { property: 'min-width', value: '' },
@@ -251,50 +254,50 @@ export const SizeSection = observer(function SizeSection() {
                 >
                     <div className="grid grid-cols-2 gap-1.5">
                         <LabeledNumberInput
-                            label="Min W"
+                            label={t('size.minWidth')}
                             value={minWidth.value}
                             onCommit={minWidthSetter.set}
                             units={CONSTRAINT_UNITS}
                             defaultUnit="px"
-                            aria-label="Min width"
+                            aria-label={t('size.minWidthAria')}
                             mixed={minWidth.mixed}
                         />
                         <LabeledNumberInput
-                            label="Min H"
+                            label={t('size.minHeight')}
                             value={minHeight.value}
                             onCommit={minHeightSetter.set}
                             units={CONSTRAINT_UNITS}
                             defaultUnit="px"
-                            aria-label="Min height"
+                            aria-label={t('size.minHeightAria')}
                             mixed={minHeight.mixed}
                         />
                     </div>
                     <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                         <LabeledNumberInput
-                            label="Max W"
+                            label={t('size.maxWidth')}
                             value={maxWidth.value}
                             onCommit={maxWidthSetter.set}
                             units={CONSTRAINT_UNITS}
                             defaultUnit="px"
                             placeholder="∞"
-                            aria-label="Max width"
+                            aria-label={t('size.maxWidthAria')}
                             mixed={maxWidth.mixed}
                         />
                         <LabeledNumberInput
-                            label="Max H"
+                            label={t('size.maxHeight')}
                             value={maxHeight.value}
                             onCommit={maxHeightSetter.set}
                             units={CONSTRAINT_UNITS}
                             defaultUnit="px"
                             placeholder="∞"
-                            aria-label="Max height"
+                            aria-label={t('size.maxHeightAria')}
                             mixed={maxHeight.mixed}
                         />
                     </div>
                 </GroupShell>
 
                 {/* ── Aspect & Fit ────────────────────────────────────── */}
-                <GroupShell label="Aspect & Fit">
+                <GroupShell label={t('size.aspectFit')}>
                     <div className="grid grid-cols-2 gap-1.5">
                         {/*
                          * aspect-ratio accepts free text: `16/9`, `4/3`, `1.5`.
@@ -317,12 +320,12 @@ export const SizeSection = observer(function SizeSection() {
                             defaultUnit=""
                             allowKeywords
                             placeholder="e.g. 16 / 9"
-                            aria-label="Aspect ratio"
+                            aria-label={t('size.aspectRatio')}
                             hidePill
                             mixed={aspectRatio.mixed}
                         />
                         <LabeledSelectInput
-                            label="Fit"
+                            label={t('size.fit')}
                             value={objectFit.value}
                             options={FIT_OPTIONS}
                             onCommit={objectFitSetter.set}
@@ -332,21 +335,21 @@ export const SizeSection = observer(function SizeSection() {
                 </GroupShell>
 
                 {/* ── Behavior ───────────────────────────────────────── */}
-                <GroupShell label="Behavior">
+                <GroupShell label={t('size.behavior')}>
                     <div className="grid grid-cols-2 gap-1.5">
                         <LabeledNumberInput
-                            label="Grow"
+                            label={t('size.grow')}
                             value={flexGrow.value}
                             onCommit={flexGrowSetter.set}
                             unit=""
                             units={[]}
                             defaultUnit=""
                             placeholder="0"
-                            aria-label="Flex grow"
+                            aria-label={t('size.flexGrow')}
                             mixed={flexGrow.mixed}
                         />
                         <LabeledSelectInput
-                            label="Overflow"
+                            label={t('size.overflow')}
                             value={overflowValue}
                             options={OVERFLOW_OPTIONS}
                             onCommit={overflowSetter.set}

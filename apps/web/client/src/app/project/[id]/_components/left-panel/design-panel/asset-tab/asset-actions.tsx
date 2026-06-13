@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
     ContextMenuItem,
     ContextMenuSeparator,
@@ -52,6 +54,7 @@ export const AssetActions = ({
     onCompress,
     onDelete,
 }: AssetActionsProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     const isDropdown = variant === 'dropdown';
     const Item = isDropdown ? DropdownMenuItem : ContextMenuItem;
     const Sub = isDropdown ? DropdownMenuSub : ContextMenuSub;
@@ -64,22 +67,22 @@ export const AssetActions = ({
             {asset.type === 'image' && (
                 <Item className="flex items-center gap-2" onSelect={onAddToChat}>
                     <Icons.Plus className="h-3 w-3" />
-                    Add to Chat
+                    {t('addToChat')}
                 </Item>
             )}
             <Item className="flex items-center gap-2" onSelect={onCopyUrl}>
                 <Icons.ClipboardCopy className="h-3 w-3" />
-                Copy URL
+                {t('copyUrl')}
             </Item>
             <Item className="flex items-center gap-2" onSelect={onRename}>
                 <Icons.Edit className="h-3 w-3" />
-                Rename
+                {t('rename')}
             </Item>
             {moveTargets.length > 0 && (
                 <Sub>
                     <SubTrigger className="flex items-center gap-2">
                         <Icons.MoveToFolder className="h-3 w-3" />
-                        Move to
+                        {t('moveTo')}
                     </SubTrigger>
                     <SubContent>
                         {moveTargets.map((target) => (
@@ -98,7 +101,7 @@ export const AssetActions = ({
             {canCompress && (
                 <Item className="flex items-center gap-2" onSelect={onCompress}>
                     <Icons.Scissors className="h-3 w-3" />
-                    Compress
+                    {t('compress')}
                 </Item>
             )}
             <Separator />
@@ -107,7 +110,7 @@ export const AssetActions = ({
                 onSelect={onDelete}
             >
                 <Icons.Trash className="h-3 w-3" />
-                Delete
+                {t('delete')}
             </Item>
         </>
     );

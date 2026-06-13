@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 
@@ -31,6 +32,7 @@ export function PerCornerPopover({
     units,
     triggerPressed,
 }: PerCornerPopoverProps) {
+    const t = useTranslations('editor.stylePanel');
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -39,7 +41,7 @@ export function PerCornerPopover({
                 </IconButtonSm>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-[240px] rounded-[10px] p-2">
-                <div className="text-foreground-secondary mb-2 text-[11px]">Per corner</div>
+                <div className="text-foreground-secondary mb-2 text-[11px]">{t('common.perCorner')}</div>
                 <div
                     className="grid items-center justify-items-center"
                     style={{
@@ -54,28 +56,28 @@ export function PerCornerPopover({
                         value={values.tl}
                         onCommit={(v) => onCommit('tl', v)}
                         units={units}
-                        aria-label="Top left"
+                        aria-label={t('common.topLeft')}
                     />
                     <IconNumberInput
                         glyph="↗"
                         value={values.tr}
                         onCommit={(v) => onCommit('tr', v)}
                         units={units}
-                        aria-label="Top right"
+                        aria-label={t('common.topRight')}
                     />
                     <IconNumberInput
                         glyph="↙"
                         value={values.bl}
                         onCommit={(v) => onCommit('bl', v)}
                         units={units}
-                        aria-label="Bottom left"
+                        aria-label={t('common.bottomLeft')}
                     />
                     <IconNumberInput
                         glyph="↘"
                         value={values.br}
                         onCommit={(v) => onCommit('br', v)}
                         units={units}
-                        aria-label="Bottom right"
+                        aria-label={t('common.bottomRight')}
                     />
                 </div>
             </PopoverContent>

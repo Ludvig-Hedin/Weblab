@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
@@ -31,190 +32,13 @@ export interface PropertyRegistryEntry {
     resolveSelector?: string;
 }
 
-/**
- * Static registry of the v3 Style panel's editable properties. Not every CSS
- * property — just the ones the panel actually surfaces a control for, so a
- * result always resolves to a real row. Kept in this file (per the slice
- * contract) and grouped by section for easy scanning.
- */
-const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
-    // Layout
-    { property: 'display', label: 'Display', sectionId: 'layout' },
-    { property: 'flex-direction', label: 'Flex direction', sectionId: 'layout' },
-    {
-        property: 'justify-content',
-        label: 'Justify content',
-        sectionId: 'layout',
-    },
-    { property: 'align-items', label: 'Align items', sectionId: 'layout' },
-    { property: 'gap', label: 'Gap', sectionId: 'layout' },
-    // `padding`/`margin` shorthands have no `data-style-property` node — the
-    // `TrblGrid` control only renders per-side inputs labelled `padding-top`
-    // etc., so fall back to the first side.
-    {
-        property: 'padding',
-        label: 'Padding',
-        sectionId: 'layout',
-        resolveSelector: '[aria-label="padding-top"]',
-    },
-    {
-        property: 'margin',
-        label: 'Margin',
-        sectionId: 'layout',
-        resolveSelector: '[aria-label="margin-top"]',
-    },
-    // Position
-    { property: 'position', label: 'Position', sectionId: 'position' },
-    { property: 'top', label: 'Top', sectionId: 'position' },
-    { property: 'right', label: 'Right', sectionId: 'position' },
-    { property: 'bottom', label: 'Bottom', sectionId: 'position' },
-    { property: 'left', label: 'Left', sectionId: 'position' },
-    { property: 'z-index', label: 'Z-index', sectionId: 'position' },
-    // Size
-    { property: 'width', label: 'Width', sectionId: 'size' },
-    { property: 'height', label: 'Height', sectionId: 'size' },
-    { property: 'min-width', label: 'Min width', sectionId: 'size' },
-    { property: 'min-height', label: 'Min height', sectionId: 'size' },
-    { property: 'max-width', label: 'Max width', sectionId: 'size' },
-    { property: 'max-height', label: 'Max height', sectionId: 'size' },
-    { property: 'aspect-ratio', label: 'Aspect ratio', sectionId: 'size' },
-    { property: 'object-fit', label: 'Object fit', sectionId: 'size' },
-    { property: 'overflow', label: 'Overflow', sectionId: 'size' },
-    // Text
-    { property: 'font-family', label: 'Font family', sectionId: 'text' },
-    { property: 'font-size', label: 'Font size', sectionId: 'text' },
-    { property: 'font-weight', label: 'Font weight', sectionId: 'text' },
-    { property: 'line-height', label: 'Line height', sectionId: 'text' },
-    { property: 'letter-spacing', label: 'Letter spacing', sectionId: 'text' },
-    { property: 'text-align', label: 'Text align', sectionId: 'text' },
-    { property: 'text-transform', label: 'Text transform', sectionId: 'text' },
-    {
-        property: 'text-decoration-line',
-        label: 'Text decoration',
-        sectionId: 'text',
-    },
-    { property: 'text-shadow', label: 'Text shadow', sectionId: 'text' },
-    { property: 'color', label: 'Text color', sectionId: 'text' },
-    // Styles
-    { property: 'opacity', label: 'Opacity', sectionId: 'styles' },
-    { property: 'visibility', label: 'Visibility', sectionId: 'styles' },
-    // Background
-    {
-        property: 'background-color',
-        label: 'Background color',
-        sectionId: 'background',
-    },
-    {
-        property: 'background-image',
-        label: 'Background image',
-        sectionId: 'background',
-    },
-    {
-        property: 'background-size',
-        label: 'Background size',
-        sectionId: 'background',
-    },
-    {
-        property: 'background-repeat',
-        label: 'Background repeat',
-        sectionId: 'background',
-    },
-    // Border
-    { property: 'border-width', label: 'Border width', sectionId: 'border' },
-    { property: 'border-color', label: 'Border color', sectionId: 'border' },
-    { property: 'border-style', label: 'Border style', sectionId: 'border' },
-    { property: 'border-radius', label: 'Border radius', sectionId: 'border' },
-    // Effects
-    { property: 'box-shadow', label: 'Box shadow', sectionId: 'effects' },
-    { property: 'filter', label: 'Filter', sectionId: 'effects' },
-    {
-        property: 'backdrop-filter',
-        label: 'Backdrop filter',
-        sectionId: 'effects',
-    },
-    { property: 'mix-blend-mode', label: 'Blend mode', sectionId: 'effects' },
-    { property: 'outline-width', label: 'Outline width', sectionId: 'effects' },
-    { property: 'outline-color', label: 'Outline color', sectionId: 'effects' },
-    { property: 'outline-style', label: 'Outline style', sectionId: 'effects' },
-    { property: 'outline-offset', label: 'Outline offset', sectionId: 'effects' },
-    // Transforms
-    { property: 'transform', label: 'Transform', sectionId: 'transforms' },
-    {
-        property: 'transform-origin',
-        label: 'Transform origin',
-        sectionId: 'transforms',
-    },
-    {
-        property: 'transform-style',
-        label: 'Transform style',
-        sectionId: 'transforms',
-    },
-    { property: 'rotate', label: 'Rotate', sectionId: 'transforms' },
-    { property: 'perspective', label: 'Perspective', sectionId: 'transforms' },
-    {
-        property: 'perspective-origin',
-        label: 'Perspective origin',
-        sectionId: 'transforms',
-    },
-    {
-        property: 'backface-visibility',
-        label: 'Backface visibility',
-        sectionId: 'transforms',
-    },
-    // Transitions
-    { property: 'transition', label: 'Transition', sectionId: 'transitions' },
-    {
-        property: 'transition-property',
-        label: 'Transition property',
-        sectionId: 'transitions',
-    },
-    {
-        property: 'transition-duration',
-        label: 'Transition duration',
-        sectionId: 'transitions',
-    },
-    {
-        property: 'transition-delay',
-        label: 'Transition delay',
-        sectionId: 'transitions',
-    },
-    {
-        property: 'transition-timing-function',
-        label: 'Transition timing',
-        sectionId: 'transitions',
-    },
-    // Advanced — flow
-    { property: 'float', label: 'Float', sectionId: 'advanced' },
-    { property: 'clear', label: 'Clear', sectionId: 'advanced' },
-    // Cursor
-    { property: 'cursor', label: 'Cursor', sectionId: 'cursor' },
-    { property: 'pointer-events', label: 'Pointer events', sectionId: 'cursor' },
-    { property: 'user-select', label: 'User select', sectionId: 'cursor' },
-    { property: 'touch-action', label: 'Touch action', sectionId: 'cursor' },
-];
-
 const MAX_RESULTS = 8;
 
-const SECTION_LABELS: Record<string, string> = {
-    layout: 'Layout',
-    position: 'Position',
-    size: 'Size',
-    text: 'Text',
-    styles: 'Styles',
-    background: 'Background',
-    border: 'Border',
-    effects: 'Effects',
-    transforms: 'Transforms',
-    transitions: 'Transitions',
-    advanced: 'Advanced',
-    cursor: 'Cursor',
-};
-
 /** Case-insensitive substring match against both the label and the CSS name. */
-function matchEntries(query: string): PropertyRegistryEntry[] {
+function matchEntries(query: string, registry: PropertyRegistryEntry[]): PropertyRegistryEntry[] {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    const scored = PROPERTY_REGISTRY.map((entry) => {
+    const scored = registry.map((entry) => {
         const label = entry.label.toLowerCase();
         const prop = entry.property.toLowerCase();
         // Rank prefix matches above mid-string matches so "pad" surfaces
@@ -267,6 +91,7 @@ export interface PropertySearchProps {
  * caret.
  */
 export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
+    const t = useTranslations('editor.stylePanel');
     const [query, setQuery] = React.useState('');
     const [open, setOpen] = React.useState(false);
     const [activeIndex, setActiveIndex] = React.useState(0);
@@ -276,7 +101,128 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
     // can cancel it before it fires.
     const blurCloseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const results = React.useMemo(() => matchEntries(query), [query]);
+    // Built inside the component so labels are translated.
+    const PROPERTY_REGISTRY: PropertyRegistryEntry[] = React.useMemo(() => [
+        // Layout
+        { property: 'display', label: t('search.display'), sectionId: 'layout' },
+        { property: 'flex-direction', label: t('search.flexDirection'), sectionId: 'layout' },
+        { property: 'justify-content', label: t('search.justifyContent'), sectionId: 'layout' },
+        { property: 'align-items', label: t('search.alignItems'), sectionId: 'layout' },
+        { property: 'gap', label: t('search.gap'), sectionId: 'layout' },
+        // `padding`/`margin` shorthands have no `data-style-property` node — the
+        // `TrblGrid` control only renders per-side inputs labelled `padding-top`
+        // etc., so fall back to the first side.
+        {
+            property: 'padding',
+            label: t('search.padding'),
+            sectionId: 'layout',
+            resolveSelector: '[aria-label="padding-top"]',
+        },
+        {
+            property: 'margin',
+            label: t('search.margin'),
+            sectionId: 'layout',
+            resolveSelector: '[aria-label="margin-top"]',
+        },
+        // Position
+        { property: 'position', label: t('search.position'), sectionId: 'position' },
+        { property: 'top', label: t('search.top'), sectionId: 'position' },
+        { property: 'right', label: t('search.right'), sectionId: 'position' },
+        { property: 'bottom', label: t('search.bottom'), sectionId: 'position' },
+        { property: 'left', label: t('search.left'), sectionId: 'position' },
+        { property: 'z-index', label: t('search.zIndex'), sectionId: 'position' },
+        // Size
+        { property: 'width', label: t('search.width'), sectionId: 'size' },
+        { property: 'height', label: t('search.height'), sectionId: 'size' },
+        { property: 'min-width', label: t('search.minWidth'), sectionId: 'size' },
+        { property: 'min-height', label: t('search.minHeight'), sectionId: 'size' },
+        { property: 'max-width', label: t('search.maxWidth'), sectionId: 'size' },
+        { property: 'max-height', label: t('search.maxHeight'), sectionId: 'size' },
+        { property: 'aspect-ratio', label: t('search.aspectRatio'), sectionId: 'size' },
+        { property: 'object-fit', label: t('search.objectFit'), sectionId: 'size' },
+        { property: 'overflow', label: t('search.overflow'), sectionId: 'size' },
+        // Text
+        { property: 'font-family', label: t('search.fontFamily'), sectionId: 'text' },
+        { property: 'font-size', label: t('search.fontSize'), sectionId: 'text' },
+        { property: 'font-weight', label: t('search.fontWeight'), sectionId: 'text' },
+        { property: 'line-height', label: t('search.lineHeight'), sectionId: 'text' },
+        { property: 'letter-spacing', label: t('search.letterSpacing'), sectionId: 'text' },
+        { property: 'text-align', label: t('search.textAlign'), sectionId: 'text' },
+        { property: 'text-transform', label: t('search.textTransform'), sectionId: 'text' },
+        {
+            property: 'text-decoration-line',
+            label: t('search.textDecoration'),
+            sectionId: 'text',
+        },
+        { property: 'text-shadow', label: t('search.textShadow'), sectionId: 'text' },
+        { property: 'color', label: t('search.textColor'), sectionId: 'text' },
+        // Styles
+        { property: 'opacity', label: t('search.opacity'), sectionId: 'styles' },
+        { property: 'visibility', label: t('search.visibility'), sectionId: 'styles' },
+        // Background
+        { property: 'background-color', label: t('search.backgroundColor'), sectionId: 'background' },
+        { property: 'background-image', label: t('search.backgroundImage'), sectionId: 'background' },
+        { property: 'background-size', label: t('search.backgroundSize'), sectionId: 'background' },
+        { property: 'background-repeat', label: t('search.backgroundRepeat'), sectionId: 'background' },
+        // Border
+        { property: 'border-width', label: t('search.borderWidth'), sectionId: 'border' },
+        { property: 'border-color', label: t('search.borderColor'), sectionId: 'border' },
+        { property: 'border-style', label: t('search.borderStyle'), sectionId: 'border' },
+        { property: 'border-radius', label: t('search.borderRadius'), sectionId: 'border' },
+        // Effects
+        { property: 'box-shadow', label: t('search.boxShadow'), sectionId: 'effects' },
+        { property: 'filter', label: t('search.filter'), sectionId: 'effects' },
+        { property: 'backdrop-filter', label: t('search.backdropFilter'), sectionId: 'effects' },
+        { property: 'mix-blend-mode', label: t('search.blendMode'), sectionId: 'effects' },
+        { property: 'outline-width', label: t('search.outlineWidth'), sectionId: 'effects' },
+        { property: 'outline-color', label: t('search.outlineColor'), sectionId: 'effects' },
+        { property: 'outline-style', label: t('search.outlineStyle'), sectionId: 'effects' },
+        { property: 'outline-offset', label: t('search.outlineOffset'), sectionId: 'effects' },
+        // Transforms
+        { property: 'transform', label: t('search.transform'), sectionId: 'transforms' },
+        { property: 'transform-origin', label: t('search.transformOrigin'), sectionId: 'transforms' },
+        { property: 'transform-style', label: t('search.transformStyle'), sectionId: 'transforms' },
+        { property: 'rotate', label: t('search.rotate'), sectionId: 'transforms' },
+        { property: 'perspective', label: t('search.perspective'), sectionId: 'transforms' },
+        { property: 'perspective-origin', label: t('search.perspectiveOrigin'), sectionId: 'transforms' },
+        { property: 'backface-visibility', label: t('search.backfaceVisibility'), sectionId: 'transforms' },
+        // Transitions
+        { property: 'transition', label: t('search.transition'), sectionId: 'transitions' },
+        { property: 'transition-property', label: t('search.transitionProperty'), sectionId: 'transitions' },
+        { property: 'transition-duration', label: t('search.transitionDuration'), sectionId: 'transitions' },
+        { property: 'transition-delay', label: t('search.transitionDelay'), sectionId: 'transitions' },
+        { property: 'transition-timing-function', label: t('search.transitionTiming'), sectionId: 'transitions' },
+        // Advanced — flow
+        { property: 'float', label: t('search.float'), sectionId: 'advanced' },
+        { property: 'clear', label: t('search.clear'), sectionId: 'advanced' },
+        // Cursor
+        { property: 'cursor', label: t('search.cursor'), sectionId: 'cursor' },
+        { property: 'pointer-events', label: t('search.pointerEvents'), sectionId: 'cursor' },
+        { property: 'user-select', label: t('search.userSelect'), sectionId: 'cursor' },
+        { property: 'touch-action', label: t('search.touchAction'), sectionId: 'cursor' },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ], [
+        // t is stable across re-renders — no need to declare each key individually.
+        // If locale changes, the component remounts via next-intl's provider.
+        t,
+    ]);
+
+    const SECTION_LABELS: Record<string, string> = React.useMemo(() => ({
+        layout: t('section.layout'),
+        position: t('section.position'),
+        size: t('section.size'),
+        text: t('section.text'),
+        styles: t('section.styles'),
+        background: t('section.background'),
+        border: t('section.border'),
+        effects: t('section.effects'),
+        transforms: t('section.transforms'),
+        transitions: t('section.transitions'),
+        advanced: t('section.advanced'),
+        cursor: t('section.cursor'),
+    }), [t]);
+
+    const results = React.useMemo(() => matchEntries(query, PROPERTY_REGISTRY), [query, PROPERTY_REGISTRY]);
 
     // Group results by section for display, keeping flat indices for keyboard nav.
     const groupedResults = React.useMemo(() => {
@@ -298,7 +244,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
             }
         });
         return groups;
-    }, [results]);
+    }, [results, SECTION_LABELS]);
 
     // Clear any pending blur-close timer on unmount.
     React.useEffect(() => {
@@ -340,7 +286,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                     // The row is conditionally hidden (e.g. `flex-direction`
                     // only renders when `display` is flex). Give quiet feedback
                     // instead of a silent no-op.
-                    toast("That property isn't editable for the selected element.");
+                    toast(t('search.notEditableToast'));
                     return;
                 }
                 row.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -353,7 +299,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
             };
             requestAnimationFrame(() => requestAnimationFrame(scrollToRow));
         },
-        [onNavigate],
+        [onNavigate, t],
     );
 
     const handleKeyDown = React.useCallback<React.KeyboardEventHandler<HTMLInputElement>>(
@@ -406,7 +352,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                     aria-autocomplete="list"
                     spellCheck={false}
                     value={query}
-                    placeholder="Search properties…"
+                    placeholder={t('search.placeholder')}
                     onChange={(event) => {
                         setQuery(event.target.value);
                         setOpen(true);
@@ -446,7 +392,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                             role="presentation"
                             className="text-foreground-tertiary text-mini px-2 py-1.5"
                         >
-                            No matching property
+                            {t('search.noMatchingProperty')}
                         </li>
                     )}
                     {groupedResults.map((group) => (

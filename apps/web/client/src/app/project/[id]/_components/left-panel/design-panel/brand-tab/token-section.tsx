@@ -2,6 +2,7 @@
 
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { AccordionItem } from '@weblab/ui/accordion';
 import { Icons } from '@weblab/ui/icons';
@@ -37,6 +38,7 @@ export function TokenSection({
     onAdd,
     onCloseAdd,
 }: TokenSectionProps) {
+    const t = useTranslations('editor.leftPanel.brand');
     const isEmpty = section.count === 0;
     const groupLabels = section.groups.map((group) => group.label);
     return (
@@ -60,7 +62,7 @@ export function TokenSection({
                     <button
                         type="button"
                         onClick={onAdd}
-                        aria-label={`Add to ${section.title}`}
+                        aria-label={t('addTo', { section: section.title })}
                         className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex size-6 items-center justify-center rounded-md transition-colors"
                     >
                         <Icons.Plus className="size-3.5" />
@@ -72,7 +74,7 @@ export function TokenSection({
                     {adding && <AddTokenForm sectionId={section.id} onClose={onCloseAdd} />}
                     {isEmpty && !adding && (
                         <p className="text-foreground-tertiary text-mini px-4 py-1.5">
-                            No {section.title.toLowerCase()} yet — click + to add one.
+                            {t('noTokensYet', { section: section.title.toLowerCase() })}
                         </p>
                     )}
                     <div className="flex flex-col gap-0.5 px-2">

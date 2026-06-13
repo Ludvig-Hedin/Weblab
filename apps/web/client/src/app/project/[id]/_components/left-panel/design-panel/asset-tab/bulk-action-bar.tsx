@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -32,8 +34,9 @@ export const BulkActionBar = ({
     onDelete,
     onDone,
 }: BulkActionBarProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     const folders = [
-        { path: ASSET_ROOT, label: 'No folder' },
+        { path: ASSET_ROOT, label: t('noFolder') },
         ...flattenFolderTree(folderTree).map((folder) => ({
             path: folder.path,
             label: folder.name,
@@ -44,7 +47,7 @@ export const BulkActionBar = ({
     return (
         <div className="border-border-primary bg-background-secondary flex items-center gap-1 rounded-md border px-2 py-1">
             <span className="text-foreground-secondary text-mini flex-1 truncate">
-                {selectedCount} selected
+                {t('selectedCount', { count: selectedCount })}
             </span>
 
             <DropdownMenu>
@@ -53,8 +56,8 @@ export const BulkActionBar = ({
                         variant="ghost"
                         size="icon"
                         className={actionButtonClass}
-                        aria-label="Move selected to folder"
-                        title="Move to folder"
+                        aria-label={t('moveSelectedToFolder')}
+                        title={t('moveSelectedToFolder')}
                         disabled={!hasSelection}
                     >
                         <Icons.MoveToFolder className="h-3.5 w-3.5" />
@@ -78,8 +81,8 @@ export const BulkActionBar = ({
                 variant="ghost"
                 size="icon"
                 className={actionButtonClass}
-                aria-label="Compress selected"
-                title="Compress"
+                aria-label={t('compress')}
+                title={t('compress')}
                 onClick={onCompress}
                 disabled={!hasSelection}
             >
@@ -90,8 +93,8 @@ export const BulkActionBar = ({
                 variant="ghost"
                 size="icon"
                 className="text-destructive hover:text-destructive h-7 w-7"
-                aria-label="Delete selected"
-                title="Delete"
+                aria-label={t('deleteSelected')}
+                title={t('deleteSelected')}
                 onClick={onDelete}
                 disabled={!hasSelection}
             >
@@ -102,8 +105,8 @@ export const BulkActionBar = ({
                 variant="ghost"
                 size="icon"
                 className={actionButtonClass}
-                aria-label="Exit select mode"
-                title="Done"
+                aria-label={t('exitSelectMode')}
+                title={t('exitSelectMode')}
                 onClick={onDone}
             >
                 <Icons.CrossS className="h-3.5 w-3.5" />

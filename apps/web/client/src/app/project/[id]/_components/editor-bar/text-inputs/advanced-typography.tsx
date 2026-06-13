@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -13,6 +15,7 @@ import { InputRadio } from '../inputs/input-radio';
 import { ToolbarButton } from '../toolbar-button';
 
 export const AdvancedTypography = () => {
+    const t = useTranslations('editor.editorBar');
     const {
         textState,
         handleLetterSpacingChange,
@@ -49,7 +52,7 @@ export const AdvancedTypography = () => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Advanced Typography"
+                content={t('advancedTypography')}
                 side="bottom"
                 className="mt-1"
                 hideArrow
@@ -70,7 +73,7 @@ export const AdvancedTypography = () => {
                 className="bg-background border-border mt-1 w-[300px] rounded-xl border p-0 shadow-lg"
             >
                 <div className="border-border flex items-center justify-between border-b py-1.5 pr-2.5 pl-4">
-                    <h2 className="text-foreground text-small font-normal">Advanced Typography</h2>
+                    <h2 className="text-foreground text-small font-normal">{t('advancedTypography')}</h2>
                     <Button
                         variant="ghost"
                         size="icon"
@@ -82,13 +85,13 @@ export const AdvancedTypography = () => {
                 </div>
                 <div className="space-y-4 px-4 py-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-small w-20">Color</span>
+                        <span className="text-muted-foreground text-small w-20">{t('color')}</span>
                         <div className="flex-1">
                             <InputColor color={textState.textColor} elementStyleKey="color" />
                         </div>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-small w-20">Line</span>
+                        <span className="text-muted-foreground text-small w-20">{t('line')}</span>
                         <div className="flex-1">
                             <InputIcon
                                 value={
@@ -101,7 +104,7 @@ export const AdvancedTypography = () => {
                         </div>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-small w-20">Letter</span>
+                        <span className="text-muted-foreground text-small w-20">{t('letter')}</span>
                         <div className="flex-1">
                             <InputIcon
                                 value={
@@ -114,7 +117,7 @@ export const AdvancedTypography = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground text-small w-20">Capitalize</span>
+                        <span className="text-muted-foreground text-small w-20">{t('capitalize')}</span>
                         <div className="w-[225px]">
                             <InputRadio
                                 options={capitalizationOptions}
@@ -125,7 +128,7 @@ export const AdvancedTypography = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground text-small w-20">Decorate</span>
+                        <span className="text-muted-foreground text-small w-20">{t('decorate')}</span>
                         <div className="w-[225px]">
                             <InputRadio
                                 options={decorationOptions}

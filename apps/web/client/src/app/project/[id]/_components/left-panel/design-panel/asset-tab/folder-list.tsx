@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
@@ -11,13 +13,14 @@ interface FolderListProps {
 }
 
 export const FolderList = ({ folders, onFolderClick }: FolderListProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     if (folders.length === 0) {
         return null;
     }
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="text-foreground-secondary text-mini font-medium">Folders</div>
+            <div className="text-foreground-secondary text-mini font-medium">{t('folders')}</div>
             <div className="flex flex-wrap gap-1">
                 {folders.map((folder) => (
                     <Button

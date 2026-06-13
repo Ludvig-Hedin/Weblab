@@ -16,6 +16,8 @@ import {
 import { cn } from '@weblab/ui/utils';
 import { computeWindowMetadata, getDeviceType } from '@weblab/utility';
 
+import { useTranslations } from 'next-intl';
+
 import { useEditorEngine } from '@/components/store/editor';
 import { HoverOnlyTooltip } from '../hover-tooltip';
 
@@ -59,6 +61,7 @@ const CustomIcon = ({
 };
 
 export const DeviceSelector = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const frameData = editorEngine.frames.selected[0];
     const [isOpen, setIsOpen] = useState(false);
@@ -124,7 +127,7 @@ export const DeviceSelector = observer(() => {
 
     return (
         <Select value={device} onValueChange={handleDeviceChange} onOpenChange={setIsOpen}>
-            <HoverOnlyTooltip content="Device" side="bottom" sideOffset={10} disabled={isOpen}>
+            <HoverOnlyTooltip content={t('device')} side="bottom" sideOffset={10} disabled={isOpen}>
                 <SelectTrigger
                     size="sm"
                     className="group text-muted-foreground border-border/0 hover:bg-background-tertiary/20 hover:text-foreground hover:border-border flex cursor-pointer items-center gap-2 rounded-lg border hover:border focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:bg-transparent"

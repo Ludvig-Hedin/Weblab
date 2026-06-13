@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
 import { Icons } from '@weblab/ui/icons';
@@ -55,6 +56,7 @@ interface FolderRowProps {
 }
 
 const FolderRow = ({ node, depth, activeFolder, setActiveFolder }: FolderRowProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     const [open, setOpen] = useState(false);
     const hasChildren = node.children.length > 0;
     const active = activeFolder === node.path;
@@ -74,7 +76,7 @@ const FolderRow = ({ node, depth, activeFolder, setActiveFolder }: FolderRowProp
                     <CollapsibleTrigger asChild>
                         <button
                             type="button"
-                            aria-label={open ? 'Collapse folder' : 'Expand folder'}
+                            aria-label={open ? t('collapseFolder') : t('expandFolder')}
                             className="text-foreground-tertiary hover:text-foreground-primary flex h-4 w-4 shrink-0 items-center justify-center"
                         >
                             <Icons.ChevronRight
@@ -119,11 +121,12 @@ export const AssetSidebar = ({
     folderTree,
     typeCounts,
 }: AssetSidebarProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     return (
         <div className="border-border-primary flex w-40 shrink-0 flex-col gap-0.5 overflow-y-auto border-r pr-2">
             <SidebarRow
                 icon={Icons.ViewGrid}
-                label="All assets"
+                label={t('allAssets')}
                 count={typeCounts.all ?? 0}
                 active={activeType === 'all'}
                 onClick={() => setActiveType('all')}
@@ -143,7 +146,7 @@ export const AssetSidebar = ({
 
             <SidebarRow
                 icon={Icons.File}
-                label="No folder"
+                label={t('noFolder')}
                 active={activeFolder === ASSET_ROOT}
                 onClick={() => setActiveFolder(ASSET_ROOT)}
             />

@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
@@ -15,6 +17,7 @@ import { ToolbarButton } from '../toolbar-button';
 import { hasGradient } from '../utils/gradient';
 
 export const ColorBackground = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const initialColor = editorEngine.style.selectedStyle?.styles.computed.backgroundColor;
     const backgroundImage = editorEngine.style.selectedStyle?.styles.computed.backgroundImage;
@@ -41,7 +44,7 @@ export const ColorBackground = observer(() => {
         <div className="flex flex-col gap-2">
             <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
                 <HoverOnlyTooltip
-                    content="Background Color"
+                    content={t('backgroundColor')}
                     side="bottom"
                     className="mt-1"
                     hideArrow

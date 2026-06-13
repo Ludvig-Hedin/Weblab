@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -20,6 +22,7 @@ export const BreadcrumbNavigation = ({
     breadcrumbSegments,
     onNavigate,
 }: BreadcrumbNavigationProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     return (
         <Breadcrumb>
             <BreadcrumbList className="gap-1 sm:gap-1">
@@ -28,7 +31,7 @@ export const BreadcrumbNavigation = ({
                         className="hover:text-foreground-primary cursor-pointer"
                         onClick={() => onNavigate('/')}
                     >
-                        Root
+                        {t('root')}
                     </BreadcrumbLink>
                 </BreadcrumbItem>
                 {breadcrumbSegments.map((segment, index) => (

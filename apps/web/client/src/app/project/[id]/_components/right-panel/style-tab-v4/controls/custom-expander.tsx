@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown, Settings2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
 import { cn } from '@weblab/ui/utils';
@@ -29,11 +30,13 @@ export interface CustomExpanderProps {
 export function CustomExpander({
     open,
     onOpenChange,
-    label = 'Custom',
+    label,
     summary,
     children,
     className,
 }: CustomExpanderProps) {
+    const t = useTranslations('editor.stylePanel');
+    const displayLabel = label ?? t('common.custom');
     return (
         <Collapsible open={open} onOpenChange={onOpenChange} className={cn('w-full', className)}>
             <CollapsibleTrigger
@@ -42,7 +45,7 @@ export function CustomExpander({
                 )}
             >
                 <Settings2 className="size-3 shrink-0" />
-                <span className="font-medium">{label}</span>
+                <span className="font-medium">{displayLabel}</span>
                 {summary && (
                     <span className="text-foreground-tertiary text-micro truncate">
                         — {summary}

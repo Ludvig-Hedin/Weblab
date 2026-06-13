@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
@@ -13,6 +15,7 @@ import { ToolbarButton } from '../../toolbar-button';
 const FONT_SIZES = [12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72, 96];
 
 export const FontSizeSelector = () => {
+    const t = useTranslations('editor.editorBar');
     const inputRef = useRef<HTMLInputElement>(null);
     const { handleFontSizeChange, textState } = useTextControl();
     const [inputValue, setInputValue] = useState(textState.fontSize.toString());
@@ -83,7 +86,7 @@ export const FontSizeSelector = () => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Font Size"
+                content={t('fontSize')}
                 side="bottom"
                 className="mt-1"
                 hideArrow

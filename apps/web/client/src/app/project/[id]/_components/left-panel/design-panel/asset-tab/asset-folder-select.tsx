@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,17 +36,18 @@ export const AssetFolderSelect = ({
     folderTree,
     typeCounts,
 }: AssetFolderSelectProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     const flatFolders = flattenFolderTree(folderTree);
     const activeFolderName =
         activeFolder === ASSET_ROOT
-            ? 'No folder'
-            : (flatFolders.find((folder) => folder.path === activeFolder)?.name ?? 'No folder');
+            ? t('noFolder')
+            : (flatFolders.find((folder) => folder.path === activeFolder)?.name ?? t('noFolder'));
 
     const TriggerIcon = activeType === 'all' ? Icons.ViewGrid : getAssetTypeIcon(activeType);
     const triggerLabel =
         activeType === 'all'
             ? activeFolder === ASSET_ROOT
-                ? 'All assets'
+                ? t('allAssets')
                 : activeFolderName
             : ASSET_TYPE_LABEL[activeType];
 
@@ -69,7 +72,7 @@ export const AssetFolderSelect = ({
                 >
                     <DropdownMenuRadioItem value="all" className="gap-2">
                         <Icons.ViewGrid className="h-3.5 w-3.5" />
-                        <span className="flex-1">All assets</span>
+                        <span className="flex-1">{t('allAssets')}</span>
                         <span className="text-foreground-tertiary tabular-nums">
                             {typeCounts.all ?? 0}
                         </span>
@@ -90,7 +93,7 @@ export const AssetFolderSelect = ({
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-foreground-tertiary text-mini">
-                    Folders
+                    {t('folders')}
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                     value={activeFolder}
@@ -98,7 +101,7 @@ export const AssetFolderSelect = ({
                 >
                     <DropdownMenuRadioItem value={ASSET_ROOT} className="gap-2">
                         <Icons.File className="h-3.5 w-3.5" />
-                        No folder
+                        {t('noFolder')}
                     </DropdownMenuRadioItem>
                     {flatFolders.map((folder) => (
                         <DropdownMenuRadioItem

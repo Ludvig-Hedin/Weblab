@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { Frame } from '@weblab/models';
 import { Accordion } from '@weblab/ui/accordion';
@@ -23,11 +24,12 @@ export const FrameSettingsPanel = observer(function FrameSettingsPanel({
 }: {
     frame: Frame;
 }) {
+    const t = useTranslations('editor.stylePanel');
     return (
         <div className="flex h-full w-full min-w-0 flex-col overflow-x-hidden">
             <div className="border-border/30 w-full min-w-0 border-b px-3 py-2">
                 <p className="text-foreground-secondary text-[11px] tracking-wider uppercase">
-                    Frame
+                    {t('frame.frameLabel')}
                 </p>
                 <p className="text-foreground-primary text-sm font-medium">
                     {frame.breakpoint?.name ?? 'Frame'}

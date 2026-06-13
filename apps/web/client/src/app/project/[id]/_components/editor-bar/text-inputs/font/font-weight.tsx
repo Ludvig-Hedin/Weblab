@@ -2,6 +2,8 @@
 
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { VARIANTS } from '@weblab/fonts';
 import { Button } from '@weblab/ui/button';
 import {
@@ -19,6 +21,7 @@ import { HoverOnlyTooltip } from '../../hover-tooltip';
 import { ToolbarButton } from '../../toolbar-button';
 
 export const FontWeightSelector = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { handleFontWeightChange, textState } = useTextControl();
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'font-weight-dropdown',
@@ -27,7 +30,7 @@ export const FontWeightSelector = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Font Weight"
+                content={t('fontWeight')}
                 side="bottom"
                 className="mt-1"
                 hideArrow

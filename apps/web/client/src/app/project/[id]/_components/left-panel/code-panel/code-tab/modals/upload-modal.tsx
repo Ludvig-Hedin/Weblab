@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -34,6 +35,7 @@ export const UploadModal = ({
     onSuccess,
     onCreateFile,
 }: UploadModalProps) => {
+    const t = useTranslations('editor.leftPanel.codePanel');
     const [currentPath, setCurrentPath] = useState(basePath);
     const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -155,13 +157,13 @@ export const UploadModal = ({
         >
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Upload Files</DialogTitle>
-                    <DialogDescription>Upload files to your project</DialogDescription>
+                    <DialogTitle>{t('uploadFiles')}</DialogTitle>
+                    <DialogDescription>{t('uploadFilesDescription')}</DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="path">Directory Path</Label>
+                        <Label htmlFor="path">{t('directoryPath')}</Label>
                         <Input
                             id="path"
                             value={currentPath}
@@ -171,12 +173,12 @@ export const UploadModal = ({
                             className="text-small"
                         />
                         <p className="text-muted-foreground text-mini">
-                            Path where files will be uploaded
+                            {t('directoryPathHint')}
                         </p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="file-upload">Select Files</Label>
+                        <Label htmlFor="file-upload">{t('selectFiles')}</Label>
                         <div
                             className={cn(
                                 'hover:border-primary/50 cursor-pointer rounded-lg border-2 border-dashed p-6 transition-colors',
@@ -223,16 +225,16 @@ export const UploadModal = ({
                                             }}
                                             disabled={isLoading}
                                         >
-                                            Clear Selection
+                                            {t('clearSelection')}
                                         </Button>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
                                         <p className="text-small">
-                                            Drag and drop files here, or click to select
+                                            {t('dragAndDropOrClick')}
                                         </p>
                                         <p className="text-muted-foreground text-mini">
-                                            Multiple files can be selected
+                                            {t('multipleFilesSupported')}
                                         </p>
                                     </div>
                                 )}
@@ -243,7 +245,7 @@ export const UploadModal = ({
 
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setShow(false)} disabled={isLoading}>
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         variant="outline"
@@ -251,7 +253,7 @@ export const UploadModal = ({
                         disabled={isLoading || !selectedFiles || selectedFiles.length === 0}
                     >
                         {isLoading
-                            ? 'Uploading...'
+                            ? t('uploading')
                             : `Upload ${selectedFiles?.length ?? 0} file${selectedFiles?.length !== 1 ? 's' : ''}`}
                     </Button>
                 </DialogFooter>

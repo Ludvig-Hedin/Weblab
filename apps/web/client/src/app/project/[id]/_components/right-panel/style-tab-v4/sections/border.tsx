@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     ColorPickerInline,
@@ -21,18 +22,6 @@ import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-
-const BORDER_STYLE_OPTIONS = [
-    { value: 'solid', label: 'Solid' },
-    { value: 'dashed', label: 'Dashed' },
-    { value: 'dotted', label: 'Dotted' },
-    { value: 'double', label: 'Double' },
-    { value: 'groove', label: 'Groove' },
-    { value: 'ridge', label: 'Ridge' },
-    { value: 'inset', label: 'Inset' },
-    { value: 'outset', label: 'Outset' },
-    { value: 'none', label: 'None' },
-] as const;
 
 const STROKE_UNITS = ['px', 'rem', 'em'] as const;
 const RADIUS_UNITS = ['px', 'rem', 'em', '%'] as const;
@@ -60,6 +49,20 @@ const RADIUS_UNITS = ['px', 'rem', 'em', '%'] as const;
  * Cmd+Z reverts the whole gesture.
  */
 export const BorderSection = observer(function BorderSection() {
+    const t = useTranslations('editor.stylePanel');
+
+    const BORDER_STYLE_OPTIONS = [
+        { value: 'solid', label: t('border.solid') },
+        { value: 'dashed', label: t('border.dashed') },
+        { value: 'dotted', label: t('border.dotted') },
+        { value: 'double', label: t('border.double') },
+        { value: 'groove', label: t('border.groove') },
+        { value: 'ridge', label: t('border.ridge') },
+        { value: 'inset', label: t('border.inset') },
+        { value: 'outset', label: t('border.outset') },
+        { value: 'none', label: t('border.none') },
+    ] as const;
+
     // ── Style reads ────────────────────────────────────────────────────────
 
     // Stroke
@@ -214,11 +217,11 @@ export const BorderSection = observer(function BorderSection() {
     // ── Render ─────────────────────────────────────────────────────────────
 
     return (
-        <Section id="border" title="Border">
+        <Section id="border" title={t('section.border')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* ── Stroke group ──────────────────────────────────────── */}
                 <GroupShell
-                    label="Stroke"
+                    label={t('border.stroke')}
                     onReset={() =>
                         setMultiple([
                             { property: 'border-color', value: '' },
@@ -233,7 +236,7 @@ export const BorderSection = observer(function BorderSection() {
                     actions={
                         <PerSidePopover
                             triggerIcon={<IconPerSide />}
-                            triggerLabel="Per side"
+                            triggerLabel={t('border.perSide')}
                             values={{
                                 top: borderTop.value,
                                 right: borderRight.value,
@@ -263,7 +266,7 @@ export const BorderSection = observer(function BorderSection() {
                     {/* Style + Width pair */}
                     <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                         <LabeledSelectInput
-                            label="Style"
+                            label={t('border.style')}
                             options={BORDER_STYLE_OPTIONS}
                             value={borderStyle.value}
                             onCommit={borderStyleSetter.set}
@@ -275,7 +278,7 @@ export const BorderSection = observer(function BorderSection() {
                             onCommit={borderWidthSetter.set}
                             units={STROKE_UNITS}
                             defaultUnit="px"
-                            aria-label="Border width"
+                            aria-label={t('border.borderWidth')}
                             mixed={borderWidth.mixed}
                         />
                     </div>
@@ -283,7 +286,7 @@ export const BorderSection = observer(function BorderSection() {
 
                 {/* ── Radius group ──────────────────────────────────────── */}
                 <GroupShell
-                    label="Radius"
+                    label={t('border.radius')}
                     onReset={() =>
                         setMultiple([
                             { property: 'border-radius', value: '' },
@@ -296,7 +299,7 @@ export const BorderSection = observer(function BorderSection() {
                     actions={
                         <PerCornerPopover
                             triggerIcon={<IconPerCorner />}
-                            triggerLabel="Per corner"
+                            triggerLabel={t('border.perCorner')}
                             values={{
                                 tl: radiusTl.value,
                                 tr: radiusTr.value,
@@ -314,7 +317,7 @@ export const BorderSection = observer(function BorderSection() {
                         onCommit={handleRadiusCommit}
                         units={RADIUS_UNITS}
                         defaultUnit="px"
-                        aria-label="Border radius"
+                        aria-label={t('border.borderRadius')}
                         mixed={radius.mixed}
                     />
                 </GroupShell>

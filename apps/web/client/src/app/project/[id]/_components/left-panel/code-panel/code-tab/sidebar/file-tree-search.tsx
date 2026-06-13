@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
@@ -13,6 +14,7 @@ interface FileTreeSearchProps {
 
 export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
     ({ searchQuery, isLoading, onSearchChange, onKeyDown }, ref) => {
+        const t = useTranslations('editor.leftPanel.codePanel');
         const clearSearch = () => {
             onSearchChange('');
             if (ref && typeof ref === 'object' && ref.current) {
@@ -25,7 +27,7 @@ export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
                 <Input
                     ref={ref}
                     className="text-small m-2 h-8 pr-8"
-                    placeholder="Search files"
+                    placeholder={t('searchFiles')}
                     value={searchQuery}
                     disabled={isLoading}
                     onChange={(e) => onSearchChange(e.target.value)}
@@ -35,7 +37,7 @@ export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
                     <button
                         className="hover:bg-background-bar-active group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] transition-opacity active:bg-transparent"
                         onClick={clearSearch}
-                        aria-label="Clear search"
+                        aria-label={t('clearSearch')}
                     >
                         <Icons.CrossS className="text-foreground-primary/50 group-hover:text-foreground-primary h-3 w-3" />
                     </button>

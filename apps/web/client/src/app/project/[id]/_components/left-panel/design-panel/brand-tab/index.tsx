@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { BrandTabValue } from '@weblab/models';
 import { Accordion } from '@weblab/ui/accordion';
@@ -63,6 +64,7 @@ function filterSections(sections: TokenSectionData[], query: string): TokenSecti
  * `useLocalStorageState`.
  */
 export const BrandTab = observer(() => {
+    const t = useTranslations('editor.leftPanel.brand');
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const { brandTab } = editorEngine.state;
@@ -156,7 +158,7 @@ export const BrandTab = observer(() => {
                         <Input
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Search tokens…"
+                            placeholder={t('searchTokens')}
                             className="text-mini h-8 pl-7"
                         />
                     </div>
@@ -169,7 +171,7 @@ export const BrandTab = observer(() => {
                     {showPaletteBanner && (
                         <div className="border-border bg-background-secondary mx-2 mt-2 flex flex-col gap-2 rounded-md border p-2.5">
                             <p className="text-foreground-secondary text-mini">
-                                Tailwind palette detected. Import to manage colors here.
+                                {t('tailwindDetected')}
                             </p>
                             {importError && (
                                 <p className="text-destructive text-micro">{importError}</p>
@@ -180,13 +182,13 @@ export const BrandTab = observer(() => {
                                 disabled={importingPalette}
                                 onClick={() => void handleImportPalette()}
                             >
-                                {importingPalette ? 'Importing…' : 'Import Tailwind colors'}
+                                {importingPalette ? t('importing') : t('importTailwind')}
                             </Button>
                         </div>
                     )}
                     {searching && visibleSections.length === 0 ? (
                         <p className="text-foreground-tertiary text-mini px-3 py-3">
-                            No tokens match “{query.trim()}”.
+                            {t('noTokensMatch', { query: query.trim() })}
                         </p>
                     ) : (
                         <Accordion
@@ -217,7 +219,7 @@ export const BrandTab = observer(() => {
                         onClick={() => editorEngine.state.setBrandTab(BrandTabValue.FONTS)}
                         className="border-border/60 text-foreground-secondary hover:text-foreground-primary hover:bg-background-secondary flex w-full items-center gap-2 border-t px-3 py-2 text-left transition-colors"
                     >
-                        <span className="text-mini flex-1 font-medium">Fonts</span>
+                        <span className="text-mini flex-1 font-medium">{t('fonts')}</span>
                         <Icons.ChevronRight className="text-muted-foreground size-3.5 shrink-0" />
                     </button>
                 </div>

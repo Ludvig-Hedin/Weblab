@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -46,6 +47,7 @@ export function ChipInput({
     readOnly,
     className,
 }: ChipInputProps) {
+    const t = useTranslations('editor.stylePanel');
     const [draft, setDraft] = useState('');
     const chipInputRefs = useRef<Array<HTMLInputElement | null>>([]);
     const trailingInputRef = useRef<HTMLInputElement | null>(null);
@@ -219,7 +221,7 @@ export function ChipInput({
                     type="text"
                     value={draft}
                     placeholder={placeholder}
-                    aria-label={ariaLabel ?? 'Add an item'}
+                    aria-label={ariaLabel ?? t('chipInput.addAnItem')}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter') {

@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ComponentInsertData, DropElementProperties } from '@weblab/models/element';
 import { EditorMode } from '@weblab/models';
@@ -15,6 +16,7 @@ import { ComponentCard } from './component-card';
 import { COMPONENT_TEMPLATES, TEMPLATE_CATEGORIES } from './templates';
 
 export const ComponentsTab = observer(() => {
+    const t = useTranslations('editor.leftPanel.components');
     const editorEngine = useEditorEngine();
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -96,7 +98,7 @@ export const ComponentsTab = observer(() => {
                     <Icons.MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
                         className="text-mini h-8 pr-8 pl-7"
-                        placeholder="Search templates"
+                        placeholder={t('searchTemplates')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -117,17 +119,17 @@ export const ComponentsTab = observer(() => {
                     {/* Components discovered in the project source */}
                     <div className="mb-1 flex flex-col gap-1.5">
                         <span className="text-foreground-primary text-small px-1 py-1 font-medium">
-                            Components
+                            {t('components')}
                         </span>
                         {isLoadingComponents ? (
                             <p className="text-muted-foreground text-mini px-1 py-4 text-center">
-                                Indexing components…
+                                {t('indexingComponents')}
                             </p>
                         ) : !filteredUserComponents.length ? (
                             <p className="text-muted-foreground text-mini px-1 py-4 text-center">
                                 {searchQuery
-                                    ? 'No matching components'
-                                    : 'No components yet. Exported React components appear here automatically.'}
+                                    ? t('noMatchingComponents')
+                                    : t('noComponentsYet')}
                             </p>
                         ) : (
                             <div className="flex flex-col gap-1">
@@ -180,7 +182,7 @@ export const ComponentsTab = observer(() => {
                     })}
                     {filteredTemplates.length === 0 && (
                         <div className="text-muted-foreground text-mini flex items-center justify-center py-12">
-                            No matching templates
+                            {t('noMatchingTemplates')}
                         </div>
                     )}
                 </div>

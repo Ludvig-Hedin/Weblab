@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import {
@@ -54,6 +55,7 @@ interface UploadModalProps {
 
 const UploadModal = observer(
     ({ isOpen, onOpenChange, onUpload, isUploading = false }: UploadModalProps) => {
+        const t = useTranslations('editor.leftPanel.brand');
         const [fontFiles, setFontFiles] = useState<FontFile[]>([]);
         const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -139,14 +141,14 @@ const UploadModal = observer(
                             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
                                 <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                                 <span className="text-primary text-regular font-medium">
-                                    Uploading...
+                                    {t('uploading')}
                                 </span>
                             </div>
                         )}
 
                         <div className="flex items-center justify-between p-6 pt-4 pb-3">
                             <AlertDialogTitle className="text-regular text-left font-medium">
-                                Upload a font
+                                {t('uploadFont')}
                             </AlertDialogTitle>
                             <Button
                                 variant="ghost"
@@ -207,12 +209,10 @@ const UploadModal = observer(
                                     </svg>
                                 </div>
                                 <p className="text-primary mb-1 text-center">
-                                    Click to upload or drag and drop
+                                    {t('uploadOrDrag')}
                                 </p>
                                 <p className="text-muted-foreground text-small text-center">
-                                    For maximum browser support, upload in
-                                    <br />
-                                    TTF, OTF, EOT and WOFF formats.
+                                    {t('uploadFormats')}
                                 </p>
                                 <input
                                     ref={fileInputRef}
@@ -240,7 +240,7 @@ const UploadModal = observer(
                                     disabled={isUploading}
                                     className="text-small"
                                 >
-                                    Cancel
+                                    {t('fontUploadCancel')}
                                 </Button>
                                 <Button
                                     variant="default"
@@ -251,10 +251,10 @@ const UploadModal = observer(
                                     {isUploading ? (
                                         <>
                                             <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                            Uploading...
+                                            {t('uploading')}
                                         </>
                                     ) : (
-                                        'Save font files'
+                                        t('saveFontFiles')
                                     )}
                                 </Button>
                             </AlertDialogFooter>

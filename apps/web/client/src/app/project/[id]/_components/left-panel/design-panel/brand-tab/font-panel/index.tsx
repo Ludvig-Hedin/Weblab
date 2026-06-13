@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import debounce from 'lodash/debounce';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { VARIANTS } from '@weblab/fonts';
@@ -14,6 +15,7 @@ import { FontFamily } from './font-family';
 import UploadModal from './upload-modal';
 
 const FontPanel = observer(() => {
+    const t = useTranslations('editor.leftPanel.brand');
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -39,14 +41,14 @@ const FontPanel = observer(() => {
         try {
             const success = await fontManager.uploadFonts(fonts);
             if (success) {
-                toast.success('Fonts uploaded successfully');
+                toast.success(t('fontsUploaded'));
             } else {
-                toast.error('Failed to upload fonts');
+                toast.error(t('failedToUploadFonts'));
             }
             return success;
         } catch (error) {
             console.error('Font upload failed:', error);
-            toast.error('Failed to upload fonts', {
+            toast.error(t('failedToUploadFonts'), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
             return false;
@@ -61,7 +63,7 @@ const FontPanel = observer(() => {
                     await fontManager.searchFonts(value);
                 } catch (error) {
                     console.error('Failed to search fonts:', error);
-                    toast.error('Failed to search fonts', {
+                    toast.error(t('failedToSearchFonts'), {
                         description: error instanceof Error ? error.message : 'Unknown error',
                     });
                 } finally {
@@ -107,7 +109,7 @@ const FontPanel = observer(() => {
             await fontManager.fetchNextFontBatch();
         } catch (error) {
             console.error('Failed to load more fonts:', error);
-            toast.error('Failed to load more fonts', {
+            toast.error(t('failedToLoadFonts'), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {
@@ -121,7 +123,7 @@ const FontPanel = observer(() => {
         <div className="text-active text-mini flex h-full w-full flex-grow flex-col p-0">
             {/* Header Section */}
             <div className="border-border flex items-center justify-between border-b py-1.5 pr-2.5 pl-4">
-                <h2 className="text-foreground text-small font-normal">Fonts</h2>
+                <h2 className="text-foreground text-small font-normal">{t('fontsHeader')}</h2>
                 <Button
                     variant="ghost"
                     size="icon"
@@ -139,7 +141,7 @@ const FontPanel = observer(() => {
                     <Input
                         ref={inputRef}
                         type="text"
-                        placeholder="Search for a new font..."
+                        placeholder={t('searchFont')}
                         className="text-mini h-9 pr-8 pl-7"
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
@@ -170,7 +172,7 @@ const FontPanel = observer(() => {
                         <div className="px-4">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-muted-foreground text-small font-normal">
-                                    Added fonts
+                                    {t('addedFonts')}
                                 </h3>
                                 {fontManager.isScanning && (
                                     <Icons.LoadingSpinner className="text-muted-foreground h-3 w-3 animate-spin" />
@@ -186,14 +188,14 @@ const FontPanel = observer(() => {
                                         <div className="flex items-center gap-2">
                                             <Icons.LoadingSpinner className="text-muted-foreground h-4 w-4 animate-spin" />
                                             <span className="text-muted-foreground text-small">
-                                                Scanning fonts...
+                                                {t('scanningFonts')}
                                             </span>
                                         </div>
                                     </div>
                                 ) : !fontManager.fonts.length ? (
                                     <div className="border-default my-2 flex h-20 items-center justify-center rounded-lg border-2 border-dashed">
                                         <span className="text-muted-foreground text-small">
-                                            No fonts added yet
+                                            {t('noFontsAdded')}
                                         </span>
                                     </div>
                                 ) : (
@@ -239,7 +241,7 @@ const FontPanel = observer(() => {
                     {/* Site Fonts Header */}
                     <div className="px-4">
                         <h3 className="text-muted-foreground text-small font-normal">
-                            {searchQuery ? 'Search results' : 'Browse new fonts'}
+                            {searchQuery ? t('searchResults') : t('browseNewFonts')}
                         </h3>
                     </div>
 
@@ -286,7 +288,7 @@ const FontPanel = observer(() => {
                             ) : (
                                 <div className="my-2 flex h-20 items-center justify-center">
                                     <span className="text-muted-foreground text-small">
-                                        No fonts found. Try a different search.
+                                        {t('noFontsFound')}
                                     </span>
                                 </div>
                             )}
@@ -302,10 +304,10 @@ const FontPanel = observer(() => {
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
                                         <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                        <span>Loading fonts…</span>
+                                        <span>{t('loadingFonts')}</span>
                                     </div>
                                 ) : (
-                                    'Load more fonts'
+                                    t('loadMoreFonts')
                                 )}
                             </Button>
                         )}
@@ -320,7 +322,7 @@ const FontPanel = observer(() => {
                     className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-11 w-full rounded-lg border"
                     onClick={handleUploadFont}
                 >
-                    Upload a custom font
+                    {t('uploadCustomFont')}
                 </Button>
             </div>
 

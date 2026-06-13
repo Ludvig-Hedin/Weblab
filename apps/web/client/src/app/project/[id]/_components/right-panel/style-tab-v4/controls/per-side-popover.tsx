@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -41,6 +42,7 @@ export function PerSidePopover({
     keywords,
     triggerPressed,
 }: PerSidePopoverProps) {
+    const t = useTranslations('editor.stylePanel');
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -49,7 +51,7 @@ export function PerSidePopover({
                 </IconButtonSm>
             </PopoverTrigger>
             <PopoverContent align="end" className={cn('w-[240px] rounded-[10px] p-2')}>
-                <div className="text-foreground-secondary mb-2 text-[11px]">Per side</div>
+                <div className="text-foreground-secondary mb-2 text-[11px]">{t('common.perSide')}</div>
                 <div
                     className="grid items-center justify-items-center"
                     style={{
@@ -65,7 +67,7 @@ export function PerSidePopover({
                         onCommit={(v) => onCommit('top', v)}
                         units={units}
                         keywords={keywords}
-                        aria-label="Top"
+                        aria-label={t('common.top')}
                     />
                     <IconNumberInput
                         glyph="R"
@@ -73,7 +75,7 @@ export function PerSidePopover({
                         onCommit={(v) => onCommit('right', v)}
                         units={units}
                         keywords={keywords}
-                        aria-label="Right"
+                        aria-label={t('common.right')}
                     />
                     <IconNumberInput
                         glyph="B"
@@ -81,7 +83,7 @@ export function PerSidePopover({
                         onCommit={(v) => onCommit('bottom', v)}
                         units={units}
                         keywords={keywords}
-                        aria-label="Bottom"
+                        aria-label={t('common.bottom')}
                     />
                     <IconNumberInput
                         glyph="L"
@@ -89,7 +91,7 @@ export function PerSidePopover({
                         onCommit={(v) => onCommit('left', v)}
                         units={units}
                         keywords={keywords}
-                        aria-label="Left"
+                        aria-label={t('common.left')}
                     />
                 </div>
             </PopoverContent>

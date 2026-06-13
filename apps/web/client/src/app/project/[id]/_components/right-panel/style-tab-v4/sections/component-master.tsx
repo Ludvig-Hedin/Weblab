@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ComponentPropSpec } from '@weblab/models';
 import type { CreatablePropKind } from '@weblab/parser';
@@ -15,25 +16,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { SelectField } from '../controls';
 import { Section } from './section';
 
-const KIND_OPTIONS: Array<{ value: CreatablePropKind; label: string }> = [
-    { value: 'text', label: 'Text' },
-    { value: 'image', label: 'Image (src)' },
-    { value: 'link', label: 'Link (href)' },
-    { value: 'switch', label: 'Visibility' },
-    { value: 'number', label: 'Number' },
-];
-
-const TYPE_LABEL: Record<string, string> = {
-    text: 'text',
-    richtext: 'rich text',
-    image: 'image',
-    link: 'link',
-    number: 'number',
-    switch: 'switch',
-    slot: 'slot',
-    variant: 'variant',
-    unsupported: '—',
-};
+// KIND_OPTIONS and TYPE_LABEL are defined inside the component to use t()
 
 /**
  * Master-edit Properties — shown while editing a component in-context.
@@ -42,7 +25,17 @@ const TYPE_LABEL: Record<string, string> = {
  * hoisted into the default.
  */
 export const ComponentMasterSection = observer(function ComponentMasterSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
+
+    const KIND_OPTIONS: Array<{ value: CreatablePropKind; label: string }> = [
+        { value: 'text', label: t('component.text') },
+        { value: 'image', label: 'Image (src)' },
+        { value: 'link', label: 'Link (href)' },
+        { value: 'switch', label: 'Visibility' },
+        { value: 'number', label: t('component.number') },
+    ];
+
     const session = editorEngine.components.editing;
     const selected = editorEngine.elements.selected[0];
 
@@ -73,10 +66,10 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                 branchId: session.branchId,
             });
             if (!result.ok) {
-                toast.error('Could not create property', { description: result.error });
+                toast.error(t('component.couldNotCreateProperty'), { description: result.error });
                 return;
             }
-            toast.success(`Property "${propName.trim()}" created`);
+            toast.success(t('component.propertyCreated', { name: propName.trim() }));
             setOpen(false);
             setPropName('');
         } finally {
@@ -92,10 +85,10 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
             .addVariant(def, session.branchId, trimmed)
             .then((result) => {
                 if (!result.ok) {
-                    toast.error('Could not add variant', { description: result.error });
+                    toast.error(t('component.couldNotAddVariant'), { description: result.error });
                     return;
                 }
-                toast.success(`Variant "${trimmed}" added`);
+                toast.success(t('component.variantAdded', { name: trimmed }));
                 setVariantOpen(false);
                 setVariantName('');
             })
@@ -103,11 +96,11 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
     };
 
     return (
-        <Section id="component" title={`${def.name} · Properties`} setCount={def.props.length}>
+        <Section id="component" title={t('component.propertiesSection', { name: def.name })} setCount={def.props.length}>
             <div className="flex flex-col gap-1 px-3">
                 {def.props.length === 0 && (
                     <p className="text-foreground-tertiary text-mini py-1.5">
-                        No properties yet. Select an element and create one below.
+                        {t('component.noPropertiesYet')}
                     </p>
                 )}
                 {def.props.map((prop) => (
@@ -122,12 +115,12 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                             className="text-foreground-tertiary hover:text-foreground-primary mt-1 flex h-6 w-full items-center justify-center gap-1 rounded border border-dashed border-green-500/40 text-[11px] hover:border-green-500/70 disabled:opacity-50"
                             title={
                                 canCreate
-                                    ? 'Create a property from the selected element'
-                                    : 'Select an element inside the component first'
+                                    ? t('component.createPropertyTitle')
+                                    : t('component.selectElementFirst')
                             }
                         >
                             <Icons.Plus className="h-2.5 w-2.5" />
-                            Property from selection
+                            {t('component.propertyFromSelection')}
                         </button>
                     </PopoverTrigger>
                     <PopoverContent align="end" side="left" className="w-56 p-2">
@@ -157,7 +150,7 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                                 disabled={busy || propName.trim().length === 0}
                                 onClick={() => void create()}
                             >
-                                {busy ? 'Creating…' : 'Create property'}
+                                {busy ? t('component.creating') : t('component.createProperty')}
                             </Button>
                         </div>
                     </PopoverContent>
@@ -167,7 +160,7 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                     to a class-map + variant prop on first use. */}
                 <div className="mt-2 flex flex-col gap-1">
                     <span className="text-foreground-secondary text-mini font-medium">
-                        Variants
+                        {t('component.variants')}
                     </span>
                     {def.variants ? (
                         Object.keys(def.variants.variants).map((name) => (
@@ -179,15 +172,14 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                                 <span className="text-foreground-primary font-mono">{name}</span>
                                 {name === def.variants?.defaultVariant && (
                                     <span className="text-foreground-tertiary ml-auto">
-                                        default
+                                        {t('component.default')}
                                     </span>
                                 )}
                             </div>
                         ))
                     ) : (
                         <p className="text-foreground-tertiary text-tiny">
-                            No variants yet. Add one to create style permutations (e.g. dark,
-                            outline).
+                            {t('component.noVariantsYet')}
                         </p>
                     )}
                     <Popover open={variantOpen} onOpenChange={setVariantOpen}>
@@ -197,7 +189,7 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                                 className="text-foreground-tertiary hover:text-foreground-primary mt-0.5 flex h-6 w-full items-center justify-center gap-1 rounded border border-dashed border-purple-500/30 text-[11px] hover:border-purple-500/60"
                             >
                                 <Icons.Plus className="h-2.5 w-2.5" />
-                                Variant
+                                {t('component.variant')}
                             </button>
                         </PopoverTrigger>
                         <PopoverContent align="end" side="left" className="w-48 p-2">
@@ -218,7 +210,7 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
                                     disabled={variantBusy || variantName.trim().length === 0}
                                     onClick={submitVariant}
                                 >
-                                    {variantBusy ? 'Adding…' : 'Add variant'}
+                                    {variantBusy ? t('component.adding') : t('component.addVariant')}
                                 </Button>
                             </div>
                         </PopoverContent>
@@ -230,6 +222,18 @@ export const ComponentMasterSection = observer(function ComponentMasterSection()
 });
 
 const PropRow = ({ prop }: { prop: ComponentPropSpec }) => {
+    const t = useTranslations('editor.stylePanel');
+    const TYPE_LABEL: Record<string, string> = {
+        text: t('component.text'),
+        richtext: t('component.richText'),
+        image: t('component.image'),
+        link: t('component.link'),
+        number: t('component.number'),
+        switch: t('component.switch'),
+        slot: t('component.slot'),
+        variant: t('component.variantType'),
+        unsupported: '—',
+    };
     const hasElementBinding = prop.bindings.some((b) => 'oid' in b && b.oid);
     return (
         <div className="flex h-6 items-center gap-2 text-[11px]">
@@ -240,7 +244,7 @@ const PropRow = ({ prop }: { prop: ComponentPropSpec }) => {
                         ? 'h-1.5 w-1.5 shrink-0 rounded-full bg-green-400'
                         : 'border-border h-1.5 w-1.5 shrink-0 rounded-full border'
                 }
-                title={hasElementBinding ? 'Connected to an element' : 'Not connected'}
+                title={hasElementBinding ? t('component.connectedToElement') : t('component.notConnected')}
             />
             <span className="text-foreground-primary min-w-0 flex-1 truncate font-mono">
                 {prop.name}

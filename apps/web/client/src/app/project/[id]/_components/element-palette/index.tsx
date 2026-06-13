@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { InsertMode } from '@weblab/models';
 import {
@@ -91,8 +92,16 @@ export const ELEMENT_PALETTE_ITEMS: PaletteItem[] = [
 const GROUPS = ['Layout', 'Basic', 'Form', 'Media'] as const;
 
 export const ElementPalette = observer(() => {
+    const t = useTranslations('editor.elementPalette');
     const editorEngine = useEditorEngine();
     const open = editorEngine.state.elementPaletteOpen;
+
+    const GROUP_LABELS: Record<typeof GROUPS[number], string> = {
+        Layout: t('groupLayout'),
+        Basic: t('groupBasic'),
+        Form: t('groupForm'),
+        Media: t('groupMedia'),
+    };
 
     const close = () => editorEngine.state.setElementPaletteOpen(false);
 
@@ -105,17 +114,17 @@ export const ElementPalette = observer(() => {
         <CommandDialog
             open={open}
             onOpenChange={(o) => editorEngine.state.setElementPaletteOpen(o)}
-            title="Add element"
-            description="Search for an element to add to the canvas, then click or drag to place it."
+            title={t('title')}
+            description={t('description')}
         >
-            <CommandInput placeholder="Add an element…" autoFocus />
+            <CommandInput placeholder={t('placeholder')} autoFocus />
             <CommandList>
-                <CommandEmpty>No elements found.</CommandEmpty>
+                <CommandEmpty>{t('noElementsFound')}</CommandEmpty>
                 {GROUPS.map((groupName) => {
                     const items = ELEMENT_PALETTE_ITEMS.filter((i) => i.group === groupName);
                     if (items.length === 0) return null;
                     return (
-                        <CommandGroup key={groupName} heading={groupName}>
+                        <CommandGroup key={groupName} heading={GROUP_LABELS[groupName]}>
                             {items.map((item) => {
                                 const Icon = Icons[item.icon];
                                 return (

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     CommandDialog,
@@ -41,6 +42,7 @@ const FILE_LIST_TTL_MS = 5_000;
  * scrolling") so we don't need parser metadata for the pick.
  */
 export const FileFinder = observer(() => {
+    const t = useTranslations('editor.fileFinder');
     const editorEngine = useEditorEngine();
     const [open, setOpen] = useState(false);
     const [items, setItems] = useState<FileFinderItem[]>([]);
@@ -129,13 +131,13 @@ export const FileFinder = observer(() => {
         <CommandDialog
             open={open}
             onOpenChange={handleOpenChange}
-            title="Quick Open File"
-            description="Search for a file in the project to open in the code editor."
+            title={t('title')}
+            description={t('description')}
         >
-            <CommandInput placeholder="Search files…" autoFocus onValueChange={setQuery} />
+            <CommandInput placeholder={t('placeholder')} autoFocus onValueChange={setQuery} />
             <CommandList>
-                <CommandEmpty>{loading ? 'Loading files…' : 'No files found.'}</CommandEmpty>
-                <CommandGroup heading="Files">
+                <CommandEmpty>{loading ? t('loadingFiles') : t('noFilesFound')}</CommandEmpty>
+                <CommandGroup heading={t('filesGroup')}>
                     {visible.map((item) => (
                         <CommandItem
                             key={item.path}

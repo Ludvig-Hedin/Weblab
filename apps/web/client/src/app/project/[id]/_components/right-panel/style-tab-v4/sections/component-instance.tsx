@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ComponentDef, ComponentPropSpec, DomElement } from '@weblab/models';
 import {
@@ -28,6 +29,7 @@ type PropValues = Record<string, string | number | boolean | null>;
  * values equal to the component default remove the attribute.
  */
 export const ComponentInstanceSection = observer(function ComponentInstanceSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     const selected = editorEngine.elements.selected[0];
     const isEditingMaster = !!editorEngine.components.editing;
@@ -76,7 +78,7 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
         setValues((prev) => ({ ...prev, [prop.name]: value }));
         void editorEngine.components.setInstanceProp(selected, prop.name, value).catch((error) => {
             console.error('Failed to set instance prop', error);
-            toast.error('Failed to update property');
+            toast.error(t('component.failedToUpdateProperty'));
             void reload();
         });
     };
@@ -88,7 +90,7 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
             return next;
         });
         void editorEngine.components.resetInstanceProp(selected, prop.name).catch(() => {
-            toast.error('Failed to reset property');
+            toast.error(t('component.failedToResetProperty'));
             void reload();
         });
     };
@@ -103,7 +105,7 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            aria-label="Component options"
+                            aria-label={t('component.componentOptions')}
                             className="text-foreground-tertiary hover:text-foreground-primary flex h-5 w-5 items-center justify-center rounded"
                         >
                             <Icons.DotsHorizontal className="h-3 w-3" />
@@ -114,7 +116,7 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
                             onSelect={() => void editorEngine.components.enterEditMode(selected)}
                         >
                             <Icons.Component className="mr-2 h-3 w-3 text-purple-400" />
-                            Edit component
+                            {t('component.editComponent')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -123,10 +125,10 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
                                 setValues({});
                                 void editorEngine.components
                                     .resetAllInstanceProps(selected)
-                                    .catch(() => toast.error('Failed to reset properties'));
+                                    .catch(() => toast.error(t('component.failedToResetProperties')));
                             }}
                         >
-                            Reset all properties
+                            {t('component.resetAllProperties')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -135,7 +137,7 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
             <div className="flex flex-col gap-1 px-3">
                 {editableProps.length === 0 && (
                     <p className="text-foreground-tertiary text-mini py-1.5">
-                        No properties. Edit the component to expose some.
+                        {t('component.noProperties')}
                     </p>
                 )}
                 {editableProps.map((prop) => (
@@ -154,7 +156,7 @@ export const ComponentInstanceSection = observer(function ComponentInstanceSecti
                     onClick={() => void editorEngine.components.enterEditMode(selected)}
                 >
                     <Icons.Pencil className="h-2.5 w-2.5" />
-                    Edit component
+                    {t('component.editComponent')}
                 </button>
             </div>
         </Section>
@@ -174,6 +176,7 @@ const PropField = ({
     onCommit: (prop: ComponentPropSpec, value: string | number | boolean | null) => void;
     onReset: (prop: ComponentPropSpec) => void;
 }) => {
+    const t = useTranslations('editor.stylePanel');
     void selected;
     const isOverridden = value !== undefined;
     const effective = value ?? prop.defaultValue;
@@ -183,7 +186,7 @@ const PropField = ({
             <div className="text-foreground-tertiary flex h-6 items-center justify-between gap-2 text-[11px]">
                 <span className="truncate font-mono">{prop.name}</span>
                 <span className="truncate italic" title={prop.rawTypeText}>
-                    {value === null ? 'dynamic' : (prop.rawTypeText ?? 'unsupported')}
+                    {value === null ? t('component.dynamic') : (prop.rawTypeText ?? t('component.unsupported'))}
                 </span>
             </div>
         );
@@ -243,8 +246,8 @@ const PropField = ({
             {isOverridden && (
                 <button
                     type="button"
-                    title="Reset to default"
-                    aria-label={`Reset ${prop.name} to default`}
+                    title={t('component.resetToDefault')}
+                    aria-label={t('component.resetNameToDefault', { name: prop.name })}
                     className="text-foreground-tertiary hover:text-foreground-primary invisible h-4 w-4 shrink-0 group-hover/prop:visible"
                     onClick={() => onReset(prop)}
                 >

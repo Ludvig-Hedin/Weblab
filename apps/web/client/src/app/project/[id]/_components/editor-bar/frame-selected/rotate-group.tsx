@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons';
 
 import { type FrameData } from '@/components/store/editor/frames';
@@ -7,8 +9,9 @@ import { HoverOnlyTooltip } from '../hover-tooltip';
 import { ToolbarButton } from '../toolbar-button';
 
 export function RotateGroup({ frameData }: { frameData: FrameData }) {
+    const t = useTranslations('editor.editorBar');
     return (
-        <HoverOnlyTooltip content="Rotate Device" side="bottom" sideOffset={10}>
+        <HoverOnlyTooltip content={t('rotateDevice')} side="bottom" sideOffset={10}>
             <ToolbarButton
                 className="w-9"
                 onClick={() => {

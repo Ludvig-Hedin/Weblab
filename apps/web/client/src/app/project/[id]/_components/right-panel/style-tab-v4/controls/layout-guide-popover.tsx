@@ -2,6 +2,7 @@
 
 import type { ReactElement } from 'react';
 import { useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { LayoutGuideAlignment, LayoutGuideConfig, LayoutGuideType } from '@weblab/models';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
@@ -43,6 +44,7 @@ export function LayoutGuidePopover({
     onChange,
     trigger,
 }: LayoutGuidePopoverProps) {
+    const t = useTranslations('editor.stylePanel');
     const isGrid = guide.type === 'grid';
 
     const handleTypeChange = useCallback(
@@ -75,27 +77,27 @@ export function LayoutGuidePopover({
             >
                 <div className="mb-2 flex items-center justify-between">
                     <select
-                        aria-label="Layout guide type"
+                        aria-label={t('layoutGuide.layoutGuideTypeAriaLabel')}
                         value={guide.type}
                         onChange={(e) => handleTypeChange(e.target.value as LayoutGuideType)}
                         className={cn(SELECT_FIELD, 'w-[110px]')}
                     >
-                        <option value="grid">Grid</option>
-                        <option value="columns">Columns</option>
-                        <option value="rows">Rows</option>
+                        <option value="grid">{t('layoutGuide.grid')}</option>
+                        <option value="columns">{t('layoutGuide.columns')}</option>
+                        <option value="rows">{t('layoutGuide.rows')}</option>
                     </select>
                 </div>
 
                 <div className="grid grid-cols-[80px_1fr] items-center gap-x-2 gap-y-2">
                     {isGrid ? (
-                        <Field label="Size">
+                        <Field label={t('layoutGuide.size')}>
                             <NumberInput
                                 value={guide.size ?? 10}
                                 onCommit={(n) => onChange({ size: n })}
                             />
                         </Field>
                     ) : (
-                        <Field label="Count">
+                        <Field label={t('layoutGuide.count')}>
                             <NumberInput
                                 value={guide.count ?? 12}
                                 min={1}
@@ -104,15 +106,20 @@ export function LayoutGuidePopover({
                         </Field>
                     )}
 
-                    <Field label="Color">
-                        <ColorInput value={guide.color} onChange={(color) => onChange({ color })} />
+                    <Field label={t('layoutGuide.color')}>
+                        <ColorInput
+                            value={guide.color}
+                            onChange={(color) => onChange({ color })}
+                            colorAriaLabel={t('layoutGuide.colorAriaLabel')}
+                            colorHexAriaLabel={t('layoutGuide.colorHexAriaLabel')}
+                        />
                     </Field>
 
                     {!isGrid && (
                         <>
-                            <Field label="Type">
+                            <Field label={t('layoutGuide.alignmentType')}>
                                 <select
-                                    aria-label="Alignment"
+                                    aria-label={t('layoutGuide.alignmentAriaLabel')}
                                     value={guide.alignment ?? 'stretch'}
                                     onChange={(e) =>
                                         onChange({
@@ -121,39 +128,39 @@ export function LayoutGuidePopover({
                                     }
                                     className={SELECT_FIELD}
                                 >
-                                    <option value="stretch">Stretch</option>
+                                    <option value="stretch">{t('layoutGuide.stretch')}</option>
                                     {guide.type === 'columns' ? (
                                         <>
-                                            <option value="left">Left</option>
-                                            <option value="center">Center</option>
-                                            <option value="right">Right</option>
+                                            <option value="left">{t('layoutGuide.left')}</option>
+                                            <option value="center">{t('layoutGuide.center')}</option>
+                                            <option value="right">{t('layoutGuide.right')}</option>
                                         </>
                                     ) : (
                                         <>
-                                            <option value="top">Top</option>
-                                            <option value="center">Center</option>
-                                            <option value="bottom">Bottom</option>
+                                            <option value="top">{t('layoutGuide.top')}</option>
+                                            <option value="center">{t('layoutGuide.center')}</option>
+                                            <option value="bottom">{t('layoutGuide.bottom')}</option>
                                         </>
                                     )}
                                 </select>
                             </Field>
 
-                            <Field label="Width">
+                            <Field label={t('layoutGuide.width')}>
                                 <NullableNumberInput
                                     value={guide.width ?? null}
-                                    placeholder="Auto"
+                                    placeholder={t('layoutGuide.auto')}
                                     onCommit={(n) => onChange({ width: n })}
                                 />
                             </Field>
 
-                            <Field label="Margin">
+                            <Field label={t('layoutGuide.margin')}>
                                 <NumberInput
                                     value={guide.margin ?? 0}
                                     onCommit={(n) => onChange({ margin: n })}
                                 />
                             </Field>
 
-                            <Field label="Gutter">
+                            <Field label={t('layoutGuide.gutter')}>
                                 <NumberInput
                                     value={guide.gutter ?? 0}
                                     onCommit={(n) => onChange({ gutter: n })}
@@ -231,7 +238,17 @@ function NullableNumberInput({
     );
 }
 
-function ColorInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function ColorInput({
+    value,
+    onChange,
+    colorAriaLabel,
+    colorHexAriaLabel,
+}: {
+    value: string;
+    onChange: (v: string) => void;
+    colorAriaLabel: string;
+    colorHexAriaLabel: string;
+}) {
     // Two inputs side-by-side: a native color picker (no alpha) and a free-form
     // text field that DOES support alpha (#RRGGBBAA). Editing either commits
     // immediately so the overlay updates as the user types.
@@ -240,7 +257,7 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
         <div className="flex items-center gap-1">
             <input
                 type="color"
-                aria-label="Color"
+                aria-label={colorAriaLabel}
                 value={baseColor.length === 7 ? baseColor : '#FF0000'}
                 onChange={(e) => {
                     // Preserve any alpha suffix the user already typed.
@@ -251,7 +268,7 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
             />
             <input
                 type="text"
-                aria-label="Color hex"
+                aria-label={colorHexAriaLabel}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 className={NUMBER_FIELD}

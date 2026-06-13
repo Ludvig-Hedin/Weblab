@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -35,6 +36,7 @@ export const AssetToolbar = ({
     onUpload,
     onCreateFolder,
 }: AssetToolbarProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
     const [folderName, setFolderName] = useState('');
     const [creating, setCreating] = useState(false);
@@ -61,7 +63,7 @@ export const AssetToolbar = ({
                 <div className="relative flex-1">
                     <Icons.MagnifyingGlass className="text-foreground-tertiary pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
-                        placeholder="Search assets..."
+                        placeholder={t('searchPlaceholder')}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="text-mini h-8 pr-8 pl-8"
@@ -69,7 +71,7 @@ export const AssetToolbar = ({
                     {search && (
                         <button
                             type="button"
-                            aria-label="Clear search"
+                            aria-label={t('clearSearch')}
                             onClick={() => setSearch('')}
                             className="text-foreground-secondary hover:text-foreground-primary absolute top-1/2 right-2 -translate-y-1/2"
                         >
@@ -91,7 +93,7 @@ export const AssetToolbar = ({
                     </TooltipTrigger>
                     <TooltipPortal>
                         <TooltipContent>
-                            <p>New folder</p>
+                            <p>{t('newFolder')}</p>
                         </TooltipContent>
                     </TooltipPortal>
                 </Tooltip>
@@ -114,7 +116,7 @@ export const AssetToolbar = ({
                     </TooltipTrigger>
                     <TooltipPortal>
                         <TooltipContent>
-                            <p>Upload assets{isUploading ? '...' : ''}</p>
+                            <p>{isUploading ? t('uploadingAssets') : t('uploadAssets')}</p>
                         </TooltipContent>
                     </TooltipPortal>
                 </Tooltip>
@@ -123,13 +125,13 @@ export const AssetToolbar = ({
             <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>New folder</DialogTitle>
+                        <DialogTitle>{t('newFolderTitle')}</DialogTitle>
                         <DialogDescription>
-                            Create a folder inside the current location.
+                            {t('newFolderDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <Input
-                        placeholder="Folder name"
+                        placeholder={t('folderNamePlaceholder')}
                         value={folderName}
                         onChange={(e) => setFolderName(e.target.value)}
                         onKeyDown={(e) => {
@@ -145,7 +147,7 @@ export const AssetToolbar = ({
                             size="sm"
                             onClick={() => setFolderDialogOpen(false)}
                         >
-                            Cancel
+                            {t('cancel')}
                         </Button>
                         <Button
                             variant="default"
@@ -153,7 +155,7 @@ export const AssetToolbar = ({
                             onClick={() => void submitCreateFolder()}
                             disabled={!folderName.trim() || creating}
                         >
-                            Create
+                            {t('create')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

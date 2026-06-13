@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     ColorPickerInline,
@@ -19,27 +20,7 @@ import { useStyleBatchSetter, useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
-// ── Constants ──────────────────────────────────────────────────────────
-
-const BG_TYPE_OPTIONS = [
-    { value: 'solid', label: 'Solid', icon: <IconBgSolid /> },
-    { value: 'gradient', label: 'Gradient', icon: <IconBgGradient /> },
-    { value: 'image', label: 'Image', icon: <IconBgImage /> },
-    { value: 'none', label: 'None', icon: <IconBgNone /> },
-] as const;
-
-const BG_SIZE_OPTIONS = [
-    { value: 'cover', label: 'Cover' },
-    { value: 'contain', label: 'Contain' },
-    { value: 'auto', label: 'Auto' },
-] as const;
-
-const BG_REPEAT_OPTIONS = [
-    { value: 'no-repeat', label: 'No repeat' },
-    { value: 'repeat', label: 'Repeat' },
-    { value: 'repeat-x', label: 'Repeat X' },
-    { value: 'repeat-y', label: 'Repeat Y' },
-] as const;
+// ── Type detection ─────────────────────────────────────────────────────
 
 // ── Type detection ─────────────────────────────────────────────────────
 
@@ -75,6 +56,27 @@ function wrapUrl(raw: string): string {
 // ── Main component ─────────────────────────────────────────────────────
 
 export const BackgroundSection = observer(function BackgroundSection() {
+    const t = useTranslations('editor.stylePanel');
+
+    const BG_TYPE_OPTIONS = [
+        { value: 'solid', label: t('background.solid'), icon: <IconBgSolid /> },
+        { value: 'gradient', label: t('background.gradient'), icon: <IconBgGradient /> },
+        { value: 'image', label: t('background.image'), icon: <IconBgImage /> },
+        { value: 'none', label: t('background.none'), icon: <IconBgNone /> },
+    ] as const;
+
+    const BG_SIZE_OPTIONS = [
+        { value: 'cover', label: t('background.cover') },
+        { value: 'contain', label: t('background.contain') },
+        { value: 'auto', label: t('background.auto') },
+    ] as const;
+
+    const BG_REPEAT_OPTIONS = [
+        { value: 'no-repeat', label: t('background.noRepeat') },
+        { value: 'repeat', label: t('background.repeatBoth') },
+        { value: 'repeat-x', label: t('background.repeatX') },
+        { value: 'repeat-y', label: t('background.repeatY') },
+    ] as const;
     const bgColor = useStyleValue('background-color');
     const bgImage = useStyleValue('background-image');
     const bgSize = useStyleValue('background-size');
@@ -167,12 +169,12 @@ export const BackgroundSection = observer(function BackgroundSection() {
     const imageUrlValue = extractUrl(bgImage.value);
 
     return (
-        <Section id="background" title="Background">
+        <Section id="background" title={t('section.background')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* Type selector */}
-                <GroupShell label="Type">
+                <GroupShell label={t('background.type')}>
                     <FlowSegment
-                        ariaLabel="Background type"
+                        ariaLabel={t('background.backgroundType')}
                         value={type}
                         options={BG_TYPE_OPTIONS}
                         onCommit={handleTypeChange}
@@ -181,7 +183,7 @@ export const BackgroundSection = observer(function BackgroundSection() {
 
                 {/* Solid — color row */}
                 {type === 'solid' && (
-                    <GroupShell label="Color">
+                    <GroupShell label={t('background.color')}>
                         <ColorRow
                             value={bgColor.value}
                             onCommit={handleColorCommit}
@@ -198,24 +200,24 @@ export const BackgroundSection = observer(function BackgroundSection() {
                 {/* Image — URL + size + repeat */}
                 {type === 'image' && (
                     <>
-                        <GroupShell label="Image">
+                        <GroupShell label={t('background.image')}>
                             <LabeledTextInput
                                 glyph={<IconBgImage size={14} />}
                                 value={imageUrlValue}
                                 onCommit={handleImageUrlCommit}
-                                placeholder="URL or asset…"
-                                aria-label="Background image URL"
+                                placeholder={t('background.urlOrAsset')}
+                                aria-label={t('background.backgroundImageUrl')}
                             />
                         </GroupShell>
                         <div className="grid grid-cols-2 gap-1.5">
                             <LabeledSelectInput
-                                label="Size"
+                                label={t('background.size')}
                                 options={BG_SIZE_OPTIONS}
                                 value={bgSize.value}
                                 onCommit={handleSizeCommit}
                             />
                             <LabeledSelectInput
-                                label="Repeat"
+                                label={t('background.repeat')}
                                 options={BG_REPEAT_OPTIONS}
                                 value={bgRepeat.value}
                                 onCommit={handleRepeatCommit}
@@ -227,7 +229,7 @@ export const BackgroundSection = observer(function BackgroundSection() {
                 {/* Gradient — placeholder */}
                 {type === 'gradient' && (
                     <p className="text-muted-foreground text-mini px-1 py-2">
-                        Gradient editor — coming soon
+                        {t('background.gradientComingSoon')}
                     </p>
                 )}
             </div>

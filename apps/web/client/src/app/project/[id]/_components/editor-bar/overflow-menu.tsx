@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
@@ -25,6 +27,7 @@ export const OverflowMenu = ({
     overflowGroups,
     visibleCount,
 }: OverflowMenuProps) => {
+    const t = useTranslations('editor.editorBar');
     if (overflowGroups.length === 0) return null;
 
     return (
@@ -32,7 +35,7 @@ export const OverflowMenu = ({
             {visibleCount > 0 && <InputSeparator />}
             <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
                 <HoverOnlyTooltip
-                    content="More options"
+                    content={t('moreOptions')}
                     side="bottom"
                     className="mt-1"
                     hideArrow
@@ -42,7 +45,7 @@ export const OverflowMenu = ({
                         <ToolbarButton
                             isOpen={isOpen}
                             className="flex w-9 items-center justify-center"
-                            aria-label="Show more toolbar controls"
+                            aria-label={t('showMoreControls')}
                         >
                             <Icons.DotsHorizontal className="h-5 w-5" />
                         </ToolbarButton>

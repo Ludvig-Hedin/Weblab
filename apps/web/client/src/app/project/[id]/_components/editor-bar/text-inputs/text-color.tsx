@@ -2,6 +2,8 @@
 
 import { observer } from 'mobx-react-lite';
 
+import { useTranslations } from 'next-intl';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
@@ -13,6 +15,7 @@ import { ColorPickerContent } from '../inputs/color-picker';
 import { ToolbarButton } from '../toolbar-button';
 
 export const TextColor = observer(() => {
+    const t = useTranslations('editor.editorBar');
     const { handleTextColorChange, textState } = useTextControl();
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'text-color-dropdown',
@@ -27,7 +30,7 @@ export const TextColor = observer(() => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
-                content="Text Color"
+                content={t('textColor')}
                 side="bottom"
                 className="mt-1"
                 hideArrow

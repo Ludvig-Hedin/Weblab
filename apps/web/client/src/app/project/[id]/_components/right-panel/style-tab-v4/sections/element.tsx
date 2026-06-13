@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ActionElement } from '@weblab/models/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
@@ -56,6 +57,7 @@ const TAG_OPTIONS = COMMON_TAGS.map((tag) => ({ value: tag, label: tag }));
  * directly from the v3 implementation to preserve correctness.
  */
 export const ElementSection = observer(function ElementSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     const selected = editorEngine.elements.selected[0];
     const [actionElement, setActionElement] = useState<ActionElement | null>(null);
@@ -281,24 +283,24 @@ export const ElementSection = observer(function ElementSection() {
     }));
 
     return (
-        <Section id="element" title="Element">
+        <Section id="element" title={t('section.element')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* 1. Tag + ID — 2-col grid */}
                 <div className={cn('grid grid-cols-2 gap-2', fieldLoadingClass)}>
-                    <GroupShell label="Tag">
+                    <GroupShell label={t('element.tag')}>
                         <SelectField
                             value={tagName}
                             options={TAG_OPTIONS}
                             onCommit={(v) => void commitTagName(v)}
                         />
                     </GroupShell>
-                    <GroupShell label="ID">
+                    <GroupShell label={t('element.id')}>
                         <LabeledTextInput
                             glyph="#"
                             mono
                             value={idValue}
                             placeholder="hero-section"
-                            aria-label="Element ID"
+                            aria-label={t('element.elementIdAriaLabel')}
                             onCommit={(v) => void commitId(v)}
                         />
                     </GroupShell>
@@ -306,12 +308,12 @@ export const ElementSection = observer(function ElementSection() {
 
                 {/* 2. Classes — chip input with raw-edit popover */}
                 <GroupShell
-                    label="Classes"
+                    label={t('element.classes')}
                     actions={
                         <Popover open={rawEditOpen} onOpenChange={setRawEditOpen}>
                             <PopoverTrigger asChild>
                                 <IconButtonSm
-                                    label="Edit raw className"
+                                    label={t('element.editRawClassName')}
                                     pressed={rawEditOpen}
                                     onClick={() => {
                                         setRawDraft(className);
@@ -348,8 +350,8 @@ export const ElementSection = observer(function ElementSection() {
                                     rows={4}
                                     spellCheck={false}
                                     className="text-foreground-primary placeholder:text-muted-foreground bg-background-secondary hover:bg-background-tertiary focus-visible:border-foreground-brand w-full resize-none rounded-[10px] border border-transparent p-2 font-mono text-[11.5px] transition-colors outline-none"
-                                    placeholder="Paste or type Tailwind classes…"
-                                    aria-label="Raw className editor"
+                                    placeholder={t('element.rawClassPlaceholder')}
+                                    aria-label={t('element.rawClassAriaLabel')}
                                 />
                             </PopoverContent>
                         </Popover>
@@ -358,7 +360,7 @@ export const ElementSection = observer(function ElementSection() {
                     <ChipInput
                         chips={classes}
                         onChange={(next) => void commitClassName(next.join(' '))}
-                        ariaLabel="Add a class"
+                        ariaLabel={t('element.addAClass')}
                         readOnly={isLoading}
                     />
                 </GroupShell>
@@ -366,7 +368,7 @@ export const ElementSection = observer(function ElementSection() {
                 {/* 3. Link — anchor-only, with smart autocomplete + new-tab toggle */}
                 {supportsHref && (
                     <GroupShell
-                        label="Link"
+                        label={t('element.link')}
                         actions={
                             hrefValue ? (
                                 <OpenInNewTabCheckbox

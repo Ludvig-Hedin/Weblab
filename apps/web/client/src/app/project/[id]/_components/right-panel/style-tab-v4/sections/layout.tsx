@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     AlignPad,
@@ -24,13 +25,8 @@ import { useStyleBatchSetter, useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
-/** Segmented flow options: Block / Flex col / Flex row / Grid */
-const FLOW_OPTIONS = [
-    { value: 'block', label: 'Block', icon: <IconBlock /> },
-    { value: 'flex-col', label: 'Flex column', icon: <IconFlexCol /> },
-    { value: 'flex-row', label: 'Flex row', icon: <IconFlexRow /> },
-    { value: 'grid', label: 'Grid', icon: <IconGrid /> },
-] as const;
+/** Segmented flow options: Block / Flex col / Flex row / Grid — moved inside component to use translations */
+// FLOW_OPTIONS defined inside LayoutSection below
 
 /**
  * Derive the FlowSegment active value from the current display + flex-direction.
@@ -59,6 +55,15 @@ const PAD_UNITS = ['px', 'rem', 'em', '%'] as const;
  *   4. Margin group (H+V inputs + per-side popover)
  */
 export const LayoutSection = observer(function LayoutSection() {
+    const t = useTranslations('editor.stylePanel');
+
+    const FLOW_OPTIONS = [
+        { value: 'block', label: t('layout.block'), icon: <IconBlock /> },
+        { value: 'flex-col', label: t('layout.flexColumn'), icon: <IconFlexCol /> },
+        { value: 'flex-row', label: t('layout.flexRow'), icon: <IconFlexRow /> },
+        { value: 'grid', label: t('layout.grid'), icon: <IconGrid /> },
+    ] as const;
+
     // ── Read current values ───────────────────────────────────────────────
     const display = useStyleValue('display');
     const direction = useStyleValue('flex-direction');
@@ -157,15 +162,15 @@ export const LayoutSection = observer(function LayoutSection() {
     const marginVValue = marginTop.value;
 
     return (
-        <Section id="layout" title="Layout">
+        <Section id="layout" title={t('section.layout')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* 1. Flow */}
-                <GroupShell label="Flow">
+                <GroupShell label={t('layout.flow')}>
                     <FlowSegment
                         value={flowValue}
                         options={FLOW_OPTIONS}
                         onCommit={commitFlow}
-                        ariaLabel="Display flow"
+                        ariaLabel={t('layout.displayFlow')}
                     />
                 </GroupShell>
 
@@ -175,21 +180,21 @@ export const LayoutSection = observer(function LayoutSection() {
                         className="grid items-end gap-2"
                         style={{ gridTemplateColumns: '130px 1fr' }}
                     >
-                        <GroupShell label="Alignment">
+                        <GroupShell label={t('layout.alignment')}>
                             <AlignPad
                                 justify={justifyContent.value}
                                 align={alignItems.value}
                                 onCommit={commitAlign}
                             />
                         </GroupShell>
-                        <GroupShell label="Gap">
+                        <GroupShell label={t('layout.gap')}>
                             <IconNumberInput
                                 glyph={<IconGap />}
                                 value={gap.value}
                                 onCommit={(v) => gapSetter.set(v)}
                                 units={PAD_UNITS}
                                 defaultUnit="px"
-                                aria-label="Gap"
+                                aria-label={t('layout.gap')}
                                 mixed={gap.mixed}
                             />
                         </GroupShell>
@@ -198,7 +203,7 @@ export const LayoutSection = observer(function LayoutSection() {
 
                 {/* 3. Padding */}
                 <GroupShell
-                    label="Padding"
+                    label={t('layout.padding')}
                     onReset={() =>
                         setMultiple([
                             { property: 'padding-top', value: '' },
@@ -210,7 +215,7 @@ export const LayoutSection = observer(function LayoutSection() {
                     actions={
                         <PerSidePopover
                             triggerIcon={<IconPerSide />}
-                            triggerLabel="Per-side padding"
+                            triggerLabel={t('layout.perSidePadding')}
                             values={{
                                 top: padTop.value,
                                 right: padRight.value,
@@ -229,7 +234,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             onCommit={commitPadH}
                             units={PAD_UNITS}
                             defaultUnit="px"
-                            aria-label="Horizontal padding"
+                            aria-label={t('layout.horizontalPadding')}
                             mixed={padLeft.mixed}
                         />
                         <IconNumberInput
@@ -238,7 +243,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             onCommit={commitPadV}
                             units={PAD_UNITS}
                             defaultUnit="px"
-                            aria-label="Vertical padding"
+                            aria-label={t('layout.verticalPadding')}
                             mixed={padTop.mixed}
                         />
                     </div>
@@ -246,7 +251,7 @@ export const LayoutSection = observer(function LayoutSection() {
 
                 {/* 4. Margin */}
                 <GroupShell
-                    label="Margin"
+                    label={t('layout.margin')}
                     onReset={() =>
                         setMultiple([
                             { property: 'margin-top', value: '' },
@@ -258,7 +263,7 @@ export const LayoutSection = observer(function LayoutSection() {
                     actions={
                         <PerSidePopover
                             triggerIcon={<IconPerSideDashed />}
-                            triggerLabel="Per-side margin"
+                            triggerLabel={t('layout.perSideMargin')}
                             values={{
                                 top: marginTop.value,
                                 right: marginRight.value,
@@ -279,7 +284,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             units={PAD_UNITS}
                             keywords={['auto']}
                             defaultUnit="px"
-                            aria-label="Horizontal margin"
+                            aria-label={t('layout.horizontalMargin')}
                             mixed={marginLeft.mixed}
                         />
                         <IconNumberInput
@@ -289,7 +294,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             units={PAD_UNITS}
                             keywords={['auto']}
                             defaultUnit="px"
-                            aria-label="Vertical margin"
+                            aria-label={t('layout.verticalMargin')}
                             mixed={marginTop.mixed}
                         />
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     GroupShell,
@@ -17,13 +18,7 @@ import { useStyleBatchSetter, useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
-const POSITION_OPTIONS = [
-    { value: 'static', label: 'Static' },
-    { value: 'relative', label: 'Relative' },
-    { value: 'absolute', label: 'Absolute' },
-    { value: 'fixed', label: 'Fixed' },
-    { value: 'sticky', label: 'Sticky' },
-] as const;
+// POSITION_OPTIONS defined inside PositionSection to use translations
 
 /**
  * Position section — variant C (super-tight, Figma-approved).
@@ -36,6 +31,16 @@ const POSITION_OPTIONS = [
  * Composing with other transforms (rotate, translate) is a v4.1 follow-up.
  */
 export const PositionSection = observer(function PositionSection() {
+    const t = useTranslations('editor.stylePanel');
+
+    const POSITION_OPTIONS = [
+        { value: 'static', label: t('position.static') },
+        { value: 'relative', label: t('position.relative') },
+        { value: 'absolute', label: t('position.absolute') },
+        { value: 'fixed', label: t('position.fixed') },
+        { value: 'sticky', label: t('position.sticky') },
+    ] as const;
+
     const position = useStyleValue('position');
     const top = useStyleValue('top');
     const right = useStyleValue('right');
@@ -111,27 +116,27 @@ export const PositionSection = observer(function PositionSection() {
     // ── Render ───────────────────────────────────────────────────────────
 
     return (
-        <Section id="position" title="Position">
+        <Section id="position" title={t('section.position')}>
             <div className="flex flex-col gap-3 px-3 pt-1 pb-3">
                 {isStatic ? (
                     <>
                         <GroupShell>
                             <LabeledSelectInput
-                                label="Type"
+                                label={t('position.type')}
                                 value={positionValue}
                                 options={POSITION_OPTIONS}
                                 onCommit={positionSetter.set}
                             />
                         </GroupShell>
                         <p className="text-foreground-tertiary text-mini px-0.5">
-                            Change type to Relative, Absolute, Fixed, or Sticky to set offsets.
+                            {t('position.staticHint')}
                         </p>
                     </>
                 ) : (
                     <>
                         {/* Pin-pad offsets */}
                         <GroupShell
-                            label="Offsets"
+                            label={t('position.offsets')}
                             onReset={() =>
                                 setMultiple([
                                     { property: 'top', value: '' },
@@ -165,7 +170,7 @@ export const PositionSection = observer(function PositionSection() {
                         <PairRow>
                             <GroupShell>
                                 <LabeledSelectInput
-                                    label="Type"
+                                    label={t('position.type')}
                                     value={positionValue}
                                     options={POSITION_OPTIONS}
                                     onCommit={positionSetter.set}
@@ -183,7 +188,7 @@ export const PositionSection = observer(function PositionSection() {
                                     defaultUnit=""
                                     allowKeywords
                                     placeholder="Z"
-                                    aria-label="Z-index"
+                                    aria-label={t('position.zIndex')}
                                 />
                             </GroupShell>
                         </PairRow>
@@ -199,19 +204,19 @@ export const PositionSection = observer(function PositionSection() {
                                     defaultUnit="deg"
                                     allowKeywords={false}
                                     placeholder="0"
-                                    aria-label="Rotation"
+                                    aria-label={t('position.rotation')}
                                 />
                             </GroupShell>
                             <div className="flex items-end gap-1">
                                 <IconButtonSm
-                                    label="Flip horizontal"
+                                    label={t('position.flipHorizontal')}
                                     pressed={isFlippedH}
                                     onClick={handleFlipH}
                                 >
                                     <IconFlipH />
                                 </IconButtonSm>
                                 <IconButtonSm
-                                    label="Flip vertical"
+                                    label={t('position.flipVertical')}
                                     pressed={isFlippedV}
                                     onClick={handleFlipV}
                                 >

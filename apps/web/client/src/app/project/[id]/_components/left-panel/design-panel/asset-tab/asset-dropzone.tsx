@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
@@ -13,11 +15,13 @@ interface AssetDropzoneProps {
 
 /** Empty-state drop zone shown when the active folder has no assets. */
 export const AssetDropzone = ({ isDragging, hasSearch, onUpload }: AssetDropzoneProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
+
     if (hasSearch && !isDragging) {
         return (
             <div className="text-foreground-tertiary flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-center">
                 <Icons.MagnifyingGlass className="h-6 w-6" />
-                <div className="text-small">No assets match your search</div>
+                <div className="text-small">{t('noMatch')}</div>
             </div>
         );
     }
@@ -37,21 +41,23 @@ export const AssetDropzone = ({ isDragging, hasSearch, onUpload }: AssetDropzone
                 <Icons.Upload className="text-foreground-secondary h-4 w-4" />
             </div>
             <div className="text-foreground-primary text-small font-medium">
-                {isDragging ? 'Drop to upload' : 'Drag files here'}
+                {isDragging ? t('dropToUpload') : t('dragFilesHere')}
             </div>
-            <div className="text-foreground-tertiary text-mini">or click to upload</div>
+            <div className="text-foreground-tertiary text-mini">{t('orClickToUpload')}</div>
         </button>
     );
 };
 
 /** Overlay shown over a populated grid while files are being dragged onto it. */
 export const AssetDragOverlay = () => {
+    const t = useTranslations('editor.leftPanel.assets');
+
     return (
         <div className="border-border-weblab bg-background-weblab/70 pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed backdrop-blur-sm">
             <div className="bg-background-secondary flex h-10 w-10 items-center justify-center rounded-full">
                 <Icons.Upload className="text-foreground-primary h-4 w-4" />
             </div>
-            <div className="text-foreground-primary text-small font-medium">Drop to upload</div>
+            <div className="text-foreground-primary text-small font-medium">{t('dropToUpload')}</div>
         </div>
     );
 };

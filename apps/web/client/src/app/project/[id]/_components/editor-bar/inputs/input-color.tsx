@@ -2,6 +2,8 @@
 
 import { useCallback, useRef, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { Color } from '@weblab/utility';
 
@@ -15,6 +17,7 @@ interface InputColorProps {
 }
 
 export const InputColor = ({ color, elementStyleKey, onColorChange }: InputColorProps) => {
+    const t = useTranslations('editor.editorBar');
     const [isOpen, setIsOpen] = useState(false);
     // Raw text while the user is editing the hex field. `null` means "not
     // editing" → show the committed/preview color. Holding the raw string lets
@@ -116,7 +119,7 @@ export const InputColor = ({ color, elementStyleKey, onColorChange }: InputColor
                                 onChange={handleInputChange}
                                 onBlur={commitDraft}
                                 onKeyDown={handleInputKeyDown}
-                                aria-label="Hex color"
+                                aria-label={t('hexColor')}
                                 className="text-foreground text-small h-full w-full bg-transparent focus:outline-none"
                             />
                         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ImageMessageContext } from '@weblab/models/chat';
 import { MessageContextType } from '@weblab/models/chat';
@@ -33,6 +34,7 @@ import { useAssetSelection } from './hooks/use-asset-selection';
 import { canCompressAsset, compressAsset, formatBytes } from './utils/compress-asset';
 
 export const AssetsTab = observer(() => {
+    const t = useTranslations('editor.leftPanel.assets');
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId;
     const branchId = editorEngine.branches.activeBranch.id;
@@ -242,7 +244,7 @@ export const AssetsTab = observer(() => {
         return (
             <div className="flex h-full w-full items-center justify-center gap-2">
                 <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                Loading assets...
+                {t('loading')}
             </div>
         );
     }
@@ -250,7 +252,7 @@ export const AssetsTab = observer(() => {
     if (error) {
         return (
             <div className="text-small text-destructive flex h-full w-full items-center justify-center">
-                Error: {error.message}
+                {error.message}
             </div>
         );
     }
@@ -301,7 +303,7 @@ export const AssetsTab = observer(() => {
                             disabled={visibleAssets.length === 0}
                         >
                             <Icons.ListCheck className="h-3.5 w-3.5" />
-                            Select
+                            {t('select')}
                         </Button>
                     </div>
                 )}
@@ -342,20 +344,19 @@ export const AssetsTab = observer(() => {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            Delete {selected.size} asset{selected.size === 1 ? '' : 's'}
+                            {t('deleteAsset')}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently delete the selected asset
-                            {selected.size === 1 ? '' : 's'}. This action cannot be undone.
+                            {t('deleteAssetConfirm', { name: `${selected.size} asset${selected.size === 1 ? '' : 's'}` })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => void handleBulkDelete()}
                             className="bg-destructive hover:bg-destructive/90 text-white"
                         >
-                            Delete
+                            {t('delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

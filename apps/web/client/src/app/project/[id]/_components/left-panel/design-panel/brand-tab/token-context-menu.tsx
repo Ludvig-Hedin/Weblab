@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     ContextMenu,
@@ -42,6 +43,7 @@ export const TokenContextMenu = observer(function TokenContextMenu({
     confirm,
     children,
 }: TokenContextMenuProps) {
+    const t = useTranslations('editor.leftPanel.brand');
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const currentGroup = parseTokenName(row.name, row.kind === 'text-style').group;
@@ -74,12 +76,12 @@ export const TokenContextMenu = observer(function TokenContextMenu({
         <ContextMenu>
             <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
             <ContextMenuContent className="w-48">
-                <ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
+                <ContextMenuItem onSelect={onRename}>{t('tokenRename')}</ContextMenuItem>
                 <ContextMenuItem onSelect={() => void duplicateToken(tokens, row)}>
-                    Duplicate
+                    {t('tokenDuplicate')}
                 </ContextMenuItem>
                 <ContextMenuSub>
-                    <ContextMenuSubTrigger>Move to group</ContextMenuSubTrigger>
+                    <ContextMenuSubTrigger>{t('tokenMoveToGroup')}</ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-44">
                         {otherGroups.map((group) => (
                             <ContextMenuItem
@@ -93,18 +95,18 @@ export const TokenContextMenu = observer(function TokenContextMenu({
                             <ContextMenuItem
                                 onSelect={() => void moveTokenToGroup(tokens, row, null)}
                             >
-                                Remove from group
+                                {t('tokenRemoveFromGroup')}
                             </ContextMenuItem>
                         )}
                         {(otherGroups.length > 0 || currentGroup) && <ContextMenuSeparator />}
                         <ContextMenuItem onSelect={() => void handleNewGroup()}>
-                            New group…
+                            {t('tokenNewGroup')}
                         </ContextMenuItem>
                     </ContextMenuSubContent>
                 </ContextMenuSub>
                 <ContextMenuSeparator />
                 <ContextMenuItem variant="destructive" onSelect={() => void handleDelete()}>
-                    Delete
+                    {t('tokenDelete')}
                 </ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>

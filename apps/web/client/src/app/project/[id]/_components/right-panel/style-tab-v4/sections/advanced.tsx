@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Variable } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
@@ -27,6 +28,7 @@ interface CustomPropertyRow {
  * CustomExpanders are preserved so the section reads as two disclosure groups.
  */
 export const AdvancedSection = observer(function AdvancedSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     const selectedStyle = editorEngine.style.selectedStyle;
 
@@ -60,35 +62,35 @@ export const AdvancedSection = observer(function AdvancedSection() {
     }, [layoutAnySet]);
 
     return (
-        <Section id="advanced" title="Advanced">
+        <Section id="advanced" title={t('section.advanced')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 <CustomExpander
                     open={layoutOpen}
                     onOpenChange={setLayoutOpen}
-                    label="Layout extras"
+                    label={t('advanced.layoutExtras')}
                 >
-                    <GroupShell label="Float" onReset={() => floatSetter.set('')}>
+                    <GroupShell label={t('advanced.float')} onReset={() => floatSetter.set('')}>
                         <LabeledSelectInput
-                            label="Float"
+                            label={t('advanced.float')}
                             value={float.value}
                             options={[
-                                { value: 'none', label: 'None' },
-                                { value: 'left', label: 'Left' },
-                                { value: 'right', label: 'Right' },
+                                { value: 'none', label: t('advanced.none') },
+                                { value: 'left', label: t('advanced.left') },
+                                { value: 'right', label: t('advanced.right') },
                             ]}
                             onCommit={floatSetter.set}
                         />
                     </GroupShell>
 
-                    <GroupShell label="Clear" onReset={() => clearSetter.set('')}>
+                    <GroupShell label={t('advanced.clear')} onReset={() => clearSetter.set('')}>
                         <LabeledSelectInput
-                            label="Clear"
+                            label={t('advanced.clear')}
                             value={clear.value}
                             options={[
-                                { value: 'none', label: 'None' },
-                                { value: 'left', label: 'Left' },
-                                { value: 'right', label: 'Right' },
-                                { value: 'both', label: 'Both' },
+                                { value: 'none', label: t('advanced.none') },
+                                { value: 'left', label: t('advanced.left') },
+                                { value: 'right', label: t('advanced.right') },
+                                { value: 'both', label: t('advanced.both') },
                             ]}
                             onCommit={clearSetter.set}
                         />
@@ -98,12 +100,12 @@ export const AdvancedSection = observer(function AdvancedSection() {
                 <CustomExpander
                     open={variablesOpen}
                     onOpenChange={setVariablesOpen}
-                    label="Custom properties"
+                    label={t('advanced.customProperties')}
                     summary={customRows.length > 0 ? `${customRows.length} set` : undefined}
                 >
                     {customRows.length === 0 && !draftRow && (
                         <p className="text-foreground-tertiary text-mini px-3 py-1">
-                            No custom properties.
+                            {t('advanced.noCustomProperties')}
                         </p>
                     )}
                     {customRows.map((row) => (
@@ -120,9 +122,9 @@ export const AdvancedSection = observer(function AdvancedSection() {
                                 const removedName = row.name;
                                 const removedValue = row.value;
                                 editorEngine.style.update(`--${removedName}`, '');
-                                toast(`Removed --${removedName}`, {
+                                toast(t('advanced.removeVariable', { name: removedName }), {
                                     action: {
-                                        label: 'Undo',
+                                        label: t('common.reset'),
                                         onClick: () =>
                                             editorEngine.style.update(
                                                 `--${removedName}`,
@@ -154,7 +156,7 @@ export const AdvancedSection = observer(function AdvancedSection() {
                             onClick={() => setDraftRow(true)}
                         >
                             <Variable className="mr-1 size-3" />
-                            Add variable
+                            {t('advanced.addVariable')}
                         </Button>
                     </div>
                 </CustomExpander>
@@ -171,6 +173,7 @@ interface CustomVarRowProps {
 }
 
 function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps) {
+    const t = useTranslations('editor.stylePanel');
     const [name, setName] = useState(row.name);
     const skipBlurCommitRef = useRef(false);
 
@@ -203,8 +206,8 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
                         e.currentTarget.blur();
                     }
                 }}
-                placeholder="brand"
-                aria-label="Custom property name"
+                placeholder={t('advanced.customPropertyNamePlaceholder')}
+                aria-label={t('advanced.customPropertyAriaLabel')}
                 className={cn(FIELD_BASE_CLASSES, 'w-24 min-w-0 shrink-0')}
             />
             <TextField

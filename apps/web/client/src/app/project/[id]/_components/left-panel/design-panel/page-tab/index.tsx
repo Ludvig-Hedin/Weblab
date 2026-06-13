@@ -1,6 +1,7 @@
 import type { NodeApi, RowRendererProps, TreeApi } from 'react-arborist';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { Tree } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 
@@ -29,6 +30,7 @@ import { PageTreeRow } from '../layers-tab/tree/page-tree-row';
 import { PageModal } from './page-modal';
 
 export const PagesTab = observer(() => {
+    const t = useTranslations('editor.leftPanel.pages');
     const editorEngine = useEditorEngine();
     const { ref, width, height } = useResizeObserver();
     const [searchQuery, setSearchQuery] = useState('');
@@ -283,7 +285,7 @@ export const PagesTab = observer(() => {
                     <Input
                         ref={inputRef}
                         className="text-mini h-8 pr-8"
-                        placeholder="Search pages"
+                        placeholder={t('searchPages')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -312,19 +314,19 @@ export const PagesTab = observer(() => {
                         </TooltipTrigger>
                         <TooltipPortal>
                             <TooltipContent>
-                                <p>Create a new page or folder</p>
+                                <p>{t('createPageOrFolder')}</p>
                             </TooltipContent>
                         </TooltipPortal>
                     </Tooltip>
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openCreateModal('page')}>
                             <Icons.FilePlus className="mr-2 h-4 w-4" />
-                            New Page
+                            {t('newPage')}
                         </DropdownMenuItem>
                         {supportsAppRouterPageStructure && (
                             <DropdownMenuItem onClick={() => openCreateModal('folder')}>
                                 <Icons.DirectoryPlus className="mr-2 h-4 w-4" />
-                                New Folder
+                                {t('newFolder')}
                             </DropdownMenuItem>
                         )}
                     </DropdownMenuContent>
@@ -336,7 +338,7 @@ export const PagesTab = observer(() => {
                     style={{ width: dimensions.width }}
                     className="text-foreground-primary/50 flex h-32 items-center justify-center"
                 >
-                    No pages found
+                    {t('noPagesFound')}
                 </div>
             ) : (
                 <Tree ref={treeRef} {...pageTreeProps}>

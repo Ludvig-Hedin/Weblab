@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons';
 
 import type { FrameData } from '@/components/store/editor/frames';
@@ -8,6 +10,7 @@ import { HoverOnlyTooltip } from '../hover-tooltip';
 import { ToolbarButton } from '../toolbar-button';
 
 export function WindowActionsGroup({ frameData }: { frameData: FrameData }) {
+    const t = useTranslations('editor.editorBar');
     const editorEngine = useEditorEngine();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
@@ -53,7 +56,7 @@ export function WindowActionsGroup({ frameData }: { frameData: FrameData }) {
 
     return (
         <>
-            <HoverOnlyTooltip content="Copy to Figma" side="bottom" sideOffset={10}>
+            <HoverOnlyTooltip content={t('copyToFigma')} side="bottom" sideOffset={10}>
                 <ToolbarButton
                     className="flex w-9 items-center"
                     onClick={copyToFigma}
@@ -66,7 +69,7 @@ export function WindowActionsGroup({ frameData }: { frameData: FrameData }) {
                     )}
                 </ToolbarButton>
             </HoverOnlyTooltip>
-            <HoverOnlyTooltip content="Duplicate Frame" side="bottom" sideOffset={10}>
+            <HoverOnlyTooltip content={t('duplicateFrame')} side="bottom" sideOffset={10}>
                 <ToolbarButton
                     className="flex w-9 items-center"
                     onClick={duplicateWindow}
@@ -80,7 +83,7 @@ export function WindowActionsGroup({ frameData }: { frameData: FrameData }) {
                 </ToolbarButton>
             </HoverOnlyTooltip>
             {editorEngine.frames.canDelete() && (
-                <HoverOnlyTooltip content="Delete Frame" side="bottom" sideOffset={10}>
+                <HoverOnlyTooltip content={t('deleteFrame')} side="bottom" sideOffset={10}>
                     <ToolbarButton
                         className="flex w-9 items-center"
                         disabled={!editorEngine.frames.canDelete() || isDeleting}

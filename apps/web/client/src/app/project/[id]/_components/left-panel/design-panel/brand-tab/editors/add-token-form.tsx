@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
@@ -35,6 +36,7 @@ export const AddTokenForm = observer(function AddTokenForm({
     sectionId,
     onClose,
 }: AddTokenFormProps) {
+    const t = useTranslations('editor.leftPanel.brand');
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const isTextStyle = sectionId === 'text-styles';
@@ -78,7 +80,7 @@ export const AddTokenForm = observer(function AddTokenForm({
     return (
         <div className="bg-background-secondary border-border mx-2 mb-1 flex flex-col gap-2 rounded-md border p-2.5">
             <div className="flex flex-col gap-1">
-                <Label className="text-micro text-foreground-secondary">Name</Label>
+                <Label className="text-micro text-foreground-secondary">{t('addTokenNameLabel')}</Label>
                 <Input
                     ref={nameRef}
                     value={name}
@@ -92,7 +94,7 @@ export const AddTokenForm = observer(function AddTokenForm({
             </div>
             <div className="flex flex-col gap-1">
                 <Label className="text-micro text-foreground-secondary">
-                    {isTextStyle ? 'Apply classes' : 'Value'}
+                    {isTextStyle ? t('addTokenApplyClasses') : t('addTokenValueLabel')}
                 </Label>
                 <Input
                     value={value}
@@ -106,7 +108,7 @@ export const AddTokenForm = observer(function AddTokenForm({
             </div>
             <div className="flex items-center justify-end gap-2 pt-0.5">
                 <Button variant="ghost" size="sm" className="h-7" onClick={onClose}>
-                    Cancel
+                    {t('addTokenCancel')}
                 </Button>
                 <Button
                     size="sm"
@@ -114,7 +116,7 @@ export const AddTokenForm = observer(function AddTokenForm({
                     disabled={!canSubmit}
                     onClick={() => void submit()}
                 >
-                    {busy ? 'Adding…' : 'Add'}
+                    {busy ? t('addTokenAdding') : t('addTokenAdd')}
                 </Button>
             </div>
         </div>

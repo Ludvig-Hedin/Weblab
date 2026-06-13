@@ -1,6 +1,7 @@
 import type { NodeApi, RowRendererProps, TreeApi } from 'react-arborist';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { Tree } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 
@@ -17,6 +18,7 @@ const getLayerTreeNodeId = (node: Pick<LayerNode, 'frameId' | 'domId'>) =>
     `${node.frameId}:${node.domId}`;
 
 export const LayersTab = observer(() => {
+    const t = useTranslations('editor.leftPanel.layers');
     const treeRef = useRef<TreeApi<LayerNode>>(null);
     const editorEngine = useEditorEngine();
     const [treeHovered, setTreeHovered] = useState(false);
@@ -212,7 +214,7 @@ export const LayersTab = observer(() => {
                 <div className="relative flex-1">
                     <Input
                         className="text-mini h-8 pr-8"
-                        placeholder="Search layers"
+                        placeholder={t('searchLayers')}
                         value={searchQuery}
                         onChange={(event) => setSearchQuery(event.target.value)}
                     />
@@ -230,7 +232,7 @@ export const LayersTab = observer(() => {
             <RightClickMenu>
                 {filteredTree.roots.length === 0 ? (
                     <div className="text-foreground-primary/50 flex h-full w-full items-center justify-center">
-                        {searchQuery ? 'No matching layers' : 'No layers available yet'}
+                        {searchQuery ? t('noMatchingLayers') : t('noLayersAvailable')}
                     </div>
                 ) : (
                     <Tree

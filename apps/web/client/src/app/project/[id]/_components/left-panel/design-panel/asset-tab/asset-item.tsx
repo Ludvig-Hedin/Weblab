@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import type { ImageContentData } from '@weblab/models';
@@ -69,6 +70,7 @@ export const AssetItem = ({
     onDelete,
     onAddToChat,
 }: AssetItemProps) => {
+    const t = useTranslations('editor.leftPanel.assets');
     const { content, loading } = useFile(projectId, branchId, asset.path);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isRenaming, setIsRenaming] = useState(false);
@@ -142,7 +144,7 @@ export const AssetItem = ({
                 await onRename(asset.path, newName.trim());
                 setIsRenaming(false);
             } catch (error) {
-                toast.error('Failed to rename file', {
+                toast.error(t('rename') + ' failed', {
                     description: error instanceof Error ? error.message : 'Unknown error',
                 });
                 setNewName(asset.name);
@@ -184,9 +186,9 @@ export const AssetItem = ({
     const handleCopyUrl = async () => {
         try {
             await navigator.clipboard.writeText(getAssetUrl(asset.path));
-            toast.success('URL copied');
+            toast.success(t('urlCopied'));
         } catch {
-            toast.error('Failed to copy URL');
+            toast.error(t('copyUrl') + ' failed');
         }
     };
 
@@ -224,7 +226,7 @@ export const AssetItem = ({
 
     const currentFolder = getDirName(asset.path);
     const moveTargets = [
-        { path: ASSET_ROOT, label: 'No folder' },
+        { path: ASSET_ROOT, label: t('noFolder') },
         ...flattenFolderTree(folderTree).map((folder) => ({
             path: folder.path,
             label: folder.name,
@@ -337,7 +339,7 @@ export const AssetItem = ({
                             <>
                                 <button
                                     type="button"
-                                    aria-label={isSelected ? 'Deselect asset' : 'Select asset'}
+                                    aria-label={isSelected ? t('deselectAsset') : t('selectAsset')}
                                     aria-pressed={isSelected}
                                     onClick={onToggleSelect}
                                     className="absolute inset-0 z-10"
@@ -384,19 +386,18 @@ export const AssetItem = ({
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete asset</AlertDialogTitle>
+                        <AlertDialogTitle>{t('deleteAsset')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete {asset.name}? This action cannot be
-                            undone.
+                            {t('deleteAssetConfirm', { name: asset.name })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => void handleDelete()}
                             className="bg-destructive hover:bg-destructive/90 text-white"
                         >
-                            Delete
+                            {t('delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

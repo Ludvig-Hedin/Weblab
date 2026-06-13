@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { NamedStyleOption } from '../controls/style-chip-picker';
 import {
@@ -18,33 +19,6 @@ import {
 import { useStyleBatchSetter, useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
-
-const BLEND_MODE_OPTIONS = [
-    { value: 'normal', label: 'Normal' },
-    { value: 'multiply', label: 'Multiply' },
-    { value: 'screen', label: 'Screen' },
-    { value: 'overlay', label: 'Overlay' },
-    { value: 'darken', label: 'Darken' },
-    { value: 'lighten', label: 'Lighten' },
-    { value: 'color-dodge', label: 'Color dodge' },
-    { value: 'color-burn', label: 'Color burn' },
-    { value: 'hard-light', label: 'Hard light' },
-    { value: 'soft-light', label: 'Soft light' },
-    { value: 'difference', label: 'Difference' },
-    { value: 'exclusion', label: 'Exclusion' },
-    { value: 'hue', label: 'Hue' },
-    { value: 'saturation', label: 'Saturation' },
-    { value: 'color', label: 'Color' },
-    { value: 'luminosity', label: 'Luminosity' },
-] as const;
-
-const OUTLINE_STYLE_OPTIONS = [
-    { value: 'none', label: 'None' },
-    { value: 'solid', label: 'Solid' },
-    { value: 'dashed', label: 'Dashed' },
-    { value: 'dotted', label: 'Dotted' },
-    { value: 'double', label: 'Double' },
-] as const;
 
 // ── Effect presets ─────────────────────────────────────────────────────────────
 
@@ -129,6 +103,35 @@ function detectAppliedPreset(values: Record<string, string>): string {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export const EffectsSection = observer(function EffectsSection() {
+    const t = useTranslations('editor.stylePanel');
+
+    const BLEND_MODE_OPTIONS = [
+        { value: 'normal', label: 'Normal' },
+        { value: 'multiply', label: 'Multiply' },
+        { value: 'screen', label: 'Screen' },
+        { value: 'overlay', label: 'Overlay' },
+        { value: 'darken', label: 'Darken' },
+        { value: 'lighten', label: 'Lighten' },
+        { value: 'color-dodge', label: 'Color dodge' },
+        { value: 'color-burn', label: 'Color burn' },
+        { value: 'hard-light', label: 'Hard light' },
+        { value: 'soft-light', label: 'Soft light' },
+        { value: 'difference', label: 'Difference' },
+        { value: 'exclusion', label: 'Exclusion' },
+        { value: 'hue', label: 'Hue' },
+        { value: 'saturation', label: 'Saturation' },
+        { value: 'color', label: 'Color' },
+        { value: 'luminosity', label: 'Luminosity' },
+    ] as const;
+
+    const OUTLINE_STYLE_OPTIONS = [
+        { value: 'none', label: 'None' },
+        { value: 'solid', label: 'Solid' },
+        { value: 'dashed', label: 'Dashed' },
+        { value: 'dotted', label: 'Dotted' },
+        { value: 'double', label: 'Double' },
+    ] as const;
+
     const blendMode = useStyleValue('mix-blend-mode');
     const outlineStyle = useStyleValue('outline-style');
     const outlineWidth = useStyleValue('outline-width');
@@ -194,14 +197,14 @@ export const EffectsSection = observer(function EffectsSection() {
     };
 
     return (
-        <Section id="effects" title="Effects">
+        <Section id="effects" title={t('section.effects')}>
             <div className="flex flex-col gap-3 px-3 pb-3">
-                <GroupShell label="Style">
+                <GroupShell label={t('effects.style')}>
                     <div className="group/control flex items-center">
                         <StyleChipPicker
                             value={appliedPreset}
                             options={EFFECT_STYLE_OPTIONS}
-                            kind="Effect"
+                            kind={t('effects.effectKind')}
                             onApply={handleApplyPreset}
                             onDetach={handleDetachPreset}
                             onToggleCustom={() => setCustomOpen((v) => !v)}
@@ -215,11 +218,11 @@ export const EffectsSection = observer(function EffectsSection() {
                     onOpenChange={setCustomOpen}
                     summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
                 >
-                    <GroupShell label="Shadow" onReset={() => boxShadowSetter.set('')}>
+                    <GroupShell label={t('effects.shadow')} onReset={() => boxShadowSetter.set('')}>
                         <ShadowField value={boxShadow.value} onCommit={boxShadowSetter.set} />
                     </GroupShell>
 
-                    <GroupShell label="Filter" onReset={() => filterSetter.set('')}>
+                    <GroupShell label={t('effects.filter')} onReset={() => filterSetter.set('')}>
                         <TextField
                             value={filter.value}
                             onCommit={filterSetter.set}
@@ -228,7 +231,7 @@ export const EffectsSection = observer(function EffectsSection() {
                     </GroupShell>
 
                     <GroupShell
-                        label="Backdrop filter"
+                        label={t('effects.backdropFilter')}
                         onReset={() => backdropFilterSetter.set('')}
                     >
                         <TextField
@@ -238,29 +241,29 @@ export const EffectsSection = observer(function EffectsSection() {
                         />
                     </GroupShell>
 
-                    <GroupShell label="Blend mode" onReset={() => blendModeSetter.set('')}>
+                    <GroupShell label={t('effects.blendMode')} onReset={() => blendModeSetter.set('')}>
                         <LabeledSelectInput
-                            label="Mode"
+                            label={t('effects.mode')}
                             value={blendMode.value}
                             options={BLEND_MODE_OPTIONS}
                             onCommit={blendModeSetter.set}
                         />
                     </GroupShell>
 
-                    <GroupShell label="Outline style" onReset={() => outlineStyleSetter.set('')}>
+                    <GroupShell label={t('effects.outlineStyle')} onReset={() => outlineStyleSetter.set('')}>
                         <LabeledSelectInput
-                            label="Style"
+                            label={t('transforms.transformStyle')}
                             value={outlineStyle.value}
                             options={OUTLINE_STYLE_OPTIONS}
                             onCommit={outlineStyleSetter.set}
                         />
                     </GroupShell>
 
-                    <GroupShell label="Outline width" onReset={() => outlineWidthSetter.set('')}>
+                    <GroupShell label={t('effects.outlineWidth')} onReset={() => outlineWidthSetter.set('')}>
                         <NumberField value={outlineWidth.value} onCommit={outlineWidthSetter.set} />
                     </GroupShell>
 
-                    <GroupShell label="Outline color" onReset={() => outlineColorSetter.set('')}>
+                    <GroupShell label={t('effects.outlineColor')} onReset={() => outlineColorSetter.set('')}>
                         <ColorRow
                             value={outlineColor.value}
                             onCommit={outlineColorSetter.set}
@@ -273,7 +276,7 @@ export const EffectsSection = observer(function EffectsSection() {
                         />
                     </GroupShell>
 
-                    <GroupShell label="Outline offset" onReset={() => outlineOffsetSetter.set('')}>
+                    <GroupShell label={t('effects.outlineOffset')} onReset={() => outlineOffsetSetter.set('')}>
                         <NumberField
                             value={outlineOffset.value}
                             onCommit={outlineOffsetSetter.set}
