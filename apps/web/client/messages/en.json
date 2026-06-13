@@ -281,7 +281,10 @@
             "error": {
                 "title": "Error creating your Weblab app",
                 "backToPrompt": "Back to Prompting"
-            }
+            },
+            "welcomeTitle": "Welcome to Weblab — let's create your first project",
+            "welcomeDescription": "Start with a blank canvas to create a new project.",
+            "createBlankProject": "Create blank project"
         },
         "select": {
             "empty": "No projects found",
@@ -289,7 +292,21 @@
                 "recent": "Recently Updated",
                 "name": "Project Name"
             },
-            "lastEdited": "Last edited {time} ago"
+            "lastEdited": "Last edited {time} ago",
+            "loading": "Loading projects...",
+            "sortBy": "Sort by",
+            "order": "Order",
+            "sortAlphabetical": "Alphabetical",
+            "sortDateCreated": "Date created",
+            "sortLastViewed": "Last viewed",
+            "orderOldestFirst": "Oldest first",
+            "orderNewestFirst": "Newest first",
+            "recentProjects": "Recent projects",
+            "allProjects": "Projects",
+            "createTile": "Create",
+            "noProjectsMatch": "No projects match \"{query}\"",
+            "tryAdjustingSearch": "Try adjusting your search terms",
+            "noDescriptionAvailable": "No description available"
         },
         "actions": {
             "import": "Import Project",
@@ -437,6 +454,44 @@
                 "toastPinned": "{name} pinned. Open it once online to finish caching.",
                 "toastMarked": "{name} marked as available offline.",
                 "toastFailed": "Could not update offline availability."
+            }
+        },
+        "frameworkSelect": {
+            "title": "Start a blank project",
+            "description": "Choose where it runs, then pick a stack.",
+            "destinationCloud": "Cloud",
+            "destinationLocal": "Local",
+            "localTooltip": "Available in the desktop app",
+            "cloudRunsInfo": "Runs in Weblab Cloud — nothing to install.",
+            "localRunsInfo": "Runs on your machine, saved straight to disk.",
+            "recommended": "Recommended",
+            "frameworkNextjs": "React, Tailwind, and shadcn/ui — recommended for most projects.",
+            "frameworkStaticHtml": "Vanilla HTML, CSS, and JS — no build step.",
+            "frameworkViteReact": "React with Vite — fast HMR, no server-side rendering.",
+            "frameworkRemix": "Full-stack React with server loaders and nested routes.",
+            "frameworkAstro": "Content-first sites with islands and zero JS by default.",
+            "frameworkTanstackStart": "Full-stack React with type-safe routing and server functions."
+        },
+        "modeDialog": {
+            "desktopApp": "Desktop app",
+            "download": "Download",
+            "create": {
+                "title": "Create project",
+                "description": "Choose where this project should live.",
+                "cloudTitle": "Weblab Cloud",
+                "cloudDescription": "Best for starting quickly, working anywhere, and publishing later.",
+                "localTitle": "Local folder",
+                "localDescription": "Open a repo on this device and keep code in sync with VS Code, Claude Code, or Codex.",
+                "cloudAction": "Create in Weblab Cloud"
+            },
+            "import": {
+                "title": "Import folder",
+                "description": "Choose whether to upload this folder or work from your local repo.",
+                "cloudTitle": "Import to Weblab Cloud",
+                "cloudDescription": "Upload a copy to a cloud sandbox so it opens in the web editor.",
+                "localTitle": "Open local folder",
+                "localDescription": "Keep code on this device and edit the same files from Weblab and your IDE.",
+                "cloudAction": "Import to Weblab Cloud"
             }
         },
         "prompt": {

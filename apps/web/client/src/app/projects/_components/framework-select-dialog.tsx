@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { FrameworkId } from '@weblab/framework';
 import { listReadyFrameworkAdapters } from '@weblab/framework';
@@ -28,35 +29,13 @@ interface FrameworkSelectDialogProps {
     localAvailable?: boolean;
 }
 
-const FRAMEWORK_META: Record<
-    string,
-    { icon: React.ReactNode; description: string; recommended?: boolean }
-> = {
-    nextjs: {
-        icon: <Icons.Globe className="h-4 w-4" />,
-        description: 'React, Tailwind, and shadcn/ui — recommended for most projects.',
-        recommended: true,
-    },
-    'static-html': {
-        icon: <Icons.Code className="h-4 w-4" />,
-        description: 'Vanilla HTML, CSS, and JS — no build step.',
-    },
-    'vite-react': {
-        icon: <Icons.Globe className="h-4 w-4" />,
-        description: 'React with Vite — fast HMR, no server-side rendering.',
-    },
-    remix: {
-        icon: <Icons.Globe className="h-4 w-4" />,
-        description: 'Full-stack React with server loaders and nested routes.',
-    },
-    astro: {
-        icon: <Icons.Globe className="h-4 w-4" />,
-        description: 'Content-first sites with islands and zero JS by default.',
-    },
-    'tanstack-start': {
-        icon: <Icons.Globe className="h-4 w-4" />,
-        description: 'Full-stack React with type-safe routing and server functions.',
-    },
+const FRAMEWORK_ICONS: Record<string, { icon: React.ReactNode; recommended?: boolean }> = {
+    nextjs: { icon: <Icons.Globe className="h-4 w-4" />, recommended: true },
+    'static-html': { icon: <Icons.Code className="h-4 w-4" /> },
+    'vite-react': { icon: <Icons.Globe className="h-4 w-4" /> },
+    remix: { icon: <Icons.Globe className="h-4 w-4" /> },
+    astro: { icon: <Icons.Globe className="h-4 w-4" /> },
+    'tanstack-start': { icon: <Icons.Globe className="h-4 w-4" /> },
 };
 
 /** Frameworks we can scaffold to local disk today (Cloud supports the rest). */
@@ -68,7 +47,17 @@ export function FrameworkSelectDialog({
     onSelect,
     localAvailable = false,
 }: FrameworkSelectDialogProps) {
+    const t = useTranslations('projects.frameworkSelect');
     const [destination, setDestination] = useState<CreateDestination>('cloud');
+
+    const frameworkDescriptions: Record<string, string> = {
+        nextjs: t('frameworkNextjs'),
+        'static-html': t('frameworkStaticHtml'),
+        'vite-react': t('frameworkViteReact'),
+        remix: t('frameworkRemix'),
+        astro: t('frameworkAstro'),
+        'tanstack-start': t('frameworkTanstackStart'),
+    };
 
     // Reset to Cloud each time the dialog opens so a previous Local pick never
     // sticks across opens (and Local is only valid on desktop anyway).
@@ -92,8 +81,8 @@ export function FrameworkSelectDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[520px]">
                 <DialogHeader>
-                    <DialogTitle>Start a blank project</DialogTitle>
-                    <DialogDescription>Choose where it runs, then pick a stack.</DialogDescription>
+                    <DialogTitle>{t('title')}</DialogTitle>
+                    <DialogDescription>{t('description')}</DialogDescription>
                 </DialogHeader>
 
                 {/* Destination: Cloud vs Local (desktop only). */}
@@ -107,7 +96,7 @@ export function FrameworkSelectDialog({
                         className={segBase}
                     >
                         <Icons.Globe className="h-3.5 w-3.5" />
-                        Cloud
+                        {t('destinationCloud')}
                     </Button>
                     {localAvailable ? (
                         <Button
@@ -119,7 +108,7 @@ export function FrameworkSelectDialog({
                             className={segBase}
                         >
                             <Icons.Laptop className="h-3.5 w-3.5" />
-                            Local
+                            {t('destinationLocal')}
                         </Button>
                     ) : (
                         <Tooltip>
@@ -129,24 +118,22 @@ export function FrameworkSelectDialog({
                                     aria-disabled
                                 >
                                     <Icons.Laptop className="h-3.5 w-3.5" />
-                                    Local
+                                    {t('destinationLocal')}
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent>Available in the desktop app</TooltipContent>
+                            <TooltipContent>{t('localTooltip')}</TooltipContent>
                         </Tooltip>
                     )}
                 </div>
 
                 <p className="text-foreground-tertiary -mt-1 text-xs">
-                    {effectiveDestination === 'cloud'
-                        ? 'Runs in Weblab Cloud — nothing to install.'
-                        : 'Runs on your machine, saved straight to disk.'}
+                    {effectiveDestination === 'cloud' ? t('cloudRunsInfo') : t('localRunsInfo')}
                 </p>
 
                 {/* Framework rows — compact, one per line. */}
                 <div className="grid grid-cols-1 gap-2">
                     {adapters.map((adapter) => {
-                        const meta = FRAMEWORK_META[adapter.id];
+                        const meta = FRAMEWORK_ICONS[adapter.id];
                         return (
                             <button
                                 key={adapter.id}
@@ -167,12 +154,12 @@ export function FrameworkSelectDialog({
                                         </span>
                                         {meta?.recommended && (
                                             <span className="border-border-secondary text-foreground-tertiary text-tiny rounded-full border px-1.5 py-0.5">
-                                                Recommended
+                                                {t('recommended')}
                                             </span>
                                         )}
                                     </div>
                                     <p className="text-foreground-tertiary truncate text-xs">
-                                        {meta?.description ?? adapter.displayName}
+                                        {frameworkDescriptions[adapter.id] ?? adapter.displayName}
                                     </p>
                                 </div>
                                 <Icons.ArrowRight className="text-foreground-tertiary group-hover:text-foreground-secondary h-4 w-4 shrink-0" />

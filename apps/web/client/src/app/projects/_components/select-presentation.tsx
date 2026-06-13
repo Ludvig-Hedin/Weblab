@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -98,6 +99,8 @@ export const SelectProjectPresentation = ({
     onPreviewTemplate,
     onEditTemplate,
 }: SelectProjectPresentationProps) => {
+    const t = useTranslations('projects.select');
+    const tCreate = useTranslations('projects.create');
     // Search and filters
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const searchQuery = externalSearchQuery;
@@ -191,22 +194,22 @@ export const SelectProjectPresentation = ({
     }, [filteredAndSortedProjects, filesSortBy, filesOrderBy]);
 
     const sortOptions = [
-        { value: 'Alphabetical', label: 'Alphabetical' },
-        { value: 'Date created', label: 'Date created' },
-        { value: 'Last viewed', label: 'Last viewed' },
-    ] as const;
+        { value: 'Alphabetical', label: t('sortAlphabetical') },
+        { value: 'Date created', label: t('sortDateCreated') },
+        { value: 'Last viewed', label: t('sortLastViewed') },
+    ];
 
     const orderOptions = [
-        { value: 'Oldest first', label: 'Oldest first' },
-        { value: 'Newest first', label: 'Newest first' },
-    ] as const;
+        { value: 'Oldest first', label: t('orderOldestFirst') },
+        { value: 'Newest first', label: t('orderNewestFirst') },
+    ];
 
     if (isLoading) {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center">
                 <div className="flex flex-row items-center gap-2">
                     <Icons.LoadingSpinner className="text-foreground-primary h-6 w-6 animate-spin" />
-                    <div className="text-foreground-secondary text-lg">Loading projects...</div>
+                    <div className="text-foreground-secondary text-lg">{t('loading')}</div>
                 </div>
             </div>
         );
@@ -217,10 +220,10 @@ export const SelectProjectPresentation = ({
         return (
             <div className="flex h-full w-full flex-col items-center justify-center gap-4">
                 <div className="text-foreground-secondary text-xl">
-                    Welcome to Weblab — let&apos;s create your first project
+                    {tCreate('welcomeTitle')}
                 </div>
                 <div className="text-md text-foreground-tertiary">
-                    Start with a blank canvas to create a new project.
+                    {tCreate('welcomeDescription')}
                 </div>
                 <div className="flex justify-center">
                     <Button onClick={onCreateBlank} disabled={isCreatingProject} variant="default">
@@ -229,7 +232,7 @@ export const SelectProjectPresentation = ({
                         ) : (
                             <Icons.Plus className="h-4 w-4" />
                         )}
-                        Create blank project
+                        {tCreate('createBlankProject')}
                     </Button>
                 </div>
             </div>
@@ -249,7 +252,7 @@ export const SelectProjectPresentation = ({
             <div className="mx-auto w-full max-w-6xl overflow-x-visible">
                 <div className="mb-12 overflow-x-visible">
                     <h2 className="text-foreground mb-[12px] text-2xl font-normal">
-                        Recent projects
+                        {t('recentProjects')}
                     </h2>
 
                     <Carousel gap="gap-4" className="h-[202px] pb-4">
@@ -265,11 +268,11 @@ export const SelectProjectPresentation = ({
                                     <div className="text-center">
                                         <div className="text-foreground-secondary text-base">
                                             {debouncedSearchQuery
-                                                ? `No projects match "${debouncedSearchQuery}"`
-                                                : 'No projects found'}
+                                                ? t('noProjectsMatch', { query: debouncedSearchQuery })
+                                                : t('empty')}
                                         </div>
                                         <div className="text-foreground-tertiary text-sm">
-                                            Try adjusting your search terms
+                                            {t('tryAdjustingSearch')}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -307,7 +310,7 @@ export const SelectProjectPresentation = ({
                                                 ) : (
                                                     <Icons.Plus className="mb-1 h-7 w-7" />
                                                 )}
-                                                <span className="text-sm">Create</span>
+                                                <span className="text-sm">{t('createTile')}</span>
                                             </div>
                                         </button>
                                     </motion.div>,
@@ -361,7 +364,7 @@ export const SelectProjectPresentation = ({
 
                 <div>
                     <div className="mb-[12px] flex items-center justify-between">
-                        <h2 className="text-foreground text-2xl font-normal">Projects</h2>
+                        <h2 className="text-foreground text-2xl font-normal">{t('allProjects')}</h2>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() =>
@@ -389,7 +392,7 @@ export const SelectProjectPresentation = ({
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                                    <DropdownMenuLabel>{t('sortBy')}</DropdownMenuLabel>
                                     <DropdownMenuRadioGroup
                                         value={filesSortBy}
                                         onValueChange={(v) =>
@@ -406,7 +409,7 @@ export const SelectProjectPresentation = ({
                                         ))}
                                     </DropdownMenuRadioGroup>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuLabel>Order</DropdownMenuLabel>
+                                    <DropdownMenuLabel>{t('order')}</DropdownMenuLabel>
                                     <DropdownMenuRadioGroup
                                         value={filesOrderBy}
                                         onValueChange={(v) =>
@@ -480,7 +483,7 @@ export const SelectProjectPresentation = ({
                     onClose={handleCloseTemplateModal}
                     title={selectedTemplate.name}
                     description={
-                        selectedTemplate.metadata?.description || 'No description available'
+                        selectedTemplate.metadata?.description || t('noDescriptionAvailable')
                     }
                     image={getImageUrl(selectedTemplate)}
                     isNew={false}

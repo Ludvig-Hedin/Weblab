@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -22,29 +24,6 @@ interface ProjectModeDialogProps {
     onCloudSelect: () => void;
 }
 
-const copy = {
-    create: {
-        title: 'Create project',
-        description: 'Choose where this project should live.',
-        cloudTitle: 'Weblab Cloud',
-        cloudDescription: 'Best for starting quickly, working anywhere, and publishing later.',
-        localTitle: 'Local folder',
-        localDescription:
-            'Open a repo on this device and keep code in sync with VS Code, Claude Code, or Codex.',
-        cloudAction: 'Create in Weblab Cloud',
-    },
-    import: {
-        title: 'Import folder',
-        description: 'Choose whether to upload this folder or work from your local repo.',
-        cloudTitle: 'Import to Weblab Cloud',
-        cloudDescription: 'Upload a copy to a cloud sandbox so it opens in the web editor.',
-        localTitle: 'Open local folder',
-        localDescription:
-            'Keep code on this device and edit the same files from Weblab and your IDE.',
-        cloudAction: 'Import to Weblab Cloud',
-    },
-} satisfies Record<ProjectModeIntent, Record<string, string>>;
-
 export function ProjectModeDialog({
     open,
     intent,
@@ -52,7 +31,28 @@ export function ProjectModeDialog({
     onOpenChange,
     onCloudSelect,
 }: ProjectModeDialogProps) {
-    const text = copy[intent];
+    const t = useTranslations('projects.modeDialog');
+    const texts = {
+        create: {
+            title: t('create.title'),
+            description: t('create.description'),
+            cloudTitle: t('create.cloudTitle'),
+            cloudDescription: t('create.cloudDescription'),
+            localTitle: t('create.localTitle'),
+            localDescription: t('create.localDescription'),
+            cloudAction: t('create.cloudAction'),
+        },
+        import: {
+            title: t('import.title'),
+            description: t('import.description'),
+            cloudTitle: t('import.cloudTitle'),
+            cloudDescription: t('import.cloudDescription'),
+            localTitle: t('import.localTitle'),
+            localDescription: t('import.localDescription'),
+            cloudAction: t('import.cloudAction'),
+        },
+    };
+    const text = texts[intent];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,7 +106,7 @@ export function ProjectModeDialog({
                                         {text.localTitle}
                                     </div>
                                     <span className="border-foreground/10 text-foreground-tertiary rounded-full border px-2 py-0.5 text-tiny">
-                                        Desktop app
+                                        {t('desktopApp')}
                                     </span>
                                 </div>
                                 <div className="text-foreground-tertiary mt-1 text-sm leading-5">
@@ -121,7 +121,7 @@ export function ProjectModeDialog({
                             className="pointer-events-auto mt-4 w-fit"
                         >
                             <a href={ExternalRoutes.DOWNLOAD_PAGE} target="_blank" rel="noreferrer">
-                                Download
+                                {t('download')}
                             </a>
                         </Button>
                     </div>

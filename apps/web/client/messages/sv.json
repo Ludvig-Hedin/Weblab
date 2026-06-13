@@ -281,7 +281,10 @@
             "error": {
                 "title": "Kunde inte skapa din Weblab-app",
                 "backToPrompt": "Tillbaka till prompten"
-            }
+            },
+            "welcomeTitle": "Välkommen till Weblab — låt oss skapa ditt första projekt",
+            "welcomeDescription": "Börja med en tom arbetsyta för att skapa ett nytt projekt.",
+            "createBlankProject": "Skapa tomt projekt"
         },
         "select": {
             "empty": "Inga projekt hittades",
@@ -289,7 +292,21 @@
                 "recent": "Senast uppdaterade",
                 "name": "Projektnamn"
             },
-            "lastEdited": "Senast redigerad för {time} sedan"
+            "lastEdited": "Senast redigerad för {time} sedan",
+            "loading": "Laddar projekt...",
+            "sortBy": "Sortera efter",
+            "order": "Ordning",
+            "sortAlphabetical": "Alfabetisk",
+            "sortDateCreated": "Skapad datum",
+            "sortLastViewed": "Senast visad",
+            "orderOldestFirst": "Äldst först",
+            "orderNewestFirst": "Nyast först",
+            "recentProjects": "Senaste projekten",
+            "allProjects": "Projekt",
+            "createTile": "Skapa",
+            "noProjectsMatch": "Inga projekt matchar \"{query}\"",
+            "tryAdjustingSearch": "Försök justera dina söktermer",
+            "noDescriptionAvailable": "Ingen beskrivning tillgänglig"
         },
         "actions": {
             "import": "Importera projekt",
@@ -437,6 +454,44 @@
                 "toastPinned": "{name} fäst. Öppna en gång online för att slutföra cachelagringen.",
                 "toastMarked": "{name} markerad som tillgänglig offline.",
                 "toastFailed": "Det gick inte att uppdatera offline-tillgängligheten."
+            }
+        },
+        "frameworkSelect": {
+            "title": "Starta ett tomt projekt",
+            "description": "Välj var det körs, välj sedan ett ramverk.",
+            "destinationCloud": "Moln",
+            "destinationLocal": "Lokalt",
+            "localTooltip": "Tillgängligt i skrivbordsappen",
+            "cloudRunsInfo": "Körs i Weblab Cloud — inget att installera.",
+            "localRunsInfo": "Körs på din dator, sparas direkt till disk.",
+            "recommended": "Rekommenderas",
+            "frameworkNextjs": "React, Tailwind och shadcn/ui — rekommenderas för de flesta projekt.",
+            "frameworkStaticHtml": "Vanilla HTML, CSS och JS — inget byggsteg.",
+            "frameworkViteReact": "React med Vite — snabb HMR, ingen server-side rendering.",
+            "frameworkRemix": "Full-stack React med server-laddare och nestade rutter.",
+            "frameworkAstro": "Innehållsfokuserade webbplatser med islands och noll JS som standard.",
+            "frameworkTanstackStart": "Full-stack React med typsäker routing och serverfunktioner."
+        },
+        "modeDialog": {
+            "desktopApp": "Skrivbordsapp",
+            "download": "Ladda ner",
+            "create": {
+                "title": "Skapa projekt",
+                "description": "Välj var det här projektet ska leva.",
+                "cloudTitle": "Weblab Cloud",
+                "cloudDescription": "Bäst för snabb start, arbete var som helst och publicering senare.",
+                "localTitle": "Lokal mapp",
+                "localDescription": "Öppna ett repo på den här enheten och håll koden synkroniserad med VS Code, Claude Code eller Codex.",
+                "cloudAction": "Skapa i Weblab Cloud"
+            },
+            "import": {
+                "title": "Importera mapp",
+                "description": "Välj om du vill ladda upp den här mappen eller arbeta från ditt lokala repo.",
+                "cloudTitle": "Importera till Weblab Cloud",
+                "cloudDescription": "Ladda upp en kopia till en molnsandbox så att den öppnas i webbredigeraren.",
+                "localTitle": "Öppna lokal mapp",
+                "localDescription": "Ha koden på den här enheten och redigera samma filer från Weblab och din IDE.",
+                "cloudAction": "Importera till Weblab Cloud"
             }
         },
         "prompt": {
