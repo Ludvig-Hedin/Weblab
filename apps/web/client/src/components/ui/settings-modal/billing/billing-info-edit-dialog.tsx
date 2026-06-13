@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -68,6 +69,7 @@ export const BillingInfoEditDialog = ({
     customer,
     onSaved,
 }: BillingInfoEditDialogProps) => {
+    const t = useTranslations('settings.billing.editDialog');
     const updateBillingInfo = useAction(api.subscriptionActions.updateBillingInfo);
 
     const [name, setName] = useState('');
@@ -115,12 +117,12 @@ export const BillingInfoEditDialog = ({
                     country,
                 },
             });
-            toast.success('Billing information updated');
+            toast.success(t('toastSuccess'));
             await onSaved();
             onOpenChange(false);
         } catch (error) {
             console.error('Failed to update billing information:', error);
-            toast.error('Failed to update billing information');
+            toast.error(t('toastFailed'));
         } finally {
             setIsSaving(false);
         }
@@ -130,70 +132,70 @@ export const BillingInfoEditDialog = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Edit billing information</DialogTitle>
+                    <DialogTitle>{t('title')}</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
                     <div className="space-y-1.5">
-                        <Label htmlFor="billing-name">Name</Label>
+                        <Label htmlFor="billing-name">{t('nameLabel')}</Label>
                         <Input
                             id="billing-name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Full name"
+                            placeholder={t('namePlaceholder')}
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="billing-line1">Address line 1</Label>
+                        <Label htmlFor="billing-line1">{t('line1Label')}</Label>
                         <Input
                             id="billing-line1"
                             value={line1}
                             onChange={(e) => setLine1(e.target.value)}
-                            placeholder="Street address"
+                            placeholder={t('line1Placeholder')}
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="billing-line2">Address line 2</Label>
+                        <Label htmlFor="billing-line2">{t('line2Label')}</Label>
                         <Input
                             id="billing-line2"
                             value={line2}
                             onChange={(e) => setLine2(e.target.value)}
-                            placeholder="Apartment, suite, etc. (optional)"
+                            placeholder={t('line2Placeholder')}
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor="billing-city">City</Label>
+                            <Label htmlFor="billing-city">{t('cityLabel')}</Label>
                             <Input
                                 id="billing-city"
                                 value={city}
                                 onChange={(e) => setCity(e.target.value)}
-                                placeholder="City"
+                                placeholder={t('cityLabel')}
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="billing-state">State / Province</Label>
+                            <Label htmlFor="billing-state">{t('stateLabel')}</Label>
                             <Input
                                 id="billing-state"
                                 value={state}
                                 onChange={(e) => setState(e.target.value)}
-                                placeholder="Optional"
+                                placeholder={t('statePlaceholder')}
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="billing-postal">Postal code</Label>
+                            <Label htmlFor="billing-postal">{t('postalLabel')}</Label>
                             <Input
                                 id="billing-postal"
                                 value={postalCode}
                                 onChange={(e) => setPostalCode(e.target.value)}
-                                placeholder="ZIP / Postal"
+                                placeholder={t('postalPlaceholder')}
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="billing-country">Country</Label>
+                            <Label htmlFor="billing-country">{t('countryLabel')}</Label>
                             <Select value={country} onValueChange={setCountry}>
                                 <SelectTrigger id="billing-country">
-                                    <SelectValue placeholder="Select country" />
+                                    <SelectValue placeholder={t('countryPlaceholder')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {countries.map((c) => (
@@ -209,10 +211,10 @@ export const BillingInfoEditDialog = ({
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button onClick={() => void handleSave()} disabled={!canSave || isSaving}>
-                        {isSaving ? 'Saving...' : 'Save'}
+                        {isSaving ? t('saving') : t('save')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

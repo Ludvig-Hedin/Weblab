@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { EMBEDDED_SKILL_SUMMARIES } from '@weblab/ai/client';
 import {
@@ -53,6 +54,7 @@ interface ConvexSkill {
 const EXPLORE_URL = 'https://agentskills.io';
 
 export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
+    const t = useTranslations('settings.skills');
     const inProject = Boolean(projectId);
 
     const [scope, setScope] = useState<ScopeFilter>('all');
@@ -142,21 +144,18 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
         setConfirmDelete(null);
         try {
             await removeSkillMutation({ skillId });
-            toast.success('Skill deleted');
+            toast.success(t('toastDeleted'));
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to delete skill');
+            toast.error(err instanceof Error ? err.message : t('toastDeleted'));
         }
     };
 
     return (
         <div className="flex h-full flex-col">
             <div className="space-y-1 px-5 pt-5 pb-3">
-                <h2 className="text-largePlus">Skills</h2>
+                <h2 className="text-largePlus">{t('title')}</h2>
                 <p className="text-muted-foreground text-mini">
-                    Skills teach the AI how to handle specific tasks. The AI lists them via{' '}
-                    <code className="bg-muted text-mini rounded px-1 py-0.5">list_skills</code> and
-                    reads the body via{' '}
-                    <code className="bg-muted text-mini rounded px-1 py-0.5">read_skill</code>.
+                    {t('description')}
                 </p>
             </div>
 
@@ -166,16 +165,16 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All skills</SelectItem>
+                        <SelectItem value="all">{t('allSkills')}</SelectItem>
                         <SelectItem value="global">
                             <span className="flex items-center gap-2">
-                                <ScopeBadge scope="global" /> My skills
+                                <ScopeBadge scope="global" /> {t('mySkills')}
                             </span>
                         </SelectItem>
                         {inProject ? (
                             <SelectItem value="project">
                                 <span className="flex items-center gap-2">
-                                    <ScopeBadge scope="project" /> This project
+                                    <ScopeBadge scope="project" /> {t('thisProject')}
                                 </span>
                             </SelectItem>
                         ) : null}
@@ -185,7 +184,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                 <div className="ml-auto flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                         <Icons.Download className="mr-1.5 h-3.5 w-3.5" />
-                        Import
+                        {t('import')}
                     </Button>
                     <Button
                         size="sm"
@@ -195,28 +194,28 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                         }}
                     >
                         <Icons.Plus className="mr-1.5 h-3.5 w-3.5" />
-                        New skill
+                        {t('newSkill')}
                     </Button>
                 </div>
             </div>
 
             <p className="text-muted-foreground text-mini px-5 pb-3">
                 {scope === 'all'
-                    ? 'Built-in skills, your own skills, and skills saved to this project.'
+                    ? t('scopeAll')
                     : scope === 'global'
-                      ? 'Your own skills — available across every project (built-ins excluded).'
-                      : 'Skills saved only to this project.'}
+                      ? t('scopeGlobal')
+                      : t('scopeProject')}
             </p>
 
             <div className="flex-1 overflow-y-auto px-5 pb-5">
                 {isLoading ? (
                     <div className="text-muted-foreground text-mini flex items-center gap-2 px-1 py-6">
                         <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
-                        Loading skills…
+                        {t('loading')}
                     </div>
                 ) : rows.length === 0 ? (
                     <div className="border-border/40 text-muted-foreground text-mini rounded-md border border-dashed p-6 text-center">
-                        No skills in this scope yet. Create one or import from the community.
+                        {t('empty')}
                     </div>
                 ) : (
                     <div className="space-y-2">
@@ -238,7 +237,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                         rel="noopener noreferrer"
                         className="hover:text-foreground underline-offset-4 hover:underline"
                     >
-                        Explore community skills
+                        {t('exploreLink')}
                     </a>
                 </div>
             </div>
@@ -275,24 +274,22 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete skill?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
                             {confirmDelete
-                                ? `"${confirmDelete.name}" will be removed for ${
-                                      confirmDelete.scope === 'project'
-                                          ? 'this project'
-                                          : 'all your projects'
-                                  }. This can't be undone.`
+                                ? confirmDelete.scope === 'project'
+                                    ? t('deleteDescProject', { name: confirmDelete.name })
+                                    : t('deleteDescGlobal', { name: confirmDelete.name })
                                 : ''}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancelDelete')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => void confirmDeleteAction()}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            Delete
+                            {t('confirmDelete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -1,6 +1,7 @@
 'use client';
 
 import type { BillingSubscription } from '@convex/subscriptions';
+import { useTranslations } from 'next-intl';
 
 import { ScheduledSubscriptionAction } from '@weblab/stripe';
 import { Button } from '@weblab/ui/button';
@@ -23,19 +24,20 @@ interface PlanCardProps {
 }
 
 export const PlanCard = ({ subscription, isPro, usage, onUpgrade }: PlanCardProps) => {
+    const t = useTranslations('settings.billing.plan');
     const isCancelling =
         subscription?.scheduledChange?.scheduledAction === ScheduledSubscriptionAction.CANCELLATION;
 
-    const planName = isPro ? (subscription?.product.name ?? 'Pro plan') : 'Free plan';
+    const planName = isPro ? (subscription?.product.name ?? 'Pro plan') : t('free');
 
     const renewalLine = (() => {
         if (isCancelling && subscription) {
-            return `Your plan cancels on ${formatDate(subscription.scheduledChange!.scheduledChangeAt)}`;
+            return t('cancels', { date: formatDate(subscription.scheduledChange!.scheduledChangeAt) });
         }
         if (isPro && subscription) {
-            return `Your plan auto-renews on ${formatDate(subscription.currentPeriodEnd)}`;
+            return t('autoRenews', { date: formatDate(subscription.currentPeriodEnd) });
         }
-        return 'Upgrade to unlock more credits and features';
+        return t('upgradeTeaser');
     })();
 
     const used = usage?.monthly.usageCount ?? 0;
@@ -51,17 +53,17 @@ export const PlanCard = ({ subscription, isPro, usage, onUpgrade }: PlanCardProp
                     <p className="text-small text-muted-foreground">{renewalLine}</p>
                 </div>
                 <Button variant={isPro ? 'outline' : 'default'} size="sm" onClick={onUpgrade}>
-                    {isPro ? 'Change plan' : 'Upgrade'}
+                    {isPro ? t('changePlan') : t('upgrade')}
                 </Button>
             </div>
 
             {usage && (
                 <div className="space-y-1.5">
                     <div className="text-mini text-muted-foreground flex items-center justify-between">
-                        <span>Credits this month</span>
+                        <span>{t('credits')}</span>
                         <span>
                             {isUnlimited
-                                ? `${used.toLocaleString()} used · Unlimited`
+                                ? t('unlimitedUsed', { used: used.toLocaleString() })
                                 : `${used.toLocaleString()} / ${limit.toLocaleString()}`}
                         </span>
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Skeleton } from '@weblab/ui/skeleton';
@@ -28,6 +29,7 @@ function buildAddressLines(address: BillingCustomerInfo['address']): string[] {
 }
 
 export const BillingInformation = ({ customer, isLoading, onSaved }: BillingInformationProps) => {
+    const t = useTranslations('settings.billing.information');
     const [isEditOpen, setIsEditOpen] = useState(false);
     const addressLines = buildAddressLines(customer?.address ?? null);
     const hasAny = Boolean(customer?.name || addressLines.length > 0);
@@ -35,14 +37,14 @@ export const BillingInformation = ({ customer, isLoading, onSaved }: BillingInfo
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <p className="text-regularPlus font-medium">Billing information</p>
+                <p className="text-regularPlus font-medium">{t('title')}</p>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditOpen(true)}
                     disabled={isLoading}
                 >
-                    Edit
+                    {t('edit')}
                 </Button>
             </div>
 
@@ -52,20 +54,18 @@ export const BillingInformation = ({ customer, isLoading, onSaved }: BillingInfo
                     <Skeleton className="h-4 w-48" />
                 </div>
             ) : !hasAny ? (
-                <p className="text-small text-muted-foreground">
-                    No billing information on file. Add it so it appears on your invoices.
-                </p>
+                <p className="text-small text-muted-foreground">{t('empty')}</p>
             ) : (
                 <div className="space-y-3 text-small">
                     {customer?.name && (
                         <div className="space-y-0.5">
-                            <p className="text-muted-foreground text-mini">Name</p>
+                            <p className="text-muted-foreground text-mini">{t('nameLabel')}</p>
                             <p className="text-foreground">{customer.name}</p>
                         </div>
                     )}
                     {addressLines.length > 0 && (
                         <div className="space-y-0.5">
-                            <p className="text-muted-foreground text-mini">Address</p>
+                            <p className="text-muted-foreground text-mini">{t('addressLabel')}</p>
                             <div className="text-foreground">
                                 {addressLines.map((line, i) => (
                                     <p key={i}>{line}</p>

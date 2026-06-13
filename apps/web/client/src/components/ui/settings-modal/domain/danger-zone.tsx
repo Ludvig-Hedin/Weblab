@@ -1,6 +1,7 @@
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { DeploymentStatus, DeploymentType } from '@weblab/models/hosting';
 import {
@@ -22,6 +23,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 
 export const DangerZone = observer(() => {
+    const t = useTranslations('settings.dangerZone');
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
 
@@ -46,25 +48,25 @@ export const DangerZone = observer(() => {
         }
 
         if (unpublishResponse) {
-            toast.success('Project is being unpublished', {
-                description: 'Deployment ID: ' + unpublishResponse.deploymentId,
+            toast.success(t('toastUnpublishSuccess'), {
+                description: t('toastUnpublishSuccessDesc', { id: unpublishResponse.deploymentId }),
             });
         } else {
-            toast.error('Failed to unpublish project', {
-                description: 'Please try again.',
+            toast.error(t('toastUnpublishFailed'), {
+                description: t('toastUnpublishFailedDesc'),
             });
         }
     };
 
     return (
         <div className="flex flex-col gap-4">
-            <h2 className="text-largePlus">Danger Zone</h2>
+            <h2 className="text-largePlus">{t('title')}</h2>
             <div className="flex flex-col gap-4">
                 <div className="flex flex-row items-center gap-2">
                     <p className="text-regular text-foreground-tertiary">
                         {!previewDomain
-                            ? 'Your domain is not published'
-                            : `Unpublish from ${previewDomain.url}`}
+                            ? t('notPublished')
+                            : t('unpublishFrom', { url: previewDomain.url })}
                     </p>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -79,21 +81,21 @@ export const DangerZone = observer(() => {
                                 }
                             >
                                 {unpublishPreviewDeployment?.status === DeploymentStatus.IN_PROGRESS
-                                    ? 'Unpublishing...'
-                                    : 'Unpublish'}
+                                    ? t('unpublishing')
+                                    : t('unpublish')}
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Unpublish preview domain?</AlertDialogTitle>
+                                <AlertDialogTitle>{t('unpublishPreviewTitle')}</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     {previewDomain
-                                        ? `Visitors will no longer be able to reach ${previewDomain.url}. You can republish anytime.`
-                                        : 'This will remove the preview deployment.'}
+                                        ? t('unpublishPreviewDesc', { url: previewDomain.url })
+                                        : t('unpublishPreviewDescFallback')}
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                                 <AlertDialogAction
                                     onClick={() => {
                                         if (previewDomain) {
@@ -101,7 +103,7 @@ export const DangerZone = observer(() => {
                                         }
                                     }}
                                 >
-                                    Unpublish
+                                    {t('unpublish')}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
@@ -110,7 +112,7 @@ export const DangerZone = observer(() => {
                 {customDomain && (
                     <div className="flex flex-row items-center gap-2">
                         <p className="text-regular text-foreground-tertiary">
-                            Unpublish from {customDomain.url}
+                            {t('unpublishFrom', { url: customDomain.url })}
                         </p>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -126,26 +128,25 @@ export const DangerZone = observer(() => {
                                 >
                                     {unpublishCustomDeployment?.status ===
                                     DeploymentStatus.IN_PROGRESS
-                                        ? 'Unpublishing...'
-                                        : 'Unpublish'}
+                                        ? t('unpublishing')
+                                        : t('unpublish')}
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Unpublish custom domain?</AlertDialogTitle>
+                                    <AlertDialogTitle>{t('unpublishCustomTitle')}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Visitors will no longer be able to reach {customDomain.url}.
-                                        You can republish anytime.
+                                        {t('unpublishCustomDesc', { url: customDomain.url })}
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                                     <AlertDialogAction
                                         onClick={() =>
                                             void unpublish(DeploymentType.UNPUBLISH_CUSTOM)
                                         }
                                     >
-                                        Unpublish
+                                        {t('unpublish')}
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>

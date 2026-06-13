@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { MessageCheckpointType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -33,13 +34,14 @@ export const VersionRow = observer(
         autoRename?: boolean;
         onRename?: () => void;
     }) => {
+        const t = useTranslations('settings.versions');
         const editorEngine = useEditorEngine();
         const stateManager = useStateManager();
 
         const inputRef = useRef<HTMLInputElement>(null);
         const [isRenaming, setIsRenaming] = useState(autoRename);
         const [commitDisplayName, setCommitDisplayName] = useState(
-            commit.displayName ?? commit.message ?? 'Backup',
+            commit.displayName ?? commit.message ?? t('defaultName'),
         );
         const [isCheckingOut, setIsCheckingOut] = useState(false);
         const [isCheckoutSuccess, setIsCheckoutSuccess] = useState(false);
@@ -77,7 +79,7 @@ export const VersionRow = observer(
             const result = await branchData.sandbox.gitManager.addCommitNote(commit.oid, name);
 
             if (!result.success) {
-                toast.error('Failed to rename backup');
+                toast.error(t('toastRenameFailed'));
                 editorEngine.posthog.capture('versions_rename_commit_failed', {
                     commit: commit.oid,
                     newName: name,
@@ -86,7 +88,7 @@ export const VersionRow = observer(
                 return;
             }
 
-            toast.success('Backup renamed successfully!', {
+            toast.success(t('toastRenameSuccess'), {
                 description: `Renamed to: "${name}"`,
             });
 
@@ -149,7 +151,7 @@ export const VersionRow = observer(
                     stateManager.setIsSettingsModalOpen(false);
                 }, 1000);
             } catch (error) {
-                toast.error('Failed to restore backup', {
+                toast.error(t('toastRestoreFailed'), {
                     description: error instanceof Error ? error.message : 'Unknown error',
                 });
             } finally {
@@ -178,7 +180,7 @@ export const VersionRow = observer(
                                 className="hover:border-border/50 focus-visible:border-primary/10 -mt-0.5 -ml-[10px] h-8 w-full border border-transparent bg-transparent p-0 pl-2 transition-all duration-100 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:outline-none"
                             />
                         ) : (
-                            <span>{commit.displayName ?? commit.message ?? 'Backup'}</span>
+                            <span>{commit.displayName ?? commit.message ?? t('defaultName')}</span>
                         )}
                     </div>
                     <span className="text-muted-foreground font-light">
@@ -201,7 +203,7 @@ export const VersionRow = observer(
                             className="bg-background-secondary gap-2"
                         >
                             <Icons.Check className="text-foreground-success h-4 w-4" />
-                            <span className="text-muted-foreground">Restored</span>
+                            <span className="text-muted-foreground">{t('restored')}</span>
                         </Button>
                     ) : (
                         <div className="flex flex-row gap-2">
@@ -215,11 +217,11 @@ export const VersionRow = observer(
                                         disabled={isRenaming || isCheckingOut}
                                     >
                                         <Icons.Pencil className="mr-2 h-4 w-4" />
-                                        Rename
+                                        {t('rename')}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    Rename backup for easier identification
+                                    {t('renameTooltip')}
                                 </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -232,10 +234,10 @@ export const VersionRow = observer(
                                         disabled={isCheckingOut}
                                     >
                                         <Icons.CounterClockwiseClock className="mr-2 h-4 w-4" />
-                                        {isCheckingOut ? 'Restoring...' : 'Restore'}
+                                        {isCheckingOut ? t('restoring') : t('restore')}
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Restore project to this version</TooltipContent>
+                                <TooltipContent>{t('restoreTooltip')}</TooltipContent>
                             </Tooltip>
                         </div>
                     )}

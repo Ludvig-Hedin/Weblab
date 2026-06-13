@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Badge } from '@weblab/ui/badge';
 import { Skeleton } from '@weblab/ui/skeleton';
 
@@ -12,6 +14,7 @@ interface BillingHistoryProps {
 }
 
 function StatusBadge({ status }: { status: string | null }) {
+    const t = useTranslations('settings.billing.history');
     const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
     if (status === 'paid') {
         return (
@@ -19,7 +22,7 @@ function StatusBadge({ status }: { status: string | null }) {
                 variant="outline"
                 className="border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             >
-                Paid
+                {t('paid')}
             </Badge>
         );
     }
@@ -31,9 +34,10 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 export const BillingHistory = ({ invoices, isLoading }: BillingHistoryProps) => {
+    const t = useTranslations('settings.billing.history');
     return (
         <div className="space-y-3">
-            <p className="text-regularPlus font-medium">Billing history</p>
+            <p className="text-regularPlus font-medium">{t('title')}</p>
 
             {isLoading ? (
                 <div className="space-y-2">
@@ -42,7 +46,7 @@ export const BillingHistory = ({ invoices, isLoading }: BillingHistoryProps) => 
                     ))}
                 </div>
             ) : invoices.length === 0 ? (
-                <p className="text-small text-muted-foreground">No invoices yet.</p>
+                <p className="text-small text-muted-foreground">{t('noInvoices')}</p>
             ) : (
                 <div className="divide-border-secondary divide-y">
                     {invoices.map((invoice) => (
@@ -65,10 +69,10 @@ export const BillingHistory = ({ invoices, isLoading }: BillingHistoryProps) => 
                                     rel="noopener noreferrer"
                                     className="text-foreground hover:text-foreground/80 underline underline-offset-2"
                                 >
-                                    View
+                                    {t('view')}
                                 </a>
                             ) : (
-                                <span className="text-muted-foreground/50">View</span>
+                                <span className="text-muted-foreground/50">{t('view')}</span>
                             )}
                         </div>
                     ))}

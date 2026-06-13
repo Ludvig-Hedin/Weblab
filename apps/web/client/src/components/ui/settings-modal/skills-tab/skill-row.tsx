@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -22,6 +24,7 @@ export function SkillRow({
     onEdit?: (skill: SkillRowItem) => void;
     onDelete?: (skill: SkillRowItem) => void;
 }) {
+    const t = useTranslations('settings.skills');
     const isBuiltIn = skill.scope === 'built-in';
     return (
         <div className="border-border/40 hover:border-border bg-background-secondary/40 group flex items-start gap-3 rounded-md border p-3 transition-colors">
@@ -48,13 +51,13 @@ export function SkillRow({
                                 variant="ghost"
                                 disabled
                                 className="h-7 w-7"
-                                aria-label="Built-in skill (read-only)"
+                                aria-label={t('rowBuiltIn')}
                             >
                                 <Icons.LockClosed className="h-3.5 w-3.5" />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="left">
-                            Built-in skills are read-only. Create a same-named skill to override.
+                            {t('rowBuiltInTooltip')}
                         </TooltipContent>
                     </Tooltip>
                 ) : (
@@ -64,7 +67,7 @@ export function SkillRow({
                             variant="ghost"
                             className="h-7 w-7"
                             onClick={() => onEdit?.(skill)}
-                            aria-label={`Edit ${skill.name}`}
+                            aria-label={t('rowEdit')}
                         >
                             <Icons.Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -73,7 +76,7 @@ export function SkillRow({
                             variant="ghost"
                             className="text-destructive hover:text-destructive h-7 w-7"
                             onClick={() => onDelete?.(skill)}
-                            aria-label={`Delete ${skill.name}`}
+                            aria-label={t('rowDelete')}
                         >
                             <Icons.Trash className="h-3.5 w-3.5" />
                         </Button>

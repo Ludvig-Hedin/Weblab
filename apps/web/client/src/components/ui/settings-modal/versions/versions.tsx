@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { Button } from '@weblab/ui/button';
@@ -13,6 +14,8 @@ import { NoVersions } from './empty-state/version';
 import { VersionRow, VersionRowType } from './version-row';
 
 export const Versions = observer(() => {
+    const t = useTranslations('settings.versions');
+    const locale = useLocale();
     const editorEngine = useEditorEngine();
     const [commitToRename, setCommitToRename] = useState<string | null>(null);
     const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -32,12 +35,11 @@ export const Versions = observer(() => {
 
             let dateKey: string;
             if (date.toDateString() === today.toDateString()) {
-                dateKey = 'Today';
+                dateKey = t('today');
             } else if (date.toDateString() === yesterday.toDateString()) {
-                dateKey = 'Yesterday';
+                dateKey = t('yesterday');
             } else {
-                // Format the date in a more human-readable way
-                dateKey = date.toLocaleDateString('en-US', {
+                dateKey = date.toLocaleDateString(locale, {
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric',
@@ -57,19 +59,19 @@ export const Versions = observer(() => {
         try {
             setIsCreatingBackup(true);
             if (!gitManager) {
-                toast.error('Git not initialized');
+                toast.error(t('toastGitNotInit'));
                 return;
             }
 
             const result = await gitManager.createCommit();
             if (!result.success) {
-                toast.error('Failed to create backup', {
+                toast.error(t('toastCreateFailed'), {
                     description: result.error || 'Unknown error',
                 });
                 return;
             }
 
-            toast.success('Backup created successfully!');
+            toast.success(t('toastCreateSuccess'));
             editorEngine.posthog.capture('versions_create_commit_success');
 
             const latestCommit = gitManager.commits?.[0];
@@ -79,7 +81,7 @@ export const Versions = observer(() => {
             }
             setCommitToRename(latestCommit.oid);
         } catch (error) {
-            toast.error('Failed to create backup', {
+            toast.error(t('toastCreateFailed'), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {
@@ -90,7 +92,7 @@ export const Versions = observer(() => {
     return (
         <div className="text-regular flex flex-col">
             <div className="flex flex-row items-center justify-center gap-3 px-6 py-6">
-                <h2 className="text-largePlus">Backup Versions</h2>
+                <h2 className="text-largePlus">{t('title')}</h2>
 
                 {isLoadingCommits && <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />}
 
@@ -102,7 +104,7 @@ export const Versions = observer(() => {
                     }}
                 >
                     <SelectTrigger className="ml-auto min-w-38">
-                        <SelectValue placeholder="Select branch" />
+                        <SelectValue placeholder={t('selectBranch')} />
                     </SelectTrigger>
                     <SelectContent>
                         {editorEngine.branches.allBranches.map((branch) => (
@@ -124,7 +126,7 @@ export const Versions = observer(() => {
                         ) : (
                             <Icons.Plus className="mr-2 h-4 w-4" />
                         )}
-                        New backup
+                        {t('newBackup')}
                     </Button>
                 )}
             </div>
@@ -146,7 +148,7 @@ export const Versions = observer(() => {
                                                     <VersionRow
                                                         commit={commit}
                                                         type={
-                                                            date === 'Today'
+                                                            date === t('today')
                                                                 ? VersionRowType.TODAY
                                                                 : VersionRowType.PREVIOUS_DAYS
                                                         }

@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { cn } from '@weblab/ui/utils';
 
 export type SkillScopeLabel = 'built-in' | 'global' | 'project';
@@ -8,13 +10,13 @@ const STYLES: Record<SkillScopeLabel, string> = {
     project: 'bg-background-warning/40 text-foreground-warning border-warning',
 };
 
-const TEXT: Record<SkillScopeLabel, string> = {
-    'built-in': 'Built-in',
-    global: 'Global',
-    project: 'This project',
-};
-
 export function ScopeBadge({ scope, className }: { scope: SkillScopeLabel; className?: string }) {
+    const t = useTranslations('settings.skills');
+    const TEXT: Record<SkillScopeLabel, string> = {
+        'built-in': t('badgeBuiltIn'),
+        global: t('badgeGlobal'),
+        project: t('badgeProject'),
+    };
     return (
         <span
             className={cn(

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import type { BillingSubscription } from '@convex/subscriptions';
 import { ScheduledSubscriptionAction } from '@weblab/stripe';
@@ -18,6 +19,7 @@ interface CancelPlanProps {
 }
 
 export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
+    const t = useTranslations('settings.billing.cancel');
     const cancelSubscription = useAction(api.subscriptionActions.cancelSubscription);
     const reactivateSubscription = useAction(api.subscriptionActions.reactivateSubscription);
 
@@ -33,11 +35,11 @@ export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
         setIsBusy(true);
         try {
             await cancelSubscription({});
-            toast.success('Subscription set to cancel at period end');
+            toast.success(t('toastCancelSuccess'));
             setIsCancelModalOpen(false);
         } catch (error) {
             console.error('Failed to cancel subscription:', error);
-            toast.error('Failed to cancel subscription');
+            toast.error(t('toastCancelFailed'));
         } finally {
             setIsBusy(false);
         }
@@ -47,10 +49,10 @@ export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
         setIsBusy(true);
         try {
             await reactivateSubscription({});
-            toast.success('Subscription reactivated');
+            toast.success(t('toastReactivateSuccess'));
         } catch (error) {
             console.error('Failed to reactivate subscription:', error);
-            toast.error('Failed to reactivate subscription');
+            toast.error(t('toastReactivateFailed'));
         } finally {
             setIsBusy(false);
         }
@@ -60,12 +62,12 @@ export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
         <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
                 <p className="text-regularPlus font-medium">
-                    {isCancelling ? 'Reactivate plan' : 'Cancel plan'}
+                    {isCancelling ? t('reactivateTitle') : t('cancelTitle')}
                 </p>
                 <p className="text-small text-muted-foreground">
                     {isCancelling
-                        ? `Your plan cancels on ${formatDate(subscription.scheduledChange!.scheduledChangeAt)}. Reactivate to keep it.`
-                        : "If you cancel, you'll keep full access to your plan features until the end of your billing period."}
+                        ? t('reactivateDesc', { date: formatDate(subscription.scheduledChange!.scheduledChangeAt) })
+                        : t('cancelDesc')}
                 </p>
             </div>
             {isCancelling ? (
@@ -75,7 +77,7 @@ export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
                     onClick={() => void handleReactivate()}
                     disabled={isBusy}
                 >
-                    Reactivate
+                    {t('reactivate')}
                 </Button>
             ) : (
                 <Button
@@ -84,7 +86,7 @@ export const CancelPlan = ({ subscription, isPro }: CancelPlanProps) => {
                     onClick={() => setIsCancelModalOpen(true)}
                     disabled={isBusy}
                 >
-                    Cancel
+                    {t('cancel')}
                 </Button>
             )}
 

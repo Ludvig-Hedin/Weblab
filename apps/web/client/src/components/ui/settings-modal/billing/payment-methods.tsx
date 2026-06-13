@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import { Badge } from '@weblab/ui/badge';
 import { Button } from '@weblab/ui/button';
@@ -27,6 +28,7 @@ interface PaymentMethodsProps {
 }
 
 export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMethodsProps) => {
+    const t = useTranslations('settings.billing.payment');
     const setDefaultPaymentMethod = useAction(api.subscriptionActions.setDefaultPaymentMethod);
     const deletePaymentMethod = useAction(api.subscriptionActions.deletePaymentMethod);
     const addPaymentMethod = useAction(api.subscriptionActions.addPaymentMethod);
@@ -39,36 +41,35 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
         setBusyId(id);
         try {
             await setDefaultPaymentMethod({ paymentMethodId: id });
-            toast.success('Default payment method updated');
+            toast.success(t('toastDefaultSuccess'));
             await refresh();
         } catch (error) {
             console.error('Failed to set default payment method:', error);
-            toast.error('Failed to update default payment method');
+            toast.error(t('toastDefaultFailed'));
         } finally {
             setBusyId(null);
         }
     };
 
     const handleDelete = async (id: string) => {
-        // Confirm first — removing a saved card is destructive with no undo.
         const ok = await confirm({
-            title: 'Remove payment method?',
-            description: 'This card will be removed from your account.',
-            confirmLabel: 'Remove',
+            title: t('removeConfirmTitle'),
+            description: t('removeConfirmDesc'),
+            confirmLabel: t('remove'),
             destructive: true,
         });
         if (!ok) return;
         setBusyId(id);
         try {
             await deletePaymentMethod({ paymentMethodId: id });
-            toast.success('Payment method removed');
+            toast.success(t('toastRemoveSuccess'));
             await refresh();
         } catch (error) {
             console.error('Failed to delete payment method:', error);
             if (String(error).includes('CANNOT_DELETE_DEFAULT')) {
-                toast.error('Set another card as default before removing this one.');
+                toast.error(t('toastRemoveDefaultError'));
             } else {
-                toast.error('Failed to remove payment method');
+                toast.error(t('toastRemoveFailed'));
             }
         } finally {
             setBusyId(null);
@@ -84,7 +85,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
             }
         } catch (error) {
             console.error('Failed to open add-card flow:', error);
-            toast.error('Failed to open the add-card flow');
+            toast.error(t('toastAddFailed'));
         } finally {
             setIsAdding(false);
         }
@@ -93,14 +94,14 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <p className="text-regularPlus font-medium">Payment methods</p>
+                <p className="text-regularPlus font-medium">{t('title')}</p>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => void handleAddNew()}
                     disabled={isAdding}
                 >
-                    {isAdding ? 'Opening...' : 'Add new'}
+                    {isAdding ? t('opening') : t('addNew')}
                 </Button>
             </div>
 
@@ -111,7 +112,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
                     ))}
                 </div>
             ) : paymentMethods.length === 0 ? (
-                <p className="text-small text-muted-foreground">No payment methods saved.</p>
+                <p className="text-small text-muted-foreground">{t('noPaymentMethods')}</p>
             ) : (
                 <div className="divide-border-secondary divide-y">
                     {paymentMethods.map((pm) => (
@@ -125,12 +126,12 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
                                     </span>
                                 </p>
                                 <p className="text-mini text-muted-foreground">
-                                    Expires {formatCardExpiry(pm.expMonth, pm.expYear)}
+                                    {t('expires')} {formatCardExpiry(pm.expMonth, pm.expYear)}
                                 </p>
                             </div>
                             {pm.isDefault && (
                                 <Badge variant="secondary" className="text-muted-foreground">
-                                    Default
+                                    {t('defaultBadge')}
                                 </Badge>
                             )}
                             <DropdownMenu>
@@ -139,7 +140,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
                                         variant="ghost"
                                         size="icon-sm"
                                         disabled={busyId === pm.id}
-                                        aria-label="Payment method options"
+                                        aria-label={t('optionsLabel')}
                                     >
                                         <Icons.DotsVertical className="h-4 w-4" />
                                     </Button>
@@ -151,7 +152,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
                                             className="cursor-pointer"
                                         >
                                             <Icons.Check className="mr-2 h-4 w-4" />
-                                            Set as default
+                                            {t('setAsDefault')}
                                         </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
@@ -159,7 +160,7 @@ export const PaymentMethods = ({ paymentMethods, isLoading, refresh }: PaymentMe
                                         className="group text-destructive hover:text-destructive cursor-pointer"
                                     >
                                         <Icons.Trash className="text-destructive group-hover:text-destructive mr-2 h-4 w-4" />
-                                        Remove
+                                        {t('remove')}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

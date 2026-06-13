@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -51,6 +52,7 @@ export function SkillFormDialog({
     /** When provided, the dialog is in edit mode for this DB skill. */
     initial?: InitialSkill;
 }) {
+    const t = useTranslations('settings.skills');
     const isEditing = Boolean(initial);
     const [name, setName] = useState(initial?.name ?? '');
     const [description, setDescription] = useState(initial?.description ?? '');
@@ -73,10 +75,10 @@ export function SkillFormDialog({
     const nameError = useMemo(() => {
         if (!name) return null;
         if (!NAME_RE.test(name)) {
-            return 'Use lowercase letters, digits, hyphens. 2–40 chars.';
+            return t('formNameChars');
         }
         return null;
-    }, [name]);
+    }, [name, t]);
 
     const shadowsBuiltIn = !isEditing && builtInNames.has(name);
 
@@ -118,21 +120,19 @@ export function SkillFormDialog({
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        {isEditing ? 'Edit skill' : 'New skill'}
+                        {isEditing ? t('formEditTitle') : t('formNewTitle')}
                         {isEditing && initial ? (
                             <ScopeBadge scope={initial.projectId ? 'project' : 'global'} />
                         ) : null}
                     </DialogTitle>
                     <DialogDescription>
-                        Skills teach the AI how to handle specific tasks. Add a name, a one-line
-                        trigger description, and the markdown body the AI reads via{' '}
-                        <code className="bg-muted text-mini rounded px-1 py-0.5">read_skill</code>.
+                        {t('description')}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
                     <div className="space-y-2">
-                        <Label htmlFor="skill-name">Name</Label>
+                        <Label htmlFor="skill-name">{t('formNameLabel')}</Label>
                         <Input
                             id="skill-name"
                             value={name}
@@ -145,33 +145,32 @@ export function SkillFormDialog({
                             <p className="text-destructive text-mini">{nameError}</p>
                         ) : shadowsBuiltIn ? (
                             <p className="text-muted-foreground text-mini">
-                                Heads up: this overrides the built-in &quot;{name}&quot; skill.
+                                {t('formOverrideBuiltIn', { name })}
                             </p>
                         ) : (
                             <p className="text-muted-foreground text-mini">
-                                Lowercase letters, digits, hyphens. The AI uses this to find the
-                                skill.
+                                {t('formNameHint')}
                             </p>
                         )}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="skill-description">Description</Label>
+                        <Label htmlFor="skill-description">{t('formDescLabel')}</Label>
                         <Input
                             id="skill-description"
                             value={description}
                             onChange={(e) => setDescription(e.target.value.slice(0, 200))}
-                            placeholder="One sentence — when should the AI use this skill?"
+                            placeholder={t('formDescHint')}
                             maxLength={200}
                         />
                         <p className="text-muted-foreground text-mini">
-                            {description.length}/200 — shown to the AI in the system prompt.
+                            {description.length}{t('formDescChars')}
                         </p>
                     </div>
 
                     {!isEditing && projectId ? (
                         <div className="space-y-2">
-                            <Label htmlFor="skill-scope">Scope</Label>
+                            <Label htmlFor="skill-scope">{t('formScopeLabel')}</Label>
                             <Select
                                 value={scope}
                                 onValueChange={(v) => setScope(v as SkillFormScope)}
@@ -181,16 +180,16 @@ export function SkillFormDialog({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="global">
-                                        Global — available in every project
+                                        {t('formScopeGlobal')}
                                     </SelectItem>
-                                    <SelectItem value="project">This project only</SelectItem>
+                                    <SelectItem value="project">{t('formScopeProject')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     ) : null}
 
                     <div className="space-y-2">
-                        <Label htmlFor="skill-content">Body</Label>
+                        <Label htmlFor="skill-content">{t('formBodyLabel')}</Label>
                         <Textarea
                             id="skill-content"
                             value={content}
@@ -200,17 +199,17 @@ export function SkillFormDialog({
                             className={cn('text-mini font-mono')}
                         />
                         <p className="text-muted-foreground text-mini">
-                            {content.length}/50,000 — markdown body the AI reads via read_skill.
+                            {content.length}{t('formBodyHint')}
                         </p>
                     </div>
                 </div>
 
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t('formCancel')}
                     </Button>
                     <Button onClick={() => void submit()} disabled={!canSubmit}>
-                        {isSaving ? 'Saving…' : isEditing ? 'Save changes' : 'Create skill'}
+                        {isSaving ? t('formSaving') : isEditing ? t('formSave') : t('formCreate')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
