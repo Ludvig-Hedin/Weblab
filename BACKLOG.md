@@ -38,6 +38,43 @@ later without re-discovering the context.
 
 ## Open
 
+### Stale `en.d.json.ts` breaks `@weblab/web-client` typecheck
+
+- **Discovered:** 2026-06-13 (caveman-review / bug-hunt of local changes — found while validating an unrelated font change; break is NOT from that work).
+- **Where:** `apps/web/client/src/app/project/[id]/_components/members/member-row.tsx:28,51` — `useTranslations('editor.members.row')` + `t('removed', { name })`.
+- **Symptom:** `bun typecheck` fails (exit 2): TS2345 `'"editor.members.row"' is not assignable to NamespaceKeys<…>` and `{ name: string }` not assignable to `undefined`. Only errors in the whole web-client typecheck; everything else is green.
+- **Root cause:** `editor.members.row` **exists** in `messages/en.json`, but `messages/en.d.json.ts` (the next-intl-generated declaration that `useTranslations` is typed against, via `createMessagesDeclaration` in `next.config.ts`) is **stale** — it predates that namespace. Surfaced from a parallel in-flight i18n migration (commits `fe1ff4c99`, `07ed7f42a`; `member-row.tsx` is actively edited in another session).
+- **Next step:** Regenerate the declaration by running `next dev`/`next build` (next-intl rewrites `en.d.json.ts` on boot), then commit the regenerated file alongside the i18n change. Do **not** hand-edit `en.d.json.ts`.
+- **Risk if ignored:** CI/build typecheck stays red; any PR is blocked until the declaration catches up.
+- **Tags:** `#bug` `#infra` `#tech-debt`
+
+### Storybook preview still loads Inter web-font (out of sync with app)
+
+- **Discovered:** 2026-06-13 (caveman-review of font change).
+- **Where:** `apps/web/client/.storybook/preview.tsx:3,9-12,25`.
+- **Symptom:** App dropped the Inter `next/font` web-font for a pure system stack (`layout.tsx`, `styles/globals.css`, `packages/ui/src/globals.css`), but Storybook still imports `Inter` and wraps stories in `--font-inter`. Component previews render in Inter while production renders in the system stack — previews misrepresent real typography.
+- **Next step:** Remove the `Inter` import + the `--font-inter` wrapper in `preview.tsx` so Storybook inherits the same system stack as `globals.css`.
+- **Risk if ignored:** Visual QA in Storybook doesn't match shipped fonts; cosmetic only.
+- **Tags:** `#tech-debt` `#docs`
+
+### Locale files `en.json` / `sv.json` reindented 4→2 spaces (off-standard)
+
+- **Discovered:** 2026-06-13 (caveman-review).
+- **Where:** `apps/web/client/messages/en.json`, `messages/sv.json` (landed in `fe1ff4c99`/`07ed7f42a`).
+- **Symptom:** Both reformatted from 4-space to 2-space, while `es/ja/ko/zh.json` and the prettier config (`tooling/prettier/index.js`, `tabWidth: 4`) stay 4-space. JSON is valid and en≡sv key parity holds, so nothing breaks at runtime — but it's a ~6.5k-line whitespace churn + cross-locale inconsistency. The repo `format` script is `eslint --fix` (ignores JSON), so no tool auto-corrects it.
+- **Next step:** Re-run prettier with the repo config (`--config tooling/prettier/index.js`) on just `en.json` + `sv.json` to restore 4-space, in a dedicated formatting-only commit.
+- **Risk if ignored:** Noisy diffs / merge friction on locale files; cosmetic.
+- **Tags:** `#tech-debt`
+
+### Dead i18n keys in `settings` namespace
+
+- **Discovered:** 2026-06-13 (caveman-review).
+- **Where:** `messages/en.json` + `sv.json` — `settings.project.copyIdFailed`, `settings.page.accessTypeLabel`.
+- **Symptom:** Both keys have zero references in `apps/web/client/src` (component uses `toastCopyIdFailed`; the access toggle has no `accessTypeLabel` consumer). Harmless dead weight.
+- **Next step:** Delete the two keys from both locale files (and any other locale that copied them).
+- **Risk if ignored:** None functional; minor bloat / confusion.
+- **Tags:** `#tech-debt`
+
 ### AI Wireframes — deferred follow-ups (MVP shipped 2026-06-13)
 
 - **Discovered:** 2026-06-13 (AI wireframes feature build — F-790…F-794). The feature is complete and green: real shadcn blocks render in-canvas and emit as real code to **both** local (desktop NodeFs bridge) and cloud (Vercel Sandbox). These are scoped enhancements.
