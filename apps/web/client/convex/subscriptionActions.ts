@@ -184,8 +184,12 @@ export const update = action({
             try {
                 await stripe.subscriptionSchedules.release(owned.stripeSubscriptionScheduleId);
             } catch (err) {
-                const code = (err as { code?: string } | null)?.code;
-                if (code !== 'invalid_request_error') throw err;
+                // Stripe's `error.code` is the granular code (e.g. 'resource_missing'),
+                // never the class 'invalid_request_error', so the old check never
+                // matched and every error rethrew — bricking the upgrade path. Detect
+                // the error class directly and tolerate an already-released schedule;
+                // rethrow anything else.
+                if (!(err instanceof Stripe.errors.StripeInvalidRequestError)) throw err;
                 console.warn(
                     '[subscriptionActions.update] schedule already released',
                     owned.stripeSubscriptionScheduleId,
@@ -355,12 +359,11 @@ export const releaseSubscriptionSchedule = action({
         try {
             await stripe.subscriptionSchedules.release(subscriptionScheduleId);
         } catch (error: unknown) {
-            const isInvalidRequest =
-                typeof error === 'object' &&
-                error !== null &&
-                'type' in error &&
-                (error as { type?: string }).type === 'invalid_request_error';
-            if (!isInvalidRequest) throw error;
+            // `error.type` is the JS class name ('StripeInvalidRequestError'),
+            // not the raw API string 'invalid_request_error', so the old check
+            // never matched and a stale schedule could never be cleaned up.
+            // Detect the error class directly; rethrow anything else.
+            if (!(error instanceof Stripe.errors.StripeInvalidRequestError)) throw error;
             // Already released — fall through to DB cleanup.
         }
 
@@ -669,8 +672,11 @@ export const reactivateSubscription = action({
             try {
                 await stripe.subscriptionSchedules.release(sub.stripeSubscriptionScheduleId);
             } catch (err) {
-                const code = (err as { code?: string } | null)?.code;
-                if (code !== 'invalid_request_error') throw err;
+                // `err.code` is the granular code (e.g. 'resource_missing'), never
+                // 'invalid_request_error', so the old check never matched and an
+                // already-released schedule rethrew instead of falling through to
+                // DB cleanup. Detect the error class directly; rethrow anything else.
+                if (!(err instanceof Stripe.errors.StripeInvalidRequestError)) throw err;
             }
             await ctx.runMutation(internal.lib.stripeWebhook._clearScheduleChange, {
                 stripeSubscriptionScheduleId: sub.stripeSubscriptionScheduleId,

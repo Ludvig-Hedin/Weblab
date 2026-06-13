@@ -70,6 +70,9 @@ function credentials(): { teamId: string; projectId: string; token: string } {
     return { teamId, projectId, token };
 }
 
+// TODO(bug-hunt): unbounded — handles for stopped/expired sandboxes are only
+// evicted on a "gone" error, so a long-running deploy accumulates stale
+// entries forever. Add TTL/LRU eviction.
 const cache = new Map<string, Promise<Sandbox>>();
 
 const INSTALL_COMMAND = [
@@ -169,6 +172,12 @@ export async function fileRead(
     sandboxId: string,
     path: string,
 ): Promise<{ path: string; type: 'text'; content: string }> {
+    // TODO(bug-hunt): reads every file as utf8 and hardcodes `type: 'text'`.
+    // Binary assets (images, fonts, .zip, etc.) round-tripped through ZenFS
+    // are decoded as utf8 here and re-encoded downstream, corrupting their
+    // bytes (invalid sequences become U+FFFD). Detect binary by extension /
+    // null-byte sniff, read as a Buffer, and return base64 with `type:
+    // 'binary'` so the provider can decode it losslessly.
     const content = await withSandbox(sandboxId, (sandbox) => sandbox.fs.readFile(path, 'utf8'));
     return { path, type: 'text', content };
 }
@@ -279,8 +288,10 @@ function resolvePort(port?: number | null): number {
 
 function inferPortFromDevScript(devScript: string): number | null {
     const explicitPort = /(?:--listen|-l)\s+(?:tcp:\/\/[^:]+:)?(\d{2,5})\b/.exec(devScript)?.[1];
+    // `next dev -p 4000`, `vite --port 5173`, `astro dev --port=8080`, …
+    const portFlag = /(?:^|\s)(?:--port|-p)[=\s]+(\d{2,5})\b/.exec(devScript)?.[1];
     const localhostPort = /(?:localhost|0\.0\.0\.0|127\.0\.0\.1):(\d{2,5})\b/.exec(devScript)?.[1];
-    const rawPort = explicitPort ?? localhostPort;
+    const rawPort = explicitPort ?? portFlag ?? localhostPort;
     if (!rawPort) return null;
     const port = Number.parseInt(rawPort, 10);
     return Number.isInteger(port) && port > 0 && port <= 65_535 ? port : null;
@@ -293,10 +304,32 @@ function parseMajorVersion(version: string | undefined): number | null {
     return Number.isInteger(major) ? major : null;
 }
 
+// Per-sandbox in-flight setup, mirroring the sandbox handle `cache` above.
+// Two concurrent setup calls for the same sandbox (e.g. the project open in
+// two tabs) would otherwise run `npm install` twice and spawn duplicate dev
+// servers that fight over the same build output. Share the in-flight promise
+// instead; entries are removed on settle so a failed setup can be retried.
+const inFlightSetups = new Map<string, Promise<{ success: boolean; previewUrl: string }>>();
+
 export async function setup(
     sandboxId: string,
     options: SandboxSetupOptions = {},
     retryOnGone = true,
+): Promise<{ success: boolean; previewUrl: string }> {
+    let inFlight = inFlightSetups.get(sandboxId);
+    if (!inFlight) {
+        inFlight = performSetup(sandboxId, options, retryOnGone).finally(() => {
+            inFlightSetups.delete(sandboxId);
+        });
+        inFlightSetups.set(sandboxId, inFlight);
+    }
+    return inFlight;
+}
+
+async function performSetup(
+    sandboxId: string,
+    options: SandboxSetupOptions,
+    retryOnGone: boolean,
 ): Promise<{ success: boolean; previewUrl: string }> {
     const sandbox = await withSandbox(sandboxId, (sandbox) => Promise.resolve(sandbox));
     try {
@@ -311,7 +344,17 @@ export async function setup(
         console.log(`[setup] node_modules present? ${nm.trim()}`);
         if (!nm.includes('yes') || needsLegacyNextUpgrade) {
             console.log('[setup] running dependency install…');
-            await runShell(sandbox, INSTALL_COMMAND);
+            // `runCommand` resolves (never throws) on a non-zero exit, so an
+            // unchecked install failure surfaces 90s later as a misleading
+            // "dev server failed to bind port" error whose log tail never
+            // contains the real install error. Fail loudly here instead.
+            const install = await runShell(sandbox, INSTALL_COMMAND);
+            if (install.exitCode !== 0) {
+                const output = await install.output('both');
+                throw new Error(
+                    `[setup] dependency install failed (exit code ${install.exitCode}). Recent output:\n${output.slice(-2000)}`,
+                );
+            }
             console.log('[setup] dependency install complete');
         }
 

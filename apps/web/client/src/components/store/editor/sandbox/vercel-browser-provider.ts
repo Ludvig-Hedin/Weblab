@@ -174,10 +174,18 @@ export class VercelBrowserProvider extends Provider {
                 sandboxId: this.sandboxId,
                 path: input.args.path,
             });
-        } catch {
-            // Degrade to the pre-wiring behavior (empty) rather than throw
-            // during boot if the sandbox server is unreachable.
-            return { files: [] };
+        } catch (err) {
+            // MUST rethrow. Returning an empty list on a transient per-subdir
+            // failure makes the subtree look deleted to the sync engine —
+            // pullFromSandbox's `listingIncomplete` guard only trips on a THROW
+            // (getAllSandboxFiles catch sets the flag), so swallowing here
+            // would let one flaky listing wipe the local subtree and echo the
+            // deletion back into the sandbox (same class as the boot-sync wipe).
+            // The sole other caller — getAllSandboxFiles' recursive directory
+            // sync inside the watcher — already wraps each listFiles call in its
+            // own try/catch and tolerates a throw.
+            console.error('[VercelBrowserProvider] listFiles failed', err);
+            throw err;
         }
     }
 

@@ -539,7 +539,7 @@ export class GitManager {
      */
     async restoreToCommit(commitOid: string): Promise<GitCommandResult> {
         const result = await withSyncPaused(this.sandbox.syncEngine, () => {
-            return this.runCommand(`git restore --source ${commitOid} .`);
+            return this.restoreToCommitInternal(commitOid);
         });
 
         if (result.success) {
@@ -547,6 +547,55 @@ export class GitManager {
         }
 
         return result;
+    }
+
+    /**
+     * `git restore --source <oid> .` only rewrites the contents of paths that
+     * existed at <oid>; files that were ADDED after <oid> are left in place, so
+     * a "restore to this version" would still leak newer files. After the
+     * restore we enumerate paths added between <oid> and HEAD and remove them
+     * from the working tree so the tree truly matches <oid>.
+     */
+    private async restoreToCommitInternal(commitOid: string): Promise<GitCommandResult> {
+        const escapedOid = escapeShellString(commitOid);
+        const restoreResult = await this.runCommand(`git restore --source ${escapedOid} .`);
+        if (!restoreResult.success) {
+            return restoreResult;
+        }
+
+        // `--diff-filter=A` lists only files added between <oid> and HEAD. This
+        // is limited to tracked history, so .gitignore'd files are never
+        // included and won't be deleted.
+        const addedResult = await this.runCommand(
+            `git diff --name-only --diff-filter=A ${escapedOid} HEAD`,
+            true,
+        );
+        if (!addedResult.success) {
+            return addedResult;
+        }
+
+        const addedPaths = (addedResult.output ?? '')
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean);
+
+        if (addedPaths.length === 0) {
+            // Nothing was added after the target commit — restore alone sufficed.
+            return restoreResult;
+        }
+
+        // `git rm -f` drops the paths from both the index and the working tree,
+        // keeping the index consistent with the restored snapshot. `--` guards
+        // against paths that look like options.
+        const escapedPaths = addedPaths.map((path) => escapeShellString(path)).join(' ');
+        const removeResult = await this.runCommand(`git rm -f -- ${escapedPaths}`);
+        if (!removeResult.success) {
+            // Surface delete failures rather than silently leaving newer files
+            // behind — callers treat a failed result as a failed restore.
+            return removeResult;
+        }
+
+        return restoreResult;
     }
 
     /**

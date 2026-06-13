@@ -187,6 +187,12 @@ function insertChildAt(
     if (location.type === 'prepend') {
         parent.childNodes.unshift(child);
     } else if (location.type === 'index' && typeof location.index === 'number') {
+        // TODO(bug-hunt): `location.index` is a DOM element-index (counts only
+        // element children) but `parent.childNodes` includes whitespace #text
+        // nodes between elements. Splicing at the raw element-index lands the
+        // new node at the wrong source position, offset by the intervening text
+        // nodes. Mirror the JSX element-index → children-index mapping: walk
+        // childNodes counting only Elements until the Nth element, splice there.
         const idx = Math.max(0, Math.min(location.index, parent.childNodes.length));
         parent.childNodes.splice(idx, 0, child);
     } else {

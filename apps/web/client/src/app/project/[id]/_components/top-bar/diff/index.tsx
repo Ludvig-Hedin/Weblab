@@ -4,7 +4,6 @@ import { useCallback, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
-import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
@@ -40,7 +39,11 @@ export const DiffButton = observer(() => {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="mt-1" hideArrow>
-                    <HotkeyLabel hotkey={Hotkey.OPEN_DIFF} />
+                    {/* No HotkeyLabel: OPEN_DIFF isn't bound — the modal's open
+                        state is local to this component and not reachable from
+                        the global hotkeys area — so advertising a shortcut here
+                        would be a dead key. Show a plain label instead. */}
+                    {Hotkey.OPEN_DIFF.description}
                 </TooltipContent>
             </Tooltip>
             <DiffModal open={open} onOpenChange={handleOpenChange} />

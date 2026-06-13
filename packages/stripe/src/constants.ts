@@ -27,34 +27,14 @@ export interface PriceConfig {
     paymentInterval: 'month' | 'year';
 }
 
+// NOTE: legacy tiers TIER_25/50/75 were removed from this list. They were
+// rendered as selectable options in the pricing modal but the Convex
+// `vPriceKey` validator only accepts TIER_1..11, so selecting them threw a
+// validation error at checkout. The DB `prices.key` column is likewise gated
+// by `vPriceKey`, so no stored subscription can carry a legacy key — nothing
+// depends on these entries for display. The `PriceKey` enum members are kept
+// for backward-compatible decoding of any external references.
 export const PRO_PRICES: PriceConfig[] = [
-    {
-        description: '25 Credits per Month',
-        key: PriceKey.PRO_MONTHLY_TIER_25,
-        name: 'Tier 25',
-        product: ProductType.PRO,
-        monthlyMessageLimit: 25,
-        cost: 625,
-        paymentInterval: 'month',
-    },
-    {
-        description: '50 Credits per Month',
-        key: PriceKey.PRO_MONTHLY_TIER_50,
-        name: 'Tier 50',
-        product: ProductType.PRO,
-        monthlyMessageLimit: 50,
-        cost: 1250,
-        paymentInterval: 'month',
-    },
-    {
-        description: '75 Credits per Month',
-        key: PriceKey.PRO_MONTHLY_TIER_75,
-        name: 'Tier 75',
-        product: ProductType.PRO,
-        monthlyMessageLimit: 75,
-        cost: 1875,
-        paymentInterval: 'month',
-    },
     {
         description: '100 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_1,

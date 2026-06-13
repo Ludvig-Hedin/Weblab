@@ -268,6 +268,11 @@ export const Canvas = observer(() => {
         }
     }, []);
 
+    // TODO(bug-hunt): like the space-keyup handler in canvas/hotkeys/index.tsx,
+    // this always forces DESIGN mode on middle-mouse pan-end instead of
+    // restoring the mode that was active before the pan started. Middle-drag to
+    // pan while in PREVIEW/COMMENT/CMS drops the user into DESIGN. Capture the
+    // prior mode in middleMouseButtonDown and restore it here.
     const middleMouseButtonUp = useCallback((e: MouseEvent) => {
         if (e.button === 1) {
             editorEngine.state.setEditorMode(EditorMode.DESIGN);

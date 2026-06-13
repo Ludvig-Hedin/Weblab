@@ -80,6 +80,12 @@ export class CodeManager {
     async write(action: Action): Promise<boolean> {
         try {
             // TODO: This is a hack to write code, we should refactor this
+            // TODO(bug-hunt): only diffs[0] is written, but reverseWriteCodeAction
+            // reverses ALL diffs — a multi-diff write-code action drops every
+            // file after the first while its undo restores all of them
+            // (asymmetric inverse). An empty `diffs` array also falls through to
+            // getWriteCodeRequests, which throws "Not implemented". Apply every
+            // diff (and reject an empty array up front).
             if (action.type === 'write-code' && action.diffs[0]) {
                 // Write-code actions don't have branch context, use active editor
                 await this.editorEngine.fileSystem.writeFile(

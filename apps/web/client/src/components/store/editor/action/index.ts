@@ -24,7 +24,13 @@ export class ActionManager {
     constructor(private editorEngine: EditorEngine) {}
 
     async run(action: Action) {
-        await this.editorEngine.history.push(action);
+        const pushed = await this.editorEngine.history.push(action);
+        if (!pushed) {
+            // The code write failed (push already dropped the action from the
+            // undo stack and surfaced the error). Skip dispatch so the iframe
+            // doesn't show a ghost edit that was never saved.
+            return;
+        }
         await this.dispatch(action);
     }
 
@@ -131,35 +137,39 @@ export class ActionManager {
                 console.error('Failed to get frameView');
                 continue;
             }
-            const convertedChange = Object.fromEntries(
-                Object.entries(target.change.updated).map(([key, value]) => {
-                    const newValue = this.editorEngine.theme.getColorByName(value.value);
-                    if (value.type === StyleChangeType.Custom && newValue) {
-                        value.value = newValue;
-                    }
-                    if (value.type === StyleChangeType.Custom && !newValue) {
-                        value.value = '';
-                    }
-                    return [key, value];
-                }),
-            );
-            const change = {
+            // cloneDeep BEFORE the Custom-color conversion below: the
+            // StyleChange objects in `target.change` are the same references
+            // stored in the undo stack, so mutating them in place would
+            // corrupt the recorded action. Cloning here (instead of at the
+            // updateStyle call) also still keeps observable values from
+            // failing to pass through the webview.
+            const change = cloneDeep({
                 original: target.change.original,
-                updated: convertedChange,
-            };
+                updated: target.change.updated,
+            });
+            for (const value of Object.values(change.updated)) {
+                const newValue = this.editorEngine.theme.getColorByName(value.value);
+                if (value.type === StyleChangeType.Custom && newValue) {
+                    value.value = newValue;
+                }
+                if (value.type === StyleChangeType.Custom && !newValue) {
+                    value.value = '';
+                }
+            }
 
             if (!frameData.view) {
                 console.error('No frame view found');
                 continue;
             }
 
-            // cloneDeep is used to avoid observable values failing to pass through the webview.
+            // `change` was already deep-cloned above (so the conversion never
+            // touched the stored action and no observables cross the webview).
             // We pass `target.oid` so the iframe can resolve its local domId from the source-AST
             // oid when the parent's domId (the one from the frame the user clicked) doesn't exist
             // locally — that's the cross-iframe sibling fan-out path.
             const domEl = await frameData.view.updateStyle(
                 target.domId,
-                cloneDeep(change),
+                change,
                 target.breakpoint,
                 target.oid ?? null,
             );

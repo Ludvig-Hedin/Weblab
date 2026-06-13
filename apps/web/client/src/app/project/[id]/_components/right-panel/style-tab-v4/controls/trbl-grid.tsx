@@ -43,6 +43,12 @@ function SideField({
 }) {
     const [draft, setDraft] = useState(value);
     const inputRef = useRef<HTMLInputElement | null>(null);
+    // Mirrors TextField/NumberField: Escape/Enter skip the synchronous blur
+    // commit; blur only commits when the user actually typed this focus
+    // session — so Escape cancels cleanly and an untouched field never stomps
+    // an external value change.
+    const skipBlurCommitRef = useRef(false);
+    const userTouchedRef = useRef(false);
 
     useEffect(() => {
         if (document.activeElement !== inputRef.current) setDraft(value);
@@ -62,19 +68,41 @@ function SideField({
             spellCheck={false}
             value={draft}
             aria-label={ariaLabel}
-            onChange={(event) => setDraft(event.target.value)}
+            onFocus={() => {
+                userTouchedRef.current = false;
+            }}
+            onChange={(event) => {
+                userTouchedRef.current = true;
+                setDraft(event.target.value);
+            }}
             onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     commit(event.currentTarget.value);
+                    skipBlurCommitRef.current = true;
+                    userTouchedRef.current = false;
                     event.currentTarget.blur();
                 } else if (event.key === 'Escape') {
                     event.preventDefault();
                     setDraft(value);
+                    skipBlurCommitRef.current = true;
+                    userTouchedRef.current = false;
                     event.currentTarget.blur();
                 }
             }}
-            onBlur={(event) => commit(event.currentTarget.value)}
+            onBlur={(event) => {
+                if (skipBlurCommitRef.current) {
+                    skipBlurCommitRef.current = false;
+                    userTouchedRef.current = false;
+                    return;
+                }
+                if (!userTouchedRef.current) {
+                    if (draft !== value) setDraft(value);
+                    return;
+                }
+                userTouchedRef.current = false;
+                commit(event.currentTarget.value);
+            }}
             className={cn(
                 FIELD_BASE_CLASSES,
                 // Override the shared field's px-[10px] — at four-up the boxes

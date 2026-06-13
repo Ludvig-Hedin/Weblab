@@ -26,6 +26,27 @@ export interface SyncConfig {
 const DEFAULT_EXCLUDES = ['node_modules', '.git', '.next', 'dist', 'build', '.turbo'];
 
 /**
+ * Directory names that must be excluded at EVERY depth, mirroring the watcher's
+ * intent for dependency / VCS / tooling caches that legitimately nest (a
+ * monorepo has nested node_modules under each package, nested `.git`
+ * worktrees, etc.). A top-level-only anchor would let these huge trees sync
+ * from deep paths.
+ *
+ * Everything else in the exclude list (build / dist / static / out /
+ * .next-prod) is anchored to the TOP-LEVEL segment only, so genuine user
+ * source under `src/build`, `app/static`, etc. still round-trips. This matches
+ * the local watcher's root-anchored "dir then everything below" exclude
+ * semantics (a build output only lives at the project root).
+ */
+const DEEP_EXCLUDED_DIR_NAMES = new Set<string>([
+    'node_modules',
+    '.git',
+    '.next',
+    '.turbo',
+    '.weblab',
+]);
+
+/**
  * How long a sync-initiated local deletion suppresses the matching local
  * watcher event from being pushed back to the sandbox. Watcher events are
  * debounced ~50ms in the FS layer; 15s gives slack for large directory
@@ -80,6 +101,14 @@ export class CodeProviderSync {
      * them — that echo is what destroyed `public/_weblab` in the sandbox.
      */
     private syncDeletedRoots = new Map<string, number>();
+    /**
+     * Local paths (with leading slash, matching `fs.listFiles` output) whose
+     * sandbox read FAILED during the current pull. pushModifiedFilesToSandbox
+     * skips these so a transient read miss during pull doesn't cause the
+     * immediately-following push to overwrite the newer sandbox copy with the
+     * stale local one. Cleared at the start of every pull and re-populated.
+     */
+    private pullReadFailures = new Set<string>();
     private readonly excludes: string[];
     private readonly excludePatterns: string[];
     private fileHashes = new Map<string, string>();
@@ -287,6 +316,11 @@ export class CodeProviderSync {
 
     private async pullFromSandbox(): Promise<void> {
         this.listingIncomplete = false;
+        // Reset per-pull read-failure tracking. A path that failed to read on a
+        // previous (partial) pull must get a fresh chance this pass; if it
+        // succeeds now it's cleared, if it fails again it stays excluded from
+        // the subsequent push.
+        this.pullReadFailures.clear();
         const sandboxEntries = await this.getAllSandboxFiles('./');
         if (this.sandboxGone) {
             return;
@@ -363,6 +397,12 @@ export class CodeProviderSync {
                     }
                 } catch (error) {
                     if (this.noteSandboxGone(error)) break;
+                    // Record the read failure so the immediately-following push
+                    // doesn't overwrite a newer sandbox copy with the stale
+                    // local one. Stored without a leading slash to match the
+                    // push's `fs.listFiles` path form.
+                    const key = entry.path.startsWith('/') ? entry.path.substring(1) : entry.path;
+                    this.pullReadFailures.add(key);
                     console.debug(`[Sync] Skipping ${entry.path}:`, error);
                 }
             }
@@ -412,8 +452,21 @@ export class CodeProviderSync {
                 const fullPath = dir === './' ? entry.name : `${dir}/${entry.name}`;
 
                 if (entry.type === 'directory') {
-                    // Check if directory should be excluded
-                    if (!this.excludes.includes(entry.name)) {
+                    const normalizedDir = fullPath.startsWith('/')
+                        ? fullPath.substring(1)
+                        : fullPath;
+                    // An excluded directory is normally not descended into. BUT
+                    // a SYNC_PATH_OVERRIDES entry (e.g. `.weblab/interactions
+                    // .json`) can live inside one — descend when any override
+                    // path sits under this directory, otherwise the override is
+                    // unreachable on pulls and the file never round-trips.
+                    const isExcludedDir = this.excludes.includes(entry.name);
+                    const hasOverrideInside =
+                        isExcludedDir &&
+                        [...SYNC_PATH_OVERRIDES].some((ov) => ov.startsWith(`${normalizedDir}/`));
+                    if (!isExcludedDir || hasOverrideInside) {
+                        // Only push the directory entry itself if it actually
+                        // syncs (an override-bearing excluded dir does not).
                         if (this.shouldSync(fullPath)) {
                             files.push({ path: fullPath, type: 'directory' });
                         }
@@ -487,7 +540,20 @@ export class CodeProviderSync {
         try {
             // Get all local JSX/TSX files that might have been modified with OIDs
             const localFiles = await this.fs.listFiles('/');
-            const jsxFiles = localFiles.filter((path) => /\.(jsx?|tsx?)$/i.test(path));
+            const jsxFiles = localFiles.filter((path) => {
+                if (!/\.(jsx?|tsx?)$/i.test(path)) return false;
+                // Skip files whose sandbox read FAILED during the preceding
+                // pull: the local copy is potentially stale, so pushing it would
+                // clobber a newer sandbox version. They re-sync on the next pull.
+                const key = path.startsWith('/') ? path.substring(1) : path;
+                if (this.pullReadFailures.has(key)) {
+                    console.debug(
+                        `[Sync] Skipping push of ${path} — its sandbox read failed during pull.`,
+                    );
+                    return false;
+                }
+                return true;
+            });
 
             // TODO: Use available batch write API
             await Promise.all(
@@ -521,18 +587,40 @@ export class CodeProviderSync {
     }
 
     private shouldSync(path: string): boolean {
+        const normalized = path.startsWith('/') ? path.substring(1) : path;
+        const segments = normalized.split('/');
+
         // Check if path matches any exclude pattern
         const isExcluded = this.excludes.some((exc) => {
-            // Check if path is within excluded directory or is the excluded item itself
-            return path === exc || path.startsWith(`${exc}/`) || path.split('/').includes(exc);
+            // Exact path / nested-under-path match (handles full-path excludes
+            // like `public/weblab-preload-script.js`).
+            if (normalized === exc || normalized.startsWith(`${exc}/`)) {
+                return true;
+            }
+            // Single-segment excludes only: a multi-segment exclude is already a
+            // full relative path and was handled above.
+            if (exc.includes('/')) {
+                return false;
+            }
+            // Dependency / VCS / tooling caches: exclude at ANY depth so nested
+            // copies (monorepo node_modules, nested .git) never sync.
+            if (DEEP_EXCLUDED_DIR_NAMES.has(exc)) {
+                return segments.includes(exc);
+            }
+            // Build outputs (build / dist / static / out / .next-prod): exclude
+            // ONLY when they are the top-level segment, mirroring the watcher's
+            // root-anchored `${dir}/**`. User files under `src/build/` sync.
+            return segments[0] === exc;
         });
 
         if (isExcluded) {
             // Specific files inside excluded directories may still need to
             // round-trip (e.g. `.weblab/interactions.json` so external IDE
             // edits flow back into the editor). The override list is small
-            // and matched verbatim against the relative path.
-            if (SYNC_PATH_OVERRIDES.has(path)) {
+            // and matched against the leading-slash-stripped relative path so
+            // both pull (sandbox-relative) and watcher (`/`-prefixed) callers
+            // resolve identically.
+            if (SYNC_PATH_OVERRIDES.has(normalized)) {
                 return true;
             }
             return false;
@@ -907,15 +995,35 @@ export class CodeProviderSync {
                                 return;
                             }
 
-                            // Update hash and sync to provider
+                            // Snapshot the previous hash so a failed write can
+                            // roll it back. The provider returns `{ success:
+                            // false }` (not a throw) on a transport error; if we
+                            // optimistically kept the new hash, the next local
+                            // edit that produced the same content would be
+                            // skipped as "unchanged" and the failed write would
+                            // never be retried — the sandbox stays stale
+                            // silently.
+                            const previousHash = this.fileHashes.get(path);
                             this.fileHashes.set(path, currentHash);
-                            await this.provider.writeFile({
+                            const writeResult = await this.provider.writeFile({
                                 args: {
                                     path: sandboxPath,
                                     content,
                                     overwrite: true,
                                 },
                             });
+                            if (writeResult?.success === false) {
+                                // Roll back so a retry can happen on the next
+                                // watcher tick (or pushModifiedFilesToSandbox).
+                                if (previousHash === undefined) {
+                                    this.fileHashes.delete(path);
+                                } else {
+                                    this.fileHashes.set(path, previousHash);
+                                }
+                                console.warn(
+                                    `[Sync] Provider reported failed write for ${sandboxPath}; rolled back hash for retry.`,
+                                );
+                            }
                         }
                         break;
                     }

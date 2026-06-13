@@ -94,6 +94,13 @@ export class SandboxManager {
         }
 
         // React to provider becoming available (now or later)
+        // TODO(bug-hunt): this reaction body is async but not serialized. If the
+        // observed inputs (provider / sandboxGone) change again while a prior
+        // `initializeSyncEngine(provider)` is still awaiting, MobX fires a
+        // second run that can `releaseSyncEngine()` the instance the first run
+        // is mid-start on — releasing/disposing it underneath the in-flight
+        // start(). Guard with a per-run generation token or an awaited mutex so
+        // overlapping provider transitions can't interleave init and release.
         this.providerReactionDisposer = reaction(
             () => ({ provider: this.session.provider, sandboxGone: this.session.sandboxGone }),
             async ({ provider, sandboxGone }) => {

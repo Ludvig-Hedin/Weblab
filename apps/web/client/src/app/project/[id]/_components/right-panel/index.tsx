@@ -261,6 +261,21 @@ export const RightPanel = observer(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // First-creation wide chat panel. `isFirstCreation` derives from a
+    // `useQuery` that is `false` at mount (so neither the `useState` init nor
+    // the mount-only restore effect above could ever apply it). Apply the wider
+    // width once, when the query first RESOLVES truthy — but only when the user
+    // has no stored width preference, so a returning user's manual resize still
+    // wins. One-shot via a ref so it never re-fires.
+    const appliedFirstCreationRef = useRef(false);
+    useEffect(() => {
+        if (!isFirstCreation || appliedFirstCreationRef.current) return;
+        appliedFirstCreationRef.current = true;
+        if (readStoredWidth() !== null) return; // user preference wins
+        setPanelWidth(FIRST_CREATION_PANEL_WIDTH);
+        setForceWidth(FIRST_CREATION_PANEL_WIDTH);
+    }, [isFirstCreation]);
+
     // Once `forceWidth` has applied the restored width, clear it so it can't
     // re-clobber a later user drag on a panel remount (e.g. toggling collapse).
     // `defaultWidth={panelWidth}` already carries the correct width on remount.

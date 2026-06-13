@@ -106,13 +106,19 @@ export class HistoryManager {
         }
     };
 
-    push = async (action: Action) => {
+    /**
+     * Returns `true` when the action landed (or was queued into an open
+     * transaction) and `false` when its code write failed — callers like
+     * `ActionManager.run` use this to skip the optimistic iframe dispatch of
+     * an edit that was never saved.
+     */
+    push = async (action: Action): Promise<boolean> => {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             this.inTransaction.actions = updateTransactionActions(
                 this.inTransaction.actions,
                 action,
             );
-            return;
+            return true;
         }
 
         if (this.redoStack.length > 0) {
@@ -136,7 +142,7 @@ export class HistoryManager {
                     this.undoStack.splice(idx, 1);
                 }
             });
-            return;
+            return false;
         }
 
         switch (action.type) {
@@ -161,6 +167,7 @@ export class HistoryManager {
         }
 
         this.persistDebounced();
+        return true;
     };
 
     undo = async (): Promise<{ inverse: Action; redoEntry: Action } | null> => {

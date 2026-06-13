@@ -120,9 +120,15 @@ export class TextEditingManager {
                 domEl: DomElement;
             };
             await this.handleEditedText(domEl, newContent, frameData.view);
-            await this.clean();
         } catch (error) {
             console.error('Error ending text edit:', error);
+        } finally {
+            // Always clean, even on failure: clean() resets `targetDomEl`
+            // (so `isEditing` releases) and commits the transaction opened in
+            // start() — skipping it left editing permanently blocked with an
+            // open transaction. clean() is safe here: its own frame/view
+            // lookups are guarded and stopEditingText errors are caught.
+            await this.clean();
         }
     }
 

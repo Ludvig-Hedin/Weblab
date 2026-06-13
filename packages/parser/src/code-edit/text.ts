@@ -2,6 +2,16 @@ import type { T } from '../packages';
 import { t } from '../packages';
 
 export function updateNodeTextContent(node: T.JSXElement, textContent: string): void {
+    // TODO(bug-hunt): user text is written verbatim into a JSXText node. Two
+    // correctness gaps: (1) characters like `{`, `}`, `<`, `>` are significant
+    // in JSX — typing `{x}` becomes a JSX expression container and `x` is
+    // evaluated as an identifier at runtime (ReferenceError) instead of being
+    // shown literally; such characters must be escaped (e.g. `{'{x}'}`).
+    // (2) the multi-line branch below does `node.children = []`, which WIPES
+    // any nested elements the node contained (e.g. an inline <strong>), not
+    // just its text. Both paths should preserve/escape rather than blindly
+    // overwrite. Needs a JSX-aware text encoder + child-preserving merge.
+
     // Split the text content by newlines
     const parts = textContent.split('\n');
 

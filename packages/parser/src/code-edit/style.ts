@@ -16,8 +16,15 @@ export function addClassToNode(node: T.JSXElement, className: string): void {
         } else if (t.isJSXExpressionContainer(classNameAttr.value)) {
             const expr = classNameAttr.value.expression;
             if (t.isCallExpression(expr)) {
-                // Deduplicate static string args; dynamic args are left to the
-                // call expression's own merge function (cn, clsx, etc.).
+                // TODO(bug-hunt): this cn()/clsx() branch dedupes only on EXACT
+                // string-arg match, so conflicting Tailwind utilities of the
+                // same family (existing `p-2` + new `p-4`, or `text-sm` +
+                // `text-lg`) both get appended and accumulate instead of the
+                // later one winning. The static-string branch above avoids this
+                // via customTwMerge; here it's bypassed because the classes are
+                // call arguments. Fix: merge the new class against the existing
+                // static string args through customTwMerge rather than a raw
+                // exact-match `some()`.
                 const alreadyPresent = expr.arguments.some(
                     (arg) => t.isStringLiteral(arg) && arg.value === className,
                 );

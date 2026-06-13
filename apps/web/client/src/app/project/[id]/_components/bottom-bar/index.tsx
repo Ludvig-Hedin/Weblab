@@ -111,6 +111,10 @@ export const BottomBar = observer(() => {
     );
 
     const commitZoomInput = useCallback(() => {
+        // Guard against a second commit (e.g. blur firing right after Enter
+        // already committed + blurred): once we've left edit mode there's no
+        // fresh input to apply, so re-running would re-apply stale text.
+        if (!isEditingZoom) return;
         if (cancelledRef.current) {
             cancelledRef.current = false;
             setIsEditingZoom(false);
@@ -121,7 +125,7 @@ export const BottomBar = observer(() => {
             editorEngine.canvas.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, parsed / 100));
         }
         setIsEditingZoom(false);
-    }, [zoomInputValue, editorEngine.canvas]);
+    }, [isEditingZoom, zoomInputValue, editorEngine.canvas]);
 
     return (
         <div className="mb-4">
@@ -203,7 +207,13 @@ export const BottomBar = observer(() => {
                                 readOnly={!isEditingZoom}
                                 onChange={(e) => setZoomInputValue(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter') commitZoomInput();
+                                    if (e.key === 'Enter') {
+                                        commitZoomInput();
+                                        // Blur so a stray later blur can't
+                                        // re-commit; the `!isEditingZoom` guard
+                                        // in commitZoomInput also no-ops it.
+                                        zoomInputRef.current?.blur();
+                                    }
                                     if (e.key === 'Escape') {
                                         cancelledRef.current = true;
                                         zoomInputRef.current?.blur();

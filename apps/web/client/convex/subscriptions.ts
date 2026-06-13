@@ -96,10 +96,18 @@ async function loadActiveSubscription(
     ctx: QueryCtx,
     userId: Doc<'users'>['_id'],
 ): Promise<Doc<'subscriptions'> | null> {
-    return ctx.db
+    // Pick-first instead of `.unique()`: a user can end up with >1 active
+    // subscription (double-click / two-tab checkout race). `.unique()` would
+    // throw here and brick usage/chat/billing UI entirely. Take the first and
+    // warn for observability.
+    const active = await ctx.db
         .query('subscriptions')
         .withIndex('by_user_status', (q) => q.eq('userId', userId).eq('status', 'active'))
-        .unique();
+        .take(2);
+    if (active.length > 1) {
+        console.warn('[stripe] multiple active subscriptions for user', userId);
+    }
+    return active[0] ?? null;
 }
 
 export const getLegacySubscriptions = query({

@@ -258,6 +258,12 @@ export const LayersTab = observer(() => {
                             }
                         }}
                         onMove={handleDragEnd}
+                        // While a search filter is active the tree shows a pruned
+                        // subset, so react-arborist's drop index is a filtered
+                        // index that doesn't map to the real DOM index — dragging
+                        // would reorder to the wrong position. Disable drag until
+                        // the filter is cleared.
+                        disableDrag={!!searchQuery.trim()}
                         disableDrop={disableDrop}
                         className="overflow-auto"
                     >

@@ -364,8 +364,10 @@ export const _handleSubUpdated = internalMutation({
 //      to the new period's start.
 //   2. If a rate limit hasn't been carried over yet (carryOverTotal === 0),
 //      mint a new rate limit for the leftover credits with carryOverTotal
-//      bumped. Subsequent carry-overs are NOT minted — leftover credits at
-//      that point are lost intentionally, matching upstream behavior.
+//      bumped, AND bump the source bucket's carryOverTotal so it can never
+//      re-qualify on a later renewal. Subsequent carry-overs are NOT minted —
+//      leftover credits at that point are lost intentionally, matching
+//      upstream behavior.
 //   3. Mint a fresh full-quota rate limit for the new period.
 async function handleSubscriptionRenewed(
     ctx: MutationCtx,
@@ -387,12 +389,19 @@ async function handleSubscriptionRenewed(
     );
 
     for (const rate of previousItemRates) {
-        await ctx.db.patch(rate._id, {
-            endedAt: currentPeriodStart,
-            updatedAt: now,
-        });
-
         if (rate.carryOverTotal === 0 && rate.left > 0) {
+            // Mark the SOURCE bucket as carried-over in the SAME write that
+            // clips its period. Without this, the source bucket keeps
+            // carryOverTotal === 0 forever and re-qualifies on every future
+            // renewal, re-minting its leftover credits each month and
+            // compounding credit inflation. Bumping carryOverTotal here makes
+            // the mint condition above fire exactly once per source bucket.
+            await ctx.db.patch(rate._id, {
+                endedAt: currentPeriodStart,
+                carryOverTotal: rate.carryOverTotal + 1,
+                updatedAt: now,
+            });
+
             await ctx.db.insert('rateLimits', {
                 userId: subscription.userId,
                 subscriptionId: subscription._id,
@@ -404,6 +413,11 @@ async function handleSubscriptionRenewed(
                 carryOverKey: rate.carryOverKey,
                 carryOverTotal: rate.carryOverTotal + 1,
                 stripeSubscriptionItemId,
+            });
+        } else {
+            await ctx.db.patch(rate._id, {
+                endedAt: currentPeriodStart,
+                updatedAt: now,
             });
         }
     }

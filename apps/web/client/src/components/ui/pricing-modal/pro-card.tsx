@@ -134,12 +134,10 @@ export const ProCard = ({
     const createCheckoutSession = async () => {
         try {
             setIsCheckingOut(true);
-            // The Convex `getPriceId` validator narrows to TIER_1..11. The
-            // UI's `PriceKey` enum also exposes legacy TIER_25/50/75 entries
-            // that the server-side validator rejects at runtime, but the
-            // currently-rendered tiers come from `PRO_PRODUCT_CONFIG.prices`.
-            // Cast at the boundary; runtime selection prevents legacy keys
-            // from reaching here in practice.
+            // The Convex `getPriceId` validator narrows to TIER_1..11, which
+            // now matches every entry in `PRO_PRODUCT_CONFIG.prices` (legacy
+            // TIER_25/50/75 were dropped from PRO_PRICES). Cast at the boundary
+            // to bridge the UI `PriceKey` enum to the validator's literal union.
             const stripePriceId = await getPriceId({
                 priceKey: selectedTier as Parameters<typeof getPriceId>[0]['priceKey'],
             });
@@ -177,12 +175,10 @@ export const ProCard = ({
             }
 
             setIsCheckingOut(true);
-            // The Convex `getPriceId` validator narrows to TIER_1..11. The
-            // UI's `PriceKey` enum also exposes legacy TIER_25/50/75 entries
-            // that the server-side validator rejects at runtime, but the
-            // currently-rendered tiers come from `PRO_PRODUCT_CONFIG.prices`.
-            // Cast at the boundary; runtime selection prevents legacy keys
-            // from reaching here in practice.
+            // The Convex `getPriceId` validator narrows to TIER_1..11, which
+            // now matches every entry in `PRO_PRODUCT_CONFIG.prices` (legacy
+            // TIER_25/50/75 were dropped from PRO_PRICES). Cast at the boundary
+            // to bridge the UI `PriceKey` enum to the validator's literal union.
             const stripePriceId = await getPriceId({
                 priceKey: selectedTier as Parameters<typeof getPriceId>[0]['priceKey'],
             });

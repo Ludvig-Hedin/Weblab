@@ -429,8 +429,17 @@ export class InsertManager {
             codeBlock: null,
         };
 
-        await this.editorEngine.action.run(removeAction);
-        await this.editorEngine.action.run(insertAction);
+        // Run remove + insert inside one history transaction so the swap is
+        // batched through a single commit instead of landing as two
+        // independent pushes — a remove that saved while the insert failed
+        // would otherwise silently delete the image.
+        this.editorEngine.history.startTransaction();
+        try {
+            await this.editorEngine.action.run(removeAction);
+            await this.editorEngine.action.run(insertAction);
+        } finally {
+            await this.editorEngine.history.commitTransaction();
+        }
     }
 
     insertImageElement(frame: FrameData, location: ActionLocation, imageData: ImageContentData) {

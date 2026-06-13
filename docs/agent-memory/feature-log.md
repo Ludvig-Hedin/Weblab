@@ -924,3 +924,67 @@ Notable in-flight work as of this log's creation (see
   in `useState` initializers); 8 new tests in
   `apps/web/client/test/chat/queue-storage.test.ts`. (b) project-invite
   expired-pending re-invite blocker ported from the workspaces fix.
+
+---
+
+## 2026-06-13 — Bug-hunt round 2: ~35 fixes across canvas editing, sync/parser, server, billing, panels
+
+- **What:** Second deep sweep (5 read-only hunters → 5 fixer agents, several
+  hit a session limit mid-run and were finished inline). Areas round 1 didn't
+  cover: canvas editing core, file-sync/FS/parser, server+sandbox provider,
+  billing/usage/versions, editor panels + hotkeys.
+- **Highlights (user-facing / money):**
+  - **Billing money-leak:** carry-over credits were re-minted every renewal
+    forever (source bucket never marked carried-over → re-qualified monthly,
+    compounding). `handleSubscriptionRenewed` now bumps the source bucket's
+    `carryOverTotal` in the same write. Also: 3 dead Stripe error-tolerance
+    checks (`err.code`/`err.type` never matched the class name) fixed to
+    `err instanceof Stripe.errors.StripeInvalidRequestError`, un-bricking
+    plan-change/cancel recovery; 3 legacy pricing tiers (TIER_25/50/75) that
+    the server always rejected removed from the selector; residual `.unique()`
+    on `by_user_status` (throws for duplicate active subs) → `.take(2)`.
+  - **Canvas editing:** undo after a resize drag restored a mid-drag value
+    (transaction merge kept the LAST `original` instead of the first) and
+    sibling-frame fan-out targets shared one `change` ref (corrupted siblings)
+    — both fixed in `handleUpdateStyleAction`; failed code writes still
+    dispatched ghost edits to the iframe (`history.push` now returns success,
+    `run()` skips dispatch on failure); dispatch mutated `StyleChange` objects
+    held in the undo stack (clone before convert); `cut()`/`duplicate()`
+    deleted/pasted even when `copy()` silently failed; image swap wasn't
+    transactional; text-edit `end()` failure wedged the session (no `clean()`);
+    `transformRedoAction` applied the inverse for image actions; shift-click
+    deduped by domId only (deselected sibling frames).
+  - **File sync (data-loss class):** `listFiles`/`writeFile` swallowed errors
+    so the boot-sync-wipe guard was defeated one layer down and failed writes
+    went silent + unretryable — provider now rethrows on listing failure, sync
+    engine rolls back the hash on a failed write; exclude logic excluded
+    `build`/`dist`/`static`/`out` at ANY depth (hid `src/build/*` user files)
+    while `.weblab` override was unreachable on pulls — re-anchored
+    (deep-exclude only node_modules/.git/.next/.turbo/.weblab); pull read
+    failures no longer let the following push clobber newer sandbox copies;
+    `code-fs` cleanup leaked watchers (+ no dir-op index pruning, cross-file
+    OID collision routing edits to the wrong file).
+  - **Server/provider:** unchecked `npm install`/subpath-extract exit codes
+    snapshotted broken VMs / imported the whole repo silently (3 sites now
+    throw on non-zero exit); stale dev-server pgrep pattern double-spawned
+    servers; `setup()` not serialized (two tabs → double install) — added
+    per-sandbox in-flight map; `inferPortFromDevScript` now handles `-p`/`--port`.
+  - **Panels/hotkeys:** typing capital C/R/G/F in any input toggled canvas
+    chrome / armed insert mode; shift+arrow text-selection moved elements;
+    Escape in 3 style controls committed instead of reverted; NumberField/
+    SideField committed stale drafts over external changes; zoom input
+    re-applied stale values; Publish button flashed during caps load; 3
+    advertised hotkeys were dead (2 bound, 1 label removed); alt+backspace
+    dead in all inputs; first-creation wide chat panel never applied; layer
+    drag-reorder wrong while filtered; mode-toggle highlight stuck on Design.
+  - **Version restore:** `git restore --source` left files added after the
+    target commit in place — now `git rm` the added paths so the tree matches.
+- **Validation:** `bun typecheck` (web-client + server + stripe) ✓; parser
+  196 pass, sync-engine 5/5, edit tools 11, queue-storage 8; changed-file
+  ESLint 0 errors. Cross-package typecheck noise (jsx/lib config in untouched
+  files) and the 4 pre-existing test failures (i18n parity, preload fixture,
+  OPENROUTER env, invalid-json port fixture) are unrelated.
+- **Deferred:** 10 lower-severity items logged in BACKLOG.md ("Bug-hunt round 2"
+  + "Editor hotkeys/canvas") with matching `TODO(bug-hunt)` comments.
+- **User-facing:** yes — money path, canvas editing, file integrity, typing in
+  every editor input.

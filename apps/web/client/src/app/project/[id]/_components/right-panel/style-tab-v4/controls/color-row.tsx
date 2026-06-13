@@ -168,6 +168,10 @@ export function ColorRow({
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const [hexDraft, setHexDraft] = React.useState(hex || raw || '');
     const [alphaDraft, setAlphaDraft] = React.useState(alpha);
+    // Mirrors TextField: Escape resets the draft then blurs synchronously, but
+    // the blur handler would re-commit the stale draft. This ref lets the blur
+    // skip its commit exactly once after an Escape/Enter already handled it.
+    const skipHexBlurCommitRef = React.useRef(false);
 
     React.useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -275,11 +279,18 @@ export function ColorRow({
                     const v = e.target.value.replace(/^#/, '');
                     setHexDraft(/^[0-9a-fA-F]{0,8}$/.test(v) ? v.toUpperCase() : v);
                 }}
-                onBlur={() => commitHex(hexDraft)}
+                onBlur={() => {
+                    if (skipHexBlurCommitRef.current) {
+                        skipHexBlurCommitRef.current = false;
+                        return;
+                    }
+                    commitHex(hexDraft);
+                }}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         commitHex(hexDraft);
+                        skipHexBlurCommitRef.current = true;
                         e.currentTarget.blur();
                     } else if (e.key === 'Escape') {
                         e.preventDefault();
@@ -288,6 +299,7 @@ export function ColorRow({
                         // so falling through to `raw` keeps the original.
                         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
                         setHexDraft(hex || raw || '');
+                        skipHexBlurCommitRef.current = true;
                         e.currentTarget.blur();
                     }
                 }}

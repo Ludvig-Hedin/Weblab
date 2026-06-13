@@ -26,26 +26,30 @@ export class CopyManager {
     // Cmd+V can't paste foreign text into the editor (paste isolation). The
     // in-app `duplicate()` path passes `false` so alt-drag/Cmd+D doesn't wipe
     // the user's real OS clipboard as a side effect.
-    async copy(clearOsClipboard = true) {
+    //
+    // Returns `true` only when `this.copied` was actually refreshed — callers
+    // like `cut()`/`duplicate()` must abort on `false` so they don't delete or
+    // paste against a stale (or missing) copy.
+    async copy(clearOsClipboard = true): Promise<boolean> {
         const selected = this.editorEngine.elements.selected;
         if (selected.length === 0) {
-            return;
+            return false;
         }
         const selectedEl = this.editorEngine.elements.selected[0];
         if (!selectedEl) {
             console.error('Failed to copy element');
-            return;
+            return false;
         }
         const frameId = selectedEl.frameId;
         const frameData = this.editorEngine.frames.get(frameId);
         if (!frameData) {
             console.error('Failed to get frameView');
-            return;
+            return false;
         }
 
         if (!frameData.view) {
             console.error('No frame view found');
-            return;
+            return false;
         }
 
         const targetEl: ActionElement | null = await frameData.view.getActionElement(
@@ -54,22 +58,23 @@ export class CopyManager {
 
         if (!targetEl) {
             console.error('Failed to copy element');
-            return;
+            return false;
         }
         if (!selectedEl.oid) {
             console.error('Failed to copy element');
-            return;
+            return false;
         }
 
         const branchData = this.editorEngine.branches.getBranchDataById(selectedEl.branchId);
         if (!branchData) {
             console.error(`Branch data not found for branchId: ${selectedEl.branchId}`);
-            return;
+            return false;
         }
 
         const metadata = await branchData.codeEditor.getJsxElementMetadata(selectedEl.oid);
         this.copied = { element: targetEl, codeBlock: metadata?.code || null };
         if (clearOsClipboard) await this.clearClipboard();
+        return true;
     }
 
     async clearClipboard() {
@@ -144,14 +149,25 @@ export class CopyManager {
     }
 
     async cut() {
-        await this.copy();
+        const copied = await this.copy();
+        if (!copied) {
+            // Nothing was captured — deleting now would destroy the element
+            // with no way to paste it back.
+            return;
+        }
         await this.editorEngine.elements.delete();
     }
 
     async duplicate() {
         const savedCopied = this.copied;
         // Don't wipe the user's OS clipboard for an in-app duplicate.
-        await this.copy(false);
+        const copied = await this.copy(false);
+        if (!copied) {
+            // copy() failed and left `this.copied` untouched — pasting now
+            // would duplicate a stale earlier copy instead of the selection.
+            this.copied = savedCopied;
+            return;
+        }
         await this.paste();
         this.copied = savedCopied;
     }

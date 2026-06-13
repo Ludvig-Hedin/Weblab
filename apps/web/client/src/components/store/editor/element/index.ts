@@ -61,10 +61,18 @@ export class ElementsManager {
 
     shiftClick(domEl: DomElement) {
         const selectedEls = this.selected;
-        const isAlreadySelected = selectedEls.some((el) => el.domId === domEl.domId);
+        // Match by (frameId, domId): responsive sibling frames reuse the same
+        // source-derived domId, so a domId-only check would treat the same
+        // element in a sibling frame as "already selected" and deselect the
+        // other frame's instance instead of adding this one (mirrors click()).
+        const isAlreadySelected = selectedEls.some(
+            (el) => el.frameId === domEl.frameId && el.domId === domEl.domId,
+        );
         let newSelectedEls: DomElement[] = [];
         if (isAlreadySelected) {
-            newSelectedEls = selectedEls.filter((el) => el.domId !== domEl.domId);
+            newSelectedEls = selectedEls.filter(
+                (el) => !(el.frameId === domEl.frameId && el.domId === domEl.domId),
+            );
         } else {
             newSelectedEls = [...selectedEls, domEl];
         }

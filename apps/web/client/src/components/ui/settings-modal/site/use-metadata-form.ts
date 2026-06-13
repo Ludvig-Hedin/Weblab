@@ -5,7 +5,6 @@ import type { PageMetadata, TitleMetadata } from '@weblab/models';
 interface UseMetadataFormProps {
     initialMetadata?: PageMetadata;
     defaultTitle?: string;
-    defaultDescription?: string;
 }
 
 const extractTitleFromMetadata = (
@@ -30,7 +29,6 @@ const createTitleString = (titleObj: TitleMetadata): string => {
 export const useMetadataForm = ({
     initialMetadata,
     defaultTitle = 'Title',
-    defaultDescription = 'This is the information that will show up on search engines below your page title.',
 }: UseMetadataFormProps) => {
     const initialTitle = useMemo(() => initialMetadata?.title, [initialMetadata?.title]);
     const initialDesc = useMemo(() => initialMetadata?.description, [initialMetadata?.description]);
@@ -43,7 +41,13 @@ export const useMetadataForm = ({
     const isSimpleTitle = typeof initialTitle === 'string' || !initialTitle;
 
     const [titleObject, setTitleObject] = useState<TitleMetadata>(initialTitleObj);
-    const [description, setDescription] = useState(initialDesc ?? defaultDescription);
+    // Seed with the saved description or '' — NOT `defaultDescription`. The
+    // default is a helper sentence ("This is the information that will show up
+    // on search engines…") meant only as a placeholder; seeding the state with
+    // it caused that sentence to be saved as the page's real meta/OG
+    // description. Empty-string keeps parity with the title's empty semantics
+    // and lets the placeholder render via the form's own DEFAULT_DESCRIPTION.
+    const [description, setDescription] = useState(initialDesc ?? '');
     const [isDirty, setIsDirty] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<File | null>(null);
 
@@ -79,15 +83,15 @@ export const useMetadataForm = ({
 
     const handleDiscard = () => {
         setTitleObject(initialTitleObj);
-        setDescription(initialDesc ?? defaultDescription);
+        setDescription(initialDesc ?? '');
         setUploadedImage(null);
         setIsDirty(false);
     };
 
     useEffect(() => {
         setTitleObject(initialTitleObj);
-        setDescription(initialDesc ?? defaultDescription);
-    }, [initialTitleObj, initialDesc, defaultDescription]);
+        setDescription(initialDesc ?? '');
+    }, [initialTitleObj, initialDesc]);
 
     const getFinalTitleMetadata = (): string | TitleMetadata => {
         if (isSimpleTitle) {

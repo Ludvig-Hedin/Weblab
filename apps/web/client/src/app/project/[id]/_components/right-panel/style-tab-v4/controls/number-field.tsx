@@ -85,6 +85,15 @@ export function NumberField({
 }: NumberFieldProps) {
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
+    // Mirrors TextField: skip the blur commit when Escape/Enter already handled
+    // the keystroke, so Escape cancels without the synchronous blur re-committing
+    // the stale draft.
+    const skipBlurCommitRef = React.useRef(false);
+    // True once the user has typed/nudged in this focus session. Without it, a
+    // focus that spans an external value change (undo, sibling commit, selection
+    // change) would commit the now-stale draft on blur and silently revert the
+    // external value.
+    const userTouchedRef = React.useRef(false);
 
     // Sync external value when it changes from outside (e.g. selection change).
     // Skip while focused so we never stomp on what the user is typing.
@@ -112,6 +121,7 @@ export function NumberField({
         (delta: number) => {
             const parsed = parse(draft);
             if (parsed.num === null) return;
+            userTouchedRef.current = true;
             const next = format(
                 {
                     num: Number.parseFloat((parsed.num + delta).toFixed(4)),
@@ -131,10 +141,14 @@ export function NumberField({
             if (event.key === 'Enter') {
                 event.preventDefault();
                 commit(event.currentTarget.value);
+                skipBlurCommitRef.current = true;
+                userTouchedRef.current = false;
                 event.currentTarget.blur();
             } else if (event.key === 'Escape') {
                 event.preventDefault();
                 setDraft(value);
+                skipBlurCommitRef.current = true;
+                userTouchedRef.current = false;
                 event.currentTarget.blur();
             } else if (event.key === 'ArrowUp') {
                 event.preventDefault();
@@ -192,9 +206,29 @@ export function NumberField({
                     value={draft}
                     placeholder={mixed ? 'Mixed' : placeholder}
                     aria-label={ariaLabel}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onFocus={() => {
+                        userTouchedRef.current = false;
+                    }}
+                    onChange={(e) => {
+                        userTouchedRef.current = true;
+                        setDraft(e.target.value);
+                    }}
                     onKeyDown={handleKeyDown}
-                    onBlur={(e) => commit(e.currentTarget.value)}
+                    onBlur={(e) => {
+                        if (skipBlurCommitRef.current) {
+                            skipBlurCommitRef.current = false;
+                            userTouchedRef.current = false;
+                            return;
+                        }
+                        // No user input/nudge during this focus session — don't
+                        // commit a stale draft over an external value change.
+                        if (!userTouchedRef.current) {
+                            if (draft !== value) setDraft(value);
+                            return;
+                        }
+                        userTouchedRef.current = false;
+                        commit(e.currentTarget.value);
+                    }}
                     // Normal text cursor — never a resize cursor on the value input.
                     className={cn(
                         'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none',

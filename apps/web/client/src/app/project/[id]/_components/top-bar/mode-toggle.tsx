@@ -50,6 +50,9 @@ export const ModeToggle = observer(() => {
     const mode = editorEngine.state.editorMode;
 
     const activeIndex = DESKTOP_TAB_ITEMS.findIndex((item) => item.mode === mode);
+    // -1 when the current mode isn't one of the desktop tabs (Preview, Pan,
+    // Comment, CMS). In that case we hide the active-plate entirely rather than
+    // letting it sit on Design — see the measurement effects below.
     const safeIndex = activeIndex >= 0 ? activeIndex : 0;
 
     // Measure the active tab's actual rect so the indicator spans the full
@@ -66,6 +69,12 @@ export const ModeToggle = observer(() => {
     } | null>(null);
 
     useLayoutEffect(() => {
+        // No active desktop tab (Preview/Pan/Comment/CMS) → hide the plate so it
+        // doesn't park on Design.
+        if (activeIndex < 0) {
+            setIndicator(null);
+            return;
+        }
         const group = groupRef.current;
         const item = itemRefs.current[safeIndex];
         if (!group || !item) return;
@@ -79,9 +88,10 @@ export const ModeToggle = observer(() => {
         });
         // `mode` would be redundant — `safeIndex` is derived synchronously
         // from `mode`, so both always change in the same render.
-    }, [safeIndex]);
+    }, [safeIndex, activeIndex]);
 
     useEffect(() => {
+        if (activeIndex < 0) return;
         const group = groupRef.current;
         if (!group || typeof ResizeObserver === 'undefined') return;
         const ro = new ResizeObserver(() => {
@@ -98,7 +108,7 @@ export const ModeToggle = observer(() => {
         });
         ro.observe(group);
         return () => ro.disconnect();
-    }, [safeIndex]);
+    }, [safeIndex, activeIndex]);
 
     // Safe lookup so a new EditorMode without a matching translation key
     // does not throw `Cannot read properties of undefined (reading 'name')`.

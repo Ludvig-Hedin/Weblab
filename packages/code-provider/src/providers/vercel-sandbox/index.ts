@@ -124,6 +124,10 @@ const VCPUS = getVcpuCount();
 // stalled Vercel SDK call. Caller layers (SessionManager.start,
 // sandbox.fork retry loop) already retry on rejection, so the
 // timeout failure becomes a fast retry instead of a wedged UI.
+// TODO(bug-hunt): losing the race only rejects locally — it does NOT abort the
+// underlying SDK call. A slow-but-successful `Sandbox.create` leaves an
+// orphaned paid VM running until its own `timeout` elapses. Thread an
+// AbortSignal into the SDK calls so a timeout actually cancels the request.
 async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -220,6 +224,20 @@ const INSTALL_COMMAND = [
     // intentional differences rather than letting them diverge silently.
 ].join('\n');
 
+// Run the dependency install and fail loudly on a non-zero exit. The SDK's
+// `runCommand` resolves with the finished command instead of throwing, so an
+// unchecked install failure would get snapshotted as the project's permanent
+// broken state (preview 502s forever with no signal).
+async function runInstallOrThrow(sandbox: Sandbox): Promise<void> {
+    const result = await sandbox.runCommand(splitShellCommand(INSTALL_COMMAND));
+    if (result.exitCode !== 0) {
+        const output = await result.output('both');
+        throw new Error(
+            `[VercelSandbox] dependency install failed (exit code ${result.exitCode}). Recent output:\n${output.slice(-2000)}`,
+        );
+    }
+}
+
 // Process patterns that match the dev servers we spawn — Next.js (`next dev`
 // or the post-compile `next-server` worker) and the static-html `serve` CLI.
 // Kept as a list rather than one piped regex because `pgrep` BRE handling of
@@ -227,9 +245,14 @@ const INSTALL_COMMAND = [
 // `-f` and OR-ing the exit codes is portable. The `serve` pattern is anchored
 // to `node_modules/serve` to avoid matching unrelated processes like
 // `observe` or a user-installed binary that happens to contain the substring.
+// The Next pattern matches the bare `next dev` prefix: the actual command
+// lines vary (`next dev --turbopack --hostname 0.0.0.0` via
+// DEFAULT_DEV_COMMAND, `next dev -H 0.0.0.0` via GIT_NEXT_DEV_COMMAND), so
+// anchoring on a specific flag order misses running servers and spawns
+// duplicates.
 const DEV_SERVER_PATTERNS = [
     '[n]ext-server',
-    '[n]ext dev --hostname 0.0.0.0',
+    '[n]ext dev',
     'node .*/node_modules/serve/',
 ];
 
@@ -553,7 +576,7 @@ export class VercelSandboxProvider extends Provider {
             'Sandbox.create(scaffold)',
         );
         await scaffoldByFramework(sandbox, framework);
-        await sandbox.runCommand(splitShellCommand(INSTALL_COMMAND));
+        await runInstallOrThrow(sandbox);
         const checkpoint = await checkpointAndResume(sandbox, port);
         return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
     }
@@ -591,7 +614,7 @@ export class VercelSandboxProvider extends Provider {
         });
 
         if (input.subpath?.trim()) {
-            await sandbox.runCommand({
+            const extractResult = await sandbox.runCommand({
                 cmd: 'bash',
                 args: [
                     '-lc',
@@ -615,9 +638,26 @@ rm -rf "$tmp"
                     WEBLAB_TEMPLATE_SUBPATH: input.subpath,
                 },
             });
+            // `runCommand` resolves (never throws) on a non-zero exit — an
+            // unchecked failure here would silently import the WHOLE repo
+            // instead of the requested subdirectory.
+            if (extractResult.exitCode === 64) {
+                // Deliberate `exit 64` from the script's input validation.
+                throw new Error(
+                    `[VercelSandbox] invalid template subpath ${JSON.stringify(input.subpath)}: ` +
+                        'must be a relative path inside the repo (no leading "/", "..", or "//").',
+                );
+            }
+            if (extractResult.exitCode !== 0) {
+                const output = await extractResult.output('both');
+                throw new Error(
+                    `[VercelSandbox] template subpath extraction failed for ${JSON.stringify(input.subpath)} ` +
+                        `(exit code ${extractResult.exitCode}). Recent output:\n${output.slice(-2000)}`,
+                );
+            }
         }
 
-        await sandbox.runCommand(splitShellCommand(INSTALL_COMMAND));
+        await runInstallOrThrow(sandbox);
         const checkpoint = await checkpointAndResume(sandbox, port);
         return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
     }
@@ -908,6 +948,9 @@ class VercelTerminal extends ProviderTerminal {
         await this.run(input);
     }
 
+    // TODO(bug-hunt): each run() replaces `this.command` without killing the
+    // previous detached process — repeated runs leak background processes in
+    // the sandbox. Kill (or await) the prior command before replacing it.
     async run(input: string, _dimensions?: ProviderTerminalShellSize): Promise<void> {
         const command = await this.sandbox.runCommand({
             ...splitShellCommand(input),
@@ -920,6 +963,10 @@ class VercelTerminal extends ProviderTerminal {
         await this.command?.kill();
     }
 
+    // TODO(bug-hunt): subscribes to the CURRENT command only — a subsequent
+    // run() swaps `this.command` and existing subscribers silently stop
+    // receiving output. Keep terminal-level subscribers and re-attach them to
+    // each new command.
     onOutput(callback: (data: string) => void): () => void {
         return this.command?.onOutput(callback) ?? (() => undefined);
     }
@@ -974,6 +1021,9 @@ class VercelTask extends ProviderTask {
         this.activeCommand = null;
     }
 
+    // TODO(bug-hunt): binds to the CURRENT command only — after restart()
+    // swaps `this.activeCommand`, earlier subscribers are silently dropped.
+    // Keep task-level subscribers and re-attach them on each run().
     onOutput(callback: (data: string) => void): () => void {
         return this.activeCommand?.onOutput(callback) ?? (() => undefined);
     }

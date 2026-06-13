@@ -115,7 +115,16 @@ export class CodeFileSystem extends FileSystem {
                 injectWeblabBootstrapScripts(ast);
             }
 
-            const existingOids = await this.getFileOids(path);
+            // Pass OTHER files' oids as the global set so a freshly-generated
+            // oid is unique across the whole project, not just within this
+            // file. Passing only this file's own oids (the old behavior) meant
+            // a duplicated file kept its source's oids — two files sharing an
+            // oid, so edits routed to the wrong file. Existing valid oids in
+            // THIS file are still preserved (addOidsToAst only regenerates on
+            // an in-AST `localOids` collision), so this is safe for re-writes;
+            // it only tightens uniqueness for new/duplicated elements. Mirrors
+            // the HTML pipeline's `getOidsExcludingFile` guard above.
+            const existingOids = await this.getOidsExcludingFile(path);
             const { ast: oidAst } = addOidsToAst(ast, existingOids);
 
             const existingIxIds = await this.getGlobalIxIdsExcludingFile(path);
@@ -253,18 +262,6 @@ export class CodeFileSystem extends FileSystem {
             ids.add(metadata.ixId);
         }
         return ids;
-    }
-
-    private async getFileOids(path: string): Promise<Set<string>> {
-        const index = await this.loadIndex();
-
-        const oids = new Set<string>();
-        for (const [oid, metadata] of Object.entries(index)) {
-            if (pathsEqual(metadata.path, path)) {
-                oids.add(oid);
-            }
-        }
-        return oids;
     }
 
     private async updateMetadataForFile(path: string, content: string): Promise<void> {
@@ -538,6 +535,126 @@ export class CodeFileSystem extends FileSystem {
         });
     }
 
+    /**
+     * Normalize a path for prefix comparison: strip a leading slash and any
+     * trailing slash, then POSIX-normalize. Mirrors `pathsEqual`'s
+     * normalization so directory-prefix checks line up with the per-file
+     * equality checks used elsewhere in this class.
+     */
+    private normalizeDirPrefix(dir: string): string {
+        const clean = dir.startsWith('/') ? dir.substring(1) : dir;
+        const trimmed = clean.endsWith('/') ? clean.slice(0, -1) : clean;
+        return trimmed;
+    }
+
+    /** True when `filePath` sits inside (or equals) directory `dir`. */
+    private isUnderDirectory(filePath: string, dir: string): boolean {
+        const normFile = (filePath.startsWith('/') ? filePath.substring(1) : filePath).replace(
+            /\/+$/,
+            '',
+        );
+        const normDir = this.normalizeDirPrefix(dir);
+        if (!normDir) return true; // root dir → everything is under it
+        return normFile === normDir || normFile.startsWith(`${normDir}/`);
+    }
+
+    /**
+     * Recursively delete a directory AND prune every OID / component-index
+     * entry whose source file lived under it. Without this override the base
+     * `deleteDirectory` removed the files from ZenFS but left their index
+     * entries behind — stale OIDs that resolve to deleted files surface as
+     * "No metadata found for OID" and route edits at nothing. Runs under the
+     * same write lock as deleteFile/moveFile so it can't interleave with a
+     * concurrent single-file index update.
+     */
+    async deleteDirectory(path: string): Promise<void> {
+        return this.withWriteLock(async () => {
+            await super.deleteDirectory(path);
+
+            const index = await this.loadIndex();
+            let hasChanges = false;
+            for (const [oid, metadata] of Object.entries(index)) {
+                if (this.isUnderDirectory(metadata.path, path)) {
+                    delete index[oid];
+                    hasChanges = true;
+                }
+            }
+            if (hasChanges) {
+                await this.saveIndex(index);
+            }
+
+            const componentIndex = await this.loadComponentIndex();
+            const nextComponentIndex: Record<string, ComponentDef> = {};
+            let hasComponentChanges = false;
+            for (const [key, def] of Object.entries(componentIndex)) {
+                if (this.isUnderDirectory(def.filePath, path)) {
+                    hasComponentChanges = true;
+                } else {
+                    nextComponentIndex[key] = def;
+                }
+            }
+            if (hasComponentChanges) {
+                await this.saveComponentIndex(nextComponentIndex);
+            }
+        });
+    }
+
+    /**
+     * Move/rename a directory AND re-key every index entry whose source file
+     * lived under the old prefix to the new prefix. Mirrors `moveFile` for the
+     * directory case; without it, moved files keep their old indexed `path`
+     * and component keys, so edits route to the now-nonexistent old location.
+     */
+    async moveDirectory(oldPath: string, newPath: string): Promise<void> {
+        return this.withWriteLock(async () => {
+            await super.moveDirectory(oldPath, newPath);
+
+            const oldPrefix = this.normalizeDirPrefix(oldPath);
+            const newPrefix = this.normalizeDirPrefix(newPath);
+
+            const rekey = (p: string): string => {
+                const norm = (p.startsWith('/') ? p.substring(1) : p).replace(/\/+$/, '');
+                if (norm === oldPrefix) return newPrefix;
+                if (norm.startsWith(`${oldPrefix}/`)) {
+                    return `${newPrefix}${norm.slice(oldPrefix.length)}`;
+                }
+                return p;
+            };
+
+            const index = await this.loadIndex();
+            let hasChanges = false;
+            for (const metadata of Object.values(index)) {
+                if (this.isUnderDirectory(metadata.path, oldPath)) {
+                    metadata.path = rekey(metadata.path);
+                    hasChanges = true;
+                }
+            }
+            if (hasChanges) {
+                await this.saveIndex(index);
+            }
+
+            // Component keys embed the file path — re-key on directory move.
+            const componentIndex = await this.loadComponentIndex();
+            const next: Record<string, ComponentDef> = {};
+            let hasComponentChanges = false;
+            for (const [key, def] of Object.entries(componentIndex)) {
+                if (this.isUnderDirectory(def.filePath, oldPath)) {
+                    const newFilePath = rekey(def.filePath);
+                    const newKey = key.includes('#')
+                        ? `${newFilePath}#${key.split('#').pop()}`
+                        : newFilePath;
+                    next[newKey] = { ...def, key: newKey, filePath: newFilePath };
+                    hasComponentChanges = true;
+                } else {
+                    next[key] = def;
+                }
+            }
+            if (hasComponentChanges) {
+                await this.saveComponentIndex(next);
+            }
+        });
+    }
+
     private async loadIndex(): Promise<Record<string, JsxElementMetadata>> {
         return getOrLoadIndex(this.getCacheKey(), this.indexPath, (path) => this.readFile(path));
     }
@@ -646,6 +763,12 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async cleanup(): Promise<void> {
+        // Tear down the base FileSystem first: it closes all ZenFS watchers and
+        // clears pending watcher debounce timeouts. The override previously
+        // skipped this, leaking a watcher + timeout per CodeFileSystem instance
+        // (one per branch) for the life of the page.
+        super.cleanup();
+
         const cacheKey = this.getCacheKey();
         if (getIndexFromCache(cacheKey)) {
             await this.undobounceSaveIndexToFile();

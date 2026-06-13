@@ -182,21 +182,44 @@ function handleUpdateStyleAction(
     const mergedTargets = [...existingAction.targets];
 
     for (const newTarget of newAction.targets) {
-        const existingTarget = mergedTargets.find((et) => et.domId === newTarget.domId);
+        // Match by (frameId, domId) — sibling-frame fan-out targets reuse the
+        // primary's domId (see style/index.ts getUpdateStyleAction), so domId
+        // alone would collapse all siblings onto the first match and
+        // double-merge it while the sibling entries never update.
+        const existingIndex = mergedTargets.findIndex(
+            (et) => et.frameId === newTarget.frameId && et.domId === newTarget.domId,
+        );
+        const existingTarget = existingIndex === -1 ? undefined : mergedTargets[existingIndex];
 
         if (existingTarget) {
-            existingTarget.change = {
-                updated: {
-                    ...existingTarget.change.updated,
-                    ...newTarget.change.updated,
-                },
-                original: {
-                    ...existingTarget.change.original,
-                    ...newTarget.change.original,
+            // Build a fresh target + change object: fan-out targets share one
+            // `change` reference, so mutating in place would corrupt siblings
+            // and actions already stored in the stack.
+            mergedTargets[existingIndex] = {
+                ...existingTarget,
+                change: {
+                    updated: {
+                        ...existingTarget.change.updated,
+                        ...newTarget.change.updated,
+                    },
+                    // Preserve the FIRST original (existing wins): undo must
+                    // restore the pre-edit value, not a mid-drag intermediate.
+                    original: {
+                        ...newTarget.change.original,
+                        ...existingTarget.change.original,
+                    },
                 },
             };
         } else {
-            mergedTargets.push(newTarget);
+            // Clone the change so this entry never shares references with the
+            // other fan-out targets of `newAction`.
+            mergedTargets.push({
+                ...newTarget,
+                change: {
+                    updated: { ...newTarget.change.updated },
+                    original: { ...newTarget.change.original },
+                },
+            });
         }
     }
 
@@ -319,10 +342,9 @@ export function transformRedoAction(action: Action): Action {
             };
         case 'insert-image':
         case 'remove-image':
-            return {
-                ...action,
-                type: action.type === 'insert-image' ? 'remove-image' : 'insert-image',
-            };
+            // Redo must re-apply the SAME action — inversion is undoAction's
+            // job. Flipping the type here would make redo apply the inverse.
+            return { ...action };
         default:
             return action;
     }

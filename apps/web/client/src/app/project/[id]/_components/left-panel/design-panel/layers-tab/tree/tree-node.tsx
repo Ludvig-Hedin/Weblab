@@ -252,6 +252,12 @@ export const TreeNode = memo(
                 return containerWidth - nodeRightEdge + 10;
             }
 
+            // TODO(bug-hunt): the eye toggle mutates `node.data.isVisible`
+            // locally for instant UI feedback, but that mutation isn't part of
+            // the undo action. Undoing the visibility change reverts the style
+            // but leaves the eye icon desynced from the actual DOM state. Drive
+            // `isVisible` from the committed style (or refresh it on undo/redo)
+            // instead of mutating the node directly.
             function toggleVisibility(): void {
                 const visibility = node.data.isVisible ? 'hidden' : 'inherit';
                 const action = editorEngine.style.getUpdateStyleAction({ visibility }, [

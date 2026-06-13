@@ -10,6 +10,7 @@ import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { useStateManager } from '@/components/store/state';
+import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 
 export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     const editorEngine = useEditorEngine();
@@ -76,27 +77,19 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         [getKey('ZOOM_OUT')],
     );
 
-    // Canvas chrome — Figma parity. Both stay active even while a panel
-    // input owns focus (enableOnFormTags) so the user doesn't have to
-    // click out of the right panel to toggle rulers/guides.
+    // Canvas chrome — Figma parity. Deliberately NOT enabled on form tags /
+    // contentEditable: typing a capital R or G in chat/search/style inputs
+    // must never toggle canvas chrome (matches INSERT_DIV / INSERT_BUTTON).
     useHotkeys(
         getKey('TOGGLE_RULERS'),
         () => editorEngine.canvas.toggleRulers(),
-        {
-            preventDefault: true,
-            enableOnFormTags: true,
-            enableOnContentEditable: true,
-        },
+        undefined,
         [getKey('TOGGLE_RULERS')],
     );
     useHotkeys(
         getKey('TOGGLE_LAYOUT_GUIDES'),
         () => editorEngine.canvas.toggleLayoutGuides(),
-        {
-            preventDefault: true,
-            enableOnFormTags: true,
-            enableOnContentEditable: true,
-        },
+        undefined,
         [getKey('TOGGLE_LAYOUT_GUIDES')],
     );
 
@@ -169,14 +162,12 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         undefined,
         [getKey('COMMENT')],
     );
+    // Shift+C — disabled while an input/contentEditable owns focus so typing
+    // a capital C never toggles comment pins (matches INSERT_DIV).
     useHotkeys(
         getKey('TOGGLE_COMMENTS'),
         () => editorEngine.comment.toggleCommentsVisible(),
-        {
-            preventDefault: true,
-            enableOnFormTags: true,
-            enableOnContentEditable: true,
-        },
+        undefined,
         [getKey('TOGGLE_COMMENTS')],
     );
     useHotkeys(
@@ -331,6 +322,33 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         },
         [getKey('MODE_PREVIEW')],
     );
+    useHotkeys(
+        getKey('MODE_CMS'),
+        () => editorEngine.state.setEditorMode(EditorMode.CMS),
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
+        [getKey('MODE_CMS')],
+    );
+
+    // Open the Versions tab of the Settings modal (mod+shift+h). Advertised in
+    // the top-bar tooltip via HotkeyLabel — bound here so the shortcut actually
+    // works. Same path the top-bar history button uses.
+    useHotkeys(
+        getKey('OPEN_VERSION_HISTORY'),
+        () => {
+            stateManager.setSettingsTab(SettingsTabValue.VERSIONS);
+            stateManager.setIsSettingsModalOpen(true);
+        },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
+        [getKey('OPEN_VERSION_HISTORY')],
+    );
 
     // Reload all frame views (cmd+r). Hijacks the browser reload so people don't
     // accidentally lose unsaved canvas state, and works while typing.
@@ -383,7 +401,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('INSERT_FLEX_DIV'),
         () => editorEngine.state.setInsertMode(InsertMode.INSERT_FLEX_DIV),
-        { enableOnFormTags: true, enableOnContentEditable: true },
+        undefined,
         [getKey('INSERT_FLEX_DIV')],
     );
     useHotkeys(
@@ -410,6 +428,10 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     // when an active middle-mouse / space-drag pan was in flight, breaking the
     // gesture. Skip the flip while a canvas pan is active — the pan-end
     // handler in canvas/index.tsx restores DESIGN mode itself.
+    // TODO(bug-hunt): space-keyup always forces DESIGN mode rather than restoring
+    // the mode that was active before space was pressed. Holding space to pan
+    // while in PREVIEW/COMMENT/CMS therefore drops the user into DESIGN on
+    // release. Capture the prior mode on space-keydown and restore it here.
     useHotkeys(
         'space',
         () => {
@@ -433,6 +455,13 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     });
 
     // Actions
+    // TODO(bug-hunt): UNDO/REDO run with enableOnFormTags + enableOnContentEditable,
+    // so cmd+z/cmd+shift+z fire the canvas history even while focus is in a text
+    // field — hijacking the browser's native text undo/redo. May be intentional
+    // Figma parity, but it pairs badly with the stale-draft commit bugs in the
+    // style controls (an undo can't recover a wrongly-committed field). Consider
+    // a canvas-ownership gate like COPY/PASTE, or yielding when focus is in an
+    // editable field with its own undo stack.
     useHotkeys(
         getKey('UNDO'),
         () => editorEngine.action.undo(),
@@ -696,15 +725,28 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     );
 
     // Move
+    //
+    // Shift+Arrow extends a text selection inside inputs/contentEditable, so —
+    // like COPY/PASTE above — only act (and preventDefault) when the canvas
+    // actually owns an element selection. Otherwise return early without
+    // calling preventDefault so the native text-selection behaviour is intact.
     useHotkeys(
         getKey('MOVE_LAYER_UP'),
-        () => editorEngine.move.moveSelected('up'),
+        (e) => {
+            if (editorEngine.elements.selected.length === 0) return;
+            e.preventDefault();
+            editorEngine.move.moveSelected('up');
+        },
         { enableOnFormTags: true, enableOnContentEditable: true },
         [getKey('MOVE_LAYER_UP')],
     );
     useHotkeys(
         getKey('MOVE_LAYER_DOWN'),
-        () => editorEngine.move.moveSelected('down'),
+        (e) => {
+            if (editorEngine.elements.selected.length === 0) return;
+            e.preventDefault();
+            editorEngine.move.moveSelected('down');
+        },
         { enableOnFormTags: true, enableOnContentEditable: true },
         [getKey('MOVE_LAYER_DOWN')],
     );

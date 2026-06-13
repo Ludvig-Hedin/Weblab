@@ -63,6 +63,19 @@ export const EditorTab = observer(() => {
     // immediately before closing the modal aren't silently dropped.
     useEffect(() => () => void debouncedSave.flush(), [debouncedSave]);
 
+    // Local mirror of the buildFlags text field. Binding the <Input> directly
+    // to the Convex query value snapped the caret/value back mid-typing every
+    // time the query re-emitted (e.g. after a debounced save round-trips). We
+    // seed from the query and only re-sync from it while the field is NOT
+    // focused, so in-progress edits are never clobbered.
+    const [buildFlags, setBuildFlags] = useState('--no-lint');
+    const buildFlagsFocusedRef = useRef(false);
+    useEffect(() => {
+        if (buildFlagsFocusedRef.current) return;
+        if (userSettings?.buildFlags === undefined) return;
+        setBuildFlags(userSettings.buildFlags);
+    }, [userSettings?.buildFlags]);
+
     const patch = (changes: PendingChanges) => {
         pendingChanges.current = { ...pendingChanges.current, ...changes };
         void debouncedSave();
@@ -144,8 +157,17 @@ export const EditorTab = observer(() => {
                 <div className="space-y-2">
                     <Label className="text-mini">{t('settings.editor.build.flagsLabel')}</Label>
                     <Input
-                        value={userSettings?.buildFlags ?? '--no-lint'}
-                        onChange={(e) => patch({ buildFlags: e.target.value })}
+                        value={buildFlags}
+                        onChange={(e) => {
+                            setBuildFlags(e.target.value);
+                            patch({ buildFlags: e.target.value });
+                        }}
+                        onFocus={() => {
+                            buildFlagsFocusedRef.current = true;
+                        }}
+                        onBlur={() => {
+                            buildFlagsFocusedRef.current = false;
+                        }}
                         className="text-small h-8 font-mono"
                         placeholder="--no-lint"
                     />

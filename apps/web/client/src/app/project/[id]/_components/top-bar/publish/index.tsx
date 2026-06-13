@@ -23,7 +23,7 @@ export const PublishButton = observer(() => {
     // Hide the publish dropdown entirely when the caller lacks publish cap.
     // While caps load we hide too — server is the trust boundary so flashing
     // a button only to refuse on click is worse than waiting.
-    if (!capsLoading && !canPublish) {
+    if (capsLoading || !canPublish) {
         return null;
     }
 

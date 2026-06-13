@@ -17,12 +17,15 @@ export function useResetHotkey() {
     useHotkeys(
         Hotkey.RESET_STYLE.command,
         (event) => {
-            event.preventDefault();
+            // Only suppress the default (e.g. native Backspace) once we know the
+            // focused field is a style property — otherwise Alt+Backspace was
+            // dead in every other input because preventDefault ran first.
             const active = document.activeElement as HTMLElement | null;
             if (!active) return;
             const host = active.closest<HTMLElement>('[data-style-property]');
             const property = host?.dataset.styleProperty;
             if (!property) return;
+            event.preventDefault();
             editorEngine.style.update(property, '');
         },
         { enableOnFormTags: true, enableOnContentEditable: true },
