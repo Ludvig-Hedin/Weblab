@@ -1160,6 +1160,8 @@
                         "loadingMessages": "Läser in meddelanden…",
                         "loadFailed": "Det gick inte att läsa in meddelanden.",
                         "retry": "Försök igen",
+                        "thinking": "Tänker…",
+                        "suggestionsLabel": "Förslag",
                         "input": {
                             "placeholder": "Fråga vad som helst...",
                             "tooltip": "Chatta med AI om det markerade elementet"
@@ -1170,6 +1172,7 @@
                         "controls": {
                             "newChat": "Ny chatt",
                             "history": "Chatthistorik",
+                            "viewHistory": "Visa chatthistorik",
                             "newChatTooltipStarting": "Startar ny chatt…",
                             "newChatTooltipStreaming": "Svar strömmar fortfarande",
                             "chatSettings": "Chattinställningar",
@@ -1501,9 +1504,18 @@
                 "title": "Importera skill",
                 "description": "Hämta in en skill från en URL eller klistra in en SKILL.md. Vi tolkar frontmattern, visar en förhandsgranskning och sparar först när du bekräftar.",
                 "tabs": {
+                    "upload": "Ladda upp fil",
                     "url": "Från URL",
                     "paste": "Klistra in innehåll"
                 },
+                "uploadLabel": "SKILL.md eller .zip",
+                "uploadDropHint": "Släpp en fil här, eller",
+                "uploadCta": "Välj fil",
+                "uploadHint": "Accepterar en SKILL.md (.md) eller en .zip som innehåller en. Max 2 MB.",
+                "toastNoSkillMd": "Ingen SKILL.md (eller .md) hittades i arkivet",
+                "toastFileTooLarge": "Filen är för stor (max 2 MB)",
+                "toastEmptyFile": "Den filen är tom",
+                "toastUnzipFailed": "Det gick inte att läsa den filen",
                 "urlLabel": "URL till SKILL.md",
                 "urlPlaceholder": "https://raw.githubusercontent.com/.../SKILL.md",
                 "urlHint": "Tillåtna värdar: raw.githubusercontent.com, gist.githubusercontent.com, agentskills.io.",
@@ -2363,7 +2375,7 @@
         },
         "featureTrio": {
             "eyebrow": "Öppen i design",
-            "heading": "Välj modell, äg din terminal, jobba med en AI som levererar.",
+            "heading": "Din modell. Din terminal. Riktig kod du äger.",
             "models": {
                 "title": "Modellagnostisk",
                 "body": "Växla mellan ledande modeller efter behov. Välj den som passar uppgiften."
@@ -2388,7 +2400,7 @@
             "headingCode": "Kod",
             "headingDesign": "Design",
             "headingSideBySide": "Sida vid sida",
-            "subhead": "Allt på en canvas. Inga flikar, ingen överlämning, ingen översättning som tappar bort något.",
+            "subhead": "Design, kod och AI på en canvas. Det du flyttar på skärmen är filen du skickar.",
             "cta": "Börja bygga",
             "layersTitle": "Lager",
             "revisionToday": "Idag",

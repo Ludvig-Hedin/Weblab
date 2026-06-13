@@ -2341,7 +2341,7 @@
         },
         "featureTrio": {
             "eyebrow": "Built open",
-            "heading": "Pick your model, own your terminal, work with an AI that ships.",
+            "heading": "Your model. Your terminal. Real code you own.",
             "models": {
                 "title": "Model agnostic",
                 "body": "Switch between leading models as you need. Pick the one that fits the task."
@@ -2366,7 +2366,7 @@
             "headingCode": "Code",
             "headingDesign": "Design",
             "headingSideBySide": "Side-by-side",
-            "subhead": "Everything in one canvas. No tabs, no handoffs, no translation losses.",
+            "subhead": "Design, code, and AI in one canvas. What you move on screen is the file you ship.",
             "cta": "Start building",
             "layersTitle": "Layers",
             "revisionToday": "Today",
