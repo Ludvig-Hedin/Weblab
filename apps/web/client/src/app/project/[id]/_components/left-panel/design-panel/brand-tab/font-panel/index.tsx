@@ -264,7 +264,21 @@ const FontPanel = observer(() => {
                                                 }
                                                 showDropdown={false}
                                                 showAddButton={true}
-                                                onAddFont={() => fontManager.addFont(font)}
+                                                onAddFont={() => {
+                                                    void fontManager.addFont(font).then((ok) => {
+                                                        if (ok) {
+                                                            toast.success(`Added ${font.family}`);
+                                                        } else {
+                                                            toast.error(
+                                                                `Could not add ${font.family}`,
+                                                                {
+                                                                    description:
+                                                                        'It may already exist, or check your network and try again.',
+                                                                },
+                                                            );
+                                                        }
+                                                    });
+                                                }}
                                             />
                                         </div>
                                     </div>

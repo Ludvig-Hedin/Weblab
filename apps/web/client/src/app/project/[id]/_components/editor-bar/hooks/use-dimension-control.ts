@@ -152,21 +152,37 @@ export const useDimensionControl = <T extends DimensionType>(dimension: T) => {
                 return;
             }
 
-            if (!(property in LayoutProperty) || !(value in LayoutMode)) {
-                console.error('Invalid layout property or mode', { property, value });
+            if (!(value in LayoutMode)) {
+                console.error('Invalid layout mode', { property, value });
+                return;
+            }
+            // `minWidth`/`maxWidth`/`minHeight`/`maxHeight` aren't in
+            // `LayoutProperty`, but they share the base width/height axis for
+            // the autolayout math (Fill = 100% of parent, Fixed = current px,
+            // Relative = % of parent). Derive the axis and write the result
+            // back to the actual property — without this the Min/Max mode pills
+            // were dead no-ops (the old guard rejected them outright).
+            const axis = property.replace(/^(min|max)/, '').toLowerCase();
+            if (!(axis in LayoutProperty)) {
+                console.error('Invalid layout property', { property, axis });
                 return;
             }
             const newLayoutValue = getAutolayoutStyles(
-                LayoutProperty[property as keyof typeof LayoutProperty],
+                LayoutProperty[axis as keyof typeof LayoutProperty],
                 LayoutMode[value as keyof typeof LayoutMode],
                 layoutValue,
                 selectedStyle.rect,
                 selectedStyle.parentRect,
             );
 
-            const { num, unit } = stringToParsedValue(newLayoutValue);
-
-            if (num !== undefined) {
+            // Keyword sizes (fit-content/auto) carry no numeric part. Writing
+            // them verbatim is required: routing them through
+            // `stringToParsedValue` collapses them to `0px`, which made "Hug"
+            // shrink the element to nothing.
+            if (/^(fit-content|auto|max-content|min-content|none)$/.test(newLayoutValue.trim())) {
+                editorEngine.style.update(property, newLayoutValue);
+            } else {
+                const { num, unit } = stringToParsedValue(newLayoutValue);
                 editorEngine.style.update(property, `${num}${unit}`);
             }
         },

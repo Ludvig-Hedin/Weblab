@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
-import { useQuery } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { APP_NAME } from '@weblab/constants';
@@ -28,10 +28,12 @@ export const UserDeleteSection = observer(() => {
     const router = useRouter();
     const { signOut: clerkSignOut } = useSafeClerk();
     const user = useQuery(api.users.me);
+    const deleteAccount = useAction(api.userActions.remove);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteEmail, setDeleteEmail] = useState('');
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [showFinalDeleteConfirm, setShowFinalDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDeleteAccount = () => {
         setShowDeleteModal(true);
@@ -43,15 +45,15 @@ export const UserDeleteSection = observer(() => {
     };
 
     const handleFinalDeleteAccount = async () => {
+        if (isDeleting) return;
+        setIsDeleting(true);
         try {
-            // TODO(convex): users.delete mutation not yet implemented in Convex.
-            // Original tRPC: api.user.delete.useMutation()
-            toast.error('Account deletion is temporarily unavailable. Please contact support.');
-            return;
-            // await handleDeleteSuccess();
+            await deleteAccount({});
+            await handleDeleteSuccess();
         } catch (error) {
             toast.error('Failed to delete account');
             console.error('Failed to delete account', error);
+            setIsDeleting(false);
         }
     };
 
@@ -210,9 +212,10 @@ export const UserDeleteSection = observer(() => {
                         <Button
                             variant="destructive"
                             onClick={() => void handleFinalDeleteAccount()}
+                            disabled={isDeleting}
                             className="order-1 sm:order-2"
                         >
-                            Yes, Delete My Account
+                            {isDeleting ? 'Deleting…' : 'Yes, Delete My Account'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

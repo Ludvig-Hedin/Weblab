@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
-import { useAction } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@weblab/ui/badge';
@@ -30,6 +30,7 @@ export const GitHubTab = () => {
     const getOrgs = useAction(api.githubActions.getOrganizations);
     const getReposWithApp = useAction(api.githubActions.getRepositoriesWithApp);
     const generateUrl = useAction(api.githubActions.generateInstallationUrlAction);
+    const disconnectGitHub = useMutation(api.users.disconnectGitHub);
 
     const [installationId, setInstallationId] = useState<string | null | undefined>(undefined);
     const [installationError, setInstallationError] = useState<unknown>(null);
@@ -137,9 +138,14 @@ export const GitHubTab = () => {
     const handleDisconnect = async () => {
         setIsDisconnecting(true);
         try {
-            // TODO(convex): users.disconnectGitHub mutation not yet implemented.
-            // Original tRPC: api.user.disconnectGitHub.useMutation()
-            toast.error('Disconnect is temporarily unavailable.');
+            await disconnectGitHub({});
+            setInstallationId(null);
+            setOrgs(null);
+            setRepos(null);
+            toast.success('GitHub disconnected');
+        } catch (err) {
+            console.error('Failed to disconnect GitHub', err);
+            toast.error('Failed to disconnect GitHub');
         } finally {
             setIsDisconnecting(false);
             setConfirmingDisconnect(false);

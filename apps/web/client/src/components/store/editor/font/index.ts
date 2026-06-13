@@ -133,6 +133,15 @@ export class FontManager {
                 // Load the new font in the search manager
                 await this.fontSearchManager.loadFontFromBatch([font]);
 
+                // Wire the font into the Tailwind config + root layout so it's
+                // actually served and usable this session — mirrors removeFont
+                // (and what syncFontsWithConfigs does on init). addFontToConfig
+                // only writes the export into fonts.ts; without these two calls
+                // the running app never loads the font (no fontFamily entry, no
+                // `--font-*` variable) until a panel remount re-syncs.
+                await addFontToTailwindConfig(font, this.editorEngine.activeSandbox);
+                await addFontVariableToRootLayout(font.id, this.editorEngine);
+
                 return true;
             }
             return false;
