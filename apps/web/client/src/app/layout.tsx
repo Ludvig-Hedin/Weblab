@@ -2,7 +2,6 @@ import '@/styles/globals.css';
 import '@weblab/ui/globals.css';
 
 import { type Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 
@@ -132,16 +131,11 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-const inter = Inter({
-    subsets: ['latin'],
-    variable: '--font-inter',
-});
-
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
     const locale = await getLocale();
 
     return (
-        <html lang={locale || 'en'} className={inter.variable} suppressHydrationWarning>
+        <html lang={locale || 'en'} suppressHydrationWarning>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 {/* Desktop (Electron) chrome wiring.

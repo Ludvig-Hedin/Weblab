@@ -819,7 +819,7 @@
         @apply border-border;
     }
     html {
-        font-family: system-ui, var(--font-inter), Arial, sans-serif;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
     body {
         @apply bg-background text-foreground;
