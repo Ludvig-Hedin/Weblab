@@ -335,24 +335,111 @@ declare const messages: {
             "openingEditor": "Opening the editor",
             "creatingBlankProject": "Building your project",
             "creatingBlankProjectCaption": "Setting up your project…",
-            "startBlankProject": "Start blank project"
+            "startBlankProject": "Start blank project",
+            "importingFolder": "Importing folder",
+            "importingFolderCaption": "Your files are being uploaded to a cloud workspace.",
+            "uploadingFilesProgress": "Uploading {uploaded} of {total} files",
+            "uploadingFilesCount": "Uploading {count} files",
+            "uploadingFilesPlaceholder": "Uploading files",
+            "cloning": "Cloning…",
+            "convertToTemplate": "Convert to template",
+            "unmarkAsTemplate": "Unmark as template",
+            "removeOfflineCopy": "Remove offline copy",
+            "makeAvailableOffline": "Make available offline"
+        },
+        "chooser": {
+            "orPickStartingPoint": "or pick a starting point",
+            "startBlank": {
+                "label": "Start blank",
+                "tooltip": "An empty project. Pick your stack — and on desktop, cloud or local."
+            },
+            "openFolder": {
+                "label": "Open folder",
+                "tooltip": "Open a folder from your machine. Edits sync to disk and your code editor, live."
+            },
+            "uploadFolder": {
+                "label": "Upload folder",
+                "tooltip": "Upload a local project folder to Weblab Cloud and edit it in the browser.",
+                "tooltipUnsupported": "Upload requires a Chromium-based browser (Chrome, Edge, or Arc)."
+            },
+            "cloneSite": {
+                "label": "Clone a site",
+                "tooltip": "Recreate any site from a URL or screenshot. The AI rebuilds it as an editable project."
+            },
+            "githubRepo": {
+                "label": "GitHub repo",
+                "tooltip": "Bring an existing repo. Connect your account once, then pick any repo to open."
+            },
+            "desktopFooter": {
+                "cta": "Want to keep code on your machine?",
+                "link": "Get the desktop app"
+            }
+        },
+        "cloneWebsiteDialog": {
+            "title": "Clone a website",
+            "description": "Recreate any site from a URL or a screenshot. The AI uses the source as a visual reference and rebuilds it into an editable project.",
+            "tabs": {
+                "url": "From URL",
+                "screenshot": "From screenshot"
+            },
+            "urlLabel": "Website URL",
+            "urlPlaceholder": "https://example.com",
+            "urlError": "Enter a full URL starting with http:// or https://",
+            "notesLabel": "Notes (optional)",
+            "urlNotesPlaceholder": "Tweaks for the AI: swap the color palette, simplify the hero, …",
+            "screenshotLabel": "Screenshot",
+            "screenshotClickToReplace": "{name} · click to replace",
+            "screenshotDropHint": "Drop a screenshot here or click to choose",
+            "screenshotFormatHint": "PNG, JPG, GIF, or WebP",
+            "screenshotNotesPlaceholder": "What this site is, the brand, anything you want the AI to focus on…",
+            "outputStackLabel": "Output stack",
+            "recommended": "Recommended",
+            "cancel": "Cancel",
+            "readingPage": "Reading the page…",
+            "cloneWebsite": "Clone website",
+            "cloneFromScreenshot": "Clone from screenshot",
+            "loaderHeading": "Cloning your site",
+            "loaderCaption": "Setting up the sandbox and handing the source material to the AI.",
+            "stepReadingSite": "Reading your site",
+            "stepSettingUpWorkspace": "Setting up your workspace",
+            "stepOpeningEditor": "Opening the editor",
+            "toastInvalidImageType": "Please drop an image file (PNG, JPG, GIF, or WebP).",
+            "toastImageReadFailed": "Could not read that image",
+            "frameworkNextjsDescription": "React + Tailwind + shadcn/ui. Editable in the visual editor.",
+            "frameworkStaticDescription": "A single index.html with Tailwind via CDN. No build step."
         },
         "dialogs": {
             "delete": {
                 "title": "Delete project",
                 "description": "This permanently removes your project and all its data.",
-                "moveToTrash": "Also move folder to trash"
+                "moveToTrash": "Also move folder to trash",
+                "toastFailed": "Failed to delete project"
             },
             "rename": {
                 "title": "Rename project",
                 "label": "Project Name",
-                "error": "Project name can't be empty"
+                "error": "Project name can't be empty",
+                "toastFailed": "Failed to rename project"
             },
             "clone": {
                 "title": "Clone project",
                 "label": "Project Name",
                 "placeholder": "Enter name for cloned project",
-                "error": "Project name can't be empty"
+                "error": "Project name can't be empty",
+                "toastSuccess": "Project cloned successfully",
+                "toastUnavailable": "Sandbox service temporarily unavailable",
+                "toastFailed": "Failed to clone project"
+            },
+            "template": {
+                "toastAdded": "Added to templates",
+                "toastRemoved": "Removed from templates",
+                "toastFailed": "Failed to update template tag"
+            },
+            "offline": {
+                "toastRemoved": "{name} removed from offline access.",
+                "toastPinned": "{name} pinned. Open it once online to finish caching.",
+                "toastMarked": "{name} marked as available offline.",
+                "toastFailed": "Could not update offline availability."
             }
         },
         "prompt": {

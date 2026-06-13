@@ -128,14 +128,17 @@ export function ProjectChooserCards({
     ];
     const uploadLabel =
         progress.filesTotal && progress.filesUploaded > 0
-            ? `Uploading ${progress.filesUploaded} of ${progress.filesTotal} files`
+            ? t('projects.actions.uploadingFilesProgress', {
+                  uploaded: String(progress.filesUploaded),
+                  total: String(progress.filesTotal),
+              })
             : progress.filesUploaded > 0
-              ? `Uploading ${progress.filesUploaded} files`
-              : 'Uploading files';
+              ? t('projects.actions.uploadingFilesCount', { count: String(progress.filesUploaded) })
+              : t('projects.actions.uploadingFilesPlaceholder');
 
     const importSteps = [
         {
-            label: 'Preparing workspace',
+            label: t(transKeys.projects.actions.preparingWorkspace),
             ready: ['uploading', 'creating', 'done'].includes(progress.phase),
         },
         {
@@ -143,10 +146,10 @@ export function ProjectChooserCards({
             ready: ['creating', 'done'].includes(progress.phase),
         },
         {
-            label: 'Creating project',
+            label: t(transKeys.projects.actions.creatingProject),
             ready: progress.phase === 'done',
         },
-        { label: 'Opening editor', ready: false },
+        { label: t(transKeys.projects.actions.openingEditor), ready: false },
     ];
 
     return (
@@ -162,22 +165,24 @@ export function ProjectChooserCards({
             {isImporting && progress.phase !== 'picking' && (
                 <ProjectCreationLoader
                     overlay
-                    heading="Importing folder"
-                    caption="Your files are being uploaded to a cloud workspace."
+                    heading={t('projects.actions.importingFolder')}
+                    caption={t('projects.actions.importingFolderCaption')}
                     steps={importSteps}
                 />
             )}
             <div className="flex w-full items-center gap-3">
                 <div className="bg-foreground/10 h-px flex-1" />
-                <span className="text-foreground-tertiary text-xs">or pick a starting point</span>
+                <span className="text-foreground-tertiary text-xs">
+                    {t('projects.chooser.orPickStartingPoint')}
+                </span>
                 <div className="bg-foreground/10 h-px flex-1" />
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 <ActionButton
                     icon={<Icons.FilePlus className="h-3.5 w-3.5" />}
-                    label="Start blank"
-                    tooltip="An empty project. Pick your stack — and on desktop, cloud or local."
+                    label={t('projects.chooser.startBlank.label')}
+                    tooltip={t('projects.chooser.startBlank.tooltip')}
                     onClick={() => setShowFrameworkDialog(true)}
                     busy={isCreatingProject}
                     disabled={isBusy}
@@ -186,8 +191,8 @@ export function ProjectChooserCards({
                 {isDesktopApp ? (
                     <ActionButton
                         icon={<Icons.Directory className="h-3.5 w-3.5" />}
-                        label="Open folder"
-                        tooltip="Open a folder from your machine. Edits sync to disk and your code editor, live."
+                        label={t('projects.chooser.openFolder.label')}
+                        tooltip={t('projects.chooser.openFolder.tooltip')}
                         onClick={() => void openLocalFolder()}
                         busy={isOpeningLocal}
                         disabled={isBusy}
@@ -195,11 +200,11 @@ export function ProjectChooserCards({
                 ) : (
                     <ActionButton
                         icon={<Icons.Upload className="h-3.5 w-3.5" />}
-                        label="Upload folder"
+                        label={t('projects.chooser.uploadFolder.label')}
                         tooltip={
                             isFsAccessSupported
-                                ? 'Upload a local project folder to Weblab Cloud and edit it in the browser.'
-                                : 'Upload requires a Chromium-based browser (Chrome, Edge, or Arc).'
+                                ? t('projects.chooser.uploadFolder.tooltip')
+                                : t('projects.chooser.uploadFolder.tooltipUnsupported')
                         }
                         onClick={() => void handleImportLocalProject()}
                         busy={isImporting}
@@ -209,16 +214,16 @@ export function ProjectChooserCards({
 
                 <ActionButton
                     icon={<Icons.MagicWand className="h-3.5 w-3.5" />}
-                    label="Clone a site"
-                    tooltip="Recreate any site from a URL or screenshot. The AI rebuilds it as an editable project."
+                    label={t('projects.chooser.cloneSite.label')}
+                    tooltip={t('projects.chooser.cloneSite.tooltip')}
                     onClick={() => setShowCloneDialog(true)}
                     disabled={isBusy}
                 />
 
                 <ActionButton
                     icon={<Icons.GitHubLogo className="h-3.5 w-3.5" />}
-                    label="GitHub repo"
-                    tooltip="Bring an existing repo. Connect your account once, then pick any repo to open."
+                    label={t('projects.chooser.githubRepo.label')}
+                    tooltip={t('projects.chooser.githubRepo.tooltip')}
                     href={Routes.IMPORT_GITHUB}
                     disabled={isBusy}
                 />
@@ -226,14 +231,14 @@ export function ProjectChooserCards({
 
             {showDesktopFooter && !isDesktopApp && (
                 <p className="text-foreground-tertiary mt-6 text-center text-sm">
-                    Want to keep code on your machine?{' '}
+                    {t('projects.chooser.desktopFooter.cta')}{' '}
                     <Link
                         href={ExternalRoutes.DOWNLOAD_PAGE}
                         target="_blank"
                         rel="noreferrer"
                         className="text-foreground-secondary hover:text-foreground underline underline-offset-2"
                     >
-                        Get the desktop app
+                        {t('projects.chooser.desktopFooter.link')}
                     </Link>
                     .
                 </p>

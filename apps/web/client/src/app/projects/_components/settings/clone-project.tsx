@@ -49,7 +49,7 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                 workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
             });
 
-            toast.success('Project cloned successfully');
+            toast.success(t(transKeys.projects.dialogs.clone.toastSuccess));
             setShowCloneDialog(false);
             refetch();
         } catch (error) {
@@ -91,12 +91,12 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                     lower.includes('timed out'));
 
             if (isTransient) {
-                toast.error('Sandbox service temporarily unavailable', {
+                toast.error(t(transKeys.projects.dialogs.clone.toastUnavailable), {
                     description:
                         'Please try again in a few moments. Our servers may be experiencing high load.',
                 });
             } else {
-                toast.error('Failed to clone project', {
+                toast.error(t(transKeys.projects.dialogs.clone.toastFailed), {
                     description: errorMessage,
                 });
             }
@@ -161,7 +161,7 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                             {isCloningProject ? (
                                 <>
                                     <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                    Cloning…
+                                    {t(transKeys.projects.actions.cloning)}
                                 </>
                             ) : (
                                 t(transKeys.projects.actions.clone)

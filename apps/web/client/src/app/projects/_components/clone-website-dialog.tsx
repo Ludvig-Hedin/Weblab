@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { ImageMessageContext } from '@weblab/models';
@@ -32,24 +33,21 @@ interface CloneWebsiteDialogProps {
 
 const URL_PATTERN = /^https?:\/\/.+\..+/i;
 
-const FRAMEWORK_OPTIONS: Array<{
+const FRAMEWORK_BASE_OPTIONS: Array<{
     id: CloneOutputFramework;
     title: string;
-    description: string;
     icon: React.ReactNode;
     recommended?: boolean;
 }> = [
     {
         id: CloneOutputFramework.NEXTJS,
         title: 'Next.js',
-        description: 'React + Tailwind + shadcn/ui. Editable in the visual editor.',
         icon: <Icons.Globe className="h-4 w-4" />,
         recommended: true,
     },
     {
         id: CloneOutputFramework.STATIC_HTML,
         title: 'Static HTML',
-        description: 'A single index.html with Tailwind via CDN. No build step.',
         icon: <Icons.Code className="h-4 w-4" />,
     },
 ];
@@ -58,14 +56,18 @@ function FrameworkPicker({
     value,
     onChange,
     disabled,
+    recommendedLabel,
+    descriptions,
 }: {
     value: CloneOutputFramework;
     onChange: (id: CloneOutputFramework) => void;
     disabled?: boolean;
+    recommendedLabel: string;
+    descriptions: Record<CloneOutputFramework, string>;
 }) {
     return (
         <div className="grid gap-2 sm:grid-cols-2">
-            {FRAMEWORK_OPTIONS.map((option) => {
+            {FRAMEWORK_BASE_OPTIONS.map((option) => {
                 const selected = option.id === value;
                 return (
                     <button
@@ -91,12 +93,12 @@ function FrameworkPicker({
                             </div>
                             {option.recommended && (
                                 <span className="border-foreground/20 text-foreground-secondary ml-auto rounded-full border px-2 py-0.5 text-tiny">
-                                    Recommended
+                                    {recommendedLabel}
                                 </span>
                             )}
                         </div>
                         <p className="text-foreground-tertiary text-xs leading-5">
-                            {option.description}
+                            {descriptions[option.id]}
                         </p>
                     </button>
                 );
@@ -106,6 +108,7 @@ function FrameworkPicker({
 }
 
 export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogProps) {
+    const t = useTranslations('projects.cloneWebsiteDialog');
     const { cloneFromUrl, cloneFromScreenshot, isCloning, phase } = useCloneWebsite();
     const [activeTab, setActiveTab] = useState<'url' | 'screenshot'>('url');
     const [url, setUrl] = useState('');
@@ -135,7 +138,7 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
 
     const handleScreenshotFile = async (file: File) => {
         if (!file.type.startsWith('image/')) {
-            toast.error('Please drop an image file (PNG, JPG, GIF, or WebP).');
+            toast.error(t('toastInvalidImageType'));
             return;
         }
         setIsCompressing(true);
@@ -163,7 +166,7 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
             });
         } catch (err) {
             console.error('Failed to read screenshot file', err);
-            toast.error('Could not read that image', {
+            toast.error(t('toastImageReadFailed'), {
                 description: err instanceof Error ? err.message : 'Unknown error',
             });
         } finally {
@@ -174,7 +177,7 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
     const submitUrl = async () => {
         const trimmed = url.trim();
         if (!URL_PATTERN.test(trimmed)) {
-            setUrlError('Enter a full URL starting with http:// or https://');
+            setUrlError(t('urlError'));
             return;
         }
         setUrlError(null);
@@ -211,22 +214,27 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
         activeTab === 'url'
             ? [
                   {
-                      label: 'Reading your site',
+                      label: t('stepReadingSite'),
                       ready: phase !== 'idle' && phase !== 'scraping-url',
                   },
                   {
-                      label: 'Setting up your workspace',
+                      label: t('stepSettingUpWorkspace'),
                       ready: phase === 'creating-project' || phase === 'opening-editor',
                   },
-                  { label: 'Opening the editor', ready: phase === 'opening-editor' },
+                  { label: t('stepOpeningEditor'), ready: phase === 'opening-editor' },
               ]
             : [
                   {
-                      label: 'Setting up your workspace',
+                      label: t('stepSettingUpWorkspace'),
                       ready: phase === 'creating-project' || phase === 'opening-editor',
                   },
-                  { label: 'Opening the editor', ready: phase === 'opening-editor' },
+                  { label: t('stepOpeningEditor'), ready: phase === 'opening-editor' },
               ];
+
+    const frameworkDescriptions: Record<CloneOutputFramework, string> = {
+        [CloneOutputFramework.NEXTJS]: t('frameworkNextjsDescription'),
+        [CloneOutputFramework.STATIC_HTML]: t('frameworkStaticDescription'),
+    };
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -234,17 +242,14 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                 {isCloning && (
                     <ProjectCreationLoader
                         overlay
-                        heading="Cloning your site"
-                        caption="Setting up the sandbox and handing the source material to the AI."
+                        heading={t('loaderHeading')}
+                        caption={t('loaderCaption')}
                         steps={creationSteps}
                     />
                 )}
                 <DialogHeader>
-                    <DialogTitle>Clone a website</DialogTitle>
-                    <DialogDescription>
-                        Recreate any site from a URL or a screenshot. The AI uses the source as a
-                        visual reference and rebuilds it into an editable project.
-                    </DialogDescription>
+                    <DialogTitle>{t('title')}</DialogTitle>
+                    <DialogDescription>{t('description')}</DialogDescription>
                 </DialogHeader>
 
                 <Tabs
@@ -254,11 +259,11 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                     <TabsList className="w-full">
                         <TabsTrigger value="url" className="flex-1 gap-2">
                             <Icons.Link className="h-3.5 w-3.5" />
-                            From URL
+                            {t('tabs.url')}
                         </TabsTrigger>
                         <TabsTrigger value="screenshot" className="flex-1 gap-2">
                             <Icons.Image className="h-3.5 w-3.5" />
-                            From screenshot
+                            {t('tabs.screenshot')}
                         </TabsTrigger>
                     </TabsList>
 
@@ -268,11 +273,11 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                                 htmlFor="clone-url"
                                 className="text-foreground-secondary text-xs font-medium"
                             >
-                                Website URL
+                                {t('urlLabel')}
                             </label>
                             <Input
                                 id="clone-url"
-                                placeholder="https://example.com"
+                                placeholder={t('urlPlaceholder')}
                                 value={url}
                                 onChange={(e) => {
                                     setUrl(e.target.value);
@@ -294,11 +299,11 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                                 htmlFor="clone-url-notes"
                                 className="text-foreground-secondary text-xs font-medium"
                             >
-                                Notes (optional)
+                                {t('notesLabel')}
                             </label>
                             <Textarea
                                 id="clone-url-notes"
-                                placeholder="Tweaks for the AI: swap the color palette, simplify the hero, …"
+                                placeholder={t('urlNotesPlaceholder')}
                                 value={urlNotes}
                                 onChange={(e) => setUrlNotes(e.target.value)}
                                 disabled={submitting}
@@ -310,7 +315,7 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                     <TabsContent value="screenshot" className="mt-4 space-y-3">
                         <div className="space-y-1.5">
                             <span className="text-foreground-secondary text-xs font-medium">
-                                Screenshot
+                                {t('screenshotLabel')}
                             </span>
                             <label
                                 htmlFor="clone-screenshot-input"
@@ -336,17 +341,19 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                                             className="border-foreground/10 max-h-40 rounded-md border object-contain"
                                         />
                                         <span className="text-foreground-tertiary text-xs">
-                                            {screenshot.displayName} · click to replace
+                                            {t('screenshotClickToReplace', {
+                                                name: screenshot.displayName ?? '',
+                                            })}
                                         </span>
                                     </>
                                 ) : (
                                     <>
                                         <Icons.Image className="text-foreground-tertiary h-6 w-6" />
                                         <span className="text-foreground text-sm">
-                                            Drop a screenshot here or click to choose
+                                            {t('screenshotDropHint')}
                                         </span>
                                         <span className="text-foreground-tertiary text-xs">
-                                            PNG, JPG, GIF, or WebP
+                                            {t('screenshotFormatHint')}
                                         </span>
                                     </>
                                 )}
@@ -369,11 +376,11 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                                 htmlFor="clone-screenshot-notes"
                                 className="text-foreground-secondary text-xs font-medium"
                             >
-                                Notes (optional)
+                                {t('notesLabel')}
                             </label>
                             <Textarea
                                 id="clone-screenshot-notes"
-                                placeholder="What this site is, the brand, anything you want the AI to focus on…"
+                                placeholder={t('screenshotNotesPlaceholder')}
                                 value={screenshotNotes}
                                 onChange={(e) => setScreenshotNotes(e.target.value)}
                                 disabled={submitting}
@@ -385,12 +392,14 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
 
                 <div className="space-y-1.5">
                     <span className="text-foreground-secondary text-xs font-medium">
-                        Output stack
+                        {t('outputStackLabel')}
                     </span>
                     <FrameworkPicker
                         value={framework}
                         onChange={setFramework}
                         disabled={submitting}
+                        recommendedLabel={t('recommended')}
+                        descriptions={frameworkDescriptions}
                     />
                 </div>
 
@@ -400,19 +409,19 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                         onClick={() => handleOpenChange(false)}
                         disabled={submitting}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     {activeTab === 'url' ? (
                         <Button onClick={() => void submitUrl()} disabled={!urlValid || submitting}>
                             {isCloning && phase === 'scraping-url' ? (
                                 <>
                                     <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                    Reading the page…
+                                    {t('readingPage')}
                                 </>
                             ) : (
                                 <>
                                     <Icons.MagicWand className="h-4 w-4" />
-                                    Clone website
+                                    {t('cloneWebsite')}
                                 </>
                             )}
                         </Button>
@@ -422,7 +431,7 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
                             disabled={!screenshot || submitting}
                         >
                             <Icons.MagicWand className="h-4 w-4" />
-                            Clone from screenshot
+                            {t('cloneFromScreenshot')}
                         </Button>
                     )}
                 </DialogFooter>

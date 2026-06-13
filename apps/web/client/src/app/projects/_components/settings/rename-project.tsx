@@ -71,7 +71,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
             // Surface the failure — silently swallowing it leaves the dialog
             // open with no feedback. Mirrors delete-project.tsx; the dialog
             // stays open so the user can retry.
-            toast.error('Failed to rename project', {
+            toast.error(t(transKeys.projects.dialogs.rename.toastFailed), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {

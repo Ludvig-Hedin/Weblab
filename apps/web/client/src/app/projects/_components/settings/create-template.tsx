@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
@@ -11,8 +12,10 @@ import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { transKeys } from '@/i18n/keys';
 
 export function CreateTemplate({ project, refetch }: { project: Project; refetch: () => void }) {
+    const t = useTranslations();
     const addTag = useMutation(api.projects.addTag);
     const removeTag = useMutation(api.projects.removeTag);
     const isTemplate = project.metadata.tags.includes(Tags.TEMPLATE);
@@ -24,16 +27,16 @@ export function CreateTemplate({ project, refetch }: { project: Project; refetch
         try {
             if (isTemplate) {
                 await removeTag({ projectId: project.id as Id<'projects'>, tag: Tags.TEMPLATE });
-                toast.success('Removed from templates');
+                toast.success(t(transKeys.projects.dialogs.template.toastRemoved));
             } else {
                 await addTag({ projectId: project.id as Id<'projects'>, tag: Tags.TEMPLATE });
-                toast.success('Added to templates');
+                toast.success(t(transKeys.projects.dialogs.template.toastAdded));
             }
 
             refetch();
         } catch (error) {
             console.error('Failed to update template tag:', error);
-            toast.error('Failed to update template tag');
+            toast.error(t(transKeys.projects.dialogs.template.toastFailed));
         } finally {
             setIsPending(false);
         }
@@ -50,7 +53,9 @@ export function CreateTemplate({ project, refetch }: { project: Project; refetch
             ) : (
                 <Icons.FilePlus className="h-4 w-4" />
             )}
-            {isTemplate ? 'Unmark as template' : 'Convert to template'}
+            {isTemplate
+                ? t(transKeys.projects.actions.unmarkAsTemplate)
+                : t(transKeys.projects.actions.convertToTemplate)}
         </DropdownMenuItem>
     );
 }

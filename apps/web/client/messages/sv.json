@@ -332,24 +332,111 @@
             "creatingBlankProject": "Bygger ditt projekt",
             "creatingBlankProjectCaption": "Det här tar ungefär 15 sekunder medan vi förbereder arbetsytan. Häng kvar.",
             "startBlankProject": "Starta tomt projekt",
-            "you": "You"
+            "you": "You",
+            "importingFolder": "Importerar mapp",
+            "importingFolderCaption": "Dina filer laddas upp till en molnarbetsyta.",
+            "uploadingFilesProgress": "Laddar upp {uploaded} av {total} filer",
+            "uploadingFilesCount": "Laddar upp {count} filer",
+            "uploadingFilesPlaceholder": "Laddar upp filer",
+            "cloning": "Klonar…",
+            "convertToTemplate": "Omvandla till mall",
+            "unmarkAsTemplate": "Ta bort som mall",
+            "removeOfflineCopy": "Ta bort offlinekopia",
+            "makeAvailableOffline": "Gör tillgänglig offline"
+        },
+        "chooser": {
+            "orPickStartingPoint": "eller välj en startpunkt",
+            "startBlank": {
+                "label": "Tom start",
+                "tooltip": "Ett tomt projekt. Välj ditt stack — och på datorn, moln eller lokalt."
+            },
+            "openFolder": {
+                "label": "Öppna mapp",
+                "tooltip": "Öppna en mapp från din dator. Ändringar synkroniseras till disk och din kodredigerare, live."
+            },
+            "uploadFolder": {
+                "label": "Ladda upp mapp",
+                "tooltip": "Ladda upp en lokal projektmapp till Weblab Cloud och redigera i webbläsaren.",
+                "tooltipUnsupported": "Uppladdning kräver en Chromium-baserad webbläsare (Chrome, Edge eller Arc)."
+            },
+            "cloneSite": {
+                "label": "Klona en sida",
+                "tooltip": "Återskapa valfri sida från en URL eller skärmdump. AI:n bygger om den till ett redigerbart projekt."
+            },
+            "githubRepo": {
+                "label": "GitHub-repo",
+                "tooltip": "Ta in ett befintligt repo. Anslut ditt konto en gång, välj sedan valfritt repo att öppna."
+            },
+            "desktopFooter": {
+                "cta": "Vill du ha koden på din dator?",
+                "link": "Hämta skrivbordsappen"
+            }
+        },
+        "cloneWebsiteDialog": {
+            "title": "Klona en webbplats",
+            "description": "Återskapa valfri sida från en URL eller skärmdump. AI:n använder källan som visuell referens och bygger om den till ett redigerbart projekt.",
+            "tabs": {
+                "url": "Från URL",
+                "screenshot": "Från skärmdump"
+            },
+            "urlLabel": "Webbplats-URL",
+            "urlPlaceholder": "https://example.com",
+            "urlError": "Ange en fullständig URL som börjar med http:// eller https://",
+            "notesLabel": "Anteckningar (valfritt)",
+            "urlNotesPlaceholder": "Justeringar för AI:n: byt ut färgpaletten, förenkla hjälten, …",
+            "screenshotLabel": "Skärmdump",
+            "screenshotClickToReplace": "{name} · klicka för att ersätta",
+            "screenshotDropHint": "Släpp en skärmdump här eller klicka för att välja",
+            "screenshotFormatHint": "PNG, JPG, GIF eller WebP",
+            "screenshotNotesPlaceholder": "Vad sidan handlar om, varumärket, vad du vill att AI:n ska fokusera på…",
+            "outputStackLabel": "Utdatastack",
+            "recommended": "Rekommenderas",
+            "cancel": "Avbryt",
+            "readingPage": "Läser sidan…",
+            "cloneWebsite": "Klona webbplats",
+            "cloneFromScreenshot": "Klona från skärmdump",
+            "loaderHeading": "Klonar din sida",
+            "loaderCaption": "Konfigurerar sandboxen och skickar källmaterialet till AI:n.",
+            "stepReadingSite": "Läser din sida",
+            "stepSettingUpWorkspace": "Konfigurerar din arbetsyta",
+            "stepOpeningEditor": "Öppnar redigeraren",
+            "toastInvalidImageType": "Släpp en bildfil (PNG, JPG, GIF eller WebP).",
+            "toastImageReadFailed": "Det gick inte att läsa den bilden",
+            "frameworkNextjsDescription": "React + Tailwind + shadcn/ui. Redigerbar i den visuella redigeraren.",
+            "frameworkStaticDescription": "En enda index.html med Tailwind via CDN. Inget byggsteg."
         },
         "dialogs": {
             "delete": {
                 "title": "Ta bort projektet?",
                 "description": "Det här tar permanent bort projektet och all dess data.",
-                "moveToTrash": "Flytta även mappen till papperskorgen"
+                "moveToTrash": "Flytta även mappen till papperskorgen",
+                "toastFailed": "Det gick inte att ta bort projektet"
             },
             "rename": {
                 "title": "Byt namn på projekt",
                 "label": "Projektnamn",
-                "error": "Projektnamnet får inte vara tomt"
+                "error": "Projektnamnet får inte vara tomt",
+                "toastFailed": "Det gick inte att byta namn på projektet"
             },
             "clone": {
                 "title": "Klona projekt",
                 "label": "Projektnamn",
                 "placeholder": "Ange namn för det klonade projektet",
-                "error": "Projektnamnet får inte vara tomt"
+                "error": "Projektnamnet får inte vara tomt",
+                "toastSuccess": "Projektet klonat",
+                "toastUnavailable": "Sandboxtjänsten är tillfälligt otillgänglig",
+                "toastFailed": "Det gick inte att klona projektet"
+            },
+            "template": {
+                "toastAdded": "Tillagd i mallar",
+                "toastRemoved": "Borttagen från mallar",
+                "toastFailed": "Det gick inte att uppdatera malltaggen"
+            },
+            "offline": {
+                "toastRemoved": "{name} borttagen från offline-åtkomst.",
+                "toastPinned": "{name} fäst. Öppna en gång online för att slutföra cachelagringen.",
+                "toastMarked": "{name} markerad som tillgänglig offline.",
+                "toastFailed": "Det gick inte att uppdatera offline-tillgängligheten."
             }
         },
         "prompt": {

@@ -37,7 +37,7 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
             refetch();
         } catch (error) {
             console.error('Error deleting project:', error);
-            toast.error('Failed to delete project', {
+            toast.error(t(transKeys.projects.dialogs.delete.toastFailed), {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {

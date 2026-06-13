@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useConvex, useMutation, useQuery } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import type { Project } from '@weblab/models';
 import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
@@ -10,6 +11,7 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { transKeys } from '@/i18n/keys';
 import {
     cacheProject,
     evictCachedProject,
@@ -23,6 +25,7 @@ import {
  * `/projects` so power users can pin without entering each project first.
  */
 export function OfflinePinToggle({ project }: { project: Project }) {
+    const t = useTranslations();
     const projectId = project.id as Id<'projects'>;
     const convex = useConvex();
     const isPinned = useQuery(api.projectOffline.isPinned, { projectId });
@@ -40,7 +43,9 @@ export function OfflinePinToggle({ project }: { project: Project }) {
             if (isPinned) {
                 await unpinOffline({ projectId });
                 await evictCachedProject(project.id);
-                toast.success(`${project.name} removed from offline access.`);
+                toast.success(
+                    t(transKeys.projects.dialogs.offline.toastRemoved, { name: project.name }),
+                );
             } else {
                 await pinOffline({ projectId });
                 // Pull branches on demand so we cache a record the offline
@@ -49,7 +54,9 @@ export function OfflinePinToggle({ project }: { project: Project }) {
                     projectId,
                 });
                 if (branchList.length === 0) {
-                    toast.warning(`${project.name} pinned. Open it once online to finish caching.`);
+                    toast.warning(
+                        t(transKeys.projects.dialogs.offline.toastPinned, { name: project.name }),
+                    );
                 } else {
                     // TODO(convex-migration): branch shape from Convex is Doc<'branches'> (sandboxId,
                     // _id, etc.), but cacheProject expects the legacy Branch model. Cast for now —
@@ -60,12 +67,14 @@ export function OfflinePinToggle({ project }: { project: Project }) {
                 await requestPersistentStorage();
                 await precacheNavigationUrls([`/project/${project.id}`, '/projects']);
                 if (branchList.length > 0) {
-                    toast.success(`${project.name} marked as available offline.`);
+                    toast.success(
+                        t(transKeys.projects.dialogs.offline.toastMarked, { name: project.name }),
+                    );
                 }
             }
         } catch (err) {
             console.error('Failed to toggle offline pin', err);
-            toast.error('Could not update offline availability.');
+            toast.error(t(transKeys.projects.dialogs.offline.toastFailed));
         } finally {
             setIsPending(false);
         }
@@ -80,7 +89,9 @@ export function OfflinePinToggle({ project }: { project: Project }) {
             className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
         >
             <Icons.Download className="h-4 w-4" />
-            {isPinned ? 'Remove offline copy' : 'Make available offline'}
+            {isPinned
+                ? t(transKeys.projects.actions.removeOfflineCopy)
+                : t(transKeys.projects.actions.makeAvailableOffline)}
         </DropdownMenuItem>
     );
 }
