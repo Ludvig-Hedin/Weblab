@@ -69,30 +69,22 @@ const Page = () => {
                         </div>
                     </CardHeader>
                 </Card>
-                {/* Figma import is gated until the sandbox-provisioning port
-                    lands (TODO(sandbox-port) in figma/_context). Presenting it
-                    as clickable let users complete two real steps (fetch +
-                    select frames) only to hit a throwing stub at finalize —
-                    show it as "Coming soon" and disable entry instead. */}
                 <Card
-                    className="bg-background/60 border-foreground-tertiary/50 h-64 w-full cursor-not-allowed border-[0.5px] opacity-60 backdrop-blur-xl"
-                    aria-disabled="true"
-                    aria-label="Import from Figma (coming soon)"
+                    className="bg-background/80 border-foreground-tertiary/50 h-64 w-full cursor-pointer border-[0.5px] backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+                    onClick={() => handleCardClick('figma')}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Import from Figma"
                 >
                     <CardHeader className="flex h-full flex-col justify-between">
-                        <div className="flex items-start justify-between">
-                            <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-lg select-none">
-                                <Icons.Figma className="text-primary h-6 w-6" />
-                            </div>
-                            <span className="border-foreground-tertiary/40 text-foreground-secondary rounded-full border px-2 py-0.5 text-xs">
-                                Coming soon
-                            </span>
+                        <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-lg select-none">
+                            <Icons.Figma className="text-primary h-6 w-6" />
                         </div>
                         <div className="space-y-2">
                             <CardTitle className="text-title3">Import from Figma</CardTitle>
                             <CardDescription className="text-sm text-balance">
-                                Paste a Figma file URL to import your designs as React component
-                                stubs.
+                                Paste a Figma file URL to import your frames as editable React
+                                components in {APP_NAME}.
                             </CardDescription>
                         </div>
                     </CardHeader>

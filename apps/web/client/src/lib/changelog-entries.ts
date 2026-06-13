@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-3-figma-import',
+        version: '4.3',
+        title: 'Import your designs straight from Figma',
+        description:
+            'Import from Figma is live. Paste a Figma file URL, drop in a personal access token, and Weblab pulls the file’s top-level frames so you can pick exactly which ones to bring in. Hit Create Project and we spin up a real Next.js project for you — one editable React component per frame, already wired into the page and ready to build on. No more “coming soon”: the whole flow now works end to end, from frame selection to an open editor.',
+        date: '2026-06-13',
+        tags: ['Import', 'Figma', 'Editor'],
+    },
+    {
         slug: 'v4-2-components',
         version: '4.2',
         title: 'Components: master/instance editing, properties, and variants',

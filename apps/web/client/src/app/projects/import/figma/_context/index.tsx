@@ -8,11 +8,8 @@ import { useAction, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { FigmaTopLevelFrame } from '@weblab/figma';
-import { scaffoldAppPage, scaffoldFrameComponent, toComponentName } from '@weblab/figma';
 
-import type { ProcessedFile } from '@/app/projects/types';
 import type { Id } from '@convex/_generated/dataModel';
-import { ProcessedFileType } from '@/app/projects/types';
 import { Routes } from '@/utils/constants';
 
 export type FigmaImportStep = 0 | 1 | 2; // credentials | selectFrames | finalizing
@@ -83,53 +80,22 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const [finalizeError, setFinalizeError] = useState<string | null>(null);
 
     const user = useQuery(convexApi.users.me, {});
-    // TODO(sandbox-port): port api.sandbox.* — no Convex equivalents yet (fork, startOrphan,
-    // deleteOrphan, orphanBulkUpload). Replaced with stubs that throw so the
-    // import flow surfaces a clear error instead of silently doing nothing.
-    const forkSandbox = async (
-        _args: unknown,
-    ): Promise<{
-        sandboxId: string;
-        previewUrl: string;
-        sandboxRuntime: {
-            provider: 'code_sandbox' | 'vercel_sandbox';
-            snapshotId?: string;
-            port?: number;
-            devCommand?: string;
-            runtime?: string;
-        };
-    }> => {
-        throw new Error(
-            'Sandbox provisioning is temporarily unavailable while the sandbox service is migrated.',
-        );
-    };
-    const startOrphanSandbox = async (_args: unknown): Promise<unknown> => {
-        throw new Error(
-            'Sandbox start is temporarily unavailable while the sandbox service is migrated.',
-        );
-    };
-    const deleteOrphanSandbox = async (_args: unknown): Promise<void> => {
-        // No-op: the sandbox endpoint is gone, so there's nothing to clean up.
-    };
-    const orphanBulkUpload = async (_args: unknown): Promise<void> => {
-        throw new Error(
-            'Sandbox upload is temporarily unavailable while the sandbox service is migrated.',
-        );
-    };
-    const createProjectMutation = useMutation(convexApi.projects.create);
+    // Provisions a real Next.js sandbox, overlays the Figma-generated component
+    // files, and inserts the project graph — all server-side. See
+    // convex/projectActions.ts `createFromFigma` (mirrors createFromWebsiteClone).
+    const createFromFigma = useAction(convexApi.projectActions.createFromFigma);
     const removeProjectMutation = useMutation(convexApi.projects.remove);
-    const createProject = (args: Parameters<typeof createProjectMutation>[0]) =>
-        createProjectMutation(args);
     const deleteProject = ({ id }: { id: string }) =>
         removeProjectMutation({ projectId: id as Id<'projects'> });
     const fetchFileMutation = useAction(convexApi.figmaActions.fetchFile);
 
     /**
-     * Tracks the in-flight finalize so cancel() can abort and clean up any
-     * sandbox/project that's already been created (issue #9).
+     * Tracks the in-flight finalize so cancel() can abort and clean up an
+     * already-created project (issue #9). The server action is atomic — it
+     * either returns a committed projectId or throws after stopping its own
+     * sandbox — so the client never has to clean up an orphan sandbox.
      */
     const abortController = useRef<AbortController | null>(null);
-    const inFlightSandboxId = useRef<string | null>(null);
     const inFlightProjectId = useRef<string | null>(null);
 
     const fetchFile = async () => {
@@ -171,17 +137,15 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
 
         const controller = new AbortController();
         abortController.current = controller;
-        inFlightSandboxId.current = null;
         inFlightProjectId.current = null;
 
-        const checkAborted = () => {
-            if (controller.signal.aborted) {
-                throw new DOMException('Import cancelled', 'AbortError');
-            }
-        };
         let didOpenEditor = false;
 
         setIsFinalizing(true);
+        // The whole provision → file-overlay → project-graph chain runs inside a
+        // single Convex action, so we can't surface per-file progress. Show the
+        // bookend phases ('creating-sandbox' while the action runs, then
+        // 'opening-editor') — the bar still animates meaningfully.
         setFinalizeProgress({
             phase: 'creating-sandbox',
             filesUploaded: 0,
@@ -189,124 +153,41 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         });
         setFinalizeError(null);
         try {
-            // Figma import is stubbed (server-side route not yet ported to
-            // Vercel) — `forkSandbox` throws "Figma import is temporarily
-            // unavailable.". When the real route lands it will provision a
-            // Next.js scaffold via the Vercel provider; no CSB template id
-            // needed.
-            const forkedSandbox = await forkSandbox({
-                config: {
-                    title: `Figma import – ${fileName}`,
-                    tags: ['figma', 'imported', user._id],
-                },
-            });
-            inFlightSandboxId.current = forkedSandbox.sandboxId;
-            checkAborted();
-
-            const usedNames = new Set<string>();
-            const dedupedFrames = selectedFrames.map((frame) => {
-                const baseName = toComponentName(frame.name);
-                let uniqueName = baseName;
-                let counter = 2;
-                while (usedNames.has(uniqueName)) {
-                    uniqueName = `${baseName}${counter}`;
-                    counter++;
-                }
-                usedNames.add(uniqueName);
-                return { ...frame, name: uniqueName };
-            });
-
-            const files: ProcessedFile[] = [
-                ...dedupedFrames.map((frame) => ({
-                    path: `src/components/${toComponentName(frame.name)}.tsx`,
-                    content: scaffoldFrameComponent(frame),
-                    type: ProcessedFileType.TEXT as const,
+            const { projectId } = await createFromFigma({
+                fileName,
+                frames: selectedFrames.map((f) => ({
+                    id: f.id,
+                    name: f.name,
+                    width: f.width,
+                    height: f.height,
+                    backgroundColor: f.backgroundColor,
                 })),
-                {
-                    path: 'src/app/page.tsx',
-                    content: scaffoldAppPage(dedupedFrames),
-                    type: ProcessedFileType.TEXT as const,
-                },
-            ];
-
-            // Vercel Sandbox SDK is server-only — upload via tRPC. CodeSandbox
-            // was removed 2026-05-24; any non-Vercel provider is a server
-            // misconfiguration and should fail loudly rather than fall back
-            // to a now-archived runtime.
-            if (forkedSandbox.sandboxRuntime.provider !== 'vercel_sandbox') {
-                throw new Error(
-                    'Server provisioned a non-Vercel sandbox during Figma import. ' +
-                        'CodeSandbox is archived; set WEBLAB_CLOUD_PROVIDER and ' +
-                        'the VERCEL_* tokens (see apps/web/client/.env.example).',
-                );
-            }
-            setFinalizeProgress({
-                phase: 'uploading',
-                filesUploaded: 0,
-                totalFiles: files.length,
-            });
-            await orphanBulkUpload({
-                sandboxId: forkedSandbox.sandboxId,
-                files: files.map((f) => ({
-                    path: f.path,
-                    content: f.content as string,
-                })),
-                runSetup: true,
-            });
-            setFinalizeProgress({
-                phase: 'installing',
-                filesUploaded: files.length,
-                totalFiles: files.length,
-            });
-            checkAborted();
-
-            setFinalizeProgress({
-                phase: 'creating-project',
-                filesUploaded: files.length,
-                totalFiles: files.length,
-            });
-            const project = await createProject({
-                name: fileName || 'Figma Import',
-                description: `Imported from Figma: ${fileName}`,
-                sandboxId: forkedSandbox.sandboxId,
-                sandboxUrl: forkedSandbox.previewUrl,
-                sandboxRuntime: forkedSandbox.sandboxRuntime,
-                framework: 'nextjs',
             });
 
-            if (!project) throw new Error('Failed to create project');
-            inFlightProjectId.current = project._id;
-            setFinalizeProgress({
-                phase: 'opening-editor',
-                filesUploaded: files.length,
-                totalFiles: files.length,
-            });
-            didOpenEditor = true;
-            router.push(`${Routes.PROJECT}/${project._id}`);
-        } catch (err: unknown) {
-            if (err instanceof DOMException && err.name === 'AbortError') {
+            // The user may have hit Cancel while the action was in flight. The
+            // server already committed the project, so route it to cleanup.
+            if (controller.signal.aborted) {
+                void deleteProject({ id: projectId }).catch((err: any) => {
+                    console.error('Failed to clean up project after cancelled import:', err);
+                });
                 return;
             }
+
+            inFlightProjectId.current = projectId;
+            setFinalizeProgress({
+                phase: 'opening-editor',
+                filesUploaded: selectedFrames.length + 1,
+                totalFiles: selectedFrames.length + 1,
+            });
+            didOpenEditor = true;
+            router.push(`${Routes.PROJECT}/${projectId}`);
+        } catch (err: unknown) {
             // Surface the actual error rather than a generic fallback so
             // users see why the import failed (issue #40).
             const fallback =
                 'Failed to create project. If this keeps happening, check your Figma credentials or try again.';
             const message = err instanceof Error ? err.message : fallback;
             setFinalizeError(message);
-            if (inFlightSandboxId.current && !inFlightProjectId.current) {
-                await deleteOrphanSandbox({
-                    sandboxId: inFlightSandboxId.current,
-                }).catch((cleanupError: any) => {
-                    console.warn('Failed to clean up orphan sandbox after Figma import error:', {
-                        sandboxId: inFlightSandboxId.current,
-                        error:
-                            cleanupError instanceof Error
-                                ? cleanupError.message
-                                : String(cleanupError),
-                    });
-                });
-            }
-            inFlightSandboxId.current = null;
             inFlightProjectId.current = null;
         } finally {
             if (!didOpenEditor) {
@@ -342,36 +223,26 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     };
 
     /**
-     * Cancel an in-flight Figma import. Aborts the active mutation chain,
-     * deletes any orphan project row that was already inserted, and routes
-     * the user home (issue #9).
+     * Cancel an in-flight Figma import. Aborts the in-flight action, deletes any
+     * project row that was already committed (the action is atomic, so there's
+     * never an orphan sandbox to clean up here), and routes the user home
+     * (issue #9).
      */
     const cancel = () => {
         const hadAbort = abortController.current !== null;
         abortController.current?.abort();
 
         const projectIdToClean = inFlightProjectId.current;
-        const sandboxCreated = inFlightSandboxId.current !== null;
-
         if (projectIdToClean) {
             void deleteProject({ id: projectIdToClean }).catch((err: any) => {
                 console.error('Failed to clean up orphan project on cancel:', err);
             });
-        } else if (sandboxCreated) {
-            const sandboxIdToClean = inFlightSandboxId.current;
-            if (sandboxIdToClean) {
-                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err: any) => {
-                    console.error('Failed to clean up orphan sandbox on cancel:', err);
-                });
-            }
+        } else if (hadAbort) {
             toast.message('Import cancelled', {
                 description: 'If a sandbox was created, it may take a moment to clean up.',
             });
-        } else if (hadAbort) {
-            toast.message('Import cancelled');
         }
 
-        inFlightSandboxId.current = null;
         inFlightProjectId.current = null;
 
         router.push(Routes.HOME);

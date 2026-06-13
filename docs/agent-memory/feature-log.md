@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-13 — Figma import wired end-to-end (was gated "Coming soon")
+Author: Claude (Opus 4.8)
+Area: `apps/web/client/convex` (new `createFromFigma` action), `@weblab/figma` (shared builder), `/projects/import/figma`
+Summary: Finished the Figma import flow. Steps 0–1 (paste URL + PAT → `figmaActions.fetchFile` → multi-select frames) were already live; step 2 hit three throw-stubs (`forkSandbox`/`startOrphanSandbox`/`orphanBulkUpload`). The deferred note suggested copying the local-import template (`createEmptySandbox` + client upload), but that's wrong for Figma: the scaffolder emits only `src/app/page.tsx` + `src/components/*.tsx` with **no package.json/Next.js/deps**, so a bare sandbox has nothing to install or serve. Instead added a server-side `createFromFigma` action mirroring `createFromWebsiteClone` — provisions a real Next.js sandbox (snapshot fast-path), overlays the Figma-generated TSX via `sandbox.writeFiles`, inserts the full project graph, returns `{ projectId }`. The client now calls this single atomic action; the import card is re-enabled. Extracted the frame→files dedupe/scaffold into a pure, tested `scaffoldFigmaProjectFiles` in `@weblab/figma` (idempotent component-name dedupe: `Hero`/`Hero2`/`Hero3`). Imported frames render as editable Next.js components (visual stubs — sized `<div>` + frame bg; higher fidelity tracked in BACKLOG). typecheck + lint clean; 11 figma unit tests green; convex codegen/push compiles the action.
+Files: `apps/web/client/convex/projectActions.ts` (new `createFromFigma`), `packages/figma/src/scaffold.ts` + `test/scaffold.test.ts` (`scaffoldFigmaProjectFiles`), `apps/web/client/src/app/projects/import/figma/_context/index.tsx` (rewired), `apps/web/client/src/app/projects/import/page.tsx` (card re-enabled), `BACKLOG.md`, `docs/feature-catalog.md` (F-129), `docs/test-plan.md` (T-819/T-820), changelog v4.3
+Links: changelog v4.3; catalog F-129; tests T-819 (unit, `[x]`) / T-820 (E2E, needs real PAT); BACKLOG "Figma import is low-fidelity" (high-fi follow-up)
+
 ## 2026-06-12 — Agent API: API-first QA, live wiring, reusable fixtures + harness
 Author: Claude (Opus 4.8)
 Area: `apps/web/client/convex` (new `agentTestSeed.ts`), `@weblab/mcp` (new `agent/qa-runner.ts`), docs

@@ -4,6 +4,7 @@ import { Sandbox } from '@vercel/sandbox';
 import { ConvexError, v } from 'convex/values';
 
 import { VercelSandboxProvider } from '@weblab/code-provider';
+import { scaffoldFigmaProjectFiles } from '@weblab/figma';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
@@ -962,6 +963,148 @@ export const createFromWebsiteClone = action({
                         '[createFromWebsiteClone] Vercel sandbox cleanup failed',
                         cleanupErr,
                     );
+                }
+            }
+            throw mapSandboxProvisionError(error);
+        }
+    },
+});
+
+// ─── createFromFigma (Figma import) ────────────────────────────────────────────
+
+/**
+ * Provisions a real Next.js sandbox (snapshot fast-path), overlays the
+ * Figma-generated component files into it, then persists the project graph —
+ * the Figma analogue of {@link createFromWebsiteClone}.
+ *
+ * Why a scaffold (not the bare `createEmptySandbox` the local-import flow uses):
+ * Figma scaffolding emits ONLY `src/app/page.tsx` + `src/components/*.tsx` stub
+ * files. There's no package.json / Next.js / deps, so a bare sandbox would have
+ * nothing to install or serve. We provision the Next.js template, then
+ * `writeFiles` the imported components on top (overwriting the template's
+ * placeholder `page.tsx`); the resumed dev server HMRs them in.
+ *
+ * Frames are de-duplicated + scaffolded by the shared pure
+ * `scaffoldFigmaProjectFiles` (so the same output is testable in @weblab/figma).
+ */
+export const createFromFigma = action({
+    args: {
+        fileName: v.string(),
+        frames: v.array(
+            v.object({
+                id: v.string(),
+                name: v.string(),
+                width: v.number(),
+                height: v.number(),
+                backgroundColor: v.string(),
+            }),
+        ),
+        workspaceId: v.optional(v.id('workspaces')),
+    },
+    handler: async (ctx, args): Promise<{ projectId: string }> => {
+        const me: any = await ctx.runQuery(api.users.me, {});
+        if (!me) throw new Error('UNAUTHORIZED');
+
+        if (args.workspaceId) {
+            await ctx.runQuery(internal.projects._requireProjectCreateCap, {
+                workspaceId: args.workspaceId,
+            });
+        }
+
+        if (args.frames.length === 0) {
+            throw new ConvexError({
+                code: 'BAD_REQUEST',
+                message: 'Select at least one Figma frame to import.',
+            });
+        }
+
+        const teamId = process.env.VERCEL_TEAM_ID;
+        const vercelProjectId = process.env.VERCEL_PROJECT_ID;
+        const token = process.env.VERCEL_TOKEN;
+        if (!teamId || !vercelProjectId || !token) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        const files = scaffoldFigmaProjectFiles(args.frames);
+
+        let provisionedSandboxId: string | null = null;
+        try {
+            const result = await VercelSandboxProvider.createProject({
+                source: 'template',
+                id: 'nextjs',
+                framework: 'nextjs',
+                title: `Figma import - ${me._id}`,
+                tags: ['figma', String(me._id)],
+                privacy: 'private',
+                // Resume the pre-baked Next.js snapshot (~13s) vs scaffold +
+                // install (~60-90s); provider falls back gracefully if expired.
+                snapshotId: process.env.VERCEL_BLANK_SNAPSHOT_ID,
+            });
+
+            const sandboxId = result.id;
+            provisionedSandboxId = sandboxId;
+            const previewUrl = result.previewUrl ?? '';
+            const port = result.port ?? 3000;
+
+            if (!previewUrl) {
+                throw new Error('Sandbox was created but returned no preview URL.');
+            }
+
+            // Overlay the imported component files onto the running Next.js
+            // scaffold. Paths are root-relative (e.g. `src/app/page.tsx`), the
+            // same convention `scaffoldNextProject` uses; the dev server HMRs
+            // them in. Reacquire a handle since `createProject` returns metadata,
+            // not the Sandbox object.
+            const sandbox = await Sandbox.get({
+                sandboxId,
+                teamId,
+                projectId: vercelProjectId,
+                token,
+            });
+            await sandbox.writeFiles(files.map((f) => ({ path: f.path, content: f.content })));
+
+            const workspaceId: any =
+                args.workspaceId ??
+                (await ctx.runMutation(internal.projects._resolvePersonalWorkspaceForAction, {
+                    userId: me._id,
+                }));
+
+            const projectId: string = await ctx.runMutation(internal.projects._insertProjectGraph, {
+                userId: me._id,
+                workspaceId,
+                name: args.fileName || 'Figma import',
+                description: `Imported from Figma: ${args.fileName || 'design'}`,
+                tags: ['figma'],
+                framework: 'nextjs',
+                sandboxId,
+                sandboxUrl: previewUrl,
+                cloudProvider: 'vercel_sandbox',
+                port,
+                snapshotId: result.snapshotId,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
+            });
+
+            // Project + sandbox are committed; clear the cleanup latch.
+            provisionedSandboxId = null;
+
+            return { projectId };
+        } catch (error) {
+            if (provisionedSandboxId) {
+                try {
+                    const sandbox = await Sandbox.get({
+                        sandboxId: provisionedSandboxId,
+                        teamId,
+                        projectId: vercelProjectId,
+                        token,
+                    });
+                    await sandbox.stop({ blocking: false }).catch(() => undefined);
+                } catch (cleanupErr) {
+                    console.warn('[createFromFigma] Vercel sandbox cleanup failed', cleanupErr);
                 }
             }
             throw mapSandboxProvisionError(error);

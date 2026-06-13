@@ -142,6 +142,8 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-125 | F-127 | M | Upload zip | Local import succeeds | `[ ]` |
 | T-126 | F-128, F-533 | E (mocked GH) | OAuth + repo list + clone | Repo cloned into sandbox | `[ ]` |
 | T-127 | F-129, F-531 | M | Figma OAuth (currently `#disabled`) | Error copy shown | `[ ]` |
+| T-819 | F-129 | U | `scaffoldFigmaProjectFiles` over frames incl. name collisions (`packages/figma/test/scaffold.test.ts`) | One component file per frame + `src/app/page.tsx`; colliding names de-duped (`Hero`, `Hero2`, `Hero3`); page imports stay in sync | `[x]` |
+| T-820 | F-129 | E (real PAT + Figma file) | `/projects/import` → Figma card → paste URL + PAT → Fetch Frames → select → Create Project | Next.js sandbox provisioned, one editable component per frame overlaid, editor opens with frames rendered | `[ ]` |
 | T-128 | F-131, F-159 | E | Visit invalid id | Variant-specific error (not-found / unauthorized / invalid) | `[ ]` |
 | T-129 | F-134, F-537, F-594 | E | Toggle page access | Convex `pageAccess` row written; non-member loses access | `[ ]` |
 | T-130 | F-135 | U | Drive `CreateManager` phases | Each phase transitions correctly | `[ ]` |

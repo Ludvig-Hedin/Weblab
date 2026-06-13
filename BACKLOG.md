@@ -38,14 +38,6 @@ later without re-discovering the context.
 
 ## Open
 
-### Figma import — finalize step needs sandbox wiring (gated as "Coming soon")
-
-- **Discovered:** 2026-06-13 (round-4 broken-feature sweep)
-- **Where:** `apps/web/client/src/app/projects/import/figma/_context/index.tsx` (`forkSandbox`/`startOrphanSandbox`/`orphanBulkUpload` throw stubs, `TODO(sandbox-port)`); entry gated in `apps/web/client/src/app/projects/import/page.tsx`
-- **Symptom:** the first two import steps (fetch frames, select frames) use live Convex actions, but "Create Project" hits unconditional throw stubs. The import card is now disabled with a "Coming soon" badge so users don't invest effort then fail.
-- **Next step:** when the sandbox-provisioning port lands (same blocker as `project.fork`/prompt-create), wire `forkSandbox`/`orphanBulkUpload` to the real provisioning + sandbox-server upload (the local-import context `local/_context/index.tsx` is a working template) and re-enable the card.
-- **Risk if ignored:** feature stays unavailable (but no longer presents as broken). `#bug` (deferred)
-
 ### Bug-hunt round 2 2026-06-13 — deferred findings (sync/parser/server/billing sweep)
 
 - **Discovered:** 2026-06-13 (second deep bug-hunt across canvas editing, sync/fs/parser, server+provider, billing/versions, panels; ~35 bugs fixed in the same session — see feature-log). Each item has a matching `TODO(bug-hunt)` comment in code.
@@ -407,14 +399,21 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** can't duplicate a project or start from a marketplace template. (Start-blank / AI-prompt / git-URL / folder / GitHub-repo / website-clone all work as of 2026-06-03.)
 - **Tags:** `#feature` `#sandbox` `#convex`
 
-### Figma import is low-fidelity (colored-box stubs); GitHub private-repo import needs token passthrough
+### Figma import is low-fidelity (colored-box stubs) — high-fi follow-up
+
+- **Discovered:** 2026-06-03 (create-paths audit session); end-to-end wiring shipped 2026-06-13 (see Resolved + feature-log).
+- **Where:** scaffolder [packages/figma/src/scaffold.ts](packages/figma/src/scaffold.ts) (`scaffoldFrameComponent`); server action `createFromFigma` in [convex/projectActions.ts](apps/web/client/convex/projectActions.ts).
+- **Symptom:** import now works end-to-end (real Next.js project, one editable component per frame), but each component is an empty colored `<div>` sized to the frame — no text, no fills, no nested layout.
+- **Next step:** (a) deeper fidelity — expand `figmaActions.fetchFile` to pull the full Figma node tree and emit real JSX (text, fills, auto-layout → flex). (b) **alternative** high-fi visual clone — render frame screenshots via Figma `/v1/images/` and feed them into `createFromWebsiteClone`/`createFromPrompt` image context.
+- **Tags:** `#feature` `#figma` `#enhancement`
+
+### GitHub private-repo import needs token passthrough
 
 - **Discovered:** 2026-06-03 (create-paths audit session)
-- **Where:** Figma — [import/figma/_context/index.tsx:86](apps/web/client/src/app/projects/import/figma/_context/index.tsx#L86) (sandbox provisioning stubbed; fetch via `figmaActions.fetchFile` already works). GitHub private repos — `createFromGit` clones over HTTPS with no auth token.
-- **Symptom:** Figma import throws "Sandbox provisioning is temporarily unavailable". Private GitHub repos fail at clone with a generic error (public repos work).
-- **Root cause / detail:** Figma context is a near-copy of the (now-working) local importer and is wirable to `createEmptySandbox` + tRPC `fileWrite`/`setup`, BUT the scaffolder ([packages/figma/src/scaffold.ts](packages/figma/src/scaffold.ts)) only emits empty colored `<div>`s sized to each frame — no image export, no layout. So even re-enabled it yields colored boxes, not a real design.
-- **Next step:** (a) low-fi: rewire the 4 figma-context stubs to `createEmptySandbox` + upload and have the scaffolder emit Next.js boilerplate. (b) **recommended** high-fi: render frame screenshots via Figma `/v1/images/` and feed them into `createFromWebsiteClone`/`createFromPrompt` image context (real visual clone). Private GitHub: thread the user's GitHub token into `createFromGit`'s clone URL.
-- **Tags:** `#feature` `#sandbox` `#figma` `#integration`
+- **Where:** GitHub private repos — `createFromGit` clones over HTTPS with no auth token.
+- **Symptom:** private GitHub repos fail at clone with a generic error (public repos work).
+- **Next step:** thread the user's GitHub token into `createFromGit`'s clone URL.
+- **Tags:** `#feature` `#integration`
 
 ### Edit-message submit guard is a no-op (`sendMessage` not awaited)
 
@@ -1603,6 +1602,15 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Figma import — finalize step needs sandbox wiring (was gated "Coming soon")
+
+- **Discovered:** 2026-06-13 (round-4 broken-feature sweep)
+- **Resolved:** 2026-06-13 (local validation; typecheck + lint + figma unit tests green)
+- **Where:** new server action `createFromFigma` in [convex/projectActions.ts](apps/web/client/convex/projectActions.ts); shared builder `scaffoldFigmaProjectFiles` in [packages/figma/src/scaffold.ts](packages/figma/src/scaffold.ts); rewired [import/figma/_context/index.tsx](apps/web/client/src/app/projects/import/figma/_context/index.tsx); re-enabled card in [import/page.tsx](apps/web/client/src/app/projects/import/page.tsx).
+- **Root cause:** finalize hit three throw-stubs (`forkSandbox`/`startOrphanSandbox`/`orphanBulkUpload`). The deferred note suggested copying the local-import template (`createEmptySandbox` + client upload), but that's a **bare** sandbox — Figma scaffolding emits only `src/app/page.tsx` + `src/components/*.tsx` with no package.json/Next.js/deps, so a bare sandbox has nothing to install or serve.
+- **Fix:** server-side `createFromFigma` mirrors `createFromWebsiteClone` — provisions a real Next.js sandbox (snapshot fast-path), overlays the Figma-generated TSX via `sandbox.writeFiles`, inserts the full project graph, returns `{ projectId }`. Client now calls this single atomic action. Imported frames render as editable Next.js components.
+- **Follow-up:** higher-fidelity output tracked in the Open "Figma import is low-fidelity" entry.
 
 ### Style-panel property edits corrupt source + balloon RAM (exponential selection growth + unsynchronized writes)
 

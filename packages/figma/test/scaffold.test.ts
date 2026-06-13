@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { scaffoldFrameComponent, scaffoldAppPage } from '../src/scaffold';
+import { scaffoldFrameComponent, scaffoldAppPage, scaffoldFigmaProjectFiles } from '../src/scaffold';
 import type { FigmaTopLevelFrame } from '../src/types';
 
 const frame: FigmaTopLevelFrame = {
@@ -55,5 +55,42 @@ describe('scaffoldAppPage', () => {
     test('generates a default Page export', () => {
         const src = scaffoldAppPage([frame]);
         expect(src).toContain('export default function Page()');
+    });
+});
+
+describe('scaffoldFigmaProjectFiles', () => {
+    test('emits one component file per frame plus the app page', () => {
+        const footer: FigmaTopLevelFrame = { ...frame, id: '1:3', name: 'Footer' };
+        const files = scaffoldFigmaProjectFiles([frame, footer]);
+        const paths = files.map((f) => f.path);
+        expect(paths).toEqual([
+            'src/components/HeroSection.tsx',
+            'src/components/Footer.tsx',
+            'src/app/page.tsx',
+        ]);
+    });
+
+    test('de-duplicates frames that sanitize to the same component name', () => {
+        const a: FigmaTopLevelFrame = { ...frame, id: '1:2', name: 'Hero' };
+        const b: FigmaTopLevelFrame = { ...frame, id: '1:3', name: 'hero' };
+        const c: FigmaTopLevelFrame = { ...frame, id: '1:4', name: 'Hero!' };
+        const files = scaffoldFigmaProjectFiles([a, b, c]);
+        const componentPaths = files.filter((f) => f.path.startsWith('src/components/'));
+        expect(componentPaths.map((f) => f.path)).toEqual([
+            'src/components/Hero.tsx',
+            'src/components/Hero2.tsx',
+            'src/components/Hero3.tsx',
+        ]);
+    });
+
+    test('page imports stay in sync with the de-duplicated component files', () => {
+        const a: FigmaTopLevelFrame = { ...frame, id: '1:2', name: 'Card' };
+        const b: FigmaTopLevelFrame = { ...frame, id: '1:3', name: 'card' };
+        const files = scaffoldFigmaProjectFiles([a, b]);
+        const page = files.find((f) => f.path === 'src/app/page.tsx');
+        expect(page?.content).toContain("import Card from '@/components/Card'");
+        expect(page?.content).toContain("import Card2 from '@/components/Card2'");
+        expect(page?.content).toContain('<Card />');
+        expect(page?.content).toContain('<Card2 />');
     });
 });
