@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -33,13 +34,11 @@ const ShortcutRow = observer(
         onStartCapture: () => void;
         onCancelCapture: () => void;
     }) => {
+        const t = useTranslations('settings.shortcuts');
         const stateManager = useStateManager();
         const updateSettings = useMutation(api.users.updateSettings);
 
         const defaultHotkey = DEFAULT_HOTKEYS[hotkeyKey];
-        // NOTE: do NOT early-return here — the hooks below must run on every
-        // render to satisfy React's rules of hooks. We return null at the end
-        // when defaultHotkey is missing instead.
         const effectiveCommand = defaultHotkey ? stateManager.hotkeys.getBinding(hotkeyKey) : '';
         const isCustomized = defaultHotkey ? stateManager.hotkeys.isCustomized(hotkeyKey) : false;
 
@@ -52,7 +51,7 @@ const ShortcutRow = observer(
                         customShortcuts: { ...stateManager.hotkeys.customBindings },
                     });
                 } catch {
-                    toast.error('Failed to save shortcut');
+                    toast.error(t('toastSaveFailed'));
                     if (previous !== undefined) {
                         stateManager.hotkeys.setBinding(key, previous);
                     } else {
@@ -60,7 +59,7 @@ const ShortcutRow = observer(
                     }
                 }
             },
-            [stateManager.hotkeys, updateSettings],
+            [stateManager.hotkeys, updateSettings, t],
         );
 
         const resetBinding = useCallback(async () => {
@@ -71,12 +70,12 @@ const ShortcutRow = observer(
                     customShortcuts: { ...stateManager.hotkeys.customBindings },
                 });
             } catch {
-                toast.error('Failed to save shortcut');
+                toast.error(t('toastSaveFailed'));
                 if (previous !== undefined) {
                     stateManager.hotkeys.setBinding(hotkeyKey, previous);
                 }
             }
-        }, [hotkeyKey, stateManager.hotkeys, updateSettings]);
+        }, [hotkeyKey, stateManager.hotkeys, updateSettings, t]);
 
         useEffect(() => {
             if (!isCapturing || !defaultHotkey) return;
@@ -107,7 +106,9 @@ const ShortcutRow = observer(
                     const conflict = stateManager.hotkeys.getConflict(hotkeyKey, parts.join('+'));
                     if (conflict) {
                         toast.error(
-                            `Already used by "${DEFAULT_HOTKEYS[conflict]?.description ?? conflict}"`,
+                            t('conflictError', {
+                                name: DEFAULT_HOTKEYS[conflict]?.description ?? conflict,
+                            }),
                         );
                         onCancelCapture();
                         return;
@@ -126,6 +127,7 @@ const ShortcutRow = observer(
             saveBinding,
             stateManager.hotkeys,
             defaultHotkey,
+            t,
         ]);
 
         if (!defaultHotkey) return null;
@@ -138,7 +140,7 @@ const ShortcutRow = observer(
                 <div className="flex items-center gap-2">
                     {isCapturing ? (
                         <span className="text-mini text-foreground-brand animate-pulse">
-                            Press a key combo… (Esc to cancel)
+                            {t('pressingKey')}
                         </span>
                     ) : (
                         <KbdChip command={effectiveCommand} />
@@ -150,7 +152,7 @@ const ShortcutRow = observer(
                             className="text-foreground-tertiary hover:text-foreground text-mini h-6 px-2"
                             onClick={onStartCapture}
                         >
-                            Rebind
+                            {t('rebind')}
                         </Button>
                     )}
                     {isCustomized && !isCapturing && (
@@ -158,7 +160,7 @@ const ShortcutRow = observer(
                             variant="ghost"
                             size="icon"
                             className="text-foreground-tertiary hover:text-destructive h-6 w-6"
-                            title="Reset to default"
+                            title={t('resetToDefault')}
                             onClick={() => void resetBinding()}
                         >
                             <Icons.Reset className="h-3 w-3" />
@@ -171,24 +173,33 @@ const ShortcutRow = observer(
 );
 
 export const ShortcutsTab = observer(() => {
+    const t = useTranslations('settings.shortcuts');
     const stateManager = useStateManager();
     const updateSettings = useMutation(api.users.updateSettings);
 
     const [capturingKey, setCapturingKey] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const sectionTitles: Record<string, string> = {
+        Modes: t('sections.modes'),
+        Navigation: t('sections.navigation'),
+        Panels: t('sections.panels'),
+        Insert: t('sections.insert'),
+        Canvas: t('sections.canvas'),
+        Layers: t('sections.layers'),
+        Editor: t('sections.editor'),
+        AI: t('sections.ai'),
+    };
+
     const handleResetAll = async () => {
-        // Snapshot before mutating so we can roll the local state back if the
-        // server upsert fails — otherwise the UI shows defaults while the
-        // server still holds the user's custom bindings.
         const previousBindings = { ...stateManager.hotkeys.customBindings };
         if (Object.keys(previousBindings).length === 0) return;
         stateManager.hotkeys.resetAll();
         try {
             await updateSettings({ customShortcuts: {} });
-            toast.success('All shortcuts reset to defaults', {
+            toast.success(t('toastResetSuccess'), {
                 action: {
-                    label: 'Undo',
+                    label: t('undoLabel'),
                     onClick: () => {
                         Object.entries(previousBindings).forEach(([key, value]) => {
                             stateManager.hotkeys.setBinding(key, value);
@@ -198,7 +209,7 @@ export const ShortcutsTab = observer(() => {
                 },
             });
         } catch {
-            toast.error('Failed to reset shortcuts');
+            toast.error(t('toastResetFailed'));
             Object.entries(previousBindings).forEach(([key, value]) => {
                 stateManager.hotkeys.setBinding(key, value);
             });
@@ -211,21 +222,21 @@ export const ShortcutsTab = observer(() => {
         <div className="divide-border flex flex-col divide-y px-6" ref={containerRef}>
             <div className="flex items-center justify-between py-6">
                 <div>
-                    <h2 className="text-largePlus">Keyboard shortcuts</h2>
-                    <p className="text-regular text-foreground-tertiary">
-                        Click <strong>Rebind</strong> on any row, then press your desired key combo.
-                    </p>
+                    <h2 className="text-largePlus">{t('title')}</h2>
+                    <p className="text-regular text-foreground-tertiary">{t('description')}</p>
                 </div>
                 {hasCustom && (
                     <Button variant="outline" size="sm" onClick={() => void handleResetAll()}>
-                        Reset all to defaults
+                        {t('resetAll')}
                     </Button>
                 )}
             </div>
 
             {SHORTCUT_SECTIONS.map((section) => (
                 <section key={section.title} className="py-6">
-                    <h3 className="text-regularPlus mb-3">{section.title}</h3>
+                    <h3 className="text-regularPlus mb-3">
+                        {sectionTitles[section.title] ?? section.title}
+                    </h3>
                     <div className="space-y-0.5">
                         {section.keys.map((key) => (
                             <ShortcutRow

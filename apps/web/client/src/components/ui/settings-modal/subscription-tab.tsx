@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { PRO_PRODUCT_CONFIG, ScheduledSubscriptionAction } from '@weblab/stripe';
 import { Badge } from '@weblab/ui/badge';
@@ -14,13 +15,6 @@ import { toast } from '@weblab/ui/sonner';
 import { useStateManager } from '@/components/store/state';
 import { formatPrice } from '../pricing-modal/pro-card';
 import { useSubscription } from '../pricing-modal/use-subscription';
-
-const formatDate = (ts: number) =>
-    new Date(ts).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-    });
 
 const UsageRow = ({ label, used, limit }: { label: string; used: number; limit: number }) => {
     const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
@@ -38,6 +32,8 @@ const UsageRow = ({ label, used, limit }: { label: string; used: number; limit: 
 };
 
 export const SubscriptionTab = observer(() => {
+    const t = useTranslations('settings.subscription');
+    const locale = useLocale();
     const stateManager = useStateManager();
     const { subscription, isPro } = useSubscription();
     const usage = useQuery(api.usage.get, {});
@@ -56,6 +52,13 @@ export const SubscriptionTab = observer(() => {
         ? subscription?.price?.monthlyMessageLimit
         : usage?.monthly.limitCount;
 
+    const formatDate = (ts: number) =>
+        new Date(ts).toLocaleDateString(locale, {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        });
+
     const openUpgradeModal = () => {
         stateManager.setIsSubscriptionModalOpen(true);
         stateManager.setIsSettingsModalOpen(false);
@@ -70,7 +73,7 @@ export const SubscriptionTab = observer(() => {
             }
         } catch (error) {
             console.error('Failed to create portal session:', error);
-            toast.error('Failed to open billing portal');
+            toast.error(t('toastPortalFailed'));
         } finally {
             setIsLoadingPortal(false);
         }
@@ -80,27 +83,27 @@ export const SubscriptionTab = observer(() => {
         <div className="divide-border flex flex-col divide-y px-6">
             {/* Current plan */}
             <section className="space-y-4 py-6">
-                <h2 className="text-largePlus">Current plan</h2>
+                <h2 className="text-largePlus">{t('currentPlanTitle')}</h2>
 
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <p className="text-title3">{isPro ? 'Pro' : 'Free'}</p>
+                            <p className="text-title3">{isPro ? t('pro') : t('free')}</p>
                             {isCancelling && scheduledAt && (
                                 <Badge variant="secondary" className="text-mini">
-                                    Cancels {formatDate(scheduledAt)}
+                                    {t('cancels', { date: formatDate(scheduledAt) })}
                                 </Badge>
                             )}
                             {isChanging && scheduledAt && (
                                 <Badge variant="secondary" className="text-mini">
-                                    Changes {formatDate(scheduledAt)}
+                                    {t('changes', { date: formatDate(scheduledAt) })}
                                 </Badge>
                             )}
                         </div>
                         <p className="text-small text-foreground-tertiary">
                             {planPrice}
                             {messageLimit
-                                ? ` · ${messageLimit.toLocaleString()} messages / month`
+                                ? t('messagesSuffix', { count: messageLimit.toLocaleString() })
                                 : ''}
                         </p>
                     </div>
@@ -112,15 +115,15 @@ export const SubscriptionTab = observer(() => {
                                 onClick={() => void openPortal()}
                                 disabled={isLoadingPortal}
                             >
-                                {isLoadingPortal ? 'Opening…' : 'Resume plan'}
+                                {isLoadingPortal ? t('opening') : t('resumePlan')}
                             </Button>
                         ) : isPro ? (
                             <Button size="sm" variant="outline" onClick={openUpgradeModal}>
-                                Change plan
+                                {t('changePlan')}
                             </Button>
                         ) : (
                             <Button size="sm" onClick={openUpgradeModal}>
-                                Upgrade to Pro
+                                {t('upgradeButton')}
                             </Button>
                         )}
                     </div>
@@ -129,24 +132,24 @@ export const SubscriptionTab = observer(() => {
 
             {/* Usage */}
             <section className="space-y-4 py-6">
-                <h2 className="text-largePlus">Usage</h2>
+                <h2 className="text-largePlus">{t('usageTitle')}</h2>
                 {usage === undefined ? (
-                    <p className="text-small text-foreground-tertiary">Loading usage…</p>
+                    <p className="text-small text-foreground-tertiary">{t('loadingUsage')}</p>
                 ) : isPro ? (
                     <UsageRow
-                        label="This billing period"
+                        label={t('thisBillingPeriod')}
                         used={usage.monthly.usageCount}
                         limit={usage.monthly.limitCount}
                     />
                 ) : (
                     <div className="space-y-4">
                         <UsageRow
-                            label="Today"
+                            label={t('today')}
                             used={usage.daily.usageCount}
                             limit={usage.daily.limitCount}
                         />
                         <UsageRow
-                            label="This month"
+                            label={t('thisMonth')}
                             used={usage.monthly.usageCount}
                             limit={usage.monthly.limitCount}
                         />
@@ -158,11 +161,9 @@ export const SubscriptionTab = observer(() => {
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
-                        <h2 className="text-largePlus">Billing</h2>
+                        <h2 className="text-largePlus">{t('billingTitle')}</h2>
                         <p className="text-regular text-foreground-tertiary">
-                            {isPro
-                                ? 'Manage your payment method, invoices, and cancellation in the Stripe portal.'
-                                : 'Upgrade to a paid plan to manage payment details and invoices.'}
+                            {isPro ? t('billingDescriptionPro') : t('billingDescriptionFree')}
                         </p>
                     </div>
                     <Button
@@ -171,7 +172,7 @@ export const SubscriptionTab = observer(() => {
                         onClick={() => void openPortal()}
                         disabled={!isPro || isLoadingPortal}
                     >
-                        {isLoadingPortal ? 'Opening…' : 'Manage billing'}
+                        {isLoadingPortal ? t('opening') : t('manageBilling')}
                     </Button>
                 </div>
             </section>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -23,15 +25,14 @@ export const SubscriptionCancelModal = ({
     onConfirmCancel,
     isBusy = false,
 }: SubscriptionCancelModalProps) => {
+    const t = useTranslations('settings.subscription.cancelModal');
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Cancel Subscription</DialogTitle>
-                    <DialogDescription className="pt-2">
-                        Are you sure you want to cancel your subscription? You'll lose access to all
-                        premium features at the end of your current billing period.
-                    </DialogDescription>
+                    <DialogTitle>{t('title')}</DialogTitle>
+                    <DialogDescription className="pt-2">{t('description')}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="flex-col gap-3 sm:flex-row sm:gap-2">
                     <Button
@@ -40,7 +41,7 @@ export const SubscriptionCancelModal = ({
                         disabled={isBusy}
                         className="order-2 sm:order-1"
                     >
-                        Keep Subscription
+                        {t('keepSubscription')}
                     </Button>
                     <Button
                         variant="destructive"
@@ -48,7 +49,7 @@ export const SubscriptionCancelModal = ({
                         disabled={isBusy}
                         className="order-1 sm:order-2"
                     >
-                        {isBusy ? 'Cancelling…' : 'Cancel Subscription'}
+                        {isBusy ? t('cancelling') : t('cancelSubscription')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

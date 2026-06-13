@@ -5,6 +5,7 @@ import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
@@ -19,6 +20,7 @@ type PendingGit = {
 };
 
 export const GitTab = observer(() => {
+    const t = useTranslations('settings.git');
     const userSettings = useQuery(api.users.getSettings);
     const updateSettingsMutation = useMutation(api.users.updateSettings);
     const [savedFlash, setSavedFlash] = useState(false);
@@ -50,18 +52,16 @@ export const GitTab = observer(() => {
                         savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
                     }
                 } catch {
-                    toast.error('Failed to save git settings');
+                    toast.error(t('toastFailed'));
                 } finally {
                     if (isMountedRef.current) setIsSaving(false);
                 }
             }, 400),
-        [updateSettingsMutation],
+        [updateSettingsMutation, t],
     );
 
     useEffect(
         () => () => {
-            // `flush` may return a Promise — discard it; the cleanup type
-            // requires void / Destructor, not a thenable.
             void debouncedSave.flush();
         },
         [debouncedSave],
@@ -69,9 +69,6 @@ export const GitTab = observer(() => {
 
     const patch = (rawChanges: PendingGit) => {
         const changes: PendingGit = { ...rawChanges };
-        // Drop empty naming patterns so users clearing the input fall back to
-        // defaults rather than persisting a blank value that could break
-        // branch/commit creation downstream.
         if ('defaultBranchPattern' in changes && !changes.defaultBranchPattern?.trim()) {
             delete changes.defaultBranchPattern;
         }
@@ -87,13 +84,13 @@ export const GitTab = observer(() => {
     const SaveStatus = () => (
         <span className="text-mini">
             {isSaving ? (
-                <span className="text-foreground-tertiary">Saving…</span>
+                <span className="text-foreground-tertiary">{t('saving')}</span>
             ) : (
                 <span
                     className="text-foreground-secondary transition-opacity duration-300"
                     style={{ opacity: savedFlash ? 1 : 0 }}
                 >
-                    Saved
+                    {t('saved')}
                 </span>
             )}
         </span>
@@ -104,9 +101,9 @@ export const GitTab = observer(() => {
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-largePlus">Commit behaviour</h2>
+                        <h2 className="text-largePlus">{t('commitBehaviourTitle')}</h2>
                         <p className="text-regular text-foreground-tertiary">
-                            Control how changes are committed and pushed.
+                            {t('commitBehaviourDescription')}
                         </p>
                     </div>
                     <SaveStatus />
@@ -114,9 +111,9 @@ export const GitTab = observer(() => {
                 <div className="space-y-3">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-regularPlus">Auto-commit on save</p>
+                            <p className="text-regularPlus">{t('autoCommitLabel')}</p>
                             <p className="text-regular text-foreground-tertiary">
-                                Automatically commit changes when you save.
+                                {t('autoCommitDescription')}
                             </p>
                         </div>
                         <Switch
@@ -126,9 +123,9 @@ export const GitTab = observer(() => {
                     </div>
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-regularPlus">Auto-push after commit</p>
+                            <p className="text-regularPlus">{t('autoPushLabel')}</p>
                             <p className="text-regular text-foreground-tertiary">
-                                Push to remote immediately after each commit.
+                                {t('autoPushDescription')}
                             </p>
                         </div>
                         <Switch
@@ -143,24 +140,16 @@ export const GitTab = observer(() => {
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-largePlus">Naming conventions</h2>
+                        <h2 className="text-largePlus">{t('namingTitle')}</h2>
                         <p className="text-regular text-foreground-tertiary">
-                            Templates used when creating branches and commits. Use{' '}
-                            <code className="bg-background-tertiary text-mini rounded-xs px-1">
-                                {'{description}'}
-                            </code>{' '}
-                            and{' '}
-                            <code className="bg-background-tertiary text-mini rounded-xs px-1">
-                                {'{timestamp}'}
-                            </code>{' '}
-                            as placeholders.
+                            {t('namingDescription')}
                         </p>
                     </div>
                     <SaveStatus />
                 </div>
                 <div className="space-y-3">
                     <div className="space-y-1.5">
-                        <Label className="text-mini">Default branch pattern</Label>
+                        <Label className="text-mini">{t('branchPatternLabel')}</Label>
                         <Input
                             value={userSettings?.defaultBranchPattern || 'feature/{timestamp}'}
                             onChange={(e) => patch({ defaultBranchPattern: e.target.value })}
@@ -169,7 +158,7 @@ export const GitTab = observer(() => {
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label className="text-mini">Commit message format</Label>
+                        <Label className="text-mini">{t('commitFormatLabel')}</Label>
                         <Input
                             value={userSettings?.commitMessageFormat || 'feat: {description}'}
                             onChange={(e) => patch({ commitMessageFormat: e.target.value })}

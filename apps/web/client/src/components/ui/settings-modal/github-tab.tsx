@@ -21,7 +21,8 @@ type GitHubOrg = {
 };
 
 export const GitHubTab = () => {
-    const t = useTranslations();
+    const t = useTranslations('settings.github');
+    const tGlobal = useTranslations('github');
     const router = useRouter();
     const [repoSearch, setRepoSearch] = useState('');
     const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
@@ -91,8 +92,6 @@ export const GitHubTab = () => {
         };
     }, [installationId, getOrgs, getReposWithApp]);
 
-    // Re-check on tab focus so a connection completed in the popup is reflected
-    // here without a manual page refresh. Silent (no spinner) to avoid flicker.
     useEffect(() => {
         const onFocus = () => {
             void (async () => {
@@ -119,7 +118,7 @@ export const GitHubTab = () => {
     const handleConnect = async () => {
         const newWindow = window.open('about:blank', '_blank');
         if (!newWindow) {
-            toast.error(t('github.popupBlocked'));
+            toast.error(tGlobal('popupBlocked'));
             return;
         }
 
@@ -129,7 +128,7 @@ export const GitHubTab = () => {
             newWindow.location.href = result.url;
         } catch {
             newWindow.close();
-            toast.error('Failed to generate GitHub installation URL');
+            toast.error(t('toastUrlFailed'));
         } finally {
             setIsGenerating(false);
         }
@@ -142,10 +141,10 @@ export const GitHubTab = () => {
             setInstallationId(null);
             setOrgs(null);
             setRepos(null);
-            toast.success('GitHub disconnected');
+            toast.success(t('toastDisconnected'));
         } catch (err) {
             console.error('Failed to disconnect GitHub', err);
-            toast.error('Failed to disconnect GitHub');
+            toast.error(t('toastDisconnectFailed'));
         } finally {
             setIsDisconnecting(false);
             setConfirmingDisconnect(false);
@@ -174,28 +173,24 @@ export const GitHubTab = () => {
                     <Icons.GitHubLogo className="h-5 w-5" />
                     <div>
                         <h2 className="text-largePlus">GitHub</h2>
-                        <p className="text-regular text-foreground-tertiary">
-                            Connect your GitHub account to push code and open pull requests.
-                        </p>
+                        <p className="text-regular text-foreground-tertiary">{t('description')}</p>
                     </div>
                 </div>
 
                 {isLoading ? (
                     <div className="text-regular text-foreground-tertiary flex items-center gap-2">
                         <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                        Checking connection…
+                        {t('checkingConnection')}
                     </div>
                 ) : hasQueryError ? (
                     <div className="space-y-3">
-                        <p className="text-destructive text-regular">
-                            Failed to check GitHub connection status. Please try again.
-                        </p>
+                        <p className="text-destructive text-regular">{t('connectionFailed')}</p>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => void retryInstallationCheck()}
                         >
-                            Retry
+                            {t('retry')}
                         </Button>
                     </div>
                 ) : isConnected ? (
@@ -206,7 +201,7 @@ export const GitHubTab = () => {
                                 className="border-foreground-success/30 bg-foreground-success/10 text-foreground-success gap-1.5"
                             >
                                 <span className="bg-foreground-success size-1.5 rounded-full" />
-                                Connected
+                                {t('statusConnected')}
                             </Badge>
                             {orgs?.[0] && (
                                 <span className="text-regular text-foreground-tertiary">
@@ -217,11 +212,10 @@ export const GitHubTab = () => {
                         {confirmingDisconnect ? (
                             <div className="border-destructive/40 bg-destructive/5 space-y-3 rounded-md border p-3">
                                 <p className="text-regular text-foreground-primary">
-                                    Disconnect GitHub?
+                                    {t('disconnectTitle')}
                                 </p>
                                 <p className="text-mini text-foreground-tertiary">
-                                    Weblab will no longer be able to push commits or open pull
-                                    requests on your behalf. You can reconnect any time.
+                                    {t('disconnectBody')}
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <Button
@@ -230,7 +224,7 @@ export const GitHubTab = () => {
                                         onClick={() => setConfirmingDisconnect(false)}
                                         disabled={isDisconnecting}
                                     >
-                                        Cancel
+                                        {t('cancel')}
                                     </Button>
                                     <Button
                                         variant="destructive"
@@ -238,7 +232,7 @@ export const GitHubTab = () => {
                                         disabled={isDisconnecting}
                                         onClick={() => void handleDisconnect()}
                                     >
-                                        {isDisconnecting ? 'Disconnecting…' : 'Confirm disconnect'}
+                                        {isDisconnecting ? t('disconnecting') : t('confirmDisconnect')}
                                     </Button>
                                 </div>
                             </div>
@@ -251,7 +245,7 @@ export const GitHubTab = () => {
                                     disabled={isGenerating}
                                 >
                                     <Icons.Gear className="mr-1.5 h-3.5 w-3.5" />
-                                    {isGenerating ? 'Opening…' : 'Configure'}
+                                    {isGenerating ? t('opening') : t('configure')}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -260,7 +254,7 @@ export const GitHubTab = () => {
                                     onClick={() => setConfirmingDisconnect(true)}
                                 >
                                     <Icons.LinkNone className="mr-1.5 h-3.5 w-3.5" />
-                                    Disconnect GitHub
+                                    {t('disconnectButton')}
                                 </Button>
                             </div>
                         )}
@@ -268,11 +262,10 @@ export const GitHubTab = () => {
                 ) : (
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                            <Badge variant="secondary">Not connected</Badge>
+                            <Badge variant="secondary">{t('notConnected')}</Badge>
                         </div>
                         <p className="text-regular text-foreground-tertiary">
-                            Install the GitHub App to allow Weblab to push commits and open pull
-                            requests on your behalf.
+                            {t('installDescription')}
                         </p>
                         <Button
                             size="sm"
@@ -280,7 +273,7 @@ export const GitHubTab = () => {
                             onClick={() => void handleConnect()}
                         >
                             <Icons.GitHubLogo className="mr-2 h-4 w-4" />
-                            {isGenerating ? 'Opening…' : 'Connect GitHub'}
+                            {isGenerating ? t('opening') : t('connectGitHub')}
                         </Button>
                     </div>
                 )}
@@ -290,10 +283,10 @@ export const GitHubTab = () => {
             {isConnected && (
                 <section className="space-y-3 py-6">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-regularPlus">Accessible repositories</h3>
+                        <h3 className="text-regularPlus">{t('accessibleRepos')}</h3>
                         {repos && (
                             <span className="text-mini text-foreground-tertiary">
-                                {repos.length} {repos.length === 1 ? 'repo' : 'repos'}
+                                {t('repoCount', { count: repos.length })}
                             </span>
                         )}
                     </div>
@@ -301,7 +294,7 @@ export const GitHubTab = () => {
                     <div className="relative">
                         <Icons.MagnifyingGlass className="text-foreground-tertiary absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                         <Input
-                            placeholder="Search repositories…"
+                            placeholder={t('searchRepos')}
                             value={repoSearch}
                             onChange={(e) => setRepoSearch(e.target.value)}
                             className="text-small pl-8"
@@ -311,13 +304,11 @@ export const GitHubTab = () => {
                     {isLoadingRepos ? (
                         <div className="text-regular text-foreground-tertiary flex items-center gap-2 py-4">
                             <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                            Loading repositories…
+                            {t('loadingRepos')}
                         </div>
                     ) : filteredRepos.length === 0 ? (
                         <p className="text-regular text-foreground-tertiary py-4 text-center">
-                            {repoSearch
-                                ? 'No repositories match your search.'
-                                : 'No repositories found.'}
+                            {repoSearch ? t('noReposMatchSearch') : t('noReposFound')}
                         </p>
                     ) : (
                         <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
@@ -338,7 +329,7 @@ export const GitHubTab = () => {
                                                 variant="secondary"
                                                 className="text-mini mt-1 px-1.5 py-0"
                                             >
-                                                Private
+                                                {t('private')}
                                             </Badge>
                                         )}
                                     </div>
@@ -352,7 +343,7 @@ export const GitHubTab = () => {
                                             )
                                         }
                                     >
-                                        Import
+                                        {t('importButton')}
                                     </Button>
                                 </div>
                             ))}
@@ -365,7 +356,7 @@ export const GitHubTab = () => {
                         onClick={() => router.push(Routes.IMPORT_GITHUB)}
                     >
                         <Icons.GitHubLogo className="mr-2 h-4 w-4" />
-                        Import a repository
+                        {t('importRepository')}
                     </Button>
                 </section>
             )}

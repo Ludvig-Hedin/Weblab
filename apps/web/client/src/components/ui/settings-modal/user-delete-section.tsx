@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
@@ -25,6 +26,7 @@ import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { signOutEverywhere } from '@/utils/auth/sign-out';
 
 export const UserDeleteSection = observer(() => {
+    const t = useTranslations('settings.delete');
     const router = useRouter();
     const { signOut: clerkSignOut } = useSafeClerk();
     const user = useQuery(api.users.me);
@@ -51,21 +53,19 @@ export const UserDeleteSection = observer(() => {
             await deleteAccount({});
             await handleDeleteSuccess();
         } catch (error) {
-            toast.error('Failed to delete account');
+            toast.error(t('toastFailed'));
             console.error('Failed to delete account', error);
             setIsDeleting(false);
         }
     };
 
     const handleDeleteSuccess = async () => {
-        toast.success('Account deleted successfully');
+        toast.success(t('toastSuccess'));
 
-        // Reset form
         setShowFinalDeleteConfirm(false);
         setDeleteEmail('');
         setDeleteConfirmText('');
 
-        // `clerkSignOut` is a no-op in supabase mode (see useSafeClerk).
         await signOutEverywhere(isClerkMode() ? () => clerkSignOut() : undefined);
         router.push(getSignInUrlClient());
     };
@@ -77,13 +77,11 @@ export const UserDeleteSection = observer(() => {
             {/* Delete Account Section */}
             <div className="flex items-center justify-between py-6">
                 <div className="space-y-1">
-                    <p className="text-regularPlus font-medium">Delete Account</p>
-                    <p className="text-small text-muted-foreground">
-                        Permanently delete your account and all associated data
-                    </p>
+                    <p className="text-regularPlus font-medium">{t('sectionTitle')}</p>
+                    <p className="text-small text-muted-foreground">{t('sectionDescription')}</p>
                 </div>
                 <Button variant="destructive" size="sm" onClick={handleDeleteAccount}>
-                    Delete
+                    {t('deleteButton')}
                 </Button>
             </div>
 
@@ -91,56 +89,37 @@ export const UserDeleteSection = observer(() => {
             <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Delete account - are you sure?</DialogTitle>
+                        <DialogTitle>{t('confirmTitle')}</DialogTitle>
                         <DialogDescription asChild className="pt-2">
                             <div className="space-y-2">
-                                <p>Deleting your account will:</p>
+                                <p>{t('confirmIntro')}</p>
                                 <div className="text-regular space-y-1">
-                                    <div className="flex items-start gap-2">
-                                        <span className="mt-0.5">•</span>
-                                        <span>
-                                            Permanently delete your account and prevent you from
-                                            creating new projects.
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="mt-0.5">•</span>
-                                        <span>
-                                            Delete all of your projects from {APP_NAME}'s servers.
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="mt-0.5">•</span>
-                                        <span>
-                                            You cannot create a new account using the same email
-                                            address.
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="mt-0.5">•</span>
-                                        <span>
-                                            This will also permanently delete your chat history and
-                                            other data associated with your account.
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="mt-0.5">•</span>
-                                        <span>
-                                            Deleting an account does not automatically cancel your
-                                            subscription or entitled set of paid features.
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="mt-0.5">•</span>
-                                        <span>This is final and cannot be undone.</span>
-                                    </div>
+                                    {(
+                                        [
+                                            'bullet1',
+                                            'bullet2',
+                                            'bullet3',
+                                            'bullet4',
+                                            'bullet5',
+                                            'bullet6',
+                                        ] as const
+                                    ).map((key) => (
+                                        <div key={key} className="flex items-start gap-2">
+                                            <span className="mt-0.5">•</span>
+                                            <span>
+                                                {key === 'bullet2'
+                                                    ? t(key, { appName: APP_NAME })
+                                                    : t(key)}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="delete-email">Please type your account email:</Label>
+                            <Label htmlFor="delete-email">{t('emailLabel')}</Label>
                             <Input
                                 id="delete-email"
                                 type="email"
@@ -151,9 +130,7 @@ export const UserDeleteSection = observer(() => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="delete-confirm">
-                                To proceed, type "DELETE" in the input field below:
-                            </Label>
+                            <Label htmlFor="delete-confirm">{t('confirmLabel')}</Label>
                             <Input
                                 id="delete-confirm"
                                 value={deleteConfirmText}
@@ -173,7 +150,7 @@ export const UserDeleteSection = observer(() => {
                             }}
                             className="order-2 sm:order-1"
                         >
-                            Cancel
+                            {t('cancelButton')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -181,7 +158,7 @@ export const UserDeleteSection = observer(() => {
                             disabled={!canProceedWithDelete}
                             className="order-1 sm:order-2"
                         >
-                            {canProceedWithDelete ? 'Delete Account' : 'Locked'}
+                            {canProceedWithDelete ? t('deleteAccountButton') : t('lockedButton')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -191,10 +168,9 @@ export const UserDeleteSection = observer(() => {
             <Dialog open={showFinalDeleteConfirm} onOpenChange={setShowFinalDeleteConfirm}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Final confirmation</DialogTitle>
+                        <DialogTitle>{t('finalTitle')}</DialogTitle>
                         <DialogDescription className="pt-2">
-                            This is your last chance to cancel. Are you absolutely sure you want to
-                            permanently delete your account and all associated data?
+                            {t('finalDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex-col gap-3 sm:flex-row sm:gap-2">
@@ -207,7 +183,7 @@ export const UserDeleteSection = observer(() => {
                             }}
                             className="order-2 sm:order-1"
                         >
-                            Cancel
+                            {t('cancelButton')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -215,7 +191,7 @@ export const UserDeleteSection = observer(() => {
                             disabled={isDeleting}
                             className="order-1 sm:order-2"
                         >
-                            {isDeleting ? 'Deleting…' : 'Yes, Delete My Account'}
+                            {isDeleting ? t('deleting') : t('confirmDeleteButton')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
