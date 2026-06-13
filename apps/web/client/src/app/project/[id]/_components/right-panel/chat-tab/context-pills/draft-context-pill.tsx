@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { MessageContext } from '@weblab/models/chat';
 import { Icons } from '@weblab/ui/icons';
@@ -13,6 +14,7 @@ export const DraftContextPill = React.forwardRef<
         onRemove: () => void;
     }
 >(({ context, onRemove }, ref) => {
+    const t = useTranslations('editor.chat.contextPills');
     return (
         <motion.span
             layout="position"
@@ -40,7 +42,7 @@ export const DraftContextPill = React.forwardRef<
                         e.stopPropagation();
                         onRemove();
                     }}
-                    aria-label={`Remove ${getTruncatedName(context)}`}
+                    aria-label={t('removeAriaLabel', { name: getTruncatedName(context) })}
                     className="bg-primary absolute -top-1 -right-1 flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full p-0.5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
                 >
                     <Icons.CrossL className="text-primary-foreground h-2 w-2" />

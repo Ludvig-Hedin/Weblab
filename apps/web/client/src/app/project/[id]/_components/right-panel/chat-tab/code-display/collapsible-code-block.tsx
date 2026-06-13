@@ -3,6 +3,7 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { CodeBlock } from '@weblab/ui/ai-elements';
 import { Button } from '@weblab/ui/button';
@@ -53,6 +54,7 @@ const CollapsibleCodeBlockComponent = ({
     showApply,
     applied,
 }: CollapsibleCodeBlockProps) => {
+    const t = useTranslations('editor.chat.codeDisplay');
     const editorEngine = useEditorEngine();
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -75,7 +77,7 @@ const CollapsibleCodeBlockComponent = ({
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'Failed to copy';
+            const message = e instanceof Error ? e.message : t('failedToCopy');
             toast.error(message);
         }
     };
@@ -88,7 +90,7 @@ const CollapsibleCodeBlockComponent = ({
                 // Optional-chaining the write would silently resolve to
                 // `undefined` and flip the button to "Applied" without
                 // writing anything. Surface the missing-sandbox case.
-                toast.error('No active sandbox to apply to');
+                toast.error(t('noActiveSandbox'));
                 return;
             }
             await sandbox.writeFile(path, content);
@@ -98,7 +100,7 @@ const CollapsibleCodeBlockComponent = ({
             // Surface the failure to the user — silently console.error'ing
             // left the button reading "Apply" again with no signal that the
             // write actually failed.
-            const message = e instanceof Error ? e.message : 'Failed to apply file';
+            const message = e instanceof Error ? e.message : t('failedToApply');
             console.error('Failed to apply file:', e);
             toast.error(message);
         } finally {
@@ -180,9 +182,7 @@ const CollapsibleCodeBlockComponent = ({
                                         />
                                         {isStream && truncated && (
                                             <div className="text-foreground-tertiary text-mini border-t px-3 py-2">
-                                                Showing a live preview while the file is being
-                                                written. Expand after the tool finishes to inspect
-                                                the full content.
+                                                {t('streamingPreviewNote')}
                                             </div>
                                         )}
                                         <div className="flex items-center justify-end gap-1.5 border-t p-1">
@@ -197,17 +197,17 @@ const CollapsibleCodeBlockComponent = ({
                                                     {applying ? (
                                                         <>
                                                             <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                                            Applying…
+                                                            {t('applying')}
                                                         </>
                                                     ) : applyDone ? (
                                                         <>
                                                             <Icons.Check className="mr-2 h-4 w-4" />
-                                                            Applied
+                                                            {t('applied')}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Icons.Play className="mr-2 h-4 w-4" />
-                                                            Apply
+                                                            {t('apply')}
                                                         </>
                                                     )}
                                                 </Button>
@@ -221,12 +221,12 @@ const CollapsibleCodeBlockComponent = ({
                                                 {copied ? (
                                                     <>
                                                         <Icons.Check className="mr-2 h-4 w-4" />
-                                                        Copied
+                                                        {t('copied')}
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Icons.Copy className="mr-2 h-4 w-4" />
-                                                        Copy
+                                                        {t('copy')}
                                                     </>
                                                 )}
                                             </Button>

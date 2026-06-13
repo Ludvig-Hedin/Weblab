@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -49,6 +50,7 @@ const clampHeight = (h: number) => {
 
 export const TerminalPanel = observer(
     ({ tabs, activeKey, onSelect, onClose, onNew, onReorder, projectId }: TerminalPanelProps) => {
+        const t = useTranslations('editor.terminal');
         const editorEngine = useEditorEngine();
         const [height, setHeight] = useState(DEFAULT_HEIGHT);
         const [dragKey, setDragKey] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export const TerminalPanel = observer(
                 <div
                     onPointerDown={onResizePointerDown}
                     className="group flex h-2 w-full shrink-0 cursor-ns-resize items-center justify-center"
-                    aria-label="Resize terminal"
+                    aria-label={t('resizeAriaLabel')}
                     role="separator"
                 >
                     <div className="bg-border group-hover:bg-foreground-tertiary h-0.5 w-8 rounded-full transition-colors" />
@@ -239,14 +241,14 @@ export const TerminalPanel = observer(
                             <button
                                 type="button"
                                 onClick={onNew}
-                                aria-label="New terminal"
+                                aria-label={t('newTerminalAriaLabel')}
                                 className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-transparent transition-colors"
                             >
                                 <Icons.Plus className="h-4 w-4" />
                             </button>
                         </TooltipTrigger>
                         <TooltipContent sideOffset={5} hideArrow>
-                            New terminal
+                            {t('newTerminalAriaLabel')}
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -277,7 +279,7 @@ export const TerminalPanel = observer(
                     ) : (
                         <div className="text-muted-foreground flex h-full items-center justify-center">
                             <span className="text-small">
-                                No terminal open. Start the app to open one.
+                                {t('noTerminalOpen')}
                             </span>
                         </div>
                     )}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { ImageMessageContext } from '@weblab/models/chat';
 import { MessageContextType } from '@weblab/models/chat';
@@ -15,6 +16,7 @@ export const ImagePill = React.forwardRef<
         onRemove: () => void;
     }
 >(({ context, onRemove }, ref) => {
+    const t = useTranslations('editor.chat.contextPills');
     if (context.type !== MessageContextType.IMAGE) {
         console.warn('ImagePill received non-image context');
         return null;
@@ -72,7 +74,7 @@ export const ImagePill = React.forwardRef<
                     e.stopPropagation();
                     onRemove();
                 }}
-                aria-label={`Remove ${getTruncatedName(context)}`}
+                aria-label={t('removeAriaLabel', { name: getTruncatedName(context) })}
                 className="bg-primary absolute -top-1 -right-1 flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full p-0.5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
             >
                 <Icons.CrossL className="text-primary-foreground h-2 w-2" />

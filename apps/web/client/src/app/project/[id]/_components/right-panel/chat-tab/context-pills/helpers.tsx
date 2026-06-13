@@ -41,6 +41,7 @@ export function validateImageLimit(
     const totalCount = currentImages.length + additionalCount;
     const maxImages = DefaultSettings.CHAT_SETTINGS.maxImages;
     if (totalCount > maxImages) {
+        // TODO: i18n — callers should use t('editor.chat.contextPills.imageLimitError', { max: maxImages }) instead of this string.
         return {
             success: false,
             errorMessage: `You can only add up to ${maxImages} images.`,

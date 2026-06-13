@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
@@ -15,6 +16,7 @@ import { RestartSandboxButton } from './restart-sandbox-button';
 import { TerminalPanel } from './terminal-panel';
 
 export const TerminalArea = observer(({ children }: { children: React.ReactNode }) => {
+    const t = useTranslations('editor.terminal');
     const editorEngine = useEditorEngine();
     const branches = editorEngine.branches;
 
@@ -89,12 +91,12 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
         const active = branches.activeBranch;
         const sandbox = branches.getSandboxById(active.id);
         if (!sandbox?.session) {
-            toast.error('Sandbox not ready yet');
+            toast.error(t('sandboxNotReady'));
             return;
         }
         const id = await sandbox.session.createTerminalSession();
         if (!id) {
-            toast.error('Terminal unavailable — sandbox is offline or restarting');
+            toast.error(t('terminalUnavailable'));
         }
     };
 
@@ -201,7 +203,7 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                         <TooltipTrigger asChild>
                             <button
                                 onClick={() => setTerminalHidden((prev) => !prev)}
-                                aria-label="Toggle Terminal"
+                                aria-label={t('toggleTerminal')}
                                 aria-pressed={!terminalHidden}
                                 className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
                             >
@@ -209,7 +211,7 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                             </button>
                         </TooltipTrigger>
                         <TooltipContent sideOffset={5} hideArrow>
-                            Toggle Terminal
+                            {t('toggleTerminal')}
                         </TooltipContent>
                     </Tooltip>
                 </div>

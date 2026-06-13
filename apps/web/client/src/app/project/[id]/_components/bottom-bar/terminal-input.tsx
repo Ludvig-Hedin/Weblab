@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
@@ -42,6 +43,7 @@ interface TerminalInputProps {
 }
 
 export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) {
+    const t = useTranslations('editor.terminal');
     const [value, setValue] = useState('');
     const [aiEnabled, setAiEnabled] = useState(false);
     const [autoRun, setAutoRun] = useState(false);
@@ -110,17 +112,17 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                 const code = res.status;
                 toast.error(
                     code === 402
-                        ? 'AI credit limit reached.'
+                        ? t('creditLimitReached')
                         : code === 401 || code === 403
-                          ? 'Not authorized to use AI here.'
-                          : 'Could not translate that into a command.',
+                          ? t('notAuthorized')
+                          : t('translateFailed'),
                 );
                 return;
             }
             const data = (await res.json()) as { command?: string };
             const command = (data.command ?? '').trim();
             if (!command) {
-                toast.error('Could not translate that into a command.');
+                toast.error(t('translateFailed'));
                 return;
             }
             if (autoRun) {
@@ -135,7 +137,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
             }
         } catch (err) {
             if ((err as Error)?.name !== 'AbortError') {
-                toast.error('AI request failed.');
+                toast.error(t('requestFailed'));
             }
         } finally {
             setLoading(false);
@@ -170,7 +172,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                         type="button"
                         onClick={toggleAi}
                         aria-label={
-                            aiEnabled ? 'Disable AI command mode' : 'Enable AI command mode'
+                            aiEnabled ? t('aiModeDisableAriaLabel') : t('aiModeEnableAriaLabel')
                         }
                         aria-pressed={aiEnabled}
                         className={cn(
@@ -188,7 +190,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                     </button>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={5} hideArrow>
-                    {aiEnabled ? 'AI command mode on' : 'Run commands with natural language'}
+                    {aiEnabled ? t('aiModeOnTooltip') : t('aiModeOffTooltip')}
                 </TooltipContent>
             </Tooltip>
 
@@ -199,7 +201,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
-                                    aria-label="AI command settings"
+                                    aria-label={t('aiSettingsAriaLabel')}
                                     className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-7 items-center justify-center rounded-md border border-transparent transition-colors"
                                 >
                                     <Icons.Gear className="h-3.5 w-3.5" />
@@ -207,19 +209,19 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                             </PopoverTrigger>
                         </TooltipTrigger>
                         <TooltipContent sideOffset={5} hideArrow>
-                            AI command settings
+                            {t('aiSettingsAriaLabel')}
                         </TooltipContent>
                     </Tooltip>
                     <PopoverContent align="start" sideOffset={8} className="w-64 p-3">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-small text-foreground-primary font-medium">
-                                    Auto-run commands
+                                    {t('autoRunLabel')}
                                 </span>
                                 <span className="text-mini text-foreground-tertiary">
                                     {autoRun
-                                        ? 'AI commands run immediately.'
-                                        : 'Preview first, press Enter to run.'}
+                                        ? t('autoRunOnHint')
+                                        : t('autoRunOffHint')}
                                 </span>
                             </div>
                             <Switch checked={autoRun} onCheckedChange={toggleAutoRun} />
@@ -253,10 +255,10 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                 }}
                 placeholder={
                     !canRun
-                        ? 'Open a terminal tab to run commands'
+                        ? t('openTerminalHint')
                         : aiEnabled
-                          ? 'Ask AI to run a command…'
-                          : 'Type a command…'
+                          ? t('askAiPlaceholder')
+                          : t('commandPlaceholder')
                 }
                 spellCheck={false}
                 autoComplete="off"
@@ -277,7 +279,7 @@ export function TerminalInput({ projectId, canRun, onRun }: TerminalInputProps) 
                 <button
                     type="button"
                     onClick={handleSubmit}
-                    aria-label="Run command"
+                    aria-label={t('runCommandAriaLabel')}
                     className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 items-center gap-1 rounded-md px-1.5 transition-colors"
                 >
                     <Icons.Return className="h-3.5 w-3.5" />

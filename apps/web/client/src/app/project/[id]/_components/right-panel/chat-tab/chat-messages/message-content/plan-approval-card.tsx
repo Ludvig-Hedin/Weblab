@@ -2,6 +2,7 @@
 
 import type { z } from 'zod';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { PlanCompleteTool } from '@weblab/ai/client';
 import { Button } from '@weblab/ui/button';
@@ -20,6 +21,7 @@ export function PlanApprovalCard({
     isStream: boolean;
     onBuildNow: () => void;
 }) {
+    const t = useTranslations('editor.chat.planApproval');
     const [building, setBuilding] = useState(false);
 
     const handleBuildNow = () => {
@@ -38,7 +40,7 @@ export function PlanApprovalCard({
         return (
             <div className="border-border-primary/40 bg-background-secondary flex items-center gap-2 rounded-lg border p-3">
                 <Icons.LoadingSpinner className="text-foreground-tertiary h-3.5 w-3.5 animate-spin" />
-                <span className="text-foreground-tertiary text-mini">Writing plan…</span>
+                <span className="text-foreground-tertiary text-mini">{t('writingPlan')}</span>
             </div>
         );
     }
@@ -47,7 +49,7 @@ export function PlanApprovalCard({
         <div className="border-border-primary/40 bg-background-secondary rounded-lg border p-3">
             <div className="mb-2 flex items-center gap-2">
                 <Icons.Plan className="text-foreground-primary h-3.5 w-3.5 shrink-0" />
-                <span className="text-foreground-primary text-mini font-medium">Plan ready</span>
+                <span className="text-foreground-primary text-mini font-medium">{t('planReady')}</span>
             </div>
             {input.summary && (
                 <p className="text-foreground-secondary text-mini mb-3 leading-relaxed">
@@ -65,7 +67,7 @@ export function PlanApprovalCard({
                     {building ? (
                         <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
                     ) : (
-                        'Build Now'
+                        t('buildNow')
                     )}
                 </Button>
                 <Button
@@ -74,7 +76,7 @@ export function PlanApprovalCard({
                     className="text-foreground-tertiary hover:text-foreground-primary text-mini h-6 px-2.5"
                     onClick={() => window.dispatchEvent(new Event(FOCUS_CHAT_INPUT_EVENT))}
                 >
-                    Keep Refining
+                    {t('keepRefining')}
                 </Button>
             </div>
         </div>

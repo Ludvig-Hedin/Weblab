@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { Branch } from '@weblab/models';
 import { DropdownMenuItem, DropdownMenuLabel } from '@weblab/ui/dropdown-menu';
@@ -20,6 +21,7 @@ export function BranchList({
     onBranchSwitch,
     showSearch = true,
 }: BranchListProps) {
+    const t = useTranslations('editor.branch');
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredBranches = useMemo(() => {
@@ -34,13 +36,13 @@ export function BranchList({
     return (
         <>
             <div className="text-small border-b p-1.5 select-none">
-                <DropdownMenuLabel>Branches</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('title')}</DropdownMenuLabel>
             </div>
             {showSearch && (
                 <div className="border-b px-2 py-1.5">
                     <Input
                         type="text"
-                        placeholder="Search branches..."
+                        placeholder={t('searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="h-8"
@@ -71,7 +73,7 @@ export function BranchList({
 
                     {filteredBranches.length === 0 && (
                         <div className="text-muted-foreground text-small py-4 text-center">
-                            No branches found
+                            {t('noBranchesFound')}
                         </div>
                     )}
                 </div>

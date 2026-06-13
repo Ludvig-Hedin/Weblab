@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { Branch } from '@weblab/models';
 import { BranchTabValue, LeftPanelTabValue } from '@weblab/models';
@@ -23,6 +24,7 @@ export function BranchControls({
     onCreateBlankSandbox,
     onManageBranches,
 }: BranchControlsProps) {
+    const t = useTranslations('editor.branch');
     const editorEngine = useEditorEngine();
     const [isForking, setIsForking] = useState(false);
     const [isCreatingBlank, setIsCreatingBlank] = useState(false);
@@ -43,7 +45,7 @@ export function BranchControls({
             toast.error(
                 error instanceof Error && error.message
                     ? error.message
-                    : 'Branch fork is not available yet.',
+                    : t('forkNotAvailable'),
             );
         } finally {
             setIsForking(false);
@@ -63,7 +65,7 @@ export function BranchControls({
             toast.error(
                 error instanceof Error && error.message
                     ? error.message
-                    : 'Could not create a blank sandbox.',
+                    : t('createBlankFailed'),
             );
         } finally {
             setIsCreatingBlank(false);
@@ -92,7 +94,7 @@ export function BranchControls({
                 ) : (
                     <Icons.Branch className="h-4 w-4" />
                 )}
-                <span>{isForking ? 'Forking...' : 'Fork into a new Branch'}</span>
+                <span>{isForking ? t('forking') : t('forkBranch')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
                 className="flex items-center gap-2 p-2"
@@ -104,14 +106,14 @@ export function BranchControls({
                 ) : (
                     <Icons.Plus className="h-4 w-4" />
                 )}
-                <span>{isCreatingBlank ? 'Creating...' : 'Create blank sandbox'}</span>
+                <span>{isCreatingBlank ? t('creating') : t('createBlankSandbox')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
                 className="flex items-center gap-2 p-2"
                 onSelect={handleManageBranches}
             >
                 <Icons.Gear className="h-4 w-4" />
-                <span>Manage Branch</span>
+                <span>{t('manageBranch')}</span>
             </DropdownMenuItem>
         </div>
     );

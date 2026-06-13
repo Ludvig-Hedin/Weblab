@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import stripAnsi from 'strip-ansi';
 
 import { Button } from '@weblab/ui/button';
@@ -75,6 +76,7 @@ export const BashCodeDisplay = observer(
         defaultStdErr: string | null;
         isStream: boolean;
     }) => {
+        const t = useTranslations('editor.chat.codeDisplay');
         const editorEngine = useEditorEngine();
         const [running, setRunning] = useState(false);
         const [stdOut, setStdOut] = useState<string | null>(defaultStdOut);
@@ -92,7 +94,7 @@ export const BashCodeDisplay = observer(
                 );
 
                 if (!result) {
-                    setStdErr('Failed to execute command: No session available');
+                    setStdErr(t('noSessionError'));
                     return;
                 }
 
@@ -146,7 +148,7 @@ export const BashCodeDisplay = observer(
                             ) : (
                                 <Icons.Reload className="text-foreground group-hover:text-foreground-secondary transition-none" />
                             )}
-                            Run again
+                            {t('runAgain')}
                         </Button>
                     ) : (
                         <Button
@@ -161,7 +163,7 @@ export const BashCodeDisplay = observer(
                             ) : (
                                 <Icons.Play className="text-foreground-secondary group-hover:text-foreground-primary transition-none" />
                             )}
-                            Run command
+                            {t('runCommand')}
                         </Button>
                     )}
                 </div>

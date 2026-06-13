@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ChatMessage } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -22,6 +23,7 @@ const AssistantMessageComponent = ({
     isAnyStreaming?: boolean;
     onRegenerate?: () => Promise<void>;
 }) => {
+    const t = useTranslations('editor.chat.messages');
     const [isRegenerating, setIsRegenerating] = useState(false);
     const createdAt = message.metadata?.createdAt
         ? new Date(message.metadata.createdAt)
@@ -64,7 +66,7 @@ const AssistantMessageComponent = ({
                                 variant="ghost"
                                 disabled={regenerateDisabled}
                                 className="h-6 w-6 p-1"
-                                aria-label="Regenerate response"
+                                aria-label={t('regenerateResponse')}
                             >
                                 {isRegenerating ? (
                                     <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
@@ -74,7 +76,7 @@ const AssistantMessageComponent = ({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top" sideOffset={5}>
-                            Regenerate response
+                            {t('regenerateResponse')}
                         </TooltipContent>
                     </Tooltip>
                 </div>

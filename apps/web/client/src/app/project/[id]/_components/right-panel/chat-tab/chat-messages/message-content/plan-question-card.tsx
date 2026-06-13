@@ -2,6 +2,7 @@
 
 import type { z } from 'zod';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { AskUserQuestionTool } from '@weblab/ai/client';
 import { Button } from '@weblab/ui/button';
@@ -20,6 +21,7 @@ export function PlanQuestionCard({
     input: QuestionInput;
     answered?: boolean;
 }) {
+    const t = useTranslations('editor.chat.planQuestion');
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [submitted, setSubmitted] = useState(answered ?? false);
 
@@ -95,7 +97,7 @@ export function PlanQuestionCard({
                         onClick={submit}
                         className="text-mini h-6 px-2.5"
                     >
-                        Answer
+                        {t('answer')}
                     </Button>
                 </div>
             )}
@@ -111,8 +113,8 @@ export function PlanQuestionCard({
                      */}
                     <span>
                         {selected.size > 0
-                            ? `Answered: ${Array.from(selected).join(', ')}`
-                            : 'Answered'}
+                            ? t('answeredWith', { answer: Array.from(selected).join(', ') })
+                            : t('answered')}
                     </span>
                 </div>
             )}

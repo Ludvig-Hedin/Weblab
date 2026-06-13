@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
 import { Icons } from '@weblab/ui/icons';
@@ -88,16 +89,17 @@ export const ActionsGroup = ({
         prevStreamingRef.current = isStreaming;
     }, [isStreaming]);
 
+    const t = useTranslations('editor.chat.actionsGroup');
     const elapsedSeconds = isStreaming ? (now - startTimeRef.current) / 1000 : (frozenElapsed ?? 0);
     const elapsedLabel = formatElapsed(elapsedSeconds);
 
     let summary: string;
     if (isStreaming) {
-        summary = `Working — ${elapsedLabel}`;
+        summary = t('working', { elapsed: elapsedLabel });
     } else if (frozenElapsed !== null) {
-        summary = `Worked for ${elapsedLabel}`;
+        summary = t('workedFor', { elapsed: elapsedLabel });
     } else {
-        summary = actionCount === 1 ? 'Worked · 1 action' : `Worked · ${actionCount} actions`;
+        summary = actionCount === 1 ? t('workedSingle') : t('workedMany', { count: String(actionCount) });
     }
 
     return (

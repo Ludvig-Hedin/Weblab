@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
 import { Icons } from '@weblab/ui/icons';
@@ -17,6 +18,7 @@ interface SearchSourcesDisplayProps {
 }
 
 export const SearchSourcesDisplay = observer(({ query, results }: SearchSourcesDisplayProps) => {
+    const t = useTranslations('editor.chat.searchSources');
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -31,7 +33,7 @@ export const SearchSourcesDisplay = observer(({ query, results }: SearchSourcesD
                             )}
                         />
                         <div className="flex flex-col">
-                            <span>Searched web</span>
+                            <span>{t('searchedWeb')}</span>
                             <span className="text-foreground-tertiary text-mini truncate">
                                 {query}
                             </span>

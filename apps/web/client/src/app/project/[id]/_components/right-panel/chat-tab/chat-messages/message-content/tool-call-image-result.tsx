@@ -4,6 +4,7 @@ import type { ToolUIPart } from 'ai';
 import { memo, useCallback, useState } from 'react';
 import mime from 'mime-lite';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -32,11 +33,12 @@ const ToolCallImageResultComponent = ({
     className?: string;
     loading?: boolean;
 }) => {
+    const t = useTranslations('editor.chat.imageResult');
     const editorEngine = useEditorEngine();
     const toolName = toolPart.type.split('-')[1] ?? '';
     const ToolClass = TOOLS_MAP.get(toolName);
     const Icon = ToolClass?.icon ?? Icons.Image;
-    const title = ToolClass ? safeGetLabel(ToolClass, toolPart.input) : 'Generated image';
+    const title = ToolClass ? safeGetLabel(ToolClass, toolPart.input, t('generatedImage')) : t('generatedImage');
 
     const output =
         toolPart.state === 'output-available' ? (toolPart.output as ImageToolOutput | null) : null;
@@ -63,7 +65,8 @@ const ToolCallImageResultComponent = ({
     }, [retrySent, toolName, toolPart.input, toolPart.toolCallId]);
 
     const selectedImg = pickSelectedImageElement(editorEngine);
-    const altText = ((output?.prompt ?? 'Generated image').trim() || 'Generated image').slice(
+    const generatedImageLabel = t('generatedImage');
+    const altText = ((output?.prompt ?? generatedImageLabel).trim() || generatedImageLabel).slice(
         0,
         120,
     );
@@ -74,7 +77,7 @@ const ToolCallImageResultComponent = ({
         try {
             const path = await writeCachedImageToProject(editorEngine, output.id);
             setSavedPath(path);
-            toast.success(`Saved to ${path}`);
+            toast.success(t('savedToPath', { path }));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to save image');
         } finally {
@@ -89,7 +92,7 @@ const ToolCallImageResultComponent = ({
             const path = await writeCachedImageToProject(editorEngine, output.id);
             setSavedPath(path);
             toast.success(
-                `Saved to ${path}. Ask the AI to update the selected element's src to /${path.replace(/^public\//, '')}.`,
+                t('savedToPathAskAi', { path, relativePath: path.replace(/^public\//, '') }),
             );
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to save image');
@@ -120,7 +123,7 @@ const ToolCallImageResultComponent = ({
                             />
                         ) : (
                             <p className="text-destructive text-xs">
-                                Image expired (cache TTL is 30 minutes). Regenerate to retry.
+                                {t('imageExpired')}
                             </p>
                         )}
                         {output?.prompt ? (
@@ -135,7 +138,7 @@ const ToolCallImageResultComponent = ({
                                 onClick={handleAdd}
                                 disabled={adding || !output?.id || imageLoadError}
                             >
-                                {adding ? 'Saving…' : savedPath ? 'Saved' : 'Add to project'}
+                                {adding ? t('saving') : savedPath ? t('saved') : t('addToProject')}
                             </Button>
                             <Button
                                 size="sm"
@@ -146,17 +149,17 @@ const ToolCallImageResultComponent = ({
                                 }
                                 title={
                                     selectedImg?.oid
-                                        ? `Replace src on selected ${selectedImg.tagName}`
-                                        : 'Select an <img> element on the canvas to enable'
+                                        ? t('replaceSrcTitle', { tagName: selectedImg.tagName })
+                                        : t('selectImgHint')
                                 }
                             >
-                                {replacing ? 'Saving…' : 'Replace selected'}
+                                {replacing ? t('saving') : t('replaceSelected')}
                             </Button>
                         </div>
                     </div>
                 ) : (
                     <div className="text-muted-foreground flex flex-col gap-2 p-2 text-xs">
-                        <span>{loading ? 'Generating image…' : 'No image returned.'}</span>
+                        <span>{loading ? t('generatingImage') : t('noImageReturned')}</span>
                         {toolPart.errorText ? (
                             <div className="text-destructive">{toolPart.errorText}</div>
                         ) : null}
@@ -165,7 +168,7 @@ const ToolCallImageResultComponent = ({
                                 type="button"
                                 onClick={handleRetry}
                                 disabled={retrySent}
-                                aria-label="Retry image generation"
+                                aria-label={t('ariaRetry')}
                                 className="text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary focus-visible:ring-ring inline-flex w-fit items-center gap-1 rounded-md px-2 py-1 transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:opacity-60"
                             >
                                 {retrySent ? (
@@ -173,7 +176,7 @@ const ToolCallImageResultComponent = ({
                                 ) : (
                                     <Icons.Reload className="h-3 w-3" />
                                 )}
-                                {retrySent ? 'Retrying…' : 'Retry'}
+                                {retrySent ? t('retrying') : t('retry')}
                             </button>
                         )}
                     </div>
@@ -185,11 +188,11 @@ const ToolCallImageResultComponent = ({
 
 export const ToolCallImageResult = memo(observer(ToolCallImageResultComponent));
 
-function safeGetLabel(toolClass: { getLabel: (input: unknown) => string }, input: unknown): string {
+function safeGetLabel(toolClass: { getLabel: (input: unknown) => string }, input: unknown, fallback: string): string {
     try {
         return toolClass.getLabel(input);
     } catch {
-        return 'Generated image';
+        return fallback;
     }
 }
 
