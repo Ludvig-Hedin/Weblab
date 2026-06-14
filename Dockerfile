@@ -77,6 +77,7 @@ COPY packages/stripe/package.json          ./packages/stripe/
 COPY packages/types/package.json           ./packages/types/
 COPY packages/ui/package.json              ./packages/ui/
 COPY packages/utility/package.json         ./packages/utility/
+COPY packages/wireframe-blocks/package.json ./packages/wireframe-blocks/
 
 COPY apps/web/package.json                 ./apps/web/
 COPY apps/web/client/package.json          ./apps/web/client/
