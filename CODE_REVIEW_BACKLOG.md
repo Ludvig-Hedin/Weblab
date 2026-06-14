@@ -1,5 +1,53 @@
 # Code Review Backlog
 
+## Full-Repo Review Pass — 2026-06-14 — editor i18n (canvas + style panel) + masked build break
+
+Reviewed all local changes: **46 uncommitted files** (45 i18n editor files —
+canvas frame/overlay + style-tab-v3/v4 controls/sections + `en/sv/en.d.json.ts`
+— plus 1 fix below) and the **3 latest unpushed commits** (all pure i18n string
+extraction, same pattern). **Verdict: safe after 2 fixes.** en/sv key parity
+exact (3533 ⇄ 3533, 0 missing); Swedish values are genuine translations with ICU
+placeholders intact; component edits are clean string→`t()` swaps with sound
+refactors (`OPTIONS`→`ICONS`+in-component options, `getLoadingStage`→key-returning).
+`bun typecheck` exit 0 **against regenerated literal-typed `en.d.json.ts`**;
+`bun lint` exit 0.
+
+### Auto-fixed this pass (2)
+
+- **CR-2026-06-14-001** — `bulk-action-bar.tsx:50` **passed a `number` to the
+  `{count}` ICU arg of `selectedCount`** (`t('selectedCount', { count: selectedCount })`).
+  next-intl types simple `{count}` args as `string`, so this is `TS2322`
+  (`number` not assignable to `string`). **It was masked** because the committed
+  `en.d.json.ts` used bare `string` leaf types (hand-maintained) instead of
+  next-intl's literal types — so tsc never parsed the ICU args. The prod
+  `next build` regenerates `en.d.json.ts` from `en.json` with literal types
+  (`createMessagesDeclaration` in `next.config.ts`, no `ignoreBuildErrors`) → it
+  **would have failed the Railway build**.
+  - Area: `apps/web/client/.../left-panel/design-panel/asset-tab/bulk-action-bar.tsx` | Type: bug (build break) | Impact: user-facing (prod deploy) | Risk: low
+  - Fix: `count: String(selectedCount)` — matches the established codebase pattern
+    (`component-edit-banner.tsx` `String(instanceCount)`, `top-bar` `String(presetWidth ?? 0)`).
+  - Status: `auto-fixed`. tsc exit 0 after fix.
+- **CR-2026-06-14-002** — `messages/en.d.json.ts` was hand-edited inconsistently:
+  `editor.stylePanel.controls.chipInput` was **missing** under `controls` (a stale
+  duplicate `chipInput` with only `addAnItem` sat in another namespace), and ~688
+  leaves were typed as bare `string` instead of literal types. Regenerated the
+  whole file deterministically from `en.json` (header + `JSON.stringify(en,null,4)`
+  + footer) to match next-intl's canonical output. This is what `next build`
+  produces anyway. Type: bug (types) | Risk: low | `auto-fixed`.
+
+### Open — i18n polish (NOT blocking; low priority)
+
+- **CR-2026-06-14-003** — `top-bar/index.tsx` AlertDialogDescription
+  `Remove "{name}" from the group?` left hardcoded English. i18n gap. Risk: low | `open`
+- **CR-2026-06-14-004** — `style-chip-picker.tsx` interpolates `{kind}` (an
+  English prop like "Color"/"Text") into translated sentences → mixed-language
+  output in non-EN locales. The `kind` value itself should be translated upstream.
+  Risk: low | `open`
+- **CR-2026-06-14-005** — `canvas/index.tsx:245` `const t = event.target` shadows
+  the new `const t = useTranslations` inside `handleWheel`. Pre-existing, harmless
+  (that scope never calls the translation `t`), but reads poorly now. Rename to
+  `target`. Risk: none | `open`
+
 ## Full-Repo Review Pass — 2026-06-10 — style-panel perf hardening + AI-chat polish
 
 Reviewed all local changes: **19 modified files** (uncommitted style-panel perf
