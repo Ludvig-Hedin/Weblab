@@ -27,6 +27,24 @@ refactors (`OPTIONS`→`ICONS`+in-component options, `getLoadingStage`→key-ret
   - Fix: `count: String(selectedCount)` — matches the established codebase pattern
     (`component-edit-banner.tsx` `String(instanceCount)`, `top-bar` `String(presetWidth ?? 0)`).
   - Status: `auto-fixed`. tsc exit 0 after fix.
+- **CR-2026-06-14-006** — **Prod deploy break (root Dockerfile).** Pushing the
+  branch to `main` triggered a Railway deploy that **failed in ~72s** ("Weblab -
+  Source: Deployment failed") while the prior 5 commits all deployed green. The
+  new `@weblab/wireframe-blocks` workspace package (added with AI wireframes) was
+  never added to the Dockerfile's install-layer `COPY packages/*/package.json`
+  list. `RUN bun install --frozen-lockfile` requires **every** bun workspace
+  member's manifest in the build context, or it rejects the lockfile
+  ("lockfile had changes, but lockfile is frozen") and aborts before `next build`.
+  Local `bun run build` never caught it (reused node_modules; not a frozen install
+  in a minimal Docker context).
+  - Area: `Dockerfile` | Type: bug (CI/deploy) | Impact: blocks prod deploy (prod kept serving prior good build — no user outage) | Risk: low
+  - Fix: added `COPY packages/wireframe-blocks/package.json ./packages/wireframe-blocks/`.
+  - Verified by replicating the Dockerfile install layer in a clean dir: frozen
+    install passes with the COPY, fails identically without it. Redeploy
+    `396792e24` → **success** ("Success - weblab.build"); prod health-swept (all
+    routes 200 / expected 307). Status: `auto-fixed`.
+  - **Follow-up rule:** any new `packages/*` or `apps/*` workspace member must be
+    added to the Dockerfile install-layer COPY list, or the next prod deploy fails.
 - **CR-2026-06-14-002** — `messages/en.d.json.ts` was hand-edited inconsistently:
   `editor.stylePanel.controls.chipInput` was **missing** under `controls` (a stale
   duplicate `chipInput` with only `addAnItem` sat in another namespace), and ~688
