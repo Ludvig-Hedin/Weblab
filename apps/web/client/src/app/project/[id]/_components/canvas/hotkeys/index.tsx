@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -17,6 +18,9 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     const t = useTranslations('editor.canvas.hotkeys');
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
+    // Mode active before space-to-pan started, so releasing space restores it
+    // instead of always snapping to DESIGN (see space keyup handler below).
+    const priorModeBeforeSpaceRef = useRef<EditorMode | null>(null);
     // Read the current binding for a hotkey key, preferring user-customized
     // bindings (persisted via Settings → Shortcuts) and falling back to the
     // default declared in `Hotkey`. Wrapping `HotkeysArea` in `observer`
@@ -422,6 +426,8 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         'space',
         () => {
             if (editorEngine.state.editorMode === EditorMode.PAN) return;
+            // Remember where we came from so keyup can return there.
+            priorModeBeforeSpaceRef.current = editorEngine.state.editorMode;
             editorEngine.state.setEditorMode(EditorMode.PAN);
         },
         { keydown: true },
@@ -429,16 +435,15 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     // Releasing space mid-pan flipped the editor straight back to DESIGN even
     // when an active middle-mouse / space-drag pan was in flight, breaking the
     // gesture. Skip the flip while a canvas pan is active — the pan-end
-    // handler in canvas/index.tsx restores DESIGN mode itself.
-    // TODO(bug-hunt): space-keyup always forces DESIGN mode rather than restoring
-    // the mode that was active before space was pressed. Holding space to pan
-    // while in PREVIEW/COMMENT/CMS therefore drops the user into DESIGN on
-    // release. Capture the prior mode on space-keydown and restore it here.
+    // handler in canvas/index.tsx restores the mode itself. Otherwise restore
+    // the mode that was active before space was pressed (PREVIEW/COMMENT/CMS),
+    // falling back to DESIGN when there was no captured prior mode.
     useHotkeys(
         'space',
         () => {
             if (editorEngine.state.canvasPanning) return;
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            editorEngine.state.setEditorMode(priorModeBeforeSpaceRef.current ?? EditorMode.DESIGN);
+            priorModeBeforeSpaceRef.current = null;
         },
         { keyup: true },
     );

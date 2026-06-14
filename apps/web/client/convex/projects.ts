@@ -146,20 +146,23 @@ export const list = query({
         const fetched = await Promise.all(
             filteredMemberships.map((m) => ctx.db.get(m.projectId)),
         );
-        // TODO(bug-hunt): the limit is applied here in membership-index order
-        // (by_user index, ascending _creationTime) BEFORE the updatedAt sort
-        // below — a user with >200 memberships can have recently-updated
-        // projects silently dropped from the list. Sort (or paginate) before
-        // truncating.
         const projects: Doc<'projects'>[] = [];
         for (const project of fetched) {
             if (!project) continue;
             if (workspaceId && project.workspaceId !== workspaceId) continue;
             projects.push(project);
-            if (projects.length >= effectiveLimit) break;
         }
 
-        const cards = await Promise.all(projects.map((p) => loadProjectListCard(ctx, p)));
+        // Sort by recency BEFORE truncating. The `by_user` membership index is
+        // ordered by _creationTime, so truncating first would keep a user's
+        // oldest-joined projects and silently drop their most recently-updated
+        // ones once they pass MAX_PROJECTS_LIMIT memberships. `loadProjectListCard`
+        // spreads `...project`, so card.updatedAt === project.updatedAt and this
+        // pre-sort matches the final card sort exactly.
+        projects.sort((a, b) => b.updatedAt - a.updatedAt);
+        const limited = projects.slice(0, effectiveLimit);
+
+        const cards = await Promise.all(limited.map((p) => loadProjectListCard(ctx, p)));
         return cards.sort((a, b) => b.updatedAt - a.updatedAt);
     },
 });

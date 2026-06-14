@@ -47,6 +47,7 @@ const MUST_EXTEND_GROUPS = [
 export const ImgSelected = memo(({ availableWidth = 0 }: { availableWidth?: number }) => {
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'img-selected-overflow-dropdown',
+        isOverflow: true,
     });
     const { visibleCount } = useMeasureGroup({
         availableWidth,

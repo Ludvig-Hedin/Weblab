@@ -1,4 +1,5 @@
 import type React from 'react';
+import { makeAutoObservable } from 'mobx';
 
 import type { ShadcnBlockManifestItem } from '@weblab/constants';
 import type {
@@ -32,7 +33,9 @@ export class InsertManager {
     isDrawing = false;
     private drawOrigin: ElementPosition | undefined;
 
-    constructor(private editorEngine: EditorEngine) {}
+    constructor(private editorEngine: EditorEngine) {
+        makeAutoObservable(this);
+    }
 
     getDefaultProperties(mode: InsertMode): DropElementProperties {
         switch (mode) {

@@ -80,18 +80,18 @@ export class CodeManager {
     async write(action: Action): Promise<boolean> {
         try {
             // TODO: This is a hack to write code, we should refactor this
-            // TODO(bug-hunt): only diffs[0] is written, but reverseWriteCodeAction
-            // reverses ALL diffs — a multi-diff write-code action drops every
-            // file after the first while its undo restores all of them
-            // (asymmetric inverse). An empty `diffs` array also falls through to
-            // getWriteCodeRequests, which throws "Not implemented". Apply every
-            // diff (and reject an empty array up front).
-            if (action.type === 'write-code' && action.diffs[0]) {
-                // Write-code actions don't have branch context, use active editor
-                await this.editorEngine.fileSystem.writeFile(
-                    action.diffs[0].path,
-                    action.diffs[0].generated,
-                );
+            if (action.type === 'write-code') {
+                if (action.diffs.length === 0) {
+                    throw new Error('write-code action has no diffs');
+                }
+                // Write-code actions don't have branch context, use active
+                // editor. Apply EVERY diff — reverseWriteCodeAction reverses all
+                // of them, so writing only diffs[0] would make the inverse
+                // asymmetric (undo restores files the redo never wrote) and
+                // silently drop every file after the first on a multi-diff write.
+                for (const diff of action.diffs) {
+                    await this.editorEngine.fileSystem.writeFile(diff.path, diff.generated);
+                }
             } else if (
                 action.type === 'add-interaction' ||
                 action.type === 'update-interaction' ||

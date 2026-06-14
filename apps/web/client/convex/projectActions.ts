@@ -545,14 +545,22 @@ export const createFromGit = action({
 
         const framework = args.framework ?? 'nextjs';
 
+        // Reject unsupported frameworks upfront, exactly like createBlank. The
+        // validator still accepts vite-react/remix/astro/tanstack-start, but the
+        // provisioner collapses everything non-static-html to 'nextjs' while
+        // `_insertProjectGraph` persists the *requested* framework into
+        // runtimeMetadata — leaving the DB claiming e.g. astro for a Next.js
+        // sandbox. Fail loudly instead of silently mislabelling the project.
+        if (framework !== 'nextjs' && framework !== 'static-html') {
+            throw new Error(
+                `Framework "${framework}" is not yet supported on Vercel Sandbox. ` +
+                    `Pick Next.js or static HTML, or wait for the scaffolder to land in ` +
+                    `@weblab/code-provider/providers/vercel-sandbox.`,
+            );
+        }
+
         let provisionedSandboxId: string | null = null;
         try {
-            // TODO(bug-hunt): framework mismatch — the validator accepts
-            // vite-react/remix/astro/tanstack-start, but this call collapses
-            // everything non-static-html to 'nextjs' while `_insertProjectGraph`
-            // below persists the *requested* framework into runtimeMetadata.
-            // Either reject unsupported frameworks upfront (like createBlank)
-            // or persist the framework actually provisioned.
             const result = await VercelSandboxProvider.createProjectFromGit({
                 repoUrl: args.repoUrl,
                 branch: args.branch ?? 'main',

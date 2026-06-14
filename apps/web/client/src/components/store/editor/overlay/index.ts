@@ -96,8 +96,8 @@ export class OverlayManager {
                             styles: el.styles?.computed,
                         });
                     }
-                } catch {
-                    console.error('Error refreshing text editor position');
+                } catch (error) {
+                    console.error('Error refreshing text editor position:', error);
                 }
             }
         }
