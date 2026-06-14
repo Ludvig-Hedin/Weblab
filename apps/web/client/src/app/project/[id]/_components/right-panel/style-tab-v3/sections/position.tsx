@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     AlignmentToolbar,
@@ -29,6 +30,7 @@ const POSITION_OPTIONS = [
  * layouts) — they do not surface here.
  */
 export const PositionSection = observer(function PositionSection() {
+    const t = useTranslations('editor.stylePanel');
     const position = useStyleValue('position');
     const top = useStyleValue('top');
     const right = useStyleValue('right');
@@ -108,8 +110,8 @@ export const PositionSection = observer(function PositionSection() {
     };
 
     return (
-        <Section id="position" title="Position" setCount={setCount}>
-            <PropertyControl property="position" label="Type">
+        <Section id="position" title={t('section.position')} setCount={setCount}>
+            <PropertyControl property="position" label={t('position.type')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={POSITION_OPTIONS} onCommit={commit} />
                 )}
@@ -117,7 +119,7 @@ export const PositionSection = observer(function PositionSection() {
             {showOffsets && (
                 <div className="flex items-center gap-3 px-3 py-1">
                     <PropertyLabel
-                        label="Offsets"
+                        label={t('position.offsets')}
                         isSet={top.isSet || right.isSet || bottom.isSet || left.isSet}
                     />
                     <div className="min-w-0 flex-1">
@@ -125,7 +127,7 @@ export const PositionSection = observer(function PositionSection() {
                     </div>
                 </div>
             )}
-            <PropertyControl property="z-index" label="Z-index">
+            <PropertyControl property="z-index" label={t('position.zIndexLabel')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}
@@ -139,7 +141,7 @@ export const PositionSection = observer(function PositionSection() {
             </PropertyControl>
             {allowAlign && (
                 <div className="flex items-center gap-3 px-3 py-1">
-                    <PropertyLabel label="Align" isSet={activeAlignment !== ''} />
+                    <PropertyLabel label={t('position.align')} isSet={activeAlignment !== ''} />
                     <div className="min-w-0 flex-1">
                         <AlignmentToolbar value={activeAlignment} onCommit={applyAlignment} />
                     </div>

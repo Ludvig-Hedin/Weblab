@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { NumberField, PropertyControl, SelectField, TextField } from '../controls';
 import { useStyleValue } from '../hooks/use-style-value';
@@ -22,6 +23,7 @@ const TIMING_OPTIONS = [
  * easing, delay — for full CSS coverage.
  */
 export const TransitionsSection = observer(function TransitionsSection() {
+    const t = useTranslations('editor.stylePanel');
     const transitionShorthand = useStyleValue('transition');
     const transitionProperty = useStyleValue('transition-property');
     const transitionDuration = useStyleValue('transition-duration');
@@ -37,13 +39,13 @@ export const TransitionsSection = observer(function TransitionsSection() {
     ].filter((v) => v.isSet).length;
 
     return (
-        <Section id="transitions" title="Transitions" setCount={setCount}>
-            <PropertyControl property="transition" label="Shorthand">
+        <Section id="transitions" title={t('section.transitions')} setCount={setCount}>
+            <PropertyControl property="transition" label={t('transitions.shorthand')}>
                 {({ value, commit }) => (
                     <TextField value={value} onCommit={commit} placeholder="all 200ms ease" />
                 )}
             </PropertyControl>
-            <PropertyControl property="transition-property" label="Property">
+            <PropertyControl property="transition-property" label={t('transitions.property')}>
                 {({ value, commit }) => (
                     <TextField
                         value={value}
@@ -52,7 +54,7 @@ export const TransitionsSection = observer(function TransitionsSection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="transition-duration" label="Duration">
+            <PropertyControl property="transition-duration" label={t('transitions.duration')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}
@@ -62,12 +64,12 @@ export const TransitionsSection = observer(function TransitionsSection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="transition-timing-function" label="Easing">
+            <PropertyControl property="transition-timing-function" label={t('transitions.easing')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={TIMING_OPTIONS} onCommit={commit} />
                 )}
             </PropertyControl>
-            <PropertyControl property="transition-delay" label="Delay">
+            <PropertyControl property="transition-delay" label={t('transitions.delay')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}

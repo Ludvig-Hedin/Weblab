@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -42,13 +43,14 @@ export const AlignPad = React.memo(function AlignPad({
     height = 78,
     className,
 }: AlignPadProps) {
+    const t = useTranslations('editor.stylePanel.controls.alignPad');
     const activeCol = ALIGN_VALUES.indexOf(normalize(justify));
     const activeRow = ALIGN_VALUES.indexOf(normalize(align));
 
     return (
         <div
             role="grid"
-            aria-label="Alignment"
+            aria-label={t('gridLabel')}
             className={cn(
                 'bg-background-secondary grid w-full grid-cols-3 grid-rows-3 gap-1 rounded-[10px] p-[10px]',
                 className,
@@ -64,7 +66,7 @@ export const AlignPad = React.memo(function AlignPad({
                             type="button"
                             role="gridcell"
                             aria-selected={isActive}
-                            aria-label={`Justify ${colValue}, Align ${rowValue}`}
+                            aria-label={t('cellLabel', { justify: colValue, align: rowValue })}
                             onClick={() => onCommit(colValue, rowValue)}
                             className={cn(
                                 'group relative flex cursor-pointer items-center justify-center rounded-xs transition-colors',

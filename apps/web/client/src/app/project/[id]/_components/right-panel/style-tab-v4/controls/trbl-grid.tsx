@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Square, SquareDashed } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -152,6 +153,7 @@ export const TrblGrid = observer(function TrblGrid({
     suppressUnitPill = true,
     className,
 }: TrblGridProps) {
+    const t = useTranslations('editor.stylePanel.controls.trblGrid');
     const propertyFor = (side: (typeof SIDES)[number]) =>
         prefix === '' || shorthand ? side : `${prefix}-${side}`;
 
@@ -208,7 +210,7 @@ export const TrblGrid = observer(function TrblGrid({
             <div className="flex min-w-0 items-center gap-1.5">
                 <NumberField
                     value={linkedValue}
-                    placeholder={!allEqual ? 'Mixed' : undefined}
+                    placeholder={!allEqual ? t('mixed') : undefined}
                     allowKeywords={allowKeywords}
                     onCommit={setAll}
                     units={suppressUnitPill ? [] : undefined}
@@ -220,9 +222,9 @@ export const TrblGrid = observer(function TrblGrid({
                     <button
                         type="button"
                         onClick={() => setLinked(true)}
-                        aria-label="Edit all sides together"
+                        aria-label={t('allSidesLabel')}
                         aria-pressed={linked}
-                        title="All sides"
+                        title={t('allSidesTitle')}
                         className={cn(
                             'flex h-full w-6 cursor-pointer items-center justify-center rounded-[6px] transition-colors',
                             linked
@@ -235,9 +237,9 @@ export const TrblGrid = observer(function TrblGrid({
                     <button
                         type="button"
                         onClick={() => setLinked(false)}
-                        aria-label="Edit each side individually"
+                        aria-label={t('perSideLabel')}
                         aria-pressed={!linked}
-                        title="Per side"
+                        title={t('perSideTitle')}
                         className={cn(
                             'flex h-full w-6 cursor-pointer items-center justify-center rounded-[6px] transition-colors',
                             !linked

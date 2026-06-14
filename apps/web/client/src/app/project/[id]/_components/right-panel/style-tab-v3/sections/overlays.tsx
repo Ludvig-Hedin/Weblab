@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
@@ -53,6 +54,7 @@ const CORNERS = [
 ] as const;
 
 function CornerRadius() {
+    const t = useTranslations('editor.stylePanel');
     const tl = useStyleValue('border-top-left-radius');
     const tr = useStyleValue('border-top-right-radius');
     const br = useStyleValue('border-bottom-right-radius');
@@ -102,7 +104,7 @@ function CornerRadius() {
             <div className="group/control flex flex-col gap-1.5 px-3 py-1">
                 <div className="flex items-center gap-3">
                     <PropertyLabel
-                        label="Radius"
+                        label={t('overlays.radius')}
                         isSet={anySet}
                         onClick={handleToggle}
                         title={expanded ? 'Collapse radius' : 'Expand to per-corner'}
@@ -134,7 +136,7 @@ function CornerRadius() {
                                 </TooltipTrigger>
                                 {!allEqual && anySet && (
                                     <TooltipContent side="left" className="text-mini">
-                                        Corners differ — expand to edit individually
+                                        {t('overlays.cornersDiffer')}
                                     </TooltipContent>
                                 )}
                             </Tooltip>
@@ -177,6 +179,7 @@ function CornerInput({ property, label }: { property: string; label: string }) {
  * and the per-side border widths.
  */
 export const OverlaysSection = observer(function OverlaysSection() {
+    const t = useTranslations('editor.stylePanel');
     const bgColor = useStyleValue('background-color');
     const bgImage = useStyleValue('background-image');
     const bgSize = useStyleValue('background-size');
@@ -227,19 +230,19 @@ export const OverlaysSection = observer(function OverlaysSection() {
     ].filter((v) => v.isSet).length;
 
     return (
-        <Section id="overlays" title="Overlays" setCount={setCount}>
-            <PropertyControl property="background-color" label="Fill">
+        <Section id="overlays" title={t('section.overlays')} setCount={setCount}>
+            <PropertyControl property="background-color" label={t('overlays.fill')}>
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
             </PropertyControl>
-            <PropertyControl property="border-style" label="Stroke">
+            <PropertyControl property="border-style" label={t('overlays.stroke')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={BORDER_STYLE_OPTIONS} onCommit={commit} />
                 )}
             </PropertyControl>
-            <PropertyControl property="border-width" label="Width">
+            <PropertyControl property="border-width" label={t('overlays.width')}>
                 {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
             </PropertyControl>
-            <PropertyControl property="border-color" label="Color">
+            <PropertyControl property="border-color" label={t('overlays.color')}>
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
             </PropertyControl>
             <CornerRadius />
@@ -248,7 +251,7 @@ export const OverlaysSection = observer(function OverlaysSection() {
                 onOpenChange={setCustomOpen}
                 summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
             >
-                <PropertyControl property="background-image" label="Image">
+                <PropertyControl property="background-image" label={t('overlays.image')}>
                     {({ value, commit }) => (
                         <TextField
                             value={value}
@@ -257,7 +260,7 @@ export const OverlaysSection = observer(function OverlaysSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="background-size" label="Bg size">
+                <PropertyControl property="background-size" label={t('overlays.bgSize')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
@@ -266,7 +269,7 @@ export const OverlaysSection = observer(function OverlaysSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="background-position" label="Bg pos">
+                <PropertyControl property="background-position" label={t('overlays.bgPos')}>
                     {({ value, commit }) => (
                         <TextField
                             value={value}
@@ -275,7 +278,7 @@ export const OverlaysSection = observer(function OverlaysSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="background-repeat" label="Repeat">
+                <PropertyControl property="background-repeat" label={t('overlays.repeat')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
@@ -284,16 +287,16 @@ export const OverlaysSection = observer(function OverlaysSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="border-top-width" label="B. Top">
+                <PropertyControl property="border-top-width" label={t('overlays.borderTop')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="border-right-width" label="B. Right">
+                <PropertyControl property="border-right-width" label={t('overlays.borderRight')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="border-bottom-width" label="B. Btm">
+                <PropertyControl property="border-bottom-width" label={t('overlays.borderBottom')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="border-left-width" label="B. Left">
+                <PropertyControl property="border-left-width" label={t('overlays.borderLeft')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
             </CustomExpander>

@@ -2160,6 +2160,91 @@
       "hotkeys": {
         "toastSelectFirst": "Välj ett element först för att redigera inline",
         "toastLocateFailed": "Kan inte hitta elementets källkod."
+      },
+      "drop": {
+        "noFrame": "Ingen webbram att släppa i",
+        "noFrameDesc": "Öppna en ram på canvasen först.",
+        "insertFailed": "Misslyckades att infoga",
+        "dropLabel": "Släpp för att infoga i närmaste ram"
+      },
+      "frame": {
+        "loading": {
+          "almostReady": "Nästan klart",
+          "loadingTools": "Laddar canvasverktygen…",
+          "compiling": "Kompilerar din förhandsgranskning",
+          "almostReadyDesc": "Din förhandsgranskning är nästan klar…",
+          "starting": "Startar din förhandsgranskning",
+          "connecting": "Ansluter till ditt projekt…",
+          "startingWorkspace": "Startar din arbetsyta",
+          "usuallyTakes": "Det brukar ta 10–30 sekunder…",
+          "stillStarting": "Startar fortfarande",
+          "takingLonger": "Tar lite längre tid än vanligt — nästan klart.",
+          "settingUp": "Sätter upp din arbetsyta",
+          "preparingPreview": "Förbereder din förhandsgranskning…",
+          "buildingYourSite": "Bygger din webbplats",
+          "buildingDesc": "Din förhandsgranskning visas här när AI:n är klar med den första versionen. Det brukar ta 30–60 sekunder.",
+          "restarting": "Startar om…",
+          "restartPreview": "Starta om förhandsgranskning"
+        },
+        "topBar": {
+          "goBack": "Gå tillbaka",
+          "goForward": "Gå framåt",
+          "refreshPage": "Uppdatera sida",
+          "previewNewTab": "Förhandsgranska i ny flik",
+          "breakpoint": "Brytpunkt",
+          "removeFromGroup": "Ta bort från grupp",
+          "addBreakpoint": "Lägg till brytpunkt",
+          "cancel": "Avbryt",
+          "remove": "Ta bort",
+          "removeBreakpointTitle": "Ta bort brytpunkt",
+          "driftedPreset": "Avviker från {name}-förinställning ({width}px)",
+          "breakpointLabel": "{name}-brytpunkt",
+          "restorePreset": "Återställ förinställning ({width}px)"
+        },
+        "pageSelector": {
+          "page": "Sida",
+          "currentPage": "Aktuell sida",
+          "newPage": "Ny sida",
+          "pageSettings": "Sidinställningar",
+          "searchPlaceholder": "Sök sidor och mappar...",
+          "noPagesFound": "Inga sidor hittades",
+          "scanningPages": "Söker igenom sidor…",
+          "manageAllPages": "Hantera alla sidor"
+        }
+      },
+      "overlay": {
+        "comment": {
+          "addCommentPlaceholder": "Lägg till en kommentar...",
+          "addCommentAriaLabel": "Lägg till en kommentar",
+          "postCommentAriaLabel": "Publicera kommentar",
+          "addReplyPlaceholder": "Lägg till ett svar...",
+          "sendReplyAriaLabel": "Skicka svar",
+          "cancel": "Avbryt",
+          "save": "Spara",
+          "edit": "Redigera",
+          "delete": "Ta bort",
+          "confirm": "Bekräfta",
+          "deleting": "Tar bort...",
+          "resolved": "Löst",
+          "resolve": "Lös",
+          "deleteReplyAriaLabel": "Ta bort svar"
+        },
+        "buttons": {
+          "openInCode": "Öppna i kod",
+          "copyToFigma": "Kopiera till Figma"
+        },
+        "componentChip": {
+          "defaultName": "Komponent",
+          "editAriaLabel": "Redigera {name}-komponent",
+          "editTooltip": "Redigera komponent — ändringar gäller alla instanser"
+        },
+        "componentEditBanner": {
+          "editing": "Redigerar",
+          "done": "Klar",
+          "exitTooltip": "Avsluta komponentredigering",
+          "instanceSingular": "gäller 1 instans",
+          "instancePlural": "gäller {count} instanser"
+        }
       }
     },
     "code": {
@@ -2584,7 +2669,8 @@
         "styles": "Stilar",
         "text": "Text",
         "transforms": "Transformationer",
-        "transitions": "Övergångar"
+        "transitions": "Övergångar",
+        "overlays": "Täckningar"
       },
       "common": {
         "reset": "Återställ",
@@ -2618,8 +2704,13 @@
         "flow": "Flöde",
         "alignment": "Justering",
         "gap": "Mellanrum",
-        "padding": "Inre avstånd",
-        "margin": "Yttre avstånd",
+        "padding": "Utfyllnad",
+        "margin": "Marginal",
+        "display": "Display",
+        "direction": "Riktning",
+        "distribute": "Fördela",
+        "align": "Justera",
+        "wrap": "Radbrytning",
         "displayFlow": "Visningsflöde",
         "perSidePadding": "Inre avstånd per sida",
         "perSideMargin": "Yttre avstånd per sida",
@@ -2635,6 +2726,8 @@
       "position": {
         "type": "Typ",
         "offsets": "Förskjutningar",
+        "align": "Justera",
+        "zIndexLabel": "Z-index",
         "staticHint": "Ändra typ till Relativ, Absolut, Fast eller Klibbig för att ange förskjutningar.",
         "rotation": "Rotation",
         "flipHorizontal": "Spegelvänd horisontellt",
@@ -2657,6 +2750,8 @@
         "minHeight": "Min H",
         "maxWidth": "Max B",
         "maxHeight": "Max H",
+        "ratio": "Förhållande",
+        "boxSizing": "Boxmodell",
         "aspectRatio": "Bildförhållande",
         "fit": "Passform",
         "grow": "Väx",
@@ -2673,19 +2768,26 @@
         "color": "Färg",
         "font": "Teckensnitt",
         "alignment": "Justering",
+        "align": "Justera",
         "caseDecoration": "Skiftläge & dekoration",
         "textShadow": "Textskugga",
+        "shadow": "Skugga",
         "weight": "Vikt",
         "fontSize": "Teckenstorlek",
+        "size": "Storlek",
         "lineHeight": "Radavstånd",
+        "line": "Rad",
         "letterSpacing": "Teckenavstånd",
+        "letter": "Bokstav",
         "textAlignment": "Textjustering",
         "case": "Skiftläge",
         "decor": "Dekoration",
+        "decorShort": "Dekoration.",
         "contentEditablePlaceholder": "Elementtext…",
         "contentReadonlyPlaceholder": "Ingen redigerbar text",
         "contentAriaLabel": "Elementets textinnehåll",
-        "textStyleKind": "Textstil"
+        "textStyleKind": "Textstil",
+        "applyTextStyle": "Tillämpa textstil"
       },
       "background": {
         "type": "Typ",
@@ -2731,11 +2833,17 @@
         "shadow": "Skugga",
         "filter": "Filter",
         "backdropFilter": "Bakgrundsfilter",
+        "backdrop": "Bakgrundsfilter",
         "blendMode": "Blandningsläge",
+        "blend": "Blanda",
         "outlineStyle": "Konturstil",
+        "outline": "Kontur",
         "outlineWidth": "Konturbredd",
+        "outlineWidthShort": "Kon. B",
         "outlineColor": "Konturfärg",
+        "outlineColorShort": "Kon. F",
         "outlineOffset": "Konturförskjutning",
+        "outlineOffsetShort": "Kon. ↔",
         "mode": "Läge",
         "effectKind": "Effekt"
       },
@@ -2745,8 +2853,11 @@
         "transform": "Transformation",
         "origin": "Ursprung",
         "perspectiveOrigin": "Perspektivursprung",
+        "pOrigin": "P Ursprung",
         "transformStyle": "Stil",
+        "style": "Stil",
         "backfaceVisibility": "Baksidesynlighet",
+        "backface": "Baksida",
         "value": "Värde"
       },
       "transitions": {
@@ -2770,13 +2881,19 @@
         "visible": "Synlig",
         "visibility": "Synlighet",
         "visibleOption": "Synlig",
-        "hiddenOption": "Dold"
+        "hiddenOption": "Dold",
+        "opacityLabel": "Transparens",
+        "visibleLabel": "Synlig"
       },
       "cursor": {
         "cursor": "Markör",
+        "cursorLabel": "Markör",
         "pointerEvents": "Pekarhändelser",
+        "pointerLabel": "Pekare",
         "userSelect": "Användarval",
+        "selectLabel": "Markering",
         "touchAction": "Pekåtgärd",
+        "touchLabel": "Peka",
         "type": "Typ",
         "events": "Händelser",
         "select": "Val",
@@ -2806,7 +2923,9 @@
         "layoutExtras": "Extra layout",
         "customProperties": "Anpassade egenskaper",
         "float": "Flyt",
+        "floatLabel": "Flyt",
         "clear": "Rensa",
+        "clearLabel": "Rensa",
         "none": "Ingen",
         "left": "Vänster",
         "right": "Höger",
@@ -2821,11 +2940,14 @@
         "tag": "Tagg",
         "id": "ID",
         "classes": "Klasser",
+        "class": "Klass",
         "link": "Länk",
         "editRawClassName": "Redigera rå className",
         "rawClassAriaLabel": "Redigerare för rå className",
         "rawClassPlaceholder": "Klistra in eller skriv Tailwind-klasser…",
         "addAClass": "Lägg till en klass",
+        "addAClassPlaceholder": "Lägg till en klass…",
+        "loadingPlaceholder": "Laddar…",
         "elementIdAriaLabel": "Element-ID"
       },
       "component": {
@@ -2917,6 +3039,127 @@
         "bottom": "Underkant",
         "auto": "Auto",
         "colorHex": "Färg-hex"
+      },
+      "overlays": {
+        "fill": "Fyllning",
+        "stroke": "Kontur",
+        "width": "Bredd",
+        "color": "Färg",
+        "radius": "Hörnradie",
+        "image": "Bild",
+        "bgSize": "Bg-storlek",
+        "bgPos": "Bg-pos",
+        "repeat": "Upprepa",
+        "borderTop": "R. Övre",
+        "borderRight": "R. Höger",
+        "borderBottom": "R. Nedre",
+        "borderLeft": "R. Vänster",
+        "mixed": "Blandad",
+        "cornersDiffer": "Hörnen skiljer sig — expandera för att redigera individuellt"
+      },
+      "controls": {
+        "alignPad": {
+          "gridLabel": "Justering",
+          "cellLabel": "Justera {justify}, Rikta {align}"
+        },
+        "alignmentToolbar": {
+          "groupLabel": "Positionsjustering",
+          "alignLeft": "Vänsterjustera",
+          "centerHorizontally": "Centrera horisontellt",
+          "alignRight": "Högerjustera",
+          "alignTop": "Toppjustera",
+          "centerVertically": "Centrera vertikalt",
+          "alignBottom": "Bottenjustera"
+        },
+        "colorRow": {
+          "mixed": "Blandad"
+        },
+        "fontHeroRow": {
+          "changeFont": "Byt teckensnitt",
+          "defaultFamily": "Standard"
+        },
+        "growOverflow": {
+          "growLabel": "Väx",
+          "growHorizontally": "Väx horisontellt",
+          "growVertically": "Väx vertikalt",
+          "fill": "Fyll",
+          "overflowLabel": "Overflow",
+          "visible": "Synlig",
+          "hidden": "Dold",
+          "clip": "Klipp",
+          "autoScroll": "Auto (rullning)"
+        },
+        "numberInput": {
+          "changeUnit": "Byt enhet",
+          "changeMode": "Byt läge",
+          "mixed": "Blandad"
+        },
+        "openInNewTab": {
+          "label": "Öppna i ny flik"
+        },
+        "pinPad": {
+          "clearAllSides": "Rensa alla sidor",
+          "togglePin": "Växla {side}-fäste",
+          "autoPlaceholder": "Auto",
+          "sideOffset": "{side}-förskjutning"
+        },
+        "chipInput": {
+          "removeChipAriaLabel": "{chip}. Tryck Backsteg för att ta bort.",
+          "addItemAriaLabel": "Lägg till ett objekt"
+        },
+        "propertyControl": {
+          "resetProperty": "Återställ {label}",
+          "resetHint": "Återställ (⌥-klicka på etiketten)",
+          "reset": "Återställ",
+          "copyValue": "Kopiera värde",
+          "pasteValue": "Klistra in värde",
+          "writeAs": "Skriv som {target}",
+          "override": "Åsidosätt (bara detta element)",
+          "overrideActive": "✓ Åsidosätt (bara detta element)",
+          "writeTargetTailwind": "Tailwind-klass",
+          "writeTargetCustomClass": "Anpassad klass",
+          "writeTargetInline": "Inline-stil"
+        },
+        "propertyLabel": {
+          "altClickToReset": "{label} — alt-klicka för att återställa"
+        },
+        "shadowField": {
+          "editShadow": "Redigera skugga",
+          "addShadow": "Lägg till skugga",
+          "shadowHeader": "Skugga",
+          "removeShadow": "Ta bort skugga",
+          "colorLabel": "Färg",
+          "xLabel": "X",
+          "yLabel": "Y",
+          "blurLabel": "Oskärpa",
+          "spreadLabel": "Spridning",
+          "decrease": "Minska",
+          "increase": "Öka",
+          "pickShadowColor": "Välj skuggfärg",
+          "shadowHex": "Skugga hex",
+          "shadowOpacity": "Skuggtransparens"
+        },
+        "styleChipPicker": {
+          "comingSoon": "{kind}-stilar — kommer snart",
+          "comingSoonTooltip": "Sparade {kind}-stilar är inte tillgängliga ännu — använd Anpassade kontroller nedan.",
+          "addKind": "Lägg till {kind}",
+          "changeKind": "Byt {kind}",
+          "noKindsYet": "Inga {kind}ar ännu",
+          "createKind": "Skapa {kind}",
+          "detach": "Koppla bort",
+          "detachKind": "Koppla bort {kind}"
+        },
+        "trblGrid": {
+          "allSidesLabel": "Redigera alla sidor tillsammans",
+          "allSidesTitle": "Alla sidor",
+          "perSideLabel": "Redigera varje sida individuellt",
+          "perSideTitle": "Per sida",
+          "mixed": "Blandad"
+        },
+        "linkAspectButton": {
+          "lockAspect": "Lås bildförhållande",
+          "unlockAspect": "Lås upp bildförhållande"
+        }
       }
     }
   },

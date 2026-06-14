@@ -1,6 +1,7 @@
 'use client';
 
 import type { MouseEventHandler, ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -48,11 +49,12 @@ export function PropertyLabel({
     ariaLabel,
     className,
 }: PropertyLabelProps) {
+    const t = useTranslations('editor.stylePanel.controls.propertyLabel');
     return (
         <button
             type="button"
             onClick={onClick}
-            title={title ?? `${label} — alt-click to reset`}
+            title={title ?? t('altClickToReset', { label })}
             aria-label={ariaLabel}
             className={cn(
                 // Set rows get a touch more weight so a section scan still

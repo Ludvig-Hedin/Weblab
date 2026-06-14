@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { Frame, PageNode } from '@weblab/models';
 import { LeftPanelTabValue } from '@weblab/models';
@@ -47,6 +48,7 @@ export const PageSelector = observer(
         buttonClassName,
     }: PageSelectorProps) => {
         const editorEngine = useEditorEngine();
+        const t = useTranslations('editor.canvas.frame.pageSelector');
         const [showCreateModal, setShowCreateModal] = useState(false);
         const [isOpen, setIsOpen] = useState(false);
         const [isNavigating, setIsNavigating] = useState(false);
@@ -166,7 +168,7 @@ export const PageSelector = observer(
             <>
                 <Popover open={isOpen} onOpenChange={handleOpenChange}>
                     <HoverOnlyTooltip
-                        content="Page"
+                        content={t('page')}
                         side={tooltipSide}
                         className="mb-1"
                         hideArrow
@@ -204,7 +206,7 @@ export const PageSelector = observer(
                         {/* Header */}
                         <div className="flex items-center justify-between px-3 py-2">
                             <span className="text-foreground-tertiary text-xs font-medium">
-                                Current page
+                                {t('currentPage')}
                             </span>
                             <Button
                                 variant="ghost"
@@ -214,7 +216,7 @@ export const PageSelector = observer(
                                     setShowCreateModal(true);
                                     setIsOpen(false);
                                 }}
-                                title="New page"
+                                title={t('newPage')}
                             >
                                 <Icons.Plus className="h-3.5 w-3.5" />
                             </Button>
@@ -231,7 +233,7 @@ export const PageSelector = observer(
                                 size="icon"
                                 className="text-foreground-tertiary hover:text-foreground-primary h-5 w-5 shrink-0 rounded"
                                 onClick={handleManagePages}
-                                title="Page settings"
+                                title={t('pageSettings')}
                             >
                                 <Icons.Gear className="h-3 w-3" />
                             </Button>
@@ -242,7 +244,7 @@ export const PageSelector = observer(
                             <Icons.MagnifyingGlass className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
                             <input
                                 type="text"
-                                placeholder="Search pages and folders..."
+                                placeholder={t('searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => {
@@ -303,13 +305,13 @@ export const PageSelector = observer(
                                     })
                                 ) : (
                                     <p className="text-foreground-tertiary px-3 py-3 text-sm">
-                                        No pages found
+                                        {t('noPagesFound')}
                                     </p>
                                 )
                             ) : editorEngine.pages.isScanning && allPages.length === 0 ? (
                                 <div className="text-foreground-tertiary flex items-center gap-2 px-3 py-2 text-sm">
                                     <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
-                                    <span>Scanning pages…</span>
+                                    <span>{t('scanningPages')}</span>
                                 </div>
                             ) : (
                                 renderTreeItems(editorEngine.pages.tree)
@@ -326,7 +328,7 @@ export const PageSelector = observer(
                                 className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
                             >
                                 <Icons.Gear className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                                <span>Manage all pages</span>
+                                <span>{t('manageAllPages')}</span>
                             </button>
                         </div>
                     </PopoverContent>

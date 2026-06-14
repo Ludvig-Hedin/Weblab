@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -83,6 +84,7 @@ export function NumberField({
     className,
     'aria-label': ariaLabel,
 }: NumberFieldProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     // Mirrors TextField: skip the blur commit when Escape/Enter already handled
@@ -204,7 +206,7 @@ export function NumberField({
                     inputMode="decimal"
                     spellCheck={false}
                     value={draft}
-                    placeholder={mixed ? 'Mixed' : placeholder}
+                    placeholder={mixed ? t('mixed') : placeholder}
                     aria-label={ariaLabel}
                     onFocus={() => {
                         userTouchedRef.current = false;
@@ -248,8 +250,8 @@ export function NumberField({
                                 FIELD_BASE_CLASSES,
                                 'text-foreground-secondary hover:text-foreground-primary flex w-[52px] shrink-0 cursor-pointer items-center justify-center px-1 text-[11px] select-none',
                             )}
-                            aria-label="Change unit"
-                            title="Change unit"
+                            aria-label={t('changeUnit')}
+                            title={t('changeUnit')}
                         >
                             {pillLabel}
                         </button>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     CustomExpander,
@@ -45,6 +46,7 @@ const SIZE_UNIT_OPTIONS = [
  * Overflow toolbar matches the Figma's icon row.
  */
 export const SizeSection = observer(function SizeSection() {
+    const t = useTranslations('editor.stylePanel');
     const width = useStyleValue('width');
     const height = useStyleValue('height');
     const maxWidth = useStyleValue('max-width');
@@ -85,8 +87,8 @@ export const SizeSection = observer(function SizeSection() {
     const [customOpen, setCustomOpen] = useState(advancedSetCount > 0);
 
     return (
-        <Section id="size" title="Size" setCount={setCount}>
-            <PropertyControl property="width" label="Width">
+        <Section id="size" title={t('section.size')} setCount={setCount}>
+            <PropertyControl property="width" label={t('size.width')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}
@@ -95,7 +97,7 @@ export const SizeSection = observer(function SizeSection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="height" label="Height">
+            <PropertyControl property="height" label={t('size.height')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}
@@ -104,7 +106,7 @@ export const SizeSection = observer(function SizeSection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="max-width" label="Max W">
+            <PropertyControl property="max-width" label={t('size.maxWidth')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}
@@ -113,7 +115,7 @@ export const SizeSection = observer(function SizeSection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="max-height" label="Max H">
+            <PropertyControl property="max-height" label={t('size.maxHeight')}>
                 {({ value, commit }) => (
                     <NumberField
                         value={value}
@@ -123,13 +125,13 @@ export const SizeSection = observer(function SizeSection() {
                 )}
             </PropertyControl>
             <div className="flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Grow" isSet={growIsSet} />
+                <PropertyLabel label={t('size.grow')} isSet={growIsSet} />
                 <div className="min-w-0 flex-1">
                     <GrowRow isSet={growIsSet} />
                 </div>
             </div>
             <div className="flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Overflow" isSet={overflowIsSet} />
+                <PropertyLabel label={t('size.overflow')} isSet={overflowIsSet} />
                 <div className="min-w-0 flex-1">
                     <OverflowRow isSet={overflowIsSet} />
                 </div>
@@ -139,13 +141,13 @@ export const SizeSection = observer(function SizeSection() {
                 onOpenChange={setCustomOpen}
                 summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
             >
-                <PropertyControl property="min-width" label="Min W">
+                <PropertyControl property="min-width" label={t('size.minWidth')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="min-height" label="Min H">
+                <PropertyControl property="min-height" label={t('size.minHeight')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="aspect-ratio" label="Ratio">
+                <PropertyControl property="aspect-ratio" label={t('size.ratio')}>
                     {({ value, commit }) => (
                         <NumberField
                             value={value}
@@ -156,12 +158,12 @@ export const SizeSection = observer(function SizeSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="object-fit" label="Fit">
+                <PropertyControl property="object-fit" label={t('size.fit')}>
                     {({ value, commit }) => (
                         <SelectField value={value} options={FIT_OPTIONS} onCommit={commit} />
                     )}
                 </PropertyControl>
-                <PropertyControl property="box-sizing" label="Box sizing">
+                <PropertyControl property="box-sizing" label={t('size.boxSizing')}>
                     {({ value, commit }) => (
                         <SelectField value={value} options={BOX_SIZING_OPTIONS} onCommit={commit} />
                     )}

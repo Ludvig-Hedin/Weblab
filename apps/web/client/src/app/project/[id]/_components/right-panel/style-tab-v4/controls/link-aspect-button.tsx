@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { cn } from '@weblab/ui/utils';
 
 import { IconChain } from './glyphs';
@@ -16,13 +18,14 @@ export interface LinkAspectButtonProps {
  * muted-grey look so it reads as a system-level toggle (not branded).
  */
 export function LinkAspectButton({ locked, onToggle, className }: LinkAspectButtonProps) {
+    const t = useTranslations('editor.stylePanel.controls.linkAspectButton');
     return (
         <button
             type="button"
             onClick={onToggle}
             aria-pressed={locked}
-            aria-label={locked ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
-            title={locked ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
+            aria-label={locked ? t('unlockAspect') : t('lockAspect')}
+            title={locked ? t('unlockAspect') : t('lockAspect')}
             className={cn(
                 'inline-flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-[6px] transition-colors outline-none',
                 locked

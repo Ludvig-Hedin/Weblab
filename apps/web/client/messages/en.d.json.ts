@@ -2,4495 +2,4831 @@
 // See: https://next-intl.dev/docs/workflows/typescript#messages-arguments
 
 declare const messages: {
-    "promoBanner": {
-        "pro60FirstMonth": {
-            "message": "Save 60% on your first month of Pro.",
-            "cta": "Claim offer"
-        },
-        "alreadyOnPlan": "You're already on the Pro plan.",
-        "genericError": "Something went wrong. Please try again.",
-        "dismiss": "Dismiss banner"
+  "promoBanner": {
+    "pro60FirstMonth": {
+      "message": "Save 60% on your first month of Pro.",
+      "cta": "Claim offer"
     },
-    "cms": {
-        "topBar": {
-            "tooltip": "CMS"
-        },
-        "workspace": {
-            "closeCms": "Close CMS",
-            "tabs": {
-                "collections": "Collections",
-                "fields": "Fields",
-                "sources": "Sources"
-            }
-        },
-        "collections": {
-            "sidebarTitle": "Collections",
-            "addCollection": "Add collection",
-            "loading": "Loading…",
-            "emptySidebar": "No collections yet.",
-            "newCollection": "New collection",
-            "hint": "Select a collection to view its items.",
-            "create": {
-                "title": "New collection",
-                "description": "Collections group items that share a structure, like blog posts, docs, team members.",
-                "name": "Name",
-                "namePlaceholder": "Blog posts",
-                "slug": "Slug",
-                "slugPlaceholder": "blog-posts",
-                "slugHelp": "Used in URLs and bindings. Lowercase letters, numbers, and dashes.",
-                "descriptionLabel": "Description (optional)",
-                "cancel": "Cancel",
-                "create": "Create",
-                "success": "Collection created",
-                "nameRequired": "Collection name is required",
-                "failed": "Failed to create collection"
-            }
-        },
-        "items": {
-            "count": "{count, plural, =1 {# item} other {# items}}",
-            "editFields": "Edit fields",
-            "newItem": "New item",
-            "addFieldsFirst": "Add at least one field to this collection first",
-            "columnTitle": "Title",
-            "columnSlug": "Slug",
-            "columnStatus": "Status",
-            "columnUpdated": "Updated",
-            "untitled": "Untitled",
-            "noFieldsTitle": "No fields yet",
-            "noFieldsBody": "Add fields to this collection so items have something to fill in.",
-            "addFields": "Add fields",
-            "noItemsTitle": "No items yet",
-            "noItemsBody": "Add your first item, and it'll appear here."
-        },
-        "itemEditor": {
-            "headerNew": "New {name} item",
-            "headerEdit": "Edit item",
-            "slug": "Slug",
-            "slugAuto": "auto",
-            "cancel": "Cancel",
-            "saveDraft": "Save draft",
-            "publish": "Publish",
-            "successCreated": "Item created",
-            "successUpdated": "Item updated",
-            "failed": "Failed to save item"
-        },
-        "fields": {
-            "needCollection": "Select a collection from the Collections tab to edit its fields.",
-            "back": "Back",
-            "title": "{name}: Fields",
-            "addField": "Add field",
-            "emptyTitle": "No fields yet",
-            "emptyBody": "Add fields to define the shape of items in this collection: Title, Slug, Date, Image, and so on.",
-            "requiredSuffix": "required",
-            "addDialog": {
-                "title": "Add field",
-                "name": "Name",
-                "namePlaceholder": "Title",
-                "key": "Key",
-                "keyHelp": "Used in bindings, for example {example}.",
-                "type": "Type",
-                "help": "Help text (optional)",
-                "required": "Required",
-                "cancel": "Cancel",
-                "add": "Add field",
-                "success": "Field added",
-                "nameRequired": "Field name is required",
-                "failed": "Failed to add field"
-            },
-            "types": {
-                "text": "Text",
-                "rich_text": "Rich text",
-                "number": "Number",
-                "boolean": "Toggle",
-                "date": "Date",
-                "image": "Image",
-                "slug": "Slug",
-                "option": "Option",
-                "reference": "Reference"
-            }
-        },
-        "sources": {
-            "title": "Sources",
-            "connectSource": "Connect source",
-            "connectSourceTooltip": "External sources coming soon",
-            "empty": "No sources yet. Add a collection to seed the default Weblab CMS source.",
-            "weblab": "Weblab CMS",
-            "payload": "Payload",
-            "strapi": "Strapi",
-            "rest": "Generic REST",
-            "mapButton": "Map",
-            "refresh": "Refresh",
-            "refreshing": "Refreshing…",
-            "refreshDonePrefix": "Synced",
-            "refreshDoneSuffix": "items",
-            "refreshFailed": "Refresh failed",
-            "deleteConfirm": "Disconnect this source? Collections that reference it will need a new source first.",
-            "deleted": "Source disconnected",
-            "deleteFailed": "Could not disconnect source",
-            "connect": {
-                "title": "Connect a CMS source",
-                "description": "Bring content from an external CMS into Weblab. Items sync into your project and behave like native ones.",
-                "nameLabel": "Display name",
-                "namePlaceholder": "Marketing CMS",
-                "nameRequired": "Give the source a display name",
-                "baseUrl": "Base URL",
-                "apiKey": "API key",
-                "apiToken": "API token",
-                "payloadUsersSlug": "Users collection slug",
-                "payloadCollections": "Collection slugs",
-                "payloadCollectionsHelp": "Comma-separated. Leave blank to discover automatically.",
-                "strapiTypes": "Content type plural names",
-                "strapiTypesHelp": "Comma-separated, e.g. blog-posts,authors.",
-                "restApiKey": "API key",
-                "restEndpoints": "Endpoints",
-                "restEndpointsHelp": "JSON array of {name,path}. Each entry maps to a Weblab collection.",
-                "testButton": "Test connection",
-                "testOk": "Connection works",
-                "testFailed": "Connection failed",
-                "testFirst": "Test the connection before saving",
-                "saveButton": "Save and continue",
-                "cancel": "Cancel",
-                "created": "Source connected",
-                "failed": "Could not save source"
-            },
-            "map": {
-                "title": "Map remote collections",
-                "description": "Pick how each remote collection should map onto Weblab.",
-                "loading": "Discovering remote collections…",
-                "empty": "No collections discovered. Check the source's settings and try again.",
-                "createNew": "Create new: {name}",
-                "skip": "Skip for now",
-                "inferredFields": "fields inferred",
-                "confirm": "Confirm and sync",
-                "cancel": "Cancel",
-                "nothingToMap": "Pick at least one collection to map",
-                "success": "Collections mapped and synced",
-                "failed": "Mapping failed"
-            }
-        },
-        "bind": {
-            "contextMenu": "Bind to CMS…",
-            "title": "Bind to CMS",
-            "description": "Replace this element's content with a value from your CMS at preview time.",
-            "collection": "Collection",
-            "collectionEmpty": "No collections yet",
-            "collectionPick": "Choose a collection",
-            "field": "Field",
-            "fieldPickFirst": "Pick a collection first",
-            "fieldEmpty": "This collection has no fields",
-            "fieldPick": "Choose a field",
-            "sourceLabel": "Source",
-            "sourceItem": "Specific item",
-            "sourceFirst": "First item in collection",
-            "sourcePage": "Current item from page",
-            "sourcePageDisabled": "Set up a detail page for this collection first",
-            "item": "Item",
-            "itemEmpty": "This collection has no items yet",
-            "itemPick": "Choose an item",
-            "cancel": "Cancel",
-            "bind": "Bind",
-            "update": "Update",
-            "remove": "Remove binding",
-            "successSaved": "Binding saved",
-            "successRemoved": "Binding removed",
-            "failed": "Failed to save binding",
-            "removeFailed": "Failed to remove binding",
-            "pickAll": "Pick a collection and field",
-            "pickItem": "Pick an item or switch to \"First matching item\"",
-            "repeat": {
-                "title": "Configure list",
-                "description": "This element will repeat once per item in the collection.",
-                "collection": "Collection",
-                "sortField": "Sort by",
-                "sortNone": "Default order",
-                "sortDirection": "Direction",
-                "sortAsc": "Ascending",
-                "sortDesc": "Descending",
-                "limit": "Limit",
-                "limitPlaceholder": "All items",
-                "limitHelp": "Leave blank to show every item.",
-                "pickCollection": "Pick a collection for this list",
-                "invalidLimit": "Limit must be a whole number greater than zero"
-            },
-            "current": {
-                "title": "Bind to current item",
-                "description": "This element is inside a list. Pick which field of the current item to show.",
-                "inheritedCollectionPrefix": "Items come from",
-                "inheritedUnknown": "The parent list's collection is not configured yet.",
-                "parentNotConfigured": "Configure the parent list's collection first, then come back to bind this element.",
-                "pickField": "Pick a field"
-            }
-        },
-        "list": {
-            "contentSection": "Content"
-        },
-        "filters": {
-            "title": "Filters",
-            "add": "Add filter",
-            "remove": "Remove filter",
-            "empty": "No filters. List shows every item.",
-            "fieldPlaceholder": "Pick a field",
-            "opEq": "is",
-            "opNeq": "is not",
-            "opBefore": "before",
-            "opAfter": "after",
-            "opContains": "contains",
-            "opStartsWith": "starts with",
-            "opIsSet": "is set",
-            "opIsUnset": "is empty"
-        },
-        "routing": {
-            "title": "Detail page",
-            "openButton": "Routing",
-            "noneTitle": "No detail page yet",
-            "noneBody": "Mark a page (like /blog/[slug]) as the detail page for this collection so individual items can have their own URL.",
-            "currentBody": "Items in this collection are shown on {path}, matched by the {field} field.",
-            "pagePathLabel": "Page path",
-            "pagePathPlaceholder": "/blog/[slug]",
-            "pagePathHelp": "Use brackets for dynamic segments, e.g. /blog/[slug].",
-            "matchFieldLabel": "Match field",
-            "matchFieldHelp": "The field whose value fills the dynamic segment.",
-            "save": "Save",
-            "remove": "Remove",
-            "saved": "Detail page saved",
-            "removed": "Detail page removed",
-            "saveFailed": "Could not save detail page",
-            "removeFailed": "Could not remove detail page",
-            "pickFieldFirst": "Add a field to this collection before mapping a detail page",
-            "previewItemLabel": "Preview as",
-            "previewItemPlaceholder": "Pick an item to preview"
-        }
+    "alreadyOnPlan": "You're already on the Pro plan.",
+    "genericError": "Something went wrong. Please try again.",
+    "dismiss": "Dismiss banner"
+  },
+  "cms": {
+    "topBar": {
+      "tooltip": "CMS"
     },
-    "projects": {
-        "create": {
-            "settings": {
-                "title": "Settings",
-                "tooltip": "Configure new project settings"
-            },
-            "success": "Project created successfully.",
-            "steps": {
-                "count": "{current} of {total}",
-                "error": "Project data is missing."
-            },
-            "methods": {
-                "new": "Create New Project",
-                "load": "Load Existing Project"
-            },
-            "loading": {
-                "title": "Setting up your new project…",
-                "description": "This may take a few seconds",
-                "cancel": "Cancel"
-            },
-            "error": {
-                "title": "Error creating your Weblab app",
-                "backToPrompt": "Back to Prompting"
-            },
-            "welcomeTitle": "Welcome to Weblab — let's create your first project",
-            "welcomeDescription": "Start with a blank canvas to create a new project.",
-            "createBlankProject": "Create blank project"
-        },
-        "select": {
-            "empty": "No projects found",
-            "sort": {
-                "recent": "Recently Updated",
-                "name": "Project Name"
-            },
-            "lastEdited": "Last edited {time} ago",
-            "loading": "Loading projects...",
-            "sortBy": "Sort by",
-            "order": "Order",
-            "sortAlphabetical": "Alphabetical",
-            "sortDateCreated": "Date created",
-            "sortLastViewed": "Last viewed",
-            "orderOldestFirst": "Oldest first",
-            "orderNewestFirst": "Newest first",
-            "recentProjects": "Recent projects",
-            "allProjects": "Projects",
-            "createTile": "Create",
-            "noProjectsMatch": "No projects match \"{query}\"",
-            "tryAdjustingSearch": "Try adjusting your search terms",
-            "noDescriptionAvailable": "No description available"
-        },
-        "actions": {
-            "import": "Import Project",
-            "close": "Close",
-            "about": "About Weblab",
-            "signOut": "Sign out",
-            "editApp": "Edit App",
-            "projectSettings": "Project settings",
-            "showInExplorer": "Show in Explorer",
-            "renameProject": "Rename project",
-            "deleteProject": "Delete project",
-            "cloneProject": "Clone project",
-            "cancel": "Cancel",
-            "delete": "Delete",
-            "rename": "Rename",
-            "clone": "Clone",
-            "goToAllProjects": "Go to all Projects",
-            "newProject": "New Project",
-            "blankProject": "Create project",
-            "startFromScratch": "Start from scratch",
-            "importProject": "Import a project",
-            "subscriptions": "Subscriptions",
-            "settings": "Settings",
-            "you": "You",
-            "sendFeedback": "Send feedback",
-            "downloadCode": "Download code",
-            "downloadingCode": "Preparing download...",
-            "downloadSuccess": "Download started successfully",
-            "downloadError": "Failed to prepare download",
-            "downloadToFolder": "Download to folder…",
-            "downloadingToFolder": "Saving to folder…",
-            "openLocalFolder": "Import folder",
-            "openingLocalFolder": "Opening…",
-            "importingLocalFolder": "Uploading files…",
-            "localFolderUnsupportedTooltip": "Local folder access requires Chrome, Edge, or Arc",
-            "recentProjects": "Recent Projects",
-            "importFromGitHub": "Import from GitHub",
-            "preparingWorkspace": "Setting up your workspace",
-            "creatingProject": "Saving your project",
-            "openingEditor": "Opening the editor",
-            "creatingBlankProject": "Building your project",
-            "creatingBlankProjectCaption": "Setting up your project…",
-            "startBlankProject": "Start blank project",
-            "importingFolder": "Importing folder",
-            "importingFolderCaption": "Your files are being uploaded to a cloud workspace.",
-            "uploadingFilesProgress": "Uploading {uploaded} of {total} files",
-            "uploadingFilesCount": "Uploading {count} files",
-            "uploadingFilesPlaceholder": "Uploading files",
-            "cloning": "Cloning…",
-            "convertToTemplate": "Convert to template",
-            "unmarkAsTemplate": "Unmark as template",
-            "removeOfflineCopy": "Remove offline copy",
-            "makeAvailableOffline": "Make available offline"
-        },
-        "chooser": {
-            "orPickStartingPoint": "or pick a starting point",
-            "startBlank": {
-                "label": "Start blank",
-                "tooltip": "An empty project. Pick your stack — and on desktop, cloud or local."
-            },
-            "openFolder": {
-                "label": "Open folder",
-                "tooltip": "Open a folder from your machine. Edits sync to disk and your code editor, live."
-            },
-            "uploadFolder": {
-                "label": "Upload folder",
-                "tooltip": "Upload a local project folder to Weblab Cloud and edit it in the browser.",
-                "tooltipUnsupported": "Upload requires a Chromium-based browser (Chrome, Edge, or Arc)."
-            },
-            "cloneSite": {
-                "label": "Clone a site",
-                "tooltip": "Recreate any site from a URL or screenshot. The AI rebuilds it as an editable project."
-            },
-            "githubRepo": {
-                "label": "GitHub repo",
-                "tooltip": "Bring an existing repo. Connect your account once, then pick any repo to open."
-            },
-            "desktopFooter": {
-                "cta": "Want to keep code on your machine?",
-                "link": "Get the desktop app"
-            }
-        },
-        "cloneWebsiteDialog": {
-            "title": "Clone a website",
-            "description": "Recreate any site from a URL or a screenshot. The AI uses the source as a visual reference and rebuilds it into an editable project.",
-            "tabs": {
-                "url": "From URL",
-                "screenshot": "From screenshot"
-            },
-            "urlLabel": "Website URL",
-            "urlPlaceholder": "https://example.com",
-            "urlError": "Enter a full URL starting with http:// or https://",
-            "notesLabel": "Notes (optional)",
-            "urlNotesPlaceholder": "Tweaks for the AI: swap the color palette, simplify the hero, …",
-            "screenshotLabel": "Screenshot",
-            "screenshotClickToReplace": "{name} · click to replace",
-            "screenshotDropHint": "Drop a screenshot here or click to choose",
-            "screenshotFormatHint": "PNG, JPG, GIF, or WebP",
-            "screenshotNotesPlaceholder": "What this site is, the brand, anything you want the AI to focus on…",
-            "outputStackLabel": "Output stack",
-            "recommended": "Recommended",
-            "cancel": "Cancel",
-            "readingPage": "Reading the page…",
-            "cloneWebsite": "Clone website",
-            "cloneFromScreenshot": "Clone from screenshot",
-            "loaderHeading": "Cloning your site",
-            "loaderCaption": "Setting up the sandbox and handing the source material to the AI.",
-            "stepReadingSite": "Reading your site",
-            "stepSettingUpWorkspace": "Setting up your workspace",
-            "stepOpeningEditor": "Opening the editor",
-            "toastInvalidImageType": "Please drop an image file (PNG, JPG, GIF, or WebP).",
-            "toastImageReadFailed": "Could not read that image",
-            "frameworkNextjsDescription": "React + Tailwind + shadcn/ui. Editable in the visual editor.",
-            "frameworkStaticDescription": "A single index.html with Tailwind via CDN. No build step."
-        },
-        "dialogs": {
-            "delete": {
-                "title": "Delete project",
-                "description": "This permanently removes your project and all its data.",
-                "moveToTrash": "Also move folder to trash",
-                "toastFailed": "Failed to delete project"
-            },
-            "rename": {
-                "title": "Rename project",
-                "label": "Project Name",
-                "error": "Project name can't be empty",
-                "toastFailed": "Failed to rename project"
-            },
-            "clone": {
-                "title": "Clone project",
-                "label": "Project Name",
-                "placeholder": "Enter name for cloned project",
-                "error": "Project name can't be empty",
-                "toastSuccess": "Project cloned successfully",
-                "toastUnavailable": "Sandbox service temporarily unavailable",
-                "toastFailed": "Failed to clone project"
-            },
-            "template": {
-                "toastAdded": "Added to templates",
-                "toastRemoved": "Removed from templates",
-                "toastFailed": "Failed to update template tag"
-            },
-            "offline": {
-                "toastRemoved": "{name} removed from offline access.",
-                "toastPinned": "{name} pinned. Open it once online to finish caching.",
-                "toastMarked": "{name} marked as available offline.",
-                "toastFailed": "Could not update offline availability."
-            }
-        },
-        "frameworkSelect": {
-            "title": "Start a blank project",
-            "description": "Choose where it runs, then pick a stack.",
-            "destinationCloud": "Cloud",
-            "destinationLocal": "Local",
-            "localTooltip": "Available in the desktop app",
-            "cloudRunsInfo": "Runs in Weblab Cloud — nothing to install.",
-            "localRunsInfo": "Runs on your machine, saved straight to disk.",
-            "recommended": "Recommended",
-            "frameworkNextjs": "React, Tailwind, and shadcn/ui — recommended for most projects.",
-            "frameworkStaticHtml": "Vanilla HTML, CSS, and JS — no build step.",
-            "frameworkViteReact": "React with Vite — fast HMR, no server-side rendering.",
-            "frameworkRemix": "Full-stack React with server loaders and nested routes.",
-            "frameworkAstro": "Content-first sites with islands and zero JS by default.",
-            "frameworkTanstackStart": "Full-stack React with type-safe routing and server functions."
-        },
-        "modeDialog": {
-            "desktopApp": "Desktop app",
-            "download": "Download",
-            "create": {
-                "title": "Create project",
-                "description": "Choose where this project should live.",
-                "cloudTitle": "Weblab Cloud",
-                "cloudDescription": "Best for starting quickly, working anywhere, and publishing later.",
-                "localTitle": "Local folder",
-                "localDescription": "Open a repo on this device and keep code in sync with VS Code, Claude Code, or Codex.",
-                "cloudAction": "Create in Weblab Cloud"
-            },
-            "import": {
-                "title": "Import folder",
-                "description": "Choose whether to upload this folder or work from your local repo.",
-                "cloudTitle": "Import to Weblab Cloud",
-                "cloudDescription": "Upload a copy to a cloud sandbox so it opens in the web editor.",
-                "localTitle": "Open local folder",
-                "localDescription": "Keep code on this device and edit the same files from Weblab and your IDE.",
-                "cloudAction": "Import to Weblab Cloud"
-            }
-        },
-        "prompt": {
-            "title": "What kind of website do you want to make?",
-            "description": "Tell us a bit about your project. Be as detailed as possible.",
-            "input": {
-                "placeholder": "Paste a reference screenshot, write a novel, get creative...",
-                "imageUpload": "Upload Image Reference",
-                "fileReference": "File Reference",
-                "submit": "Start building your site"
-            },
-            "blankStart": "Start from a blank page"
-        },
-        "error": {},
-        "errorPage": {
-            "dashboardError": "Dashboard error",
-            "title": "We couldn't load your projects",
-            "description": "This is usually temporary. Try again in a moment, or head back home.",
-            "errorReference": "Error reference",
-            "tryAgain": "Try again",
-            "goHome": "Go home"
-        },
-        "creating": {
-            "lookingUpTemplate": "Looking up template",
-            "fetchingTemplateDetails": "Fetching template details…",
-            "settingUpSandbox": "Setting up sandbox",
-            "preparingSandbox": "Preparing your sandbox…",
-            "creatingProject": "Creating project",
-            "savingToWorkspace": "Saving to your workspace…",
-            "openingWorkspace": "Opening workspace",
-            "almostThere": "Almost there…",
-            "creating": "Creating ",
-            "loadingEllipsis": "Loading…",
-            "tipFastImport": "Almost there — finalizing your sandbox.",
-            "tipSlowImport": "Cloning the template from GitHub. Larger templates can take a few minutes.",
-            "tipSlowImportLong": "Still working — large GitHub templates can take up to five minutes. You can keep this tab open.",
-            "templateNotFound": "Template not found",
-            "noTemplateWithId": "No template with id \"{id}\" exists.",
-            "backToMarketplace": "Back to Marketplace",
-            "somethingWentWrong": "Something went wrong",
-            "unknownError": "An unknown error occurred.",
-            "tryAgain": "Try again"
-        },
-        "importPage": {
-            "localTitle": "Import a Local Project",
-            "localDescription": "Select a directory from your computer to start working with your project in {appName}.",
-            "githubTitle": "Import from GitHub",
-            "githubDescription": "Connect your GitHub account to access and work with your repositories",
-            "figmaTitle": "Import from Figma",
-            "figmaDescription": "Paste a Figma file URL to import your frames as editable React components in {appName}."
-        },
-        "importLocal": {
-            "cancel": "Cancel",
-            "selectFolder": "Select folder",
-            "clickToSelectFolder": "Click to select your folder",
-            "uploading": "Uploading...",
-            "headerInitialTitle": "Select your project folder",
-            "headerInitialDesc": "This is where we'll reference your App",
-            "headerValidatingTitle": "Verifying compatibility with {appName}",
-            "headerValidatingDesc": "We're checking to make sure this project can work with {appName}",
-            "headerValidTitle": "Project verified",
-            "headerValidDesc": "Your project is ready to import to {appName}",
-            "headerInvalidTitle": "This project won't work with {appName}",
-            "headerInvalidDesc": "{appName} only works with NextJS + React + Tailwind projects",
-            "finishSetup": "Finish setup",
-            "selectDifferentFolder": "Select a different folder",
-            "discardTitle": "Discard upload?",
-            "discardDescription": "You've already selected a folder. Cancelling now will discard the uploaded files.",
-            "keepEditing": "Keep editing",
-            "discard": "Discard",
-            "projectNotMatchStack": "This folder doesn't look like a {frameworkName} project",
-            "settingUpProject": "Setting up project...",
-            "creating": "Creating sandbox",
-            "uploadingFiles": "Uploading {uploaded}/{total} files",
-            "installing": "Installing dependencies",
-            "creatingProject": "Creating project",
-            "openingEditor": "Opening editor",
-            "settingUpDefault": "We're setting up your project",
-            "retry": "Retry",
-            "verifyingTitle": "Verifying compatibility with {appName}",
-            "verifyingDesc": "We're checking to make sure this project can work with {appName}",
-            "projectVerified": "Project verified",
-            "projectReadyToImport": "Your project is ready to import to {appName}",
-            "projectWontWork": "This project won't work with {appName}",
-            "folderDoesntMatch": "This folder doesn't match a {frameworkName} project layout.",
-            "whatAreYouBuilding": "What are you building?"
-        },
-        "importGitHub": {
-            "cancel": "Cancel",
-            "continue": "Continue",
-            "configure": "Configure",
-            "githubConnected": "GitHub Connected",
-            "connectGitHub": "Connect GitHub",
-            "reposAccessible": "Your repositories are accessible in {appName}",
-            "accessRepos": "Access your repositories and work with real code in {appName}",
-            "statusConnected": "GitHub connected",
-            "statusConnectedDesc": "Your repositories are ready to use",
-            "statusConnecting": "Waiting for authorization…",
-            "statusConnectingDesc": "Complete the GitHub connection in the new tab, then come back here",
-            "statusDisconnected": "Connect your GitHub account",
-            "statusDisconnectedDesc": "Secure, fine-grained access to your repositories",
-            "openGitHubAgain": "Open GitHub again",
-            "iveAuthorizedIt": "I've authorized it",
-            "setupTitle": "Setup your project",
-            "setupDesc": "Select which repo you want to import",
-            "organizationLabel": "Organization (Optional)",
-            "allRepositories": "All repositories",
-            "repositoryLabel": "Repository",
-            "searchRepositories": "Search repositories",
-            "loadingOrganizations": "Loading organizations...",
-            "loadingRepositories": "Loading repositories...",
-            "noReposMatchSearch": "No repositories match your search",
-            "noReposForOrg": "No repositories found for {orgName}",
-            "noReposFound": "No repositories found",
-            "selected": "Selected: {repoName}",
-            "refreshRepositories": "Refresh repositories",
-            "importing": "Importing…",
-            "import": "Import",
-            "settingUpProject": "Setting up project…",
-            "importFailed": "Import failed",
-            "somethingWentWrong": "Something went wrong while importing your repository",
-            "cloningPhase": "Cloning repository. Large repositories can take a few minutes.",
-            "creatingProjectPhase": "Creating project",
-            "openingEditorPhase": "Opening editor",
-            "settingUpDefault": "We're cloning and setting up your project",
-            "repoAccessError": "Make sure the repository is accessible and you've granted Weblab permission to it.",
-            "retry": "Retry"
-        },
-        "importFigma": {
-            "cancel": "Cancel",
-            "back": "Back",
-            "title": "Import from Figma",
-            "description": "Paste a Figma file URL to import your designs as React components.",
-            "figmaFileUrl": "Figma File URL",
-            "personalAccessToken": "Personal access token",
-            "fetching": "Fetching...",
-            "fetchFrames": "Fetch Frames",
-            "selectFramesTitle": "Select frames",
-            "selectFramesDesc": "Choose which frames to import from \"{fileName}\".",
-            "selectedCount": "{selected} of {total} selected",
-            "deselectAll": "Deselect all",
-            "selectAll": "Select all",
-            "noFramesFound": "No frames found in this file's first page.",
-            "createProject": "Create Project",
-            "settingUpProject": "Setting up project...",
-            "creatingYourProject": "Creating your project with the imported frames.",
-            "creatingPhase": "Creating sandbox",
-            "uploadingPhase": "Uploading {uploaded}/{total} files",
-            "installingPhase": "Installing dependencies",
-            "creatingProjectPhase": "Creating project",
-            "openingEditorPhase": "Opening editor",
-            "retry": "Retry"
-        },
-        "templates": {
-            "sectionTitle": "Templates",
-            "noTemplatesFound": "No templates found",
-            "tryAdjustingSearch": "Try adjusting your search terms",
-            "markAsFavorite": "Mark as favorite",
-            "removeFromFavorites": "Remove from favorites",
-            "addToFavorites": "Add to favorites",
-            "newBadge": "New",
-            "useTemplate": "Use template",
-            "preview": "Preview",
-            "edit": "Edit",
-            "details": "Details",
-            "removeTemplate": "Remove Template",
-            "creating": "Creating...",
-            "templateOptions": "Template options",
-            "noDescriptionAvailable": "No description available",
-            "starterTemplates": "Starter templates",
-            "starterTemplatesDesc": "Start from a proven template — preview live, or open the details for source and related options."
-        },
-        "folderCard": {
-            "empty": "Empty",
-            "siteSingular": "site",
-            "sitePlural": "sites"
-        },
-        "createFolderDialog": {
-            "title": "Create folder",
-            "folderNameLabel": "Folder name",
-            "folderNamePlaceholder": "Client work",
-            "alreadyExists": "A folder with this name already exists.",
-            "cancel": "Cancel",
-            "createFolder": "Create folder"
-        },
-        "squareProjectCard": {
-            "editLabel": "✏️ Edit",
-            "agoSuffix": "ago"
-        },
-        "changelogGrid": {
-            "whatsNew": "What's new",
-            "changelog": "Changelog",
-            "seeAllUpdates": "See all updates"
-        }
+    "workspace": {
+      "closeCms": "Close CMS",
+      "tabs": {
+        "collections": "Collections",
+        "fields": "Fields",
+        "sources": "Sources"
+      }
     },
-    "welcome": {
-        "title": "Welcome to Weblab",
-        "titleReturn": "Welcome back to Weblab",
-        "description": "Design and ship production websites with AI, no dev handoff required.",
-        "alpha": "Alpha",
-        "login": {
-            "github": "Sign in with GitHub",
-            "google": "Sign in with Google",
-            "continueGithub": "Continue with GitHub",
-            "continueGoogle": "Continue with Google",
-            "continueVercel": "Continue with Vercel",
-            "lastUsed": "You used this last time",
-            "loginToEdit": "Sign in to edit",
-            "shareProjects": "No credit card required • Get a site in seconds",
-            "email": "Continue with email",
-            "emailLabel": "Email",
-            "emailPlaceholder": "your@email.com",
-            "sendCode": "Send code",
-            "sending": "Sending..."
-        },
-        "verify": {
-            "title": "Check your email",
-            "description": "We sent a 6-digit code to {email}",
-            "enterCode": "Enter verification code",
-            "verify": "Verify",
-            "verifying": "Verifying...",
-            "resend": "Resend code",
-            "resendIn": "Resend in {seconds}s",
-            "back": "Back to sign in",
-            "wrongEmail": "Wrong email?"
-        },
-        "terms": {
-            "agreement": "By signing up, you agree to our",
-            "privacy": "Privacy Policy",
-            "and": "and",
-            "tos": "Terms of Service"
-        },
-        "profileSetup": {
-            "title": "What should we call you?",
-            "description": "Tell us your name so Weblab can address you properly across the app.",
-            "name": "Name",
-            "namePlaceholder": "Ada Lovelace",
-            "errorNameRequired": "Please enter your name.",
-            "errorSaveFailed": "Failed to save profile. Please try again.",
-            "saving": "Saving...",
-            "continue": "Continue",
-            "skip": "Skip for now"
-        },
-        "version": "Version {version}"
-    },
-    "loginPage": {
-        "verificationExpired": "Verification session expired. Enter your email to try again."
-    },
-    "offlineProjects": {
-        "justNow": "just now",
-        "minutesAgo": "{minutes}m ago",
-        "hoursAgo": "{hours}h ago",
-        "daysAgo": "{days}d ago",
-        "heading": "You're offline. Showing {count, plural, one {# cached project} other {# cached projects}}",
-        "body": "Open one to keep editing. Changes save locally and sync when you reconnect.",
-        "cachedAt": "Cached {time}"
-    },
-    "selectProject": {
-        "pendingImportTitle": "Welcome back. Pick the folder you wanted to import?",
-        "pendingImportBody": "You tried to open a local folder before signing in. Browsers only allow that picker right after a click, so click below to continue.",
-        "chooseFolder": "Choose folder",
-        "notNow": "Not now",
-        "startFirstHeading": "Start your first project",
-        "startFirstBody": "Describe what you want to build and the AI will generate it, or pick another starting point below.",
-        "sessionExpiredTitle": "Your session expired",
-        "sessionExpiredBody": "You've been signed out. Sign in again to get back to your projects — nothing was lost.",
-        "sessionExpiredSignIn": "Sign in again",
-        "projectsHeading": "Projects",
-        "createFolder": "Create folder",
-        "doneSelecting": "Done selecting",
-        "select": "Select",
-        "selectMultiple": "Select multiple",
-        "sortLastViewed": "Last modified",
-        "sortDateCreated": "Date created",
-        "sortAlphabetical": "A to Z",
-        "sortLabel": "Sort",
-        "filterLabel": "Filter",
-        "filterStatus": "Publish status",
-        "filterStatusAll": "All projects",
-        "filterStatusPublished": "Published",
-        "filterStatusUnpublished": "Not published",
-        "filterFolder": "Folder",
-        "filterFolderAll": "All folders",
-        "filterFolderNone": "No folder",
-        "filterDate": "Last edited",
-        "filterDateAll": "Any time",
-        "filterDateToday": "Today",
-        "filterDateWeek": "This week",
-        "filterDateMonth": "This month",
-        "filterTech": "Tech stack",
-        "filterReset": "Clear filters",
-        "layoutGrid": "Grid view",
-        "layoutList": "List view",
-        "layoutTable": "Table view",
-        "openInNewTab": "Open site in new tab",
-        "copyLink": "Copy site link",
-        "linkCopied": "Link copied",
-        "freshLive": "Edited just now",
-        "freshCapturing": "Capturing preview…",
-        "backfillProgress": "Refreshing previews · {done} of {total}",
-        "tableColName": "Name",
-        "tableColUrl": "Address",
-        "tableColTech": "Tech",
-        "tableColUpdated": "Last edited",
-        "tableColStatus": "Status",
-        "statusPublished": "Published",
-        "statusDraft": "Draft",
-        "noResultsTitle": "Nothing matches",
-        "noResultsBody": "Try a broader search or clear your filters.",
-        "createFolderEmpty": "No folders yet. Group related projects to find them faster.",
-        "opening": "Opening {name}…",
-        "openProjectAria": "Open {name}",
-        "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
-        "moveToFolder": "Move to folder",
-        "folderDestination": "Folder destination",
-        "removeFromFolder": "Remove from folder",
-        "noFoldersYet": "No folders yet",
-        "deleteSelected": "Delete selected",
-        "folders": "Folders",
-        "foldersSaved": "{count} saved",
-        "savedSite": "{count, plural, one {# saved site} other {# saved sites}}",
-        "noProjectsMatchSearch": "No projects in this folder match your search yet.",
-        "clearSearch": "Clear search",
-        "noLooseProjects": "No loose projects found",
-        "adjustSearch": "Try adjusting your search terms",
-        "moveProjectsHere": "Move projects here or create a new one",
-        "deleteDialogTitle": "Delete selected projects?",
-        "deleteDialogBody": "This will permanently remove {count, plural, one {# project} other {# projects}} from your workspace.",
+    "collections": {
+      "sidebarTitle": "Collections",
+      "addCollection": "Add collection",
+      "loading": "Loading…",
+      "emptySidebar": "No collections yet.",
+      "newCollection": "New collection",
+      "hint": "Select a collection to view its items.",
+      "create": {
+        "title": "New collection",
+        "description": "Collections group items that share a structure, like blog posts, docs, team members.",
+        "name": "Name",
+        "namePlaceholder": "Blog posts",
+        "slug": "Slug",
+        "slugPlaceholder": "blog-posts",
+        "slugHelp": "Used in URLs and bindings. Lowercase letters, numbers, and dashes.",
+        "descriptionLabel": "Description (optional)",
         "cancel": "Cancel",
-        "delete": "Delete",
-        "folderCreated": "Folder created",
-        "projectsMovedToFolder": "Projects moved to folder",
-        "projectsRemovedFromFolder": "Projects removed from folder",
-        "deletedCount": "Deleted {count, plural, one {# project} other {# projects}}",
-        "deletedPartial": "Deleted {deleted, plural, one {# project} other {# projects}}, failed to delete {failed}",
-        "deletedFailed": "Failed to delete selected projects",
-        "failedListPrefix": "Failed: {names}",
-        "failedOverflow": ", and {count} more",
-        "saveFoldersFailed": "Failed to save folder changes",
-        "saveFoldersFailedBody": "Your changes were undone. Please try again.",
-        "removedFromTemplates": "Removed from templates",
-        "failedTemplateTag": "Failed to update template tag",
-        "templateNotAvailable": "{name} template is not available yet.",
-        "noDescription": "No description available"
+        "create": "Create",
+        "success": "Collection created",
+        "nameRequired": "Collection name is required",
+        "failed": "Failed to create collection"
+      }
     },
-    "projectsCommandPalette": {
-        "title": "Command Palette",
-        "description": "Jump to a project, create one, or run an action.",
-        "placeholder": "Type a command or search projects…",
-        "noResults": "No commands found.",
-        "headingJump": "Jump to project",
-        "headingActions": "Actions",
-        "headingShortcuts": "Shortcuts",
-        "newProject": "New project",
-        "marketplace": "Browse Templates",
-        "openSettings": "Open Settings",
-        "searchProjects": "Search projects"
+    "items": {
+      "count": "{count, plural, =1 {# item} other {# items}}",
+      "editFields": "Edit fields",
+      "newItem": "New item",
+      "addFieldsFirst": "Add at least one field to this collection first",
+      "columnTitle": "Title",
+      "columnSlug": "Slug",
+      "columnStatus": "Status",
+      "columnUpdated": "Updated",
+      "untitled": "Untitled",
+      "noFieldsTitle": "No fields yet",
+      "noFieldsBody": "Add fields to this collection so items have something to fill in.",
+      "addFields": "Add fields",
+      "noItemsTitle": "No items yet",
+      "noItemsBody": "Add your first item, and it'll appear here."
     },
-    "projectsTopBar": {
-        "projects": "Projects",
-        "filterRecent": "Filter recent projects",
-        "noMatches": "No projects match \"{filter}\"",
-        "noProjectsYet": "No projects yet",
-        "createFirst": "Create your first project",
-        "viewAll": "View all projects",
-        "marketplace": "Templates",
-        "searchProjects": "Search projects",
-        "clearSearch": "Clear search",
-        "newProject": "New project"
+    "itemEditor": {
+      "headerNew": "New {name} item",
+      "headerEdit": "Edit item",
+      "slug": "Slug",
+      "slugAuto": "auto",
+      "cancel": "Cancel",
+      "saveDraft": "Save draft",
+      "publish": "Publish",
+      "successCreated": "Item created",
+      "successUpdated": "Item updated",
+      "failed": "Failed to save item"
     },
-    "authCodeError": {
-        "eyebrow": "Authentication error",
-        "backToLogin": "Back to sign in",
-        "goHome": "Go home",
-        "getHelp": "Get help",
-        "errorCodeLabel": "Error code",
-        "supportSubject": "Authentication error",
-        "reasons": {
-            "missing_email": {
-                "title": "We need your email to sign you in",
-                "body": "Your provider returned no email address, usually because your GitHub email is set to private. Make your primary email public in GitHub settings, or sign in with a magic link instead."
-            },
-            "missing_user_id": {
-                "title": "Sign in is incomplete",
-                "body": "Your provider returned a partial response. Try again. If it keeps failing, sign in with a magic link instead."
-            },
-            "db_upsert_failed": {
-                "title": "We couldn't create your account",
-                "body": "We signed you out for safety. Try again in a moment. If it persists, contact support and include the error code below."
-            },
-            "missing_code": {
-                "title": "Sign-in link is incomplete",
-                "body": "The sign-in link was missing required information. Try signing in again. If the problem persists, request a new link."
-            },
-            "callback_exception": {
-                "title": "Sign-in was interrupted",
-                "body": "Something went wrong on our side while finishing sign-in. Try again in a moment. If it persists, contact support and include the error code below."
-            },
-            "oauth": {
-                "title": "Your provider couldn't complete sign-in",
-                "body": "The provider rejected the request. The link may have expired, or the window closed too early. Try again, or use a magic link instead."
-            },
-            "default": {
-                "title": "We could not finish sign in",
-                "body": "The sign-in link may have expired, or the window closed too early. Try again. If the problem persists, contact support."
-            }
+    "fields": {
+      "needCollection": "Select a collection from the Collections tab to edit its fields.",
+      "back": "Back",
+      "title": "{name}: Fields",
+      "addField": "Add field",
+      "emptyTitle": "No fields yet",
+      "emptyBody": "Add fields to define the shape of items in this collection: Title, Slug, Date, Image, and so on.",
+      "requiredSuffix": "required",
+      "addDialog": {
+        "title": "Add field",
+        "name": "Name",
+        "namePlaceholder": "Title",
+        "key": "Key",
+        "keyHelp": "Used in bindings, for example {example}.",
+        "type": "Type",
+        "help": "Help text (optional)",
+        "required": "Required",
+        "cancel": "Cancel",
+        "add": "Add field",
+        "success": "Field added",
+        "nameRequired": "Field name is required",
+        "failed": "Failed to add field"
+      },
+      "types": {
+        "text": "Text",
+        "rich_text": "Rich text",
+        "number": "Number",
+        "boolean": "Toggle",
+        "date": "Date",
+        "image": "Image",
+        "slug": "Slug",
+        "option": "Option",
+        "reference": "Reference"
+      }
+    },
+    "sources": {
+      "title": "Sources",
+      "connectSource": "Connect source",
+      "connectSourceTooltip": "External sources coming soon",
+      "empty": "No sources yet. Add a collection to seed the default Weblab CMS source.",
+      "weblab": "Weblab CMS",
+      "payload": "Payload",
+      "strapi": "Strapi",
+      "rest": "Generic REST",
+      "mapButton": "Map",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshDonePrefix": "Synced",
+      "refreshDoneSuffix": "items",
+      "refreshFailed": "Refresh failed",
+      "deleteConfirm": "Disconnect this source? Collections that reference it will need a new source first.",
+      "deleted": "Source disconnected",
+      "deleteFailed": "Could not disconnect source",
+      "connect": {
+        "title": "Connect a CMS source",
+        "description": "Bring content from an external CMS into Weblab. Items sync into your project and behave like native ones.",
+        "nameLabel": "Display name",
+        "namePlaceholder": "Marketing CMS",
+        "nameRequired": "Give the source a display name",
+        "baseUrl": "Base URL",
+        "apiKey": "API key",
+        "apiToken": "API token",
+        "payloadUsersSlug": "Users collection slug",
+        "payloadCollections": "Collection slugs",
+        "payloadCollectionsHelp": "Comma-separated. Leave blank to discover automatically.",
+        "strapiTypes": "Content type plural names",
+        "strapiTypesHelp": "Comma-separated, e.g. blog-posts,authors.",
+        "restApiKey": "API key",
+        "restEndpoints": "Endpoints",
+        "restEndpointsHelp": "JSON array of {name,path}. Each entry maps to a Weblab collection.",
+        "testButton": "Test connection",
+        "testOk": "Connection works",
+        "testFailed": "Connection failed",
+        "testFirst": "Test the connection before saving",
+        "saveButton": "Save and continue",
+        "cancel": "Cancel",
+        "created": "Source connected",
+        "failed": "Could not save source"
+      },
+      "map": {
+        "title": "Map remote collections",
+        "description": "Pick how each remote collection should map onto Weblab.",
+        "loading": "Discovering remote collections…",
+        "empty": "No collections discovered. Check the source's settings and try again.",
+        "createNew": "Create new: {name}",
+        "skip": "Skip for now",
+        "inferredFields": "fields inferred",
+        "confirm": "Confirm and sync",
+        "cancel": "Cancel",
+        "nothingToMap": "Pick at least one collection to map",
+        "success": "Collections mapped and synced",
+        "failed": "Mapping failed"
+      }
+    },
+    "bind": {
+      "contextMenu": "Bind to CMS…",
+      "title": "Bind to CMS",
+      "description": "Replace this element's content with a value from your CMS at preview time.",
+      "collection": "Collection",
+      "collectionEmpty": "No collections yet",
+      "collectionPick": "Choose a collection",
+      "field": "Field",
+      "fieldPickFirst": "Pick a collection first",
+      "fieldEmpty": "This collection has no fields",
+      "fieldPick": "Choose a field",
+      "sourceLabel": "Source",
+      "sourceItem": "Specific item",
+      "sourceFirst": "First item in collection",
+      "sourcePage": "Current item from page",
+      "sourcePageDisabled": "Set up a detail page for this collection first",
+      "item": "Item",
+      "itemEmpty": "This collection has no items yet",
+      "itemPick": "Choose an item",
+      "cancel": "Cancel",
+      "bind": "Bind",
+      "update": "Update",
+      "remove": "Remove binding",
+      "successSaved": "Binding saved",
+      "successRemoved": "Binding removed",
+      "failed": "Failed to save binding",
+      "removeFailed": "Failed to remove binding",
+      "pickAll": "Pick a collection and field",
+      "pickItem": "Pick an item or switch to \"First matching item\"",
+      "repeat": {
+        "title": "Configure list",
+        "description": "This element will repeat once per item in the collection.",
+        "collection": "Collection",
+        "sortField": "Sort by",
+        "sortNone": "Default order",
+        "sortDirection": "Direction",
+        "sortAsc": "Ascending",
+        "sortDesc": "Descending",
+        "limit": "Limit",
+        "limitPlaceholder": "All items",
+        "limitHelp": "Leave blank to show every item.",
+        "pickCollection": "Pick a collection for this list",
+        "invalidLimit": "Limit must be a whole number greater than zero"
+      },
+      "current": {
+        "title": "Bind to current item",
+        "description": "This element is inside a list. Pick which field of the current item to show.",
+        "inheritedCollectionPrefix": "Items come from",
+        "inheritedUnknown": "The parent list's collection is not configured yet.",
+        "parentNotConfigured": "Configure the parent list's collection first, then come back to bind this element.",
+        "pickField": "Pick a field"
+      }
+    },
+    "list": {
+      "contentSection": "Content"
+    },
+    "filters": {
+      "title": "Filters",
+      "add": "Add filter",
+      "remove": "Remove filter",
+      "empty": "No filters. List shows every item.",
+      "fieldPlaceholder": "Pick a field",
+      "opEq": "is",
+      "opNeq": "is not",
+      "opBefore": "before",
+      "opAfter": "after",
+      "opContains": "contains",
+      "opStartsWith": "starts with",
+      "opIsSet": "is set",
+      "opIsUnset": "is empty"
+    },
+    "routing": {
+      "title": "Detail page",
+      "openButton": "Routing",
+      "noneTitle": "No detail page yet",
+      "noneBody": "Mark a page (like /blog/[slug]) as the detail page for this collection so individual items can have their own URL.",
+      "currentBody": "Items in this collection are shown on {path}, matched by the {field} field.",
+      "pagePathLabel": "Page path",
+      "pagePathPlaceholder": "/blog/[slug]",
+      "pagePathHelp": "Use brackets for dynamic segments, e.g. /blog/[slug].",
+      "matchFieldLabel": "Match field",
+      "matchFieldHelp": "The field whose value fills the dynamic segment.",
+      "save": "Save",
+      "remove": "Remove",
+      "saved": "Detail page saved",
+      "removed": "Detail page removed",
+      "saveFailed": "Could not save detail page",
+      "removeFailed": "Could not remove detail page",
+      "pickFieldFirst": "Add a field to this collection before mapping a detail page",
+      "previewItemLabel": "Preview as",
+      "previewItemPlaceholder": "Pick an item to preview"
+    }
+  },
+  "projects": {
+    "create": {
+      "settings": {
+        "title": "Settings",
+        "tooltip": "Configure new project settings"
+      },
+      "success": "Project created successfully.",
+      "steps": {
+        "count": "{current} of {total}",
+        "error": "Project data is missing."
+      },
+      "methods": {
+        "new": "Create New Project",
+        "load": "Load Existing Project"
+      },
+      "loading": {
+        "title": "Setting up your new project…",
+        "description": "This may take a few seconds",
+        "cancel": "Cancel"
+      },
+      "error": {
+        "title": "Error creating your Weblab app",
+        "backToPrompt": "Back to Prompting"
+      },
+      "welcomeTitle": "Welcome to Weblab — let's create your first project",
+      "welcomeDescription": "Start with a blank canvas to create a new project.",
+      "createBlankProject": "Create blank project"
+    },
+    "select": {
+      "empty": "No projects found",
+      "sort": {
+        "recent": "Recently Updated",
+        "name": "Project Name"
+      },
+      "lastEdited": "Last edited {time} ago",
+      "loading": "Loading projects...",
+      "sortBy": "Sort by",
+      "order": "Order",
+      "sortAlphabetical": "Alphabetical",
+      "sortDateCreated": "Date created",
+      "sortLastViewed": "Last viewed",
+      "orderOldestFirst": "Oldest first",
+      "orderNewestFirst": "Newest first",
+      "recentProjects": "Recent projects",
+      "allProjects": "Projects",
+      "createTile": "Create",
+      "noProjectsMatch": "No projects match \"{query}\"",
+      "tryAdjustingSearch": "Try adjusting your search terms",
+      "noDescriptionAvailable": "No description available"
+    },
+    "actions": {
+      "import": "Import Project",
+      "close": "Close",
+      "about": "About Weblab",
+      "signOut": "Sign out",
+      "editApp": "Edit App",
+      "projectSettings": "Project settings",
+      "showInExplorer": "Show in Explorer",
+      "renameProject": "Rename project",
+      "deleteProject": "Delete project",
+      "cloneProject": "Clone project",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "rename": "Rename",
+      "clone": "Clone",
+      "goToAllProjects": "Go to all Projects",
+      "newProject": "New Project",
+      "blankProject": "Create project",
+      "startFromScratch": "Start from scratch",
+      "importProject": "Import a project",
+      "subscriptions": "Subscriptions",
+      "settings": "Settings",
+      "you": "You",
+      "sendFeedback": "Send feedback",
+      "downloadCode": "Download code",
+      "downloadingCode": "Preparing download...",
+      "downloadSuccess": "Download started successfully",
+      "downloadError": "Failed to prepare download",
+      "downloadToFolder": "Download to folder…",
+      "downloadingToFolder": "Saving to folder…",
+      "openLocalFolder": "Import folder",
+      "openingLocalFolder": "Opening…",
+      "importingLocalFolder": "Uploading files…",
+      "localFolderUnsupportedTooltip": "Local folder access requires Chrome, Edge, or Arc",
+      "recentProjects": "Recent Projects",
+      "importFromGitHub": "Import from GitHub",
+      "preparingWorkspace": "Setting up your workspace",
+      "creatingProject": "Saving your project",
+      "openingEditor": "Opening the editor",
+      "creatingBlankProject": "Building your project",
+      "creatingBlankProjectCaption": "Setting up your project…",
+      "startBlankProject": "Start blank project",
+      "importingFolder": "Importing folder",
+      "importingFolderCaption": "Your files are being uploaded to a cloud workspace.",
+      "uploadingFilesProgress": "Uploading {uploaded} of {total} files",
+      "uploadingFilesCount": "Uploading {count} files",
+      "uploadingFilesPlaceholder": "Uploading files",
+      "cloning": "Cloning…",
+      "convertToTemplate": "Convert to template",
+      "unmarkAsTemplate": "Unmark as template",
+      "removeOfflineCopy": "Remove offline copy",
+      "makeAvailableOffline": "Make available offline"
+    },
+    "chooser": {
+      "orPickStartingPoint": "or pick a starting point",
+      "startBlank": {
+        "label": "Start blank",
+        "tooltip": "An empty project. Pick your stack — and on desktop, cloud or local."
+      },
+      "openFolder": {
+        "label": "Open folder",
+        "tooltip": "Open a folder from your machine. Edits sync to disk and your code editor, live."
+      },
+      "uploadFolder": {
+        "label": "Upload folder",
+        "tooltip": "Upload a local project folder to Weblab Cloud and edit it in the browser.",
+        "tooltipUnsupported": "Upload requires a Chromium-based browser (Chrome, Edge, or Arc)."
+      },
+      "cloneSite": {
+        "label": "Clone a site",
+        "tooltip": "Recreate any site from a URL or screenshot. The AI rebuilds it as an editable project."
+      },
+      "githubRepo": {
+        "label": "GitHub repo",
+        "tooltip": "Bring an existing repo. Connect your account once, then pick any repo to open."
+      },
+      "desktopFooter": {
+        "cta": "Want to keep code on your machine?",
+        "link": "Get the desktop app"
+      }
+    },
+    "cloneWebsiteDialog": {
+      "title": "Clone a website",
+      "description": "Recreate any site from a URL or a screenshot. The AI uses the source as a visual reference and rebuilds it into an editable project.",
+      "tabs": {
+        "url": "From URL",
+        "screenshot": "From screenshot"
+      },
+      "urlLabel": "Website URL",
+      "urlPlaceholder": "https://example.com",
+      "urlError": "Enter a full URL starting with http:// or https://",
+      "notesLabel": "Notes (optional)",
+      "urlNotesPlaceholder": "Tweaks for the AI: swap the color palette, simplify the hero, …",
+      "screenshotLabel": "Screenshot",
+      "screenshotClickToReplace": "{name} · click to replace",
+      "screenshotDropHint": "Drop a screenshot here or click to choose",
+      "screenshotFormatHint": "PNG, JPG, GIF, or WebP",
+      "screenshotNotesPlaceholder": "What this site is, the brand, anything you want the AI to focus on…",
+      "outputStackLabel": "Output stack",
+      "recommended": "Recommended",
+      "cancel": "Cancel",
+      "readingPage": "Reading the page…",
+      "cloneWebsite": "Clone website",
+      "cloneFromScreenshot": "Clone from screenshot",
+      "loaderHeading": "Cloning your site",
+      "loaderCaption": "Setting up the sandbox and handing the source material to the AI.",
+      "stepReadingSite": "Reading your site",
+      "stepSettingUpWorkspace": "Setting up your workspace",
+      "stepOpeningEditor": "Opening the editor",
+      "toastInvalidImageType": "Please drop an image file (PNG, JPG, GIF, or WebP).",
+      "toastImageReadFailed": "Could not read that image",
+      "frameworkNextjsDescription": "React + Tailwind + shadcn/ui. Editable in the visual editor.",
+      "frameworkStaticDescription": "A single index.html with Tailwind via CDN. No build step."
+    },
+    "dialogs": {
+      "delete": {
+        "title": "Delete project",
+        "description": "This permanently removes your project and all its data.",
+        "moveToTrash": "Also move folder to trash",
+        "toastFailed": "Failed to delete project"
+      },
+      "rename": {
+        "title": "Rename project",
+        "label": "Project Name",
+        "error": "Project name can't be empty",
+        "toastFailed": "Failed to rename project"
+      },
+      "clone": {
+        "title": "Clone project",
+        "label": "Project Name",
+        "placeholder": "Enter name for cloned project",
+        "error": "Project name can't be empty",
+        "toastSuccess": "Project cloned successfully",
+        "toastUnavailable": "Sandbox service temporarily unavailable",
+        "toastFailed": "Failed to clone project"
+      },
+      "template": {
+        "toastAdded": "Added to templates",
+        "toastRemoved": "Removed from templates",
+        "toastFailed": "Failed to update template tag"
+      },
+      "offline": {
+        "toastRemoved": "{name} removed from offline access.",
+        "toastPinned": "{name} pinned. Open it once online to finish caching.",
+        "toastMarked": "{name} marked as available offline.",
+        "toastFailed": "Could not update offline availability."
+      }
+    },
+    "frameworkSelect": {
+      "title": "Start a blank project",
+      "description": "Choose where it runs, then pick a stack.",
+      "destinationCloud": "Cloud",
+      "destinationLocal": "Local",
+      "localTooltip": "Available in the desktop app",
+      "cloudRunsInfo": "Runs in Weblab Cloud — nothing to install.",
+      "localRunsInfo": "Runs on your machine, saved straight to disk.",
+      "recommended": "Recommended",
+      "frameworkNextjs": "React, Tailwind, and shadcn/ui — recommended for most projects.",
+      "frameworkStaticHtml": "Vanilla HTML, CSS, and JS — no build step.",
+      "frameworkViteReact": "React with Vite — fast HMR, no server-side rendering.",
+      "frameworkRemix": "Full-stack React with server loaders and nested routes.",
+      "frameworkAstro": "Content-first sites with islands and zero JS by default.",
+      "frameworkTanstackStart": "Full-stack React with type-safe routing and server functions."
+    },
+    "modeDialog": {
+      "desktopApp": "Desktop app",
+      "download": "Download",
+      "create": {
+        "title": "Create project",
+        "description": "Choose where this project should live.",
+        "cloudTitle": "Weblab Cloud",
+        "cloudDescription": "Best for starting quickly, working anywhere, and publishing later.",
+        "localTitle": "Local folder",
+        "localDescription": "Open a repo on this device and keep code in sync with VS Code, Claude Code, or Codex.",
+        "cloudAction": "Create in Weblab Cloud"
+      },
+      "import": {
+        "title": "Import folder",
+        "description": "Choose whether to upload this folder or work from your local repo.",
+        "cloudTitle": "Import to Weblab Cloud",
+        "cloudDescription": "Upload a copy to a cloud sandbox so it opens in the web editor.",
+        "localTitle": "Open local folder",
+        "localDescription": "Keep code on this device and edit the same files from Weblab and your IDE.",
+        "cloudAction": "Import to Weblab Cloud"
+      }
+    },
+    "prompt": {
+      "title": "What kind of website do you want to make?",
+      "description": "Tell us a bit about your project. Be as detailed as possible.",
+      "input": {
+        "placeholder": "Paste a reference screenshot, write a novel, get creative...",
+        "imageUpload": "Upload Image Reference",
+        "fileReference": "File Reference",
+        "submit": "Start building your site"
+      },
+      "blankStart": "Start from a blank page"
+    },
+    "error": {},
+    "errorPage": {
+      "dashboardError": "Dashboard error",
+      "title": "We couldn't load your projects",
+      "description": "This is usually temporary. Try again in a moment, or head back home.",
+      "errorReference": "Error reference",
+      "tryAgain": "Try again",
+      "goHome": "Go home"
+    },
+    "creating": {
+      "lookingUpTemplate": "Looking up template",
+      "fetchingTemplateDetails": "Fetching template details…",
+      "settingUpSandbox": "Setting up sandbox",
+      "preparingSandbox": "Preparing your sandbox…",
+      "creatingProject": "Creating project",
+      "savingToWorkspace": "Saving to your workspace…",
+      "openingWorkspace": "Opening workspace",
+      "almostThere": "Almost there…",
+      "creating": "Creating ",
+      "loadingEllipsis": "Loading…",
+      "tipFastImport": "Almost there — finalizing your sandbox.",
+      "tipSlowImport": "Cloning the template from GitHub. Larger templates can take a few minutes.",
+      "tipSlowImportLong": "Still working — large GitHub templates can take up to five minutes. You can keep this tab open.",
+      "templateNotFound": "Template not found",
+      "noTemplateWithId": "No template with id \"{id}\" exists.",
+      "backToMarketplace": "Back to Marketplace",
+      "somethingWentWrong": "Something went wrong",
+      "unknownError": "An unknown error occurred.",
+      "tryAgain": "Try again"
+    },
+    "importPage": {
+      "localTitle": "Import a Local Project",
+      "localDescription": "Select a directory from your computer to start working with your project in {appName}.",
+      "githubTitle": "Import from GitHub",
+      "githubDescription": "Connect your GitHub account to access and work with your repositories",
+      "figmaTitle": "Import from Figma",
+      "figmaDescription": "Paste a Figma file URL to import your frames as editable React components in {appName}."
+    },
+    "importLocal": {
+      "cancel": "Cancel",
+      "selectFolder": "Select folder",
+      "clickToSelectFolder": "Click to select your folder",
+      "uploading": "Uploading...",
+      "headerInitialTitle": "Select your project folder",
+      "headerInitialDesc": "This is where we'll reference your App",
+      "headerValidatingTitle": "Verifying compatibility with {appName}",
+      "headerValidatingDesc": "We're checking to make sure this project can work with {appName}",
+      "headerValidTitle": "Project verified",
+      "headerValidDesc": "Your project is ready to import to {appName}",
+      "headerInvalidTitle": "This project won't work with {appName}",
+      "headerInvalidDesc": "{appName} only works with NextJS + React + Tailwind projects",
+      "finishSetup": "Finish setup",
+      "selectDifferentFolder": "Select a different folder",
+      "discardTitle": "Discard upload?",
+      "discardDescription": "You've already selected a folder. Cancelling now will discard the uploaded files.",
+      "keepEditing": "Keep editing",
+      "discard": "Discard",
+      "projectNotMatchStack": "This folder doesn’t look like a {frameworkName} project",
+      "settingUpProject": "Setting up project...",
+      "creating": "Creating sandbox",
+      "uploadingFiles": "Uploading {uploaded}/{total} files",
+      "installing": "Installing dependencies",
+      "creatingProject": "Creating project",
+      "openingEditor": "Opening editor",
+      "settingUpDefault": "We’re setting up your project",
+      "retry": "Retry",
+      "verifyingTitle": "Verifying compatibility with {appName}",
+      "verifyingDesc": "We’re checking to make sure this project can work with {appName}",
+      "projectVerified": "Project verified",
+      "projectReadyToImport": "Your project is ready to import to {appName}",
+      "projectWontWork": "This project won’t work with {appName}",
+      "folderDoesntMatch": "This folder doesn’t match a {frameworkName} project layout.",
+      "whatAreYouBuilding": "What are you building?"
+    },
+    "importGitHub": {
+      "cancel": "Cancel",
+      "continue": "Continue",
+      "configure": "Configure",
+      "githubConnected": "GitHub Connected",
+      "connectGitHub": "Connect GitHub",
+      "reposAccessible": "Your repositories are accessible in {appName}",
+      "accessRepos": "Access your repositories and work with real code in {appName}",
+      "statusConnected": "GitHub connected",
+      "statusConnectedDesc": "Your repositories are ready to use",
+      "statusConnecting": "Waiting for authorization…",
+      "statusConnectingDesc": "Complete the GitHub connection in the new tab, then come back here",
+      "statusDisconnected": "Connect your GitHub account",
+      "statusDisconnectedDesc": "Secure, fine-grained access to your repositories",
+      "openGitHubAgain": "Open GitHub again",
+      "iveAuthorizedIt": "I’ve authorized it",
+      "setupTitle": "Setup your project",
+      "setupDesc": "Select which repo you want to import",
+      "organizationLabel": "Organization (Optional)",
+      "allRepositories": "All repositories",
+      "repositoryLabel": "Repository",
+      "searchRepositories": "Search repositories",
+      "loadingOrganizations": "Loading organizations...",
+      "loadingRepositories": "Loading repositories...",
+      "noReposMatchSearch": "No repositories match your search",
+      "noReposForOrg": "No repositories found for {orgName}",
+      "noReposFound": "No repositories found",
+      "selected": "Selected: {repoName}",
+      "refreshRepositories": "Refresh repositories",
+      "importing": "Importing…",
+      "import": "Import",
+      "settingUpProject": "Setting up project…",
+      "importFailed": "Import failed",
+      "somethingWentWrong": "Something went wrong while importing your repository",
+      "cloningPhase": "Cloning repository. Large repositories can take a few minutes.",
+      "creatingProjectPhase": "Creating project",
+      "openingEditorPhase": "Opening editor",
+      "settingUpDefault": "We’re cloning and setting up your project",
+      "repoAccessError": "Make sure the repository is accessible and you’ve granted Weblab permission to it.",
+      "retry": "Retry"
+    },
+    "importFigma": {
+      "cancel": "Cancel",
+      "back": "Back",
+      "title": "Import from Figma",
+      "description": "Paste a Figma file URL to import your designs as React components.",
+      "figmaFileUrl": "Figma File URL",
+      "personalAccessToken": "Personal access token",
+      "fetching": "Fetching...",
+      "fetchFrames": "Fetch Frames",
+      "selectFramesTitle": "Select frames",
+      "selectFramesDesc": "Choose which frames to import from \"{fileName}\".",
+      "selectedCount": "{selected} of {total} selected",
+      "deselectAll": "Deselect all",
+      "selectAll": "Select all",
+      "noFramesFound": "No frames found in this file’s first page.",
+      "createProject": "Create Project",
+      "settingUpProject": "Setting up project...",
+      "creatingYourProject": "Creating your project with the imported frames.",
+      "creatingPhase": "Creating sandbox",
+      "uploadingPhase": "Uploading {uploaded}/{total} files",
+      "installingPhase": "Installing dependencies",
+      "creatingProjectPhase": "Creating project",
+      "openingEditorPhase": "Opening editor",
+      "retry": "Retry"
+    },
+    "templates": {
+      "sectionTitle": "Templates",
+      "noTemplatesFound": "No templates found",
+      "tryAdjustingSearch": "Try adjusting your search terms",
+      "markAsFavorite": "Mark as favorite",
+      "removeFromFavorites": "Remove from favorites",
+      "addToFavorites": "Add to favorites",
+      "newBadge": "New",
+      "useTemplate": "Use template",
+      "preview": "Preview",
+      "edit": "Edit",
+      "details": "Details",
+      "removeTemplate": "Remove Template",
+      "creating": "Creating...",
+      "templateOptions": "Template options",
+      "noDescriptionAvailable": "No description available",
+      "starterTemplates": "Starter templates",
+      "starterTemplatesDesc": "Start from a proven template — preview live, or open the details for source and related options."
+    },
+    "folderCard": {
+      "empty": "Empty",
+      "siteSingular": "site",
+      "sitePlural": "sites"
+    },
+    "createFolderDialog": {
+      "title": "Create folder",
+      "folderNameLabel": "Folder name",
+      "folderNamePlaceholder": "Client work",
+      "alreadyExists": "A folder with this name already exists.",
+      "cancel": "Cancel",
+      "createFolder": "Create folder"
+    },
+    "squareProjectCard": {
+      "editLabel": "✏️ Edit",
+      "agoSuffix": "ago"
+    },
+    "changelogGrid": {
+      "whatsNew": "What’s new",
+      "changelog": "Changelog",
+      "seeAllUpdates": "See all updates"
+    }
+  },
+  "welcome": {
+    "title": "Welcome to Weblab",
+    "titleReturn": "Welcome back to Weblab",
+    "description": "Design and ship production websites with AI, no dev handoff required.",
+    "alpha": "Alpha",
+    "login": {
+      "github": "Sign in with GitHub",
+      "google": "Sign in with Google",
+      "continueGithub": "Continue with GitHub",
+      "continueGoogle": "Continue with Google",
+      "continueVercel": "Continue with Vercel",
+      "lastUsed": "You used this last time",
+      "loginToEdit": "Sign in to edit",
+      "shareProjects": "No credit card required • Get a site in seconds",
+      "email": "Continue with email",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "sendCode": "Send code",
+      "sending": "Sending..."
+    },
+    "verify": {
+      "title": "Check your email",
+      "description": "We sent a 6-digit code to {email}",
+      "enterCode": "Enter verification code",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "resend": "Resend code",
+      "resendIn": "Resend in {seconds}s",
+      "back": "Back to sign in",
+      "wrongEmail": "Wrong email?"
+    },
+    "terms": {
+      "agreement": "By signing up, you agree to our",
+      "privacy": "Privacy Policy",
+      "and": "and",
+      "tos": "Terms of Service"
+    },
+    "profileSetup": {
+      "title": "What should we call you?",
+      "description": "Tell us your name so Weblab can address you properly across the app.",
+      "name": "Name",
+      "namePlaceholder": "Ada Lovelace",
+      "errorNameRequired": "Please enter your name.",
+      "errorSaveFailed": "Failed to save profile. Please try again.",
+      "saving": "Saving...",
+      "continue": "Continue",
+      "skip": "Skip for now"
+    },
+    "version": "Version {version}"
+  },
+  "loginPage": {
+    "verificationExpired": "Verification session expired. Enter your email to try again."
+  },
+  "offlineProjects": {
+    "justNow": "just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago",
+    "heading": "You're offline. Showing {count, plural, one {# cached project} other {# cached projects}}",
+    "body": "Open one to keep editing. Changes save locally and sync when you reconnect.",
+    "cachedAt": "Cached {time}"
+  },
+  "selectProject": {
+    "pendingImportTitle": "Welcome back. Pick the folder you wanted to import?",
+    "pendingImportBody": "You tried to open a local folder before signing in. Browsers only allow that picker right after a click, so click below to continue.",
+    "chooseFolder": "Choose folder",
+    "notNow": "Not now",
+    "startFirstHeading": "Start your first project",
+    "startFirstBody": "Describe what you want to build and the AI will generate it, or pick another starting point below.",
+    "sessionExpiredTitle": "Your session expired",
+    "sessionExpiredBody": "You've been signed out. Sign in again to get back to your projects — nothing was lost.",
+    "sessionExpiredSignIn": "Sign in again",
+    "projectsHeading": "Projects",
+    "createFolder": "Create folder",
+    "doneSelecting": "Done selecting",
+    "select": "Select",
+    "selectMultiple": "Select multiple",
+    "sortLastViewed": "Last modified",
+    "sortDateCreated": "Date created",
+    "sortAlphabetical": "A to Z",
+    "sortLabel": "Sort",
+    "filterLabel": "Filter",
+    "filterStatus": "Publish status",
+    "filterStatusAll": "All projects",
+    "filterStatusPublished": "Published",
+    "filterStatusUnpublished": "Not published",
+    "filterFolder": "Folder",
+    "filterFolderAll": "All folders",
+    "filterFolderNone": "No folder",
+    "filterDate": "Last edited",
+    "filterDateAll": "Any time",
+    "filterDateToday": "Today",
+    "filterDateWeek": "This week",
+    "filterDateMonth": "This month",
+    "filterTech": "Tech stack",
+    "filterReset": "Clear filters",
+    "layoutGrid": "Grid view",
+    "layoutList": "List view",
+    "layoutTable": "Table view",
+    "openInNewTab": "Open site in new tab",
+    "copyLink": "Copy site link",
+    "linkCopied": "Link copied",
+    "freshLive": "Edited just now",
+    "freshCapturing": "Capturing preview…",
+    "backfillProgress": "Refreshing previews · {done} of {total}",
+    "tableColName": "Name",
+    "tableColUrl": "Address",
+    "tableColTech": "Tech",
+    "tableColUpdated": "Last edited",
+    "tableColStatus": "Status",
+    "statusPublished": "Published",
+    "statusDraft": "Draft",
+    "noResultsTitle": "Nothing matches",
+    "noResultsBody": "Try a broader search or clear your filters.",
+    "createFolderEmpty": "No folders yet. Group related projects to find them faster.",
+    "opening": "Opening {name}…",
+    "openProjectAria": "Open {name}",
+    "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
+    "moveToFolder": "Move to folder",
+    "folderDestination": "Folder destination",
+    "removeFromFolder": "Remove from folder",
+    "noFoldersYet": "No folders yet",
+    "deleteSelected": "Delete selected",
+    "folders": "Folders",
+    "foldersSaved": "{count} saved",
+    "savedSite": "{count, plural, one {# saved site} other {# saved sites}}",
+    "noProjectsMatchSearch": "No projects in this folder match your search yet.",
+    "clearSearch": "Clear search",
+    "noLooseProjects": "No loose projects found",
+    "adjustSearch": "Try adjusting your search terms",
+    "moveProjectsHere": "Move projects here or create a new one",
+    "deleteDialogTitle": "Delete selected projects?",
+    "deleteDialogBody": "This will permanently remove {count, plural, one {# project} other {# projects}} from your workspace.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "folderCreated": "Folder created",
+    "projectsMovedToFolder": "Projects moved to folder",
+    "projectsRemovedFromFolder": "Projects removed from folder",
+    "deletedCount": "Deleted {count, plural, one {# project} other {# projects}}",
+    "deletedPartial": "Deleted {deleted, plural, one {# project} other {# projects}}, failed to delete {failed}",
+    "deletedFailed": "Failed to delete selected projects",
+    "failedListPrefix": "Failed: {names}",
+    "failedOverflow": ", and {count} more",
+    "saveFoldersFailed": "Failed to save folder changes",
+    "saveFoldersFailedBody": "Your changes were undone. Please try again.",
+    "removedFromTemplates": "Removed from templates",
+    "failedTemplateTag": "Failed to update template tag",
+    "templateNotAvailable": "{name} template is not available yet.",
+    "noDescription": "No description available"
+  },
+  "projectsCommandPalette": {
+    "title": "Command Palette",
+    "description": "Jump to a project, create one, or run an action.",
+    "placeholder": "Type a command or search projects…",
+    "noResults": "No commands found.",
+    "headingJump": "Jump to project",
+    "headingActions": "Actions",
+    "headingShortcuts": "Shortcuts",
+    "newProject": "New project",
+    "marketplace": "Browse Templates",
+    "openSettings": "Open Settings",
+    "searchProjects": "Search projects"
+  },
+  "projectsTopBar": {
+    "projects": "Projects",
+    "filterRecent": "Filter recent projects",
+    "noMatches": "No projects match \"{filter}\"",
+    "noProjectsYet": "No projects yet",
+    "createFirst": "Create your first project",
+    "viewAll": "View all projects",
+    "marketplace": "Templates",
+    "searchProjects": "Search projects",
+    "clearSearch": "Clear search",
+    "newProject": "New project"
+  },
+  "authCodeError": {
+    "eyebrow": "Authentication error",
+    "backToLogin": "Back to sign in",
+    "goHome": "Go home",
+    "getHelp": "Get help",
+    "errorCodeLabel": "Error code",
+    "supportSubject": "Authentication error",
+    "reasons": {
+      "missing_email": {
+        "title": "We need your email to sign you in",
+        "body": "Your provider returned no email address, usually because your GitHub email is set to private. Make your primary email public in GitHub settings, or sign in with a magic link instead."
+      },
+      "missing_user_id": {
+        "title": "Sign in is incomplete",
+        "body": "Your provider returned a partial response. Try again. If it keeps failing, sign in with a magic link instead."
+      },
+      "db_upsert_failed": {
+        "title": "We couldn't create your account",
+        "body": "We signed you out for safety. Try again in a moment. If it persists, contact support and include the error code below."
+      },
+      "missing_code": {
+        "title": "Sign-in link is incomplete",
+        "body": "The sign-in link was missing required information. Try signing in again. If the problem persists, request a new link."
+      },
+      "callback_exception": {
+        "title": "Sign-in was interrupted",
+        "body": "Something went wrong on our side while finishing sign-in. Try again in a moment. If it persists, contact support and include the error code below."
+      },
+      "oauth": {
+        "title": "Your provider couldn't complete sign-in",
+        "body": "The provider rejected the request. The link may have expired, or the window closed too early. Try again, or use a magic link instead."
+      },
+      "default": {
+        "title": "We could not finish sign in",
+        "body": "The sign-in link may have expired, or the window closed too early. Try again. If the problem persists, contact support."
+      }
+    }
+  },
+  "notFound": {
+    "body": "Seems like you ventured somewhere unknown on your journey. Let us help you find your way.",
+    "backHome": "Back to home"
+  },
+  "comparePage": {
+    "srBody": "Compare {appName} to Lovable, Bolt, v0, Webflow, Framer, Replit, Claude Code, Emergent, Wix, one.com, and Onlook. Pick the right tool for your team.",
+    "heroHeading": "{appName} vs everyone else",
+    "heroBody": "Most AI design tools generate new code from scratch. {appName} edits your real React components on a visual canvas and ships pull requests engineers can merge.",
+    "tryButton": "Try {appName}",
+    "pickHeading": "Pick a comparison",
+    "vs": "{appName} vs {name}",
+    "readComparison": "Read the comparison →",
+    "ctaLine1": "See for yourself.",
+    "ctaLine2": "Open {appName} on your repo.",
+    "ctaButton": "Get started",
+    "competitors": {
+      "lovable": {
+        "tagline": "Chat-based AI app builder",
+        "oneLiner": "{appName} works with your existing React codebase and ships PRs. Lovable creates new apps from prompts."
+      },
+      "bolt": {
+        "tagline": "In-browser AI full-stack builder",
+        "oneLiner": "{appName} pairs an infinite design canvas with your real components. Bolt builds new apps end-to-end from a chat."
+      },
+      "v0": {
+        "tagline": "AI component generator",
+        "oneLiner": "{appName} edits your existing components on a canvas. v0 generates new component snippets from prompts."
+      },
+      "webflow": {
+        "tagline": "No-code visual website builder",
+        "oneLiner": "{appName} edits your real React codebase and ships PRs. Webflow generates its own HTML/CSS in a no-code environment."
+      },
+      "framer": {
+        "tagline": "Design-first site builder with AI",
+        "oneLiner": "{appName} connects to your existing codebase and ships PRs. Framer builds sites in its own hosted environment."
+      },
+      "replit": {
+        "tagline": "Browser IDE with AI agent",
+        "oneLiner": "{appName} is a visual canvas for existing React codebases. Replit is a cloud IDE where an AI agent builds and deploys apps from prompts."
+      },
+      "claudeCode": {
+        "tagline": "Anthropic's AI terminal CLI",
+        "oneLiner": "{appName} gives designers a visual canvas; Claude Code gives engineers an AI terminal. They are complementary."
+      },
+      "emergent": {
+        "tagline": "Multi-agent AI full-stack app builder",
+        "oneLiner": "{appName} edits an existing React codebase visually. Emergent builds full-stack apps from scratch via a multi-agent system."
+      },
+      "wix": {
+        "tagline": "Small-business website builder",
+        "oneLiner": "{appName} is for engineering teams with React codebases. Wix is for small businesses who want a website without code."
+      },
+      "oneCom": {
+        "tagline": "Budget hosting and website builder",
+        "oneLiner": "{appName} is a developer tool for React teams. one.com is a budget host for individuals who want a simple website."
+      },
+      "onlook": {
+        "tagline": "Open-source visual editor for React",
+        "oneLiner": "{appName} extends the same foundations with workflows, AI integrations, and team collaboration."
+      }
+    }
+  },
+  "changelogPage": {
+    "eyebrow": "Updates",
+    "heading": "Changelog"
+  },
+  "downloadPage": {
+    "heading": "Download {appName}",
+    "subhead": "The same {appName}, wrapped natively for your device. Sign in once, and your session syncs with the web app.",
+    "mac": {
+      "title": "macOS",
+      "subtitle": "Universal, Apple Silicon & Intel",
+      "cta": "Download for macOS"
+    },
+    "ios": {
+      "title": "iOS",
+      "subtitle": "iPhone & iPad, iOS 16 or later",
+      "cta": "Get on TestFlight"
+    },
+    "beta": "BETA",
+    "recommended": "Recommended",
+    "comingSoon": "Coming soon",
+    "footnotePart1": "Sign-in works the same as the web app: Google, GitHub or email. Desktop and iOS apps route OAuth through your system browser, then drop you back in already signed in. Looking for older versions? Browse the ",
+    "footnoteLink": "full release archive",
+    "footnotePart2": "."
+  },
+  "aboutPage": {
+    "srTitle": "About Weblab: The Visual Editor for React",
+    "srBody": "Weblab was founded to obliterate the divide between creativity and implementation. We're building a bridge between designers and developers, a visual editor that works with your real React components. AI is constrained to your design system. Changes become mergeable pull requests. Weblab is open source under Apache 2.0.",
+    "srCompanyFacts": "Company Facts",
+    "srBasedSweden": "Based in Sweden",
+    "srOpenSource": "Open source, Apache 2.0 licensed, public GitHub repository",
+    "srFounder": "Founder",
+    "srFounderItem": "Ludvig Hedin, Founder.",
+    "srValues": "Our Values",
+    "srSpeed": "Speed. Setting an olympic pace, relentlessness, strategy through execution.",
+    "srResilience": "Resilience. Enduring challenges without losing momentum.",
+    "srReinvention": "Reinvention. Creativity in approaching problems, pushing beyond state-of-the-art.",
+    "srCompetence": "Competence. Taking pride in work, inspiring others with taste and technique.",
+    "heroLine1": "Design deserves",
+    "heroLine2": "better tools",
+    "heroBodyPart1": "Weblab was founded to obliterate the divide between creativity and implementation.",
+    "heroBodyPart2": "For too long, the most brilliant creative teams have been severed by the complexity of tools. We're building Weblab from Sweden, a bridge that will end the gap between creativity and implementation.",
+    "heroBodyPart3": "Open source under Apache 2.0. Built in public on ",
+    "heroBodyPart4": ".",
+    "githubLink": "GitHub",
+    "meetThe": "Meet the",
+    "founderScript": "founder",
+    "founderBody": "Frustrated with the status quo of creating software, Ludvig set out to give engineers, builders, designers, and product managers a new way to collaborate in code.",
+    "founderName": "Ludvig Hedin",
+    "founderTitle": "Founder",
+    "githubAria": "Ludvig's GitHub",
+    "linkedinAria": "Ludvig's LinkedIn",
+    "rewardHeading": "What we",
+    "rewardScript": "reward",
+    "values": {
+      "speed": {
+        "title": "Speed",
+        "body": "Setting an olympic pace, relentlessness, strategy through execution."
+      },
+      "resilience": {
+        "title": "Resilience",
+        "body": "Enduring challenges without losing momentum. Grit, stamina, and drive."
+      },
+      "reinvention": {
+        "title": "Reinvention",
+        "body": "Creativity in approaching problems, pushing us beyond the state-of-the-art."
+      },
+      "competence": {
+        "title": "Competence",
+        "body": "Taking pride in one's work, inspiring others with your taste and technique."
+      }
+    },
+    "lookForHeading": "What we",
+    "lookForScript": "look for",
+    "lookFor": {
+      "commitment": {
+        "title": "Commitment",
+        "body": "Have you put real time into something you cared about? We're looking for builders who've made long-term bets on themselves."
+      },
+      "passion": {
+        "title": "Passion",
+        "body": "We're allergic to apathy. We want people who give a damn about design, devtools, or AI, and have receipts."
+      },
+      "excellence": {
+        "title": "Excellence",
+        "body": "Bring something rare. We want people who are world-class at something and won't compromise."
+      }
+    },
+    "cta": {
+      "line1": "Ready to stop rebuilding?",
+      "line2": "Your design system, on a canvas.",
+      "button": "Get started"
+    }
+  },
+  "faqPage": {
+    "heading": "Frequently Asked Questions",
+    "subhead": "Everything you need to know about Weblab, the AI-powered visual editor for frontend development.",
+    "topics": "Topics",
+    "stillQuestions": "Still have questions?",
+    "getStarted": "Get started",
+    "srTitle": "Weblab Frequently Asked Questions",
+    "srBody": "Weblab is an AI-powered visual editor for frontend development. It connects to existing React, Next.js, and plain HTML codebases — and can also generate brand-new projects from scratch with AI. AI is constrained to your design system, preventing brand drift. Changes become mergeable pull requests. Weblab ships scaffolders for Next.js 15 (Tailwind v4) and static HTML today, with Vite, Remix, Astro, and TanStack Start on the roadmap. It supports all major styling approaches (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS) and component libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). The desktop app loads your local codebase and pairs with your own AI coding agent such as Claude Code. It's open source under Apache 2.0.",
+    "sections": {
+      "about": {
+        "title": "About Weblab",
+        "q1": {
+          "question": "What is Weblab?",
+          "answer": "Weblab is an AI-powered visual editor for design. It connects to your existing codebase and lets designers and developers create interfaces using real components. Unlike generic AI code generators, Weblab constrains AI to your design system. Changes become pull requests engineers can merge directly, with no export, no translation, and no throwaway prototypes."
+        },
+        "q2": {
+          "question": "Who is Weblab for?",
+          "answer": "Weblab is for product teams with designers and an existing component library. Ideal users include design engineers, product designers working in code-forward teams, frontend developers who want visual tooling, and teams maintaining design systems who want AI that respects their existing work."
+        },
+        "q3": {
+          "question": "What makes Weblab different from other design tools?",
+          "answer": "Traditional design tools create static mockups that must be rebuilt in code. Weblab works with your real components, so what you design IS the code. There's no handoff because designers and developers work in the same artifact. Changes become PRs, not specs. AI is constrained to your design system, so there's no brand drift."
+        },
+        "q4": {
+          "question": "What makes Weblab different from AI code generators?",
+          "answer": "AI code generators create new code from scratch using generic HTML/CSS. The output needs to be translated to work with your real components. Weblab is different. It connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed."
         }
-    },
-    "notFound": {
-        "body": "Seems like you ventured somewhere unknown on your journey. Let us help you find your way.",
-        "backHome": "Back to home"
-    },
-    "comparePage": {
-        "srBody": "Compare {appName} to Lovable, Bolt, v0, Webflow, Framer, Replit, Claude Code, Emergent, Wix, one.com, and Onlook. Pick the right tool for your team.",
-        "heroHeading": "{appName} vs everyone else",
-        "heroBody": "Most AI design tools generate new code from scratch. {appName} edits your real React components on a visual canvas and ships pull requests engineers can merge.",
-        "tryButton": "Try {appName}",
-        "pickHeading": "Pick a comparison",
-        "vs": "{appName} vs {name}",
-        "readComparison": "Read the comparison →",
-        "ctaLine1": "See for yourself.",
-        "ctaLine2": "Open {appName} on your repo.",
-        "ctaButton": "Get started",
-        "competitors": {
-            "lovable": {
-                "tagline": "Chat-based AI app builder",
-                "oneLiner": "{appName} works with your existing React codebase and ships PRs. Lovable creates new apps from prompts."
-            },
-            "bolt": {
-                "tagline": "In-browser AI full-stack builder",
-                "oneLiner": "{appName} pairs an infinite design canvas with your real components. Bolt builds new apps end-to-end from a chat."
-            },
-            "v0": {
-                "tagline": "AI component generator",
-                "oneLiner": "{appName} edits your existing components on a canvas. v0 generates new component snippets from prompts."
-            },
-            "webflow": {
-                "tagline": "No-code visual website builder",
-                "oneLiner": "{appName} edits your real React codebase and ships PRs. Webflow generates its own HTML/CSS in a no-code environment."
-            },
-            "framer": {
-                "tagline": "Design-first site builder with AI",
-                "oneLiner": "{appName} connects to your existing codebase and ships PRs. Framer builds sites in its own hosted environment."
-            },
-            "replit": {
-                "tagline": "Browser IDE with AI agent",
-                "oneLiner": "{appName} is a visual canvas for existing React codebases. Replit is a cloud IDE where an AI agent builds and deploys apps from prompts."
-            },
-            "claudeCode": {
-                "tagline": "Anthropic's AI terminal CLI",
-                "oneLiner": "{appName} gives designers a visual canvas; Claude Code gives engineers an AI terminal. They are complementary."
-            },
-            "emergent": {
-                "tagline": "Multi-agent AI full-stack app builder",
-                "oneLiner": "{appName} edits an existing React codebase visually. Emergent builds full-stack apps from scratch via a multi-agent system."
-            },
-            "wix": {
-                "tagline": "Small-business website builder",
-                "oneLiner": "{appName} is for engineering teams with React codebases. Wix is for small businesses who want a website without code."
-            },
-            "oneCom": {
-                "tagline": "Budget hosting and website builder",
-                "oneLiner": "{appName} is a developer tool for React teams. one.com is a budget host for individuals who want a simple website."
-            },
-            "onlook": {
-                "tagline": "Open-source visual editor for React",
-                "oneLiner": "{appName} extends the same foundations with workflows, AI integrations, and team collaboration."
-            }
+      },
+      "features": {
+        "title": "Features & Capabilities",
+        "q1": {
+          "question": "What are Weblab's main features?",
+          "answer": "Weblab offers: (1) An infinite canvas for visual design with real code running underneath, (2) AI that's constrained to your design system with no brand drift, (3) Real-time team collaboration with spatial comments, (4) Direct GitHub integration, so changes become mergeable PRs, (5) Support for your existing components, colors, and design tokens, (6) A visual interface that requires no coding for designers."
+        },
+        "q2": {
+          "question": "How does Weblab's AI work?",
+          "answer": "Weblab's AI is constrained to your design system. When you ask AI to make changes, it can only use components, colors, and tokens that exist in your codebase. This prevents brand drift and ensures outputs match your design system. You can point at elements visually rather than describing them in text, so the AI understands the exact selector, component, and styles."
+        },
+        "q3": {
+          "question": "Does Weblab support real-time collaboration?",
+          "answer": "Yes. Weblab has built-in team collaboration. Share your canvas, leave spatial comments, and work together in real-time. Multiple team members can view and edit the same project simultaneously. Changes sync to code and can be submitted as PRs."
+        },
+        "q4": {
+          "question": "How do I get changes into production?",
+          "answer": "Changes you make in Weblab become real code changes in your repository. When you're ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation. The code is production-ready because it uses your actual components."
+        },
+        "q5": {
+          "question": "Can I create a website from scratch with AI?",
+          "answer": "Yes. You don't need an existing codebase to use Weblab. From the dashboard, hit \"Start blank\" to scaffold a fresh Next.js or static HTML project, then build it out using the AI chat and visual canvas in the editor — generate pages, drop in sections, refine layout and copy. Prompt-based project bootstrapping and GitHub template imports are on the roadmap."
+        },
+        "q6": {
+          "question": "What AI models can I use?",
+          "answer": "Weblab is model-agnostic. Choose between Claude Opus 4.8 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, and Kimi K2.6 — or run local models via Ollama on the desktop app. You can also bring your own API key. Reasoning effort is configurable per chat, from Fast to Deep."
+        },
+        "q7": {
+          "question": "Does Weblab keep version history?",
+          "answer": "Yes. Every change is tracked. The revisions panel shows the full edit history with the AI message or visual change that produced each revision. You can preview, restore, or branch from any prior state, and the underlying Git history stays clean."
         }
-    },
-    "changelogPage": {
-        "eyebrow": "Updates",
-        "heading": "Changelog"
-    },
-    "downloadPage": {
-        "heading": "Download {appName}",
-        "subhead": "The same {appName}, wrapped natively for your device. Sign in once, and your session syncs with the web app.",
-        "mac": {
-            "title": "macOS",
-            "subtitle": "Universal, Apple Silicon & Intel",
-            "cta": "Download for macOS"
+      },
+      "compatibility": {
+        "title": "Technical Compatibility",
+        "q1": {
+          "question": "What frontend frameworks does Weblab support?",
+          "answer": "Today Weblab ships scaffolders for Next.js 15 (with Tailwind v4 and Turbopack) and plain HTML static sites. You can also connect any existing React codebase. Vite, Remix, Astro, and TanStack Start support is on the roadmap. We're built on a Babel JSX/TSX parser optimized for the React ecosystem."
         },
-        "ios": {
-            "title": "iOS",
-            "subtitle": "iPhone & iPad, iOS 16 or later",
-            "cta": "Get on TestFlight"
+        "q2": {
+          "question": "What CSS and styling approaches does Weblab support?",
+          "answer": "Weblab supports all major CSS approaches: Tailwind CSS, CSS Modules, styled-components, Emotion, SASS/SCSS, Less, Vanilla Extract, Stitches, and plain CSS. Whatever styling approach your codebase uses, Weblab works with it."
         },
-        "beta": "BETA",
-        "recommended": "Recommended",
-        "comingSoon": "Coming soon",
-        "footnotePart1": "Sign-in works the same as the web app: Google, GitHub or email. Desktop and iOS apps route OAuth through your system browser, then drop you back in already signed in. Looking for older versions? Browse the ",
-        "footnoteLink": "full release archive",
-        "footnotePart2": "."
-    },
-    "aboutPage": {
-        "srTitle": "About Weblab: The Visual Editor for React",
-        "srBody": "Weblab was founded to obliterate the divide between creativity and implementation. We're building a bridge between designers and developers, a visual editor that works with your real React components. AI is constrained to your design system. Changes become mergeable pull requests. Weblab is open source under Apache 2.0.",
-        "srCompanyFacts": "Company Facts",
-        "srBasedSweden": "Based in Sweden",
-        "srOpenSource": "Open source, Apache 2.0 licensed, public GitHub repository",
-        "srFounder": "Founder",
-        "srFounderItem": "Ludvig Hedin, Founder.",
-        "srValues": "Our Values",
-        "srSpeed": "Speed. Setting an olympic pace, relentlessness, strategy through execution.",
-        "srResilience": "Resilience. Enduring challenges without losing momentum.",
-        "srReinvention": "Reinvention. Creativity in approaching problems, pushing beyond state-of-the-art.",
-        "srCompetence": "Competence. Taking pride in work, inspiring others with taste and technique.",
-        "heroLine1": "Design deserves",
-        "heroLine2": "better tools",
-        "heroBodyPart1": "Weblab was founded to obliterate the divide between creativity and implementation.",
-        "heroBodyPart2": "For too long, the most brilliant creative teams have been severed by the complexity of tools. We're building Weblab from Sweden, a bridge that will end the gap between creativity and implementation.",
-        "heroBodyPart3": "Open source under Apache 2.0. Built in public on ",
-        "heroBodyPart4": ".",
-        "githubLink": "GitHub",
-        "meetThe": "Meet the",
-        "founderScript": "founder",
-        "founderBody": "Frustrated with the status quo of creating software, Ludvig set out to give engineers, builders, designers, and product managers a new way to collaborate in code.",
-        "founderName": "Ludvig Hedin",
-        "founderTitle": "Founder",
-        "githubAria": "Ludvig's GitHub",
-        "linkedinAria": "Ludvig's LinkedIn",
-        "rewardHeading": "What we",
-        "rewardScript": "reward",
-        "values": {
-            "speed": {
-                "title": "Speed",
-                "body": "Setting an olympic pace, relentlessness, strategy through execution."
-            },
-            "resilience": {
-                "title": "Resilience",
-                "body": "Enduring challenges without losing momentum. Grit, stamina, and drive."
-            },
-            "reinvention": {
-                "title": "Reinvention",
-                "body": "Creativity in approaching problems, pushing us beyond the state-of-the-art."
-            },
-            "competence": {
-                "title": "Competence",
-                "body": "Taking pride in one's work, inspiring others with your taste and technique."
-            }
+        "q3": {
+          "question": "What component libraries does Weblab support?",
+          "answer": "Weblab works with React component libraries like shadcn/ui, Material UI, Mantine, Chakra UI, Radix UI, Ant Design, Headless UI, and Fluent UI. If your components work in your React/Next.js codebase, they work in Weblab."
         },
-        "lookForHeading": "What we",
-        "lookForScript": "look for",
-        "lookFor": {
-            "commitment": {
-                "title": "Commitment",
-                "body": "Have you put real time into something you cared about? We're looking for builders who've made long-term bets on themselves."
-            },
-            "passion": {
-                "title": "Passion",
-                "body": "We're allergic to apathy. We want people who give a damn about design, devtools, or AI, and have receipts."
-            },
-            "excellence": {
-                "title": "Excellence",
-                "body": "Bring something rare. We want people who are world-class at something and won't compromise."
-            }
+        "q4": {
+          "question": "Does Weblab work with my existing React components?",
+          "answer": "Yes. Weblab connects to your codebase and lets you design with your real components: the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API, not generic alternatives."
         },
-        "cta": {
-            "line1": "Ready to stop rebuilding?",
-            "line2": "Your design system, on a canvas.",
-            "button": "Get started"
+        "q5": {
+          "question": "How does Weblab integrate with GitHub?",
+          "answer": "Weblab connects directly to your GitHub repository. Changes you make are tracked as real code changes. When you're ready to ship, Weblab creates a pull request with your changes that engineers can review, comment on, and merge using their normal workflow."
+        },
+        "q6": {
+          "question": "Do you support plain HTML and static sites?",
+          "answer": "Yes. Weblab ships a static HTML scaffolder out of the box — ideal for landing pages, portfolios, and marketing sites that don't need a framework. The visual editor and AI work the same way on static HTML as on React projects, so you get the full Weblab experience without spinning up a build pipeline."
+        },
+        "q7": {
+          "question": "Where does my code run — cloud or desktop?",
+          "answer": "Both. The hosted cloud version runs your projects in a secure cloud sandbox, so you can edit from anywhere with no local setup. The desktop app loads your existing local codebase and runs the dev server on your machine — useful when you want to keep code local or pair Weblab with your own AI coding agent like Claude Code (Codex, Cursor, and Gemini coming)."
         }
-    },
-    "faqPage": {
-        "heading": "Frequently Asked Questions",
-        "subhead": "Everything you need to know about Weblab, the AI-powered visual editor for frontend development.",
-        "topics": "Topics",
-        "stillQuestions": "Still have questions?",
-        "getStarted": "Get started",
-        "srTitle": "Weblab Frequently Asked Questions",
-        "srBody": "Weblab is an AI-powered visual editor for frontend development. It connects to existing React, Next.js, and plain HTML codebases — and can also generate brand-new projects from scratch with AI. AI is constrained to your design system, preventing brand drift. Changes become mergeable pull requests. Weblab ships scaffolders for Next.js 15 (Tailwind v4) and static HTML today, with Vite, Remix, Astro, and TanStack Start on the roadmap. It supports all major styling approaches (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS) and component libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). The desktop app loads your local codebase and pairs with your own AI coding agent such as Claude Code. It's open source under Apache 2.0.",
-        "sections": {
-            "about": {
-                "title": "About Weblab",
-                "q1": {
-                    "question": "What is Weblab?",
-                    "answer": "Weblab is an AI-powered visual editor for design. It connects to your existing codebase and lets designers and developers create interfaces using real components. Unlike generic AI code generators, Weblab constrains AI to your design system. Changes become pull requests engineers can merge directly, with no export, no translation, and no throwaway prototypes."
-                },
-                "q2": {
-                    "question": "Who is Weblab for?",
-                    "answer": "Weblab is for product teams with designers and an existing component library. Ideal users include design engineers, product designers working in code-forward teams, frontend developers who want visual tooling, and teams maintaining design systems who want AI that respects their existing work."
-                },
-                "q3": {
-                    "question": "What makes Weblab different from other design tools?",
-                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. Weblab works with your real components, so what you design IS the code. There's no handoff because designers and developers work in the same artifact. Changes become PRs, not specs. AI is constrained to your design system, so there's no brand drift."
-                },
-                "q4": {
-                    "question": "What makes Weblab different from AI code generators?",
-                    "answer": "AI code generators create new code from scratch using generic HTML/CSS. The output needs to be translated to work with your real components. Weblab is different. It connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed."
-                }
-            },
-            "features": {
-                "title": "Features & Capabilities",
-                "q1": {
-                    "question": "What are Weblab's main features?",
-                    "answer": "Weblab offers: (1) An infinite canvas for visual design with real code running underneath, (2) AI that's constrained to your design system with no brand drift, (3) Real-time team collaboration with spatial comments, (4) Direct GitHub integration, so changes become mergeable PRs, (5) Support for your existing components, colors, and design tokens, (6) A visual interface that requires no coding for designers."
-                },
-                "q2": {
-                    "question": "How does Weblab's AI work?",
-                    "answer": "Weblab's AI is constrained to your design system. When you ask AI to make changes, it can only use components, colors, and tokens that exist in your codebase. This prevents brand drift and ensures outputs match your design system. You can point at elements visually rather than describing them in text, so the AI understands the exact selector, component, and styles."
-                },
-                "q3": {
-                    "question": "Does Weblab support real-time collaboration?",
-                    "answer": "Yes. Weblab has built-in team collaboration. Share your canvas, leave spatial comments, and work together in real-time. Multiple team members can view and edit the same project simultaneously. Changes sync to code and can be submitted as PRs."
-                },
-                "q4": {
-                    "question": "How do I get changes into production?",
-                    "answer": "Changes you make in Weblab become real code changes in your repository. When you're ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation. The code is production-ready because it uses your actual components."
-                },
-                "q5": {
-                    "question": "Can I create a website from scratch with AI?",
-                    "answer": "Yes. You don't need an existing codebase to use Weblab. From the dashboard, hit \"Start blank\" to scaffold a fresh Next.js or static HTML project, then build it out using the AI chat and visual canvas in the editor — generate pages, drop in sections, refine layout and copy. Prompt-based project bootstrapping and GitHub template imports are on the roadmap."
-                },
-                "q6": {
-                    "question": "What AI models can I use?",
-                    "answer": "Weblab is model-agnostic. Choose between Claude Opus 4.8 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, and Kimi K2.6 — or run local models via Ollama on the desktop app. You can also bring your own API key. Reasoning effort is configurable per chat, from Fast to Deep."
-                },
-                "q7": {
-                    "question": "Does Weblab keep version history?",
-                    "answer": "Yes. Every change is tracked. The revisions panel shows the full edit history with the AI message or visual change that produced each revision. You can preview, restore, or branch from any prior state, and the underlying Git history stays clean."
-                }
-            },
-            "compatibility": {
-                "title": "Technical Compatibility",
-                "q1": {
-                    "question": "What frontend frameworks does Weblab support?",
-                    "answer": "Today Weblab ships scaffolders for Next.js 15 (with Tailwind v4 and Turbopack) and plain HTML static sites. You can also connect any existing React codebase. Vite, Remix, Astro, and TanStack Start support is on the roadmap. We're built on a Babel JSX/TSX parser optimized for the React ecosystem."
-                },
-                "q2": {
-                    "question": "What CSS and styling approaches does Weblab support?",
-                    "answer": "Weblab supports all major CSS approaches: Tailwind CSS, CSS Modules, styled-components, Emotion, SASS/SCSS, Less, Vanilla Extract, Stitches, and plain CSS. Whatever styling approach your codebase uses, Weblab works with it."
-                },
-                "q3": {
-                    "question": "What component libraries does Weblab support?",
-                    "answer": "Weblab works with React component libraries like shadcn/ui, Material UI, Mantine, Chakra UI, Radix UI, Ant Design, Headless UI, and Fluent UI. If your components work in your React/Next.js codebase, they work in Weblab."
-                },
-                "q4": {
-                    "question": "Does Weblab work with my existing React components?",
-                    "answer": "Yes. Weblab connects to your codebase and lets you design with your real components: the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API, not generic alternatives."
-                },
-                "q5": {
-                    "question": "How does Weblab integrate with GitHub?",
-                    "answer": "Weblab connects directly to your GitHub repository. Changes you make are tracked as real code changes. When you're ready to ship, Weblab creates a pull request with your changes that engineers can review, comment on, and merge using their normal workflow."
-                },
-                "q6": {
-                    "question": "Do you support plain HTML and static sites?",
-                    "answer": "Yes. Weblab ships a static HTML scaffolder out of the box — ideal for landing pages, portfolios, and marketing sites that don't need a framework. The visual editor and AI work the same way on static HTML as on React projects, so you get the full Weblab experience without spinning up a build pipeline."
-                },
-                "q7": {
-                    "question": "Where does my code run — cloud or desktop?",
-                    "answer": "Both. The hosted cloud version runs your projects in a secure cloud sandbox, so you can edit from anywhere with no local setup. The desktop app loads your existing local codebase and runs the dev server on your machine — useful when you want to keep code local or pair Weblab with your own AI coding agent like Claude Code (Codex, Cursor, and Gemini coming)."
-                }
-            },
-            "workflow": {
-                "title": "Workflow & Collaboration",
-                "q1": {
-                    "question": "How do designers and developers collaborate in Weblab?",
-                    "answer": "Designers and developers work in the same artifact, so there's no handoff. Designers make visual changes on the canvas, which become real code changes. Developers can review and refine in their IDE. Changes are submitted as PRs for team review. Spatial comments let team members communicate directly on the canvas."
-                },
-                "q2": {
-                    "question": "Can I use Weblab with my existing development workflow?",
-                    "answer": "Yes. Weblab fits into your existing Git workflow. Changes become branches and PRs. Engineers review code in their normal tools. CI/CD pipelines work as expected."
-                },
-                "q3": {
-                    "question": "How does Weblab work with Claude Code or other AI coding tools?",
-                    "answer": "The Weblab desktop app loads your local codebase and runs alongside Claude Code today, with Codex, Cursor, and Gemini support rolling out. You edit visually in Weblab while your AI agent works on the same files in the terminal — pairing visual control with autonomous code generation. You let the agent do the heavy lifting and step in with the canvas when you want pixel-level control."
-                },
-                "q4": {
-                    "question": "Can I share my work with stakeholders who don't use Weblab?",
-                    "answer": "Yes. Since Weblab works with real code, you can share your work directly as you created it on the canvas. Stakeholders see real, working UI, not static mockups that might not match the final product."
-                },
-                "q5": {
-                    "question": "What's free and what's paid?",
-                    "answer": "Weblab is open source under Apache 2.0 — you can self-host the whole thing for free from GitHub. The hosted cloud version has a free Basic plan with daily AI credits, and paid Pro, Launch, and Scale plans that unlock unlimited AI, custom domains, the \"Built with Weblab\" watermark removal, and team features. See the pricing page for the full breakdown."
-                },
-                "q6": {
-                    "question": "Can I deploy to a custom domain?",
-                    "answer": "Yes. Pro plans include one free custom domain hosted by Weblab — deploy directly from the dashboard. You can also export the code to GitHub and deploy anywhere you already host."
-                }
-            },
-            "company": {
-                "title": "Company",
-                "q1": {
-                    "question": "Who created Weblab?",
-                    "answer": "Weblab was created by Ludvig Hedin. The goal: bridge the gap between design and development with a tool that lets you work directly on your real React components. Weblab is a continuous iteration towards the new state-of-the-art for collaboration in code."
-                },
-                "q2": {
-                    "question": "Why is Weblab open-source?",
-                    "answer": "Developers have historically been second-rate citizens in the design process. Weblab was founded to bridge the divide between design and development, and we wanted to make developers first-class citizens alongside designers. We chose to be open-source to give developers transparency into how we are building Weblab and how the work created through Weblab will complement the work of developers."
-                },
-                "q3": {
-                    "question": "Where is Weblab based?",
-                    "answer": "Weblab is built in Sweden. Our open-source contributors are scattered across the world, bringing their unique perspectives and incredible talent to the project as we continue to push the limits of design and development."
-                }
-            }
+      },
+      "workflow": {
+        "title": "Workflow & Collaboration",
+        "q1": {
+          "question": "How do designers and developers collaborate in Weblab?",
+          "answer": "Designers and developers work in the same artifact, so there's no handoff. Designers make visual changes on the canvas, which become real code changes. Developers can review and refine in their IDE. Changes are submitted as PRs for team review. Spatial comments let team members communicate directly on the canvas."
+        },
+        "q2": {
+          "question": "Can I use Weblab with my existing development workflow?",
+          "answer": "Yes. Weblab fits into your existing Git workflow. Changes become branches and PRs. Engineers review code in their normal tools. CI/CD pipelines work as expected."
+        },
+        "q3": {
+          "question": "How does Weblab work with Claude Code or other AI coding tools?",
+          "answer": "The Weblab desktop app loads your local codebase and runs alongside Claude Code today, with Codex, Cursor, and Gemini support rolling out. You edit visually in Weblab while your AI agent works on the same files in the terminal — pairing visual control with autonomous code generation. You let the agent do the heavy lifting and step in with the canvas when you want pixel-level control."
+        },
+        "q4": {
+          "question": "Can I share my work with stakeholders who don't use Weblab?",
+          "answer": "Yes. Since Weblab works with real code, you can share your work directly as you created it on the canvas. Stakeholders see real, working UI, not static mockups that might not match the final product."
+        },
+        "q5": {
+          "question": "What's free and what's paid?",
+          "answer": "Weblab is open source under Apache 2.0 — you can self-host the whole thing for free from GitHub. The hosted cloud version has a free Basic plan with daily AI credits, and paid Pro, Launch, and Scale plans that unlock unlimited AI, custom domains, the \"Built with Weblab\" watermark removal, and team features. See the pricing page for the full breakdown."
+        },
+        "q6": {
+          "question": "Can I deploy to a custom domain?",
+          "answer": "Yes. Pro plans include one free custom domain hosted by Weblab — deploy directly from the dashboard. You can also export the code to GitHub and deploy anywhere you already host."
         }
-    },
-    "pricingPage": {
-        "heading": "Pricing",
-        "subhead": "Equip your product team with the power of AI",
-        "forTeamsHeading": "For Teams",
-        "forTeamsSub": "Custom pricing tailored to your team's needs",
-        "contactUs": "Contact us",
-        "getStarted": "Get started",
-        "andMore": "And more...",
-        "disclaimerPart1": "Existing paid plan users can continue using {appName}. New users, please contact us to get your team set up. If you're looking to self-host {appName}, please check out the ",
-        "disclaimerLink": "GitHub repository",
-        "disclaimerPart2": " or reach out to us to schedule a call.",
-        "mailto": {
-            "subject": "[Team Inquiry]: Getting Started with {appName}",
-            "body": "Hi,\n\nI'm interested in setting up {appName} for our team.\n\nLooking forward to hearing from you.\n\nBest regards,\n[Your name]"
+      },
+      "company": {
+        "title": "Company",
+        "q1": {
+          "question": "Who created Weblab?",
+          "answer": "Weblab was created by Ludvig Hedin. The goal: bridge the gap between design and development with a tool that lets you work directly on your real React components. Weblab is a continuous iteration towards the new state-of-the-art for collaboration in code."
         },
-        "features": {
-            "projectTemplates": {
-                "title": "Project Templates",
-                "description": "Save and reuse your projects as templates across your team"
-            },
-            "branching": {
-                "title": "Branching & Version Control",
-                "description": "Create and manage branches for your projects with full version history"
-            },
-            "designSystem": {
-                "title": "Your Real Design system",
-                "description": "Bring your real components in {appName} and use them in your projects"
-            },
-            "theming": {
-                "title": "Theming & Branding",
-                "description": "Centralized design tokens, color palettes, and typography management"
-            },
-            "layers": {
-                "title": "Built like a design tool",
-                "description": "Navigate your React component tree with precise control over every element"
-            },
-            "models": {
-                "title": "Pick your model, or bring your own key",
-                "description": "Claude Opus 4.8 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus local models via Ollama on the desktop app. Dial reasoning from Fast to Deep."
-            },
-            "openSource": {
-                "title": "Open Source",
-                "description": "Built with the community. Customize and extend for your team's needs"
-            },
-            "domains": {
-                "title": "Custom Domains",
-                "description": "Deploy your projects to your own internal domain"
-            },
-            "security": {
-                "title": "Advanced Security",
-                "description": "SSO (SAML/OAuth), advanced security controls, audit logs, and admin controls"
-            }
+        "q2": {
+          "question": "Why is Weblab open-source?",
+          "answer": "Developers have historically been second-rate citizens in the design process. Weblab was founded to bridge the divide between design and development, and we wanted to make developers first-class citizens alongside designers. We chose to be open-source to give developers transparency into how we are building Weblab and how the work created through Weblab will complement the work of developers."
         },
-        "enterpriseFeatures": {
-            "unlimited": "Unlimited projects",
-            "customIntegrations": "Custom integrations",
-            "analytics": "Advanced usage analytics",
-            "earlyAccess": "Early access to new features",
-            "dedicatedSupport": "Dedicated support",
-            "accountManager": "Account manager",
-            "slack": "Dedicated Slack channel",
-            "onboarding": "Technical onboarding"
+        "q3": {
+          "question": "Where is Weblab based?",
+          "answer": "Weblab is built in Sweden. Our open-source contributors are scattered across the world, bringing their unique perspectives and incredible talent to the project as we continue to push the limits of design and development."
         }
+      }
+    }
+  },
+  "pricingPage": {
+    "heading": "Pricing",
+    "subhead": "Equip your product team with the power of AI",
+    "forTeamsHeading": "For Teams",
+    "forTeamsSub": "Custom pricing tailored to your team's needs",
+    "contactUs": "Contact us",
+    "getStarted": "Get started",
+    "andMore": "And more...",
+    "disclaimerPart1": "Existing paid plan users can continue using {appName}. New users, please contact us to get your team set up. If you're looking to self-host {appName}, please check out the ",
+    "disclaimerLink": "GitHub repository",
+    "disclaimerPart2": " or reach out to us to schedule a call.",
+    "mailto": {
+      "subject": "[Team Inquiry]: Getting Started with {appName}",
+      "body": "Hi,\n\nI'm interested in setting up {appName} for our team.\n\nLooking forward to hearing from you.\n\nBest regards,\n[Your name]"
     },
-    "pricing": {
-        "plans": {
-            "basic": {
-                "name": "Basic",
-                "price": "$0/month",
-                "description": "Explore and experiment. No credit card required.",
-                "features": [
-                    "Visual code editor access",
-                    "Unlimited projects",
-                    "{dailyMessages} AI chat messages a day",
-                    "{monthlyMessages} AI messages a month",
-                    "Limited to 1 screenshot per chat"
-                ]
-            },
-            "pro": {
-                "name": "Pro",
-                "price": "$20/month",
-                "description": "Build and ship stunning sites with AI, unconstrained.",
-                "features": [
-                    "Visual code editor access",
-                    "Unlimited projects",
-                    "Unlimited AI chat messages a day",
-                    "Unlimited monthly chats",
-                    "Remove \"Built with Weblab\" watermark",
-                    "1 free custom domain hosted with Weblab",
-                    "Priority support"
-                ]
-            },
-            "launch": {
-                "name": "Launch",
-                "price": "$50/month",
-                "description": "Perfect for startups and growing teams.",
-                "features": [
-                    "Unlimited daily messages",
-                    "Priority support",
-                    "Advanced integrations",
-                    "Team collaboration features"
-                ]
-            },
-            "scale": {
-                "name": "Scale",
-                "price": "$100/month",
-                "description": "Enterprise-grade features for large teams.",
-                "features": [
-                    "Everything in Launch plan",
-                    "Dedicated account manager",
-                    "Custom integrations",
-                    "Advanced analytics",
-                    "24/7 premium support"
-                ]
-            }
+    "features": {
+      "projectTemplates": {
+        "title": "Project Templates",
+        "description": "Save and reuse your projects as templates across your team"
+      },
+      "branching": {
+        "title": "Branching & Version Control",
+        "description": "Create and manage branches for your projects with full version history"
+      },
+      "designSystem": {
+        "title": "Your Real Design system",
+        "description": "Bring your real components in {appName} and use them in your projects"
+      },
+      "theming": {
+        "title": "Theming & Branding",
+        "description": "Centralized design tokens, color palettes, and typography management"
+      },
+      "layers": {
+        "title": "Built like a design tool",
+        "description": "Navigate your React component tree with precise control over every element"
+      },
+      "models": {
+        "title": "Pick your model, or bring your own key",
+        "description": "Claude Opus 4.8 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus local models via Ollama on the desktop app. Dial reasoning from Fast to Deep."
+      },
+      "openSource": {
+        "title": "Open Source",
+        "description": "Built with the community. Customize and extend for your team's needs"
+      },
+      "domains": {
+        "title": "Custom Domains",
+        "description": "Deploy your projects to your own internal domain"
+      },
+      "security": {
+        "title": "Advanced Security",
+        "description": "SSO (SAML/OAuth), advanced security controls, audit logs, and admin controls"
+      }
+    },
+    "enterpriseFeatures": {
+      "unlimited": "Unlimited projects",
+      "customIntegrations": "Custom integrations",
+      "analytics": "Advanced usage analytics",
+      "earlyAccess": "Early access to new features",
+      "dedicatedSupport": "Dedicated support",
+      "accountManager": "Account manager",
+      "slack": "Dedicated Slack channel",
+      "onboarding": "Technical onboarding"
+    }
+  },
+  "pricing": {
+    "plans": {
+      "basic": {
+        "name": "Basic",
+        "price": "$0/month",
+        "description": "Explore and experiment. No credit card required.",
+        "features": [
+          "Visual code editor access",
+          "Unlimited projects",
+          "{dailyMessages} AI chat messages a day",
+          "{monthlyMessages} AI messages a month",
+          "Limited to 1 screenshot per chat"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$20/month",
+        "description": "Build and ship stunning sites with AI, unconstrained.",
+        "features": [
+          "Visual code editor access",
+          "Unlimited projects",
+          "Unlimited AI chat messages a day",
+          "Unlimited monthly chats",
+          "Remove \"Built with Weblab\" watermark",
+          "1 free custom domain hosted with Weblab",
+          "Priority support"
+        ]
+      },
+      "launch": {
+        "name": "Launch",
+        "price": "$50/month",
+        "description": "Perfect for startups and growing teams.",
+        "features": [
+          "Unlimited daily messages",
+          "Priority support",
+          "Advanced integrations",
+          "Team collaboration features"
+        ]
+      },
+      "scale": {
+        "name": "Scale",
+        "price": "$100/month",
+        "description": "Enterprise-grade features for large teams.",
+        "features": [
+          "Everything in Launch plan",
+          "Dedicated account manager",
+          "Custom integrations",
+          "Advanced analytics",
+          "24/7 premium support"
+        ]
+      }
+    },
+    "titles": {
+      "choosePlan": "Choose your plan",
+      "proMember": "Thanks for being a Pro member!"
+    },
+    "buttons": {
+      "currentPlan": "Current Plan",
+      "getPro": "Get Pro",
+      "manageSubscription": "Manage Subscription",
+      "getStarted": "Get started",
+      "upgrade": "Upgrade"
+    },
+    "freeCard": {
+      "dailyCreditsFeature": "Up to 5 AI credits per day",
+      "monthlyCreditsFeature": "15 AI credits per month",
+      "dailyCreditsLabel": "5 Daily Credits"
+    },
+    "credits": {
+      "selectPlaceholder": "Select credits",
+      "currentPlan": "Current Plan",
+      "pending": "Pending"
+    },
+    "scheduledPlanStart": "This plan will start on {date}",
+    "enterprise": {
+      "contactUs": "Contact Us"
+    },
+    "loading": {
+      "checkingPayment": "Checking for payment..."
+    },
+    "toasts": {
+      "checkingOut": {
+        "title": "Checking out",
+        "description": "You will now be redirected to Stripe to complete the payment."
+      },
+      "redirectingToStripe": {
+        "title": "Redirecting to Stripe",
+        "description": "You will now be redirected to Stripe to manage your subscription."
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not initiate checkout process. Please try again."
+      }
+    },
+    "footer": {
+      "unusedMessages": "Unused messages carry over each month."
+    },
+    "legacyPromo": {
+      "title": "Pro Desktop Users get 1 month free\\!",
+      "subtitle": "Use this code to redeem your free month of Tier 1 Pro",
+      "copy": "Copy",
+      "copied": "Copied",
+      "toastCopied": "Copied to clipboard",
+      "toastCopyFailed": "Could not copy code",
+      "toastCopyFailedDesc": "Select and copy it manually from the panel."
+    },
+    "subscription": {
+      "toastUpdated": "Subscription updated successfully\\!",
+      "toastCancelled": "Subscription cancelled successfully\\!",
+      "toastActivated": "Subscription activated successfully\\!"
+    }
+  },
+  "usage": {
+    "scheduledPlanStart": "Your {monthlyMessageLimit} credits a month plan starts on {date}",
+    "creditsUsed": "{period} credits used",
+    "periods": {
+      "daily": "daily",
+      "monthly": "monthly"
+    }
+  },
+  "github": {
+    "popupBlocked": "A popup was blocked. Please allow popups for this site and try again."
+  },
+  "editor": {
+    "topBar": {
+      "profile": "Profile",
+      "undo": "Undo",
+      "redo": "Redo",
+      "connection": {
+        "offline": "Offline",
+        "offlinePending": "Offline · {count} pending",
+        "syncing": "Syncing · {count}",
+        "syncErrors": "{count, plural, one {# sync error} other {# sync errors}}",
+        "offlineTooltip": "You're offline. Changes save locally and sync on reconnect.",
+        "syncingTooltip": "Syncing offline changes to the cloud.",
+        "syncErrorsTooltip": "Some offline changes failed. Open the offline panel from the corner banner."
+      }
+    },
+    "offlineBanner": {
+      "offlineTitle": "You're offline.",
+      "offlineCaption": "Edits save locally and sync on reconnect.",
+      "offlinePendingCount": "{count} pending.",
+      "syncingTitle": "Syncing offline changes",
+      "changesRemaining": "{count, plural, one {# change remaining.} other {# changes remaining.}}",
+      "failedCount": "{count} failed.",
+      "details": "Details"
+    },
+    "commandPalette": {
+      "title": "Command Palette",
+      "description": "Run a command, switch modes, or jump to a page.",
+      "placeholder": "Type a command…",
+      "noResults": "No commands found.",
+      "headingSwitch": "Switch project",
+      "headingNavigate": "Navigate",
+      "headingMode": "Mode",
+      "headingActions": "Actions",
+      "goToProjects": "Go to Projects",
+      "goToSettings": "Go to Settings",
+      "openShortcuts": "Open Keyboard Shortcuts",
+      "switchToDesign": "Switch to Design Mode",
+      "switchToCode": "Switch to Code Mode",
+      "switchToPreview": "Switch to Preview Mode",
+      "toggleTerminal": "Toggle Terminal",
+      "insertElement": "Insert Element…",
+      "searchFiles": "Search Files…",
+      "newChat": "New Chat",
+      "restartSandbox": "Restart Sandbox"
+    },
+    "shortcutsModal": {
+      "title": "Keyboard shortcuts",
+      "description": "The fastest editor actions available in the project workspace.",
+      "customize": "Customize…",
+      "or": "or",
+      "sections": {
+        "modes": "Modes",
+        "navigation": "Navigation",
+        "panels": "Panels",
+        "insert": "Insert",
+        "canvas": "Canvas",
+        "layers": "Layers",
+        "editor": "Editor",
+        "ai": "AI"
+      },
+      "rows": {
+        "designMode": "Design Mode",
+        "codeMode": "Code Mode",
+        "previewMode": "Preview Mode",
+        "bringForward": "Bring Forward",
+        "sendBackward": "Send Backward"
+      }
+    },
+    "modes": {
+      "design": {
+        "name": "Design",
+        "description": "Edit and modify your website's design",
+        "tooltip": "Switch to design mode"
+      },
+      "code": {
+        "name": "Code",
+        "description": "Edit and modify your website's code",
+        "tooltip": "Switch to code mode"
+      },
+      "preview": {
+        "name": "Preview",
+        "description": "Preview and test your website's functionality",
+        "tooltip": "Switch to Preview mode"
+      },
+      "comment": {
+        "name": "Comment",
+        "description": "Add comments to the canvas",
+        "tooltip": "Switch to comment mode"
+      },
+      "cms": {
+        "name": "CMS",
+        "description": "Manage content collections and bindings",
+        "tooltip": "Switch to CMS mode"
+      }
+    },
+    "toolbar": {
+      "tools": {
+        "select": {
+          "name": "Select",
+          "tooltip": "Select and modify elements"
         },
-        "titles": {
-            "choosePlan": "Choose your plan",
-            "proMember": "Thanks for being a Pro member!"
+        "pan": {
+          "name": "Pan",
+          "tooltip": "Pan and move around the canvas"
         },
-        "buttons": {
-            "currentPlan": "Current Plan",
-            "getPro": "Get Pro",
-            "manageSubscription": "Manage Subscription",
-            "getStarted": "Get started",
-            "upgrade": "Upgrade"
+        "comment": {
+          "name": "Comment",
+          "tooltip": "Add and view comments on the canvas"
         },
-        "freeCard": {
-            "dailyCreditsFeature": "Up to 5 AI credits per day",
-            "monthlyCreditsFeature": "15 AI credits per month",
-            "dailyCreditsLabel": "5 Daily Credits"
+        "insertDiv": {
+          "name": "Insert Container",
+          "tooltip": "Add a new container element"
         },
-        "credits": {
-            "selectPlaceholder": "Select credits",
-            "currentPlan": "Current Plan",
-            "pending": "Pending"
-        },
-        "scheduledPlanStart": "This plan will start on {date}",
-        "enterprise": {
-            "contactUs": "Contact Us"
-        },
-        "loading": {
-            "checkingPayment": "Checking for payment..."
-        },
-        "toasts": {
-            "checkingOut": {
-                "title": "Checking out",
-                "description": "You will now be redirected to Stripe to complete the payment."
-            },
-            "redirectingToStripe": {
-                "title": "Redirecting to Stripe",
-                "description": "You will now be redirected to Stripe to manage your subscription."
-            },
-            "error": {
-                "title": "Error",
-                "description": "Could not initiate checkout process. Please try again."
-            }
-        },
-        "footer": {
-            "unusedMessages": "Unused messages carry over each month."
-        },
-        "legacyPromo": {
-            "title": "Pro Desktop Users get 1 month free!",
-            "subtitle": "Use this code to redeem your free month of Tier 1 Pro",
-            "copy": "Copy",
-            "copied": "Copied",
-            "toastCopied": "Copied to clipboard",
-            "toastCopyFailed": "Could not copy code",
-            "toastCopyFailedDesc": "Select and copy it manually from the panel."
-        },
-        "subscription": {
-            "toastUpdated": "Subscription updated successfully!",
-            "toastCancelled": "Subscription cancelled successfully!",
-            "toastActivated": "Subscription activated successfully!"
+        "insertText": {
+          "name": "Insert Text",
+          "tooltip": "Add a new text element"
         }
+      },
+      "versionHistory": "Version History"
     },
-    "usage": {
-        "scheduledPlanStart": "Your {monthlyMessageLimit} credits a month plan starts on {date}",
-        "creditsUsed": "{period} credits used",
-        "periods": {
-            "daily": "daily",
-            "monthly": "monthly"
-        }
-    },
-    "github": {
-        "popupBlocked": "A popup was blocked. Please allow popups for this site and try again."
-    },
-    "editor": {
-        "topBar": {
-            "profile": "Profile",
-            "undo": "Undo",
-            "redo": "Redo",
-            "connection": {
-                "offline": "Offline",
-                "offlinePending": "Offline · {count} pending",
-                "syncing": "Syncing · {count}",
-                "syncErrors": "{count, plural, one {# sync error} other {# sync errors}}",
-                "offlineTooltip": "You're offline. Changes save locally and sync on reconnect.",
-                "syncingTooltip": "Syncing offline changes to the cloud.",
-                "syncErrorsTooltip": "Some offline changes failed. Open the offline panel from the corner banner."
-            }
-        },
-        "offlineBanner": {
-            "offlineTitle": "You're offline.",
-            "offlineCaption": "Edits save locally and sync on reconnect.",
-            "offlinePendingCount": "{count} pending.",
-            "syncingTitle": "Syncing offline changes",
-            "changesRemaining": "{count, plural, one {# change remaining.} other {# changes remaining.}}",
-            "failedCount": "{count} failed.",
-            "details": "Details"
-        },
-        "commandPalette": {
-            "title": "Command Palette",
-            "description": "Run a command, switch modes, or jump to a page.",
-            "placeholder": "Type a command…",
-            "noResults": "No commands found.",
-            "headingSwitch": "Switch project",
-            "headingNavigate": "Navigate",
-            "headingMode": "Mode",
-            "headingActions": "Actions",
-            "goToProjects": "Go to Projects",
-            "goToSettings": "Go to Settings",
-            "openShortcuts": "Open Keyboard Shortcuts",
-            "switchToDesign": "Switch to Design Mode",
-            "switchToCode": "Switch to Code Mode",
-            "switchToPreview": "Switch to Preview Mode",
-            "toggleTerminal": "Toggle Terminal",
-            "insertElement": "Insert Element…",
-            "searchFiles": "Search Files…",
-            "newChat": "New Chat",
-            "restartSandbox": "Restart Sandbox"
-        },
-        "shortcutsModal": {
-            "title": "Keyboard shortcuts",
-            "description": "The fastest editor actions available in the project workspace.",
-            "customize": "Customize…",
-            "or": "or",
-            "sections": {
-                "modes": "Modes",
-                "navigation": "Navigation",
-                "panels": "Panels",
-                "insert": "Insert",
-                "canvas": "Canvas",
-                "layers": "Layers",
-                "editor": "Editor",
-                "ai": "AI"
-            },
-            "rows": {
-                "designMode": "Design Mode",
-                "codeMode": "Code Mode",
-                "previewMode": "Preview Mode",
-                "bringForward": "Bring Forward",
-                "sendBackward": "Send Backward"
-            }
-        },
-        "modes": {
-            "design": {
-                "name": "Design",
-                "description": "Edit and modify your website's design",
-                "tooltip": "Switch to design mode"
-            },
-            "code": {
-                "name": "Code",
-                "description": "Edit and modify your website's code",
-                "tooltip": "Switch to code mode"
-            },
-            "preview": {
-                "name": "Preview",
-                "description": "Preview and test your website's functionality",
-                "tooltip": "Switch to Preview mode"
-            },
-            "comment": {
-                "name": "Comment",
-                "description": "Add comments to the canvas",
-                "tooltip": "Switch to comment mode"
-            },
-            "cms": {
-                "name": "CMS",
-                "description": "Manage content collections and bindings",
-                "tooltip": "Switch to CMS mode"
-            }
-        },
-        "toolbar": {
-            "tools": {
-                "select": {
-                    "name": "Select",
-                    "tooltip": "Select and modify elements"
-                },
-                "pan": {
-                    "name": "Pan",
-                    "tooltip": "Pan and move around the canvas"
-                },
-                "comment": {
-                    "name": "Comment",
-                    "tooltip": "Add and view comments on the canvas"
-                },
-                "insertDiv": {
-                    "name": "Insert Container",
-                    "tooltip": "Add a new container element"
-                },
-                "insertText": {
-                    "name": "Insert Text",
-                    "tooltip": "Add a new text element"
-                }
-            },
-            "versionHistory": "Version History"
-        },
-        "panels": {
-            "edit": {
-                "tabs": {
-                    "chat": {
-                        "name": "Chat",
-                        "emptyState": "Ask AI to build, edit, or change anything",
-                        "emptyStateStart": "Start the project to chat",
-                        "loadingMessages": "Loading messages…",
-                        "loadFailed": "Couldn’t load messages.",
-                        "retry": "Retry",
-                        "thinking": "Thinking…",
-                        "suggestionsLabel": "Suggested",
-                        "input": {
-                            "placeholder": "Ask anything...",
-                            "tooltip": "Chat with AI about the selected element"
-                        },
-                        "mode": {
-                            "tooltip": "Switch between Build and Ask modes"
-                        },
-                        "controls": {
-                            "newChat": "New Chat",
-                            "history": "Chat History",
-                            "viewHistory": "View chat history",
-                            "newChatTooltipStarting": "Starting new chat…",
-                            "newChatTooltipStreaming": "Reply still streaming",
-                            "chatSettings": "Chat settings",
-                            "closePanel": "Close panel",
-                            "openPanel": "Open AI chat panel"
-                        },
-                        "settings": {
-                            "showSuggestions": "Show suggestions",
-                            "showMiniChat": "Show mini chat",
-                            "autoApplyCode": "Auto-apply results",
-                            "expandCodeBlocks": "Show code while rendering",
-                            "displayHeading": "Display"
-                        },
-                        "errors": {
-                            "single": "Error",
-                            "many": "{count} Errors",
-                            "fix": "Fix",
-                            "fixPrompt": "How can I resolve these errors? If you propose a fix, please make it concise.",
-                            "fixToastError": "Failed to send fix error message. Please try again.",
-                            "consoleNoErrors": "Console: no errors",
-                            "consoleErrors": "Console: {count, plural, one {# error} other {# errors}}",
-                            "consoleViewAndFix": "Console: view & fix errors",
-                            "noErrors": "No errors",
-                            "errorCount": "{count, plural, one {# error} other {# errors}}",
-                            "fixWithAi": "Fix with AI",
-                            "cleanDevServer": "Your dev server is clean. Errors will show up here."
-                        },
-                        "history": {
-                            "title": "Chat History",
-                            "close": "Close chat history",
-                            "groupToday": "Today",
-                            "groupYesterday": "Yesterday",
-                            "groupLastSevenDays": "Last 7 days",
-                            "groupEarlier": "Earlier",
-                            "newConversationFallback": "New Conversation",
-                            "deleteConversationTooltip": "Delete conversation",
-                            "deleteDialog": {
-                                "title": "Are you sure you want to delete this conversation?",
-                                "description": "This action cannot be undone. This will permanently delete your conversation.",
-                                "cancel": "Cancel",
-                                "delete": "Delete",
-                                "deleteFailed": "Failed to delete conversation."
-                            }
-                        },
-                        "queue": {
-                            "header": "{count} queued",
-                            "edit": "Edit",
-                            "moveUp": "Move up",
-                            "moveDown": "Move down",
-                            "remove": "Remove from queue",
-                            "saveHint": "Press Enter to save, Esc to cancel",
-                            "drag": "Drag to reorder"
-                        },
-                        "miniChat": {
-                            "button": "Chat with AI"
-                        },
-                        "aiMenu": {
-                            "trigger": "Edit with AI",
-                            "placeholder": "Describe the change…",
-                            "send": "Send",
-                            "addToChat": "Add to chat"
-                        },
-                        "openInCode": {
-                            "button": "Open in Code"
-                        },
-                        "noActiveConversation": "No active conversation",
-                        "startNewConversation": "Start a new conversation",
-                        "starters": {
-                            "darkMode": "Build a landing page",
-                            "modernizeHero": "Add a hero section",
-                            "mobileLayout": "Create a responsive navbar",
-                            "polish": "Design a pricing section"
-                        },
-                        "askPlaceholder": "Ask a question about your project...",
-                        "planPlaceholder": "Describe what you want to plan...",
-                        "attachImage": "Attach image",
-                        "effort": {
-                            "label": "Reasoning effort",
-                            "tooltip": "Controls how long the model thinks before answering. Fast is best for most edits; Deep helps on hard tasks.",
-                            "fast": {
-                                "label": "Fast",
-                                "hint": "Skip thinking, answer immediately"
-                            },
-                            "light": {
-                                "label": "Light",
-                                "hint": "A short pause to plan before answering"
-                            },
-                            "balanced": {
-                                "label": "Balanced",
-                                "hint": "Moderate thinking for everyday tasks"
-                            },
-                            "deep": {
-                                "label": "Deep",
-                                "hint": "Longer thinking budget for hard tasks"
-                            }
-                        },
-                        "restore": {
-                            "ariaLabel": "Restore checkpoint",
-                            "confirmTitle": "Restore to here?",
-                            "confirmDescription": "This rewrites your working tree to the state at this message. Uncommitted edits in the affected files will be lost.",
-                            "dontAskAgain": "Don’t ask again",
-                            "cancel": "Cancel",
-                            "confirm": "Restore"
-                        },
-                        "userMessage": {
-                            "retry": "Retry message",
-                            "edit": "Edit message",
-                            "copy": "Copy message"
-                        },
-                        "toolCall": {
-                            "stalledMessage": "This tool didn’t return a result.",
-                            "retry": "Retry",
-                            "retrying": "Retrying…",
-                            "ariaRetry": "Retry stalled tool call"
-                        }
-                    },
-                    "styles": {
-                        "name": "Styles",
-                        "availableInDesignMode": "Available in Design mode",
-                        "emptyState": "Select an element to edit its style properties",
-                        "emptyStateHint": "Select a single canvas element to inspect layout, spacing, appearance, typography, and position.",
-                        "groups": {
-                            "position": "Position & Dimensions",
-                            "layout": "Flexbox & Layout",
-                            "style": "Styles",
-                            "text": "Text"
-                        },
-                        "tailwind": {
-                            "title": "Tailwind Classes",
-                            "placeholder": "Add tailwind classes here",
-                            "componentClasses": {
-                                "title": "Main Component Classes",
-                                "tooltip": "Changes apply to component code. This is the default."
-                            },
-                            "instanceClasses": {
-                                "title": "Instance Classes",
-                                "tooltip": "Changes apply to instance code."
-                            }
-                        }
-                    },
-                    "comments": {
-                        "name": "Comments",
-                        "open": "Open",
-                        "resolved": "Resolved",
-                        "emptyOpen": "No open comments",
-                        "emptyResolved": "No resolved comments",
-                        "reply": "Reply",
-                        "resolve": "Resolve",
-                        "unresolve": "Unresolve",
-                        "delete": "Delete",
-                        "edit": "Edit",
-                        "submit": "Submit",
-                        "cancel": "Cancel",
-                        "addComment": "Add a comment...",
-                        "addReply": "Add a reply..."
-                    },
-                    "interactions": {
-                        "name": "Interactions",
-                        "availableInDesignMode": "Available in Design mode",
-                        "tabIndicator": "This element has interactions",
-                        "empty": {
-                            "noSelection": {
-                                "title": "No element selected",
-                                "body": "Pick an element to add a click, hover, or load animation."
-                            },
-                            "noInteractions": {
-                                "title": "No interactions yet",
-                                "body": "Click + to add a click, hover, or load animation.",
-                                "cta": "Add trigger"
-                            }
-                        },
-                        "sections": {
-                            "elementTrigger": {
-                                "title": "Element trigger",
-                                "addAria": "Add element trigger"
-                            },
-                            "pageTrigger": {
-                                "title": "Page trigger",
-                                "addAria": "Add page trigger",
-                                "hint": "Plays when the page loads."
-                            }
-                        },
-                        "triggerTypes": {
-                            "click": "Mouse click (tap)",
-                            "hover": "Mouse hover",
-                            "pageLoad": "Page load",
-                            "scroll": "Scroll",
-                            "scrollComingSoon": "Scroll — coming soon",
-                            "custom": "Custom event",
-                            "customComingSoon": "Custom event — coming soon"
-                        },
-                        "row": {
-                            "menu": {
-                                "rename": "Rename",
-                                "duplicate": "Duplicate",
-                                "delete": "Delete"
-                            }
-                        },
-                        "editor": {
-                            "back": "Back",
-                            "renamePlaceholder": "Interaction name",
-                            "save": "Save",
-                            "reset": "Reset",
-                            "unsaved": "Unsaved",
-                            "duration": "Duration",
-                            "loop": "Loop",
-                            "playhead": "Playhead",
-                            "play": "Play",
-                            "pause": "Pause",
-                            "skipToStart": "Skip to start",
-                            "skipToEnd": "Skip to end",
-                            "transport": "Transport",
-                            "addAction": "Add action",
-                            "actionTypes": {
-                                "move": "Move",
-                                "scale": "Scale",
-                                "rotate": "Rotate",
-                                "opacity": "Opacity",
-                                "size": "Size",
-                                "backgroundColor": "Background color"
-                            },
-                            "triggerSettings": {
-                                "title": "Trigger settings",
-                                "activeOn": "Active on",
-                                "breakpoints": {
-                                    "desktop": "Desktop",
-                                    "tablet": "Tablet",
-                                    "phone": "Phone"
-                                },
-                                "target": {
-                                    "label": "Target",
-                                    "self": "Self",
-                                    "sibling": "Sibling",
-                                    "child": "Child",
-                                    "class": "Class",
-                                    "selfHint": "Only the selected element",
-                                    "classHint": "All elements with this class",
-                                    "siblingPlaceholder": "Pick a sibling",
-                                    "childPlaceholder": "Pick a child"
-                                }
-                            },
-                            "discardConfirm": {
-                                "title": "Discard unsaved changes?",
-                                "body": "Your timeline edits will be lost.",
-                                "cancel": "Keep editing",
-                                "confirm": "Discard"
-                            }
-                        }
-                    }
-                }
-            },
-            "layers": {
-                "name": "Layers",
-                "tabs": {
-                    "layers": "Layers",
-                    "insert": "Insert",
-                    "pages": "Pages",
-                    "components": "Components",
-                    "images": "Assets",
-                    "windows": {
-                        "name": "Windows",
-                        "emptyState": "Select a window to edit its settings"
-                    },
-                    "brand": "Brand",
-                    "branches": "Branches",
-                    "apps": "Apps",
-                    "search": "Search"
-                },
-                "rail": {
-                    "openLeftPanel": "Open left panel",
-                    "pinPanel": "Pin panel",
-                    "unpinPanel": "Unpin panel",
-                    "collapsePanel": "Collapse panel"
-                }
-            },
-            "code": {
-                "controls": {
-                    "viewFiles": "View Files",
-                    "save": "Save",
-                    "saving": "Saving...",
-                    "savingChanges": "Saving changes...",
-                    "saveChanges": "Save changes",
-                    "createOrUploadFile": "Create or Upload File",
-                    "createNewFile": "Create new file",
-                    "uploadFile": "Upload file",
-                    "newFolder": "New Folder"
-                },
-                "emptyState": "Pick a file from the tree to start editing.",
-                "fileModal": {
-                    "title": "Create New File",
-                    "description": "Pick where to add the file, then name it.",
-                    "location": "Location",
-                    "fileName": "File Name",
-                    "namePlaceholder": "component.tsx",
-                    "fullPath": "Full path:",
-                    "cancel": "Cancel",
-                    "create": "Create File",
-                    "creating": "Creating file..."
-                },
-                "folderModal": {
-                    "title": "Create New Folder",
-                    "description": "Pick where to add the folder, then name it.",
-                    "folderName": "Folder Name",
-                    "namePlaceholder": "components",
-                    "create": "Create Folder",
-                    "creating": "Creating folder..."
-                },
-                "directoryPicker": {
-                    "selected": "Selected:",
-                    "expand": "Expand",
-                    "collapse": "Collapse"
-                }
-            }
-        },
-        "settings": {
-            "preferences": {
-                "language": "Language",
-                "theme": "Theme",
-                "deleteWarning": "Delete Warning",
-                "analytics": "Analytics",
-                "editor": {
-                    "ide": "Editor",
-                    "shouldWarnDelete": "Warn when deleting elements",
-                    "enableAnalytics": "Enable analytics"
-                },
-                "shortcuts": "Shortcuts"
-            },
-            "skillImportDialog": {
-                "title": "Import skill",
-                "description": "Upload a SKILL.md or .zip, paste its content, or pull from a remote URL. We parse the frontmatter, show a preview, and only save once you confirm.",
-                "tabs": {
-                    "upload": "Upload file",
-                    "paste": "Paste content",
-                    "url": "From URL"
-                },
-                "uploadLabel": "SKILL.md or .zip",
-                "uploadDropHint": "Drop a file here, or",
-                "uploadCta": "Choose file",
-                "uploadHint": "Accepts a single SKILL.md (.md) or a .zip containing one. Max 2 MB.",
-                "toastNoSkillMd": "No SKILL.md (or .md) found in the archive",
-                "toastFileTooLarge": "File is too large (max 2 MB)",
-                "toastEmptyFile": "That file is empty",
-                "toastUnzipFailed": "Couldn't read that file",
-                "urlLabel": "SKILL.md URL",
-                "urlPlaceholder": "https://raw.githubusercontent.com/.../SKILL.md",
-                "urlHint": "Allowed hosts: raw.githubusercontent.com, gist.githubusercontent.com, agentskills.io.",
-                "pasteLabel": "SKILL.md content",
-                "pastePlaceholder": "---\nname: my-skill\ndescription: Trigger description\n---\n\nBody…",
-                "preview": "Preview",
-                "previewing": "Reading…",
-                "previewSection": {
-                    "name": "Name",
-                    "description": "Description",
-                    "body": "Body ({count} chars)"
-                },
-                "scopeLabel": "Save to",
-                "scopeGlobal": "Global",
-                "scopeProject": "This project",
-                "cancel": "Cancel",
-                "import": "Import skill",
-                "importing": "Importing…",
-                "toastImported": "Imported \"{name}\"",
-                "toastReadFailed": "Failed to read skill",
-                "toastImportFailed": "Failed to import skill"
-            }
-        },
-        "frame": {
-            "startDesigning": {
-                "prefix": "Press ",
-                "action": "Play",
-                "suffix": " to start designing your app"
-            },
-            "playButton": "Play",
-            "waitingForApp": "Waiting for the App to start..."
-        },
-        "runButton": {
-            "portInUse": "Port in Use",
-            "loading": "Loading",
-            "play": "Play",
+    "panels": {
+      "edit": {
+        "tabs": {
+          "chat": {
+            "name": "Chat",
+            "emptyState": "Ask AI to build, edit, or change anything",
+            "emptyStateStart": "Start the project to chat",
+            "loadingMessages": "Loading messages…",
+            "loadFailed": "Couldn’t load messages.",
             "retry": "Retry",
-            "stop": "Stop"
-        },
-        "zoom": {
-            "level": "Zoom Level",
-            "in": "Zoom In",
-            "out": "Zoom Out",
-            "fit": "Zoom Fit",
-            "reset": "Zoom 100%",
-            "double": "Zoom 200%"
-        },
-        "members": {
-            "row": {
-                "removed": "{name} removed from project",
-                "you": "(you)",
-                "confirmRemove": "Remove?",
-                "toastRemoveFailed": "Failed to remove member"
-            },
-            "invitation": {
-                "pending": "Pending Invitation",
-                "copiedTooltip": "Copied to clipboard",
-                "copyLinkTooltip": "Copy Invitation Link",
-                "cancelTooltip": "Cancel Invitation",
-                "toastCopied": "Invitation link copied to clipboard",
-                "toastCopyFailed": "Failed to copy invitation link",
-                "toastCancelFailed": "Failed to cancel invitation"
-            },
-            "invite": {
-                "placeholder": "Add email address",
-                "roleManager": "Manager",
-                "roleManagerDesc": "Can edit, publish, and manage access",
-                "roleEditor": "Editor",
-                "roleEditorDesc": "Can edit and use AI",
-                "roleReviewer": "Reviewer",
-                "roleReviewerDesc": "Can view and comment",
-                "roleViewer": "Viewer",
-                "roleViewerDesc": "Can view only",
-                "invite": "Invite",
-                "toastSent": "Invitation sent",
-                "toastFailed": "Failed to invite member"
-            },
-            "content": {
-                "title": "Invite Team Members",
-                "loading": "Loading members..."
-            },
-            "suggested": {
-                "title": "Suggested Teammates",
-                "desc": "Invite relevant people to collaborate"
-            }
-        },
-        "git": {
-            "toastGitUnavailable": "Git is unavailable until the sandbox is ready",
-            "toastNoChanges": "No changes to commit",
-            "toastNoBranchName": "This branch does not have a git branch name yet",
-            "toastNotLinked": "This branch is not linked to a GitHub repository",
-            "toastNeedFeatureBranch": "Create a feature branch before opening a pull request",
-            "toastNoStagedChanges": "No staged changes to commit",
-            "toastCommitFailed": "Commit failed",
-            "toastPushFailed": "Push failed",
-            "toastCommittedPushed": "Committed and pushed",
-            "toastExistingPR": "Opened existing pull request",
-            "toastCreatedPR": "Created pull request",
-            "toastCommitted": "Committed",
-            "toastActionFailed": "Git action failed",
-            "toastNoActiveBranch": "No active branch",
-            "errorStatusUnavailable": "Git status is unavailable until the sandbox is ready.",
-            "errorStatusFailed": "Failed to load git status.",
-            "commitMsgPlaceholder": "Leave blank to autogenerate a commit message",
-            "branchLabel": "Branch",
-            "changesLabel": "Changes",
-            "changesCount": "{count, plural, one {# file} other {# files}}",
-            "includeUnstaged": "Include unstaged",
-            "stageFilesWarning": "Stage at least one file before committing staged changes only.",
-            "commitMsgLabel": "Commit message",
-            "nextStepsLabel": "Next steps",
-            "actionCommit": "Commit",
-            "actionCommitPush": "Commit & push",
-            "actionCommitPR": "Commit & create PR",
-            "dialogTitle": "Commit your changes",
-            "dialogDesc": "Review and commit your changes to git",
-            "working": "Working...",
-            "continue": "Continue",
-            "gitActionsLabel": "Git actions",
-            "dropdownCommit": "Commit",
-            "dropdownCommitPush": "Commit & push",
-            "dropdownCreatePR": "Create PR",
-            "dropdownCreateBranch": "Create branch",
-            "toastSwitchFailed": "Failed to switch branch",
-            "stagedFilesReady": "{count, plural, one {# staged file ready to commit.} other {# staged files ready to commit.}}"
-        },
-        "publish": {
-            "url": {
-                "toastCopied": "Copied to clipboard",
-                "toastFailed": "Failed to copy to clipboard"
-            },
-            "previewDomain": {
-                "toastCreateFailed": "Failed to create preview domain",
-                "toastNoProject": "No project found",
-                "toastNoSandbox": "No sandbox found"
-            },
-            "deployHistory": {
-                "toastStarted": "Redeploy started",
-                "toastFailed": "Redeploy failed"
-            },
-            "hosting": {
-                "toastPasteFirst": "Paste an API token first.",
-                "toastConnected": "{provider} connected.",
-                "toastValidationFailed": "Token validation failed.",
-                "toastValidationError": "Validation failed.",
-                "toastSaveFailed": "Failed to save connection.",
-                "toastDisconnected": "Disconnected {provider}.",
-                "toastDisconnectFailed": "Failed to disconnect.",
-                "tokenPlaceholder": "Paste your token",
-                "tokenAutoFillPlaceholder": "Filled in automatically if you Test first"
-            }
-        },
-        "bottomBar": {
-            "restart": {
-                "toastNoSession": "Sandbox session not available",
-                "toastFailed": "Failed to restart sandbox",
-                "toastSuccess": "Sandbox restarted successfully",
-                "toastError": "An error occurred while restarting the sandbox",
-                "restarting": "Restarting ({seconds}s)…",
-                "restart": "Restart Sandbox"
-            }
-        },
-        "clone": {
-            "toastNoProject": "No project to clone",
-            "toastSuccess": "Project cloned successfully",
-            "toastFailed": "Failed to clone project",
-            "toastServerError": "No project was returned from the server.",
-            "toastUnavailable": "Sandbox service temporarily unavailable",
-            "toastHighLoad": "Please try again in a few moments. Our servers may be experiencing high load.",
-            "dialogTitle": "Clone Project",
-            "dialogDesc": "Create a copy of this project with all settings preserved.",
-            "projectNameLabel": "Project Name",
-            "projectNamePlaceholder": "Enter name for cloned project",
-            "validationEmpty": "Project name can't be empty",
-            "cancel": "Cancel",
-            "cloning": "Cloning...",
-            "clone": "Clone Project"
-        },
-        "createComponent": {
-            "toastFailed": "Could not create component",
-            "toastSuccess": "Component {name} created",
-            "dialogTitle": "Create component",
-            "dialogDesc": "The selection becomes a reusable component; this copy becomes its first instance.",
-            "namePlaceholder": "ComponentName",
-            "nameHint": "PascalCase, e.g. HeroCard",
-            "propsTitle": "Suggested properties",
-            "propsDesc": "Checked values become editable per instance; unchecked stay fixed.",
-            "cancel": "Cancel",
-            "creating": "Creating…",
-            "create": "Create"
-        },
-        "offlinePanel": {
-            "toastStillOffline": "Still offline. Reconnect and try again.",
-            "toastNotConnected": "Sandbox not connected yet. Wait a moment and retry.",
-            "toastOfflineMode": "Sandbox is still in offline mode. Reload the project to reconnect, then sync.",
-            "toastSyncSuccess": "{count, plural, one {Synced # change} other {Synced # changes}}",
-            "toastSyncFailed": "Sync failed",
-            "toastRequeued": "Re-queued for sync.",
-            "toastRetryFailed": "Retry failed",
-            "dialogTitle": "Offline sync",
-            "online": "Online",
-            "offline": "Offline",
-            "statusPending": "{count, plural, one {# pending} other {# pending}}",
-            "statusDeadLetter": "{count} dead-letter",
-            "statusConflict": "{count, plural, one {# conflict} other {# conflicts}}",
-            "syncNow": "Sync now",
-            "pendingTitle": "Pending writes",
-            "noPending": "No queued changes.",
-            "deadLetterTitle": "Dead letter",
-            "noDeadLetter": "No records have failed past retry.",
-            "retry": "Retry",
-            "conflictsTitle": "Conflicts",
-            "noConflicts": "No remote changes were overwritten by your offline edits.",
-            "dismiss": "Dismiss",
-            "yourVersionKept": "Your version was kept. Detected {date}.",
-            "showRemoteVersion": "Show remote version",
-            "binaryContent": "[binary content]",
-            "close": "Close",
-            "discardDeadLetterTitle": "Discard all dead-letter records?",
-            "discardDeadLetterDesc": "Their content will be lost. This cannot be undone.",
-            "discardConfirm": "Discard",
-            "toastDeadLetterCleared": "Dead letter cleared."
-        },
-        "chat": {
-            "multiBranchRevert": {
-                "toastSelectFirst": "Please select at least one branch to revert",
-                "toastAllFailed": "Failed to restore all selected branches",
-                "toastFailed": "Failed to restore branches",
-                "dialogTitle": "Restore Multiple Branches",
-                "dialogDesc": "Select the branches you want to restore to their previous state.",
-                "selectNone": "Select None",
-                "selectAll": "Select All",
-                "cancel": "Cancel",
-                "restoring": "Restoring...",
-                "restore": "Restore Selected"
-            },
-            "messages": {
-                "regenerateResponse": "Regenerate response"
-            },
-            "actionsGroup": {
-                "working": "Working — {elapsed}",
-                "workedFor": "Worked for {elapsed}",
-                "workedSingle": "Worked · 1 action",
-                "workedMany": "Worked · {count} actions"
-            },
-            "planApproval": {
-                "writingPlan": "Writing plan…",
-                "planReady": "Plan ready",
-                "buildNow": "Build Now",
-                "keepRefining": "Keep Refining"
-            },
-            "planQuestion": {
-                "answer": "Answer",
-                "answeredWith": "Answered: {answer}",
-                "answered": "Answered"
-            },
-            "imageResult": {
-                "generatedImage": "Generated image",
-                "imageExpired": "Image expired (cache TTL is 30 minutes). Regenerate to retry.",
-                "saving": "Saving…",
-                "saved": "Saved",
-                "addToProject": "Add to project",
-                "replaceSelected": "Replace selected",
-                "generatingImage": "Generating image…",
-                "noImageReturned": "No image returned.",
-                "ariaRetry": "Retry image generation",
-                "retrying": "Retrying…",
-                "retry": "Retry",
-                "selectImgHint": "Select an <img> element on the canvas to enable",
-                "replaceSrcTitle": "Replace src on selected {tagName}",
-                "savedToPath": "Saved to {path}",
-                "savedToPathAskAi": "Saved to {path}. Ask the AI to update the selected element's src to /{relativePath}."
-            },
-            "codeDisplay": {
-                "runAgain": "Run again",
-                "runCommand": "Run command",
-                "noSessionError": "Failed to execute command: No session available",
-                "applying": "Applying…",
-                "applied": "Applied",
-                "apply": "Apply",
-                "copied": "Copied",
-                "copy": "Copy",
-                "noActiveSandbox": "No active sandbox to apply to",
-                "failedToApply": "Failed to apply file",
-                "failedToCopy": "Failed to copy",
-                "streamingPreviewNote": "Showing a live preview while the file is being written. Expand after the tool finishes to inspect the full content."
-            },
-            "searchSources": {
-                "searchedWeb": "Searched web"
-            },
-            "contextPills": {
-                "removeAriaLabel": "Remove {name}",
-                "imageLimitError": "You can only add up to {max} images."
-            }
-        },
-        "canvas": {
-            "hotkeys": {
-                "toastSelectFirst": "Select an element first to inline-edit",
-                "toastLocateFailed": "Can't locate this element's source."
-            }
-        },
-        "code": {
-            "unsavedChanges": {
-                "messageSingle": "You have unsaved changes. Are you sure you want to close this file?",
-                "messagePlural": "You have unsaved changes. Are you sure you want to close {count} files?",
-                "discard": "Discard",
-                "save": "Save",
-                "cancel": "Cancel"
-            }
-        },
-        "terminal": {
-            "toggleTerminal": "Toggle Terminal",
-            "sandboxNotReady": "Sandbox not ready yet",
-            "terminalUnavailable": "Terminal unavailable — sandbox is offline or restarting",
-            "creditLimitReached": "AI credit limit reached.",
-            "notAuthorized": "Not authorized to use AI here.",
-            "translateFailed": "Could not translate that into a command.",
-            "requestFailed": "AI request failed.",
-            "openTerminalHint": "Open a terminal tab to run commands",
-            "askAiPlaceholder": "Ask AI to run a command…",
-            "commandPlaceholder": "Type a command…",
-            "runCommandAriaLabel": "Run command",
-            "aiModeEnableAriaLabel": "Enable AI command mode",
-            "aiModeDisableAriaLabel": "Disable AI command mode",
-            "aiModeOnTooltip": "AI command mode on",
-            "aiModeOffTooltip": "Run commands with natural language",
-            "aiSettingsAriaLabel": "AI command settings",
-            "autoRunLabel": "Auto-run commands",
-            "autoRunOnHint": "AI commands run immediately.",
-            "autoRunOffHint": "Preview first, press Enter to run.",
-            "resizeAriaLabel": "Resize terminal",
-            "newTerminalAriaLabel": "New terminal",
-            "noTerminalOpen": "No terminal open. Start the app to open one."
-        },
-        "branch": {
-            "forking": "Forking...",
-            "forkBranch": "Fork into a new Branch",
-            "creating": "Creating...",
-            "createBlankSandbox": "Create blank sandbox",
-            "manageBranch": "Manage Branch",
-            "forkNotAvailable": "Branch fork is not available yet.",
-            "createBlankFailed": "Could not create a blank sandbox.",
-            "title": "Branches",
-            "searchPlaceholder": "Search branches...",
-            "noBranchesFound": "No branches found"
-        },
-        "editorBar": {
-            "moreOptions": "More options",
-            "showMoreControls": "Show more toolbar controls",
-            "device": "Device",
-            "rotateDevice": "Rotate Device",
-            "theme": "Theme",
-            "failedToChangeTheme": "Failed to change theme",
-            "themeSystem": "System",
-            "themeDark": "Dark",
-            "themeLight": "Light",
-            "copyToFigma": "Copy to Figma",
-            "duplicateFrame": "Duplicate Frame",
-            "deleteFrame": "Delete Frame",
-            "borderColor": "Border Color",
-            "border": "Border",
-            "allSides": "All sides",
-            "individual": "Individual",
-            "mixed": "Mixed",
-            "backgroundColor": "Background Color",
-            "display": "Display",
-            "direction": "Direction",
-            "gap": "Gap",
-            "type": "Type",
-            "horizontal": "Horizontal",
-            "vertical": "Vertical",
-            "height": "Height",
-            "minHeight": "Min height",
-            "maxHeight": "Max height",
-            "width": "Width",
-            "minWidth": "Min width",
-            "maxWidth": "Max width",
-            "min": "Min",
-            "max": "Max",
-            "margin": "Margin",
-            "padding": "Padding",
-            "radius": "Radius",
-            "layerOpacity": "Layer Opacity",
-            "opacityPercentage": "Opacity percentage",
-            "state": "State",
-            "removeColor": "Remove Color",
-            "searchColors": "Search colors",
-            "brandTab": "Brand",
-            "customTab": "Custom",
-            "gradientTab": "Gradient",
-            "presets": "Presets",
-            "hexColor": "Hex color",
-            "imageFill": "Image Fill",
-            "selectFromLibrary": "Select from library",
-            "uploadFromComputer": "Upload from computer",
-            "uploading": "Uploading...",
-            "removeBackground": "Remove background",
-            "advancedTypography": "Advanced Typography",
-            "color": "Color",
-            "line": "Line",
-            "letter": "Letter",
-            "capitalize": "Capitalize",
-            "decorate": "Decorate",
-            "fontFamily": "Font Family",
-            "fontFamilySelector": "Font Family Selector",
-            "searchGoogleFonts": "Search Google Fonts…",
-            "searchFonts": "Search fonts",
-            "manageBrandFonts": "Manage Brand fonts",
-            "manageUploadFonts": "Manage / upload fonts",
-            "fontSize": "Font Size",
-            "fontWeight": "Font Weight",
-            "textAlign": "Text Align",
-            "textColor": "Text Color"
-        },
-        "fileFinder": {
-            "title": "Quick Open File",
-            "description": "Search for a file in the project to open in the code editor.",
-            "placeholder": "Search files…",
-            "loadingFiles": "Loading files…",
-            "noFilesFound": "No files found.",
-            "filesGroup": "Files"
-        },
-        "elementPalette": {
-            "title": "Add element",
-            "description": "Search for an element to add to the canvas, then click or drag to place it.",
-            "placeholder": "Add an element…",
-            "noElementsFound": "No elements found.",
-            "groupLayout": "Layout",
-            "groupBasic": "Basic",
-            "groupForm": "Form",
-            "groupMedia": "Media"
-        },
-        "leftPanel": {
-            "assets": {
-                "loading": string,
-                "searchPlaceholder": string,
-                "clearSearch": string,
-                "noMatch": string,
-                "newFolder": string,
-                "uploadAssets": string,
-                "uploadingAssets": string,
-                "dragFilesHere": string,
-                "dropToUpload": string,
-                "orClickToUpload": string,
-                "allAssets": string,
-                "noFolder": string,
-                "folders": string,
-                "select": string,
-                "sortNameAsc": string,
-                "sortNameDesc": string,
-                "sortModifiedDesc": string,
-                "sortModifiedAsc": string,
-                "sortSizeDesc": string,
-                "sortType": string,
-                "addToChat": string,
-                "copyUrl": string,
-                "rename": string,
-                "moveTo": string,
-                "compress": string,
-                "delete": string,
-                "deleteAsset": string,
-                "deleteAssetConfirm": string,
-                "cancel": string,
-                "deselectAsset": string,
-                "selectAsset": string,
-                "moveSelectedToFolder": string,
-                "deleteSelected": string,
-                "exitSelectMode": string,
-                "selectedCount": string,
-                "newFolderTitle": string,
-                "newFolderDescription": string,
-                "folderNamePlaceholder": string,
-                "create": string,
-                "root": string,
-                "urlCopied": string,
-                "assetOptimized": string,
-                "assetCompressed": string,
-                "undo": string,
-                "collapseFolder": string,
-                "expandFolder": string
-            },
-            "branches": {
-                "createBranch": string,
-                "createBranchDescription": string,
-                "branchNamePlaceholder": string,
-                "forkCurrent": string,
-                "blankBranch": string,
-                "creating": string,
-                "createFromCurrent": string,
-                "createBlank": string,
-                "searchBranches": string,
-                "noBranchesMatch": string,
-                "switchUnsaved": string,
-                "switchUnsavedDescription": string,
-                "switchAnyway": string,
-                "manageBranch": string,
-                "branchSettings": string,
-                "name": string,
-                "active": string,
-                "actions": string,
-                "fork": string,
-                "forking": string,
-                "delete": string,
-                "deleting": string,
-                "cancel": string,
-                "switchAnyway": string
-            },
-            "brand": {
-                "searchTokens": string,
-                "tailwindDetected": string,
-                "importTailwind": string,
-                "importing": string,
-                "noTokensMatch": string,
-                "fonts": string,
-                "setupTokens": string,
-                "setupTokensDescription": string,
-                "settingUp": string,
-                "setUpTokens": string,
-                "addTo": string,
-                "noTokensYet": string,
-                "tokenRename": string,
-                "tokenDuplicate": string,
-                "tokenMoveToGroup": string,
-                "tokenRemoveFromGroup": string,
-                "tokenNewGroup": string,
-                "tokenDelete": string,
-                "deleteTokenTitle": string,
-                "deleteTokenDescription": string,
-                "deleteTokenConfirm": string,
-                "addTokenNameLabel": string,
-                "addTokenValueLabel": string,
-                "addTokenApplyClasses": string,
-                "addTokenCancel": string,
-                "addTokenAdd": string,
-                "addTokenAdding": string,
-                "fontsHeader": string,
-                "searchFont": string,
-                "addedFonts": string,
-                "scanningFonts": string,
-                "noFontsAdded": string,
-                "searchResults": string,
-                "browseNewFonts": string,
-                "noFontsFound": string,
-                "loadMoreFonts": string,
-                "loadingFonts": string,
-                "uploadCustomFont": string,
-                "uploadFont": string,
-                "uploadOrDrag": string,
-                "uploadFormats": string,
-                "uploading": string,
-                "saveFontFiles": string,
-                "fontUploadCancel": string,
-                "fontsUploaded": string,
-                "failedToUploadFonts": string,
-                "failedToSearchFonts": string,
-                "failedToLoadFonts": string
-            },
-            "layers": {
-                "searchLayers": string,
-                "noMatchingLayers": string,
-                "noLayersAvailable": string
-            },
-            "pages": {
-                "searchPages": string,
-                "createPageOrFolder": string,
-                "newPage": string,
-                "newFolder": string,
-                "noPagesFound": string,
-                "createNewPage": string,
-                "createNewFolder": string,
-                "renamePage": string,
-                "renameFolder": string,
-                "createPage": string,
-                "createFolder": string,
-                "renamingPage": string,
-                "creatingPage": string,
-                "cancelPage": string,
-                "pageWillBe": string,
-                "folderWillBe": string,
-                "pagePlaceholder": string,
-                "folderPlaceholder": string,
-                "foldersAppRouterOnly": string
-            },
-            "components": {
-                "searchTemplates": string,
-                "components": string,
-                "indexingComponents": string,
-                "noMatchingComponents": string,
-                "noComponentsYet": string,
-                "noMatchingTemplates": string
-            },
-            "codePanel": {
-                "searchFiles": string,
-                "loadingFiles": string,
-                "noFilesFound": string,
-                "noFilesMatch": string,
-                "clearSearch": string,
-                "uploadFiles": string,
-                "uploadFilesDescription": string,
-                "directoryPath": string,
-                "directoryPathHint": string,
-                "selectFiles": string,
-                "dragAndDropOrClick": string,
-                "multipleFilesSupported": string,
-                "clearSelection": string,
-                "cancel": string,
-                "uploading": string,
-                "addToChat": string,
-                "copyPath": string,
-                "copyName": string,
-                "rename": string,
-                "delete": string,
-                "deleteFile": string,
-                "deleteFolder": string,
-                "pathCopied": string,
-                "nameCopied": string,
-                "unsaved": string,
-                "inlineEditPlaceholder": string,
-                "inlineAcceptReject": string,
-                "inlineGenerateCancel": string,
-                "inlineReject": string,
-                "inlineAccept": string,
-                "inlineRetry": string,
-                "deleteFileConfirm": string,
-                "deleteFolderExtra": string,
-                "deleteFileExtra": string,
-                "deleteFileOrFolder": string,
-                "areYouSureDelete": string
-            }
-        },
-        "stylePanel": {
-            "search": {
-                "placeholder": string,
-                "noMatch": string,
-                "noMatchingProperty": string,
-                "notEditable": string,
-                "notEditableToast": string,
-                "display": string,
-                "flexDirection": string,
-                "justifyContent": string,
-                "alignItems": string,
-                "gap": string,
-                "padding": string,
-                "margin": string,
-                "position": string,
-                "top": string,
-                "right": string,
-                "bottom": string,
-                "left": string,
-                "zIndex": string,
-                "width": string,
-                "height": string,
-                "minWidth": string,
-                "minHeight": string,
-                "maxWidth": string,
-                "maxHeight": string,
-                "aspectRatio": string,
-                "objectFit": string,
-                "overflow": string,
-                "fontFamily": string,
-                "fontSize": string,
-                "fontWeight": string,
-                "lineHeight": string,
-                "letterSpacing": string,
-                "textAlign": string,
-                "textTransform": string,
-                "textDecoration": string,
-                "textShadow": string,
-                "textColor": string,
-                "opacity": string,
-                "visibility": string,
-                "backgroundColor": string,
-                "backgroundImage": string,
-                "backgroundSize": string,
-                "backgroundRepeat": string,
-                "borderWidth": string,
-                "borderColor": string,
-                "borderStyle": string,
-                "borderRadius": string,
-                "boxShadow": string,
-                "filter": string,
-                "backdropFilter": string,
-                "blendMode": string,
-                "outlineWidth": string,
-                "outlineColor": string,
-                "outlineStyle": string,
-                "outlineOffset": string,
-                "transform": string,
-                "transformOrigin": string,
-                "transformStyle": string,
-                "rotate": string,
-                "perspective": string,
-                "perspectiveOrigin": string,
-                "backfaceVisibility": string,
-                "transition": string,
-                "transitionProperty": string,
-                "transitionDuration": string,
-                "transitionDelay": string,
-                "transitionTiming": string,
-                "float": string,
-                "clear": string,
-                "cursor": string,
-                "pointerEvents": string,
-                "userSelect": string,
-                "touchAction": string
-            },
-            "frame": {
-                "frameLabel": string
-            },
-            "section": {
-                "advanced": string,
-                "background": string,
-                "border": string,
-                "cursor": string,
-                "effects": string,
-                "element": string,
-                "layout": string,
-                "layoutGuide": string,
-                "position": string,
-                "size": string,
-                "styles": string,
-                "text": string,
-                "transforms": string,
-                "transitions": string
-            },
-            "common": {
-                "reset": string,
-                "custom": string,
-                "perSide": string,
-                "perCorner": string,
-                "top": string,
-                "right": string,
-                "bottom": string,
-                "left": string,
-                "topLeft": string,
-                "topRight": string,
-                "bottomLeft": string,
-                "bottomRight": string,
-                "addVariable": string,
-                "noCustomProperties": string,
-                "layoutExtras": string,
-                "customProperties": string,
-                "altClickToReset": string,
-                "hide": string,
-                "show": string,
-                "openColorPicker": string,
-                "hexValue": string,
-                "alpha": string,
-                "pickFromCanvas": string,
-                "connectToColorToken": string,
-                "hideCustomControls": string,
-                "showCustomControls": string
-            },
-            "layout": {
-                "flow": string,
-                "alignment": string,
-                "gap": string,
-                "padding": string,
-                "margin": string,
-                "displayFlow": string,
-                "perSidePadding": string,
-                "perSideMargin": string,
-                "horizontalPadding": string,
-                "verticalPadding": string,
-                "horizontalMargin": string,
-                "verticalMargin": string,
-                "block": string,
-                "flexColumn": string,
-                "flexRow": string,
-                "grid": string
-            },
-            "position": {
-                "type": string,
-                "offsets": string,
-                "staticHint": string,
-                "rotation": string,
-                "flipHorizontal": string,
-                "flipVertical": string,
-                "zIndex": string,
-                "static": string,
-                "relative": string,
-                "absolute": string,
-                "fixed": string,
-                "sticky": string
-            },
-            "size": {
-                "dimensions": string,
-                "constraints": string,
-                "aspectFit": string,
-                "behavior": string,
-                "width": string,
-                "height": string,
-                "minWidth": string,
-                "minHeight": string,
-                "maxWidth": string,
-                "maxHeight": string,
-                "aspectRatio": string,
-                "fit": string,
-                "grow": string,
-                "overflow": string,
-                "minWidthAria": string,
-                "minHeightAria": string,
-                "maxWidthAria": string,
-                "maxHeightAria": string,
-                "flexGrow": string
-            },
-            "text": {
-                "style": string,
-                "content": string,
-                "color": string,
-                "font": string,
-                "alignment": string,
-                "caseDecoration": string,
-                "textShadow": string,
-                "weight": string,
-                "fontSize": string,
-                "lineHeight": string,
-                "letterSpacing": string,
-                "textAlignment": string,
-                "case": string,
-                "decor": string,
-                "contentEditablePlaceholder": string,
-                "contentReadonlyPlaceholder": string,
-                "contentAriaLabel": string,
-                "textStyleKind": string
-            },
-            "background": {
-                "type": string,
-                "color": string,
-                "image": string,
-                "size": string,
-                "repeat": string,
-                "backgroundType": string,
-                "backgroundImageUrl": string,
-                "gradientComingSoon": string,
-                "urlOrAsset": string,
-                "solid": string,
-                "gradient": string,
-                "none": string,
-                "cover": string,
-                "contain": string,
-                "auto": string,
-                "noRepeat": string,
-                "repeatBoth": string,
-                "repeatX": string,
-                "repeatY": string
-            },
-            "border": {
-                "stroke": string,
-                "radius": string,
-                "style": string,
-                "perSide": string,
-                "perCorner": string,
-                "borderWidth": string,
-                "borderRadius": string,
-                "solid": string,
-                "dashed": string,
-                "dotted": string,
-                "double": string,
-                "groove": string,
-                "ridge": string,
-                "inset": string,
-                "outset": string,
-                "none": string
-            },
-            "effects": {
-                "style": string,
-                "shadow": string,
-                "filter": string,
-                "backdropFilter": string,
-                "blendMode": string,
-                "outlineStyle": string,
-                "outlineWidth": string,
-                "outlineColor": string,
-                "outlineOffset": string,
-                "mode": string,
-                "effectKind": string
-            },
-            "transforms": {
-                "perspective": string,
-                "rotate": string,
-                "transform": string,
-                "origin": string,
-                "perspectiveOrigin": string,
-                "transformStyle": string,
-                "backfaceVisibility": string,
-                "value": string
-            },
-            "transitions": {
-                "shorthand": string,
-                "property": string,
-                "duration": string,
-                "easing": string,
-                "delay": string,
-                "value": string,
-                "prop": string,
-                "ease": string,
-                "transitionDuration": string,
-                "transitionDelay": string,
-                "linear": string,
-                "easeIn": string,
-                "easeOut": string,
-                "easeInOut": string
-            },
-            "styles": {
-                "opacity": string,
-                "visible": string,
-                "visibility": string,
-                "visibleOption": string,
-                "hiddenOption": string
-            },
-            "cursor": {
-                "cursor": string,
-                "pointerEvents": string,
-                "userSelect": string,
-                "touchAction": string,
-                "type": string,
-                "events": string,
-                "select": string,
-                "touch": string,
-                "auto": string,
-                "default": string,
-                "pointer": string,
-                "wait": string,
-                "text": string,
-                "move": string,
-                "notAllowed": string,
-                "grab": string,
-                "grabbing": string,
-                "crosshair": string,
-                "help": string,
-                "zoomIn": string,
-                "zoomOut": string,
-                "none": string,
-                "all": string,
-                "contain": string,
-                "panX": string,
-                "panY": string,
-                "pinchZoom": string,
-                "manipulation": string
-            },
-            "advanced": {
-                "layoutExtras": string,
-                "customProperties": string,
-                "float": string,
-                "clear": string,
-                "none": string,
-                "left": string,
-                "right": string,
-                "both": string,
-                "noCustomProperties": string,
-                "addVariable": string,
-                "customPropertyNamePlaceholder": string,
-                "customPropertyAriaLabel": string,
-                "removeVariable": string
-            },
-            "element": {
-                "tag": string,
-                "id": string,
-                "classes": string,
-                "link": string,
-                "editRawClassName": string,
-                "rawClassAriaLabel": string,
-                "rawClassPlaceholder": string,
-                "addAClass": string,
-                "elementIdAriaLabel": string
-            },
-            "component": {
-                "noProperties": string,
-                "editComponent": string,
-                "componentOptions": string,
-                "resetAllProperties": string,
-                "failedToUpdateProperty": string,
-                "failedToResetProperty": string,
-                "failedToResetProperties": string,
-                "resetToDefault": string,
-                "resetNameToDefault": string,
-                "noVariantsYet": string,
-                "variant": string,
-                "variants": string,
-                "default": string,
-                "propertyFromSelection": string,
-                "createPropertyTitle": string,
-                "selectElementFirst": string,
-                "createProperty": string,
-                "creating": string,
-                "addVariant": string,
-                "adding": string,
-                "couldNotCreateProperty": string,
-                "propertyCreated": string,
-                "couldNotAddVariant": string,
-                "variantAdded": string,
-                "noPropertiesYet": string,
-                "propertiesSection": string,
-                "connectedToElement": string,
-                "notConnected": string,
-                "dynamic": string,
-                "unsupported": string,
-                "text": string,
-                "richText": string,
-                "image": string,
-                "link": string,
-                "number": string,
-                "switch": string,
-                "slot": string,
-                "variantType": string
-            },
-            "smartLink": {
-                "placeholder": string,
-                "noMatches": string,
-                "pages": string,
-                "files": string,
-                "email": string,
-                "phone": string,
-                "orUse": string,
-                "sendEmailTo": string,
-                "callPhone": string,
-                "goTo": string,
-                "goToUrl": string
-            },
-            "chipInput": {
-                "addAnItem": string
-            },
-            "layoutGuide": {
-                "addLayoutGuide": string,
-                "removeLayoutGuide": string,
-                "hideLayoutGuide": string,
-                "showLayoutGuide": string,
-                "noGuides": string,
-                "grid": string,
-                "columns": string,
-                "rows": string,
-                "column": string,
-                "row": string,
-                "layoutGuideType": string,
-                "layoutGuideTypeAriaLabel": string,
-                "alignment": string,
-                "alignmentType": string,
-                "alignmentAriaLabel": string,
-                "size": string,
-                "count": string,
-                "color": string,
-                "colorAriaLabel": string,
-                "colorHexAriaLabel": string,
-                "type": string,
-                "width": string,
-                "margin": string,
-                "gutter": string,
-                "stretch": string,
-                "left": string,
-                "center": string,
-                "right": string,
-                "top": string,
-                "bottom": string,
-                "auto": string,
-                "colorHex": string
-            }
-        }
-    },
-    "help": {
-        "menu": {
-            "reloadWeblab": "Reload Weblab",
-            "theme": {
-                "title": "Theme",
-                "light": "Light",
-                "dark": "Dark",
-                "system": "System"
-            },
-            "language": "Language",
-            "openSettings": "Open Settings",
-            "contactUs": {
-                "title": "Contact Us",
-                "website": "Website",
-                "github": "GitHub",
-                "email": "Email"
-            },
-            "reportIssue": "Report Issue",
-            "shortcuts": "Shortcuts"
-        }
-    },
-    "aiPromptComposer": {
-        "uploadImageTooltip": "Upload image"
-    },
-    "security": {
-        "hero": {
-            "eyebrow": "Security",
-            "title": "Security at Weblab",
-            "subtitle": "Your code, your data, on infrastructure aligned with industry standards.",
-            "ctaSubprocessors": "View subprocessors",
-            "ctaReport": "Report a vulnerability"
-        },
-        "data": {
-            "eyebrow": "Your data",
-            "title": "Your data, your control",
-            "subtitle": "Built to keep what's yours, yours.",
-            "learnMore": "Learn more",
-            "items": {
-                "tls": {
-                    "title": "Encrypted in transit",
-                    "body": "All traffic is encrypted over TLS. Sessions live in httpOnly, secure cookies."
-                },
-                "oauth": {
-                    "title": "OAuth sign-in",
-                    "body": "Sign in with Google or GitHub. No passwords stored. Sessions managed by Supabase."
-                },
-                "aiTraining": {
-                    "title": "Code is not used to train AI",
-                    "body": "Prompts and code are not used to train models. Providers retain logs briefly for abuse detection only."
-                },
-                "oss": {
-                    "title": "Open source",
-                    "body": "Weblab is Apache-2.0 licensed. The full source is on GitHub. Audit it, fork it, run it yourself."
-                },
-                "supabase": {
-                    "title": "Supabase-backed storage",
-                    "body": "Postgres database on Supabase. Encryption at rest. Row-level security on every table."
-                },
-                "stripe": {
-                    "title": "Payments via Stripe",
-                    "body": "Card data is handled by Stripe, PCI-DSS Level 1. We never see your card number."
-                }
-            }
-        },
-        "compliance": {
-            "eyebrow": "Compliance",
-            "title": "Compliance posture",
-            "subtitle": "We follow the controls behind the standards customers expect.",
-            "disclaimer": "Weblab is aligned with these frameworks but is not currently certified against ISO 27001 or SOC 2. Formal audits are on our roadmap.",
-            "items": {
-                "gdpr": {
-                    "title": "GDPR-aligned",
-                    "body": "Data minimization, right to access, right to erasure. Email us to exercise your rights."
-                },
-                "ccpa": {
-                    "title": "CCPA-aligned",
-                    "body": "California residents may opt out of sale or sharing. We do not sell personal data."
-                },
-                "iso": {
-                    "title": "Aligned with ISO 27001 controls",
-                    "body": "Access control, least-privilege secrets, encryption in transit, and incident response practices."
-                },
-                "soc": {
-                    "title": "Modeled on SOC 2 practices",
-                    "body": "Change management, monitoring, vendor review, and access reviews follow SOC 2 trust criteria."
-                },
-                "oss": {
-                    "title": "Open-source codebase",
-                    "body": "Anyone can review our code. Security through transparency, not obscurity."
-                },
-                "disclosure": {
-                    "title": "Coordinated disclosure",
-                    "body": "Report vulnerabilities privately via GitHub Security Advisories. We respond within five business days."
-                }
-            }
-        },
-        "compare": {
-            "eyebrow": "Vs typical builders",
-            "title": "How we compare",
-            "subtitle": "Weblab versus typical site builders, and where your data stands.",
-            "columns": {
-                "feature": "Feature",
-                "weblab": "Weblab",
-                "typical": "Typical site builder"
-            },
-            "rows": {
-                "code": {
-                    "label": "Your code",
-                    "weblab": "Yours, real React in your Git repo",
-                    "typical": "Locked into a proprietary format"
-                },
-                "source": {
-                    "label": "Source available",
-                    "weblab": "Apache-2.0, public on GitHub",
-                    "typical": "Closed source"
-                },
-                "export": {
-                    "label": "Export your project",
-                    "weblab": "Anytime, full source",
-                    "typical": "Restricted or paid tier"
-                },
-                "aiOptOut": {
-                    "label": "AI training opt-out",
-                    "weblab": "Default, your code is never used",
-                    "typical": "Opt-in by default"
-                },
-                "standards": {
-                    "label": "Open standards",
-                    "weblab": "Real Next.js, real Postgres",
-                    "typical": "Proprietary stack"
-                },
-                "region": {
-                    "label": "Region transparency",
-                    "weblab": "Subprocessors and regions listed",
-                    "typical": "Often hidden"
-                }
-            }
-        },
-        "subprocessors": {
-            "eyebrow": "Subprocessors",
-            "title": "Vendors that process data on our behalf",
-            "subtitle": "Every external system that touches customer data, what it does, and where it runs.",
-            "columns": {
-                "name": "Name",
-                "purpose": "Purpose",
-                "region": "Region"
-            },
-            "rows": {
-                "supabase": {
-                    "name": "Supabase",
-                    "purpose": "Auth + Postgres database",
-                    "region": "EU"
-                },
-                "openrouter": {
-                    "name": "OpenRouter",
-                    "purpose": "LLM routing for AI features",
-                    "region": "US"
-                },
-                "stripe": {
-                    "name": "Stripe",
-                    "purpose": "Payment processing",
-                    "region": "US / EU"
-                },
-                "railway": { "name": "Railway", "purpose": "Application hosting", "region": "US" },
-                "github": {
-                    "name": "GitHub",
-                    "purpose": "OAuth sign-in + repository sync",
-                    "region": "US"
-                },
-                "posthog": { "name": "PostHog", "purpose": "Product analytics", "region": "EU" },
-                "gleap": { "name": "Gleap", "purpose": "User feedback widget", "region": "EU" },
-                "resend": { "name": "Resend", "purpose": "Transactional email", "region": "EU" }
-            },
-            "note": "* Active only when configured. Disabled integrations send no data to that subprocessor.",
-            "lastUpdated": "Last updated {date}"
-        },
-        "badges": {
-            "eyebrow": "Standards",
-            "title": "What Weblab is built to meet",
-            "subtitle": "We design to the bar customers expect, without overstating audits we have not completed.",
-            "gdpr": "GDPR-aligned",
-            "ccpa": "CCPA-aligned",
-            "apache": "Apache-2.0",
-            "oss": "Open source",
-            "disclosure": "Vulnerability disclosure"
-        },
-        "contact": {
-            "title": "Talk to us about security",
-            "subtitle": "Questions, compliance reviews, or vulnerability reports. We read every message.",
-            "emailCard": {
-                "title": "General security questions",
-                "body": "Reach out for compliance reviews, DPA requests, or anything else.",
-                "cta": "Email security"
-            },
-            "githubCard": {
-                "title": "Report a vulnerability",
-                "body": "Use GitHub Security Advisories for coordinated disclosure. Responses within five business days.",
-                "cta": "Open a security advisory"
-            }
-        },
-        "cookies": {
-            "title": "Cookies on this site",
-            "body": "We use cookies for product analytics and feedback. Accept to help us improve Weblab, or reject to keep only essentials.",
-            "accept": "Accept",
-            "reject": "Reject"
-        }
-    },
-    "seo": {
-        "root": {
-            "title": "Weblab - AI Visual Website Builder for React Teams",
-            "description": "AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.",
-            "ogImageAlt": "Weblab: AI visual website builder for React teams"
-        },
-        "pricing": {
-            "title": "Pricing | Weblab Visual Editor for React",
-            "description": "Weblab pricing: start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.",
-            "ogImageAlt": "Weblab pricing"
-        },
-        "faq": {
-            "title": "FAQ | Weblab - AI-Powered Visual Editor for Frontend Development",
-            "description": "Frequently asked questions about Weblab, the AI-powered visual editor for frontend development. Learn about supported frameworks (React and Next.js, with Vite, Remix, Astro, and TanStack Start on the roadmap), component libraries, AI features, pricing, and how Weblab differs from other design tools.",
-            "ogImageAlt": "Weblab FAQ"
-        },
-        "about": {
-            "title": "About Weblab | The Visual Editor for React",
-            "description": "Meet the founder behind Weblab, an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.",
-            "ogImageAlt": "About Weblab"
-        },
-        "features": {
-            "title": "Features | Weblab AI Visual Editor for React Teams",
-            "description": "Explore Weblab's features: AI constrained to your design system, infinite canvas, real-time collaboration, version history, and GitHub PR output.",
-            "ogImageAlt": "Weblab features preview"
-        },
-        "featuresAi": {
-            "title": "AI Visual Editor | Build UIs with AI Using Your Design System | Weblab",
-            "description": "Weblab is an AI-powered visual editor that builds frontend UIs using your real React components. AI is constrained to your design system, with no brand drift and no throwaway code. Changes become mergeable PRs.",
-            "ogImageAlt": "Weblab AI visual editor preview"
-        },
-        "featuresBuilder": {
-            "title": "Visual Builder | Design with Your Real React Components | Weblab",
-            "description": "Weblab is a visual builder that works with your existing codebase. Design with your real React, Vue, or Angular components on an infinite canvas. Changes become mergeable pull requests.",
-            "ogImageAlt": "Weblab visual builder preview"
-        },
-        "featuresPrototype": {
-            "title": "AI Prototype Generator | Create Functional React Prototypes | Weblab",
-            "description": "Weblab generates functional React prototypes with real interactions, not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.",
-            "ogImageAlt": "Weblab prototype generator preview"
-        },
-        "featuresAiFrontend": {
-            "title": "AI for Frontend Development | Visual AI Editor for React | Weblab",
-            "description": "Weblab is an AI visual editor for React, Vue, and Angular teams. AI is constrained to your real components and design system, so changes ship as mergeable PRs.",
-            "ogImageAlt": "Weblab AI for frontend development preview"
-        },
-        "workflows": {
-            "title": "Workflows | Integrate Weblab with Claude Code, Cursor & AI Coding Tools | Weblab",
-            "description": "Connect Weblab to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools. Design with your real components, collaborate with your team, ship PRs.",
-            "ogImageAlt": "Weblab workflows preview"
-        },
-        "workflowsClaudeCode": {
-            "title": "Claude Code for Designers: Add a Visual Canvas to Your Workflow | Weblab",
-            "description": "Designers using Claude Code need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
-            "ogImageAlt": "Weblab Claude Code workflow preview"
-        },
-        "workflowsVibeCoding": {
-            "title": "Vibe Coding for Teams: Add Collaboration to Your AI Workflow | Weblab",
-            "description": "Vibe coding has a collaboration problem. Weblab solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs, not throwaway prototypes.",
-            "ogImageAlt": "Weblab vibe coding workflow preview"
-        },
-        "workflowsCodex": {
-            "title": "Codex for Designers: Add a Visual Canvas to Your Workflow | Weblab",
-            "description": "Designers using OpenAI Codex need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
-            "ogImageAlt": "Weblab Codex workflow preview"
-        },
-        "download": {
-            "title": "Download Weblab | Mac, Windows, Linux & iOS",
-            "description": "Get the Weblab desktop app for macOS, Windows and Linux, or the iOS app on iPhone and iPad.",
-            "ogImageAlt": "Download Weblab"
-        },
-        "changelog": {
-            "title": "Changelog | Weblab",
-            "description": "Latest updates, new features, and improvements to Weblab, the AI visual editor for React teams.",
-            "ogImageAlt": "Weblab changelog"
-        },
-        "compare": {
-            "title": "Weblab vs Lovable, Bolt, v0, Replit, Webflow, and more. Compare AI Design Tools",
-            "description": "Compare Weblab to Lovable, Bolt, v0, Replit, Webflow, and more. Weblab is the visual editor that works with your real React components and ships pull requests instead of throwaway code.",
-            "ogImageAlt": "Compare Weblab"
-        },
-        "privacyPolicy": {
-            "title": "Privacy Policy | Weblab",
-            "description": "Weblab privacy policy. Learn how Weblab handles your data.",
-            "ogImageAlt": "Weblab privacy policy"
-        },
-        "termsOfService": {
-            "title": "Terms of Service | Weblab",
-            "description": "Weblab terms of service. Read the legal terms governing your use of Weblab.",
-            "ogImageAlt": "Weblab terms of service"
-        },
-        "security": {
-            "title": "Security & Compliance | Weblab",
-            "description": "How Weblab handles your data: encryption, OAuth sign-in, AI training opt-out, subprocessors, and our compliance posture.",
-            "ogImageAlt": "Weblab security and compliance"
-        },
-        "sitemap": {
-            "title": "Sitemap | Weblab",
-            "description": "Complete sitemap for weblab.build, the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.",
-            "ogImageAlt": "Weblab sitemap"
-        },
-        "aiWebsiteBuilder": {
-            "title": "AI Website Builder for React & Next.js Codebases | Weblab",
-            "description": "AI website builder for React teams. AI edits your real components, respects your design tokens, and ships every change as a pull request. Open source.",
-            "ogImageAlt": "Weblab: AI website builder for React and Next.js"
-        },
-        "visualSiteBuilder": {
-            "title": "Visual Site Builder for React & Next.js Teams | Weblab",
-            "description": "Visual site builder for React and Next.js. Design with your real components on an infinite canvas. Ship pull requests, not mockups. Open source.",
-            "ogImageAlt": "Weblab: visual site builder for React and Next.js teams"
-        },
-        "websiteBuilder": {
-            "title": "Website Builder for Teams Who Own a Codebase | Weblab",
-            "description": "Website builder for teams with a React or Next.js codebase. Visual canvas, real components, AI assistance, pull-request output. Open source. Free to self-host.",
-            "ogImageAlt": "Weblab: website builder for teams with a codebase"
-        }
-    },
-    "nav": {
-        "brandHomeAria": "Weblab home",
-        "githubAria": "View Weblab on GitHub",
-        "mobileMenu": {
-            "open": "Open menu",
-            "close": "Close menu",
-            "getStarted": "Get started"
-        },
-        "user": {
-            "download": "Download",
-            "projects": "Projects",
-            "signIn": "Sign in"
-        },
-        "categories": {
-            "product": {
-                "label": "Product",
-                "links": {
-                    "ai": { "title": "AI", "description": "AI-powered design" },
-                    "aiFrontend": {
-                        "title": "AI for Frontend",
-                        "description": "AI constrained to your design system"
-                    },
-                    "visualBuilder": {
-                        "title": "Visual Builder",
-                        "description": "Craft on a canvas"
-                    },
-                    "prototyping": {
-                        "title": "Prototyping",
-                        "description": "Rapid prototype creation"
-                    },
-                    "claudeCode": {
-                        "title": "Claude Code",
-                        "description": "Visual layer for Claude Code"
-                    },
-                    "vibeCoding": {
-                        "title": "Vibe Coding",
-                        "description": "Team collaboration for vibe coding"
-                    },
-                    "allFeatures": {
-                        "title": "All Features",
-                        "description": "See everything Weblab offers"
-                    }
-                }
-            },
-            "resources": {
-                "label": "Resources",
-                "links": {
-                    "documentation": {
-                        "title": "Documentation",
-                        "description": "Learn how to use Weblab"
-                    },
-                    "blog": { "title": "Blog", "description": "News and updates" },
-                    "github": { "title": "GitHub", "description": "View the source code" }
-                }
-            },
-            "about": {
-                "label": "About",
-                "links": {
-                    "aboutUs": { "title": "About Us", "description": "Learn about our mission" },
-                    "faq": { "title": "FAQ", "description": "Common questions" },
-                    "security": { "title": "Security", "description": "How we handle your data" }
-                }
-            }
-        }
-    },
-    "landing": {
-        "hero": {
-            "headline": "Design on your real codebase.",
-            "headlineScript": "Ship a real PR.",
-            "subhead": "Open your real React or Next.js project, edit visually with AI, and push to GitHub. Open source. Pairs with Claude Code.",
-            "getStarted": "Get started",
-            "continueProjects": "Continue to your projects",
-            "download": "Download",
-            "highDemand": "We're currently experiencing high demand. Project may fail to create.",
-            "create": {
-                "promptPlaceholder": "Describe what you want to build",
-                "signInTooltip": "Sign in to start building",
-                "failedToCreate": "Failed to create project",
-                "replacePromptConfirm": "Replace your current prompt with this suggestion?",
-                "overlayHeading": "Getting your site ready",
-                "overlayCaption": "Your prompt is saved. The AI will start building as soon as the editor loads."
-            },
-            "errorBanner": {
-                "tryAgain": "Try again",
-                "dismiss": "Dismiss"
-            },
-            "cloneWebsite": "Clone a website",
-            "importGithub": "Import from GitHub",
-            "openLocalFolder": {
-                "importingHeading": "Importing your folder",
-                "importingCaption": "Uploading your files. Larger folders take longer.",
-                "uploadingFiles": "Uploading files ({count})",
-                "uploadingFolder": "Uploading folder",
-                "creatingProject": "Creating your project",
-                "openingEditor": "Opening editor",
-                "unsupportedTooltip": "Local folder access is only available in Chromium-based browsers (Chrome, Edge, Arc)."
-            },
-            "mobileEmailCapture": {
-                "notification": "Weblab is optimized for larger screens",
-                "cta": "Email me a link for later",
-                "formTitle": "Email me a link to Weblab",
-                "nameLabel": "Name",
-                "namePlaceholder": "Pablo Picasso",
-                "emailLabel": "Email",
-                "emailPlaceholder": "Enter your email",
-                "submit": "Email me a link",
-                "submitting": "Submitting...",
-                "success": "Thanks, an email to use Weblab has been sent to you!",
-                "errors": {
-                    "missingFields": "Please fill in all fields",
-                    "invalidEmail": "Please enter a valid email address",
-                    "timeout": "Request timed out. Please check your connection and try again.",
-                    "server": "Server error. Please try again in a moment.",
-                    "network": "Network error. Please check your connection and try again.",
-                    "submit": "Failed to submit form. Please try again.",
-                    "generic": "An unexpected error occurred. Please try again."
-                }
-            }
-        },
-        "useCases": {
-            "eyebrow": "Looks simple. Goes deep.",
-            "references": {
-                "label": "References",
-                "description": "Drop in a screenshot, a doc, a link. Weblab reads it the same way you would, then builds with it."
-            },
-            "pages": {
-                "label": "Pages",
-                "description": "Plan your site like a sitemap. Add a page, set its route, share a layout, without leaving the canvas."
-            },
-            "code": {
-                "label": "Code",
-                "description": "Underneath every screen is real code. Open a file, change a line, see the canvas update. The same code your team would ship."
-            },
-            "search": {
-                "label": "Search",
-                "description": "Find anything in your project. A page, a component, a word in a button. One search, everything indexed."
-            },
-            "connect": {
-                "label": "Connect",
-                "description": "Already have a project? Open your repo, edit on the canvas, ship back as commits. No rebuild. No migration."
-            },
-            "startBuilding": "Start building"
-        },
-        "modelAgnostic": {
-            "eyebrow": "Model agnostic",
-            "headline": "Only use the AI models that work best for you.",
-            "body": "With Weblab, you can choose and switch between leading models as you need.",
-            "models": {
-                "gpt": "Flagship GPT model for complex tasks",
-                "gptMini": "Smaller, faster GPT for everyday work",
-                "sonnet": "Anthropic's flagship, industry-leading for coding",
-                "opus": "Most capable Claude for the hardest problems",
-                "haiku": "Compact Claude, fast and affordable",
-                "gemini": "Google's frontier multimodal model",
-                "deepseek": "Open-weight reasoning at frontier quality",
-                "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
-                "kimi": "Long-context, fast and capable",
-                "mistral": "Open-weight model tuned for code"
-            }
-        },
-        "andSoMuchMore": {
-            "titleLine1": "...and so",
-            "titleLine2": "much more",
-            "worksWithCodebase": {
-                "title": "Works With Your Codebase",
-                "body": "Connect your existing React, Next.js, or Vue project. No rebuilding. No migration. Start designing in minutes."
-            },
-            "builtForTeams": {
-                "title": "Built for Teams",
-                "body": "Share your canvas. Leave spatial comments. Work together on designs that become real PRs."
-            },
-            "githubIntegration": {
-                "title": "Direct GitHub Integration",
-                "body": "Push changes directly to your repository. Review diffs before committing."
-            },
-            "shipPrs": {
-                "title": "Ship PRs, Not Prototypes",
-                "body": "Your changes become a real pull request. Engineers review and merge, with no handoff and no translation."
-            },
-            "shortcuts": {
-                "title": "Power User Shortcuts",
-                "bodyPrefix": "All your familiar hotkeys work here.",
-                "bodySuffix": "and everything in between."
-            },
-            "reference": {
-                "title": "Reference Anything in Chat",
-                "body": "Drop images, mockups, or docs into your conversation. AI uses them as context for better results."
-            }
-        },
-        "digitalSolutions": {
-            "titleLine1": "From canvas",
-            "titleLine2": "to deployed.",
-            "body": "Once the first screen is on the canvas, the real work starts. Multiplayer, branching, content, deploys. The parts of shipping that other tools hand off, Weblab keeps in one place.",
-            "startBuilding": "Start building",
-            "play": "Play",
-            "pause": "Pause",
-            "slides": {
-                "collab": {
-                    "eyebrow": "Team on one canvas",
-                    "title": "See each other work, in real time.",
-                    "description": "Live cursors, presence, and inline comments on real components. Mention a teammate, resolve a thread, and turn feedback into a commit without leaving the canvas."
-                },
-                "branches": {
-                    "eyebrow": "Safe experiments",
-                    "title": "Branch the canvas like you branch the code.",
-                    "description": "Try a redesign on a branch, preview it live, and merge only when you're happy. Every change is a checkpoint you can restore any time."
-                },
-                "cms": {
-                    "eyebrow": "Content, native",
-                    "title": "Edit content where you edit design.",
-                    "description": "Collections, fields, and bindings live next to your components. Pull from Payload, Strapi, or a built-in store, and ship copy changes without a code push."
-                },
-                "deploy": {
-                    "eyebrow": "Ship to production",
-                    "title": "Publish to a live URL in one click.",
-                    "description": "Preview every branch on its own URL. Promote to your custom domain when it's ready. Real code, real builds, real production, with no export step."
-                }
-            }
-        },
-        "cta": {
-            "defaultHeadingLine1": "Ready to stop rebuilding?",
-            "defaultHeadingLine2": "Your design system, on a canvas.",
-            "defaultButton": "Get started"
-        },
-        "featuresIntro": {
-            "eyebrow": "Native Design Tool Features",
-            "headline": "Familiar to Designers. Trusted by Engineers.",
-            "body": "A canvas that feels intuitive, with real code underneath. Engineers can merge what you create directly, with no handoff and no rebuilding."
-        },
-        "featuresGrid": {
-            "components": {
-                "eyebrow": "Your Real Components",
-                "title": "Design with what engineers built",
-                "body": "Use the buttons, cards, and layouts your team already created. Not generic HTML, but your actual design system, ready to drag onto the canvas."
-            },
-            "teams": {
-                "eyebrow": "Built for Teams",
-                "title": "Real-time collaboration",
-                "body": "Share your canvas. Leave spatial comments. Work together on designs that become real PRs. No more \"now how do I share this?\""
-            },
-            "prs": {
-                "eyebrow": "Ship PRs, Not Prototypes",
-                "title": "Changes become pull requests",
-                "body": "Your changes become a real pull request. Engineers review and merge, with no handoff, no translation, and no rebuilding from specs."
-            },
-            "layers": {
-                "eyebrow": "Layer Management",
-                "title": "Navigate your component tree",
-                "body": "See your React component hierarchy in a visual layer panel. Click any layer to select it on the canvas. No more hunting through JSX."
-            },
-            "codebase": {
-                "eyebrow": "Works With Your Codebase",
-                "title": "Connect existing projects",
-                "body": "Connect your existing React or Next.js project. No rebuilding. No migration. Start designing in minutes."
+            "thinking": "Thinking…",
+            "suggestionsLabel": "Suggested",
+            "input": {
+              "placeholder": "Ask anything...",
+              "tooltip": "Chat with AI about the selected element"
+            },
+            "mode": {
+              "tooltip": "Switch between Build and Ask modes"
+            },
+            "controls": {
+              "newChat": "New Chat",
+              "history": "Chat History",
+              "viewHistory": "View chat history",
+              "newChatTooltipStarting": "Starting new chat…",
+              "newChatTooltipStreaming": "Reply still streaming",
+              "chatSettings": "Chat settings",
+              "closePanel": "Close panel",
+              "openPanel": "Open AI chat panel"
+            },
+            "settings": {
+              "showSuggestions": "Show suggestions",
+              "showMiniChat": "Show mini chat",
+              "autoApplyCode": "Auto-apply results",
+              "expandCodeBlocks": "Show code while rendering",
+              "displayHeading": "Display"
+            },
+            "errors": {
+              "single": "Error",
+              "many": "{count} Errors",
+              "fix": "Fix",
+              "fixPrompt": "How can I resolve these errors? If you propose a fix, please make it concise.",
+              "fixToastError": "Failed to send fix error message. Please try again.",
+              "consoleNoErrors": "Console: no errors",
+              "consoleErrors": "Console: {count, plural, one {# error} other {# errors}}",
+              "consoleViewAndFix": "Console: view & fix errors",
+              "noErrors": "No errors",
+              "errorCount": "{count, plural, one {# error} other {# errors}}",
+              "fixWithAi": "Fix with AI",
+              "cleanDevServer": "Your dev server is clean. Errors will show up here."
             },
             "history": {
-                "eyebrow": "Version History",
-                "title": "Never lose your progress",
-                "body": "{appName} automatically saves project snapshots. Experiment with confidence, and roll back to any previous version with one click."
+              "title": "Chat History",
+              "close": "Close chat history",
+              "groupToday": "Today",
+              "groupYesterday": "Yesterday",
+              "groupLastSevenDays": "Last 7 days",
+              "groupEarlier": "Earlier",
+              "newConversationFallback": "New Conversation",
+              "deleteConversationTooltip": "Delete conversation",
+              "deleteDialog": {
+                "title": "Are you sure you want to delete this conversation?",
+                "description": "This action cannot be undone. This will permanently delete your conversation.",
+                "cancel": "Cancel",
+                "delete": "Delete",
+                "deleteFailed": "Failed to delete conversation."
+              }
+            },
+            "queue": {
+              "header": "{count} queued",
+              "edit": "Edit",
+              "moveUp": "Move up",
+              "moveDown": "Move down",
+              "remove": "Remove from queue",
+              "saveHint": "Press Enter to save, Esc to cancel",
+              "drag": "Drag to reorder"
+            },
+            "miniChat": {
+              "button": "Chat with AI"
+            },
+            "aiMenu": {
+              "trigger": "Edit with AI",
+              "placeholder": "Describe the change…",
+              "send": "Send",
+              "addToChat": "Add to chat"
+            },
+            "openInCode": {
+              "button": "Open in Code"
+            },
+            "noActiveConversation": "No active conversation",
+            "startNewConversation": "Start a new conversation",
+            "starters": {
+              "darkMode": "Build a landing page",
+              "modernizeHero": "Add a hero section",
+              "mobileLayout": "Create a responsive navbar",
+              "polish": "Design a pricing section"
+            },
+            "askPlaceholder": "Ask a question about your project...",
+            "planPlaceholder": "Describe what you want to plan...",
+            "attachImage": "Attach image",
+            "effort": {
+              "label": "Reasoning effort",
+              "tooltip": "Controls how long the model thinks before answering. Fast is best for most edits; Deep helps on hard tasks.",
+              "fast": {
+                "label": "Fast",
+                "hint": "Skip thinking, answer immediately"
+              },
+              "light": {
+                "label": "Light",
+                "hint": "A short pause to plan before answering"
+              },
+              "balanced": {
+                "label": "Balanced",
+                "hint": "Moderate thinking for everyday tasks"
+              },
+              "deep": {
+                "label": "Deep",
+                "hint": "Longer thinking budget for hard tasks"
+              }
+            },
+            "restore": {
+              "ariaLabel": "Restore checkpoint",
+              "confirmTitle": "Restore to here?",
+              "confirmDescription": "This rewrites your working tree to the state at this message. Uncommitted edits in the affected files will be lost.",
+              "dontAskAgain": "Don’t ask again",
+              "cancel": "Cancel",
+              "confirm": "Restore"
+            },
+            "userMessage": {
+              "retry": "Retry message",
+              "edit": "Edit message",
+              "copy": "Copy message"
+            },
+            "toolCall": {
+              "stalledMessage": "This tool didn’t return a result.",
+              "retry": "Retry",
+              "retrying": "Retrying…",
+              "ariaRetry": "Retry stalled tool call"
             }
-        },
-        "aiFeaturesGrid": {
-            "feedback": {
-                "eyebrow": "Instant Visual Feedback",
-                "title": "See AI-generated components appear in real-time",
-                "body": "See AI-generated components appear in real-time as you describe them, with immediate visual updates for every change you make"
-            },
-            "library": {
-                "eyebrow": "Component Library",
-                "title": "AI automatically creates reusable components",
-                "body": "AI automatically creates reusable components from your designs and suggests smart combinations from your existing library"
-            },
-            "globalStyles": {
-                "eyebrow": "Global Styles",
-                "title": "Define your brand colors, fonts, and spacing once",
-                "body": "Define your brand colors, fonts, and spacing once - AI applies them consistently across every component it generates"
-            },
-            "responsive": {
-                "eyebrow": "Responsive Breakpoints",
-                "title": "AI builds mobile-first components",
-                "body": "AI builds mobile-first components that automatically adapt to any screen size with proper breakpoints and fluid layouts"
-            },
-            "layers": {
-                "eyebrow": "Layer Management",
-                "title": "Navigate your app structure through an intuitive layer panel",
-                "body": "Navigate your app structure through an intuitive layer panel - select any element to edit manually or collaborate with AI"
-            },
-            "templates": {
-                "eyebrow": "Import Templates",
-                "title": "Start with any Next.js/Tailwind template",
-                "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
-            }
-        },
-        "contributor": {
-            "headingLine1": "Supported by you &",
-            "headingOtherBuilders": "{count} other builders",
-            "headingLoading": "...",
-            "body": "Join the community building the open source Cursor for Designers",
-            "contributeButton": "Contribute to Weblab",
-            "avatarAlt": "{name}'s avatar"
-        },
-        "codeOneToOne": {
-            "headingLine1": "Truly one-to-one",
-            "headingLine2": "with code"
-        },
-        "obsessForHours": {
-            "buildIn": "Build in",
-            "seconds": "Seconds",
-            "obsessFor": "Obsess for",
-            "hours": "Hours",
-            "aiHeading": "Infused with AI",
-            "aiBody": "Craft at the speed of thought",
-            "designHeading": "Crafted for Design",
-            "designBody": "Precise styling, infinite possibilities, component-first"
-        },
-        "aiFeaturesIntro": {
-            "eyebrow": "Design on an Infinite Canvas",
-            "headline": "Point at what you want. AI knows exactly what you mean.",
-            "body": "No more describing \"the button in the top right.\" Just click it. AI is constrained to your design system, so outputs stay on-brand every time."
-        },
-        "aiBenefits": {
-            "codeGen": {
-                "eyebrow": "AI Code Generation for Designers",
-                "headline": "Build Production-Ready Apps with Natural Language",
-                "body": "Describe what you want in plain text and watch AI create fully functional web applications with real databases, user authentication, and interactive features - not just static mockups or prototypes."
-            },
-            "collaborate": {
-                "eyebrow": "Visual AI Design Tools",
-                "headline": "Collaborate with AI on a Visual Canvas",
-                "body": "Select any element and choose to edit it yourself or work together with AI. Unlike pure chat-based tools, you maintain full visual control while AI assists with the heavy lifting, creating a seamless collaboration between human creativity and AI capability."
-            },
-            "system": {
-                "eyebrow": "AI Design System Management",
-                "headline": "Maintain Design System Consistency",
-                "body": "AI automatically applies your brand guidelines, component patterns, and design tokens to ensure every element stays on-brand and consistent across your entire application, eliminating design drift and maintaining professional polish."
-            }
-        },
-        "benefits": {
-            "aiContext": {
-                "eyebrow": "AI That Understands Context",
-                "headline": "AI Constrained to Your Design System",
-                "body": "Reference images, designs, and docs in chat. AI sees what you see, with no more explaining from scratch. Outputs use your real components, colors, and tokens. No drift. No off-brand results."
-            },
-            "canvas": {
-                "eyebrow": "Canvas Manipulation",
-                "headline": "Design on an Infinite Canvas",
-                "body": "Drag, resize, and arrange elements directly on the canvas. See changes in real code instantly, with no switching between tools. Point at what you want. AI knows exactly what you mean."
-            },
-            "guardrails": {
-                "eyebrow": "Design System Guardrails",
-                "headline": "Your Colors, Fonts, and Tokens",
-                "body": "AI is constrained to your design system. Pick from your brand colors, use your typography scales, and style with your existing tokens. No drift. No off-brand outputs.",
-                "features": {
-                    "autoLayout": "Auto Layout & Flexbox",
-                    "borders": "Borders",
-                    "margins": "Margins",
-                    "imageBackgrounds": "Image backgrounds",
-                    "typography": "Typography",
-                    "padding": "Padding",
-                    "gradients": "Gradients",
-                    "cornerRadii": "Corner Radii"
-                }
-            }
-        },
-        "builderFeaturesIntro": {
-            "eyebrow": "Works With Your Codebase",
-            "headline": "Connect Your Existing Project. Start Designing in Minutes.",
-            "body": "No rebuilding. No migration. Connect your React, Next.js, or Vue project and design with your real components, the ones your engineers already built."
-        },
-        "builderBenefits": {
-            "visualReact": {
-                "eyebrow": "Visual React Editing for Developers",
-                "headline": "Edit React Apps Visually with Code Sync",
-                "body": "Manipulate your React codebase visually while seeing real-time code changes. No more switching between editor and browser. Build, style, and refactor your react app with pixel-perfect control and automatic code generation."
-            },
-            "noCode": {
-                "eyebrow": "No-Code React Builder with Developer Tools",
-                "headline": "Create Complex React UIs Without Writing Every Line",
-                "body": "Use drag-and-drop for layouts, components, and state management while Weblab generates production-ready React code."
-            },
-            "aiAssisted": {
-                "eyebrow": "AI-Assisted React Development",
-                "headline": "Generate and Refine React Code with AI",
-                "body": "Combine visual building with AI prompts to create custom React components, hooks, and patterns that match your project's architecture, ensuring everything is typed, optimized, and ready for production.",
-                "features": {
-                    "componentGeneration": "Component Generation",
-                    "stateManagement": "State Management",
-                    "eventHandlers": "Event Handlers",
-                    "apiIntegration": "API Integration",
-                    "typescriptSupport": "TypeScript Support",
-                    "customHooks": "Custom Hooks",
-                    "formValidation": "Form Validation",
-                    "responsiveDesign": "Responsive Design"
-                }
-            }
-        },
-        "builderFeaturesGrid": {
-            "liveCode": {
-                "eyebrow": "Live Code Editing",
-                "body": "Make visual changes that instantly update your React files with proper TSX, props, and state management"
-            },
-            "layers": {
-                "eyebrow": "Layer Management",
-                "body": "Navigate and organize your app's structure through an intuitive layers panel for precise element selection and editing"
-            },
-            "components": {
-                "eyebrow": "Component Library Integration",
-                "body": "Use your existing React component library or import any next/tailwind kit"
+          },
+          "styles": {
+            "name": "Styles",
+            "availableInDesignMode": "Available in Design mode",
+            "emptyState": "Select an element to edit its style properties",
+            "emptyStateHint": "Select a single canvas element to inspect layout, spacing, appearance, typography, and position.",
+            "groups": {
+              "position": "Position & Dimensions",
+              "layout": "Flexbox & Layout",
+              "style": "Styles",
+              "text": "Text"
             },
             "tailwind": {
-                "eyebrow": "TailwindCSS Visual Editor",
-                "body": "Visually edit and apply Tailwind classes with auto-completion and real-time styling previews"
-            },
-            "responsive": {
-                "eyebrow": "Responsive Design Tools",
-                "body": "Build mobile-first React apps with breakpoint previews and automatic media query generation"
-            },
-            "templates": {
-                "eyebrow": "Import Templates",
-                "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
+              "title": "Tailwind Classes",
+              "placeholder": "Add tailwind classes here",
+              "componentClasses": {
+                "title": "Main Component Classes",
+                "tooltip": "Changes apply to component code. This is the default."
+              },
+              "instanceClasses": {
+                "title": "Instance Classes",
+                "tooltip": "Changes apply to instance code."
+              }
             }
-        },
-        "responsiveMockup": {
-            "panel1": {
-                "title": "Design with AI on an infinite canvas",
-                "body": "Craft, preview, and iterate with AI to ship better websites and prototypes faster than ever."
+          },
+          "comments": {
+            "name": "Comments",
+            "open": "Open",
+            "resolved": "Resolved",
+            "emptyOpen": "No open comments",
+            "emptyResolved": "No resolved comments",
+            "reply": "Reply",
+            "resolve": "Resolve",
+            "unresolve": "Unresolve",
+            "delete": "Delete",
+            "edit": "Edit",
+            "submit": "Submit",
+            "cancel": "Cancel",
+            "addComment": "Add a comment...",
+            "addReply": "Add a reply..."
+          },
+          "interactions": {
+            "name": "Interactions",
+            "availableInDesignMode": "Available in Design mode",
+            "tabIndicator": "This element has interactions",
+            "empty": {
+              "noSelection": {
+                "title": "No element selected",
+                "body": "Pick an element to add a click, hover, or load animation."
+              },
+              "noInteractions": {
+                "title": "No interactions yet",
+                "body": "Click + to add a click, hover, or load animation.",
+                "cta": "Add trigger"
+              }
             },
-            "panel2": {
-                "title": "Native design tool features that work 1:1 with code.",
-                "body": "A true developer tool for designers, helping you code without knowing anything about code."
-            }
-        },
-        "scrollingVelocity": {
-            "lineTop": "Design without limits.",
-            "lineBottom": "Ship without rebuilding."
-        },
-        "justShipped": {
-            "badge": "New in v{version}"
-        },
-        "socialProof": {
-            "title": "Community Stats:",
-            "contributorsCount": "90+",
-            "contributorsLabel": "contributors",
-            "openSource": "Open source",
-            "transparent": "& transparent"
-        },
-        "terminalSection": {
-            "eyebrow": "Your stack, your terminal",
-            "heading": "Real code. Real terminal. Real control.",
-            "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal, with no lock-in and no black box."
-        },
-        "featureTrio": {
-            "eyebrow": "Built open",
-            "heading": "Pick your model, own your terminal, work with an AI that ships.",
-            "models": {
-                "title": "Model agnostic",
-                "body": "Switch between leading models as you need. Pick the one that fits the task."
+            "sections": {
+              "elementTrigger": {
+                "title": "Element trigger",
+                "addAria": "Add element trigger"
+              },
+              "pageTrigger": {
+                "title": "Page trigger",
+                "addAria": "Add page trigger",
+                "hint": "Plays when the page loads."
+              }
             },
-            "terminal": {
-                "title": "Real code, real terminal",
-                "body": "Install, build, test, and deploy from your own terminal. No lock-in, no black box."
+            "triggerTypes": {
+              "click": "Mouse click (tap)",
+              "hover": "Mouse hover",
+              "pageLoad": "Page load",
+              "scroll": "Scroll",
+              "scrollComingSoon": "Scroll — coming soon",
+              "custom": "Custom event",
+              "customComingSoon": "Custom event — coming soon"
             },
-            "aiAssistant": {
-                "eyebrow": "AI assistant",
-                "title": "Ask, iterate, ship",
-                "body": "Describe what you want. Weblab plans, edits the right files, and shows the diff before you ship."
+            "row": {
+              "menu": {
+                "rename": "Rename",
+                "duplicate": "Duplicate",
+                "delete": "Delete"
+              }
             },
-            "tokens": {
-                "eyebrow": "Design tokens",
-                "title": "Your design system, wired",
-                "body": "Colors, type, spacing — defined once, used everywhere. Edit a token, every component follows."
-            }
-        },
-        "whatCanWeblabDoV2": {
-            "headingAi": "AI",
-            "headingCode": "Code",
-            "headingDesign": "Design",
-            "headingSideBySide": "Side-by-side",
-            "subhead": "Everything in one canvas. No tabs, no handoffs, no translation losses.",
-            "cta": "Start building",
-            "layersTitle": "Layers",
-            "revisionToday": "Today",
-            "revisionCurrent": "Current",
-            "features": {
-                "aiAssistant": {
-                    "subtitle": "AI Assistant",
-                    "title": "AI that understands context",
-                    "paragraph": "Reference images, designs, and docs in chat. AI sees what you see, with no more explaining from scratch."
+            "editor": {
+              "back": "Back",
+              "renamePlaceholder": "Interaction name",
+              "save": "Save",
+              "reset": "Reset",
+              "unsaved": "Unsaved",
+              "duration": "Duration",
+              "loop": "Loop",
+              "playhead": "Playhead",
+              "play": "Play",
+              "pause": "Pause",
+              "skipToStart": "Skip to start",
+              "skipToEnd": "Skip to end",
+              "transport": "Transport",
+              "addAction": "Add action",
+              "actionTypes": {
+                "move": "Move",
+                "scale": "Scale",
+                "rotate": "Rotate",
+                "opacity": "Opacity",
+                "size": "Size",
+                "backgroundColor": "Background color"
+              },
+              "triggerSettings": {
+                "title": "Trigger settings",
+                "activeOn": "Active on",
+                "breakpoints": {
+                  "desktop": "Desktop",
+                  "tablet": "Tablet",
+                  "phone": "Phone"
                 },
-                "canvas": {
-                    "subtitle": "Canvas",
-                    "title": "Manipulate elements directly",
-                    "paragraph": "Drag, resize, and arrange elements directly on the canvas. See changes appear in real code instantly."
-                },
-                "code": {
-                    "subtitle": "Code",
-                    "title": "Real code, live next to your canvas",
-                    "paragraph": "Edit components in a proper editor with syntax highlighting and multi-file tabs. Every visual change writes back into the file you'd ship."
-                },
-                "components": {
-                    "subtitle": "Components",
-                    "title": "Your real components",
-                    "paragraph": "Reuse your existing design system: buttons, cards, navs. Live components, not screenshots."
-                },
-                "cms": {
-                    "subtitle": "CMS",
-                    "title": "Content lives next to your design",
-                    "paragraph": "Manage posts, pages, and collections in one tidy panel. Edit a field and the canvas updates — no separate dashboard, no copy-paste."
-                },
-                "structure": {
-                    "subtitle": "Structure",
-                    "title": "Navigate your code as layers",
-                    "paragraph": "A live tree of your DOM. Click any node to jump to it on the canvas, with no inspector hunting."
-                },
-                "history": {
-                    "subtitle": "History",
-                    "title": "Time travel for your designs",
-                    "paragraph": "Every save is a version. Branch, restore, and compare without leaving the canvas."
+                "target": {
+                  "label": "Target",
+                  "self": "Self",
+                  "sibling": "Sibling",
+                  "child": "Child",
+                  "class": "Class",
+                  "selfHint": "Only the selected element",
+                  "classHint": "All elements with this class",
+                  "siblingPlaceholder": "Pick a sibling",
+                  "childPlaceholder": "Pick a child"
                 }
+              },
+              "discardConfirm": {
+                "title": "Discard unsaved changes?",
+                "body": "Your timeline edits will be lost.",
+                "cancel": "Keep editing",
+                "confirm": "Discard"
+              }
             }
-        },
-        "testimonials": {
-            "headingLine1": "Tens of thousands of",
-            "headingLine2": "builders love Weblab"
-        },
-        "faq": {
-            "titleLine1": "Frequently",
-            "titleLine2": "asked questions",
-            "readMore": "Read our FAQs",
-            "items": {
-                "what": {
-                    "question": "What is {appName}?",
-                    "answer": "{appName} is a visual design canvas that connects to your existing codebase. Designers drag real components onto an infinite canvas, make changes visually, and submit pull requests, with no coding required."
-                },
-                "differentDesign": {
-                    "question": "How is {appName} different from other design tools?",
-                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. {appName} works with your real components, so what you design IS the code. Changes become PRs, not handoff specs."
-                },
-                "differentAi": {
-                    "question": "How is {appName} different from AI code generators?",
-                    "answer": "AI generators create new code from scratch. {appName} constrains AI to YOUR existing components, so outputs match your design system. No translation, no drift."
-                },
-                "code": {
-                    "question": "Do I need to know how to code?",
-                    "answer": "No. Designers use a visual canvas with familiar tools. Real code runs underneath, so you don't need to touch it unless you want to."
-                },
-                "htmlSites": {
-                    "question": "Can I build plain HTML websites?",
-                    "answer": "Yes. {appName} ships a static-HTML scaffolder for landing pages, portfolios, and marketing sites — no framework required."
-                },
-                "fromScratch": {
-                    "question": "Can I create a website from scratch with AI?",
-                    "answer": "Yes. Hit \"Start blank\" to scaffold a fresh project, then use the AI chat in the editor to generate pages, sections, and styles. No existing codebase needed."
-                },
-                "desktopAndOwnAI": {
-                    "question": "Can I use {appName} with my own AI coder?",
-                    "answer": "Yes. The desktop app loads your local codebase and runs alongside your AI coding agent — design visually in {appName} while Claude Code does the heavy lifting in your terminal. Codex, Cursor, and Gemini support is rolling out."
-                },
-                "collaborate": {
-                    "question": "Can my team collaborate?",
-                    "answer": "Yes. Share your canvas, leave spatial comments, and work together in real-time. Changes sync to code and can be submitted as PRs for engineers to review."
-                },
-                "stack": {
-                    "question": "What tech stack does {appName} support?",
-                    "answer": "React, Next.js, and any CSS approach (Tailwind, CSS modules, styled-components). Works with any component library."
-                },
-                "free": {
-                    "question": "Is there a free version of {appName}?",
-                    "answer": "Yes. {appName} is open source under Apache 2.0 — self-host the whole thing free from GitHub. The hosted cloud version has a free Basic plan with daily AI credits, plus paid plans for unlimited AI and custom domains."
-                },
-                "ownership": {
-                    "question": "Who owns the code?",
-                    "answer": "The code you make with {appName} is all yours. Export it locally, publish to GitHub, or deploy to a custom domain."
-                }
-            }
-        },
-        "footer": {
-            "brandHomeAria": "Weblab home",
-            "company": {
-                "title": "Company",
-                "about": { "label": "About" },
-                "faq": { "label": "FAQ", "title": "Frequently Asked Questions" },
-                "contact": { "label": "Contact", "title": "Contact Weblab support" }
-            },
-            "resources": {
-                "title": "Resources",
-                "docs": { "label": "Docs", "title": "View Weblab documentation" },
-                "blog": { "label": "Blog", "title": "Read the Weblab blog" },
-                "githubRepo": { "label": "GitHub Repo", "title": "View Weblab on GitHub" },
-                "changelog": { "label": "Changelog", "title": "See what's new in Weblab" },
-                "compare": {
-                    "label": "Compare",
-                    "title": "See how Weblab compares to alternatives"
-                }
-            },
-            "product": {
-                "title": "Product",
-                "pricing": { "label": "Pricing", "title": "View Weblab pricing" },
-                "download": {
-                    "label": "Download",
-                    "title": "Download Weblab for Mac, Windows, Linux & iOS"
-                },
-                "myProjects": { "label": "My Projects", "title": "View your projects" }
-            },
-            "legal": {
-                "title": "Legal",
-                "terms": { "label": "Terms of Service", "title": "Read our Terms of Service" },
-                "privacy": { "label": "Privacy Policy", "title": "Read our Privacy Policy" },
-                "security": { "label": "Security", "title": "How Weblab handles your data" },
-                "sitemap": { "label": "Sitemap", "title": "View the sitemap" },
-                "copyright": "© {year} Weblab"
-            },
-            "workflows": {
-                "title": "Workflows",
-                "claudeCode": { "label": "Claude Code", "title": "Use Weblab with Claude Code" },
-                "vibeCoding": { "label": "Vibe Coding", "title": "Vibe coding for teams" }
-            },
-            "features": {
-                "title": "Features",
-                "overview": { "label": "Feature overview", "title": "View all Weblab features" },
-                "ai": { "label": "AI", "title": "AI-powered development tools" },
-                "visualBuilder": { "label": "Visual Builder", "title": "Visual builder tools" },
-                "prototyping": { "label": "Prototyping", "title": "Rapid prototyping features" },
-                "aiFrontend": {
-                    "label": "AI for Frontend",
-                    "title": "AI constrained to your design system"
-                }
-            },
-            "followUs": {
-                "title": "Follow Us",
-                "github": { "label": "GitHub", "title": "View Weblab on GitHub" }
-            },
-            "languageSwitcher": {
-                "label": "Language"
-            },
-            "themeSwitcher": {
-                "label": "Theme",
-                "system": "System",
-                "light": "Light",
-                "dark": "Dark"
-            }
+          }
         }
+      },
+      "layers": {
+        "name": "Layers",
+        "tabs": {
+          "layers": "Layers",
+          "insert": "Insert",
+          "pages": "Pages",
+          "components": "Components",
+          "images": "Assets",
+          "windows": {
+            "name": "Windows",
+            "emptyState": "Select a window to edit its settings"
+          },
+          "brand": "Brand",
+          "branches": "Branches",
+          "apps": "Apps",
+          "search": "Search"
+        },
+        "rail": {
+          "openLeftPanel": "Open left panel",
+          "pinPanel": "Pin panel",
+          "unpinPanel": "Unpin panel",
+          "collapsePanel": "Collapse panel"
+        }
+      },
+      "code": {
+        "controls": {
+          "viewFiles": "View Files",
+          "save": "Save",
+          "saving": "Saving...",
+          "savingChanges": "Saving changes...",
+          "saveChanges": "Save changes",
+          "createOrUploadFile": "Create or Upload File",
+          "createNewFile": "Create new file",
+          "uploadFile": "Upload file",
+          "newFolder": "New Folder"
+        },
+        "emptyState": "Pick a file from the tree to start editing.",
+        "fileModal": {
+          "title": "Create New File",
+          "description": "Pick where to add the file, then name it.",
+          "location": "Location",
+          "fileName": "File Name",
+          "namePlaceholder": "component.tsx",
+          "fullPath": "Full path:",
+          "cancel": "Cancel",
+          "create": "Create File",
+          "creating": "Creating file..."
+        },
+        "folderModal": {
+          "title": "Create New Folder",
+          "description": "Pick where to add the folder, then name it.",
+          "folderName": "Folder Name",
+          "namePlaceholder": "components",
+          "create": "Create Folder",
+          "creating": "Creating folder..."
+        },
+        "directoryPicker": {
+          "selected": "Selected:",
+          "expand": "Expand",
+          "collapse": "Collapse"
+        }
+      }
     },
     "settings": {
-        "domain": {
-            "upgrade": {
-                "title": "Custom domains are a Pro feature",
-                "description": "Upgrade to {app} Pro to connect your own domain.",
-                "cta": "Upgrade to Pro"
-            },
-            "base": {
-                "title": "Weblab domain",
-                "label": "Subdomain",
-                "helper": "Your free address. Pick the subdomain your site is published to.",
-                "placeholder": "my-site",
-                "save": "Save",
-                "saved": "Saved {domain}",
-                "saveError": "Couldn't save your subdomain. Please try again.",
-                "liveAt": "Live at",
-                "notPublished": "Not published yet — your site goes live here once you publish."
-            },
-            "verification": {
-                "toastVerified": "Domain verified",
-                "errorCreateFailed": "Failed to create domain verification",
-                "errorNoRemove": "No verification request to remove",
-                "errorRemoveFailed": "Failed to remove verification request",
-                "errorNoVerify": "No verification request to verify",
-                "errorVerifyFailed": "Failed to verify domain",
-                "errorReuseFailed": "Failed to reuse domain"
-            }
-        },
-        "appearance": {
-            "saveError": "Failed to save appearance setting",
-            "theme": {
-                "title": "Theme",
-                "description": "Choose your preferred color scheme.",
-                "light": "Light",
-                "dark": "Dark",
-                "system": "System"
-            },
-            "accent": {
-                "title": "Accent color",
-                "description": "Used for active states and highlights.",
-                "blue": "Blue",
-                "red": "Red",
-                "green": "Green",
-                "neutral": "Neutral"
-            },
-            "fontFamily": {
-                "title": "Font family",
-                "description": "Applies to the app UI, not your project.",
-                "sans": "Sans-serif",
-                "serif": "Serif"
-            },
-            "fontSize": {
-                "title": "Font size",
-                "description": "Base size for the app UI text.",
-                "small": "Small",
-                "medium": "Medium",
-                "large": "Large"
-            }
-        },
-        "language": {
-            "title": "Language",
-            "description": "Choose the language for the app UI.",
-            "displayLabel": "Display language",
-            "updated": "Language updated",
-            "saveError": "Failed to save language preference",
-            "appliesImmediately": "Language change applies immediately."
-        },
+      "preferences": {
+        "language": "Language",
+        "theme": "Theme",
+        "deleteWarning": "Delete Warning",
+        "analytics": "Analytics",
         "editor": {
-            "saveError": "Failed to save editor settings",
-            "saving": "Saving…",
-            "saved": "Saved",
-            "preferences": {
-                "title": "Editor preferences",
-                "description": "Control how the editor behaves."
-            },
-            "warnDelete": {
-                "title": "Warn before deleting elements",
-                "description": "Show a confirmation dialog when removing elements."
-            },
-            "bunReplace": {
-                "title": "Enable Bun replace",
-                "description": "Prefer Bun for package management operations."
-            },
-            "build": {
-                "title": "Build configuration",
-                "description": "Flags passed to the build command.",
-                "flagsLabel": "Build flags"
-            }
+          "ide": "Editor",
+          "shouldWarnDelete": "Warn when deleting elements",
+          "enableAnalytics": "Enable analytics"
         },
-        "account": {
-            "profileTitle": "Profile",
-            "avatarSync": "Avatar will sync from your authentication provider.",
-            "firstNameLabel": "First name",
-            "firstNamePlaceholder": "Jane",
-            "lastNameLabel": "Last name",
-            "lastNamePlaceholder": "Doe",
-            "displayNameLabel": "Display name",
-            "displayNamePlaceholder": "jane.doe",
-            "emailLabel": "Email",
-            "emailManagedByGoogle": "Email is managed by your Google account.",
-            "emailManagedByProvider": "Email is managed by your authentication provider.",
-            "contactSupport": "Contact support",
-            "emailUpdateSuffix": "to update your email.",
-            "saving": "Saving…",
-            "saveChanges": "Save changes",
-            "toastSuccess": "Profile updated",
-            "toastFailed": "Failed to update profile"
+        "shortcuts": "Shortcuts"
+      },
+      "skillImportDialog": {
+        "title": "Import skill",
+        "description": "Upload a SKILL.md or .zip, paste its content, or pull from a remote URL. We parse the frontmatter, show a preview, and only save once you confirm.",
+        "tabs": {
+          "upload": "Upload file",
+          "paste": "Paste content",
+          "url": "From URL"
         },
-        "ai": {
-            "defaultModelTitle": "Default model",
-            "defaultModelDescription": "Pre-selected when you open a new chat.",
-            "modelLabel": "Model",
-            "localModelsTitle": "Local models",
-            "localModelsDescription": "Use locally-running models via Ollama.",
-            "ollamaUrlLabel": "Ollama server URL",
-            "detecting": "Detecting…",
-            "detect": "Detect",
-            "lookingForOllama": "Looking for Ollama…",
-            "modelsDetected": "{count, plural, one {# model detected: {models}} other {# models detected: {models}}}",
-            "couldntReachOllama": "Couldn't reach Ollama: {error}",
-            "noLocalModels": "No local models detected. Make sure Ollama is running.",
-            "detectionNote": "Detection probes Ollama from the Weblab server, not your browser. On hosted deployments only models reachable from the server are visible — when running self-hosted or in dev, the server probes your own machine's localhost.",
-            "chatBehaviourTitle": "Chat behaviour",
-            "saving": "Saving…",
-            "saved": "Saved",
-            "toastFailed": "Failed to save AI settings",
-            "showSuggestionsLabel": "Show prompt suggestions",
-            "showSuggestionsDescription": "Keep prompt chips visible in the AI panel.",
-            "showMiniChatLabel": "Show mini chat on canvas",
-            "showMiniChatDescription": "Inline chat entry point while editing.",
-            "autoApplyCodeLabel": "Auto-apply code changes",
-            "autoApplyCodeDescription": "Apply AI-suggested code without a manual step.",
-            "expandCodeBlocksLabel": "Expand code blocks by default",
-            "expandCodeBlocksDescription": "Show code blocks expanded in the chat."
+        "uploadLabel": "SKILL.md or .zip",
+        "uploadDropHint": "Drop a file here, or",
+        "uploadCta": "Choose file",
+        "uploadHint": "Accepts a single SKILL.md (.md) or a .zip containing one. Max 2 MB.",
+        "toastNoSkillMd": "No SKILL.md (or .md) found in the archive",
+        "toastFileTooLarge": "File is too large (max 2 MB)",
+        "toastEmptyFile": "That file is empty",
+        "toastUnzipFailed": "Couldn't read that file",
+        "urlLabel": "SKILL.md URL",
+        "urlPlaceholder": "https://raw.githubusercontent.com/.../SKILL.md",
+        "urlHint": "Allowed hosts: raw.githubusercontent.com, gist.githubusercontent.com, agentskills.io.",
+        "pasteLabel": "SKILL.md content",
+        "pastePlaceholder": "---\nname: my-skill\ndescription: Trigger description\n---\n\nBody…",
+        "preview": "Preview",
+        "previewing": "Reading…",
+        "previewSection": {
+          "name": "Name",
+          "description": "Description",
+          "body": "Body ({count} chars)"
         },
-        "git": {
-            "saving": "Saving…",
-            "saved": "Saved",
-            "toastFailed": "Failed to save git settings",
-            "commitBehaviourTitle": "Commit behaviour",
-            "commitBehaviourDescription": "Control how changes are committed and pushed.",
-            "autoCommitLabel": "Auto-commit on save",
-            "autoCommitDescription": "Automatically commit changes when you save.",
-            "autoPushLabel": "Auto-push after commit",
-            "autoPushDescription": "Push to remote immediately after each commit.",
-            "namingTitle": "Naming conventions",
-            "namingDescription": "Templates used when creating branches and commits. Use '{description}' and '{timestamp}' as placeholders.",
-            "branchPatternLabel": "Default branch pattern",
-            "commitFormatLabel": "Commit message format"
+        "scopeLabel": "Save to",
+        "scopeGlobal": "Global",
+        "scopeProject": "This project",
+        "cancel": "Cancel",
+        "import": "Import skill",
+        "importing": "Importing…",
+        "toastImported": "Imported \"{name}\"",
+        "toastReadFailed": "Failed to read skill",
+        "toastImportFailed": "Failed to import skill"
+      }
+    },
+    "frame": {
+      "startDesigning": {
+        "prefix": "Press ",
+        "action": "Play",
+        "suffix": " to start designing your app"
+      },
+      "playButton": "Play",
+      "waitingForApp": "Waiting for the App to start..."
+    },
+    "runButton": {
+      "portInUse": "Port in Use",
+      "loading": "Loading",
+      "play": "Play",
+      "retry": "Retry",
+      "stop": "Stop"
+    },
+    "zoom": {
+      "level": "Zoom Level",
+      "in": "Zoom In",
+      "out": "Zoom Out",
+      "fit": "Zoom Fit",
+      "reset": "Zoom 100%",
+      "double": "Zoom 200%"
+    },
+    "members": {
+      "row": {
+        "removed": "{name} removed from project",
+        "you": "(you)",
+        "confirmRemove": "Remove?",
+        "toastRemoveFailed": "Failed to remove member"
+      },
+      "invitation": {
+        "pending": "Pending Invitation",
+        "copiedTooltip": "Copied to clipboard",
+        "copyLinkTooltip": "Copy Invitation Link",
+        "cancelTooltip": "Cancel Invitation",
+        "toastCopied": "Invitation link copied to clipboard",
+        "toastCopyFailed": "Failed to copy invitation link",
+        "toastCancelFailed": "Failed to cancel invitation"
+      },
+      "invite": {
+        "placeholder": "Add email address",
+        "roleManager": "Manager",
+        "roleManagerDesc": "Can edit, publish, and manage access",
+        "roleEditor": "Editor",
+        "roleEditorDesc": "Can edit and use AI",
+        "roleReviewer": "Reviewer",
+        "roleReviewerDesc": "Can view and comment",
+        "roleViewer": "Viewer",
+        "roleViewerDesc": "Can view only",
+        "invite": "Invite",
+        "toastSent": "Invitation sent",
+        "toastFailed": "Failed to invite member"
+      },
+      "content": {
+        "title": "Invite Team Members",
+        "loading": "Loading members..."
+      },
+      "suggested": {
+        "title": "Suggested Teammates",
+        "desc": "Invite relevant people to collaborate"
+      }
+    },
+    "git": {
+      "toastGitUnavailable": "Git is unavailable until the sandbox is ready",
+      "toastNoChanges": "No changes to commit",
+      "toastNoBranchName": "This branch does not have a git branch name yet",
+      "toastNotLinked": "This branch is not linked to a GitHub repository",
+      "toastNeedFeatureBranch": "Create a feature branch before opening a pull request",
+      "toastNoStagedChanges": "No staged changes to commit",
+      "toastCommitFailed": "Commit failed",
+      "toastPushFailed": "Push failed",
+      "toastCommittedPushed": "Committed and pushed",
+      "toastExistingPR": "Opened existing pull request",
+      "toastCreatedPR": "Created pull request",
+      "toastCommitted": "Committed",
+      "toastActionFailed": "Git action failed",
+      "toastNoActiveBranch": "No active branch",
+      "errorStatusUnavailable": "Git status is unavailable until the sandbox is ready.",
+      "errorStatusFailed": "Failed to load git status.",
+      "commitMsgPlaceholder": "Leave blank to autogenerate a commit message",
+      "branchLabel": "Branch",
+      "changesLabel": "Changes",
+      "changesCount": "{count, plural, one {# file} other {# files}}",
+      "includeUnstaged": "Include unstaged",
+      "stageFilesWarning": "Stage at least one file before committing staged changes only.",
+      "commitMsgLabel": "Commit message",
+      "nextStepsLabel": "Next steps",
+      "actionCommit": "Commit",
+      "actionCommitPush": "Commit & push",
+      "actionCommitPR": "Commit & create PR",
+      "dialogTitle": "Commit your changes",
+      "dialogDesc": "Review and commit your changes to git",
+      "working": "Working...",
+      "continue": "Continue",
+      "gitActionsLabel": "Git actions",
+      "dropdownCommit": "Commit",
+      "dropdownCommitPush": "Commit & push",
+      "dropdownCreatePR": "Create PR",
+      "dropdownCreateBranch": "Create branch",
+      "toastSwitchFailed": "Failed to switch branch",
+      "stagedFilesReady": "{count, plural, one {# staged file ready to commit.} other {# staged files ready to commit.}}"
+    },
+    "publish": {
+      "url": {
+        "toastCopied": "Copied to clipboard",
+        "toastFailed": "Failed to copy to clipboard"
+      },
+      "previewDomain": {
+        "toastCreateFailed": "Failed to create preview domain",
+        "toastNoProject": "No project found",
+        "toastNoSandbox": "No sandbox found"
+      },
+      "deployHistory": {
+        "toastStarted": "Redeploy started",
+        "toastFailed": "Redeploy failed"
+      },
+      "hosting": {
+        "toastPasteFirst": "Paste an API token first.",
+        "toastConnected": "{provider} connected.",
+        "toastValidationFailed": "Token validation failed.",
+        "toastValidationError": "Validation failed.",
+        "toastSaveFailed": "Failed to save connection.",
+        "toastDisconnected": "Disconnected {provider}.",
+        "toastDisconnectFailed": "Failed to disconnect.",
+        "tokenPlaceholder": "Paste your token",
+        "tokenAutoFillPlaceholder": "Filled in automatically if you Test first"
+      }
+    },
+    "bottomBar": {
+      "restart": {
+        "toastNoSession": "Sandbox session not available",
+        "toastFailed": "Failed to restart sandbox",
+        "toastSuccess": "Sandbox restarted successfully",
+        "toastError": "An error occurred while restarting the sandbox",
+        "restarting": "Restarting ({seconds}s)…",
+        "restart": "Restart Sandbox"
+      }
+    },
+    "clone": {
+      "toastNoProject": "No project to clone",
+      "toastSuccess": "Project cloned successfully",
+      "toastFailed": "Failed to clone project",
+      "toastServerError": "No project was returned from the server.",
+      "toastUnavailable": "Sandbox service temporarily unavailable",
+      "toastHighLoad": "Please try again in a few moments. Our servers may be experiencing high load.",
+      "dialogTitle": "Clone Project",
+      "dialogDesc": "Create a copy of this project with all settings preserved.",
+      "projectNameLabel": "Project Name",
+      "projectNamePlaceholder": "Enter name for cloned project",
+      "validationEmpty": "Project name can’t be empty",
+      "cancel": "Cancel",
+      "cloning": "Cloning...",
+      "clone": "Clone Project"
+    },
+    "createComponent": {
+      "toastFailed": "Could not create component",
+      "toastSuccess": "Component {name} created",
+      "dialogTitle": "Create component",
+      "dialogDesc": "The selection becomes a reusable component; this copy becomes its first instance.",
+      "namePlaceholder": "ComponentName",
+      "nameHint": "PascalCase, e.g. HeroCard",
+      "propsTitle": "Suggested properties",
+      "propsDesc": "Checked values become editable per instance; unchecked stay fixed.",
+      "cancel": "Cancel",
+      "creating": "Creating…",
+      "create": "Create"
+    },
+    "offlinePanel": {
+      "toastStillOffline": "Still offline. Reconnect and try again.",
+      "toastNotConnected": "Sandbox not connected yet. Wait a moment and retry.",
+      "toastOfflineMode": "Sandbox is still in offline mode. Reload the project to reconnect, then sync.",
+      "toastSyncSuccess": "{count, plural, one {Synced # change} other {Synced # changes}}",
+      "toastSyncFailed": "Sync failed",
+      "toastRequeued": "Re-queued for sync.",
+      "toastRetryFailed": "Retry failed",
+      "dialogTitle": "Offline sync",
+      "online": "Online",
+      "offline": "Offline",
+      "statusPending": "{count, plural, one {# pending} other {# pending}}",
+      "statusDeadLetter": "{count} dead-letter",
+      "statusConflict": "{count, plural, one {# conflict} other {# conflicts}}",
+      "syncNow": "Sync now",
+      "pendingTitle": "Pending writes",
+      "noPending": "No queued changes.",
+      "deadLetterTitle": "Dead letter",
+      "noDeadLetter": "No records have failed past retry.",
+      "retry": "Retry",
+      "conflictsTitle": "Conflicts",
+      "noConflicts": "No remote changes were overwritten by your offline edits.",
+      "dismiss": "Dismiss",
+      "yourVersionKept": "Your version was kept. Detected {date}.",
+      "showRemoteVersion": "Show remote version",
+      "binaryContent": "[binary content]",
+      "close": "Close",
+      "discardDeadLetterTitle": "Discard all dead-letter records?",
+      "discardDeadLetterDesc": "Their content will be lost. This cannot be undone.",
+      "discardConfirm": "Discard",
+      "toastDeadLetterCleared": "Dead letter cleared."
+    },
+    "chat": {
+      "multiBranchRevert": {
+        "toastSelectFirst": "Please select at least one branch to revert",
+        "toastAllFailed": "Failed to restore all selected branches",
+        "toastFailed": "Failed to restore branches",
+        "dialogTitle": "Restore Multiple Branches",
+        "dialogDesc": "Select the branches you want to restore to their previous state.",
+        "selectNone": "Select None",
+        "selectAll": "Select All",
+        "cancel": "Cancel",
+        "restoring": "Restoring...",
+        "restore": "Restore Selected"
+      },
+      "messages": {
+        "regenerateResponse": "Regenerate response"
+      },
+      "actionsGroup": {
+        "working": "Working — {elapsed}",
+        "workedFor": "Worked for {elapsed}",
+        "workedSingle": "Worked · 1 action",
+        "workedMany": "Worked · {count} actions"
+      },
+      "planApproval": {
+        "writingPlan": "Writing plan…",
+        "planReady": "Plan ready",
+        "buildNow": "Build Now",
+        "keepRefining": "Keep Refining"
+      },
+      "planQuestion": {
+        "answer": "Answer",
+        "answeredWith": "Answered: {answer}",
+        "answered": "Answered"
+      },
+      "imageResult": {
+        "generatedImage": "Generated image",
+        "imageExpired": "Image expired (cache TTL is 30 minutes). Regenerate to retry.",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "addToProject": "Add to project",
+        "replaceSelected": "Replace selected",
+        "generatingImage": "Generating image…",
+        "noImageReturned": "No image returned.",
+        "ariaRetry": "Retry image generation",
+        "retrying": "Retrying…",
+        "retry": "Retry",
+        "selectImgHint": "Select an <img> element on the canvas to enable",
+        "replaceSrcTitle": "Replace src on selected {tagName}",
+        "savedToPath": "Saved to {path}",
+        "savedToPathAskAi": "Saved to {path}. Ask the AI to update the selected element's src to /{relativePath}."
+      },
+      "codeDisplay": {
+        "runAgain": "Run again",
+        "runCommand": "Run command",
+        "noSessionError": "Failed to execute command: No session available",
+        "applying": "Applying…",
+        "applied": "Applied",
+        "apply": "Apply",
+        "copied": "Copied",
+        "copy": "Copy",
+        "noActiveSandbox": "No active sandbox to apply to",
+        "failedToApply": "Failed to apply file",
+        "failedToCopy": "Failed to copy",
+        "streamingPreviewNote": "Showing a live preview while the file is being written. Expand after the tool finishes to inspect the full content."
+      },
+      "searchSources": {
+        "searchedWeb": "Searched web"
+      },
+      "contextPills": {
+        "removeAriaLabel": "Remove {name}",
+        "imageLimitError": "You can only add up to {max} images."
+      }
+    },
+    "canvas": {
+      "hotkeys": {
+        "toastSelectFirst": "Select an element first to inline-edit",
+        "toastLocateFailed": "Can’t locate this element’s source."
+      },
+      "drop": {
+        "noFrame": "No website frame to drop into",
+        "noFrameDesc": "Open a frame on the canvas first.",
+        "insertFailed": "Failed to insert",
+        "dropLabel": "Drop to insert into nearest frame"
+      },
+      "frame": {
+        "loading": {
+          "almostReady": "Almost ready",
+          "loadingTools": "Loading the canvas tools…",
+          "compiling": "Compiling your preview",
+          "almostReadyDesc": "Your preview is almost ready…",
+          "starting": "Starting your preview",
+          "connecting": "Connecting to your project…",
+          "startingWorkspace": "Starting your workspace",
+          "usuallyTakes": "This usually takes 10–30 seconds…",
+          "stillStarting": "Still starting up",
+          "takingLonger": "Taking a bit longer than usual — almost there.",
+          "settingUp": "Setting up your workspace",
+          "preparingPreview": "Preparing your preview…",
+          "buildingYourSite": "Building your site",
+          "buildingDesc": "Your preview will appear here once the AI finishes the first version. This usually takes 30–60 seconds.",
+          "restarting": "Restarting…",
+          "restartPreview": "Restart preview"
+        },
+        "topBar": {
+          "goBack": "Go back",
+          "goForward": "Go forward",
+          "refreshPage": "Refresh Page",
+          "previewNewTab": "Preview in new tab",
+          "breakpoint": "Breakpoint",
+          "removeFromGroup": "Remove from group",
+          "addBreakpoint": "Add breakpoint",
+          "cancel": "Cancel",
+          "remove": "Remove",
+          "removeBreakpointTitle": "Remove breakpoint",
+          "driftedPreset": "Drifted from {name} preset ({width}px)",
+          "breakpointLabel": "{name} breakpoint",
+          "restorePreset": "Restore preset ({width}px)"
+        },
+        "pageSelector": {
+          "page": "Page",
+          "currentPage": "Current page",
+          "newPage": "New page",
+          "pageSettings": "Page settings",
+          "searchPlaceholder": "Search pages and folders...",
+          "noPagesFound": "No pages found",
+          "scanningPages": "Scanning pages…",
+          "manageAllPages": "Manage all pages"
+        }
+      },
+      "overlay": {
+        "comment": {
+          "addCommentPlaceholder": "Add a comment...",
+          "addCommentAriaLabel": "Add a comment",
+          "postCommentAriaLabel": "Post comment",
+          "addReplyPlaceholder": "Add a reply...",
+          "sendReplyAriaLabel": "Send reply",
+          "cancel": "Cancel",
+          "save": "Save",
+          "edit": "Edit",
+          "delete": "Delete",
+          "confirm": "Confirm",
+          "deleting": "Deleting...",
+          "resolved": "Resolved",
+          "resolve": "Resolve",
+          "deleteReplyAriaLabel": "Delete reply"
+        },
+        "buttons": {
+          "openInCode": "Open in Code",
+          "copyToFigma": "Copy to Figma"
+        },
+        "componentChip": {
+          "defaultName": "Component",
+          "editAriaLabel": "Edit {name} component",
+          "editTooltip": "Edit component — changes apply to all instances"
+        },
+        "componentEditBanner": {
+          "editing": "Editing",
+          "done": "Done",
+          "exitTooltip": "Exit component editing",
+          "instanceSingular": "applies to 1 instance",
+          "instancePlural": "applies to {count} instances"
+        }
+      }
+    },
+    "code": {
+      "unsavedChanges": {
+        "messageSingle": "You have unsaved changes. Are you sure you want to close this file?",
+        "messagePlural": "You have unsaved changes. Are you sure you want to close {count} files?",
+        "discard": "Discard",
+        "save": "Save",
+        "cancel": "Cancel"
+      }
+    },
+    "terminal": {
+      "toggleTerminal": "Toggle Terminal",
+      "sandboxNotReady": "Sandbox not ready yet",
+      "terminalUnavailable": "Terminal unavailable — sandbox is offline or restarting",
+      "creditLimitReached": "AI credit limit reached.",
+      "notAuthorized": "Not authorized to use AI here.",
+      "translateFailed": "Could not translate that into a command.",
+      "requestFailed": "AI request failed.",
+      "openTerminalHint": "Open a terminal tab to run commands",
+      "askAiPlaceholder": "Ask AI to run a command…",
+      "commandPlaceholder": "Type a command…",
+      "runCommandAriaLabel": "Run command",
+      "aiModeEnableAriaLabel": "Enable AI command mode",
+      "aiModeDisableAriaLabel": "Disable AI command mode",
+      "aiModeOnTooltip": "AI command mode on",
+      "aiModeOffTooltip": "Run commands with natural language",
+      "aiSettingsAriaLabel": "AI command settings",
+      "autoRunLabel": "Auto-run commands",
+      "autoRunOnHint": "AI commands run immediately.",
+      "autoRunOffHint": "Preview first, press Enter to run.",
+      "resizeAriaLabel": "Resize terminal",
+      "newTerminalAriaLabel": "New terminal",
+      "noTerminalOpen": "No terminal open. Start the app to open one."
+    },
+    "branch": {
+      "forking": "Forking...",
+      "forkBranch": "Fork into a new Branch",
+      "creating": "Creating...",
+      "createBlankSandbox": "Create blank sandbox",
+      "manageBranch": "Manage Branch",
+      "forkNotAvailable": "Branch fork is not available yet.",
+      "createBlankFailed": "Could not create a blank sandbox.",
+      "title": "Branches",
+      "searchPlaceholder": "Search branches...",
+      "noBranchesFound": "No branches found"
+    },
+    "editorBar": {
+      "moreOptions": "More options",
+      "showMoreControls": "Show more toolbar controls",
+      "device": "Device",
+      "rotateDevice": "Rotate Device",
+      "theme": "Theme",
+      "failedToChangeTheme": "Failed to change theme",
+      "themeSystem": "System",
+      "themeDark": "Dark",
+      "themeLight": "Light",
+      "copyToFigma": "Copy to Figma",
+      "duplicateFrame": "Duplicate Frame",
+      "deleteFrame": "Delete Frame",
+      "borderColor": "Border Color",
+      "border": "Border",
+      "allSides": "All sides",
+      "individual": "Individual",
+      "mixed": "Mixed",
+      "backgroundColor": "Background Color",
+      "display": "Display",
+      "direction": "Direction",
+      "gap": "Gap",
+      "type": "Type",
+      "horizontal": "Horizontal",
+      "vertical": "Vertical",
+      "height": "Height",
+      "minHeight": "Min height",
+      "maxHeight": "Max height",
+      "width": "Width",
+      "minWidth": "Min width",
+      "maxWidth": "Max width",
+      "min": "Min",
+      "max": "Max",
+      "margin": "Margin",
+      "padding": "Padding",
+      "radius": "Radius",
+      "layerOpacity": "Layer Opacity",
+      "opacityPercentage": "Opacity percentage",
+      "state": "State",
+      "removeColor": "Remove Color",
+      "searchColors": "Search colors",
+      "brandTab": "Brand",
+      "customTab": "Custom",
+      "gradientTab": "Gradient",
+      "presets": "Presets",
+      "hexColor": "Hex color",
+      "imageFill": "Image Fill",
+      "selectFromLibrary": "Select from library",
+      "uploadFromComputer": "Upload from computer",
+      "uploading": "Uploading...",
+      "removeBackground": "Remove background",
+      "advancedTypography": "Advanced Typography",
+      "color": "Color",
+      "line": "Line",
+      "letter": "Letter",
+      "capitalize": "Capitalize",
+      "decorate": "Decorate",
+      "fontFamily": "Font Family",
+      "fontFamilySelector": "Font Family Selector",
+      "searchGoogleFonts": "Search Google Fonts…",
+      "searchFonts": "Search fonts",
+      "manageBrandFonts": "Manage Brand fonts",
+      "manageUploadFonts": "Manage / upload fonts",
+      "fontSize": "Font Size",
+      "fontWeight": "Font Weight",
+      "textAlign": "Text Align",
+      "textColor": "Text Color"
+    },
+    "fileFinder": {
+      "title": "Quick Open File",
+      "description": "Search for a file in the project to open in the code editor.",
+      "placeholder": "Search files…",
+      "loadingFiles": "Loading files…",
+      "noFilesFound": "No files found.",
+      "filesGroup": "Files"
+    },
+    "elementPalette": {
+      "title": "Add element",
+      "description": "Search for an element to add to the canvas, then click or drag to place it.",
+      "placeholder": "Add an element…",
+      "noElementsFound": "No elements found.",
+      "groupLayout": "Layout",
+      "groupBasic": "Basic",
+      "groupForm": "Form",
+      "groupMedia": "Media"
+    },
+    "leftPanel": {
+      "assets": {
+        "loading": "Loading assets...",
+        "searchPlaceholder": "Search assets...",
+        "clearSearch": "Clear search",
+        "noMatch": "No assets match your search",
+        "newFolder": "New folder",
+        "uploadAssets": "Upload assets",
+        "uploadingAssets": "Upload assets...",
+        "dragFilesHere": "Drag files here",
+        "dropToUpload": "Drop to upload",
+        "orClickToUpload": "or click to upload",
+        "allAssets": "All assets",
+        "noFolder": "No folder",
+        "folders": "Folders",
+        "select": "Select",
+        "sortNameAsc": "Name (A–Z)",
+        "sortNameDesc": "Name (Z–A)",
+        "sortModifiedDesc": "Newest first",
+        "sortModifiedAsc": "Oldest first",
+        "sortSizeDesc": "Largest first",
+        "sortType": "Type",
+        "addToChat": "Add to Chat",
+        "copyUrl": "Copy URL",
+        "rename": "Rename",
+        "moveTo": "Move to",
+        "compress": "Compress",
+        "delete": "Delete",
+        "deleteAsset": "Delete asset",
+        "deleteAssetConfirm": "Are you sure you want to delete {name}? This action cannot be undone.",
+        "cancel": "Cancel",
+        "deselectAsset": "Deselect asset",
+        "selectAsset": "Select asset",
+        "moveSelectedToFolder": "Move selected to folder",
+        "deleteSelected": "Delete",
+        "exitSelectMode": "Exit select mode",
+        "selectedCount": "{count} selected",
+        "newFolderTitle": "New folder",
+        "newFolderDescription": "Create a folder inside the current location.",
+        "folderNamePlaceholder": "Folder name",
+        "create": "Create",
+        "root": "Root",
+        "urlCopied": "URL copied",
+        "assetOptimized": "Asset is already optimized",
+        "assetCompressed": "Asset compressed",
+        "undo": "Undo",
+        "collapseFolder": "Collapse folder",
+        "expandFolder": "Expand folder"
+      },
+      "branches": {
+        "createBranch": "Create Branch",
+        "createBranchDescription": "Fork the current branch or start from a blank sandbox.",
+        "branchNamePlaceholder": "Optional branch name",
+        "forkCurrent": "Fork Current",
+        "blankBranch": "Blank Branch",
+        "creating": "Creating...",
+        "createFromCurrent": "Create from Current Branch",
+        "createBlank": "Create Blank Branch",
+        "searchBranches": "Search branches",
+        "noBranchesMatch": "No branches match \"{query}\"",
+        "switchUnsaved": "Switch branches with unsaved changes?",
+        "switchUnsavedDescription": "You have edits that aren't committed to this branch. Switching now won't save them on the current branch.",
+        "switchAnyway": "Switch anyway",
+        "manageBranch": "Manage branch",
+        "branchSettings": "Branch Settings",
+        "name": "Name",
+        "active": "Active",
+        "actions": "Actions",
+        "fork": "Fork",
+        "forking": "Forking...",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "cancel": "Cancel",
+        "switchAnyway": "Switch anyway"
+      },
+      "brand": {
+        "searchTokens": "Search tokens…",
+        "tailwindDetected": "Tailwind palette detected. Import to manage colors here.",
+        "importTailwind": "Import Tailwind colors",
+        "importing": "Importing…",
+        "noTokensMatch": "No tokens match \"{query}\".",
+        "fonts": "Fonts",
+        "setupTokens": "Set up design tokens",
+        "setupTokensDescription": "Adds a @theme block with light/dark variables and starter text styles to your project's globals.css. Non-destructive — your existing styles are kept.",
+        "settingUp": "Setting up…",
+        "setUpTokens": "Set up tokens",
+        "addTo": "Add to {section}",
+        "noTokensYet": "No {section} yet — click + to add one.",
+        "tokenRename": "Rename",
+        "tokenDuplicate": "Duplicate",
+        "tokenMoveToGroup": "Move to group",
+        "tokenRemoveFromGroup": "Remove from group",
+        "tokenNewGroup": "New group…",
+        "tokenDelete": "Delete",
+        "deleteTokenTitle": "Delete \"{name}\"?",
+        "deleteTokenDescription": "This token will be removed from globals.css and cannot be undone.",
+        "deleteTokenConfirm": "Delete",
+        "addTokenNameLabel": "Name",
+        "addTokenValueLabel": "Value",
+        "addTokenApplyClasses": "Apply classes",
+        "addTokenCancel": "Cancel",
+        "addTokenAdd": "Add",
+        "addTokenAdding": "Adding…",
+        "fontsHeader": "Fonts",
+        "searchFont": "Search for a new font...",
+        "addedFonts": "Added fonts",
+        "scanningFonts": "Scanning fonts...",
+        "noFontsAdded": "No fonts added yet",
+        "searchResults": "Search results",
+        "browseNewFonts": "Browse new fonts",
+        "noFontsFound": "No fonts found. Try a different search.",
+        "loadMoreFonts": "Load more fonts",
+        "loadingFonts": "Loading fonts…",
+        "uploadCustomFont": "Upload a custom font",
+        "uploadFont": "Upload a font",
+        "uploadOrDrag": "Click to upload or drag and drop",
+        "uploadFormats": "For maximum browser support, upload in TTF, OTF, EOT and WOFF formats.",
+        "uploading": "Uploading...",
+        "saveFontFiles": "Save font files",
+        "fontUploadCancel": "Cancel",
+        "fontsUploaded": "Fonts uploaded successfully",
+        "failedToUploadFonts": "Failed to upload fonts",
+        "failedToSearchFonts": "Failed to search fonts",
+        "failedToLoadFonts": "Failed to load more fonts"
+      },
+      "layers": {
+        "searchLayers": "Search layers",
+        "noMatchingLayers": "No matching layers",
+        "noLayersAvailable": "No layers available yet"
+      },
+      "pages": {
+        "searchPages": "Search pages",
+        "createPageOrFolder": "Create a new page or folder",
+        "newPage": "New Page",
+        "newFolder": "New Folder",
+        "noPagesFound": "No pages found",
+        "createNewPage": "Create a New Page",
+        "createNewFolder": "Create a New Folder",
+        "renamePage": "Rename Page",
+        "renameFolder": "Rename Folder",
+        "createPage": "Create Page",
+        "createFolder": "Create Folder",
+        "renamingPage": "Renaming...",
+        "creatingPage": "Creating...",
+        "cancelPage": "Cancel",
+        "pageWillBe": "This page will be {path} on your site",
+        "folderWillBe": "This folder will prefix routes as {path}",
+        "pagePlaceholder": "about-us or [blog] for a dynamic page",
+        "folderPlaceholder": "marketing or blog",
+        "foldersAppRouterOnly": "Folders are only supported for App Router projects"
+      },
+      "components": {
+        "searchTemplates": "Search templates",
+        "components": "Components",
+        "indexingComponents": "Indexing components…",
+        "noMatchingComponents": "No matching components",
+        "noComponentsYet": "No components yet. Exported React components appear here automatically.",
+        "noMatchingTemplates": "No matching templates"
+      },
+      "codePanel": {
+        "searchFiles": "Search files",
+        "loadingFiles": "Loading files...",
+        "noFilesFound": "No files found",
+        "noFilesMatch": "No files match your search",
+        "clearSearch": "Clear search",
+        "uploadFiles": "Upload Files",
+        "uploadFilesDescription": "Upload files to your project",
+        "directoryPath": "Directory Path",
+        "directoryPathHint": "Path where files will be uploaded",
+        "selectFiles": "Select Files",
+        "dragAndDropOrClick": "Drag and drop files here, or click to select",
+        "multipleFilesSupported": "Multiple files can be selected",
+        "clearSelection": "Clear Selection",
+        "cancel": "Cancel",
+        "uploading": "Uploading...",
+        "addToChat": "Add to Chat",
+        "copyPath": "Copy Path",
+        "copyName": "Copy Name",
+        "rename": "Rename",
+        "delete": "Delete",
+        "deleteFile": "Delete File",
+        "deleteFolder": "Delete Folder",
+        "pathCopied": "Path copied",
+        "nameCopied": "Name copied",
+        "unsaved": "Unsaved",
+        "inlineEditPlaceholder": "Tell Weblab what to change…",
+        "inlineAcceptReject": "⏎ Accept · Esc Reject",
+        "inlineGenerateCancel": "⏎ Generate · Esc Cancel",
+        "inlineReject": "Reject",
+        "inlineAccept": "Accept",
+        "inlineRetry": "Press ⏎ to retry",
+        "deleteFileConfirm": "Are you sure you want to delete \"{name}\"?",
+        "deleteFolderExtra": "This will permanently delete the folder and all its contents.",
+        "deleteFileExtra": "This action cannot be undone.",
+        "deleteFileOrFolder": "Delete {kind}",
+        "areYouSureDelete": "Are you sure you want to delete \"{name}\"?"
+      }
+    },
+    "stylePanel": {
+      "search": {
+        "placeholder": "Search properties…",
+        "noMatch": "No matching property",
+        "noMatchingProperty": "No matching property",
+        "notEditable": "That property isn't editable for the selected element.",
+        "notEditableToast": "That property isn't editable for the selected element.",
+        "display": "Display",
+        "flexDirection": "Flex direction",
+        "justifyContent": "Justify content",
+        "alignItems": "Align items",
+        "gap": "Gap",
+        "padding": "Padding",
+        "margin": "Margin",
+        "position": "Position",
+        "top": "Top",
+        "right": "Right",
+        "bottom": "Bottom",
+        "left": "Left",
+        "zIndex": "Z-index",
+        "width": "Width",
+        "height": "Height",
+        "minWidth": "Min width",
+        "minHeight": "Min height",
+        "maxWidth": "Max width",
+        "maxHeight": "Max height",
+        "aspectRatio": "Aspect ratio",
+        "objectFit": "Object fit",
+        "overflow": "Overflow",
+        "fontFamily": "Font family",
+        "fontSize": "Font size",
+        "fontWeight": "Font weight",
+        "lineHeight": "Line height",
+        "letterSpacing": "Letter spacing",
+        "textAlign": "Text align",
+        "textTransform": "Text transform",
+        "textDecoration": "Text decoration",
+        "textShadow": "Text shadow",
+        "textColor": "Text color",
+        "opacity": "Opacity",
+        "visibility": "Visibility",
+        "backgroundColor": "Background color",
+        "backgroundImage": "Background image",
+        "backgroundSize": "Background size",
+        "backgroundRepeat": "Background repeat",
+        "borderWidth": "Border width",
+        "borderColor": "Border color",
+        "borderStyle": "Border style",
+        "borderRadius": "Border radius",
+        "boxShadow": "Box shadow",
+        "filter": "Filter",
+        "backdropFilter": "Backdrop filter",
+        "blendMode": "Blend mode",
+        "outlineWidth": "Outline width",
+        "outlineColor": "Outline color",
+        "outlineStyle": "Outline style",
+        "outlineOffset": "Outline offset",
+        "transform": "Transform",
+        "transformOrigin": "Transform origin",
+        "transformStyle": "Transform style",
+        "rotate": "Rotate",
+        "perspective": "Perspective",
+        "perspectiveOrigin": "Perspective origin",
+        "backfaceVisibility": "Backface visibility",
+        "transition": "Transition",
+        "transitionProperty": "Transition property",
+        "transitionDuration": "Transition duration",
+        "transitionDelay": "Transition delay",
+        "transitionTiming": "Transition timing",
+        "float": "Float",
+        "clear": "Clear",
+        "cursor": "Cursor",
+        "pointerEvents": "Pointer events",
+        "userSelect": "User select",
+        "touchAction": "Touch action"
+      },
+      "frame": {
+        "frameLabel": "Frame"
+      },
+      "section": {
+        "advanced": "Advanced",
+        "background": "Background",
+        "border": "Border",
+        "cursor": "Cursor",
+        "effects": "Effects",
+        "element": "Element",
+        "layout": "Layout",
+        "layoutGuide": "Layout guide",
+        "position": "Position",
+        "size": "Size",
+        "styles": "Styles",
+        "text": "Text",
+        "transforms": "Transforms",
+        "transitions": "Transitions",
+        "overlays": "Overlays"
+      },
+      "common": {
+        "reset": "Reset",
+        "custom": "Custom",
+        "perSide": "Per side",
+        "perCorner": "Per corner",
+        "top": "Top",
+        "right": "Right",
+        "bottom": "Bottom",
+        "left": "Left",
+        "topLeft": "Top left",
+        "topRight": "Top right",
+        "bottomLeft": "Bottom left",
+        "bottomRight": "Bottom right",
+        "addVariable": "Add variable",
+        "noCustomProperties": "No custom properties.",
+        "layoutExtras": "Layout extras",
+        "customProperties": "Custom properties",
+        "altClickToReset": "⌥-click to reset",
+        "hide": "Hide",
+        "show": "Show",
+        "openColorPicker": "Open color picker",
+        "hexValue": "Hex value",
+        "alpha": "Alpha",
+        "pickFromCanvas": "Pick from canvas",
+        "connectToColorToken": "Connect to color token",
+        "hideCustomControls": "Hide custom controls",
+        "showCustomControls": "Show custom controls"
+      },
+      "layout": {
+        "flow": "Flow",
+        "alignment": "Alignment",
+        "gap": "Gap",
+        "padding": "Padding",
+        "margin": "Margin",
+        "display": "Display",
+        "direction": "Direction",
+        "distribute": "Distribute",
+        "align": "Align",
+        "wrap": "Wrap",
+        "displayFlow": "Display flow",
+        "perSidePadding": "Per-side padding",
+        "perSideMargin": "Per-side margin",
+        "horizontalPadding": "Horizontal padding",
+        "verticalPadding": "Vertical padding",
+        "horizontalMargin": "Horizontal margin",
+        "verticalMargin": "Vertical margin",
+        "block": "Block",
+        "flexColumn": "Flex column",
+        "flexRow": "Flex row",
+        "grid": "Grid"
+      },
+      "position": {
+        "type": "Type",
+        "offsets": "Offsets",
+        "align": "Align",
+        "zIndexLabel": "Z-index",
+        "staticHint": "Change type to Relative, Absolute, Fixed, or Sticky to set offsets.",
+        "rotation": "Rotation",
+        "flipHorizontal": "Flip horizontal",
+        "flipVertical": "Flip vertical",
+        "zIndex": "Z-index",
+        "static": "Static",
+        "relative": "Relative",
+        "absolute": "Absolute",
+        "fixed": "Fixed",
+        "sticky": "Sticky"
+      },
+      "size": {
+        "dimensions": "Dimensions",
+        "constraints": "Constraints",
+        "aspectFit": "Aspect & Fit",
+        "behavior": "Behavior",
+        "width": "Width",
+        "height": "Height",
+        "minWidth": "Min W",
+        "minHeight": "Min H",
+        "maxWidth": "Max W",
+        "maxHeight": "Max H",
+        "ratio": "Ratio",
+        "boxSizing": "Box sizing",
+        "aspectRatio": "Aspect ratio",
+        "fit": "Fit",
+        "grow": "Grow",
+        "overflow": "Overflow",
+        "minWidthAria": "Min width",
+        "minHeightAria": "Min height",
+        "maxWidthAria": "Max width",
+        "maxHeightAria": "Max height",
+        "flexGrow": "Flex grow"
+      },
+      "text": {
+        "style": "Style",
+        "content": "Content",
+        "color": "Color",
+        "font": "Font",
+        "alignment": "Alignment",
+        "align": "Align",
+        "caseDecoration": "Case & Decoration",
+        "textShadow": "Text shadow",
+        "shadow": "Shadow",
+        "weight": "Weight",
+        "fontSize": "Font size",
+        "size": "Size",
+        "lineHeight": "Line height",
+        "line": "Line",
+        "letterSpacing": "Letter spacing",
+        "letter": "Letter",
+        "textAlignment": "Text alignment",
+        "case": "Case",
+        "decor": "Decor",
+        "decorShort": "Decor.",
+        "contentEditablePlaceholder": "Element text…",
+        "contentReadonlyPlaceholder": "No editable text",
+        "contentAriaLabel": "Element text content",
+        "textStyleKind": "Text Style",
+        "applyTextStyle": "Apply text style"
+      },
+      "background": {
+        "type": "Type",
+        "color": "Color",
+        "image": "Image",
+        "size": "Size",
+        "repeat": "Repeat",
+        "backgroundType": "Background type",
+        "backgroundImageUrl": "Background image URL",
+        "gradientComingSoon": "Gradient editor — coming soon",
+        "urlOrAsset": "URL or asset…",
+        "solid": "Solid",
+        "gradient": "Gradient",
+        "none": "None",
+        "cover": "Cover",
+        "contain": "Contain",
+        "auto": "Auto",
+        "noRepeat": "No repeat",
+        "repeatBoth": "Repeat",
+        "repeatX": "Repeat X",
+        "repeatY": "Repeat Y"
+      },
+      "border": {
+        "stroke": "Stroke",
+        "radius": "Radius",
+        "style": "Style",
+        "perSide": "Per side",
+        "perCorner": "Per corner",
+        "borderWidth": "Border width",
+        "borderRadius": "Border radius",
+        "solid": "Solid",
+        "dashed": "Dashed",
+        "dotted": "Dotted",
+        "double": "Double",
+        "groove": "Groove",
+        "ridge": "Ridge",
+        "inset": "Inset",
+        "outset": "Outset",
+        "none": "None"
+      },
+      "effects": {
+        "style": "Style",
+        "shadow": "Shadow",
+        "filter": "Filter",
+        "backdropFilter": "Backdrop filter",
+        "backdrop": "Backdrop",
+        "blendMode": "Blend mode",
+        "blend": "Blend",
+        "outlineStyle": "Outline style",
+        "outline": "Outline",
+        "outlineWidth": "Outline width",
+        "outlineWidthShort": "Out. W",
+        "outlineColor": "Outline color",
+        "outlineColorShort": "Out. C",
+        "outlineOffset": "Outline offset",
+        "outlineOffsetShort": "Out. ↔",
+        "mode": "Mode",
+        "effectKind": "Effect"
+      },
+      "transforms": {
+        "perspective": "Perspective",
+        "rotate": "Rotate",
+        "transform": "Transform",
+        "origin": "Origin",
+        "perspectiveOrigin": "Perspective origin",
+        "pOrigin": "P Origin",
+        "transformStyle": "Style",
+        "style": "Style",
+        "backfaceVisibility": "Backface visibility",
+        "backface": "Backface",
+        "value": "Value"
+      },
+      "transitions": {
+        "shorthand": "Shorthand",
+        "property": "Property",
+        "duration": "Duration",
+        "easing": "Easing",
+        "delay": "Delay",
+        "value": "Value",
+        "prop": "Prop",
+        "ease": "Ease",
+        "transitionDuration": "Transition duration",
+        "transitionDelay": "Transition delay",
+        "linear": "Linear",
+        "easeIn": "Ease in",
+        "easeOut": "Ease out",
+        "easeInOut": "Ease in-out"
+      },
+      "styles": {
+        "opacity": "Opacity",
+        "visible": "Visible",
+        "visibility": "Visibility",
+        "visibleOption": "Visible",
+        "hiddenOption": "Hidden",
+        "opacityLabel": "Opacity",
+        "visibleLabel": "Visible"
+      },
+      "cursor": {
+        "cursor": "Cursor",
+        "cursorLabel": "Cursor",
+        "pointerEvents": "Pointer events",
+        "pointerLabel": "Pointer",
+        "userSelect": "User select",
+        "selectLabel": "Select",
+        "touchAction": "Touch action",
+        "touchLabel": "Touch",
+        "type": "Type",
+        "events": "Events",
+        "select": "Select",
+        "touch": "Touch",
+        "auto": "Auto",
+        "default": "Default",
+        "pointer": "Pointer",
+        "wait": "Wait",
+        "text": "Text",
+        "move": "Move",
+        "notAllowed": "Not allowed",
+        "grab": "Grab",
+        "grabbing": "Grabbing",
+        "crosshair": "Crosshair",
+        "help": "Help",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "none": "None",
+        "all": "All",
+        "contain": "Contain",
+        "panX": "Pan X",
+        "panY": "Pan Y",
+        "pinchZoom": "Pinch zoom",
+        "manipulation": "Manipulation"
+      },
+      "advanced": {
+        "layoutExtras": "Layout extras",
+        "customProperties": "Custom properties",
+        "float": "Float",
+        "floatLabel": "Float",
+        "clear": "Clear",
+        "clearLabel": "Clear",
+        "none": "None",
+        "left": "Left",
+        "right": "Right",
+        "both": "Both",
+        "noCustomProperties": "No custom properties.",
+        "addVariable": "Add variable",
+        "customPropertyNamePlaceholder": "brand",
+        "customPropertyAriaLabel": "Custom property name",
+        "removeVariable": "Remove --{name}"
+      },
+      "element": {
+        "tag": "Tag",
+        "id": "ID",
+        "classes": "Classes",
+        "class": "Class",
+        "link": "Link",
+        "editRawClassName": "Edit raw className",
+        "rawClassAriaLabel": "Raw className editor",
+        "rawClassPlaceholder": "Paste or type Tailwind classes…",
+        "addAClass": "Add a class",
+        "addAClassPlaceholder": "Add a class…",
+        "loadingPlaceholder": "Loading…",
+        "elementIdAriaLabel": "Element ID"
+      },
+      "component": {
+        "noProperties": "No properties. Edit the component to expose some.",
+        "editComponent": "Edit component",
+        "componentOptions": "Component options",
+        "resetAllProperties": "Reset all properties",
+        "failedToUpdateProperty": "Failed to update property",
+        "failedToResetProperty": "Failed to reset property",
+        "failedToResetProperties": "Failed to reset properties",
+        "resetToDefault": "Reset to default",
+        "resetNameToDefault": "Reset {name} to default",
+        "noVariantsYet": "No variants yet. Add one to create style permutations (e.g. dark, outline).",
+        "variant": "Variant",
+        "variants": "Variants",
+        "default": "default",
+        "propertyFromSelection": "Property from selection",
+        "createPropertyTitle": "Create a property from the selected element",
+        "selectElementFirst": "Select an element inside the component first",
+        "createProperty": "Create property",
+        "creating": "Creating…",
+        "addVariant": "Add variant",
+        "adding": "Adding…",
+        "couldNotCreateProperty": "Could not create property",
+        "propertyCreated": "Property \"{name}\" created",
+        "couldNotAddVariant": "Could not add variant",
+        "variantAdded": "Variant \"{name}\" added",
+        "noPropertiesYet": "No properties yet. Select an element and create one below.",
+        "propertiesSection": "{name} · Properties",
+        "connectedToElement": "Connected to an element",
+        "notConnected": "Not connected",
+        "dynamic": "dynamic",
+        "unsupported": "unsupported",
+        "text": "text",
+        "richText": "rich text",
+        "image": "image",
+        "link": "link",
+        "number": "number",
+        "switch": "switch",
+        "slot": "slot",
+        "variantType": "variant"
+      },
+      "smartLink": {
+        "placeholder": "Page, file, email, or URL",
+        "noMatches": "No matches",
+        "pages": "Pages",
+        "files": "Files",
+        "email": "Email",
+        "phone": "Phone",
+        "orUse": "Or use",
+        "sendEmailTo": "Send email to {email}",
+        "callPhone": "Call {phone}",
+        "goTo": "Go to {url}",
+        "goToUrl": "Go to {url}"
+      },
+      "chipInput": {
+        "addAnItem": "Add an item"
+      },
+      "layoutGuide": {
+        "addLayoutGuide": "Add layout guide",
+        "removeLayoutGuide": "Remove layout guide",
+        "hideLayoutGuide": "Hide layout guide",
+        "showLayoutGuide": "Show layout guide",
+        "noGuides": "No guides on this frame. Click + to add one.",
+        "grid": "Grid",
+        "columns": "Columns",
+        "rows": "Rows",
+        "column": "column",
+        "row": "row",
+        "layoutGuideType": "Layout guide type",
+        "layoutGuideTypeAriaLabel": "Layout guide type",
+        "alignment": "Alignment",
+        "alignmentType": "Type",
+        "alignmentAriaLabel": "Alignment",
+        "size": "Size",
+        "count": "Count",
+        "color": "Color",
+        "colorAriaLabel": "Color",
+        "colorHexAriaLabel": "Color hex",
+        "type": "Type",
+        "width": "Width",
+        "margin": "Margin",
+        "gutter": "Gutter",
+        "stretch": "Stretch",
+        "left": "Left",
+        "center": "Center",
+        "right": "Right",
+        "top": "Top",
+        "bottom": "Bottom",
+        "auto": "Auto",
+        "colorHex": "Color hex"
+      },
+      "overlays": {
+        "fill": "Fill",
+        "stroke": "Stroke",
+        "width": "Width",
+        "color": "Color",
+        "radius": "Radius",
+        "image": "Image",
+        "bgSize": "Bg size",
+        "bgPos": "Bg pos",
+        "repeat": "Repeat",
+        "borderTop": "B. Top",
+        "borderRight": "B. Right",
+        "borderBottom": "B. Btm",
+        "borderLeft": "B. Left",
+        "mixed": "Mixed",
+        "cornersDiffer": "Corners differ — expand to edit individually"
+      },
+      "controls": {
+        "alignPad": {
+          "gridLabel": "Alignment",
+          "cellLabel": "Justify {justify}, Align {align}"
+        },
+        "alignmentToolbar": {
+          "groupLabel": "Position alignment",
+          "alignLeft": "Align left",
+          "centerHorizontally": "Center horizontally",
+          "alignRight": "Align right",
+          "alignTop": "Align top",
+          "centerVertically": "Center vertically",
+          "alignBottom": "Align bottom"
+        },
+        "colorRow": {
+          "mixed": "Mixed"
+        },
+        "fontHeroRow": {
+          "changeFont": "Change font",
+          "defaultFamily": "Default"
+        },
+        "growOverflow": {
+          "growLabel": "Grow",
+          "growHorizontally": "Grow horizontally",
+          "growVertically": "Grow vertically",
+          "fill": "Fill",
+          "overflowLabel": "Overflow",
+          "visible": "Visible",
+          "hidden": "Hidden",
+          "clip": "Clip",
+          "autoScroll": "Auto (scroll)"
+        },
+        "numberInput": {
+          "changeUnit": "Change unit",
+          "changeMode": "Change mode",
+          "mixed": "Mixed"
+        },
+        "openInNewTab": {
+          "label": "Open in new tab"
+        },
+        "pinPad": {
+          "clearAllSides": "Clear all sides",
+          "togglePin": "Toggle {side} pin",
+          "autoPlaceholder": "Auto",
+          "sideOffset": "{side} offset"
+        },
+        "chipInput": {
+          "removeChipAriaLabel": "{chip}. Press Backspace to remove.",
+          "addItemAriaLabel": "Add an item"
+        },
+        "propertyControl": {
+          "resetProperty": "Reset {label}",
+          "resetHint": "Reset (⌥-click the label)",
+          "reset": "Reset",
+          "copyValue": "Copy value",
+          "pasteValue": "Paste value",
+          "writeAs": "Write as {target}",
+          "override": "Override (this element only)",
+          "overrideActive": "✓ Override (this element only)",
+          "writeTargetTailwind": "Tailwind class",
+          "writeTargetCustomClass": "Custom class",
+          "writeTargetInline": "Inline style"
+        },
+        "propertyLabel": {
+          "altClickToReset": "{label} — alt-click to reset"
+        },
+        "shadowField": {
+          "editShadow": "Edit shadow",
+          "addShadow": "Add shadow",
+          "shadowHeader": "Shadow",
+          "removeShadow": "Remove shadow",
+          "colorLabel": "Color",
+          "xLabel": "X",
+          "yLabel": "Y",
+          "blurLabel": "Blur",
+          "spreadLabel": "Spread",
+          "decrease": "Decrease",
+          "increase": "Increase",
+          "pickShadowColor": "Pick shadow color",
+          "shadowHex": "Shadow hex",
+          "shadowOpacity": "Shadow opacity"
+        },
+        "styleChipPicker": {
+          "comingSoon": "{kind} styles — coming soon",
+          "comingSoonTooltip": "Saved {kind} styles aren't available yet — use the Custom controls below.",
+          "addKind": "Add {kind}",
+          "changeKind": "Change {kind}",
+          "noKindsYet": "No {kind}s yet",
+          "createKind": "Create {kind}",
+          "detach": "Detach",
+          "detachKind": "Detach {kind}"
+        },
+        "trblGrid": {
+          "allSidesLabel": "Edit all sides together",
+          "allSidesTitle": "All sides",
+          "perSideLabel": "Edit each side individually",
+          "perSideTitle": "Per side",
+          "mixed": "Mixed"
+        },
+        "linkAspectButton": {
+          "lockAspect": "Lock aspect ratio",
+          "unlockAspect": "Unlock aspect ratio"
+        }
+      }
+    }
+  },
+  "help": {
+    "menu": {
+      "reloadWeblab": "Reload Weblab",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "language": "Language",
+      "openSettings": "Open Settings",
+      "contactUs": {
+        "title": "Contact Us",
+        "website": "Website",
+        "github": "GitHub",
+        "email": "Email"
+      },
+      "reportIssue": "Report Issue",
+      "shortcuts": "Shortcuts"
+    }
+  },
+  "aiPromptComposer": {
+    "uploadImageTooltip": "Upload image"
+  },
+  "security": {
+    "hero": {
+      "eyebrow": "Security",
+      "title": "Security at Weblab",
+      "subtitle": "Your code, your data, on infrastructure aligned with industry standards.",
+      "ctaSubprocessors": "View subprocessors",
+      "ctaReport": "Report a vulnerability"
+    },
+    "data": {
+      "eyebrow": "Your data",
+      "title": "Your data, your control",
+      "subtitle": "Built to keep what's yours, yours.",
+      "learnMore": "Learn more",
+      "items": {
+        "tls": {
+          "title": "Encrypted in transit",
+          "body": "All traffic is encrypted over TLS. Sessions live in httpOnly, secure cookies."
+        },
+        "oauth": {
+          "title": "OAuth sign-in",
+          "body": "Sign in with Google or GitHub. No passwords stored. Sessions managed by Supabase."
+        },
+        "aiTraining": {
+          "title": "Code is not used to train AI",
+          "body": "Prompts and code are not used to train models. Providers retain logs briefly for abuse detection only."
+        },
+        "oss": {
+          "title": "Open source",
+          "body": "Weblab is Apache-2.0 licensed. The full source is on GitHub. Audit it, fork it, run it yourself."
+        },
+        "supabase": {
+          "title": "Supabase-backed storage",
+          "body": "Postgres database on Supabase. Encryption at rest. Row-level security on every table."
+        },
+        "stripe": {
+          "title": "Payments via Stripe",
+          "body": "Card data is handled by Stripe, PCI-DSS Level 1. We never see your card number."
+        }
+      }
+    },
+    "compliance": {
+      "eyebrow": "Compliance",
+      "title": "Compliance posture",
+      "subtitle": "We follow the controls behind the standards customers expect.",
+      "disclaimer": "Weblab is aligned with these frameworks but is not currently certified against ISO 27001 or SOC 2. Formal audits are on our roadmap.",
+      "items": {
+        "gdpr": {
+          "title": "GDPR-aligned",
+          "body": "Data minimization, right to access, right to erasure. Email us to exercise your rights."
+        },
+        "ccpa": {
+          "title": "CCPA-aligned",
+          "body": "California residents may opt out of sale or sharing. We do not sell personal data."
+        },
+        "iso": {
+          "title": "Aligned with ISO 27001 controls",
+          "body": "Access control, least-privilege secrets, encryption in transit, and incident response practices."
+        },
+        "soc": {
+          "title": "Modeled on SOC 2 practices",
+          "body": "Change management, monitoring, vendor review, and access reviews follow SOC 2 trust criteria."
+        },
+        "oss": {
+          "title": "Open-source codebase",
+          "body": "Anyone can review our code. Security through transparency, not obscurity."
+        },
+        "disclosure": {
+          "title": "Coordinated disclosure",
+          "body": "Report vulnerabilities privately via GitHub Security Advisories. We respond within five business days."
+        }
+      }
+    },
+    "compare": {
+      "eyebrow": "Vs typical builders",
+      "title": "How we compare",
+      "subtitle": "Weblab versus typical site builders, and where your data stands.",
+      "columns": {
+        "feature": "Feature",
+        "weblab": "Weblab",
+        "typical": "Typical site builder"
+      },
+      "rows": {
+        "code": {
+          "label": "Your code",
+          "weblab": "Yours, real React in your Git repo",
+          "typical": "Locked into a proprietary format"
+        },
+        "source": {
+          "label": "Source available",
+          "weblab": "Apache-2.0, public on GitHub",
+          "typical": "Closed source"
+        },
+        "export": {
+          "label": "Export your project",
+          "weblab": "Anytime, full source",
+          "typical": "Restricted or paid tier"
+        },
+        "aiOptOut": {
+          "label": "AI training opt-out",
+          "weblab": "Default, your code is never used",
+          "typical": "Opt-in by default"
+        },
+        "standards": {
+          "label": "Open standards",
+          "weblab": "Real Next.js, real Postgres",
+          "typical": "Proprietary stack"
+        },
+        "region": {
+          "label": "Region transparency",
+          "weblab": "Subprocessors and regions listed",
+          "typical": "Often hidden"
+        }
+      }
+    },
+    "subprocessors": {
+      "eyebrow": "Subprocessors",
+      "title": "Vendors that process data on our behalf",
+      "subtitle": "Every external system that touches customer data, what it does, and where it runs.",
+      "columns": {
+        "name": "Name",
+        "purpose": "Purpose",
+        "region": "Region"
+      },
+      "rows": {
+        "supabase": {
+          "name": "Supabase",
+          "purpose": "Auth + Postgres database",
+          "region": "EU"
+        },
+        "openrouter": {
+          "name": "OpenRouter",
+          "purpose": "LLM routing for AI features",
+          "region": "US"
+        },
+        "stripe": {
+          "name": "Stripe",
+          "purpose": "Payment processing",
+          "region": "US / EU"
+        },
+        "railway": {
+          "name": "Railway",
+          "purpose": "Application hosting",
+          "region": "US"
         },
         "github": {
-            "description": "Connect your GitHub account to push code and open pull requests.",
-            "checkingConnection": "Checking connection…",
-            "connectionFailed": "Failed to check GitHub connection status. Please try again.",
-            "retry": "Retry",
-            "statusConnected": "Connected",
-            "disconnectTitle": "Disconnect GitHub?",
-            "disconnectBody": "Weblab will no longer be able to push commits or open pull requests on your behalf. You can reconnect any time.",
-            "cancel": "Cancel",
-            "disconnecting": "Disconnecting…",
-            "confirmDisconnect": "Confirm disconnect",
-            "opening": "Opening…",
-            "configure": "Configure",
-            "disconnectButton": "Disconnect GitHub",
-            "notConnected": "Not connected",
-            "installDescription": "Install the GitHub App to allow Weblab to push commits and open pull requests on your behalf.",
-            "connectGitHub": "Connect GitHub",
-            "accessibleRepos": "Accessible repositories",
-            "repoCount": "{count, plural, one {# repo} other {# repos}}",
-            "searchRepos": "Search repositories…",
-            "loadingRepos": "Loading repositories…",
-            "noReposMatchSearch": "No repositories match your search.",
-            "noReposFound": "No repositories found.",
-            "private": "Private",
-            "importButton": "Import",
-            "importRepository": "Import a repository",
-            "toastUrlFailed": "Failed to generate GitHub installation URL",
-            "toastDisconnected": "GitHub disconnected",
-            "toastDisconnectFailed": "Failed to disconnect GitHub"
+          "name": "GitHub",
+          "purpose": "OAuth sign-in + repository sync",
+          "region": "US"
         },
-        "shortcuts": {
-            "title": "Keyboard shortcuts",
-            "description": "Click Rebind on any row, then press your desired key combo.",
-            "resetAll": "Reset all to defaults",
-            "rebind": "Rebind",
-            "resetToDefault": "Reset to default",
-            "pressingKey": "Press a key combo… (Esc to cancel)",
-            "conflictError": "Already used by \"{name}\"",
-            "toastResetSuccess": "All shortcuts reset to defaults",
-            "undoLabel": "Undo",
-            "toastSaveFailed": "Failed to save shortcut",
-            "toastResetFailed": "Failed to reset shortcuts",
-            "sections": {
-                "modes": "Modes",
-                "navigation": "Navigation",
-                "panels": "Panels",
-                "insert": "Insert",
-                "canvas": "Canvas",
-                "layers": "Layers",
-                "editor": "Editor",
-                "ai": "AI"
-            }
+        "posthog": {
+          "name": "PostHog",
+          "purpose": "Product analytics",
+          "region": "EU"
         },
-        "subscription": {
-            "currentPlanTitle": "Current plan",
-            "pro": "Pro",
-            "free": "Free",
-            "cancels": "Cancels {date}",
-            "changes": "Changes {date}",
-            "messagesSuffix": "· {count} messages / month",
-            "resumePlan": "Resume plan",
-            "changePlan": "Change plan",
-            "upgradeButton": "Upgrade to Pro",
-            "usageTitle": "Usage",
-            "loadingUsage": "Loading usage…",
-            "thisBillingPeriod": "This billing period",
-            "today": "Today",
-            "thisMonth": "This month",
-            "billingTitle": "Billing",
-            "billingDescriptionPro": "Manage your payment method, invoices, and cancellation in the Stripe portal.",
-            "billingDescriptionFree": "Upgrade to a paid plan to manage payment details and invoices.",
-            "opening": "Opening…",
-            "manageBilling": "Manage billing",
-            "toastPortalFailed": "Failed to open billing portal",
-            "cancelModal": {
-                "title": "Cancel Subscription",
-                "description": "Are you sure you want to cancel your subscription? You'll lose access to all premium features at the end of your current billing period.",
-                "keepSubscription": "Keep Subscription",
-                "cancelSubscription": "Cancel Subscription",
-                "cancelling": "Cancelling…"
-            }
+        "gleap": {
+          "name": "Gleap",
+          "purpose": "User feedback widget",
+          "region": "EU"
         },
-        "billing": {
-            "information": {
-                "title": "Billing information",
-                "edit": "Edit",
-                "empty": "No billing information on file. Add it so it appears on your invoices.",
-                "nameLabel": "Name",
-                "addressLabel": "Address"
-            },
-            "history": {
-                "title": "Billing history",
-                "noInvoices": "No invoices yet.",
-                "paid": "Paid",
-                "view": "View"
-            },
-            "editDialog": {
-                "title": "Edit billing information",
-                "nameLabel": "Name",
-                "namePlaceholder": "Full name",
-                "line1Label": "Address line 1",
-                "line1Placeholder": "Street address",
-                "line2Label": "Address line 2",
-                "line2Placeholder": "Apartment, suite, etc. (optional)",
-                "cityLabel": "City",
-                "stateLabel": "State / Province",
-                "statePlaceholder": "Optional",
-                "postalLabel": "Postal code",
-                "postalPlaceholder": "ZIP / Postal",
-                "countryLabel": "Country",
-                "countryPlaceholder": "Select country",
-                "cancel": "Cancel",
-                "save": "Save",
-                "saving": "Saving...",
-                "toastSuccess": "Billing information updated",
-                "toastFailed": "Failed to update billing information"
-            },
-            "payment": {
-                "title": "Payment methods",
-                "addNew": "Add new",
-                "opening": "Opening...",
-                "noPaymentMethods": "No payment methods saved.",
-                "defaultBadge": "Default",
-                "setAsDefault": "Set as default",
-                "remove": "Remove",
-                "optionsLabel": "Payment method options",
-                "expires": "Expires",
-                "toastDefaultSuccess": "Default payment method updated",
-                "toastDefaultFailed": "Failed to update default payment method",
-                "removeConfirmTitle": "Remove payment method?",
-                "removeConfirmDesc": "This card will be removed from your account.",
-                "toastRemoveSuccess": "Payment method removed",
-                "toastRemoveFailed": "Failed to remove payment method",
-                "toastRemoveDefaultError": "Set another card as default before removing this one.",
-                "toastAddFailed": "Failed to open the add-card flow"
-            },
-            "plan": {
-                "free": "Free plan",
-                "autoRenews": "Your plan auto-renews on {date}",
-                "cancels": "Your plan cancels on {date}",
-                "upgradeTeaser": "Upgrade to unlock more credits and features",
-                "changePlan": "Change plan",
-                "upgrade": "Upgrade",
-                "credits": "Credits this month",
-                "unlimitedUsed": "{used} used · Unlimited"
-            },
-            "cancel": {
-                "cancelTitle": "Cancel plan",
-                "reactivateTitle": "Reactivate plan",
-                "cancelDesc": "If you cancel, you'll keep full access to your plan features until the end of your billing period.",
-                "reactivateDesc": "Your plan cancels on {date}. Reactivate to keep it.",
-                "reactivate": "Reactivate",
-                "cancel": "Cancel",
-                "toastCancelSuccess": "Subscription set to cancel at period end",
-                "toastCancelFailed": "Failed to cancel subscription",
-                "toastReactivateSuccess": "Subscription reactivated",
-                "toastReactivateFailed": "Failed to reactivate subscription"
-            }
-        },
-        "versions": {
-            "title": "Backup Versions",
-            "selectBranch": "Select branch",
-            "newBackup": "New backup",
-            "today": "Today",
-            "yesterday": "Yesterday",
-            "rename": "Rename",
-            "renameTooltip": "Rename backup for easier identification",
-            "restore": "Restore",
-            "restoreTooltip": "Restore project to this version",
-            "restoring": "Restoring...",
-            "restored": "Restored",
-            "defaultName": "Backup",
-            "toastRenameSuccess": "Backup renamed successfully!",
-            "toastRenameFailed": "Failed to rename backup",
-            "toastRestoreFailed": "Failed to restore backup",
-            "toastGitNotInit": "Git not initialized",
-            "toastCreateFailed": "Failed to create backup",
-            "toastCreateSuccess": "Backup created successfully!",
-            "noActiveBranch": "No active branch",
-            "noVersionsTitle": "No backups",
-            "noVersionsDesc": "Create your first backup with the current version",
-            "createBackup": "Create backup",
-            "saving": "Saving..."
-        },
-        "dangerZone": {
-            "title": "Danger Zone",
-            "notPublished": "Your domain is not published",
-            "unpublishFrom": "Unpublish from {url}",
-            "unpublishing": "Unpublishing...",
-            "unpublish": "Unpublish",
-            "unpublishPreviewTitle": "Unpublish preview domain?",
-            "unpublishPreviewDesc": "Visitors will no longer be able to reach {url}. You can republish anytime.",
-            "unpublishPreviewDescFallback": "This will remove the preview deployment.",
-            "unpublishCustomTitle": "Unpublish custom domain?",
-            "unpublishCustomDesc": "Visitors will no longer be able to reach {url}. You can republish anytime.",
-            "cancel": "Cancel",
-            "toastUnpublishSuccess": "Project is being unpublished",
-            "toastUnpublishSuccessDesc": "Deployment ID: {id}",
-            "toastUnpublishFailed": "Failed to unpublish project",
-            "toastUnpublishFailedDesc": "Please try again."
-        },
-        "skills": {
-            "title": "Skills",
-            "description": "Skills teach the AI how to handle specific tasks. The AI lists them via list_skills and reads the body via read_skill.",
-            "allSkills": "All skills",
-            "mySkills": "My skills",
-            "thisProject": "This project",
-            "import": "Import",
-            "newSkill": "New skill",
-            "scopeAll": "Built-in skills, your own skills, and skills saved to this project.",
-            "scopeGlobal": "Your own skills — available across every project (built-ins excluded).",
-            "scopeProject": "Skills saved only to this project.",
-            "loading": "Loading skills…",
-            "empty": "No skills in this scope yet. Create one or import from the community.",
-            "exploreLink": "Explore community skills",
-            "deleteTitle": "Delete skill?",
-            "deleteDescProject": "\"{name}\" will be removed for this project. This can't be undone.",
-            "deleteDescGlobal": "\"{name}\" will be removed for all your projects. This can't be undone.",
-            "cancelDelete": "Cancel",
-            "confirmDelete": "Delete",
-            "toastDeleted": "Skill deleted",
-            "rowBuiltIn": "Built-in skill (read-only)",
-            "rowBuiltInTooltip": "Built-in skills are read-only. Create a same-named skill to override.",
-            "rowEdit": "Edit",
-            "rowDelete": "Delete",
-            "formEditTitle": "Edit skill",
-            "formNewTitle": "New skill",
-            "formNameLabel": "Name",
-            "formNameHint": "Lowercase letters, digits, hyphens. The AI uses this to find the skill.",
-            "formNameChars": "Use lowercase letters, digits, hyphens. 2–40 chars.",
-            "formOverrideBuiltIn": "Heads up: this overrides the built-in \"{name}\" skill.",
-            "formDescLabel": "Description",
-            "formDescHint": "One sentence — when should the AI use this skill?",
-            "formDescChars": "/200 — shown to the AI in the system prompt.",
-            "formScopeLabel": "Scope",
-            "formScopeGlobal": "Global — available in every project",
-            "formScopeProject": "This project only",
-            "formBodyLabel": "Body",
-            "formBodyHint": "/50,000 — markdown body the AI reads via read_skill.",
-            "formCancel": "Cancel",
-            "formCreate": "Create skill",
-            "formSave": "Save changes",
-            "formSaving": "Saving…",
-            "formSaveSuccess": "Updated skill \"{name}\"",
-            "formCreateSuccess": "Saved skill \"{name}\"",
-            "formSaveFailed": "Failed to save skill",
-            "badgeBuiltIn": "Built-in",
-            "badgeGlobal": "Global",
-            "badgeProject": "This project"
-        },
-        "siteAccess": {
-            "title": "Site access",
-            "description": "Manage who can access this site and set their role.",
-            "inviteLabel": "Invite by email",
-            "invitePlaceholder": "teammate@company.com",
-            "inviteButton": "Invite",
-            "inviting": "Inviting...",
-            "membersTitle": "Members",
-            "loadingMembers": "Loading members…",
-            "noMembers": "No members yet. Invite someone above.",
-            "you": "(You)",
-            "leaveSite": "Leave site",
-            "removeMember": "Remove member",
-            "pendingTitle": "Pending invitations",
-            "invitedAs": "Invited as {role}",
-            "pending": "Pending",
-            "revoke": "Revoke",
-            "roleManager": "Manager",
-            "roleEditor": "Editor",
-            "roleReviewer": "Reviewer",
-            "roleViewer": "Viewer",
-            "toastInvalidEmail": "Enter a valid email address",
-            "toastInviteSent": "Invitation sent to {email}",
-            "toastInviteFailed": "Could not send the invitation. Please try again.",
-            "toastRoleUpdated": "Role updated",
-            "toastRoleFailed": "Could not change the role.",
-            "toastLeft": "Left the site",
-            "toastMemberRemoved": "Member removed",
-            "toastRemoveFailed": "Could not remove the member.",
-            "toastRevoked": "Invitation revoked",
-            "toastRevokeFailed": "Could not revoke the invitation.",
-            "confirmLeaveTitle": "Leave this site?",
-            "confirmLeaveDesc": "You will lose access to this project unless you are re-invited.",
-            "confirmLeaveBtn": "Leave",
-            "confirmRemoveTitle": "Remove member?",
-            "confirmRemoveDesc": "This member will immediately lose access to the project.",
-            "confirmRemoveBtn": "Remove"
-        },
-        "seo": {
-            "title": "SEO",
-            "description": "Page titles, descriptions, and Open Graph live in the Site tab. Here you control crawlers and machine-readable files served from your site root.",
-            "save": "Save",
-            "loading": "Loading…",
-            "robotsTxtTitle": "robots.txt",
-            "robotsTxtDesc": "Controls which crawlers may index your site. Served at /robots.txt.",
-            "blockAiBots": "Block AI bots",
-            "allowAllCrawlers": "Allow all crawlers",
-            "blockAllCrawlers": "Block all crawlers",
-            "llmsTxtTitle": "llms.txt",
-            "llmsTxtDesc": "Guidance for LLMs and AI assistants about your site. Served at /llms.txt.",
-            "sitemapTitle": "sitemap.xml",
-            "sitemapDesc": "A custom sitemap served at /sitemap.xml. Leave the default if you generate one at build time.",
-            "toastSaveSuccess": "Saved {path}",
-            "toastSaveFailed": "Could not write {path}. Make sure the project is running."
-        },
-        "delete": {
-            "sectionTitle": "Delete Account",
-            "sectionDescription": "Permanently delete your account and all associated data",
-            "deleteButton": "Delete",
-            "confirmTitle": "Delete account - are you sure?",
-            "confirmIntro": "Deleting your account will:",
-            "bullet1": "Permanently delete your account and prevent you from creating new projects.",
-            "bullet2": "Delete all of your projects from {appName}'s servers.",
-            "bullet3": "You cannot create a new account using the same email address.",
-            "bullet4": "This will also permanently delete your chat history and other data associated with your account.",
-            "bullet5": "Deleting an account does not automatically cancel your subscription or entitled set of paid features.",
-            "bullet6": "This is final and cannot be undone.",
-            "emailLabel": "Please type your account email:",
-            "confirmLabel": "To proceed, type \"DELETE\" in the input field below:",
-            "cancelButton": "Cancel",
-            "deleteAccountButton": "Delete Account",
-            "lockedButton": "Locked",
-            "finalTitle": "Final confirmation",
-            "finalDescription": "This is your last chance to cancel. Are you absolutely sure you want to permanently delete your account and all associated data?",
-            "deleting": "Deleting…",
-            "confirmDeleteButton": "Yes, Delete My Account",
-            "toastFailed": "Failed to delete account",
-            "toastSuccess": "Account deleted successfully"
-        },
-        "project": {
-            "overviewTitle": "Overview",
-            "siteIdLabel": "Site ID",
-            "copyId": "Copy ID",
-            "copyIdFailed": "Failed to copy ID",
-            "pagesLabel": "Pages",
-            "lastPublished": "Last published",
-            "never": "Never",
-            "lastUpdated": "Last updated",
-            "created": "Created",
-            "justNow": "Just now",
-            "minutesAgo": "{minutes}m ago",
-            "hoursAgo": "{hours}h ago",
-            "daysAgo": "{days}d ago",
-            "metadataTitle": "Metadata",
-            "nameLabel": "Name",
-            "folderLabel": "Folder",
-            "noFolder": "No folder",
-            "newFolder": "+ New folder",
-            "offlineTitle": "Offline",
-            "offlineDesc": "Save a snapshot of this project for offline use.",
-            "availableOffline": "Available offline",
-            "lastCached": "Last cached",
-            "notYetCached": "Not yet cached",
-            "framesCached": "Frames cached",
-            "framesCount": "{count, plural, one {# frame} other {# frames}}",
-            "noSnapshot": "No canvas snapshot yet",
-            "commandsTitle": "Commands",
-            "commandsWarning": "Only update these if you know what you're doing!",
-            "installLabel": "Install",
-            "runLabel": "Run",
-            "buildLabel": "Build",
-            "discardChanges": "Discard changes",
-            "saving": "Saving...",
-            "saveChanges": "Save changes",
-            "toastOfflineOn": "Project saved for offline use",
-            "toastOfflineOff": "Project removed from offline storage",
-            "toastOfflineFailed": "Failed to update offline status",
-            "toastCopyIdFailed": "Failed to copy site ID",
-            "toastFolderFailed": "Failed to load folders",
-            "toastFolderMoved": "Project moved to folder",
-            "toastFolderRemoved": "Project removed from folder",
-            "toastFolderCreated": "Folder created and project moved",
-            "toastSaveSuccess": "Project settings saved",
-            "toastSaveFailed": "Failed to save project settings"
-        },
-        "site": {
-            "title": "Site",
-            "fetchingMetadata": "Fetching metadata...",
-            "toastFaviconFailed": "Failed to upload favicon",
-            "toastOgImageFailed": "Failed to upload social preview image",
-            "toastSaveSuccess": "Site settings saved",
-            "toastSaveFailed": "Failed to save site settings"
-        },
-        "page": {
-            "fetchingMetadata": "Fetching metadata...",
-            "unpublishedBadge": "Unpublished",
-            "draftBadge": "Draft",
-            "editorDetailsTitle": "Editor Details",
-            "nameLabel": "Name",
-            "nameDesc": "Shown inside the editor and settings lists.",
-            "namePlaceholder": "Page name",
-            "editorIconLabel": "Editor Icon",
-            "editorIconDesc": "Visual only. This does not change the site favicon.",
-            "editorIconPlaceholder": "Select an icon",
-            "iconFile": "File",
-            "iconGlobe": "Globe",
-            "iconImage": "Image",
-            "iconButton": "Button",
-            "slugLabel": "Slug",
-            "slugDesc": "Controls the last route segment for this page.",
-            "slugPlaceholder": "page-slug",
-            "folderLabel": "Folder",
-            "folderDesc": "Moves the page into a route folder prefix.",
-            "folderPlaceholder": "Select folder",
-            "folderRoot": "Root (/)",
-            "previewPathLabel": "Preview Path",
-            "previewPathDesc": "The route that will be saved when you apply changes.",
-            "canonicalUrlLabel": "Canonical URL",
-            "canonicalUrlDesc": "Point search engines to your preferred page URL to avoid duplicate content. Writes metadata.alternates.canonical.",
-            "canonicalUrlPlaceholder": "https://example.com/page",
-            "canonicalError": "Canonical must be a full URL, e.g. https://example.com/page",
-            "sitemapLabel": "Sitemap indexing",
-            "sitemapDesc": "Controls whether search engines can index this page. Writes metadata.robots.index.",
-            "indexable": "Indexable",
-            "noindex": "Noindex",
-            "draftLabel": "Draft",
-            "draftDesc": "Editor-only status for work that is not ready.",
-            "draftOn": "Draft",
-            "draftOff": "Ready",
-            "publishedLabel": "Published",
-            "publishedDesc": "Editor-only published state shown in the page settings.",
-            "publishedOn": "Published",
-            "publishedOff": "Unpublished",
-            "homeRootNote": "Home is locked to `/` and always uses the Home icon in the editor.",
-            "accessControlTitle": "Access control",
-            "accessControlDesc": "Manage who can access this page once published. Changes take effect on your next publish.",
-            "accessTypeLabel": "Access type",
-            "accessPublic": "Public",
-            "accessPassword": "Anyone with the password",
-            "accessPublicDesc": "Anyone on the internet can access this page once published.",
-            "passwordLabel": "Password",
-            "passwordKeepBlank": "Leave blank to keep the current password.",
-            "passwordSetInitial": "Used as the Basic Auth password on the published site.",
-            "passwordPlaceholder": "Set a password",
-            "passwordEffective": "Effective after the next publish. The password is hashed before storage; we never persist plaintext.",
-            "schemaMarkupTitle": "Schema markup",
-            "schemaMarkupDesc": "JSON-LD injected as a script tag on this page. Helps search and answer engines understand the page.",
-            "schemaMarkupLearnMore": "Learn more",
-            "schemaMarkupHint": "Leave empty to remove the script from the page.",
-            "formatJson": "Format JSON",
-            "invalidJson": "Invalid JSON",
-            "toastFormatFailed": "Cannot format — the JSON is invalid.",
-            "toastCanonicalInvalid": "Canonical URL is invalid.",
-            "toastSchemaInvalid": "Schema markup is not valid JSON.",
-            "toastPasswordTooShort": "Password must be at least 4 characters.",
-            "toastSaveSuccess": "Page settings updated successfully.",
-            "toastSaveFailed": "Failed to update page settings.",
-            "toastSaveFailedDesc": "Please try again.",
-            "toastOgImageFailed": "Failed to upload social preview image."
+        "resend": {
+          "name": "Resend",
+          "purpose": "Transactional email",
+          "region": "EU"
         }
+      },
+      "note": "* Active only when configured. Disabled integrations send no data to that subprocessor.",
+      "lastUpdated": "Last updated {date}"
+    },
+    "badges": {
+      "eyebrow": "Standards",
+      "title": "What Weblab is built to meet",
+      "subtitle": "We design to the bar customers expect, without overstating audits we have not completed.",
+      "gdpr": "GDPR-aligned",
+      "ccpa": "CCPA-aligned",
+      "apache": "Apache-2.0",
+      "oss": "Open source",
+      "disclosure": "Vulnerability disclosure"
+    },
+    "contact": {
+      "title": "Talk to us about security",
+      "subtitle": "Questions, compliance reviews, or vulnerability reports. We read every message.",
+      "emailCard": {
+        "title": "General security questions",
+        "body": "Reach out for compliance reviews, DPA requests, or anything else.",
+        "cta": "Email security"
+      },
+      "githubCard": {
+        "title": "Report a vulnerability",
+        "body": "Use GitHub Security Advisories for coordinated disclosure. Responses within five business days.",
+        "cta": "Open a security advisory"
+      }
+    },
+    "cookies": {
+      "title": "Cookies on this site",
+      "body": "We use cookies for product analytics and feedback. Accept to help us improve Weblab, or reject to keep only essentials.",
+      "accept": "Accept",
+      "reject": "Reject"
     }
+  },
+  "seo": {
+    "root": {
+      "title": "Weblab - AI Visual Website Builder for React Teams",
+      "description": "AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.",
+      "ogImageAlt": "Weblab: AI visual website builder for React teams"
+    },
+    "pricing": {
+      "title": "Pricing | Weblab Visual Editor for React",
+      "description": "Weblab pricing: start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.",
+      "ogImageAlt": "Weblab pricing"
+    },
+    "faq": {
+      "title": "FAQ | Weblab - AI-Powered Visual Editor for Frontend Development",
+      "description": "Frequently asked questions about Weblab, the AI-powered visual editor for frontend development. Learn about supported frameworks (React and Next.js, with Vite, Remix, Astro, and TanStack Start on the roadmap), component libraries, AI features, pricing, and how Weblab differs from other design tools.",
+      "ogImageAlt": "Weblab FAQ"
+    },
+    "about": {
+      "title": "About Weblab | The Visual Editor for React",
+      "description": "Meet the founder behind Weblab, an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.",
+      "ogImageAlt": "About Weblab"
+    },
+    "features": {
+      "title": "Features | Weblab AI Visual Editor for React Teams",
+      "description": "Explore Weblab's features: AI constrained to your design system, infinite canvas, real-time collaboration, version history, and GitHub PR output.",
+      "ogImageAlt": "Weblab features preview"
+    },
+    "featuresAi": {
+      "title": "AI Visual Editor | Build UIs with AI Using Your Design System | Weblab",
+      "description": "Weblab is an AI-powered visual editor that builds frontend UIs using your real React components. AI is constrained to your design system, with no brand drift and no throwaway code. Changes become mergeable PRs.",
+      "ogImageAlt": "Weblab AI visual editor preview"
+    },
+    "featuresBuilder": {
+      "title": "Visual Builder | Design with Your Real React Components | Weblab",
+      "description": "Weblab is a visual builder that works with your existing codebase. Design with your real React, Vue, or Angular components on an infinite canvas. Changes become mergeable pull requests.",
+      "ogImageAlt": "Weblab visual builder preview"
+    },
+    "featuresPrototype": {
+      "title": "AI Prototype Generator | Create Functional React Prototypes | Weblab",
+      "description": "Weblab generates functional React prototypes with real interactions, not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.",
+      "ogImageAlt": "Weblab prototype generator preview"
+    },
+    "featuresAiFrontend": {
+      "title": "AI for Frontend Development | Visual AI Editor for React | Weblab",
+      "description": "Weblab is an AI visual editor for React, Vue, and Angular teams. AI is constrained to your real components and design system, so changes ship as mergeable PRs.",
+      "ogImageAlt": "Weblab AI for frontend development preview"
+    },
+    "workflows": {
+      "title": "Workflows | Integrate Weblab with Claude Code, Cursor & AI Coding Tools | Weblab",
+      "description": "Connect Weblab to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools. Design with your real components, collaborate with your team, ship PRs.",
+      "ogImageAlt": "Weblab workflows preview"
+    },
+    "workflowsClaudeCode": {
+      "title": "Claude Code for Designers: Add a Visual Canvas to Your Workflow | Weblab",
+      "description": "Designers using Claude Code need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
+      "ogImageAlt": "Weblab Claude Code workflow preview"
+    },
+    "workflowsVibeCoding": {
+      "title": "Vibe Coding for Teams: Add Collaboration to Your AI Workflow | Weblab",
+      "description": "Vibe coding has a collaboration problem. Weblab solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs, not throwaway prototypes.",
+      "ogImageAlt": "Weblab vibe coding workflow preview"
+    },
+    "workflowsCodex": {
+      "title": "Codex for Designers: Add a Visual Canvas to Your Workflow | Weblab",
+      "description": "Designers using OpenAI Codex need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
+      "ogImageAlt": "Weblab Codex workflow preview"
+    },
+    "download": {
+      "title": "Download Weblab | Mac, Windows, Linux & iOS",
+      "description": "Get the Weblab desktop app for macOS, Windows and Linux, or the iOS app on iPhone and iPad.",
+      "ogImageAlt": "Download Weblab"
+    },
+    "changelog": {
+      "title": "Changelog | Weblab",
+      "description": "Latest updates, new features, and improvements to Weblab, the AI visual editor for React teams.",
+      "ogImageAlt": "Weblab changelog"
+    },
+    "compare": {
+      "title": "Weblab vs Lovable, Bolt, v0, Replit, Webflow, and more. Compare AI Design Tools",
+      "description": "Compare Weblab to Lovable, Bolt, v0, Replit, Webflow, and more. Weblab is the visual editor that works with your real React components and ships pull requests instead of throwaway code.",
+      "ogImageAlt": "Compare Weblab"
+    },
+    "privacyPolicy": {
+      "title": "Privacy Policy | Weblab",
+      "description": "Weblab privacy policy. Learn how Weblab handles your data.",
+      "ogImageAlt": "Weblab privacy policy"
+    },
+    "termsOfService": {
+      "title": "Terms of Service | Weblab",
+      "description": "Weblab terms of service. Read the legal terms governing your use of Weblab.",
+      "ogImageAlt": "Weblab terms of service"
+    },
+    "security": {
+      "title": "Security & Compliance | Weblab",
+      "description": "How Weblab handles your data: encryption, OAuth sign-in, AI training opt-out, subprocessors, and our compliance posture.",
+      "ogImageAlt": "Weblab security and compliance"
+    },
+    "sitemap": {
+      "title": "Sitemap | Weblab",
+      "description": "Complete sitemap for weblab.build, the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.",
+      "ogImageAlt": "Weblab sitemap"
+    },
+    "aiWebsiteBuilder": {
+      "title": "AI Website Builder for React & Next.js Codebases | Weblab",
+      "description": "AI website builder for React teams. AI edits your real components, respects your design tokens, and ships every change as a pull request. Open source.",
+      "ogImageAlt": "Weblab: AI website builder for React and Next.js"
+    },
+    "visualSiteBuilder": {
+      "title": "Visual Site Builder for React & Next.js Teams | Weblab",
+      "description": "Visual site builder for React and Next.js. Design with your real components on an infinite canvas. Ship pull requests, not mockups. Open source.",
+      "ogImageAlt": "Weblab: visual site builder for React and Next.js teams"
+    },
+    "websiteBuilder": {
+      "title": "Website Builder for Teams Who Own a Codebase | Weblab",
+      "description": "Website builder for teams with a React or Next.js codebase. Visual canvas, real components, AI assistance, pull-request output. Open source. Free to self-host.",
+      "ogImageAlt": "Weblab: website builder for teams with a codebase"
+    }
+  },
+  "nav": {
+    "brandHomeAria": "Weblab home",
+    "githubAria": "View Weblab on GitHub",
+    "mobileMenu": {
+      "open": "Open menu",
+      "close": "Close menu",
+      "getStarted": "Get started"
+    },
+    "user": {
+      "download": "Download",
+      "projects": "Projects",
+      "signIn": "Sign in"
+    },
+    "categories": {
+      "product": {
+        "label": "Product",
+        "links": {
+          "ai": {
+            "title": "AI",
+            "description": "AI-powered design"
+          },
+          "aiFrontend": {
+            "title": "AI for Frontend",
+            "description": "AI constrained to your design system"
+          },
+          "visualBuilder": {
+            "title": "Visual Builder",
+            "description": "Craft on a canvas"
+          },
+          "prototyping": {
+            "title": "Prototyping",
+            "description": "Rapid prototype creation"
+          },
+          "claudeCode": {
+            "title": "Claude Code",
+            "description": "Visual layer for Claude Code"
+          },
+          "vibeCoding": {
+            "title": "Vibe Coding",
+            "description": "Team collaboration for vibe coding"
+          },
+          "allFeatures": {
+            "title": "All Features",
+            "description": "See everything Weblab offers"
+          }
+        }
+      },
+      "resources": {
+        "label": "Resources",
+        "links": {
+          "documentation": {
+            "title": "Documentation",
+            "description": "Learn how to use Weblab"
+          },
+          "blog": {
+            "title": "Blog",
+            "description": "News and updates"
+          },
+          "github": {
+            "title": "GitHub",
+            "description": "View the source code"
+          }
+        }
+      },
+      "about": {
+        "label": "About",
+        "links": {
+          "aboutUs": {
+            "title": "About Us",
+            "description": "Learn about our mission"
+          },
+          "faq": {
+            "title": "FAQ",
+            "description": "Common questions"
+          },
+          "security": {
+            "title": "Security",
+            "description": "How we handle your data"
+          }
+        }
+      }
+    }
+  },
+  "landing": {
+    "hero": {
+      "headline": "Design on your real codebase.",
+      "headlineScript": "Ship a real PR.",
+      "subhead": "Open your real React or Next.js project, edit visually with AI, and push to GitHub. Open source. Pairs with Claude Code.",
+      "getStarted": "Get started",
+      "continueProjects": "Continue to your projects",
+      "download": "Download",
+      "highDemand": "We're currently experiencing high demand. Project may fail to create.",
+      "create": {
+        "promptPlaceholder": "Describe what you want to build",
+        "signInTooltip": "Sign in to start building",
+        "failedToCreate": "Failed to create project",
+        "replacePromptConfirm": "Replace your current prompt with this suggestion?",
+        "overlayHeading": "Getting your site ready",
+        "overlayCaption": "Your prompt is saved. The AI will start building as soon as the editor loads."
+      },
+      "errorBanner": {
+        "tryAgain": "Try again",
+        "dismiss": "Dismiss"
+      },
+      "cloneWebsite": "Clone a website",
+      "importGithub": "Import from GitHub",
+      "openLocalFolder": {
+        "importingHeading": "Importing your folder",
+        "importingCaption": "Uploading your files. Larger folders take longer.",
+        "uploadingFiles": "Uploading files ({count})",
+        "uploadingFolder": "Uploading folder",
+        "creatingProject": "Creating your project",
+        "openingEditor": "Opening editor",
+        "unsupportedTooltip": "Local folder access is only available in Chromium-based browsers (Chrome, Edge, Arc)."
+      },
+      "mobileEmailCapture": {
+        "notification": "Weblab is optimized for larger screens",
+        "cta": "Email me a link for later",
+        "formTitle": "Email me a link to Weblab",
+        "nameLabel": "Name",
+        "namePlaceholder": "Pablo Picasso",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Enter your email",
+        "submit": "Email me a link",
+        "submitting": "Submitting...",
+        "success": "Thanks, an email to use Weblab has been sent to you!",
+        "errors": {
+          "missingFields": "Please fill in all fields",
+          "invalidEmail": "Please enter a valid email address",
+          "timeout": "Request timed out. Please check your connection and try again.",
+          "server": "Server error. Please try again in a moment.",
+          "network": "Network error. Please check your connection and try again.",
+          "submit": "Failed to submit form. Please try again.",
+          "generic": "An unexpected error occurred. Please try again."
+        }
+      }
+    },
+    "useCases": {
+      "eyebrow": "Looks simple. Goes deep.",
+      "references": {
+        "label": "References",
+        "description": "Drop in a screenshot, a doc, a link. Weblab reads it the same way you would, then builds with it."
+      },
+      "pages": {
+        "label": "Pages",
+        "description": "Plan your site like a sitemap. Add a page, set its route, share a layout, without leaving the canvas."
+      },
+      "code": {
+        "label": "Code",
+        "description": "Underneath every screen is real code. Open a file, change a line, see the canvas update. The same code your team would ship."
+      },
+      "search": {
+        "label": "Search",
+        "description": "Find anything in your project. A page, a component, a word in a button. One search, everything indexed."
+      },
+      "connect": {
+        "label": "Connect",
+        "description": "Already have a project? Open your repo, edit on the canvas, ship back as commits. No rebuild. No migration."
+      },
+      "startBuilding": "Start building"
+    },
+    "modelAgnostic": {
+      "eyebrow": "Model agnostic",
+      "headline": "Only use the AI models that work best for you.",
+      "body": "With Weblab, you can choose and switch between leading models as you need.",
+      "models": {
+        "gpt": "Flagship GPT model for complex tasks",
+        "gptMini": "Smaller, faster GPT for everyday work",
+        "sonnet": "Anthropic's flagship, industry-leading for coding",
+        "opus": "Most capable Claude for the hardest problems",
+        "haiku": "Compact Claude, fast and affordable",
+        "gemini": "Google's frontier multimodal model",
+        "deepseek": "Open-weight reasoning at frontier quality",
+        "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
+        "kimi": "Long-context, fast and capable",
+        "mistral": "Open-weight model tuned for code"
+      }
+    },
+    "andSoMuchMore": {
+      "titleLine1": "...and so",
+      "titleLine2": "much more",
+      "worksWithCodebase": {
+        "title": "Works With Your Codebase",
+        "body": "Connect your existing React, Next.js, or Vue project. No rebuilding. No migration. Start designing in minutes."
+      },
+      "builtForTeams": {
+        "title": "Built for Teams",
+        "body": "Share your canvas. Leave spatial comments. Work together on designs that become real PRs."
+      },
+      "githubIntegration": {
+        "title": "Direct GitHub Integration",
+        "body": "Push changes directly to your repository. Review diffs before committing."
+      },
+      "shipPrs": {
+        "title": "Ship PRs, Not Prototypes",
+        "body": "Your changes become a real pull request. Engineers review and merge, with no handoff and no translation."
+      },
+      "shortcuts": {
+        "title": "Power User Shortcuts",
+        "bodyPrefix": "All your familiar hotkeys work here.",
+        "bodySuffix": "and everything in between."
+      },
+      "reference": {
+        "title": "Reference Anything in Chat",
+        "body": "Drop images, mockups, or docs into your conversation. AI uses them as context for better results."
+      }
+    },
+    "digitalSolutions": {
+      "titleLine1": "From canvas",
+      "titleLine2": "to deployed.",
+      "body": "Once the first screen is on the canvas, the real work starts. Multiplayer, branching, content, deploys. The parts of shipping that other tools hand off, Weblab keeps in one place.",
+      "startBuilding": "Start building",
+      "play": "Play",
+      "pause": "Pause",
+      "slides": {
+        "collab": {
+          "eyebrow": "Team on one canvas",
+          "title": "See each other work, in real time.",
+          "description": "Live cursors, presence, and inline comments on real components. Mention a teammate, resolve a thread, and turn feedback into a commit without leaving the canvas."
+        },
+        "branches": {
+          "eyebrow": "Safe experiments",
+          "title": "Branch the canvas like you branch the code.",
+          "description": "Try a redesign on a branch, preview it live, and merge only when you're happy. Every change is a checkpoint you can restore any time."
+        },
+        "cms": {
+          "eyebrow": "Content, native",
+          "title": "Edit content where you edit design.",
+          "description": "Collections, fields, and bindings live next to your components. Pull from Payload, Strapi, or a built-in store, and ship copy changes without a code push."
+        },
+        "deploy": {
+          "eyebrow": "Ship to production",
+          "title": "Publish to a live URL in one click.",
+          "description": "Preview every branch on its own URL. Promote to your custom domain when it's ready. Real code, real builds, real production, with no export step."
+        }
+      }
+    },
+    "cta": {
+      "defaultHeadingLine1": "Ready to stop rebuilding?",
+      "defaultHeadingLine2": "Your design system, on a canvas.",
+      "defaultButton": "Get started"
+    },
+    "featuresIntro": {
+      "eyebrow": "Native Design Tool Features",
+      "headline": "Familiar to Designers. Trusted by Engineers.",
+      "body": "A canvas that feels intuitive, with real code underneath. Engineers can merge what you create directly, with no handoff and no rebuilding."
+    },
+    "featuresGrid": {
+      "components": {
+        "eyebrow": "Your Real Components",
+        "title": "Design with what engineers built",
+        "body": "Use the buttons, cards, and layouts your team already created. Not generic HTML, but your actual design system, ready to drag onto the canvas."
+      },
+      "teams": {
+        "eyebrow": "Built for Teams",
+        "title": "Real-time collaboration",
+        "body": "Share your canvas. Leave spatial comments. Work together on designs that become real PRs. No more \"now how do I share this?\""
+      },
+      "prs": {
+        "eyebrow": "Ship PRs, Not Prototypes",
+        "title": "Changes become pull requests",
+        "body": "Your changes become a real pull request. Engineers review and merge, with no handoff, no translation, and no rebuilding from specs."
+      },
+      "layers": {
+        "eyebrow": "Layer Management",
+        "title": "Navigate your component tree",
+        "body": "See your React component hierarchy in a visual layer panel. Click any layer to select it on the canvas. No more hunting through JSX."
+      },
+      "codebase": {
+        "eyebrow": "Works With Your Codebase",
+        "title": "Connect existing projects",
+        "body": "Connect your existing React or Next.js project. No rebuilding. No migration. Start designing in minutes."
+      },
+      "history": {
+        "eyebrow": "Version History",
+        "title": "Never lose your progress",
+        "body": "{appName} automatically saves project snapshots. Experiment with confidence, and roll back to any previous version with one click."
+      }
+    },
+    "aiFeaturesGrid": {
+      "feedback": {
+        "eyebrow": "Instant Visual Feedback",
+        "title": "See AI-generated components appear in real-time",
+        "body": "See AI-generated components appear in real-time as you describe them, with immediate visual updates for every change you make"
+      },
+      "library": {
+        "eyebrow": "Component Library",
+        "title": "AI automatically creates reusable components",
+        "body": "AI automatically creates reusable components from your designs and suggests smart combinations from your existing library"
+      },
+      "globalStyles": {
+        "eyebrow": "Global Styles",
+        "title": "Define your brand colors, fonts, and spacing once",
+        "body": "Define your brand colors, fonts, and spacing once - AI applies them consistently across every component it generates"
+      },
+      "responsive": {
+        "eyebrow": "Responsive Breakpoints",
+        "title": "AI builds mobile-first components",
+        "body": "AI builds mobile-first components that automatically adapt to any screen size with proper breakpoints and fluid layouts"
+      },
+      "layers": {
+        "eyebrow": "Layer Management",
+        "title": "Navigate your app structure through an intuitive layer panel",
+        "body": "Navigate your app structure through an intuitive layer panel - select any element to edit manually or collaborate with AI"
+      },
+      "templates": {
+        "eyebrow": "Import Templates",
+        "title": "Start with any Next.js/Tailwind template",
+        "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
+      }
+    },
+    "contributor": {
+      "headingLine1": "Supported by you &",
+      "headingOtherBuilders": "{count} other builders",
+      "headingLoading": "...",
+      "body": "Join the community building the open source Cursor for Designers",
+      "contributeButton": "Contribute to Weblab",
+      "avatarAlt": "{name}'s avatar"
+    },
+    "codeOneToOne": {
+      "headingLine1": "Truly one-to-one",
+      "headingLine2": "with code"
+    },
+    "obsessForHours": {
+      "buildIn": "Build in",
+      "seconds": "Seconds",
+      "obsessFor": "Obsess for",
+      "hours": "Hours",
+      "aiHeading": "Infused with AI",
+      "aiBody": "Craft at the speed of thought",
+      "designHeading": "Crafted for Design",
+      "designBody": "Precise styling, infinite possibilities, component-first"
+    },
+    "aiFeaturesIntro": {
+      "eyebrow": "Design on an Infinite Canvas",
+      "headline": "Point at what you want. AI knows exactly what you mean.",
+      "body": "No more describing \"the button in the top right.\" Just click it. AI is constrained to your design system, so outputs stay on-brand every time."
+    },
+    "aiBenefits": {
+      "codeGen": {
+        "eyebrow": "AI Code Generation for Designers",
+        "headline": "Build Production-Ready Apps with Natural Language",
+        "body": "Describe what you want in plain text and watch AI create fully functional web applications with real databases, user authentication, and interactive features - not just static mockups or prototypes."
+      },
+      "collaborate": {
+        "eyebrow": "Visual AI Design Tools",
+        "headline": "Collaborate with AI on a Visual Canvas",
+        "body": "Select any element and choose to edit it yourself or work together with AI. Unlike pure chat-based tools, you maintain full visual control while AI assists with the heavy lifting, creating a seamless collaboration between human creativity and AI capability."
+      },
+      "system": {
+        "eyebrow": "AI Design System Management",
+        "headline": "Maintain Design System Consistency",
+        "body": "AI automatically applies your brand guidelines, component patterns, and design tokens to ensure every element stays on-brand and consistent across your entire application, eliminating design drift and maintaining professional polish."
+      }
+    },
+    "benefits": {
+      "aiContext": {
+        "eyebrow": "AI That Understands Context",
+        "headline": "AI Constrained to Your Design System",
+        "body": "Reference images, designs, and docs in chat. AI sees what you see, with no more explaining from scratch. Outputs use your real components, colors, and tokens. No drift. No off-brand results."
+      },
+      "canvas": {
+        "eyebrow": "Canvas Manipulation",
+        "headline": "Design on an Infinite Canvas",
+        "body": "Drag, resize, and arrange elements directly on the canvas. See changes in real code instantly, with no switching between tools. Point at what you want. AI knows exactly what you mean."
+      },
+      "guardrails": {
+        "eyebrow": "Design System Guardrails",
+        "headline": "Your Colors, Fonts, and Tokens",
+        "body": "AI is constrained to your design system. Pick from your brand colors, use your typography scales, and style with your existing tokens. No drift. No off-brand outputs.",
+        "features": {
+          "autoLayout": "Auto Layout & Flexbox",
+          "borders": "Borders",
+          "margins": "Margins",
+          "imageBackgrounds": "Image backgrounds",
+          "typography": "Typography",
+          "padding": "Padding",
+          "gradients": "Gradients",
+          "cornerRadii": "Corner Radii"
+        }
+      }
+    },
+    "builderFeaturesIntro": {
+      "eyebrow": "Works With Your Codebase",
+      "headline": "Connect Your Existing Project. Start Designing in Minutes.",
+      "body": "No rebuilding. No migration. Connect your React, Next.js, or Vue project and design with your real components, the ones your engineers already built."
+    },
+    "builderBenefits": {
+      "visualReact": {
+        "eyebrow": "Visual React Editing for Developers",
+        "headline": "Edit React Apps Visually with Code Sync",
+        "body": "Manipulate your React codebase visually while seeing real-time code changes. No more switching between editor and browser. Build, style, and refactor your react app with pixel-perfect control and automatic code generation."
+      },
+      "noCode": {
+        "eyebrow": "No-Code React Builder with Developer Tools",
+        "headline": "Create Complex React UIs Without Writing Every Line",
+        "body": "Use drag-and-drop for layouts, components, and state management while Weblab generates production-ready React code."
+      },
+      "aiAssisted": {
+        "eyebrow": "AI-Assisted React Development",
+        "headline": "Generate and Refine React Code with AI",
+        "body": "Combine visual building with AI prompts to create custom React components, hooks, and patterns that match your project's architecture, ensuring everything is typed, optimized, and ready for production.",
+        "features": {
+          "componentGeneration": "Component Generation",
+          "stateManagement": "State Management",
+          "eventHandlers": "Event Handlers",
+          "apiIntegration": "API Integration",
+          "typescriptSupport": "TypeScript Support",
+          "customHooks": "Custom Hooks",
+          "formValidation": "Form Validation",
+          "responsiveDesign": "Responsive Design"
+        }
+      }
+    },
+    "builderFeaturesGrid": {
+      "liveCode": {
+        "eyebrow": "Live Code Editing",
+        "body": "Make visual changes that instantly update your React files with proper TSX, props, and state management"
+      },
+      "layers": {
+        "eyebrow": "Layer Management",
+        "body": "Navigate and organize your app's structure through an intuitive layers panel for precise element selection and editing"
+      },
+      "components": {
+        "eyebrow": "Component Library Integration",
+        "body": "Use your existing React component library or import any next/tailwind kit"
+      },
+      "tailwind": {
+        "eyebrow": "TailwindCSS Visual Editor",
+        "body": "Visually edit and apply Tailwind classes with auto-completion and real-time styling previews"
+      },
+      "responsive": {
+        "eyebrow": "Responsive Design Tools",
+        "body": "Build mobile-first React apps with breakpoint previews and automatic media query generation"
+      },
+      "templates": {
+        "eyebrow": "Import Templates",
+        "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
+      }
+    },
+    "responsiveMockup": {
+      "panel1": {
+        "title": "Design with AI on an infinite canvas",
+        "body": "Craft, preview, and iterate with AI to ship better websites and prototypes faster than ever."
+      },
+      "panel2": {
+        "title": "Native design tool features that work 1:1 with code.",
+        "body": "A true developer tool for designers, helping you code without knowing anything about code."
+      }
+    },
+    "scrollingVelocity": {
+      "lineTop": "Design without limits.",
+      "lineBottom": "Ship without rebuilding."
+    },
+    "justShipped": {
+      "badge": "New in v{version}"
+    },
+    "socialProof": {
+      "title": "Community Stats:",
+      "contributorsCount": "90+",
+      "contributorsLabel": "contributors",
+      "openSource": "Open source",
+      "transparent": "& transparent"
+    },
+    "terminalSection": {
+      "eyebrow": "Your stack, your terminal",
+      "heading": "Real code. Real terminal. Real control.",
+      "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal, with no lock-in and no black box."
+    },
+    "featureTrio": {
+      "eyebrow": "Built open",
+      "heading": "Your model. Your terminal. Real code you own.",
+      "models": {
+        "title": "Model agnostic",
+        "body": "Switch between leading models as you need. Pick the one that fits the task."
+      },
+      "terminal": {
+        "title": "Real code, real terminal",
+        "body": "Install, build, test, and deploy from your own terminal. No lock-in, no black box."
+      },
+      "aiAssistant": {
+        "eyebrow": "AI assistant",
+        "title": "Ask, iterate, ship",
+        "body": "Describe what you want. Weblab plans, edits the right files, and shows the diff before you ship."
+      },
+      "tokens": {
+        "eyebrow": "Design tokens",
+        "title": "Your design system, wired",
+        "body": "Colors, type, spacing — defined once, used everywhere. Edit a token, every component follows."
+      }
+    },
+    "whatCanWeblabDoV2": {
+      "headingAi": "AI",
+      "headingCode": "Code",
+      "headingDesign": "Design",
+      "headingSideBySide": "Side-by-side",
+      "subhead": "Design, code, and AI in one canvas. What you move on screen is the file you ship.",
+      "cta": "Start building",
+      "layersTitle": "Layers",
+      "revisionToday": "Today",
+      "revisionCurrent": "Current",
+      "features": {
+        "aiAssistant": {
+          "subtitle": "AI Assistant",
+          "title": "AI that understands context",
+          "paragraph": "Reference images, designs, and docs in chat. AI sees what you see, with no more explaining from scratch."
+        },
+        "canvas": {
+          "subtitle": "Canvas",
+          "title": "Manipulate elements directly",
+          "paragraph": "Drag, resize, and arrange elements directly on the canvas. See changes appear in real code instantly."
+        },
+        "code": {
+          "subtitle": "Code",
+          "title": "Real code, live next to your canvas",
+          "paragraph": "Edit components in a proper editor with syntax highlighting and multi-file tabs. Every visual change writes back into the file you'd ship."
+        },
+        "components": {
+          "subtitle": "Components",
+          "title": "Your real components",
+          "paragraph": "Reuse your existing design system: buttons, cards, navs. Live components, not screenshots."
+        },
+        "cms": {
+          "subtitle": "CMS",
+          "title": "Content lives next to your design",
+          "paragraph": "Manage posts, pages, and collections in one tidy panel. Edit a field and the canvas updates — no separate dashboard, no copy-paste."
+        },
+        "structure": {
+          "subtitle": "Structure",
+          "title": "Navigate your code as layers",
+          "paragraph": "A live tree of your DOM. Click any node to jump to it on the canvas, with no inspector hunting."
+        },
+        "history": {
+          "subtitle": "History",
+          "title": "Time travel for your designs",
+          "paragraph": "Every save is a version. Branch, restore, and compare without leaving the canvas."
+        }
+      }
+    },
+    "testimonials": {
+      "headingLine1": "Tens of thousands of",
+      "headingLine2": "builders love Weblab"
+    },
+    "faq": {
+      "titleLine1": "Frequently",
+      "titleLine2": "asked questions",
+      "readMore": "Read our FAQs",
+      "items": {
+        "what": {
+          "question": "What is {appName}?",
+          "answer": "{appName} is a visual design canvas that connects to your existing codebase. Designers drag real components onto an infinite canvas, make changes visually, and submit pull requests, with no coding required."
+        },
+        "differentDesign": {
+          "question": "How is {appName} different from other design tools?",
+          "answer": "Traditional design tools create static mockups that must be rebuilt in code. {appName} works with your real components, so what you design IS the code. Changes become PRs, not handoff specs."
+        },
+        "differentAi": {
+          "question": "How is {appName} different from AI code generators?",
+          "answer": "AI generators create new code from scratch. {appName} constrains AI to YOUR existing components, so outputs match your design system. No translation, no drift."
+        },
+        "code": {
+          "question": "Do I need to know how to code?",
+          "answer": "No. Designers use a visual canvas with familiar tools. Real code runs underneath, so you don't need to touch it unless you want to."
+        },
+        "htmlSites": {
+          "question": "Can I build plain HTML websites?",
+          "answer": "Yes. {appName} ships a static-HTML scaffolder for landing pages, portfolios, and marketing sites — no framework required."
+        },
+        "fromScratch": {
+          "question": "Can I create a website from scratch with AI?",
+          "answer": "Yes. Hit \"Start blank\" to scaffold a fresh project, then use the AI chat in the editor to generate pages, sections, and styles. No existing codebase needed."
+        },
+        "desktopAndOwnAI": {
+          "question": "Can I use {appName} with my own AI coder?",
+          "answer": "Yes. The desktop app loads your local codebase and runs alongside your AI coding agent — design visually in {appName} while Claude Code does the heavy lifting in your terminal. Codex, Cursor, and Gemini support is rolling out."
+        },
+        "collaborate": {
+          "question": "Can my team collaborate?",
+          "answer": "Yes. Share your canvas, leave spatial comments, and work together in real-time. Changes sync to code and can be submitted as PRs for engineers to review."
+        },
+        "stack": {
+          "question": "What tech stack does {appName} support?",
+          "answer": "React, Next.js, and any CSS approach (Tailwind, CSS modules, styled-components). Works with any component library."
+        },
+        "free": {
+          "question": "Is there a free version of {appName}?",
+          "answer": "Yes. {appName} is open source under Apache 2.0 — self-host the whole thing free from GitHub. The hosted cloud version has a free Basic plan with daily AI credits, plus paid plans for unlimited AI and custom domains."
+        },
+        "ownership": {
+          "question": "Who owns the code?",
+          "answer": "The code you make with {appName} is all yours. Export it locally, publish to GitHub, or deploy to a custom domain."
+        }
+      }
+    },
+    "footer": {
+      "brandHomeAria": "Weblab home",
+      "company": {
+        "title": "Company",
+        "about": {
+          "label": "About"
+        },
+        "faq": {
+          "label": "FAQ",
+          "title": "Frequently Asked Questions"
+        },
+        "contact": {
+          "label": "Contact",
+          "title": "Contact Weblab support"
+        }
+      },
+      "resources": {
+        "title": "Resources",
+        "docs": {
+          "label": "Docs",
+          "title": "View Weblab documentation"
+        },
+        "blog": {
+          "label": "Blog",
+          "title": "Read the Weblab blog"
+        },
+        "githubRepo": {
+          "label": "GitHub Repo",
+          "title": "View Weblab on GitHub"
+        },
+        "changelog": {
+          "label": "Changelog",
+          "title": "See what's new in Weblab"
+        },
+        "compare": {
+          "label": "Compare",
+          "title": "See how Weblab compares to alternatives"
+        }
+      },
+      "product": {
+        "title": "Product",
+        "pricing": {
+          "label": "Pricing",
+          "title": "View Weblab pricing"
+        },
+        "download": {
+          "label": "Download",
+          "title": "Download Weblab for Mac, Windows, Linux & iOS"
+        },
+        "myProjects": {
+          "label": "My Projects",
+          "title": "View your projects"
+        }
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": {
+          "label": "Terms of Service",
+          "title": "Read our Terms of Service"
+        },
+        "privacy": {
+          "label": "Privacy Policy",
+          "title": "Read our Privacy Policy"
+        },
+        "security": {
+          "label": "Security",
+          "title": "How Weblab handles your data"
+        },
+        "sitemap": {
+          "label": "Sitemap",
+          "title": "View the sitemap"
+        },
+        "copyright": "© {year} Weblab"
+      },
+      "workflows": {
+        "title": "Workflows",
+        "claudeCode": {
+          "label": "Claude Code",
+          "title": "Use Weblab with Claude Code"
+        },
+        "vibeCoding": {
+          "label": "Vibe Coding",
+          "title": "Vibe coding for teams"
+        }
+      },
+      "features": {
+        "title": "Features",
+        "overview": {
+          "label": "Feature overview",
+          "title": "View all Weblab features"
+        },
+        "ai": {
+          "label": "AI",
+          "title": "AI-powered development tools"
+        },
+        "visualBuilder": {
+          "label": "Visual Builder",
+          "title": "Visual builder tools"
+        },
+        "prototyping": {
+          "label": "Prototyping",
+          "title": "Rapid prototyping features"
+        },
+        "aiFrontend": {
+          "label": "AI for Frontend",
+          "title": "AI constrained to your design system"
+        }
+      },
+      "followUs": {
+        "title": "Follow Us",
+        "github": {
+          "label": "GitHub",
+          "title": "View Weblab on GitHub"
+        }
+      },
+      "languageSwitcher": {
+        "label": "Language"
+      },
+      "themeSwitcher": {
+        "label": "Theme",
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
+      }
+    }
+  },
+  "settings": {
+    "domain": {
+      "upgrade": {
+        "title": "Custom domains are a Pro feature",
+        "description": "Upgrade to {app} Pro to connect your own domain.",
+        "cta": "Upgrade to Pro"
+      },
+      "base": {
+        "title": "Weblab domain",
+        "label": "Subdomain",
+        "helper": "Your free address. Pick the subdomain your site is published to.",
+        "placeholder": "my-site",
+        "save": "Save",
+        "saved": "Saved {domain}",
+        "saveError": "Couldn't save your subdomain. Please try again.",
+        "liveAt": "Live at",
+        "notPublished": "Not published yet — your site goes live here once you publish."
+      },
+      "verification": {
+        "toastVerified": "Domain verified",
+        "errorCreateFailed": "Failed to create domain verification",
+        "errorNoRemove": "No verification request to remove",
+        "errorRemoveFailed": "Failed to remove verification request",
+        "errorNoVerify": "No verification request to verify",
+        "errorVerifyFailed": "Failed to verify domain",
+        "errorReuseFailed": "Failed to reuse domain"
+      }
+    },
+    "appearance": {
+      "saveError": "Failed to save appearance setting",
+      "theme": {
+        "title": "Theme",
+        "description": "Choose your preferred color scheme.",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "accent": {
+        "title": "Accent color",
+        "description": "Used for active states and highlights.",
+        "blue": "Blue",
+        "red": "Red",
+        "green": "Green",
+        "neutral": "Neutral"
+      },
+      "fontFamily": {
+        "title": "Font family",
+        "description": "Applies to the app UI, not your project.",
+        "sans": "Sans-serif",
+        "serif": "Serif"
+      },
+      "fontSize": {
+        "title": "Font size",
+        "description": "Base size for the app UI text.",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the language for the app UI.",
+      "displayLabel": "Display language",
+      "updated": "Language updated",
+      "saveError": "Failed to save language preference",
+      "appliesImmediately": "Language change applies immediately."
+    },
+    "editor": {
+      "saveError": "Failed to save editor settings",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "preferences": {
+        "title": "Editor preferences",
+        "description": "Control how the editor behaves."
+      },
+      "warnDelete": {
+        "title": "Warn before deleting elements",
+        "description": "Show a confirmation dialog when removing elements."
+      },
+      "bunReplace": {
+        "title": "Enable Bun replace",
+        "description": "Prefer Bun for package management operations."
+      },
+      "build": {
+        "title": "Build configuration",
+        "description": "Flags passed to the build command.",
+        "flagsLabel": "Build flags"
+      }
+    },
+    "account": {
+      "profileTitle": "Profile",
+      "avatarSync": "Avatar will sync from your authentication provider.",
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "Jane",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Doe",
+      "displayNameLabel": "Display name",
+      "displayNamePlaceholder": "jane.doe",
+      "emailLabel": "Email",
+      "emailManagedByGoogle": "Email is managed by your Google account.",
+      "emailManagedByProvider": "Email is managed by your authentication provider.",
+      "contactSupport": "Contact support",
+      "emailUpdateSuffix": "to update your email.",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "toastSuccess": "Profile updated",
+      "toastFailed": "Failed to update profile"
+    },
+    "ai": {
+      "defaultModelTitle": "Default model",
+      "defaultModelDescription": "Pre-selected when you open a new chat.",
+      "modelLabel": "Model",
+      "localModelsTitle": "Local models",
+      "localModelsDescription": "Use locally-running models via Ollama.",
+      "ollamaUrlLabel": "Ollama server URL",
+      "detecting": "Detecting…",
+      "detect": "Detect",
+      "lookingForOllama": "Looking for Ollama…",
+      "modelsDetected": "{count, plural, one {# model detected: {models}} other {# models detected: {models}}}",
+      "couldntReachOllama": "Couldn't reach Ollama: {error}",
+      "noLocalModels": "No local models detected. Make sure Ollama is running.",
+      "detectionNote": "Detection probes Ollama from the Weblab server, not your browser. On hosted deployments only models reachable from the server are visible — when running self-hosted or in dev, the server probes your own machine's localhost.",
+      "chatBehaviourTitle": "Chat behaviour",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "toastFailed": "Failed to save AI settings",
+      "showSuggestionsLabel": "Show prompt suggestions",
+      "showSuggestionsDescription": "Keep prompt chips visible in the AI panel.",
+      "showMiniChatLabel": "Show mini chat on canvas",
+      "showMiniChatDescription": "Inline chat entry point while editing.",
+      "autoApplyCodeLabel": "Auto-apply code changes",
+      "autoApplyCodeDescription": "Apply AI-suggested code without a manual step.",
+      "expandCodeBlocksLabel": "Expand code blocks by default",
+      "expandCodeBlocksDescription": "Show code blocks expanded in the chat."
+    },
+    "git": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "toastFailed": "Failed to save git settings",
+      "commitBehaviourTitle": "Commit behaviour",
+      "commitBehaviourDescription": "Control how changes are committed and pushed.",
+      "autoCommitLabel": "Auto-commit on save",
+      "autoCommitDescription": "Automatically commit changes when you save.",
+      "autoPushLabel": "Auto-push after commit",
+      "autoPushDescription": "Push to remote immediately after each commit.",
+      "namingTitle": "Naming conventions",
+      "namingDescription": "Templates used when creating branches and commits. Use '{description}' and '{timestamp}' as placeholders.",
+      "branchPatternLabel": "Default branch pattern",
+      "commitFormatLabel": "Commit message format"
+    },
+    "github": {
+      "description": "Connect your GitHub account to push code and open pull requests.",
+      "checkingConnection": "Checking connection…",
+      "connectionFailed": "Failed to check GitHub connection status. Please try again.",
+      "retry": "Retry",
+      "statusConnected": "Connected",
+      "disconnectTitle": "Disconnect GitHub?",
+      "disconnectBody": "Weblab will no longer be able to push commits or open pull requests on your behalf. You can reconnect any time.",
+      "cancel": "Cancel",
+      "disconnecting": "Disconnecting…",
+      "confirmDisconnect": "Confirm disconnect",
+      "opening": "Opening…",
+      "configure": "Configure",
+      "disconnectButton": "Disconnect GitHub",
+      "notConnected": "Not connected",
+      "installDescription": "Install the GitHub App to allow Weblab to push commits and open pull requests on your behalf.",
+      "connectGitHub": "Connect GitHub",
+      "accessibleRepos": "Accessible repositories",
+      "repoCount": "{count, plural, one {# repo} other {# repos}}",
+      "searchRepos": "Search repositories…",
+      "loadingRepos": "Loading repositories…",
+      "noReposMatchSearch": "No repositories match your search.",
+      "noReposFound": "No repositories found.",
+      "private": "Private",
+      "importButton": "Import",
+      "importRepository": "Import a repository",
+      "toastUrlFailed": "Failed to generate GitHub installation URL",
+      "toastDisconnected": "GitHub disconnected",
+      "toastDisconnectFailed": "Failed to disconnect GitHub"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "description": "Click Rebind on any row, then press your desired key combo.",
+      "resetAll": "Reset all to defaults",
+      "rebind": "Rebind",
+      "resetToDefault": "Reset to default",
+      "pressingKey": "Press a key combo… (Esc to cancel)",
+      "conflictError": "Already used by \"{name}\"",
+      "toastResetSuccess": "All shortcuts reset to defaults",
+      "undoLabel": "Undo",
+      "toastSaveFailed": "Failed to save shortcut",
+      "toastResetFailed": "Failed to reset shortcuts",
+      "sections": {
+        "modes": "Modes",
+        "navigation": "Navigation",
+        "panels": "Panels",
+        "insert": "Insert",
+        "canvas": "Canvas",
+        "layers": "Layers",
+        "editor": "Editor",
+        "ai": "AI"
+      }
+    },
+    "subscription": {
+      "currentPlanTitle": "Current plan",
+      "pro": "Pro",
+      "free": "Free",
+      "cancels": "Cancels {date}",
+      "changes": "Changes {date}",
+      "messagesSuffix": "· {count} messages / month",
+      "resumePlan": "Resume plan",
+      "changePlan": "Change plan",
+      "upgradeButton": "Upgrade to Pro",
+      "usageTitle": "Usage",
+      "loadingUsage": "Loading usage…",
+      "thisBillingPeriod": "This billing period",
+      "today": "Today",
+      "thisMonth": "This month",
+      "billingTitle": "Billing",
+      "billingDescriptionPro": "Manage your payment method, invoices, and cancellation in the Stripe portal.",
+      "billingDescriptionFree": "Upgrade to a paid plan to manage payment details and invoices.",
+      "opening": "Opening…",
+      "manageBilling": "Manage billing",
+      "toastPortalFailed": "Failed to open billing portal",
+      "cancelModal": {
+        "title": "Cancel Subscription",
+        "description": "Are you sure you want to cancel your subscription? You'll lose access to all premium features at the end of your current billing period.",
+        "keepSubscription": "Keep Subscription",
+        "cancelSubscription": "Cancel Subscription",
+        "cancelling": "Cancelling…"
+      }
+    },
+    "billing": {
+      "information": {
+        "title": "Billing information",
+        "edit": "Edit",
+        "empty": "No billing information on file. Add it so it appears on your invoices.",
+        "nameLabel": "Name",
+        "addressLabel": "Address"
+      },
+      "history": {
+        "title": "Billing history",
+        "noInvoices": "No invoices yet.",
+        "paid": "Paid",
+        "view": "View"
+      },
+      "editDialog": {
+        "title": "Edit billing information",
+        "nameLabel": "Name",
+        "namePlaceholder": "Full name",
+        "line1Label": "Address line 1",
+        "line1Placeholder": "Street address",
+        "line2Label": "Address line 2",
+        "line2Placeholder": "Apartment, suite, etc. (optional)",
+        "cityLabel": "City",
+        "stateLabel": "State / Province",
+        "statePlaceholder": "Optional",
+        "postalLabel": "Postal code",
+        "postalPlaceholder": "ZIP / Postal",
+        "countryLabel": "Country",
+        "countryPlaceholder": "Select country",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "toastSuccess": "Billing information updated",
+        "toastFailed": "Failed to update billing information"
+      },
+      "payment": {
+        "title": "Payment methods",
+        "addNew": "Add new",
+        "opening": "Opening...",
+        "noPaymentMethods": "No payment methods saved.",
+        "defaultBadge": "Default",
+        "setAsDefault": "Set as default",
+        "remove": "Remove",
+        "optionsLabel": "Payment method options",
+        "expires": "Expires",
+        "toastDefaultSuccess": "Default payment method updated",
+        "toastDefaultFailed": "Failed to update default payment method",
+        "removeConfirmTitle": "Remove payment method?",
+        "removeConfirmDesc": "This card will be removed from your account.",
+        "toastRemoveSuccess": "Payment method removed",
+        "toastRemoveFailed": "Failed to remove payment method",
+        "toastRemoveDefaultError": "Set another card as default before removing this one.",
+        "toastAddFailed": "Failed to open the add-card flow"
+      },
+      "plan": {
+        "free": "Free plan",
+        "autoRenews": "Your plan auto-renews on {date}",
+        "cancels": "Your plan cancels on {date}",
+        "upgradeTeaser": "Upgrade to unlock more credits and features",
+        "changePlan": "Change plan",
+        "upgrade": "Upgrade",
+        "credits": "Credits this month",
+        "unlimitedUsed": "{used} used · Unlimited"
+      },
+      "cancel": {
+        "cancelTitle": "Cancel plan",
+        "reactivateTitle": "Reactivate plan",
+        "cancelDesc": "If you cancel, you'll keep full access to your plan features until the end of your billing period.",
+        "reactivateDesc": "Your plan cancels on {date}. Reactivate to keep it.",
+        "reactivate": "Reactivate",
+        "cancel": "Cancel",
+        "toastCancelSuccess": "Subscription set to cancel at period end",
+        "toastCancelFailed": "Failed to cancel subscription",
+        "toastReactivateSuccess": "Subscription reactivated",
+        "toastReactivateFailed": "Failed to reactivate subscription"
+      }
+    },
+    "versions": {
+      "title": "Backup Versions",
+      "selectBranch": "Select branch",
+      "newBackup": "New backup",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "rename": "Rename",
+      "renameTooltip": "Rename backup for easier identification",
+      "restore": "Restore",
+      "restoreTooltip": "Restore project to this version",
+      "restoring": "Restoring...",
+      "restored": "Restored",
+      "defaultName": "Backup",
+      "toastRenameSuccess": "Backup renamed successfully!",
+      "toastRenameFailed": "Failed to rename backup",
+      "toastRestoreFailed": "Failed to restore backup",
+      "toastGitNotInit": "Git not initialized",
+      "toastCreateFailed": "Failed to create backup",
+      "toastCreateSuccess": "Backup created successfully!",
+      "noActiveBranch": "No active branch",
+      "noVersionsTitle": "No backups",
+      "noVersionsDesc": "Create your first backup with the current version",
+      "createBackup": "Create backup",
+      "saving": "Saving..."
+    },
+    "dangerZone": {
+      "title": "Danger Zone",
+      "notPublished": "Your domain is not published",
+      "unpublishFrom": "Unpublish from {url}",
+      "unpublishing": "Unpublishing...",
+      "unpublish": "Unpublish",
+      "unpublishPreviewTitle": "Unpublish preview domain?",
+      "unpublishPreviewDesc": "Visitors will no longer be able to reach {url}. You can republish anytime.",
+      "unpublishPreviewDescFallback": "This will remove the preview deployment.",
+      "unpublishCustomTitle": "Unpublish custom domain?",
+      "unpublishCustomDesc": "Visitors will no longer be able to reach {url}. You can republish anytime.",
+      "cancel": "Cancel",
+      "toastUnpublishSuccess": "Project is being unpublished",
+      "toastUnpublishSuccessDesc": "Deployment ID: {id}",
+      "toastUnpublishFailed": "Failed to unpublish project",
+      "toastUnpublishFailedDesc": "Please try again."
+    },
+    "skills": {
+      "title": "Skills",
+      "description": "Skills teach the AI how to handle specific tasks. The AI lists them via list_skills and reads the body via read_skill.",
+      "allSkills": "All skills",
+      "mySkills": "My skills",
+      "thisProject": "This project",
+      "import": "Import",
+      "newSkill": "New skill",
+      "scopeAll": "Built-in skills, your own skills, and skills saved to this project.",
+      "scopeGlobal": "Your own skills — available across every project (built-ins excluded).",
+      "scopeProject": "Skills saved only to this project.",
+      "loading": "Loading skills…",
+      "empty": "No skills in this scope yet. Create one or import from the community.",
+      "exploreLink": "Explore community skills",
+      "deleteTitle": "Delete skill?",
+      "deleteDescProject": "\"{name}\" will be removed for this project. This can't be undone.",
+      "deleteDescGlobal": "\"{name}\" will be removed for all your projects. This can't be undone.",
+      "cancelDelete": "Cancel",
+      "confirmDelete": "Delete",
+      "toastDeleted": "Skill deleted",
+      "rowBuiltIn": "Built-in skill (read-only)",
+      "rowBuiltInTooltip": "Built-in skills are read-only. Create a same-named skill to override.",
+      "rowEdit": "Edit",
+      "rowDelete": "Delete",
+      "formEditTitle": "Edit skill",
+      "formNewTitle": "New skill",
+      "formNameLabel": "Name",
+      "formNameHint": "Lowercase letters, digits, hyphens. The AI uses this to find the skill.",
+      "formNameChars": "Use lowercase letters, digits, hyphens. 2–40 chars.",
+      "formOverrideBuiltIn": "Heads up: this overrides the built-in \"{name}\" skill.",
+      "formDescLabel": "Description",
+      "formDescHint": "One sentence — when should the AI use this skill?",
+      "formDescChars": "/200 — shown to the AI in the system prompt.",
+      "formScopeLabel": "Scope",
+      "formScopeGlobal": "Global — available in every project",
+      "formScopeProject": "This project only",
+      "formBodyLabel": "Body",
+      "formBodyHint": "/50,000 — markdown body the AI reads via read_skill.",
+      "formCancel": "Cancel",
+      "formCreate": "Create skill",
+      "formSave": "Save changes",
+      "formSaving": "Saving…",
+      "badgeBuiltIn": "Built-in",
+      "badgeGlobal": "Global",
+      "badgeProject": "This project",
+      "formSaveSuccess": "Updated skill \"{name}\"",
+      "formCreateSuccess": "Saved skill \"{name}\"",
+      "formSaveFailed": "Failed to save skill"
+    },
+    "delete": {
+      "sectionTitle": "Delete Account",
+      "sectionDescription": "Permanently delete your account and all associated data",
+      "deleteButton": "Delete",
+      "confirmTitle": "Delete account - are you sure?",
+      "confirmIntro": "Deleting your account will:",
+      "bullet1": "Permanently delete your account and prevent you from creating new projects.",
+      "bullet2": "Delete all of your projects from {appName}'s servers.",
+      "bullet3": "You cannot create a new account using the same email address.",
+      "bullet4": "This will also permanently delete your chat history and other data associated with your account.",
+      "bullet5": "Deleting an account does not automatically cancel your subscription or entitled set of paid features.",
+      "bullet6": "This is final and cannot be undone.",
+      "emailLabel": "Please type your account email:",
+      "confirmLabel": "To proceed, type \"DELETE\" in the input field below:",
+      "cancelButton": "Cancel",
+      "deleteAccountButton": "Delete Account",
+      "lockedButton": "Locked",
+      "finalTitle": "Final confirmation",
+      "finalDescription": "This is your last chance to cancel. Are you absolutely sure you want to permanently delete your account and all associated data?",
+      "deleting": "Deleting…",
+      "confirmDeleteButton": "Yes, Delete My Account",
+      "toastFailed": "Failed to delete account",
+      "toastSuccess": "Account deleted successfully"
+    },
+    "siteAccess": {
+      "title": "Site access",
+      "description": "Manage who can access this site and set their role.",
+      "inviteLabel": "Invite by email",
+      "invitePlaceholder": "teammate@company.com",
+      "inviteButton": "Invite",
+      "inviting": "Inviting...",
+      "membersTitle": "Members",
+      "loadingMembers": "Loading members…",
+      "noMembers": "No members yet. Invite someone above.",
+      "you": "(You)",
+      "leaveSite": "Leave site",
+      "removeMember": "Remove member",
+      "pendingTitle": "Pending invitations",
+      "invitedAs": "Invited as {role}",
+      "pending": "Pending",
+      "revoke": "Revoke",
+      "roleManager": "Manager",
+      "roleEditor": "Editor",
+      "roleReviewer": "Reviewer",
+      "roleViewer": "Viewer",
+      "toastInvalidEmail": "Enter a valid email address",
+      "toastInviteSent": "Invitation sent to {email}",
+      "toastInviteFailed": "Could not send the invitation. Please try again.",
+      "toastRoleUpdated": "Role updated",
+      "toastRoleFailed": "Could not change the role.",
+      "toastLeft": "Left the site",
+      "toastMemberRemoved": "Member removed",
+      "toastRemoveFailed": "Could not remove the member.",
+      "toastRevoked": "Invitation revoked",
+      "toastRevokeFailed": "Could not revoke the invitation.",
+      "confirmLeaveTitle": "Leave this site?",
+      "confirmLeaveDesc": "You will lose access to this project unless you are re-invited.",
+      "confirmLeaveBtn": "Leave",
+      "confirmRemoveTitle": "Remove member?",
+      "confirmRemoveDesc": "This member will immediately lose access to the project.",
+      "confirmRemoveBtn": "Remove"
+    },
+    "seo": {
+      "title": "SEO",
+      "description": "Page titles, descriptions, and Open Graph live in the Site tab. Here you control crawlers and machine-readable files served from your site root.",
+      "save": "Save",
+      "loading": "Loading…",
+      "robotsTxtTitle": "robots.txt",
+      "robotsTxtDesc": "Controls which crawlers may index your site. Served at /robots.txt.",
+      "blockAiBots": "Block AI bots",
+      "allowAllCrawlers": "Allow all crawlers",
+      "blockAllCrawlers": "Block all crawlers",
+      "llmsTxtTitle": "llms.txt",
+      "llmsTxtDesc": "Guidance for LLMs and AI assistants about your site. Served at /llms.txt.",
+      "sitemapTitle": "sitemap.xml",
+      "sitemapDesc": "A custom sitemap served at /sitemap.xml. Leave the default if you generate one at build time.",
+      "toastSaveSuccess": "Saved {path}",
+      "toastSaveFailed": "Could not write {path}. Make sure the project is running."
+    },
+    "project": {
+      "overviewTitle": "Overview",
+      "siteIdLabel": "Site ID",
+      "copyId": "Copy Site ID",
+      "copyIdFailed": "Could not copy Site ID",
+      "pagesLabel": "Pages",
+      "lastPublished": "Last published",
+      "never": "Never",
+      "lastUpdated": "Last updated",
+      "created": "Created",
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago",
+      "metadataTitle": "Metadata",
+      "nameLabel": "Name",
+      "folderLabel": "Folder",
+      "noFolder": "No folder",
+      "newFolder": "+ New folder…",
+      "offlineTitle": "Offline",
+      "offlineDesc": "Cache this project so you can open and edit it without a network connection. Edits queue locally and sync when you reconnect.",
+      "availableOffline": "Available offline",
+      "lastCached": "Last cached",
+      "notYetCached": "Not yet cached",
+      "framesCached": "Frames cached",
+      "framesCount": "{count, plural, one {# frame} other {# frames}}",
+      "noSnapshot": "No canvas snapshot yet",
+      "commandsTitle": "Commands",
+      "commandsWarning": "Only update these if you know what you're doing\\!",
+      "installLabel": "Install",
+      "runLabel": "Run",
+      "buildLabel": "Build",
+      "discardChanges": "Discard changes",
+      "saving": "Saving...",
+      "saveChanges": "Save changes",
+      "toastOfflineOn": "Project marked as available offline.",
+      "toastOfflineOff": "Project removed from offline access.",
+      "toastOfflineFailed": "Could not update offline availability.",
+      "toastCopyIdFailed": "Could not copy Site ID",
+      "toastFolderFailed": "Could not update folder.",
+      "toastFolderMoved": "Project moved to folder.",
+      "toastFolderRemoved": "Project removed from folder.",
+      "toastFolderCreated": "Folder created.",
+      "toastSaveSuccess": "Project settings updated successfully.",
+      "toastSaveFailed": "Failed to update project settings. Please try again."
+    },
+    "site": {
+      "title": "Site Settings",
+      "fetchingMetadata": "Fetching metadata...",
+      "toastFaviconFailed": "Failed to upload favicon. Please try again.",
+      "toastOgImageFailed": "Failed to upload OG image. Please try again.",
+      "toastSaveSuccess": "Site metadata has been updated successfully.",
+      "toastSaveFailed": "Failed to update site metadata. Please try again."
+    },
+    "page": {
+      "fetchingMetadata": "Fetching metadata...",
+      "unpublishedBadge": "Unpublished",
+      "draftBadge": "Draft",
+      "editorDetailsTitle": "Editor Details",
+      "nameLabel": "Name",
+      "nameDesc": "Shown inside the editor and settings lists.",
+      "namePlaceholder": "Page name",
+      "editorIconLabel": "Editor Icon",
+      "editorIconDesc": "Visual only. This does not change the site favicon.",
+      "editorIconPlaceholder": "Select an icon",
+      "iconFile": "File",
+      "iconGlobe": "Globe",
+      "iconImage": "Image",
+      "iconButton": "Button",
+      "slugLabel": "Slug",
+      "slugDesc": "Controls the last route segment for this page.",
+      "slugPlaceholder": "page-slug",
+      "folderLabel": "Folder",
+      "folderDesc": "Moves the page into a route folder prefix.",
+      "folderPlaceholder": "Select folder",
+      "folderRoot": "Root (/)",
+      "previewPathLabel": "Preview Path",
+      "previewPathDesc": "The route that will be saved when you apply changes.",
+      "canonicalUrlLabel": "Canonical URL",
+      "canonicalUrlDesc": "Point search engines to your preferred page URL to avoid duplicate content. Writes metadata.alternates.canonical.",
+      "canonicalUrlPlaceholder": "https://example.com/page",
+      "canonicalError": "Canonical must be a full URL, e.g. https://example.com/page",
+      "sitemapLabel": "Sitemap indexing",
+      "sitemapDesc": "Controls whether search engines can index this page. Writes metadata.robots.index.",
+      "indexable": "Indexable",
+      "noindex": "Noindex",
+      "draftLabel": "Draft",
+      "draftDesc": "Editor-only status for work that is not ready.",
+      "draftOn": "Draft",
+      "draftOff": "Ready",
+      "publishedLabel": "Published",
+      "publishedDesc": "Editor-only published state shown in the page settings.",
+      "publishedOn": "Published",
+      "publishedOff": "Unpublished",
+      "homeRootNote": "Home is locked to `/` and always uses the Home icon in the editor.",
+      "accessControlTitle": "Access control",
+      "accessControlDesc": "Manage who can access this page once published. Changes take effect on your next publish.",
+      "accessTypeLabel": "Access type",
+      "accessPublic": "Public",
+      "accessPassword": "Anyone with the password",
+      "accessPublicDesc": "Anyone on the internet can access this page once published.",
+      "passwordLabel": "Password",
+      "passwordKeepBlank": "Leave blank to keep the current password.",
+      "passwordSetInitial": "Used as the Basic Auth password on the published site.",
+      "passwordPlaceholder": "Set a password",
+      "passwordEffective": "Effective after the next publish. The password is hashed before storage; we never persist plaintext.",
+      "schemaMarkupTitle": "Schema markup",
+      "schemaMarkupDesc": "JSON-LD injected as a script tag on this page. Helps search and answer engines understand the page.",
+      "schemaMarkupLearnMore": "Learn more",
+      "schemaMarkupHint": "Leave empty to remove the script from the page.",
+      "formatJson": "Format JSON",
+      "invalidJson": "Invalid JSON",
+      "toastFormatFailed": "Cannot format — the JSON is invalid.",
+      "toastCanonicalInvalid": "Canonical URL is invalid.",
+      "toastSchemaInvalid": "Schema markup is not valid JSON.",
+      "toastPasswordTooShort": "Password must be at least 4 characters.",
+      "toastSaveSuccess": "Page settings updated successfully.",
+      "toastSaveFailed": "Failed to update page settings.",
+      "toastSaveFailedDesc": "Please try again.",
+      "toastOgImageFailed": "Failed to upload social preview image."
+    }
+  }
 };
 export default messages;

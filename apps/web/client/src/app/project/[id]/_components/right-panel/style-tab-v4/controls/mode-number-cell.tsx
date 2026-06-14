@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -90,6 +91,7 @@ export function ModeNumberCell({
     mixed,
     className,
 }: ModeNumberCellProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -203,7 +205,7 @@ export function ModeNumberCell({
                     inputMode="decimal"
                     spellCheck={false}
                     value={isKeyword ? '' : draft}
-                    placeholder={mixed ? 'Mixed' : undefined}
+                    placeholder={mixed ? t('mixed') : undefined}
                     aria-label={ariaLabel}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -220,8 +222,8 @@ export function ModeNumberCell({
                     <button
                         type="button"
                         className={cn(UNIT_PILL_CLASSES, 'mr-1 shrink-0')}
-                        aria-label="Change mode"
-                        title="Change mode"
+                        aria-label={t('changeMode')}
+                        title={t('changeMode')}
                     >
                         {modePillLabel}
                         <ChevronDown className="size-2.5" />

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { TailwindColor } from '@weblab/models/style';
 import { Button } from '@weblab/ui/button';
@@ -82,7 +83,15 @@ function summarize({ x, y, blur }: ShadowParts): string {
 }
 
 /** Stepper button pair: `−  |  +`. Shift-click steps by 10. */
-function Stepper({ onStep }: { onStep: (delta: number) => void }) {
+function Stepper({
+    onStep,
+    decreaseLabel,
+    increaseLabel,
+}: {
+    onStep: (delta: number) => void;
+    decreaseLabel: string;
+    increaseLabel: string;
+}) {
     return (
         <div
             className={cn(
@@ -91,7 +100,7 @@ function Stepper({ onStep }: { onStep: (delta: number) => void }) {
         >
             <button
                 type="button"
-                aria-label="Decrease"
+                aria-label={decreaseLabel}
                 onClick={(e) => onStep(e.shiftKey ? -10 : -1)}
                 className="text-muted-foreground hover:text-foreground-primary hover:bg-foreground/[0.06] focus-visible:ring-foreground-brand/30 flex h-full w-7 cursor-pointer items-center justify-center transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
             >
@@ -100,7 +109,7 @@ function Stepper({ onStep }: { onStep: (delta: number) => void }) {
             <span aria-hidden className="bg-input h-3.5 w-px dark:bg-white/[0.08]" />
             <button
                 type="button"
-                aria-label="Increase"
+                aria-label={increaseLabel}
                 onClick={(e) => onStep(e.shiftKey ? 10 : 1)}
                 className="text-muted-foreground hover:text-foreground-primary hover:bg-foreground/[0.06] focus-visible:ring-foreground-brand/30 flex h-full w-7 cursor-pointer items-center justify-center transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
             >
@@ -115,10 +124,14 @@ function OffsetRow({
     label,
     value,
     onChange,
+    decreaseLabel,
+    increaseLabel,
 }: {
     label: string;
     value: number;
     onChange: (next: number) => void;
+    decreaseLabel: string;
+    increaseLabel: string;
 }) {
     const [draft, setDraft] = React.useState(String(value));
 
@@ -170,7 +183,7 @@ function OffsetRow({
                     className="text-foreground-primary text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none"
                 />
             </div>
-            <Stepper onStep={step} />
+            <Stepper onStep={step} decreaseLabel={decreaseLabel} increaseLabel={increaseLabel} />
         </div>
     );
 }
@@ -185,6 +198,7 @@ function OffsetRow({
  * a valid `box-shadow` is serialized back on every change.
  */
 export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
+    const t = useTranslations('editor.stylePanel.controls.shadowField');
     const isEmpty = !value || value.trim() === '' || value.trim() === 'none';
     const parts = React.useMemo(() => parseShadow(value), [value]);
 
@@ -246,7 +260,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                     <Button
                         variant="outline"
                         className={cn(FIELD_BASE_CLASSES, 'justify-start gap-2 shadow-none')}
-                        aria-label="Edit shadow"
+                        aria-label={t('editShadow')}
                     >
                         <span
                             aria-hidden
@@ -258,7 +272,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                             }}
                         />
                         <span className="truncate">
-                            {isEmpty ? 'Add shadow' : summarize(parts)}
+                            {isEmpty ? t('addShadow') : summarize(parts)}
                         </span>
                     </Button>
                 </PopoverTrigger>
@@ -270,15 +284,15 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                 >
                     <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2">
                         <span className="text-foreground-primary text-mini font-medium">
-                            Shadow
+                            {t('shadowHeader')}
                         </span>
                         {!isEmpty && (
                             <button
                                 type="button"
                                 onClick={() => onCommit('')}
                                 className="text-muted-foreground hover:text-foreground-primary focus-visible:ring-foreground-brand/30 cursor-pointer rounded-sm transition-colors outline-none focus-visible:ring-[3px]"
-                                aria-label="Remove shadow"
-                                title="Remove shadow"
+                                aria-label={t('removeShadow')}
+                                title={t('removeShadow')}
                             >
                                 <Icons.Trash className="h-3.5 w-3.5" />
                             </button>
@@ -289,7 +303,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                         {/* Color row — swatch (nested picker) + hex + opacity. */}
                         <div className="flex items-center gap-2">
                             <span className="text-muted-foreground w-9 shrink-0 text-[11px]">
-                                Color
+                                {t('colorLabel')}
                             </span>
                             <div
                                 className={cn(
@@ -301,7 +315,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                     <PopoverTrigger asChild>
                                         <button
                                             type="button"
-                                            aria-label="Pick shadow color"
+                                            aria-label={t('pickShadowColor')}
                                             // `border` is the swatch's decorative
                                             // edge; the keyboard focus ring is a
                                             // separate `focus-visible:ring-*` so
@@ -336,7 +350,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                     type="text"
                                     spellCheck={false}
                                     value={hexDraft}
-                                    aria-label="Shadow hex"
+                                    aria-label={t('shadowHex')}
                                     onChange={(e) =>
                                         setHexDraft(e.target.value.replace(/[^0-9a-fA-F]/g, ''))
                                     }
@@ -365,7 +379,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                     inputMode="numeric"
                                     spellCheck={false}
                                     value={String(opacityPct)}
-                                    aria-label="Shadow opacity"
+                                    aria-label={t('shadowOpacity')}
                                     onChange={(e) => {
                                         const n = Number.parseInt(
                                             e.target.value.replace(/[^0-9]/g, ''),
@@ -379,17 +393,21 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                             </div>
                         </div>
 
-                        <OffsetRow label="X" value={parts.x} onChange={(x) => update({ x })} />
-                        <OffsetRow label="Y" value={parts.y} onChange={(y) => update({ y })} />
+                        <OffsetRow label={t('xLabel')} value={parts.x} onChange={(x) => update({ x })} decreaseLabel={t('decrease')} increaseLabel={t('increase')} />
+                        <OffsetRow label={t('yLabel')} value={parts.y} onChange={(y) => update({ y })} decreaseLabel={t('decrease')} increaseLabel={t('increase')} />
                         <OffsetRow
-                            label="Blur"
+                            label={t('blurLabel')}
                             value={parts.blur}
                             onChange={(blur) => update({ blur })}
+                            decreaseLabel={t('decrease')}
+                            increaseLabel={t('increase')}
                         />
                         <OffsetRow
-                            label="Spread"
+                            label={t('spreadLabel')}
                             value={parts.spread}
                             onChange={(spread) => update({ spread })}
+                            decreaseLabel={t('decrease')}
+                            increaseLabel={t('increase')}
                         />
                     </div>
                 </PopoverContent>

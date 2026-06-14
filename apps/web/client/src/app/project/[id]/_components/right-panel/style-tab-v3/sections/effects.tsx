@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     ColorField,
@@ -52,6 +53,7 @@ const OUTLINE_STYLE_OPTIONS = [
  * exists yet — see plan note); the Custom expander carries full parity.
  */
 export const EffectsSection = observer(function EffectsSection() {
+    const t = useTranslations('editor.stylePanel');
     const blendMode = useStyleValue('mix-blend-mode');
     const outlineStyle = useStyleValue('outline-style');
     const outlineWidth = useStyleValue('outline-width');
@@ -77,16 +79,16 @@ export const EffectsSection = observer(function EffectsSection() {
     const setCount = advancedSetCount;
 
     return (
-        <Section id="effects" title="Effects" setCount={setCount}>
+        <Section id="effects" title={t('section.effects')} setCount={setCount}>
             <div className="group/control flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Style" isSet={false} title="Apply effect style" />
+                <PropertyLabel label={t('effects.style')} isSet={false} title={t('effects.style')} />
                 {/* Effect-style registry isn't built yet — the chip shows an
                     honest "coming soon" while the Custom expander below carries
                     full box-shadow / filter / outline parity. */}
                 <StyleChipPicker
                     value=""
                     options={[]}
-                    kind="Effect"
+                    kind={t('effects.effectKind')}
                     onApply={() => undefined}
                     onDetach={() => undefined}
                     onToggleCustom={() => setCustomOpen((v) => !v)}
@@ -99,10 +101,10 @@ export const EffectsSection = observer(function EffectsSection() {
                 onOpenChange={setCustomOpen}
                 summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
             >
-                <PropertyControl property="box-shadow" label="Shadow">
+                <PropertyControl property="box-shadow" label={t('effects.shadow')}>
                     {({ value, commit }) => <ShadowField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="filter" label="Filter">
+                <PropertyControl property="filter" label={t('effects.filter')}>
                     {({ value, commit }) => (
                         <TextField
                             value={value}
@@ -111,17 +113,17 @@ export const EffectsSection = observer(function EffectsSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="backdrop-filter" label="Backdrop">
+                <PropertyControl property="backdrop-filter" label={t('effects.backdrop')}>
                     {({ value, commit }) => (
                         <TextField value={value} onCommit={commit} placeholder="blur(8px)" />
                     )}
                 </PropertyControl>
-                <PropertyControl property="mix-blend-mode" label="Blend">
+                <PropertyControl property="mix-blend-mode" label={t('effects.blend')}>
                     {({ value, commit }) => (
                         <SelectField value={value} options={BLEND_MODE_OPTIONS} onCommit={commit} />
                     )}
                 </PropertyControl>
-                <PropertyControl property="outline-style" label="Outline">
+                <PropertyControl property="outline-style" label={t('effects.outline')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
@@ -130,13 +132,13 @@ export const EffectsSection = observer(function EffectsSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="outline-width" label="Out. W">
+                <PropertyControl property="outline-width" label={t('effects.outlineWidthShort')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="outline-color" label="Out. C">
+                <PropertyControl property="outline-color" label={t('effects.outlineColorShort')}>
                     {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="outline-offset" label="Out. ↔">
+                <PropertyControl property="outline-offset" label={t('effects.outlineOffsetShort')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
             </CustomExpander>

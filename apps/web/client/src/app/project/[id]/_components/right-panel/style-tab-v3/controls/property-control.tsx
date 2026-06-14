@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { X } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     ContextMenu,
@@ -23,11 +24,7 @@ import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { PropertyLabel } from './property-label';
 
-const TARGET_LABELS: Record<WriteTarget, string> = {
-    tailwind: 'Tailwind class',
-    'custom-class': 'Custom class',
-    inline: 'Inline style',
-};
+// TARGET_LABELS is now built lazily inside the component using t() so it is localized.
 
 export interface PropertyControlProps {
     /** CSS property name in kebab-case, e.g. `padding-top`, `font-size`. */
@@ -66,6 +63,7 @@ export const PropertyControl = observer(function PropertyControl({
     children,
     className,
 }: PropertyControlProps) {
+    const t = useTranslations('editor.stylePanel.controls.propertyControl');
     const editorEngine = useEditorEngine();
     const styleValue = useStyleValue(property);
     const setter = useStyleSetter(property);
@@ -138,6 +136,12 @@ export const PropertyControl = observer(function PropertyControl({
         }
     }, [setter]);
 
+    const targetLabels: Record<WriteTarget, string> = {
+        tailwind: t('writeTargetTailwind'),
+        'custom-class': t('writeTargetCustomClass'),
+        inline: t('writeTargetInline'),
+    };
+
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -175,14 +179,14 @@ export const PropertyControl = observer(function PropertyControl({
                                     <button
                                         type="button"
                                         onClick={reset}
-                                        aria-label={`Reset ${label}`}
+                                        aria-label={t('resetProperty', { label })}
                                         className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary active:bg-foreground/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm opacity-0 transition-[opacity,color,background-color] duration-150 ease-out group-hover/control:opacity-100 focus-visible:opacity-100"
                                     >
                                         <X className="size-3" />
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" className="text-mini">
-                                    Reset (⌥-click the label)
+                                    {t('resetHint')}
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -191,14 +195,14 @@ export const PropertyControl = observer(function PropertyControl({
             </ContextMenuTrigger>
             <ContextMenuContent className="w-56">
                 <ContextMenuItem onSelect={reset} disabled={!styleValue.isSet}>
-                    Reset
+                    {t('reset')}
                     <span className="text-foreground-secondary text-mini ml-auto">⌥-click</span>
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onSelect={() => void copy()} disabled={!styleValue.value}>
-                    Copy value
+                    {t('copyValue')}
                 </ContextMenuItem>
-                <ContextMenuItem onSelect={() => void paste()}>Paste value</ContextMenuItem>
+                <ContextMenuItem onSelect={() => void paste()}>{t('pasteValue')}</ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuRadioGroup
                     value={styleValue.writeTarget}
@@ -206,15 +210,13 @@ export const PropertyControl = observer(function PropertyControl({
                 >
                     {ALL_WRITE_TARGETS.map((target) => (
                         <ContextMenuRadioItem key={target} value={target}>
-                            Write as {TARGET_LABELS[target]}
+                            {t('writeAs', { target: targetLabels[target] })}
                         </ContextMenuRadioItem>
                     ))}
                 </ContextMenuRadioGroup>
                 <ContextMenuSeparator />
                 <ContextMenuItem onSelect={toggleOverride}>
-                    {styleValue.override
-                        ? '✓ Override (this element only)'
-                        : 'Override (this element only)'}
+                    {styleValue.override ? t('overrideActive') : t('override')}
                 </ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>

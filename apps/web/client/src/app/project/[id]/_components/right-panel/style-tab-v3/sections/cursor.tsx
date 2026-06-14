@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { PropertyControl, SelectField } from '../controls';
 import { useStyleValue } from '../hooks/use-style-value';
@@ -50,6 +51,7 @@ const TOUCH_ACTION_OPTIONS = [
  * stays compact.
  */
 export const CursorSection = observer(function CursorSection() {
+    const t = useTranslations('editor.stylePanel');
     const cursor = useStyleValue('cursor');
     const pointerEvents = useStyleValue('pointer-events');
     const userSelect = useStyleValue('user-select');
@@ -57,23 +59,23 @@ export const CursorSection = observer(function CursorSection() {
     const setCount = [cursor, pointerEvents, userSelect, touchAction].filter((v) => v.isSet).length;
 
     return (
-        <Section id="cursor" title="Cursor" setCount={setCount}>
-            <PropertyControl property="cursor" label="Cursor">
+        <Section id="cursor" title={t('section.cursor')} setCount={setCount}>
+            <PropertyControl property="cursor" label={t('cursor.cursorLabel')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={CURSOR_OPTIONS} onCommit={commit} />
                 )}
             </PropertyControl>
-            <PropertyControl property="pointer-events" label="Pointer">
+            <PropertyControl property="pointer-events" label={t('cursor.pointerLabel')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={POINTER_OPTIONS} onCommit={commit} />
                 )}
             </PropertyControl>
-            <PropertyControl property="user-select" label="Select">
+            <PropertyControl property="user-select" label={t('cursor.selectLabel')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={USER_SELECT_OPTIONS} onCommit={commit} />
                 )}
             </PropertyControl>
-            <PropertyControl property="touch-action" label="Touch">
+            <PropertyControl property="touch-action" label={t('cursor.touchLabel')}>
                 {({ value, commit }) => (
                     <SelectField value={value} options={TOUCH_ACTION_OPTIONS} onCommit={commit} />
                 )}

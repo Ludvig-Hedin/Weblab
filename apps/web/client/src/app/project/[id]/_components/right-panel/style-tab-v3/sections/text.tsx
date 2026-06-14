@@ -8,6 +8,8 @@ import type { ActionElement } from '@weblab/models/actions';
 import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
 import { cn } from '@weblab/ui/utils';
 
+import { useTranslations } from 'next-intl';
+
 import { useEditorEngine } from '@/components/store/editor';
 import {
     ColorField,
@@ -54,14 +56,15 @@ function ContentField({ value, editable, onCommit }: ContentFieldProps) {
         if (document.activeElement !== ref.current) setDraft(value);
     }, [value]);
 
+    const tText = useTranslations('editor.stylePanel.text');
     return (
         <textarea
             ref={ref}
             value={draft}
             rows={2}
             readOnly={!editable}
-            aria-label="Element text content"
-            placeholder={editable ? 'Element text…' : 'No editable text'}
+            aria-label={tText('contentAriaLabel')}
+            placeholder={editable ? tText('contentEditablePlaceholder') : tText('contentReadonlyPlaceholder')}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={() => {
                 if (skipBlurCommitRef.current) {
@@ -142,6 +145,7 @@ const TEXT_DECORATION_OPTIONS = [
  * action (same write path `TextEditingManager` uses for canvas edits).
  */
 export const TextSection = observer(function TextSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const selected = editorEngine.elements.selected[0];
@@ -273,13 +277,13 @@ export const TextSection = observer(function TextSection() {
         (color.isSet ? 1 : 0) + (align.isSet ? 1 : 0) + (activeStyle ? 1 : 0) + advancedSetCount;
 
     return (
-        <Section id="text" title="Text" setCount={setCount}>
+        <Section id="text" title={t('section.text')} setCount={setCount}>
             <div className="group/control flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Style" isSet={!!activeStyle} title="Apply text style" />
+                <PropertyLabel label={t('text.style')} isSet={!!activeStyle} title={t('text.applyTextStyle')} />
                 <StyleChipPicker
                     value={activeStyle?.name ?? ''}
                     options={styleOptions}
-                    kind="Text Style"
+                    kind={t('text.textStyleKind')}
                     onApply={(name) => void tokens.applyTextStyleToSelected(name)}
                     onDetach={() => void tokens.applyTextStyleToSelected(null)}
                     onToggleCustom={() => setCustomOpen((v) => !v)}
@@ -292,9 +296,9 @@ export const TextSection = observer(function TextSection() {
             </div>
             <div className="flex items-start gap-3 px-3 py-1">
                 <PropertyLabel
-                    label="Content"
+                    label={t('text.content')}
                     isSet={!!textContent}
-                    title="Element text content"
+                    title={t('text.contentAriaLabel')}
                     className="pt-1.5"
                 />
                 {/* While the async `getActionElement` read is in flight, the
@@ -315,17 +319,17 @@ export const TextSection = observer(function TextSection() {
                     />
                 </div>
             </div>
-            <PropertyControl property="color" label="Color">
+            <PropertyControl property="color" label={t('text.color')}>
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
             </PropertyControl>
-            <PropertyControl property="text-align" label="Align">
+            <PropertyControl property="text-align" label={t('text.align')}>
                 {({ value, isSet, commit }) => (
                     <IconToggleField
                         value={value}
                         isSet={isSet}
                         options={TEXT_ALIGN_ICONS}
                         onCommit={commit}
-                        ariaLabel="Text alignment"
+                        ariaLabel={t('text.align')}
                     />
                 )}
             </PropertyControl>
@@ -334,10 +338,10 @@ export const TextSection = observer(function TextSection() {
                 onOpenChange={setCustomOpen}
                 summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
             >
-                <PropertyControl property="font-family" label="Font">
+                <PropertyControl property="font-family" label={t('text.font')}>
                     {({ value, commit }) => <FontField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="font-weight" label="Weight">
+                <PropertyControl property="font-weight" label={t('text.weight')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
@@ -346,10 +350,10 @@ export const TextSection = observer(function TextSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="font-size" label="Size">
+                <PropertyControl property="font-size" label={t('text.size')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="line-height" label="Line">
+                <PropertyControl property="line-height" label={t('text.line')}>
                     {({ value, commit }) => (
                         <NumberField
                             value={value}
@@ -359,10 +363,10 @@ export const TextSection = observer(function TextSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="letter-spacing" label="Letter">
+                <PropertyControl property="letter-spacing" label={t('text.letter')}>
                     {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                 </PropertyControl>
-                <PropertyControl property="text-transform" label="Case">
+                <PropertyControl property="text-transform" label={t('text.case')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
@@ -371,7 +375,7 @@ export const TextSection = observer(function TextSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="text-decoration-line" label="Decor.">
+                <PropertyControl property="text-decoration-line" label={t('text.decorShort')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
@@ -380,7 +384,7 @@ export const TextSection = observer(function TextSection() {
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="text-shadow" label="Shadow">
+                <PropertyControl property="text-shadow" label={t('text.shadow')}>
                     {({ value, commit }) => (
                         <TextField
                             value={value}

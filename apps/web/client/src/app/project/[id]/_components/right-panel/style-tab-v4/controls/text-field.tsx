@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -28,6 +29,7 @@ export interface TextFieldProps {
  * Commits on blur or Enter; resets on Escape.
  */
 export function TextField({ value, onCommit, placeholder, mixed, className }: TextFieldProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = useState(value);
     const lastValueRef = useRef(value);
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -85,7 +87,7 @@ export function TextField({ value, onCommit, placeholder, mixed, className }: Te
                     e.currentTarget.blur();
                 }
             }}
-            placeholder={mixed ? 'Mixed' : placeholder}
+            placeholder={mixed ? t('mixed') : placeholder}
             className={cn(
                 FIELD_BASE_CLASSES,
                 'min-w-0',

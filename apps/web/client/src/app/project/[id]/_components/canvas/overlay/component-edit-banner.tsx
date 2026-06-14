@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -15,12 +16,15 @@ import { useEditorEngine } from '@/components/store/editor';
  */
 export const ComponentEditBanner = observer(() => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations('editor.canvas.overlay.componentEditBanner');
     const session = editorEngine.components.editing;
     if (!session) return null;
 
     const { def, instanceCount } = session;
     const instancesLabel =
-        instanceCount === 1 ? 'applies to 1 instance' : `applies to ${instanceCount} instances`;
+        instanceCount === 1
+            ? t('instanceSingular')
+            : t('instancePlural', { count: String(instanceCount) });
 
     return (
         <div
@@ -30,7 +34,7 @@ export const ComponentEditBanner = observer(() => {
             <div className="bg-background-primary border-border pointer-events-auto flex h-8 items-center gap-2 rounded-md border px-2.5 font-mono text-[11px] shadow-sm">
                 <Icons.Component className="h-3 w-3 text-purple-400" />
                 <span className="text-foreground-primary">
-                    Editing <span className="font-medium">{def.name}</span>
+                    {t('editing')} <span className="font-medium">{def.name}</span>
                 </span>
                 <span className="text-foreground-tertiary">· {instancesLabel}</span>
                 <div className="bg-border h-3.5 w-px" />
@@ -42,11 +46,11 @@ export const ComponentEditBanner = observer(() => {
                             className="h-6 px-2 text-[11px]"
                             onClick={() => editorEngine.components.exitEditMode()}
                         >
-                            Done
+                            {t('done')}
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" sideOffset={6} className="flex items-center gap-1">
-                        Exit component editing <Kbd>Esc</Kbd>
+                        {t('exitTooltip')} <Kbd>Esc</Kbd>
                     </TooltipContent>
                 </Tooltip>
             </div>

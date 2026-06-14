@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown, Plus, Sparkles, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -75,6 +76,7 @@ export function StyleChipPicker({
     onCreate,
     comingSoon = false,
 }: StyleChipPickerProps) {
+    const t = useTranslations('editor.stylePanel.controls.styleChipPicker');
     const selected = options.find((option) => option.name === value);
     return (
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -90,13 +92,12 @@ export function StyleChipPicker({
                             >
                                 <Sparkles className="size-3 shrink-0" />
                                 <span className="flex-1 truncate text-left">
-                                    {kind} styles — coming soon
+                                    {t('comingSoon', { kind })}
                                 </span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="top">
-                            Saved {kind.toLowerCase()} styles aren&apos;t available yet — use the
-                            Custom controls below.
+                            {t('comingSoonTooltip', { kind: kind.toLowerCase() })}
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -105,7 +106,7 @@ export function StyleChipPicker({
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="outline"
-                            aria-label={selected ? `Change ${kind}` : `Add ${kind}`}
+                            aria-label={selected ? t('changeKind', { kind }) : t('addKind', { kind })}
                             className={cn(
                                 FIELD_BASE_CLASSES,
                                 'min-w-0 justify-start gap-2 shadow-none',
@@ -129,7 +130,7 @@ export function StyleChipPicker({
                                 <>
                                     <Sparkles className="text-foreground-tertiary size-3 shrink-0" />
                                     <span className="text-foreground-secondary flex-1 text-left">
-                                        Add {kind}
+                                        {t('addKind', { kind })}
                                     </span>
                                 </>
                             )}
@@ -140,12 +141,12 @@ export function StyleChipPicker({
                         {options.length === 0 ? (
                             <>
                                 <DropdownMenuLabel className="text-foreground-tertiary text-mini font-normal">
-                                    No {kind.toLowerCase()}s yet
+                                    {t('noKindsYet', { kind: kind.toLowerCase() })}
                                 </DropdownMenuLabel>
                                 {onCreate && (
                                     <DropdownMenuItem onSelect={onCreate} className="gap-2">
                                         <Plus className="size-3.5 shrink-0" />
-                                        Create {kind.toLowerCase()}
+                                        {t('createKind', { kind: kind.toLowerCase() })}
                                     </DropdownMenuItem>
                                 )}
                             </>
@@ -168,7 +169,7 @@ export function StyleChipPicker({
                         {selected && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onSelect={onDetach}>Detach</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={onDetach}>{t('detach')}</DropdownMenuItem>
                             </>
                         )}
                     </DropdownMenuContent>
@@ -178,7 +179,7 @@ export function StyleChipPicker({
                 <button
                     type="button"
                     onClick={onDetach}
-                    aria-label={`Detach ${kind.toLowerCase()}`}
+                    aria-label={t('detachKind', { kind: kind.toLowerCase() })}
                     className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-xs transition-colors"
                 >
                     <X className="size-3" />

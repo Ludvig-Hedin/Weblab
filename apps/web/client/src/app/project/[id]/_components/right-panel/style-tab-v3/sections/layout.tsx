@@ -16,6 +16,7 @@ import {
     StretchHorizontal,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import {
     IconToggleField,
@@ -94,6 +95,7 @@ const WRAP_OPTIONS = [
  * reads better next to its layout context than buried in Advanced.
  */
 export const LayoutSection = observer(function LayoutSection() {
+    const t = useTranslations('editor.stylePanel');
     const display = useStyleValue('display');
     const direction = useStyleValue('flex-direction');
     const justifyContent = useStyleValue('justify-content');
@@ -133,8 +135,8 @@ export const LayoutSection = observer(function LayoutSection() {
         marginTop.isSet || marginRight.isSet || marginBottom.isSet || marginLeft.isSet;
 
     return (
-        <Section id="layout" title="Layout" setCount={setCount}>
-            <PropertyControl property="display" label="Display">
+        <Section id="layout" title={t('section.layout')} setCount={setCount}>
+            <PropertyControl property="display" label={t('layout.display')}>
                 {({ value, isSet, commit }) => (
                     <SegmentedDisplay
                         value={
@@ -147,24 +149,24 @@ export const LayoutSection = observer(function LayoutSection() {
                         isSet={isSet}
                         options={DISPLAY_OPTIONS}
                         onCommit={commit}
-                        ariaLabel="Display"
+                        ariaLabel={t('layout.display')}
                     />
                 )}
             </PropertyControl>
             {isFlex && (
                 <>
-                    <PropertyControl property="flex-direction" label="Direction">
+                    <PropertyControl property="flex-direction" label={t('layout.direction')}>
                         {({ value, isSet, commit }) => (
                             <IconToggleField
                                 value={value}
                                 isSet={isSet}
                                 options={FLEX_DIRECTION_ICONS}
                                 onCommit={commit}
-                                ariaLabel="Flex direction"
+                                ariaLabel={t('layout.direction')}
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="justify-content" label="Distribute">
+                    <PropertyControl property="justify-content" label={t('layout.distribute')}>
                         {({ value, commit }) => (
                             <SelectField
                                 value={value}
@@ -173,18 +175,18 @@ export const LayoutSection = observer(function LayoutSection() {
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="align-items" label="Align">
+                    <PropertyControl property="align-items" label={t('layout.align')}>
                         {({ value, isSet, commit }) => (
                             <IconToggleField
                                 value={value}
                                 isSet={isSet}
                                 options={isColumn ? ALIGN_COL_ICONS : ALIGN_ROW_ICONS}
                                 onCommit={commit}
-                                ariaLabel="Align items"
+                                ariaLabel={t('layout.align')}
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="flex-wrap" label="Wrap">
+                    <PropertyControl property="flex-wrap" label={t('layout.wrap')}>
                         {({ value, isSet, commit }) => (
                             <IconToggleField
                                 value={value}
@@ -194,23 +196,23 @@ export const LayoutSection = observer(function LayoutSection() {
                                     icon: <span className="text-mini">{o.label}</span>,
                                 }))}
                                 onCommit={commit}
-                                ariaLabel="Flex wrap"
+                                ariaLabel={t('layout.wrap')}
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="gap" label="Gap">
+                    <PropertyControl property="gap" label={t('layout.gap')}>
                         {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
                     </PropertyControl>
                 </>
             )}
             <div className="flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Padding" isSet={padAnySet} />
+                <PropertyLabel label={t('layout.padding')} isSet={padAnySet} />
                 <div className="min-w-0 flex-1">
                     <TrblGrid prefix="padding" />
                 </div>
             </div>
             <div className="flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Margin" isSet={marginAnySet} />
+                <PropertyLabel label={t('layout.margin')} isSet={marginAnySet} />
                 <div className="min-w-0 flex-1">
                     <TrblGrid prefix="margin" allowKeywords />
                 </div>

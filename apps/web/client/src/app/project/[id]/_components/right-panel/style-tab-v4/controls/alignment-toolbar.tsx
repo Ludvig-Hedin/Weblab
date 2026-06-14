@@ -8,6 +8,7 @@ import {
     AlignStartHorizontal,
     AlignStartVertical,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -21,26 +22,14 @@ export interface AlignmentToolbarProps {
     className?: string;
 }
 
-const OPTIONS: {
-    value: AlignmentValue;
-    label: string;
-    Icon: typeof AlignStartVertical;
-}[] = [
-    { value: 'left', label: 'Align left', Icon: AlignStartVertical },
-    {
-        value: 'center-x',
-        label: 'Center horizontally',
-        Icon: AlignCenterVertical,
-    },
-    { value: 'right', label: 'Align right', Icon: AlignEndVertical },
-    { value: 'top', label: 'Align top', Icon: AlignStartHorizontal },
-    {
-        value: 'center-y',
-        label: 'Center vertically',
-        Icon: AlignCenterHorizontal,
-    },
-    { value: 'bottom', label: 'Align bottom', Icon: AlignEndHorizontal },
-];
+const OPTION_ICONS: Record<AlignmentValue, typeof AlignStartVertical> = {
+    left: AlignStartVertical,
+    'center-x': AlignCenterVertical,
+    right: AlignEndVertical,
+    top: AlignStartHorizontal,
+    'center-y': AlignCenterHorizontal,
+    bottom: AlignEndHorizontal,
+};
 
 /**
  * Six-icon alignment guide row from the Figma. Currently surface-only —
@@ -50,19 +39,30 @@ const OPTIONS: {
  * left:50%;` for "center-x"). The toolbar itself is purely presentational.
  */
 export function AlignmentToolbar({ value, onCommit, className }: AlignmentToolbarProps) {
+    const t = useTranslations('editor.stylePanel.controls.alignmentToolbar');
+
+    const options = [
+        { value: 'left' as AlignmentValue, label: t('alignLeft'), Icon: OPTION_ICONS.left },
+        { value: 'center-x' as AlignmentValue, label: t('centerHorizontally'), Icon: OPTION_ICONS['center-x'] },
+        { value: 'right' as AlignmentValue, label: t('alignRight'), Icon: OPTION_ICONS.right },
+        { value: 'top' as AlignmentValue, label: t('alignTop'), Icon: OPTION_ICONS.top },
+        { value: 'center-y' as AlignmentValue, label: t('centerVertically'), Icon: OPTION_ICONS['center-y'] },
+        { value: 'bottom' as AlignmentValue, label: t('alignBottom'), Icon: OPTION_ICONS.bottom },
+    ];
+
     return (
         <TooltipProvider delayDuration={400}>
             <ToggleGroup
                 type="single"
                 value={value || ''}
                 onValueChange={(next) => onCommit((next ?? '') as AlignmentValue | '')}
-                aria-label="Position alignment"
+                aria-label={t('groupLabel')}
                 className={cn(
                     'flex h-[28px] w-full items-center justify-between gap-0.5',
                     className,
                 )}
             >
-                {OPTIONS.map(({ value: optionValue, label, Icon }) => (
+                {options.map(({ value: optionValue, label, Icon }) => (
                     <Tooltip key={optionValue}>
                         <TooltipTrigger asChild>
                             <ToggleGroupItem

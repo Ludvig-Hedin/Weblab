@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@weblab/ui/button';
@@ -52,6 +53,7 @@ function clampToViewport(left: number, top: number): { left: number; top: number
 
 export const CommentPopover = observer(() => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations('editor.canvas.overlay.comment');
     const { position, scale } = editorEngine.canvas;
     // `comments` is hydrated from a Convex query that returns `undefined`
     // while the first subscription is in flight (synthetic projects never
@@ -206,8 +208,8 @@ export const CommentPopover = observer(() => {
                                 setNewCommentText('');
                             }
                         }}
-                        placeholder="Add a comment..."
-                        aria-label="Add a comment"
+                        placeholder={t('addCommentPlaceholder')}
+                        aria-label={t('addCommentAriaLabel')}
                         rows={2}
                         className="text-foreground-primary placeholder:text-foreground-tertiary text-small min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 focus:outline-none"
                         disabled={isSubmitting}
@@ -218,7 +220,7 @@ export const CommentPopover = observer(() => {
                         onClick={handleSubmitNew}
                         disabled={!newCommentText.trim() || isSubmitting}
                         className="m-1.5 flex-shrink-0 rounded-md"
-                        aria-label="Post comment"
+                        aria-label={t('postCommentAriaLabel')}
                     >
                         <Icons.ArrowUp className="h-3.5 w-3.5" />
                     </Button>
@@ -263,7 +265,7 @@ export const CommentPopover = observer(() => {
                                                         setEditingText('');
                                                     }}
                                                 >
-                                                    Cancel
+                                                    {t('cancel')}
                                                 </Button>
                                                 <Button
                                                     size="sm"
@@ -272,7 +274,7 @@ export const CommentPopover = observer(() => {
                                                     onClick={handleSaveEdit}
                                                     disabled={isSubmitting}
                                                 >
-                                                    Save
+                                                    {t('save')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -305,7 +307,7 @@ export const CommentPopover = observer(() => {
                                     )}
                                 >
                                     <Icons.CheckCircled className="h-3 w-3" />
-                                    {activeComment.resolvedAt ? 'Resolved' : 'Resolve'}
+                                    {activeComment.resolvedAt ? t('resolved') : t('resolve')}
                                 </button>
                                 {currentUserId === activeComment.authorId &&
                                     editingCommentId !== activeComment.id && (
@@ -317,7 +319,7 @@ export const CommentPopover = observer(() => {
                                                 }}
                                                 className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-tiny transition-colors"
                                             >
-                                                Edit
+                                                {t('edit')}
                                             </button>
                                             {confirmDeleteId === activeComment.id ? (
                                                 <span className="flex items-center gap-1">
@@ -345,13 +347,13 @@ export const CommentPopover = observer(() => {
                                                         disabled={isDeleting}
                                                         className="bg-destructive/10 text-destructive hover:text-destructive/80 text-micro rounded-md px-2 py-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
-                                                        {isDeleting ? 'Deleting...' : 'Confirm'}
+                                                        {isDeleting ? t('deleting') : t('confirm')}
                                                     </button>
                                                     <button
                                                         onClick={() => setConfirmDeleteId(null)}
                                                         className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-tiny transition-colors"
                                                     >
-                                                        Cancel
+                                                        {t('cancel')}
                                                     </button>
                                                 </span>
                                             ) : (
@@ -361,7 +363,7 @@ export const CommentPopover = observer(() => {
                                                     }
                                                     className="bg-background-secondary text-destructive hover:text-destructive/80 text-micro rounded-md px-2 py-0.5 transition-colors"
                                                 >
-                                                    Delete
+                                                    {t('delete')}
                                                 </button>
                                             )}
                                         </>
@@ -412,7 +414,7 @@ export const CommentPopover = observer(() => {
                                                                         }}
                                                                         className="bg-destructive/10 text-destructive text-micro rounded px-1.5 py-0.5 transition-colors"
                                                                     >
-                                                                        Confirm
+                                                                        {t('confirm')}
                                                                     </button>
                                                                     <button
                                                                         onClick={() =>
@@ -427,7 +429,7 @@ export const CommentPopover = observer(() => {
                                                                 </span>
                                                             ) : (
                                                                 <button
-                                                                    aria-label="Delete reply"
+                                                                    aria-label={t('deleteReplyAriaLabel')}
                                                                     onClick={() =>
                                                                         setConfirmDeleteReplyId(
                                                                             reply.id,
@@ -462,7 +464,7 @@ export const CommentPopover = observer(() => {
                                             handleSubmitReply();
                                         }
                                     }}
-                                    placeholder="Add a reply..."
+                                    placeholder={t('addReplyPlaceholder')}
                                     rows={2}
                                     className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary focus:ring-foreground/20 text-mini flex-1 resize-none rounded-2xl border px-2.5 py-1.5 focus:ring-1 focus:outline-none"
                                     disabled={isSubmitting}
@@ -470,7 +472,7 @@ export const CommentPopover = observer(() => {
                                 <Button
                                     variant="default"
                                     size="icon"
-                                    aria-label="Send reply"
+                                    aria-label={t('sendReplyAriaLabel')}
                                     className="h-7 w-7 self-end"
                                     onClick={handleSubmitReply}
                                     disabled={!replyText.trim() || isSubmitting}

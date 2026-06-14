@@ -10,6 +10,7 @@ import {
     Maximize2,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -26,35 +27,20 @@ interface GrowOption {
     write: { property: string; value: string }[];
 }
 
-const GROW_OPTIONS: GrowOption[] = [
-    {
-        value: 'horizontal',
-        label: 'Grow horizontally',
-        Icon: ArrowLeftRight,
-        write: [
-            { property: 'flex-grow', value: '1' },
-            { property: 'width', value: 'auto' },
-        ],
-    },
-    {
-        value: 'vertical',
-        label: 'Grow vertically',
-        Icon: ArrowUpDown,
-        write: [
-            { property: 'flex-grow', value: '1' },
-            { property: 'height', value: 'auto' },
-        ],
-    },
-    {
-        value: 'fill',
-        label: 'Fill',
-        Icon: Maximize2,
-        write: [
-            { property: 'width', value: '100%' },
-            { property: 'height', value: '100%' },
-        ],
-    },
-];
+const GROW_WRITE: Record<string, { property: string; value: string }[]> = {
+    horizontal: [
+        { property: 'flex-grow', value: '1' },
+        { property: 'width', value: 'auto' },
+    ],
+    vertical: [
+        { property: 'flex-grow', value: '1' },
+        { property: 'height', value: 'auto' },
+    ],
+    fill: [
+        { property: 'width', value: '100%' },
+        { property: 'height', value: '100%' },
+    ],
+};
 
 interface OverflowOption {
     value: string;
@@ -63,13 +49,6 @@ interface OverflowOption {
     Icon?: typeof Eye;
     text?: string;
 }
-
-const OVERFLOW_OPTIONS: OverflowOption[] = [
-    { value: 'visible', label: 'Visible', Icon: Eye },
-    { value: 'hidden', label: 'Hidden', Icon: EyeOff },
-    { value: 'clip', label: 'Clip', Icon: Crop },
-    { value: 'auto', label: 'Auto (scroll)', Icon: ArrowDownUp, text: 'Auto' },
-];
 
 /**
  * Shared geometry for the connected toggle pills used by both rows. A single
@@ -126,11 +105,18 @@ export interface GrowRowProps {
  * `PropertyControl`-style row supplies the "Grow" label.
  */
 export const GrowRow = observer(function GrowRow({ className, isSet = true }: GrowRowProps) {
+    const t = useTranslations('editor.stylePanel.controls.growOverflow');
     const flexGrow = useStyleValue('flex-grow');
     const width = useStyleValue('width');
     const height = useStyleValue('height');
 
     const { setMultiple } = useStyleBatchSetter();
+
+    const growOptions: GrowOption[] = [
+        { value: 'horizontal', label: t('growHorizontally'), Icon: ArrowLeftRight, write: GROW_WRITE.horizontal! },
+        { value: 'vertical', label: t('growVertically'), Icon: ArrowUpDown, write: GROW_WRITE.vertical! },
+        { value: 'fill', label: t('fill'), Icon: Maximize2, write: GROW_WRITE.fill! },
+    ];
 
     const activeGrow = (() => {
         if (width.value === '100%' && height.value === '100%') return 'fill';
@@ -142,7 +128,7 @@ export const GrowRow = observer(function GrowRow({ className, isSet = true }: Gr
     // A preset writes 2 properties — commit them as one history entry so a
     // single Cmd+Z reverts the whole "grow" gesture.
     const applyGrow = (value: string) => {
-        const opt = GROW_OPTIONS.find((o) => o.value === value);
+        const opt = growOptions.find((o) => o.value === value);
         if (!opt) return;
         setMultiple(opt.write);
     };
@@ -153,10 +139,10 @@ export const GrowRow = observer(function GrowRow({ className, isSet = true }: Gr
                 type="single"
                 value={activeGrow}
                 onValueChange={(next) => next && applyGrow(next)}
-                aria-label="Grow"
+                aria-label={t('growLabel')}
                 className={cn(TOGGLE_GROUP_CLASS, className)}
             >
-                {GROW_OPTIONS.map(({ value, label, Icon }) => (
+                {growOptions.map(({ value, label, Icon }) => (
                     <Tooltip key={value}>
                         <TooltipTrigger asChild>
                             <ToggleGroupItem
@@ -201,11 +187,19 @@ export const OverflowRow = observer(function OverflowRow({
     className,
     isSet = true,
 }: OverflowRowProps) {
+    const t = useTranslations('editor.stylePanel.controls.growOverflow');
     const overflowX = useStyleValue('overflow-x');
     const overflowY = useStyleValue('overflow-y');
     const overflow = useStyleValue('overflow');
 
     const { setMultiple } = useStyleBatchSetter();
+
+    const overflowOptions: OverflowOption[] = [
+        { value: 'visible', label: t('visible'), Icon: Eye },
+        { value: 'hidden', label: t('hidden'), Icon: EyeOff },
+        { value: 'clip', label: t('clip'), Icon: Crop },
+        { value: 'auto', label: t('autoScroll'), Icon: ArrowDownUp, text: 'Auto' },
+    ];
 
     const activeOverflow = (() => {
         if (overflowX.value === overflowY.value && overflowX.value) return overflowX.value;
@@ -227,10 +221,10 @@ export const OverflowRow = observer(function OverflowRow({
                 type="single"
                 value={activeOverflow}
                 onValueChange={(next) => next && applyOverflow(next)}
-                aria-label="Overflow"
+                aria-label={t('overflowLabel')}
                 className={cn(TOGGLE_GROUP_CLASS, className)}
             >
-                {OVERFLOW_OPTIONS.map(({ value, label, Icon, text }) => (
+                {overflowOptions.map(({ value, label, Icon, text }) => (
                     <Tooltip key={value}>
                         <TooltipTrigger asChild>
                             <ToggleGroupItem

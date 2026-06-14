@@ -1,6 +1,7 @@
 'use client';
 
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { IconToggleField, PropertyControl, SliderField } from '../controls';
 import { useStyleValue } from '../hooks/use-style-value';
@@ -21,13 +22,14 @@ const VISIBLE_OPTIONS = [
  * v2 grouped under "Effects" moves to a dedicated Effects section below.
  */
 export const StylesSection = observer(function StylesSection() {
+    const t = useTranslations('editor.stylePanel');
     const opacity = useStyleValue('opacity');
     const visibility = useStyleValue('visibility');
     const setCount = [opacity, visibility].filter((v) => v.isSet).length;
 
     return (
-        <Section id="styles" title="Styles" setCount={setCount}>
-            <PropertyControl property="opacity" label="Opacity">
+        <Section id="styles" title={t('section.styles')} setCount={setCount}>
+            <PropertyControl property="opacity" label={t('styles.opacityLabel')}>
                 {({ value, commit }) => (
                     <SliderField
                         value={value}
@@ -39,14 +41,14 @@ export const StylesSection = observer(function StylesSection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="visibility" label="Visible">
+            <PropertyControl property="visibility" label={t('styles.visibleLabel')}>
                 {({ value, isSet, commit }) => (
                     <IconToggleField
                         value={value}
                         isSet={isSet}
                         options={VISIBLE_OPTIONS}
                         onCommit={commit}
-                        ariaLabel="Visibility"
+                        ariaLabel={t('styles.visibility')}
                     />
                 )}
             </PropertyControl>

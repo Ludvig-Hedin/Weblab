@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -21,8 +22,8 @@ export interface PinPadProps {
 }
 
 function isPinned(v: string): boolean {
-    const t = v.trim();
-    return t !== '' && t !== 'auto';
+    const trimmed = v.trim();
+    return trimmed !== '' && trimmed !== 'auto';
 }
 
 /**
@@ -40,6 +41,7 @@ function isPinned(v: string): boolean {
  *     (clears it). Focus then jumps to the matching input.
  */
 export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className }: PinPadProps) {
+    const t = useTranslations('editor.stylePanel.controls.pinPad');
     const refs = {
         top: React.useRef<HTMLInputElement | null>(null),
         right: React.useRef<HTMLInputElement | null>(null),
@@ -71,6 +73,8 @@ export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className
                 inputRef={refs.top}
                 onCommit={(v) => onCommitSide('top', v)}
                 glyph="T"
+                autoPlaceholder={t('autoPlaceholder')}
+                sideOffsetLabel={t('sideOffset', { side: 'top' })}
             />
 
             <SideCell
@@ -80,6 +84,8 @@ export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className
                 onCommit={(v) => onCommitSide('left', v)}
                 glyph="L"
                 style={{ gridColumn: 1, gridRow: 2 }}
+                autoPlaceholder={t('autoPlaceholder')}
+                sideOffsetLabel={t('sideOffset', { side: 'left' })}
             />
 
             {/* Center pad */}
@@ -91,26 +97,30 @@ export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className
                     side="top"
                     active={isPinned(sides.top)}
                     onClick={() => handleToggle('top')}
+                    ariaLabel={t('togglePin', { side: 'top' })}
                 />
                 <PadZone
                     side="right"
                     active={isPinned(sides.right)}
                     onClick={() => handleToggle('right')}
+                    ariaLabel={t('togglePin', { side: 'right' })}
                 />
                 <PadZone
                     side="bottom"
                     active={isPinned(sides.bottom)}
                     onClick={() => handleToggle('bottom')}
+                    ariaLabel={t('togglePin', { side: 'bottom' })}
                 />
                 <PadZone
                     side="left"
                     active={isPinned(sides.left)}
                     onClick={() => handleToggle('left')}
+                    ariaLabel={t('togglePin', { side: 'left' })}
                 />
                 <button
                     type="button"
-                    aria-label="Clear all sides"
-                    title="Clear all sides"
+                    aria-label={t('clearAllSides')}
+                    title={t('clearAllSides')}
                     onClick={onClearAll}
                     disabled={!onClearAll}
                     className="border-foreground-tertiary bg-foreground/[0.04] hover:bg-foreground/[0.08] focus-visible:ring-foreground-brand/40 disabled:hover:bg-foreground/[0.04] absolute top-1/2 left-1/2 h-[12px] w-[12px] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-[2px] border-[1.25px] transition-colors outline-none focus-visible:ring-2 disabled:cursor-default"
@@ -124,6 +134,8 @@ export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className
                 onCommit={(v) => onCommitSide('right', v)}
                 glyph="R"
                 style={{ gridColumn: 3, gridRow: 2 }}
+                autoPlaceholder={t('autoPlaceholder')}
+                sideOffsetLabel={t('sideOffset', { side: 'right' })}
             />
 
             <SideCell
@@ -133,6 +145,8 @@ export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className
                 onCommit={(v) => onCommitSide('bottom', v)}
                 glyph="B"
                 style={{ gridColumn: 2, gridRow: 3 }}
+                autoPlaceholder={t('autoPlaceholder')}
+                sideOffsetLabel={t('sideOffset', { side: 'bottom' })}
             />
         </div>
     );
@@ -145,9 +159,11 @@ interface SideCellProps {
     glyph: string;
     inputRef: React.MutableRefObject<HTMLInputElement | null>;
     style?: React.CSSProperties;
+    autoPlaceholder: string;
+    sideOffsetLabel: string;
 }
 
-function SideCell({ side, value, onCommit, glyph, inputRef, style }: SideCellProps) {
+function SideCell({ side, value, onCommit, glyph, inputRef, style, autoPlaceholder, sideOffsetLabel }: SideCellProps) {
     const pinned = isPinned(value);
     const [draft, setDraft] = React.useState(value === 'auto' ? '' : value);
     React.useEffect(() => {
@@ -174,8 +190,8 @@ function SideCell({ side, value, onCommit, glyph, inputRef, style }: SideCellPro
                 spellCheck={false}
                 inputMode="decimal"
                 value={draft}
-                placeholder="Auto"
-                aria-label={`${side} offset`}
+                placeholder={autoPlaceholder}
+                aria-label={sideOffsetLabel}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={(e) => {
                     const next = e.currentTarget.value.trim();
@@ -209,9 +225,10 @@ interface PadZoneProps {
     side: Side;
     active: boolean;
     onClick: () => void;
+    ariaLabel: string;
 }
 
-function PadZone({ side, active, onClick }: PadZoneProps) {
+function PadZone({ side, active, onClick, ariaLabel }: PadZoneProps) {
     const layout: Record<Side, string> = {
         top: 'top-[5px] left-1/2 -translate-x-1/2 w-[18px] h-[1.5px]',
         bottom: 'bottom-[5px] left-1/2 -translate-x-1/2 w-[18px] h-[1.5px]',
@@ -228,7 +245,7 @@ function PadZone({ side, active, onClick }: PadZoneProps) {
         <>
             <button
                 type="button"
-                aria-label={`Toggle ${side} pin`}
+                aria-label={ariaLabel}
                 onClick={onClick}
                 className={cn(
                     'focus-visible:ring-foreground-brand/30 absolute cursor-pointer rounded-[3px] outline-none focus-visible:ring-2',

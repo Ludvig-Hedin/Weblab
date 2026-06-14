@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { EditorMode } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -9,6 +10,7 @@ import { useEditorEngine } from '@/components/store/editor';
 
 export const OverlayOpenCode = observer(({ isInputting }: { isInputting: boolean }) => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations('editor.canvas.overlay.buttons');
     const isDevMode = editorEngine.state.editorMode === EditorMode.CODE;
     const oid = editorEngine.elements.selected[0]?.oid;
 
@@ -34,7 +36,7 @@ export const OverlayOpenCode = observer(({ isInputting }: { isInputting: boolean
                 size="icon"
                 onClick={handleCodeButtonClick}
                 className="hover:text-foreground-primary rounded-lg"
-                aria-label="Open in Code"
+                aria-label={t('openInCode')}
             >
                 <Icons.Code className="h-4 w-4" />
             </Button>

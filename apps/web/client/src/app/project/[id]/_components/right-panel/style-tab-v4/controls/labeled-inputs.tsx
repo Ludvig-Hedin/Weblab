@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { cn } from '@weblab/ui/utils';
@@ -95,6 +96,7 @@ export function LabeledNumberInput({
     className,
     'aria-label': ariaLabel,
 }: LabeledNumberInputProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -174,7 +176,7 @@ export function LabeledNumberInput({
                 inputMode={isKeyword ? 'text' : 'decimal'}
                 spellCheck={false}
                 value={displayValue}
-                placeholder={mixed ? 'Mixed' : placeholder}
+                placeholder={mixed ? t('mixed') : placeholder}
                 aria-label={ariaLabel ?? label}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -219,6 +221,7 @@ export function LabeledSelectInput({
     mixed,
     className,
 }: LabeledSelectInputProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     return (
         <Select value={mixed ? undefined : value || undefined} onValueChange={onCommit}>
             <SelectTrigger
@@ -236,7 +239,7 @@ export function LabeledSelectInput({
                         mixed ? 'text-foreground-tertiary italic' : 'text-foreground-primary',
                     )}
                 >
-                    {mixed ? 'Mixed' : <SelectValue placeholder="—" />}
+                    {mixed ? t('mixed') : <SelectValue placeholder="—" />}
                 </span>
             </SelectTrigger>
             <SelectContent className="max-w-[280px]">
@@ -279,6 +282,7 @@ export function LabeledTextInput({
     className,
     'aria-label': ariaLabel,
 }: LabeledTextInputProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -302,7 +306,7 @@ export function LabeledTextInput({
                 type="text"
                 spellCheck={false}
                 value={draft}
-                placeholder={mixed ? 'Mixed' : placeholder}
+                placeholder={mixed ? t('mixed') : placeholder}
                 aria-label={ariaLabel ?? label}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {

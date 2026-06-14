@@ -1,6 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -20,8 +21,10 @@ export function OpenInNewTabCheckbox({
     checked,
     onChange,
     className,
-    label = 'Open in new tab',
+    label,
 }: OpenInNewTabCheckboxProps) {
+    const t = useTranslations('editor.stylePanel.controls.openInNewTab');
+    const resolvedLabel = label ?? t('label');
     return (
         <label
             className={cn(
@@ -46,7 +49,7 @@ export function OpenInNewTabCheckbox({
             >
                 {checked && <Check className="h-[10px] w-[10px]" strokeWidth={3} />}
             </span>
-            <span>{label}</span>
+            <span>{resolvedLabel}</span>
         </label>
     );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { Frame } from '@weblab/models';
 import { APP_NAME } from '@weblab/constants';
@@ -49,46 +50,29 @@ const LONG_WAIT_TIPS = [
     `${APP_NAME} tip: Drag-select a region to grab multiple elements at once.`,
 ];
 
-interface LoadingStage {
-    primary: string;
-    secondary: string;
-}
+type LoadingStageKey = 'almostReady' | 'compiling' | 'starting' | 'startingWorkspace' | 'stillStarting';
+type LoadingStageSecondaryKey = 'loadingTools' | 'almostReadyDesc' | 'connecting' | 'usuallyTakes' | 'takingLonger';
 
-function getLoadingStage(input: {
+function getLoadingStageKeys(input: {
     bootElapsedMs: number;
     livenessState: SandboxLivenessState;
     preloadScriptReady: boolean;
     isPenpalConnected: boolean;
-}): LoadingStage {
+}): { primaryKey: LoadingStageKey; secondaryKey: LoadingStageSecondaryKey } {
     const { bootElapsedMs, livenessState, preloadScriptReady, isPenpalConnected } = input;
     if (isPenpalConnected && !preloadScriptReady) {
-        return {
-            primary: 'Almost ready',
-            secondary: 'Loading the canvas tools…',
-        };
+        return { primaryKey: 'almostReady', secondaryKey: 'loadingTools' };
     }
     if (livenessState === 'alive') {
-        return {
-            primary: 'Compiling your preview',
-            secondary: 'Your preview is almost ready…',
-        };
+        return { primaryKey: 'compiling', secondaryKey: 'almostReadyDesc' };
     }
     if (bootElapsedMs < 5_000) {
-        return {
-            primary: 'Starting your preview',
-            secondary: 'Connecting to your project…',
-        };
+        return { primaryKey: 'starting', secondaryKey: 'connecting' };
     }
     if (bootElapsedMs < 20_000) {
-        return {
-            primary: 'Starting your workspace',
-            secondary: 'This usually takes 10–30 seconds…',
-        };
+        return { primaryKey: 'startingWorkspace', secondaryKey: 'usuallyTakes' };
     }
-    return {
-        primary: 'Still starting up',
-        secondary: 'Taking a bit longer than usual — almost there.',
-    };
+    return { primaryKey: 'stillStarting', secondaryKey: 'takingLonger' };
 }
 
 function ErrorLine({ line, index }: { line: string; index: number }) {
@@ -175,6 +159,7 @@ function HighlightedError({ content }: { content: string }) {
 export const FrameView = observer(
     ({ frame, isInDragSelection = false }: { frame: Frame; isInDragSelection?: boolean }) => {
         const editorEngine = useEditorEngine();
+        const t = useTranslations('editor.canvas.frame.loading');
         const iFrameRef = useRef<IFrameView>(null);
         const [isResizing, setIsResizing] = useState(false);
         // Tip cycler — only kicks in after the soft-hint mark
@@ -330,7 +315,7 @@ export const FrameView = observer(
             !isFrameReady &&
             bootElapsedMs >= BOOT_SOFT_HINT_MS &&
             bootElapsedMs < BOOT_RESTART_HINT_MS;
-        const loadingStage = getLoadingStage({
+        const loadingStageKeys = getLoadingStageKeys({
             bootElapsedMs,
             livenessState,
             preloadScriptReady,
@@ -614,10 +599,10 @@ export const FrameView = observer(
                                         <Icons.LoadingSpinner className="h-8 w-8 animate-spin" />
                                         <div className="flex flex-col items-center gap-1">
                                             <p className="text-foreground text-base font-medium">
-                                                Setting up your workspace
+                                                {t('settingUp')}
                                             </p>
                                             <p className="text-foreground-tertiary text-small">
-                                                Preparing your preview…
+                                                {t('preparingPreview')}
                                             </p>
                                         </div>
                                     </div>
@@ -720,12 +705,10 @@ export const FrameView = observer(
                                             {isFirstCreation ? (
                                                 <div className="flex flex-col items-center gap-1.5 text-center">
                                                     <p className="text-foreground text-base font-medium">
-                                                        Building your site
+                                                        {t('buildingYourSite')}
                                                     </p>
                                                     <p className="text-foreground-tertiary text-small max-w-sm">
-                                                        Your preview will appear here once the AI
-                                                        finishes the first version. This usually
-                                                        takes 30–60 seconds.
+                                                        {t('buildingDesc')}
                                                     </p>
                                                 </div>
                                             ) : (
@@ -742,10 +725,10 @@ export const FrameView = observer(
                                                                         : 'text-foreground',
                                                                 )}
                                                             >
-                                                                {loadingStage.primary}
+                                                                {t(loadingStageKeys.primaryKey)}
                                                             </p>
                                                             <p className="text-foreground-tertiary text-small">
-                                                                {loadingStage.secondary}
+                                                                {t(loadingStageKeys.secondaryKey)}
                                                             </p>
                                                             {isLong && !showRestartPanel && (
                                                                 <p className="text-foreground-tertiary mt-1 text-xs">
@@ -758,8 +741,8 @@ export const FrameView = observer(
                                                                         className="text-foreground hover:text-foreground underline underline-offset-2 disabled:opacity-60"
                                                                     >
                                                                         {isRestarting
-                                                                            ? 'Restarting…'
-                                                                            : 'Restart preview'}
+                                                                            ? t('restarting')
+                                                                            : t('restartPreview')}
                                                                     </button>
                                                                 </p>
                                                             )}

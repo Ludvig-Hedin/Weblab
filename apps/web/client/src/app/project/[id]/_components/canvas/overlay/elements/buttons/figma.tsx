@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { EditorMode } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -9,6 +10,7 @@ import { useEditorEngine } from '@/components/store/editor';
 
 export const OverlayCopyToFigma = observer(({ isInputting }: { isInputting: boolean }) => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations('editor.canvas.overlay.buttons');
     const isDevMode = editorEngine.state.editorMode === EditorMode.CODE;
     const domId = editorEngine.elements.selected[0]?.domId;
     const isCopying = editorEngine.figma.isCopying;
@@ -32,7 +34,7 @@ export const OverlayCopyToFigma = observer(({ isInputting }: { isInputting: bool
                 onClick={() => void editorEngine.figma.copySelectedToFigma()}
                 disabled={isCopying}
                 className="hover:text-foreground-primary rounded-lg"
-                aria-label="Copy to Figma"
+                aria-label={t('copyToFigma')}
             >
                 {isCopying ? (
                     <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />

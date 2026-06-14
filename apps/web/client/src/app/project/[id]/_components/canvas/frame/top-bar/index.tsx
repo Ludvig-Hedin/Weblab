@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { Frame } from '@weblab/models';
 import { DEFAULT_BREAKPOINT_PRESETS } from '@weblab/db';
@@ -36,6 +37,7 @@ import { PageSelector } from './page-selector';
 export const TopBar = observer(
     ({ frame, isInDragSelection = false }: { frame: Frame; isInDragSelection?: boolean }) => {
         const editorEngine = useEditorEngine();
+        const t = useTranslations('editor.canvas.frame.topBar');
         const isSelected = editorEngine.frames.isSelected(frame.id);
         const topBarRef = useRef<HTMLDivElement>(null);
         const toolBarRef = useRef<HTMLDivElement>(null);
@@ -222,7 +224,7 @@ export const TopBar = observer(
                         }}
                         ref={toolBarRef}
                     >
-                        <HoverOnlyTooltip content="Go back" side="top" className="mb-1" hideArrow>
+                        <HoverOnlyTooltip content={t('goBack')} side="top" className="mb-1" hideArrow>
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -239,7 +241,7 @@ export const TopBar = observer(
                             </Button>
                         </HoverOnlyTooltip>
                         <HoverOnlyTooltip
-                            content="Go forward"
+                            content={t('goForward')}
                             side="top"
                             className="mb-1"
                             hideArrow
@@ -260,7 +262,7 @@ export const TopBar = observer(
                             </Button>
                         </HoverOnlyTooltip>
                         <HoverOnlyTooltip
-                            content="Refresh Page"
+                            content={t('refreshPage')}
                             side="top"
                             className="mb-2"
                             hideArrow
@@ -312,8 +314,8 @@ export const TopBar = observer(
                                     )}
                                     title={
                                         driftedFromPreset
-                                            ? `Drifted from ${frame.breakpoint?.name} preset (${presetWidth}px)`
-                                            : `${frame.breakpoint?.name} breakpoint`
+                                            ? t('driftedPreset', { name: frame.breakpoint?.name ?? '', width: String(presetWidth ?? 0) })
+                                            : t('breakpointLabel', { name: frame.breakpoint?.name ?? '' })
                                     }
                                     onClick={(e) => e.stopPropagation()}
                                 >
@@ -336,11 +338,11 @@ export const TopBar = observer(
                                 className="min-w-44"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <DropdownMenuLabel>Breakpoint</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t('breakpoint')}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {driftedFromPreset && (
                                     <DropdownMenuItem onSelect={handleRestorePreset}>
-                                        Restore preset ({presetWidth}px)
+                                        {t('restorePreset', { width: String(presetWidth ?? 0) })}
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem
@@ -348,7 +350,7 @@ export const TopBar = observer(
                                     disabled={groupSiblings.length <= 1}
                                     className="text-destructive"
                                 >
-                                    Remove from group
+                                    {t('removeFromGroup')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -365,7 +367,7 @@ export const TopBar = observer(
                                         variant="ghost"
                                         size="icon"
                                         className="text-foreground-tertiary hover:text-foreground-primary ml-1 h-6 w-6 rounded-md"
-                                        title="Add breakpoint"
+                                        title={t('addBreakpoint')}
                                         onClick={(e) => e.stopPropagation()}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
@@ -378,7 +380,7 @@ export const TopBar = observer(
                                     onClick={(e) => e.stopPropagation()}
                                     onMouseDown={(e) => e.stopPropagation()}
                                 >
-                                    <DropdownMenuLabel>Add breakpoint</DropdownMenuLabel>
+                                    <DropdownMenuLabel>{t('addBreakpoint')}</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {[
                                         {
@@ -507,7 +509,7 @@ export const TopBar = observer(
                         )}
                     </div>
                     <HoverOnlyTooltip
-                        content="Preview in new tab"
+                        content={t('previewNewTab')}
                         side="top"
                         hideArrow
                         className="mb-0"
@@ -542,16 +544,16 @@ export const TopBar = observer(
                 >
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Remove breakpoint</AlertDialogTitle>
+                            <AlertDialogTitle>{t('removeBreakpointTitle')}</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Remove &ldquo;{frame.breakpoint?.name ?? 'this breakpoint'}&rdquo;
                                 from the group?
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                             <AlertDialogAction onClick={confirmDeleteBreakpoint}>
-                                Remove
+                                {t('remove')}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

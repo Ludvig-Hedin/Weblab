@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Variable } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
@@ -28,6 +29,7 @@ interface CustomPropertyRow {
  * "everything else" disclosure rather than separate accordions.
  */
 export const AdvancedSection = observer(function AdvancedSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     const selectedStyle = editorEngine.style.selectedStyle;
 
@@ -50,30 +52,30 @@ export const AdvancedSection = observer(function AdvancedSection() {
     const [draftRow, setDraftRow] = useState(false);
 
     return (
-        <Section id="advanced" title="Advanced" setCount={setCount}>
-            <CustomExpander open={layoutOpen} onOpenChange={setLayoutOpen} label="Layout extras">
-                <PropertyControl property="float" label="Float">
+        <Section id="advanced" title={t('section.advanced')} setCount={setCount}>
+            <CustomExpander open={layoutOpen} onOpenChange={setLayoutOpen} label={t('advanced.layoutExtras')}>
+                <PropertyControl property="float" label={t('advanced.floatLabel')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
                             options={[
-                                { value: 'none', label: 'None' },
-                                { value: 'left', label: 'Left' },
-                                { value: 'right', label: 'Right' },
+                                { value: 'none', label: t('advanced.none') },
+                                { value: 'left', label: t('advanced.left') },
+                                { value: 'right', label: t('advanced.right') },
                             ]}
                             onCommit={commit}
                         />
                     )}
                 </PropertyControl>
-                <PropertyControl property="clear" label="Clear">
+                <PropertyControl property="clear" label={t('advanced.clearLabel')}>
                     {({ value, commit }) => (
                         <SelectField
                             value={value}
                             options={[
-                                { value: 'none', label: 'None' },
-                                { value: 'left', label: 'Left' },
-                                { value: 'right', label: 'Right' },
-                                { value: 'both', label: 'Both' },
+                                { value: 'none', label: t('advanced.none') },
+                                { value: 'left', label: t('advanced.left') },
+                                { value: 'right', label: t('advanced.right') },
+                                { value: 'both', label: t('advanced.both') },
                             ]}
                             onCommit={commit}
                         />
@@ -83,12 +85,12 @@ export const AdvancedSection = observer(function AdvancedSection() {
             <CustomExpander
                 open={variablesOpen}
                 onOpenChange={setVariablesOpen}
-                label="Custom properties"
+                label={t('advanced.customProperties')}
                 summary={customRows.length > 0 ? `${customRows.length} set` : undefined}
             >
                 {customRows.length === 0 && !draftRow && (
                     <p className="text-foreground-tertiary text-mini px-3 py-1">
-                        No custom properties.
+                        {t('advanced.noCustomProperties')}
                     </p>
                 )}
                 {customRows.map((row) => (
@@ -141,7 +143,7 @@ export const AdvancedSection = observer(function AdvancedSection() {
                         onClick={() => setDraftRow(true)}
                     >
                         <Variable className="mr-1 size-3" />
-                        Add variable
+                        {t('advanced.addVariable')}
                     </Button>
                 </div>
             </CustomExpander>

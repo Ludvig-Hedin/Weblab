@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -24,6 +25,7 @@ export interface FontHeroRowProps extends React.ButtonHTMLAttributes<HTMLButtonE
  */
 export const FontHeroRow = React.forwardRef<HTMLButtonElement, FontHeroRowProps>(
     function FontHeroRow({ family, sampleWeight = 500, className, ...rest }, ref) {
+        const t = useTranslations('editor.stylePanel.controls.fontHeroRow');
         return (
             <button
                 ref={ref}
@@ -34,8 +36,8 @@ export const FontHeroRow = React.forwardRef<HTMLButtonElement, FontHeroRowProps>
                     'grid-cols-[26px_1fr_auto]',
                     className,
                 )}
-                aria-label="Change font"
-                title="Change font"
+                aria-label={t('changeFont')}
+                title={t('changeFont')}
                 {...rest}
             >
                 <span
@@ -46,7 +48,7 @@ export const FontHeroRow = React.forwardRef<HTMLButtonElement, FontHeroRowProps>
                     Aa
                 </span>
                 <span className="text-foreground-primary text-mini min-w-0 truncate">
-                    {family || 'Default'}
+                    {family || t('defaultFamily')}
                 </span>
                 <ChevronDown className="text-foreground-tertiary size-3 shrink-0" />
             </button>

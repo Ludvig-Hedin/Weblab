@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ActionElement } from '@weblab/models/actions';
 import { toast } from '@weblab/ui/sonner';
@@ -46,6 +47,7 @@ const TAG_OPTIONS = COMMON_TAGS.map((tag) => ({ value: tag, label: tag }));
  * can't write anything.
  */
 export const ElementSection = observer(function ElementSection() {
+    const t = useTranslations('editor.stylePanel');
     const editorEngine = useEditorEngine();
     const selected = editorEngine.elements.selected[0];
     const [actionElement, setActionElement] = useState<ActionElement | null>(null);
@@ -227,10 +229,10 @@ export const ElementSection = observer(function ElementSection() {
     const fieldLoadingClass = isLoading ? 'pointer-events-none opacity-50 select-none' : undefined;
 
     return (
-        <Section id="element" title="Element" setCount={setCount}>
+        <Section id="element" title={t('section.element')} setCount={setCount}>
             <div className="group/control flex items-start gap-3 px-3 py-1">
                 <PropertyLabel
-                    label="Class"
+                    label={t('element.class')}
                     isSet={classes.length > 0}
                     title="CSS classes"
                     className="pt-1.5"
@@ -238,13 +240,13 @@ export const ElementSection = observer(function ElementSection() {
                 <ChipInput
                     chips={classes}
                     onChange={(next) => void commitClassName(next.join(' '))}
-                    placeholder={isLoading ? 'Loading…' : 'Add a class…'}
-                    ariaLabel="Add a class"
+                    placeholder={isLoading ? t('element.loadingPlaceholder') : t('element.addAClassPlaceholder')}
+                    ariaLabel={t('element.addAClass')}
                     readOnly={isLoading}
                 />
             </div>
             <div className="group/control flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Tag" isSet={!!tagName} title="HTML tag" />
+                <PropertyLabel label={t('element.tag')} isSet={!!tagName} title="HTML tag" />
                 <div className={cn('min-w-0 flex-1', fieldLoadingClass)} aria-busy={isLoading}>
                     <SelectField
                         value={tagName}
@@ -254,7 +256,7 @@ export const ElementSection = observer(function ElementSection() {
                 </div>
             </div>
             <div className="group/control flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="ID" isSet={!!idValue} title="Element id" />
+                <PropertyLabel label={t('element.id')} isSet={!!idValue} title="Element id" />
                 <div className={cn('min-w-0 flex-1', fieldLoadingClass)} aria-busy={isLoading}>
                     <TextField
                         value={idValue}
@@ -265,7 +267,7 @@ export const ElementSection = observer(function ElementSection() {
             </div>
             {supportsHref && (
                 <div className="group/control flex items-center gap-3 px-3 py-1">
-                    <PropertyLabel label="Link" isSet={!!hrefValue} title="Anchor href" />
+                    <PropertyLabel label={t('element.link')} isSet={!!hrefValue} title="Anchor href" />
                     <div className={cn('min-w-0 flex-1', fieldLoadingClass)} aria-busy={isLoading}>
                         <TextField
                             value={hrefValue}

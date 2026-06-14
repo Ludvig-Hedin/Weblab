@@ -2161,6 +2161,91 @@
       "hotkeys": {
         "toastSelectFirst": "Select an element first to inline-edit",
         "toastLocateFailed": "Can’t locate this element’s source."
+      },
+      "drop": {
+        "noFrame": "No website frame to drop into",
+        "noFrameDesc": "Open a frame on the canvas first.",
+        "insertFailed": "Failed to insert",
+        "dropLabel": "Drop to insert into nearest frame"
+      },
+      "frame": {
+        "loading": {
+          "almostReady": "Almost ready",
+          "loadingTools": "Loading the canvas tools…",
+          "compiling": "Compiling your preview",
+          "almostReadyDesc": "Your preview is almost ready…",
+          "starting": "Starting your preview",
+          "connecting": "Connecting to your project…",
+          "startingWorkspace": "Starting your workspace",
+          "usuallyTakes": "This usually takes 10–30 seconds…",
+          "stillStarting": "Still starting up",
+          "takingLonger": "Taking a bit longer than usual — almost there.",
+          "settingUp": "Setting up your workspace",
+          "preparingPreview": "Preparing your preview…",
+          "buildingYourSite": "Building your site",
+          "buildingDesc": "Your preview will appear here once the AI finishes the first version. This usually takes 30–60 seconds.",
+          "restarting": "Restarting…",
+          "restartPreview": "Restart preview"
+        },
+        "topBar": {
+          "goBack": "Go back",
+          "goForward": "Go forward",
+          "refreshPage": "Refresh Page",
+          "previewNewTab": "Preview in new tab",
+          "breakpoint": "Breakpoint",
+          "removeFromGroup": "Remove from group",
+          "addBreakpoint": "Add breakpoint",
+          "cancel": "Cancel",
+          "remove": "Remove",
+          "removeBreakpointTitle": "Remove breakpoint",
+          "driftedPreset": "Drifted from {name} preset ({width}px)",
+          "breakpointLabel": "{name} breakpoint",
+          "restorePreset": "Restore preset ({width}px)"
+        },
+        "pageSelector": {
+          "page": "Page",
+          "currentPage": "Current page",
+          "newPage": "New page",
+          "pageSettings": "Page settings",
+          "searchPlaceholder": "Search pages and folders...",
+          "noPagesFound": "No pages found",
+          "scanningPages": "Scanning pages…",
+          "manageAllPages": "Manage all pages"
+        }
+      },
+      "overlay": {
+        "comment": {
+          "addCommentPlaceholder": "Add a comment...",
+          "addCommentAriaLabel": "Add a comment",
+          "postCommentAriaLabel": "Post comment",
+          "addReplyPlaceholder": "Add a reply...",
+          "sendReplyAriaLabel": "Send reply",
+          "cancel": "Cancel",
+          "save": "Save",
+          "edit": "Edit",
+          "delete": "Delete",
+          "confirm": "Confirm",
+          "deleting": "Deleting...",
+          "resolved": "Resolved",
+          "resolve": "Resolve",
+          "deleteReplyAriaLabel": "Delete reply"
+        },
+        "buttons": {
+          "openInCode": "Open in Code",
+          "copyToFigma": "Copy to Figma"
+        },
+        "componentChip": {
+          "defaultName": "Component",
+          "editAriaLabel": "Edit {name} component",
+          "editTooltip": "Edit component — changes apply to all instances"
+        },
+        "componentEditBanner": {
+          "editing": "Editing",
+          "done": "Done",
+          "exitTooltip": "Exit component editing",
+          "instanceSingular": "applies to 1 instance",
+          "instancePlural": "applies to {count} instances"
+        }
       }
     },
     "code": {
@@ -2585,7 +2670,8 @@
         "styles": "Styles",
         "text": "Text",
         "transforms": "Transforms",
-        "transitions": "Transitions"
+        "transitions": "Transitions",
+        "overlays": "Overlays"
       },
       "common": {
         "reset": "Reset",
@@ -2621,6 +2707,11 @@
         "gap": "Gap",
         "padding": "Padding",
         "margin": "Margin",
+        "display": "Display",
+        "direction": "Direction",
+        "distribute": "Distribute",
+        "align": "Align",
+        "wrap": "Wrap",
         "displayFlow": "Display flow",
         "perSidePadding": "Per-side padding",
         "perSideMargin": "Per-side margin",
@@ -2636,6 +2727,8 @@
       "position": {
         "type": "Type",
         "offsets": "Offsets",
+        "align": "Align",
+        "zIndexLabel": "Z-index",
         "staticHint": "Change type to Relative, Absolute, Fixed, or Sticky to set offsets.",
         "rotation": "Rotation",
         "flipHorizontal": "Flip horizontal",
@@ -2658,6 +2751,8 @@
         "minHeight": "Min H",
         "maxWidth": "Max W",
         "maxHeight": "Max H",
+        "ratio": "Ratio",
+        "boxSizing": "Box sizing",
         "aspectRatio": "Aspect ratio",
         "fit": "Fit",
         "grow": "Grow",
@@ -2674,19 +2769,26 @@
         "color": "Color",
         "font": "Font",
         "alignment": "Alignment",
+        "align": "Align",
         "caseDecoration": "Case & Decoration",
         "textShadow": "Text shadow",
+        "shadow": "Shadow",
         "weight": "Weight",
         "fontSize": "Font size",
+        "size": "Size",
         "lineHeight": "Line height",
+        "line": "Line",
         "letterSpacing": "Letter spacing",
+        "letter": "Letter",
         "textAlignment": "Text alignment",
         "case": "Case",
         "decor": "Decor",
+        "decorShort": "Decor.",
         "contentEditablePlaceholder": "Element text…",
         "contentReadonlyPlaceholder": "No editable text",
         "contentAriaLabel": "Element text content",
-        "textStyleKind": "Text Style"
+        "textStyleKind": "Text Style",
+        "applyTextStyle": "Apply text style"
       },
       "background": {
         "type": "Type",
@@ -2732,11 +2834,17 @@
         "shadow": "Shadow",
         "filter": "Filter",
         "backdropFilter": "Backdrop filter",
+        "backdrop": "Backdrop",
         "blendMode": "Blend mode",
+        "blend": "Blend",
         "outlineStyle": "Outline style",
+        "outline": "Outline",
         "outlineWidth": "Outline width",
+        "outlineWidthShort": "Out. W",
         "outlineColor": "Outline color",
+        "outlineColorShort": "Out. C",
         "outlineOffset": "Outline offset",
+        "outlineOffsetShort": "Out. ↔",
         "mode": "Mode",
         "effectKind": "Effect"
       },
@@ -2746,8 +2854,11 @@
         "transform": "Transform",
         "origin": "Origin",
         "perspectiveOrigin": "Perspective origin",
+        "pOrigin": "P Origin",
         "transformStyle": "Style",
+        "style": "Style",
         "backfaceVisibility": "Backface visibility",
+        "backface": "Backface",
         "value": "Value"
       },
       "transitions": {
@@ -2771,13 +2882,19 @@
         "visible": "Visible",
         "visibility": "Visibility",
         "visibleOption": "Visible",
-        "hiddenOption": "Hidden"
+        "hiddenOption": "Hidden",
+        "opacityLabel": "Opacity",
+        "visibleLabel": "Visible"
       },
       "cursor": {
         "cursor": "Cursor",
+        "cursorLabel": "Cursor",
         "pointerEvents": "Pointer events",
+        "pointerLabel": "Pointer",
         "userSelect": "User select",
+        "selectLabel": "Select",
         "touchAction": "Touch action",
+        "touchLabel": "Touch",
         "type": "Type",
         "events": "Events",
         "select": "Select",
@@ -2807,7 +2924,9 @@
         "layoutExtras": "Layout extras",
         "customProperties": "Custom properties",
         "float": "Float",
+        "floatLabel": "Float",
         "clear": "Clear",
+        "clearLabel": "Clear",
         "none": "None",
         "left": "Left",
         "right": "Right",
@@ -2822,11 +2941,14 @@
         "tag": "Tag",
         "id": "ID",
         "classes": "Classes",
+        "class": "Class",
         "link": "Link",
         "editRawClassName": "Edit raw className",
         "rawClassAriaLabel": "Raw className editor",
         "rawClassPlaceholder": "Paste or type Tailwind classes…",
         "addAClass": "Add a class",
+        "addAClassPlaceholder": "Add a class…",
+        "loadingPlaceholder": "Loading…",
         "elementIdAriaLabel": "Element ID"
       },
       "component": {
@@ -2918,6 +3040,127 @@
         "bottom": "Bottom",
         "auto": "Auto",
         "colorHex": "Color hex"
+      },
+      "overlays": {
+        "fill": "Fill",
+        "stroke": "Stroke",
+        "width": "Width",
+        "color": "Color",
+        "radius": "Radius",
+        "image": "Image",
+        "bgSize": "Bg size",
+        "bgPos": "Bg pos",
+        "repeat": "Repeat",
+        "borderTop": "B. Top",
+        "borderRight": "B. Right",
+        "borderBottom": "B. Btm",
+        "borderLeft": "B. Left",
+        "mixed": "Mixed",
+        "cornersDiffer": "Corners differ — expand to edit individually"
+      },
+      "controls": {
+        "alignPad": {
+          "gridLabel": "Alignment",
+          "cellLabel": "Justify {justify}, Align {align}"
+        },
+        "alignmentToolbar": {
+          "groupLabel": "Position alignment",
+          "alignLeft": "Align left",
+          "centerHorizontally": "Center horizontally",
+          "alignRight": "Align right",
+          "alignTop": "Align top",
+          "centerVertically": "Center vertically",
+          "alignBottom": "Align bottom"
+        },
+        "colorRow": {
+          "mixed": "Mixed"
+        },
+        "fontHeroRow": {
+          "changeFont": "Change font",
+          "defaultFamily": "Default"
+        },
+        "growOverflow": {
+          "growLabel": "Grow",
+          "growHorizontally": "Grow horizontally",
+          "growVertically": "Grow vertically",
+          "fill": "Fill",
+          "overflowLabel": "Overflow",
+          "visible": "Visible",
+          "hidden": "Hidden",
+          "clip": "Clip",
+          "autoScroll": "Auto (scroll)"
+        },
+        "numberInput": {
+          "changeUnit": "Change unit",
+          "changeMode": "Change mode",
+          "mixed": "Mixed"
+        },
+        "openInNewTab": {
+          "label": "Open in new tab"
+        },
+        "pinPad": {
+          "clearAllSides": "Clear all sides",
+          "togglePin": "Toggle {side} pin",
+          "autoPlaceholder": "Auto",
+          "sideOffset": "{side} offset"
+        },
+        "chipInput": {
+          "removeChipAriaLabel": "{chip}. Press Backspace to remove.",
+          "addItemAriaLabel": "Add an item"
+        },
+        "propertyControl": {
+          "resetProperty": "Reset {label}",
+          "resetHint": "Reset (⌥-click the label)",
+          "reset": "Reset",
+          "copyValue": "Copy value",
+          "pasteValue": "Paste value",
+          "writeAs": "Write as {target}",
+          "override": "Override (this element only)",
+          "overrideActive": "✓ Override (this element only)",
+          "writeTargetTailwind": "Tailwind class",
+          "writeTargetCustomClass": "Custom class",
+          "writeTargetInline": "Inline style"
+        },
+        "propertyLabel": {
+          "altClickToReset": "{label} — alt-click to reset"
+        },
+        "shadowField": {
+          "editShadow": "Edit shadow",
+          "addShadow": "Add shadow",
+          "shadowHeader": "Shadow",
+          "removeShadow": "Remove shadow",
+          "colorLabel": "Color",
+          "xLabel": "X",
+          "yLabel": "Y",
+          "blurLabel": "Blur",
+          "spreadLabel": "Spread",
+          "decrease": "Decrease",
+          "increase": "Increase",
+          "pickShadowColor": "Pick shadow color",
+          "shadowHex": "Shadow hex",
+          "shadowOpacity": "Shadow opacity"
+        },
+        "styleChipPicker": {
+          "comingSoon": "{kind} styles — coming soon",
+          "comingSoonTooltip": "Saved {kind} styles aren't available yet — use the Custom controls below.",
+          "addKind": "Add {kind}",
+          "changeKind": "Change {kind}",
+          "noKindsYet": "No {kind}s yet",
+          "createKind": "Create {kind}",
+          "detach": "Detach",
+          "detachKind": "Detach {kind}"
+        },
+        "trblGrid": {
+          "allSidesLabel": "Edit all sides together",
+          "allSidesTitle": "All sides",
+          "perSideLabel": "Edit each side individually",
+          "perSideTitle": "Per side",
+          "mixed": "Mixed"
+        },
+        "linkAspectButton": {
+          "lockAspect": "Lock aspect ratio",
+          "unlockAspect": "Unlock aspect ratio"
+        }
       }
     }
   },

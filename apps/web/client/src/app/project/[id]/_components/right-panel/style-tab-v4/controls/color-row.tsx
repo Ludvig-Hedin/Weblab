@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -161,6 +162,8 @@ export function ColorRow({
     mixed,
     className,
 }: ColorRowProps) {
+    const tc = useTranslations('editor.stylePanel.common');
+    const tCtrl = useTranslations('editor.stylePanel.controls.colorRow');
     const { hex, alpha, raw } = parseHex(value);
     // Logical-OR is intentional here: `hex` and `raw` are strings that can be
     // empty, and we want empty to fall through to the next option, not be
@@ -230,8 +233,8 @@ export function ColorRow({
                 <PopoverTrigger asChild>
                     <button
                         type="button"
-                        aria-label="Open color picker"
-                        title="Open color picker"
+                        aria-label={tc('openColorPicker')}
+                        title={tc('openColorPicker')}
                         className="border-foreground/25 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-xs border outline-none focus-visible:ring-[3px]"
                         style={(() => {
                             // Mixed → checkerboard-style diagonal stripe to indicate divergent values.
@@ -270,7 +273,7 @@ export function ColorRow({
                 type="text"
                 value={hexDraft}
                 spellCheck={false}
-                placeholder={mixed ? 'Mixed' : undefined}
+                placeholder={mixed ? tCtrl('mixed') : undefined}
                 onChange={(e) => {
                     // Only uppercase when the input still looks hex-shaped.
                     // Raw `var(--token)` / named-color values are case-sensitive
@@ -303,7 +306,7 @@ export function ColorRow({
                         e.currentTarget.blur();
                     }
                 }}
-                aria-label="Hex value"
+                aria-label={tc('hexValue')}
                 className={cn(
                     'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase tabular-nums outline-none',
                     mixed &&
@@ -338,7 +341,7 @@ export function ColorRow({
                             e.currentTarget.blur();
                         }
                     }}
-                    aria-label="Alpha"
+                    aria-label={tc('alpha')}
                     className="text-foreground-secondary w-[28px] cursor-text bg-transparent text-right text-[12px] tabular-nums outline-none"
                     style={{ fontVariantNumeric: 'tabular-nums' }}
                 />
@@ -347,21 +350,21 @@ export function ColorRow({
 
             {/* Visibility eye */}
             {onToggleVisible && (
-                <IconButtonSm label={visible ? 'Hide' : 'Show'} onClick={onToggleVisible}>
+                <IconButtonSm label={visible ? tc('hide') : tc('show')} onClick={onToggleVisible}>
                     {visible ? <IconEye size={13} /> : <IconEyeOff size={13} />}
                 </IconButtonSm>
             )}
 
             {/* Eyedropper */}
             {onEyedropper && (
-                <IconButtonSm label="Pick from canvas" onClick={onEyedropper}>
+                <IconButtonSm label={tc('pickFromCanvas')} onClick={onEyedropper}>
                     <IconEyedropper size={13} />
                 </IconButtonSm>
             )}
 
             {/* Connect to token */}
             {onConnect && (
-                <IconButtonSm label="Connect to color token" onClick={onConnect}>
+                <IconButtonSm label={tc('connectToColorToken')} onClick={onConnect}>
                     <IconConnectToken size={13} />
                 </IconButtonSm>
             )}

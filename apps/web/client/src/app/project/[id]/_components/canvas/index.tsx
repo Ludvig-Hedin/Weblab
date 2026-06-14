@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { throttle } from 'lodash';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
@@ -42,6 +43,7 @@ const COMMENT_CURSOR = `url("data:image/svg+xml,${COMMENT_CURSOR_SVG}") 3 26, cr
 
 export const Canvas = observer(() => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations('editor.canvas');
     const containerRef = useRef<HTMLDivElement>(null);
     const scale = editorEngine.canvas.scale;
     const position = editorEngine.canvas.position;
@@ -398,8 +400,8 @@ export const Canvas = observer(() => {
 
             const target = pickNearestFrameToPoint(event.clientX, event.clientY);
             if (!target?.view) {
-                toast.error('No website frame to drop into', {
-                    description: 'Open a frame on the canvas first.',
+                toast.error(t('drop.noFrame'), {
+                    description: t('drop.noFrameDesc'),
                 });
                 return;
             }
@@ -438,7 +440,7 @@ export const Canvas = observer(() => {
                 }
             } catch (error) {
                 console.error('Canvas drop failed:', error);
-                toast.error('Failed to insert', {
+                toast.error(t('drop.insertFailed'), {
                     description: error instanceof Error ? error.message : 'Unknown error',
                 });
             }
@@ -522,7 +524,7 @@ export const Canvas = observer(() => {
                         className="border-foreground-brand/60 bg-foreground-brand/5 pointer-events-none absolute inset-2 z-30 flex items-start justify-center rounded-md border-2 border-dashed"
                     >
                         <span className="bg-foreground-brand text-background mt-3 rounded-md px-2 py-1 text-xs font-medium">
-                            Drop to insert into nearest frame
+                            {t('drop.dropLabel')}
                         </span>
                     </div>
                 )}

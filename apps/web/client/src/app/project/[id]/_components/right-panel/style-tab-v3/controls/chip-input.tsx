@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -33,6 +34,7 @@ export function ChipInput({
     readOnly,
     className,
 }: ChipInputProps) {
+    const t = useTranslations('editor.stylePanel.controls.chipInput');
     const [draft, setDraft] = useState('');
     const chipRefs = useRef<Array<HTMLButtonElement | null>>([]);
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -133,7 +135,7 @@ export function ChipInput({
                         }
                     }}
                     onClick={() => focusChip(index)}
-                    aria-label={`${chip}. Press Backspace to remove.`}
+                    aria-label={t('removeChipAriaLabel', { chip })}
                     className="bg-foreground-brand/15 text-foreground-brand hover:bg-foreground-brand/25 focus-visible:ring-foreground-brand/30 text-mini inline-flex h-5 items-center gap-1 rounded-xs px-1.5 transition-colors outline-none focus-visible:ring-[3px]"
                 >
                     <span className="max-w-[120px] truncate">{chip}</span>
@@ -162,7 +164,7 @@ export function ChipInput({
                     type="text"
                     value={draft}
                     placeholder={chips.length === 0 ? placeholder : ''}
-                    aria-label={ariaLabel ?? 'Add an item'}
+                    aria-label={ariaLabel ?? t('addItemAriaLabel')}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter') {

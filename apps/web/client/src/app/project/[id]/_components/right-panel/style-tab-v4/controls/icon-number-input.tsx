@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -98,6 +99,7 @@ export function IconNumberInput({
     className,
     hidePill = false,
 }: IconNumberInputProps) {
+    const t = useTranslations('editor.stylePanel.controls.numberInput');
     const inputRef = React.useRef<HTMLInputElement | null>(null);
 
     // Parse the incoming value into structured parts that drive the
@@ -287,7 +289,7 @@ export function IconNumberInput({
                     inputMode="decimal"
                     spellCheck={false}
                     value={numDraft}
-                    placeholder={mixed ? 'Mixed' : placeholder}
+                    placeholder={mixed ? t('mixed') : placeholder}
                     aria-label={ariaLabel}
                     onChange={(e) => handleInputChange(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -305,8 +307,8 @@ export function IconNumberInput({
                         <button
                             type="button"
                             className={cn(UNIT_PILL_CLASSES, 'shrink-0')}
-                            aria-label="Change unit"
-                            title="Change unit"
+                            aria-label={t('changeUnit')}
+                            title={t('changeUnit')}
                         >
                             <span>{pillLabel}</span>
                             <ChevronDown className="size-2.5" />
