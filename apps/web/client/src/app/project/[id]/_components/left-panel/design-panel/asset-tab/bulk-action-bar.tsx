@@ -47,7 +47,7 @@ export const BulkActionBar = ({
     return (
         <div className="border-border-primary bg-background-secondary flex items-center gap-1 rounded-md border px-2 py-1">
             <span className="text-foreground-secondary text-mini flex-1 truncate">
-                {t('selectedCount', { count: selectedCount })}
+                {t('selectedCount', { count: String(selectedCount) })}
             </span>
 
             <DropdownMenu>
