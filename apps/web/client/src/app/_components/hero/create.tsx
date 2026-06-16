@@ -96,6 +96,7 @@ export const Create = observer(
         const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
         const [chatMode, setChatMode] = useState<ChatType>(ChatType.EDIT);
         const restoredDraftRef = useRef(false);
+        const [createStalled, setCreateStalled] = useState(false);
 
         const createProject = useCallback(
             async (prompt: string, images: ImageMessageContext[]) => {
@@ -155,13 +156,16 @@ export const Create = observer(
                     }
                     console.error('Error creating project:', error);
                     await saveAiPromptCreateDraft(prompt, images);
-                    // Prefer the manager's structured error message when
-                    // present — it mirrors the inline <CreateError> banner so
-                    // the toast and the banner agree on root cause.
-                    const description =
-                        createManager.error ??
-                        (error instanceof Error ? error.message : String(error));
-                    toast.error(t('failedToCreate'), { description });
+                    // Avoid double-surfacing the same failure: when the manager
+                    // set a structured error, the inline <CreateError> banner
+                    // already renders it (with its own Retry). Only toast when
+                    // there's no banner-driven message — otherwise the user sees
+                    // the same error twice (creation AI-4).
+                    if (!createManager.error) {
+                        toast.error(t('failedToCreate'), {
+                            description: error instanceof Error ? error.message : String(error),
+                        });
+                    }
                     setIsCreatingProject(false);
                 }
             },
@@ -225,6 +229,21 @@ export const Create = observer(
             inputValue,
             selectedImages,
         ]);
+
+        // Watchdog: createFromPrompt provisions the sandbox synchronously and can
+        // take ~13s (warm snapshot) to ~90s (cold scaffold). If it neither
+        // resolves nor rejects past a generous ceiling, surface an escape hatch
+        // instead of an infinite spinner — the hero overlay otherwise has no
+        // Retry (the <CreateError> banner only shows when the promise actually
+        // rejects). (wiring AI-4)
+        useEffect(() => {
+            if (!isCreatingProject || createManager.error) {
+                setCreateStalled(false);
+                return;
+            }
+            const timer = setTimeout(() => setCreateStalled(true), 120_000);
+            return () => clearTimeout(timer);
+        }, [isCreatingProject, createManager.error]);
 
         const handleSubmit = async () => {
             if (isInputInvalid) return;
@@ -394,8 +413,30 @@ export const Create = observer(
                     <ProjectCreationLoader
                         overlay
                         heading={t('overlayHeading')}
-                        caption={t('overlayCaption')}
+                        // TODO(i18n): move watchdog copy into messages/* (kept
+                        // inline to avoid next-intl typegen staleness breaking
+                        // typecheck on freshly-added keys).
+                        caption={
+                            createStalled
+                                ? 'This is taking longer than usual. You can keep waiting, or reload and try again.'
+                                : undefined
+                        }
                         steps={creationSteps}
+                        footer={
+                            createStalled ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setCreateStalled(false);
+                                        setIsCreatingProject(false);
+                                        createManager.resetPhase();
+                                    }}
+                                >
+                                    Reload and try again
+                                </Button>
+                            ) : undefined
+                        }
                     />
                 )}
                 <CreateError onRetry={handleRetry} />

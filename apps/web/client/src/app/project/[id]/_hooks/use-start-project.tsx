@@ -30,6 +30,7 @@ import { useOnlineStatus } from '@/services/offline/online-status';
 import { cacheProjectExtras, getCachedProject } from '@/services/offline/project-cache';
 import { replayQueue } from '@/services/offline/replay-controller';
 import { fromConvexBootstrap, fromConvexConversation } from '../_adapters/convex-bootstrap';
+import { waitForChatReady } from '../_components/canvas/overlay/elements/buttons/wait-for-chat-ready';
 import { useTabActive } from '../_hooks/use-tab-active';
 
 interface ProjectReadyState {
@@ -399,24 +400,34 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             (creationRequest as { _id?: string; id?: string } | null | undefined)?._id ??
             (creationRequest as { id?: string } | null | undefined)?.id ??
             null;
+        // NOTE: do NOT gate on `editorEngine.chat._sendMessageAction` here. That
+        // action is only wired while the Chat tab is mounted, so a returning
+        // user whose right panel persisted to a non-chat tab (style/interactions)
+        // would never satisfy the gate and the seeded first prompt would never
+        // send — the AI sits idle forever (bug-hunt 2026-06-16, wiring AI-1).
+        // resumeCreate now opens the chat panel and awaits readiness itself.
         if (
             creationRequest &&
             requestId &&
             processedRequestIdRef.current !== requestId &&
-            isProjectReady &&
-            editorEngine.chat._sendMessageAction
+            isProjectReady
         ) {
             processedRequestIdRef.current = requestId;
             void resumeCreate(creationRequest as ProjectCreateRequest);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [creationRequest, projectReadyState, editorEngine.chat._sendMessageAction]);
+    }, [creationRequest, projectReadyState]);
 
     const resumeCreate = async (creationData: ProjectCreateRequest) => {
         try {
             if (editorEngine.projectId !== creationData.projectId) {
                 throw new Error('Project ID mismatch');
             }
+
+            // Reveal the Chat tab now so its hook mounts and wires the send
+            // action during the slow context-gather below. Readiness is awaited
+            // right before sending (wiring AI-1).
+            editorEngine.chat.openChatPanel();
 
             const imageContexts: ImageMessageContext[] = creationData.context
                 .filter((context) => context.type === CreateRequestContextType.IMAGE)
@@ -524,6 +535,12 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             }
 
             await editorEngine.chat.conversation.selectConversation(conversation.id);
+
+            // The chat hook wires its send action only while the Chat tab is
+            // mounted. We opened the panel at the top of resumeCreate; ensure the
+            // action is attached before sending so sendMessage doesn't throw
+            // 'Chat actions not initialized' (wiring AI-1).
+            await waitForChatReady(editorEngine);
 
             await editorEngine.chat.sendMessage(prompt, ChatType.CREATE);
 

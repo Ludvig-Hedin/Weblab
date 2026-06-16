@@ -181,15 +181,23 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         return <ProjectLoadError variant="unknown" message={error} />;
     }
 
-    const heading = hasPendingCreation ? 'Getting ready to build your site' : 'Opening project';
+    // Keep this heading + step vocabulary in lockstep with the hero create
+    // overlay (landing.hero.create.overlayHeading + projects.actions
+    // preparingWorkspace/creatingProject/openingEditor) so the click → route →
+    // editor handoff reads as ONE continuous loader rather than three different
+    // screens (creation AI-1).
+    // TODO(i18n): main.tsx isn't yet a next-intl consumer; these mirror the
+    // English source strings. Translate when wiring useTranslations here —
+    // hardcoding for now avoids next-intl typegen staleness breaking typecheck.
+    const heading = hasPendingCreation ? 'Getting your site ready' : 'Opening project';
     const steps = hasPendingCreation
         ? [
-              { label: 'Warming up your workspace', ready: readyState.sandbox },
-              { label: 'Loading the canvas', ready: readyState.canvas },
-              { label: 'Getting AI ready', ready: readyState.conversations },
+              { label: 'Setting up your workspace', ready: readyState.sandbox },
+              { label: 'Saving your project', ready: readyState.canvas },
+              { label: 'Opening the editor', ready: readyState.conversations },
           ]
         : [
-              { label: 'Opening your workspace', ready: readyState.sandbox },
+              { label: 'Setting up your workspace', ready: readyState.sandbox },
               { label: 'Loading the canvas', ready: readyState.canvas },
               { label: 'Getting AI ready', ready: readyState.conversations },
           ];
@@ -199,7 +207,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
             <ProjectCreationLoader
                 heading={heading}
                 caption={
-                    'We saved your prompt. The AI will start writing as soon as the editor is ready.'
+                    'Your prompt is saved. The AI will start building as soon as the editor loads.'
                 }
                 steps={steps}
                 footer={
