@@ -807,6 +807,8 @@ declare const messages: {
     "createFolderEmpty": "No folders yet. Group related projects to find them faster.",
     "opening": "Opening {name}…",
     "openProjectAria": "Open {name}",
+    "localBadge": "Local",
+    "localDesktopOnly": "This is a local project — open it in the Weblab desktop app.",
     "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
     "moveToFolder": "Move to folder",
     "folderDestination": "Folder destination",

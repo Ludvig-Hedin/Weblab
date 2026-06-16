@@ -803,6 +803,8 @@
     "createFolderEmpty": "Inga mappar än — gruppera projekt för att hitta dem snabbare.",
     "opening": "Öppnar {name}…",
     "openProjectAria": "Öppna {name}",
+    "localBadge": "Lokalt",
+    "localDesktopOnly": "Det här är ett lokalt projekt — öppna det i Weblab-skrivbordsappen.",
     "projectSelected": "{count, plural, one {projekt markerat} other {projekt markerade}}",
     "moveToFolder": "Flytta till mapp",
     "folderDestination": "Målmapp",

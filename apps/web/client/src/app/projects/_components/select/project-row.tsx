@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
 import { Checkbox } from '@weblab/ui/checkbox';
@@ -12,6 +13,7 @@ import { cn } from '@weblab/ui/utils';
 import { timeAgo } from '@weblab/utility';
 
 import type { ProjectListItem } from './project-card-utils';
+import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { SettingsDropdown } from '../settings';
 import { ProjectCardContextMenu } from './project-card-context-menu';
 import {
@@ -74,12 +76,25 @@ export const ProjectRow = ({
     const initial = project.name.trim().charAt(0).toUpperCase() || '?';
     const isPublished = siteUrl !== null;
 
+    // Local (desktop-only) projects also surface in the browser dashboard but
+    // can't be opened here — see project-card.tsx for the full rationale.
+    const [isDesktop, setIsDesktop] = useState(false);
+    useEffect(() => setIsDesktop(isDesktopLocalAvailable()), []);
+    const isLocalProject = project.metadata?.storageMode === 'local';
+    const openBlocked = isLocalProject && !isDesktop;
+
     // Row-level navigation. In selection mode the same click toggles the
     // checkbox instead. Buttons / dropdowns inside the row stop propagation
     // so they never reach this handler.
     const handleRowActivate = (event?: React.MouseEvent | React.KeyboardEvent) => {
         if (selectionMode) {
             onSelectionChange?.(!selected);
+            return;
+        }
+        // Local project in the browser: explain instead of navigating to an
+        // editor route that can't boot a NodeFs runtime here.
+        if (openBlocked) {
+            toast.error(t('localDesktopOnly'));
             return;
         }
         if (event && (event.metaKey || event.ctrlKey || event.shiftKey)) {
@@ -100,16 +115,16 @@ export const ProjectRow = ({
     // Middle-click → new tab. Right-click is ignored here so the context menu
     // (Phase B) can take over.
     const handleRowAuxClick = (event: React.MouseEvent) => {
-        if (selectionMode || event.button !== 1) return;
+        if (selectionMode || event.button !== 1 || openBlocked) return;
         event.preventDefault();
         window.open(projectHref, '_blank', 'noopener,noreferrer');
     };
 
     const handleHoverPrefetch = useCallback(() => {
-        if (hasPrefetched || selectionMode) return;
+        if (hasPrefetched || selectionMode || openBlocked) return;
         router.prefetch(projectHref);
         setHasPrefetched(true);
-    }, [hasPrefetched, projectHref, router, selectionMode]);
+    }, [hasPrefetched, projectHref, router, selectionMode, openBlocked]);
 
     const thumb = (
         <div className="bg-background-canvas relative h-10 w-14 shrink-0 overflow-hidden rounded-md">
@@ -157,13 +172,22 @@ export const ProjectRow = ({
                     project.name
                 )}
             </span>
+            {isLocalProject && (
+                <span
+                    title={openBlocked ? t('localDesktopOnly') : undefined}
+                    className="border-foreground/10 bg-foreground/4 text-foreground-tertiary text-tiny inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 font-medium"
+                >
+                    <Icons.Laptop className="h-3 w-3" />
+                    {t('localBadge')}
+                </span>
+            )}
         </div>
     );
 
     const statusPill = (
         <span
             className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-tiny font-medium',
+                'text-tiny inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium',
                 isPublished
                     ? 'border-foreground-success/20 bg-foreground-success/10 text-foreground-success'
                     : 'border-foreground/10 bg-foreground/4 text-foreground-tertiary',
@@ -344,7 +368,7 @@ export const ProjectRow = ({
 export const ProjectTableHeader = () => {
     const t = useTranslations('selectProject');
     return (
-        <div className="text-foreground-tertiary border-foreground/8 grid grid-cols-[32px_56px_minmax(0,1fr)_minmax(0,1.2fr)_88px_minmax(0,140px)_104px] items-center gap-3 border-b px-2 pb-2 text-tiny font-medium">
+        <div className="text-foreground-tertiary border-foreground/8 text-tiny grid grid-cols-[32px_56px_minmax(0,1fr)_minmax(0,1.2fr)_88px_minmax(0,140px)_104px] items-center gap-3 border-b px-2 pb-2 font-medium">
             <span></span>
             <span></span>
             <span>{t('tableColName')}</span>

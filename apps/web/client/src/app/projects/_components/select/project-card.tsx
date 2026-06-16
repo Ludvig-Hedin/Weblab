@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
 import { Checkbox } from '@weblab/ui/checkbox';
@@ -14,6 +15,7 @@ import { timeAgo } from '@weblab/utility';
 
 import type { ProjectListItem } from './project-card-utils';
 import { env } from '@/env';
+import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { EditAppButton } from '../edit-app';
 import { SettingsDropdown } from '../settings';
 import {
@@ -70,6 +72,18 @@ export function ProjectCard({
     // Drives the settings menu so right-click can open the same `…` menu.
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Local (desktop-only) projects are persisted to the shared backend, so they
+    // also surface in the browser dashboard — but they can only be opened inside
+    // the Electron shell (the editor boots them via the NodeFs bridge). Detect
+    // the desktop runtime AFTER mount so the server HTML and first client render
+    // stay byte-identical (no hydration mismatch from reading `window`).
+    const [isDesktop, setIsDesktop] = useState(false);
+    useEffect(() => setIsDesktop(isDesktopLocalAvailable()), []);
+    const isLocalProject = project.metadata?.storageMode === 'local';
+    // Block opening only in the browser. Inside the desktop app the NodeFs
+    // bridge is present, so local projects open normally.
+    const openBlocked = isLocalProject && !isDesktop;
+
     const lastUpdated = useMemo(
         () => timeAgo(project.metadata?.updatedAt),
         [project.metadata?.updatedAt],
@@ -110,13 +124,15 @@ export function ProjectCard({
     // subscription cache and doesn't expose an equivalent prefetch hook from
     // outside React; the flag is currently route-prefetch-only.
     const handleHoverPrefetch = useCallback(() => {
-        if (hasPrefetched || selectionMode) return;
+        // Don't warm a route we won't navigate to (selection mode, or a local
+        // project that can't open in the browser).
+        if (hasPrefetched || selectionMode || openBlocked) return;
         router.prefetch(projectHref);
         // env imported for parity with prior aggressive-prefetch flag — keep
         // the read so the value is statically referenced for tree-shaking.
         void env.NEXT_PUBLIC_AGGRESSIVE_PREFETCH;
         setHasPrefetched(true);
-    }, [hasPrefetched, projectHref, router, selectionMode]);
+    }, [hasPrefetched, projectHref, router, selectionMode, openBlocked]);
 
     const handleOpenClick = useCallback(() => {
         // Skip overlay while in selection mode — click toggles the checkbox
@@ -124,6 +140,53 @@ export function ProjectCard({
         if (selectionMode) return;
         setIsOpening(true);
     }, [selectionMode]);
+
+    // Local project clicked in the browser: explain why it won't open instead
+    // of navigating to an editor route that can't boot a NodeFs runtime here.
+    const handleBlockedOpen = useCallback(() => {
+        toast.error(t('localDesktopOnly'));
+    }, [t]);
+
+    // Shared preview thumbnail — reused across the selection / open / blocked
+    // affordances so the markup stays in one place.
+    const previewSurface = (
+        <ProjectPreviewSurface
+            projectName={project.name}
+            imageUrl={previewImageUrl}
+            siteUrl={siteUrl}
+            sandboxPreviewUrl={sandboxPreviewUrl}
+            className={cn(
+                'aspect-[4/2.75] rounded-[inherit] transition-transform duration-300 ease-out',
+                openBlocked ? 'opacity-60' : 'group-hover/card:scale-[1.02]',
+            )}
+        />
+    );
+
+    // Shared favicon + project name, reused by the selection / open / blocked
+    // affordances on the title row.
+    const nameContent = (
+        <>
+            {faviconUrl && !faviconFailed ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={faviconUrl}
+                    alt=""
+                    className="h-4 w-4 shrink-0 rounded-xs object-cover"
+                    loading="lazy"
+                    onError={() => setFaviconFailed(true)}
+                />
+            ) : (
+                <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
+            )}
+            <span className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current">
+                {HighlightText ? (
+                    <HighlightText text={project.name} searchQuery={searchQuery} />
+                ) : (
+                    project.name
+                )}
+            </span>
+        </>
+    );
 
     return (
         <motion.div
@@ -154,13 +217,17 @@ export function ProjectCard({
                             onClick={handleSelectionClick}
                             aria-label={`Select ${project.name}`}
                         >
-                            <ProjectPreviewSurface
-                                projectName={project.name}
-                                imageUrl={previewImageUrl}
-                                siteUrl={siteUrl}
-                                sandboxPreviewUrl={sandboxPreviewUrl}
-                                className="aspect-[4/2.75] rounded-[inherit] transition-transform duration-300 ease-out group-hover/card:scale-[1.02]"
-                            />
+                            {previewSurface}
+                        </button>
+                    ) : openBlocked ? (
+                        <button
+                            type="button"
+                            className="block w-full cursor-not-allowed overflow-hidden rounded-xl text-left"
+                            onClick={handleBlockedOpen}
+                            title={t('localDesktopOnly')}
+                            aria-label={t('localDesktopOnly')}
+                        >
+                            {previewSurface}
                         </button>
                     ) : (
                         <Link
@@ -170,14 +237,20 @@ export function ProjectCard({
                             className="block overflow-hidden rounded-xl"
                             aria-label={t('openProjectAria', { name: project.name })}
                         >
-                            <ProjectPreviewSurface
-                                projectName={project.name}
-                                imageUrl={previewImageUrl}
-                                siteUrl={siteUrl}
-                                sandboxPreviewUrl={sandboxPreviewUrl}
-                                className="aspect-[4/2.75] rounded-[inherit] transition-transform duration-300 ease-out group-hover/card:scale-[1.02]"
-                            />
+                            {previewSurface}
                         </Link>
+                    )}
+
+                    {/* Local-project badge — surfaces that this project lives on
+                        disk and (in the browser) can only be opened in the
+                        desktop app. */}
+                    {isLocalProject && !selectionMode && (
+                        <div className="pointer-events-none absolute bottom-3 left-3 z-30 flex items-center gap-1 rounded-full border border-white/10 bg-black/55 px-2 py-0.5 backdrop-blur-md">
+                            <Icons.Laptop className="text-foreground/80 h-3 w-3" />
+                            <span className="text-foreground/90 text-[10px] leading-none font-medium">
+                                {t('localBadge')}
+                            </span>
+                        </div>
                     )}
 
                     {/* Selection checkbox — only in selection mode. Outside it,
@@ -241,12 +314,15 @@ export function ProjectCard({
                             </div>
                             {/* Edit App stays the centered call-to-action, but the
                                 overlay no longer blocks clicks — clicking anywhere on
-                                the preview navigates via the <Link> beneath it. */}
-                            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100">
-                                <span className="pointer-events-none group-hover/card:pointer-events-auto">
-                                    <EditAppButton project={project as Project} />
-                                </span>
-                            </div>
+                                the preview navigates via the <Link> beneath it.
+                                Hidden for local projects that can't open here. */}
+                            {!openBlocked && (
+                                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100">
+                                    <span className="pointer-events-none group-hover/card:pointer-events-auto">
+                                        <EditAppButton project={project as Project} />
+                                    </span>
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -278,28 +354,16 @@ export function ProjectCard({
                                 className="flex max-w-full items-center gap-2 text-left"
                                 onClick={handleSelectionClick}
                             >
-                                {faviconUrl && !faviconFailed ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={faviconUrl}
-                                        alt=""
-                                        className="h-4 w-4 shrink-0 rounded-xs object-cover"
-                                        loading="lazy"
-                                        onError={() => setFaviconFailed(true)}
-                                    />
-                                ) : (
-                                    <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
-                                )}
-                                <span className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current">
-                                    {HighlightText ? (
-                                        <HighlightText
-                                            text={project.name}
-                                            searchQuery={searchQuery}
-                                        />
-                                    ) : (
-                                        project.name
-                                    )}
-                                </span>
+                                {nameContent}
+                            </button>
+                        ) : openBlocked ? (
+                            <button
+                                type="button"
+                                className="flex max-w-full cursor-not-allowed items-center gap-2 text-left"
+                                onClick={handleBlockedOpen}
+                                title={t('localDesktopOnly')}
+                            >
+                                {nameContent}
                             </button>
                         ) : (
                             <Link
@@ -308,28 +372,7 @@ export function ProjectCard({
                                 onClick={handleOpenClick}
                                 className="flex max-w-full items-center gap-2"
                             >
-                                {faviconUrl && !faviconFailed ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={faviconUrl}
-                                        alt=""
-                                        className="h-4 w-4 shrink-0 rounded-xs object-cover"
-                                        loading="lazy"
-                                        onError={() => setFaviconFailed(true)}
-                                    />
-                                ) : (
-                                    <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
-                                )}
-                                <span className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current">
-                                    {HighlightText ? (
-                                        <HighlightText
-                                            text={project.name}
-                                            searchQuery={searchQuery}
-                                        />
-                                    ) : (
-                                        project.name
-                                    )}
-                                </span>
+                                {nameContent}
                             </Link>
                         )}
 
@@ -357,6 +400,15 @@ export function ProjectCard({
                             type="button"
                             className="text-foreground-tertiary mt-0.5 flex-shrink-0 text-xs"
                             onClick={handleSelectionClick}
+                        >
+                            {lastUpdated} ago
+                        </button>
+                    ) : openBlocked ? (
+                        <button
+                            type="button"
+                            className="text-foreground-tertiary mt-0.5 flex-shrink-0 cursor-not-allowed text-xs"
+                            onClick={handleBlockedOpen}
+                            title={t('localDesktopOnly')}
                         >
                             {lastUpdated} ago
                         </button>
