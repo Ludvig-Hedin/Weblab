@@ -19,6 +19,7 @@ import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
 import { ChunkErrorReloader } from './_components/chunk-error-reloader';
 import { CookieConsent } from './_components/cookie-consent';
 import { DesktopChrome } from './_components/desktop-chrome';
+import { SmoothScrollGate } from './_components/smooth-scroll-gate';
 import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
 import { ViewTransitionNoiseSuppress } from './_components/view-transition-noise-suppress';
@@ -238,6 +239,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                     <AppearanceProvider>
                                         <AuthProvider>
                                             <NextIntlClientProvider>
+                                                <SmoothScrollGate />
                                                 {children}
                                                 <DesktopFolderDrop />
                                                 <Toaster />

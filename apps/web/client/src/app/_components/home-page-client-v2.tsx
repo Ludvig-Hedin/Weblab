@@ -10,13 +10,13 @@ import { HeroV2 } from './hero-v2';
 import { CTASection } from './landing-page/cta-section';
 import { FAQSection } from './landing-page/faq-section';
 import { WhatCanWeblabDoSectionV2 } from './landing-page/what-can-weblab-do-section-v2';
-import { SmoothScrollProvider } from './smooth-scroll-provider';
 import { WebsiteLayout } from './website-layout';
 
 export function HomePageClientV2() {
     return (
         <CreateManagerProvider>
-            <SmoothScrollProvider />
+            {/* Smooth scroll is mounted globally via SmoothScrollGate in the
+                root layout (gated to public routes), so no per-page provider. */}
             <WebsiteLayout showFooter={true}>
                 <div className="flex w-full items-center justify-center pt-24" id="hero">
                     <HeroV2 />
