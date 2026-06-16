@@ -24,6 +24,12 @@ ARG NEXT_PUBLIC_HOSTING_DOMAIN
 ARG NEXT_PUBLIC_SHOW_DEV_LOGIN
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_CONVEX_URL
+# WS URL of the deployed sandbox server (@weblab/web-server). NEXT_PUBLIC_* is
+# inlined into the client bundle at BUILD time, so it must be a build ARG here —
+# setting it only as a Railway runtime variable would never reach the browser,
+# and the client would fall back to wss://<host>:8080/trpc (unexposed) and 502
+# every preview. See docs/notes/2026-06-16-sandbox-server-deploy.md.
+ARG NEXT_PUBLIC_SANDBOX_SERVER_URL
 
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
@@ -34,6 +40,7 @@ ENV NEXT_PUBLIC_HOSTING_DOMAIN=${NEXT_PUBLIC_HOSTING_DOMAIN}
 ENV NEXT_PUBLIC_SHOW_DEV_LOGIN=${NEXT_PUBLIC_SHOW_DEV_LOGIN}
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
+ENV NEXT_PUBLIC_SANDBOX_SERVER_URL=${NEXT_PUBLIC_SANDBOX_SERVER_URL}
 
 # Skip server-env Zod validation during build; server-only vars are read at
 # runtime from process.env. See apps/web/client/src/env.ts.

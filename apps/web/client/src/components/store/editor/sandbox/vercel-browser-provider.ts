@@ -65,6 +65,16 @@ import { isSandboxGoneError } from './errors';
 // `commandRun` (`git status --porcelain`); the `dev` task starts the dev
 // server via the idempotent `setup` route (no streamed logs over the proxy).
 
+// The dev-server `setup` mutate rides the WS tRPC client, which reconnects
+// forever with no per-call timeout (sandbox-server-client.ts). If the sandbox
+// server is unreachable — e.g. NEXT_PUBLIC_SANDBOX_SERVER_URL is unset in prod
+// and the :8080 fallback host isn't exposed — the call neither resolves nor
+// rejects, so `next dev` is never started and the preview 502s forever
+// (SANDBOX_NOT_LISTENING) behind an opaque overlay. Bound it so a dead server
+// surfaces as a real error the frame boot watchdog can act on, instead of an
+// infinite spinner (bug-hunt 2026-06-16, wiring AI-3).
+const DEV_SERVER_SETUP_TIMEOUT_MS = 60_000;
+
 export interface VercelBrowserProviderOptions {
     sandboxId: string;
     port?: number | null;
@@ -507,8 +517,26 @@ class VercelBrowserTask extends ProviderTask {
     }
 
     private startDevServer(): Promise<void> {
-        return getSandboxServerClient()
-            .sandbox.setup.mutate({ sandboxId: this.sandboxId })
+        // Race the WS mutate against a hard timeout so an unreachable sandbox
+        // server rejects instead of hanging forever (see
+        // DEV_SERVER_SETUP_TIMEOUT_MS). The timer is cleared in `finally`, so
+        // the loser never produces a late unhandled rejection.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<never>((_, reject) => {
+            timer = setTimeout(() => {
+                reject(
+                    new Error(
+                        `SANDBOX_SERVER_TIMEOUT: dev-server start did not respond within ${
+                            DEV_SERVER_SETUP_TIMEOUT_MS / 1000
+                        }s. The sandbox server is unreachable — set NEXT_PUBLIC_SANDBOX_SERVER_URL to a deployed @weblab/web-server, or start it locally on :8080.`,
+                    ),
+                );
+            }, DEV_SERVER_SETUP_TIMEOUT_MS);
+        });
+        return Promise.race([
+            getSandboxServerClient().sandbox.setup.mutate({ sandboxId: this.sandboxId }),
+            timeout,
+        ])
             .then(() => undefined)
             .catch((err) => {
                 // Clear so a later reload / self-heal can retry.
@@ -524,6 +552,9 @@ class VercelBrowserTask extends ProviderTask {
                     err instanceof Error ? err.message : String(err),
                 );
                 throw err;
+            })
+            .finally(() => {
+                if (timer) clearTimeout(timer);
             });
     }
 

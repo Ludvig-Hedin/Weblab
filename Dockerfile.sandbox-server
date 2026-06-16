@@ -1,0 +1,95 @@
+# Build + run the Weblab editor sandbox server (@weblab/web-server).
+#
+# This is a SECOND Railway service, separate from the Next.js client (root
+# Dockerfile). The client connects to it over WebSocket
+# (NEXT_PUBLIC_SANDBOX_SERVER_URL → wss://<this-service>/trpc) to start and
+# health-check each project's dev server inside its Vercel Sandbox. Without this
+# service deployed, previews 502 forever with SANDBOX_NOT_LISTENING because
+# `next dev` is never started in the sandbox.
+#
+# Deploy steps: docs/notes/2026-06-16-sandbox-server-deploy.md
+#
+# Pinned to the bun version that generated bun.lock (1.3.10), matching the root
+# Dockerfile. When upgrading bun, bump both.
+FROM oven/bun:1.3.10
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+# Server-only secrets (VERCEL_TOKEN, VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and the
+# Clerk JWT-verification env createContext reads) are runtime-only and supplied
+# by the platform (Railway). They must NOT appear as ARG/ENV here.
+
+# Native toolchain for node-gyp deps that may be pulled by the workspace install.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Cache-efficient frozen install ─────────────────────────────────────────────
+# Mirror the root Dockerfile: copy only the manifests bun needs to resolve the
+# workspace. `bun install --frozen-lockfile` rejects the lockfile unless EVERY
+# workspace member's package.json is present, so the full list is required even
+# though only @weblab/web-server is run here.
+COPY bun.lock package.json bunfig.toml ./
+
+COPY packages/ai/package.json              ./packages/ai/
+COPY packages/ai-cli/package.json          ./packages/ai-cli/
+COPY packages/auth/package.json            ./packages/auth/
+COPY packages/code-provider/package.json   ./packages/code-provider/
+COPY packages/constants/package.json       ./packages/constants/
+COPY packages/db/package.json              ./packages/db/
+COPY packages/email/package.json           ./packages/email/
+COPY packages/figma/package.json           ./packages/figma/
+COPY packages/figma-clipboard/package.json ./packages/figma-clipboard/
+COPY packages/figma-plugin/package.json    ./packages/figma-plugin/
+COPY packages/file-system/package.json     ./packages/file-system/
+COPY packages/fonts/package.json           ./packages/fonts/
+COPY packages/framework/package.json       ./packages/framework/
+COPY packages/git/package.json             ./packages/git/
+COPY packages/github/package.json          ./packages/github/
+COPY packages/growth/package.json          ./packages/growth/
+COPY packages/image-server/package.json    ./packages/image-server/
+COPY packages/mcp/package.json             ./packages/mcp/
+COPY packages/models/package.json          ./packages/models/
+COPY packages/parser/package.json          ./packages/parser/
+COPY packages/penpal/package.json          ./packages/penpal/
+COPY packages/rpc/package.json             ./packages/rpc/
+COPY packages/scripts/package.json         ./packages/scripts/
+COPY packages/stripe/package.json          ./packages/stripe/
+COPY packages/types/package.json           ./packages/types/
+COPY packages/ui/package.json              ./packages/ui/
+COPY packages/utility/package.json         ./packages/utility/
+COPY packages/wireframe-blocks/package.json ./packages/wireframe-blocks/
+
+COPY apps/web/package.json                 ./apps/web/
+COPY apps/web/client/package.json          ./apps/web/client/
+COPY apps/web/server/package.json          ./apps/web/server/
+COPY apps/web/preload/package.json         ./apps/web/preload/
+COPY apps/web/product-video/package.json   ./apps/web/product-video/
+
+# Sibling workspace members whose manifests must exist for the frozen lockfile
+# to match (none have install scripts except docs).
+COPY apps/backend/package.json             ./apps/backend/
+COPY apps/desktop/package.json             ./apps/desktop/
+COPY apps/video/package.json               ./apps/video/
+
+# @weblab/docs has `postinstall: fumadocs-mdx` which runs during install and
+# reads source.config.ts + content/docs.
+COPY apps/docs/package.json                ./apps/docs/
+COPY apps/docs/source.config.ts            ./apps/docs/
+COPY apps/docs/content                     ./apps/docs/content/
+
+COPY tooling/eslint/package.json           ./tooling/eslint/
+COPY tooling/prettier/package.json         ./tooling/prettier/
+COPY tooling/typescript/package.json       ./tooling/typescript/
+
+RUN bun install --frozen-lockfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Full source (only invalidates this step, not the install layer above).
+COPY . .
+
+# Bun runs the TypeScript entry directly — no separate build step. The server
+# reads PORT (Railway injects it), binds 0.0.0.0, and serves tRPC-over-WS at
+# /trpc (editorServerConfig.prefix). Local default port is 8080.
+CMD ["bun", "apps/web/server/src/index.ts"]
