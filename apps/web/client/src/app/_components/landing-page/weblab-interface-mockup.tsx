@@ -1466,63 +1466,222 @@ function useChatSequence(onCanvasEffect: (effect: CanvasEffect) => void): ChatSe
     return { messages, composerText, composerTyping };
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Demo Style panel — presentational look-alike of the editor's real v4 Style
+ * tab (apps/web/client/.../right-panel/style-tab-v4). Mirrors its grammar:
+ * title-only accordion sections (no header icons, brand dot when a property
+ * is set), sentence-case 11px group labels, 28px fields with a leading glyph +
+ * value + unit pill, segmented controls with a muted `foreground/15` active
+ * pill, a 3×3 alignment pad, and a swatch+hex+alpha colour row. Non-interactive
+ * by design — these are static look-alikes, not wired to any editor state.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** Shared field shell: 28px tall, secondary fill, 10px radius, hover lift. */
+const FIELD_SHELL =
+    'bg-background-secondary hover:bg-background-tertiary flex h-7 min-w-0 items-center rounded-[10px] transition-colors';
+
 function StyleSection({
     title,
-    icon,
     children,
+    set,
     defaultOpen = true,
 }: {
     title: string;
-    icon: keyof typeof Icons;
     children: React.ReactNode;
+    /** Renders a brand dot to signal the section has set properties. */
+    set?: boolean;
     defaultOpen?: boolean;
 }) {
     const [open, setOpen] = useState(defaultOpen);
-    const Icon = Icons[icon];
     return (
-        <div className="border-border-bar/50 border-b last:border-b-0">
+        <div className="border-border-bar/50 border-t first:border-t-0">
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="text-foreground-secondary hover:text-foreground flex w-full items-center justify-between px-2.5 py-1.5 text-[10px] font-medium tracking-wide uppercase transition-colors"
+                className="text-foreground-primary flex w-full items-center gap-2 px-2.5 py-2 text-[11px] font-semibold tracking-tight transition-colors"
             >
-                <span className="flex items-center gap-1.5">
-                    <Icon className="text-foreground-tertiary h-3 w-3" />
-                    {title}
-                </span>
+                {set && (
+                    <span
+                        aria-hidden
+                        className="bg-foreground-brand size-1.5 shrink-0 rounded-full"
+                    />
+                )}
+                <span className="flex-1 truncate text-left">{title}</span>
                 <Icons.ChevronDown
                     className={cn(
-                        'text-foreground-tertiary h-3 w-3 transition-transform',
-                        !open && '-rotate-90',
+                        'text-foreground-tertiary h-3 w-3 shrink-0 transition-transform duration-150',
+                        open && 'rotate-180',
                     )}
                 />
             </button>
-            {open && <div className="flex flex-col gap-1.5 px-2.5 pb-3">{children}</div>}
+            {open && <div className="flex flex-col gap-3 px-2.5 pt-0.5 pb-3">{children}</div>}
         </div>
     );
 }
 
-function StyleField({
-    label,
+/** Labeled control group — sentence-case 11px label above its control(s). */
+function StyleGroup({ label, children }: { label?: string; children: React.ReactNode }) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            {label && (
+                <span className="text-foreground-secondary text-[10px] leading-none">{label}</span>
+            )}
+            {children}
+        </div>
+    );
+}
+
+/** Leading glyph slot — accepts an icon node or a single letter. */
+function FieldGlyph({ children }: { children: React.ReactNode }) {
+    return (
+        <span
+            aria-hidden
+            className="text-foreground-tertiary inline-flex h-3.5 w-3 shrink-0 items-center justify-center text-[10px] leading-none font-medium [&_svg]:h-3 [&_svg]:w-3"
+        >
+            {children}
+        </span>
+    );
+}
+
+/** Unit / keyword pill (right side of a numeric field). */
+function UnitPill({ children }: { children: React.ReactNode }) {
+    return (
+        <span className="bg-foreground/5 text-foreground-secondary inline-flex h-5 shrink-0 items-center gap-0.5 rounded-[6px] px-1 text-[10px]">
+            {children}
+            <Icons.ChevronDown className="h-2 w-2" />
+        </span>
+    );
+}
+
+/** Numeric field: leading glyph + value + optional unit pill. */
+function NumField({
+    glyph,
     value,
-    mono,
-    swatch,
-    trailing,
+    unit,
 }: {
-    label: string;
+    glyph?: React.ReactNode;
     value: string;
-    mono?: boolean;
-    swatch?: string;
-    trailing?: string;
+    unit?: string;
 }) {
     return (
-        <div className="border-border bg-background-secondary/60 flex h-7 items-center gap-1.5 rounded px-2 text-[11px]">
-            {swatch && <div className={cn('ring-border h-3 w-3 rounded-sm ring-1', swatch)} />}
-            <span className="text-foreground-tertiary w-9 shrink-0 text-[10px]">{label}</span>
-            <span className={cn('text-foreground flex-1 truncate text-right', mono && 'font-mono')}>
+        <div className={cn(FIELD_SHELL, 'gap-1.5 px-2')}>
+            {glyph !== undefined && <FieldGlyph>{glyph}</FieldGlyph>}
+            <span className="text-foreground min-w-0 flex-1 truncate text-[11px] tabular-nums">
                 {value}
             </span>
-            {trailing && <span className="text-foreground-tertiary text-[10px]">{trailing}</span>}
+            {unit && <UnitPill>{unit}</UnitPill>}
+        </div>
+    );
+}
+
+/** Inline-labeled numeric field (e.g. Min W · 0). */
+function LabeledNum({ label, value, unit }: { label: string; value: string; unit?: string }) {
+    return (
+        <div className={cn(FIELD_SHELL, 'gap-2 px-2')}>
+            <span className="text-foreground-secondary inline-block min-w-[34px] shrink-0 text-[10px]">
+                {label}
+            </span>
+            <span className="text-foreground min-w-0 flex-1 truncate text-[11px] tabular-nums">
+                {value}
+            </span>
+            {unit && <span className="text-muted-foreground shrink-0 text-[10px]">{unit}</span>}
+        </div>
+    );
+}
+
+/** Select-style field: optional inline label, right-aligned value, chevron. */
+function SelectField({ label, value }: { label?: string; value: string }) {
+    return (
+        <div className={cn(FIELD_SHELL, 'gap-2 px-2')}>
+            {label && (
+                <span className="text-foreground-secondary inline-block min-w-[34px] shrink-0 text-[10px]">
+                    {label}
+                </span>
+            )}
+            <span className="text-foreground ml-auto min-w-0 truncate text-[11px]">{value}</span>
+            <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
+        </div>
+    );
+}
+
+/** Segmented icon/text control — muted `foreground/15` active pill. */
+function Segment({
+    items,
+    active,
+}: {
+    items: { key: string; node: React.ReactNode }[];
+    active: number;
+}) {
+    return (
+        <div
+            className="bg-background-secondary grid h-7 w-full gap-0 rounded-[10px] p-[2px]"
+            style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0,1fr))` }}
+        >
+            {items.map((it, i) => (
+                <div
+                    key={it.key}
+                    className={cn(
+                        'flex h-full items-center justify-center rounded-[9px] text-[11px] transition-colors [&_svg]:h-3 [&_svg]:w-3',
+                        i === active
+                            ? 'bg-foreground/15 text-foreground-primary shadow-sm'
+                            : 'text-foreground-secondary',
+                    )}
+                >
+                    {it.node}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/** Colour row: swatch + hex + alpha %. */
+function ColorRow({ color, hex, alpha }: { color: string; hex: string; alpha: string }) {
+    return (
+        <div className={cn(FIELD_SHELL, 'gap-2 px-1.5')}>
+            <span
+                aria-hidden
+                className="border-foreground/25 h-5 w-5 shrink-0 rounded-xs border"
+                style={{ backgroundColor: color }}
+            />
+            <span className="text-foreground min-w-0 flex-1 truncate text-[11px] uppercase tabular-nums">
+                {hex}
+            </span>
+            <div className="border-foreground/10 flex h-full shrink-0 items-center gap-0.5 border-l pl-2">
+                <span className="text-foreground-secondary text-[11px] tabular-nums">{alpha}</span>
+                <span className="text-muted-foreground text-[10px]">%</span>
+            </div>
+        </div>
+    );
+}
+
+/** 3×3 alignment pad (centre cell active) mirroring the real AlignPad. */
+function AlignPad() {
+    return (
+        <div
+            className="bg-background-secondary grid grid-cols-3 grid-rows-3 gap-1 rounded-[10px] p-2.5"
+            style={{ height: 66 }}
+        >
+            {Array.from({ length: 9 }).map((_, i) => {
+                const active = i === 4;
+                return (
+                    <div
+                        key={i}
+                        className={cn(
+                            'flex items-center justify-center rounded-xs',
+                            active && 'bg-foreground/10',
+                        )}
+                    >
+                        <span
+                            aria-hidden
+                            className={cn(
+                                active
+                                    ? 'bg-foreground-primary h-[3px] w-3.5 rounded-[1.5px]'
+                                    : 'bg-foreground-tertiary h-1 w-1 rounded-full',
+                            )}
+                        />
+                    </div>
+                );
+            })}
         </div>
     );
 }
@@ -1535,98 +1694,151 @@ function StylePanel({ selectedLayer }: { selectedLayer?: MockLayer }) {
                     iconClass="w-3.5 h-3.5 shrink-0"
                     tagName={selectedLayer?.tagName ?? 'COMPONENT'}
                 />
-                <span className="text-foreground truncate text-xs">
+                <span className="text-foreground-primary truncate text-xs">
                     {selectedLayer?.name ?? 'Hero'}
                 </span>
                 <span className="text-foreground-tertiary ml-auto font-mono text-[9px]">
                     {selectedLayer?.tagName ?? 'COMPONENT'}
                 </span>
             </div>
-            <StyleSection title="Layout" icon="Layout">
-                <div className="grid grid-cols-2 gap-1.5">
-                    <StyleField label="W" value="1280" />
-                    <StyleField label="H" value="auto" />
+
+            <StyleSection title="Layout" set>
+                <StyleGroup label="Flow">
+                    <Segment
+                        active={1}
+                        items={[
+                            { key: 'block', node: <Icons.Square /> },
+                            { key: 'col', node: <Icons.ViewVertical /> },
+                            { key: 'row', node: <Icons.ViewHorizontal /> },
+                            { key: 'grid', node: <Icons.ViewGrid /> },
+                        ]}
+                    />
+                </StyleGroup>
+                <div className="grid items-end gap-2" style={{ gridTemplateColumns: '96px 1fr' }}>
+                    <StyleGroup label="Align">
+                        <AlignPad />
+                    </StyleGroup>
+                    <StyleGroup label="Gap">
+                        <NumField glyph={<Icons.ViewHorizontal />} value="24" unit="px" />
+                    </StyleGroup>
                 </div>
-                <div className="grid grid-cols-3 gap-1">
-                    {(['Row', 'Col', 'Grid'] as const).map((d, i) => (
+                <StyleGroup label="Padding">
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <NumField glyph="H" value="32" unit="px" />
+                        <NumField glyph="V" value="24" unit="px" />
+                    </div>
+                </StyleGroup>
+                <StyleGroup label="Margin">
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <NumField glyph="H" value="auto" />
+                        <NumField glyph="V" value="0" unit="px" />
+                    </div>
+                </StyleGroup>
+            </StyleSection>
+
+            <StyleSection title="Size" set>
+                <StyleGroup label="Dimensions">
+                    <div
+                        className="grid items-center gap-1.5"
+                        style={{ gridTemplateColumns: '1fr 22px 1fr' }}
+                    >
+                        <NumField glyph={<Icons.Width />} value="1280" unit="px" />
                         <button
-                            key={d}
                             type="button"
-                            className={cn(
-                                'border-border bg-background-secondary/60 hover:bg-background-secondary text-foreground-secondary flex h-7 items-center justify-center rounded text-[10px]',
-                                i === 1 && 'text-foreground bg-background-bar-active',
-                            )}
+                            aria-label="Lock aspect ratio"
+                            className="text-foreground-tertiary hover:text-foreground-primary flex h-5 items-center justify-center"
                         >
-                            {d}
+                            <Icons.LockOpen className="h-3 w-3" />
                         </button>
-                    ))}
-                </div>
+                        <NumField glyph={<Icons.Height />} value="auto" />
+                    </div>
+                </StyleGroup>
+                <StyleGroup label="Constraints">
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <LabeledNum label="Min W" value="0" unit="px" />
+                        <LabeledNum label="Max W" value="∞" />
+                    </div>
+                </StyleGroup>
             </StyleSection>
-            <StyleSection title="Spacing" icon="Frame">
-                <div className="grid grid-cols-2 gap-1.5">
-                    <StyleField label="Pad" value="32 · 24" />
-                    <StyleField label="Gap" value="12" />
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                    <StyleField label="Mx" value="auto" />
-                    <StyleField label="My" value="0" />
-                </div>
+
+            <StyleSection title="Text" set>
+                <StyleGroup label="Color">
+                    <ColorRow color="#FFFFFF" hex="FFFFFF" alpha="100" />
+                </StyleGroup>
+                <StyleGroup label="Font">
+                    <div className={cn(FIELD_SHELL, 'gap-2 px-2')}>
+                        <span className="text-foreground min-w-0 flex-1 truncate text-[13px]">
+                            Inter
+                        </span>
+                        <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <SelectField value="Semibold" />
+                        <NumField glyph="T" value="48" unit="px" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <NumField glyph="L" value="1.1" />
+                        <NumField glyph="LS" value="-0.02" unit="em" />
+                    </div>
+                </StyleGroup>
+                <StyleGroup label="Alignment">
+                    <Segment
+                        active={0}
+                        items={[
+                            { key: 'left', node: <Icons.TextAlignLeft /> },
+                            { key: 'center', node: <Icons.TextAlignCenter /> },
+                            { key: 'right', node: <Icons.TextAlignRight /> },
+                            { key: 'justify', node: <Icons.TextAlignJustified /> },
+                        ]}
+                    />
+                </StyleGroup>
             </StyleSection>
-            <StyleSection title="Fill" icon="Brand">
-                <StyleField
-                    label="Color"
-                    value="#4F46E5"
-                    mono
-                    swatch="bg-foreground-brand"
-                    trailing="100%"
-                />
+
+            <StyleSection title="Background" set>
+                <StyleGroup label="Color">
+                    <ColorRow color="#0A0A0F" hex="0A0A0F" alpha="100" />
+                </StyleGroup>
                 <button
                     type="button"
-                    className="text-foreground-tertiary hover:text-foreground flex h-6 items-center gap-1 px-1 text-[10px]"
+                    className="text-foreground-tertiary hover:text-foreground-primary flex h-6 w-fit items-center gap-1 text-[10px] transition-colors"
                 >
                     <Icons.Plus className="h-2.5 w-2.5" />
-                    Add layer
+                    Add fill
                 </button>
             </StyleSection>
-            <StyleSection title="Border" icon="Square">
-                <div className="grid grid-cols-2 gap-1.5">
-                    <StyleField label="Width" value="1" />
-                    <StyleField label="Radius" value="12" />
-                </div>
-                <StyleField label="Color" value="#1F1F22" mono swatch="bg-neutral-900" />
+
+            <StyleSection title="Border" defaultOpen={false}>
+                <StyleGroup label="Stroke">
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <NumField glyph="W" value="1" unit="px" />
+                        <SelectField value="Solid" />
+                    </div>
+                    <ColorRow color="#1F1F22" hex="1F1F22" alpha="100" />
+                </StyleGroup>
+                <StyleGroup label="Radius">
+                    <NumField glyph={<Icons.Corners />} value="16" unit="px" />
+                </StyleGroup>
             </StyleSection>
-            <StyleSection title="Typography" icon="TextAlignLeft">
-                <StyleField label="Font" value="Inter · 600" />
-                <div className="grid grid-cols-2 gap-1.5">
-                    <StyleField label="Size" value="14" />
-                    <StyleField label="Line" value="1.4" />
-                </div>
-                <div className="grid grid-cols-4 gap-1">
-                    {(['L', 'C', 'R', 'J'] as const).map((a, i) => (
-                        <button
-                            key={a}
-                            type="button"
-                            className={cn(
-                                'border-border bg-background-secondary/60 hover:bg-background-secondary text-foreground-secondary flex h-6 items-center justify-center rounded text-[10px]',
-                                i === 1 && 'text-foreground bg-background-bar-active',
-                            )}
-                        >
-                            {a}
-                        </button>
-                    ))}
-                </div>
+
+            <StyleSection title="Effects" defaultOpen={false}>
+                <StyleGroup label="Opacity">
+                    <NumField value="100" unit="%" />
+                </StyleGroup>
+                <StyleGroup label="Shadow">
+                    <SelectField value="Medium" />
+                </StyleGroup>
+                <StyleGroup label="Blur">
+                    <NumField value="0" unit="px" />
+                </StyleGroup>
             </StyleSection>
-            <StyleSection title="Effects" icon="Sparkles" defaultOpen={false}>
-                <StyleField label="Shadow" value="md · 30%" />
-                <StyleField label="Blur" value="0" />
-                <StyleField label="Opacity" value="100" trailing="%" />
-            </StyleSection>
-            <StyleSection title="Position" icon="Layers" defaultOpen={false}>
-                <div className="grid grid-cols-2 gap-1.5">
-                    <StyleField label="X" value="0" />
-                    <StyleField label="Y" value="0" />
-                </div>
-                <StyleField label="Z" value="auto" />
+
+            <StyleSection title="Position" defaultOpen={false}>
+                <StyleGroup label="Type">
+                    <SelectField value="Relative" />
+                </StyleGroup>
+                <StyleGroup label="Z-index">
+                    <LabeledNum label="Z" value="auto" />
+                </StyleGroup>
             </StyleSection>
         </div>
     );
