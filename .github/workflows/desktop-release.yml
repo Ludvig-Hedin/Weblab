@@ -34,41 +34,60 @@ jobs:
         working-directory: apps/desktop
         run: bun install
 
-      # Decode the .p8 App Store Connect API key (if the secret is present)
-      # so notarytool can find it. No-op if the secrets aren't configured —
-      # the build then produces an unsigned DMG and the notarize hook no-ops.
-      - name: Stage Apple notary API key
+      # Stage signing + notarization credentials only when the corresponding
+      # secrets are present. Writing empty CSC_LINK into the build step's env
+      # confuses electron-builder (it resolves "" to cwd and reports
+      # "<cwd> not a file"), so we route everything through $GITHUB_ENV which
+      # silently drops blank values.
+      - name: Stage Apple signing + notary credentials
         env:
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
           APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          if [ -z "$APPLE_API_KEY_P8_BASE64" ] || [ -z "$APPLE_API_KEY_ID" ]; then
-            echo "Apple notary API key secrets not set — skipping (build will be unsigned)."
-            exit 0
+          set -e
+          # Mac signing cert (.p12 → CSC_LINK as path).
+          if [ -n "$MAC_CERT_P12_BASE64" ]; then
+            CERT_PATH="$RUNNER_TEMP/weblab-cert.p12"
+            printf '%s' "$MAC_CERT_P12_BASE64" | base64 -d > "$CERT_PATH"
+            echo "CSC_LINK=$CERT_PATH" >> "$GITHUB_ENV"
+            [ -n "$MAC_CERT_PASSWORD" ] && echo "CSC_KEY_PASSWORD=$MAC_CERT_PASSWORD" >> "$GITHUB_ENV"
+            echo "Mac signing cert staged."
+          else
+            echo "MAC_CERT_P12_BASE64 not set — build will be unsigned."
           fi
-          if [[ ! "$APPLE_API_KEY_ID" =~ ^[A-Za-z0-9]+$ ]]; then
-            echo "::error::APPLE_API_KEY_ID must be alphanumeric" >&2
-            exit 1
+          # Notary API key (Option A).
+          if [ -n "$APPLE_API_KEY_P8_BASE64" ] && [ -n "$APPLE_API_KEY_ID" ]; then
+            if [[ ! "$APPLE_API_KEY_ID" =~ ^[A-Za-z0-9]+$ ]]; then
+              echo "::error::APPLE_API_KEY_ID must be alphanumeric" >&2
+              exit 1
+            fi
+            mkdir -p "$HOME/.appstoreconnect/private_keys"
+            KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
+            printf '%s' "$APPLE_API_KEY_P8_BASE64" | base64 -d > "$KEY_PATH"
+            echo "APPLE_API_KEY=$KEY_PATH" >> "$GITHUB_ENV"
+            echo "APPLE_API_KEY_ID=$APPLE_API_KEY_ID" >> "$GITHUB_ENV"
+            [ -n "$APPLE_API_ISSUER" ] && echo "APPLE_API_ISSUER=$APPLE_API_ISSUER" >> "$GITHUB_ENV"
+            echo "Notary API key staged."
+          # Notary app-specific password (Option B).
+          elif [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "APPLE_ID=$APPLE_ID" >> "$GITHUB_ENV"
+            echo "APPLE_APP_SPECIFIC_PASSWORD=$APPLE_APP_SPECIFIC_PASSWORD" >> "$GITHUB_ENV"
+            echo "Notary app-specific password staged."
+          else
+            echo "No notary credentials — notarize hook will skip."
           fi
-          mkdir -p "$HOME/.appstoreconnect/private_keys"
-          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
-          printf '%s' "$APPLE_API_KEY_P8_BASE64" | base64 -d > "$KEY_PATH"
-          echo "APPLE_API_KEY=$KEY_PATH" >> "$GITHUB_ENV"
+          [ -n "$APPLE_TEAM_ID" ] && echo "APPLE_TEAM_ID=$APPLE_TEAM_ID" >> "$GITHUB_ENV"
 
       - name: Build macOS DMG (x64 + arm64)
         working-directory: apps/desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Signing — electron-builder reads CSC_LINK as a path or base64.
-          CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
-          # Notarization credentials — Option A (API key) is preferred.
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Option B (app-specific password) — used only if API key absent.
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: bun run build:mac
 
       - name: Upload DMG artifacts
@@ -79,7 +98,11 @@ jobs:
 
   build-win:
     name: Build Windows
-    runs-on: windows-latest
+    # Pinned to 2022 because windows-latest now ships VS 2026 (version 18)
+    # which node-gyp doesn't recognize ("unknown version 'undefined' found at
+    # C:\Program Files\Microsoft Visual Studio\18\Enterprise"). better-sqlite3
+    # is a transitive native dep that gets compiled on `bun install`.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
