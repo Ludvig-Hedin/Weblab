@@ -48,15 +48,15 @@ later without re-discovering the context.
 - **Risk if ignored:** GitHub sign-in unusable; users sharing an email across providers can't sign in / link.
 - **Tags:** `#bug` `#auth` `#config`
 
-### React #418 hydration mismatch on /sign-in
+### React #418 hydration mismatch on /sign-in — ROOT-CAUSED (not a markup bug)
 
 - **Discovered:** 2026-06-16 (seen in console during the GitHub OAuth bounce above)
-- **Where:** `apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx` + `_components/clerk-auth-form.tsx` subtree.
-- **Symptom:** Console "Minified React error #418" (hydration: server-rendered HTML ≠ client) on `/sign-in`. React regenerates the tree client-side (recoverable) so it does NOT trip the error card — noisy + latent, not the cause of the GitHub bounce.
-- **Root cause:** Not confirmed. Most likely a `next-intl` locale mismatch (server vs client → different translated text), or a client-only value rendered during first paint in the sign-in subtree.
-- **Next step:** Reproduce `/sign-in` in a dev (unminified) build to read the #418 args; check `next-intl` locale resolution (server header vs client) and any non-deterministic render in the subtree. Apply `suppressHydrationWarning` only at the confirmed node, not broadly.
-- **Risk if ignored:** Hydration regeneration on every client-navigated `/sign-in`; flicker, wasted client work, masks future real mismatches.
-- **Tags:** `#bug` `#tech-debt` `#auth`
+- **Investigated:** 2026-06-16 — **confirmed NOT a code/markup bug.** Two fresh prod SSR renders of `/sign-in` are byte-identical; every layout provider that wraps it (theme/cookie-consent/desktop-chrome/appearance/smooth-scroll) is mounted-guarded; a **clean cloud browser (no SW, no extensions) shows ZERO #418** on both the clean load and the `?returnUrl=` bounce URL (status 200, form renders, 0 console errors).
+- **Root cause (client-state, not our React tree):** (1) **Stale service worker** — the user's console also showed the SW returning a network-error response: after a deploy the old `/_next/static/*` chunks 404, `cacheFirstAsset` returns `Response.error()`, and a stale document hydrates against a newer bundle → #418 (+ the "preloaded font/css not used" warnings = stale-HTML signature). (2) **Form-injecting browser extension** — `/sign-in` is a `<form>` with an email input; password managers / Grammarly mutate it before hydration, which React #418's own message lists as a cause. Both are user-browser-specific.
+- **Fix shipped:** SW `VERSION` v2→v3 (purges every poisoned shell/runtime/data cache for all users on next visit) + dropped auth-dynamic `/projects` from the precached shell (`apps/web/client/public/sw.js`). User-side immediate workaround: hard-reload / DevTools → Application → unregister SW + Clear storage; test in incognito with extensions off to confirm the extension half.
+- **Residual / follow-up:** consider serving only `/offline` (never a build-versioned cached document) as the navigation fallback so a future deploy can't re-poison a slow-nav user; React already recovers from the extension case (no action needed).
+- **Risk if ignored:** Occasional hydration regeneration on `/sign-in` after a deploy until the SW updates; cosmetic flicker, no functional break.
+- **Tags:** `#bug` `#tech-debt` `#auth` `#infra`
 
 ### Verify production desktop build ships prod Clerk keys (not the dev instance)
 

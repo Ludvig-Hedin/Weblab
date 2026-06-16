@@ -11,14 +11,25 @@
 // Bump on any change to caching strategy or cache shape. `activate` deletes
 // every cache whose key doesn't match the current VERSION, so bumping this is
 // what flushes stale entries (including poisoned ones) off existing installs.
-const VERSION = 'v2';
+//
+// v3 (2026-06-16): flush installs that had cached a build-versioned document
+// (or a chunk under the runtime cache) from a previous deploy. After a deploy
+// the old `/_next/static/*` chunks 404, so `cacheFirstAsset` returns
+// `Response.error()` ("FetchEvent … resulted in a network error response") and
+// the stale document hydrates against a newer bundle → React error #418 on
+// prod (seen on /sign-in). Bumping the VERSION purges every prior cache.
+const VERSION = 'v3';
 const SHELL_CACHE = `weblab-shell-${VERSION}`;
 const RUNTIME_CACHE = `weblab-runtime-${VERSION}`;
 const DATA_CACHE = `weblab-next-data-${VERSION}`;
 
+// `/projects` is intentionally NOT precached: it redirects per auth state
+// (workspace when signed in, /sign-in when not), so a cached copy is a
+// stale, wrong-state document — the exact hazard the navigation handler's
+// comment warns about. Only the genuinely static shell + the self-contained
+// `/offline` fallback are safe to keep.
 const SHELL_URLS = [
     '/',
-    '/projects',
     '/offline',
     '/manifest.webmanifest',
     '/favicon.svg',
