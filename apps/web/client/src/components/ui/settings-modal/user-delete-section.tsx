@@ -24,6 +24,7 @@ import { toast } from '@weblab/ui/sonner';
 import { isClerkMode, useSafeClerk } from '@/utils/auth/safe-clerk';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { signOutEverywhere } from '@/utils/auth/sign-out';
+import { markSigningOut } from '@/utils/auth/signing-out';
 
 export const UserDeleteSection = observer(() => {
     const t = useTranslations('settings.delete');
@@ -66,6 +67,10 @@ export const UserDeleteSection = observer(() => {
         setDeleteEmail('');
         setDeleteConfirmText('');
 
+        // Flag sign-out so the root error boundary redirects to /sign-in if a
+        // signed-out re-render throws `UNAUTHORIZED` before navigation lands
+        // (same race as the avatar-dropdown sign-out).
+        markSigningOut();
         await signOutEverywhere(isClerkMode() ? () => clerkSignOut() : undefined);
         router.push(getSignInUrlClient());
     };

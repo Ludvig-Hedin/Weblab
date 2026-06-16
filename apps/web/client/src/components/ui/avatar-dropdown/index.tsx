@@ -22,6 +22,7 @@ import { transKeys } from '@/i18n/keys';
 import { isClerkMode, useSafeClerk } from '@/utils/auth/safe-clerk';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { signOutEverywhere } from '@/utils/auth/sign-out';
+import { markSigningOut } from '@/utils/auth/signing-out';
 import { LocalForageKeys } from '@/utils/constants';
 import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
 import { SettingsTabValue } from '../settings-modal/helpers';
@@ -65,6 +66,12 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const [open, setOpen] = useState(false);
 
     const handleSignOut = async () => {
+        // Flag sign-out BEFORE clearing the session: Clerk's signOut re-renders
+        // the still-mounted auth-gated route signed-out, and its auth-required
+        // Convex queries throw `UNAUTHORIZED` into the root error boundary
+        // *before* the navigation below lands. The flag tells that boundary to
+        // redirect to /sign-in instead of showing a dead-end crash card.
+        markSigningOut();
         // Close the dropdown immediately so the user has visual confirmation
         // that sign-out is in progress while the async cleanup runs.
         setOpen(false);

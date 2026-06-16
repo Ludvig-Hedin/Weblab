@@ -38,6 +38,26 @@ later without re-discovering the context.
 
 ## Open
 
+### GitHub OAuth completes but bounces to /sign-in (Clerk verified-email / account-linking config)
+
+- **Discovered:** 2026-06-16 (user-reported "GitHub login doesn't work; Vercel works")
+- **Where:** Clerk Dashboard config — NOT code. The app OAuth flow is provider-agnostic: `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx:332` (`authenticateWithRedirect`, only the `strategy` string differs), callback `apps/web/client/src/app/sign-in/sso-callback/page.tsx`.
+- **Symptom:** User authorizes on GitHub, returns, lands back on `/sign-in?returnUrl=/w/personal-…/projects` (the workspace layout's `getCurrentUser()` → null → `redirect(getSignInUrl(...))`). Vercel OAuth works through the identical callback infra.
+- **Root cause:** Clerk instance requires a **verified email** (`user_settings.attributes.email_address` = `required:true` + `verify_at_sign_up:true`, confirmed live via FAPI `GET https://clerk.weblab.build/v1/environment`). GitHub returns no verified/usable primary email for this user (email privacy or unverified), OR the existing (Vercel-created) account isn't auto-linked because account-linking is off / demands a verified email. Vercel always returns a verified email → succeeds. **It is NOT the GitHub OAuth-app callback URL** — `https://clerk.weblab.build/v1/oauth_callback` is correct, and GitHub accepting the consent screen proves the client_id/redirect_uri are valid.
+- **Next step:** Clerk Dashboard → SSO Connections → GitHub: confirm production custom credentials (Client ID/Secret from the GitHub OAuth app) + `user:email` scope. Configure → Account linking: enable "link users with the same verified email". Verify the GitHub account's primary email is verified on GitHub. For the exact failure, reproduce and read the redirect off `clerk.weblab.build/v1/oauth_callback` (`error` / `error_description`) or Clerk Dashboard → Logs.
+- **Risk if ignored:** GitHub sign-in unusable; users sharing an email across providers can't sign in / link.
+- **Tags:** `#bug` `#auth` `#config`
+
+### React #418 hydration mismatch on /sign-in
+
+- **Discovered:** 2026-06-16 (seen in console during the GitHub OAuth bounce above)
+- **Where:** `apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx` + `_components/clerk-auth-form.tsx` subtree.
+- **Symptom:** Console "Minified React error #418" (hydration: server-rendered HTML ≠ client) on `/sign-in`. React regenerates the tree client-side (recoverable) so it does NOT trip the error card — noisy + latent, not the cause of the GitHub bounce.
+- **Root cause:** Not confirmed. Most likely a `next-intl` locale mismatch (server vs client → different translated text), or a client-only value rendered during first paint in the sign-in subtree.
+- **Next step:** Reproduce `/sign-in` in a dev (unminified) build to read the #418 args; check `next-intl` locale resolution (server header vs client) and any non-deterministic render in the subtree. Apply `suppressHydrationWarning` only at the confirmed node, not broadly.
+- **Risk if ignored:** Hydration regeneration on every client-navigated `/sign-in`; flicker, wasted client work, masks future real mismatches.
+- **Tags:** `#bug` `#tech-debt` `#auth`
+
 ### Verify production desktop build ships prod Clerk keys (not the dev instance)
 
 - **Discovered:** 2026-06-15 (user-reported "desktop app opens weblab.build in browser, not the app")
