@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { BrandLogo } from '@weblab/ui/brand';
 
@@ -21,6 +22,22 @@ interface DesktopHandoffClientProps {
  */
 export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
     const [retried, setRetried] = useState(false);
+    // True once we're fairly sure the deep link never reached a desktop app.
+    // When the OS handles `weblab://`, focus leaves this document (the app comes
+    // forward / an "Open Weblab?" prompt appears), so a still-focused, still-
+    // visible page after a few seconds means the scheme almost certainly isn't
+    // registered — the user doesn't have the desktop app (or the browser
+    // blocked the launch). Surface concrete escapes instead of an endless
+    // spinner. Closes the TODO(bug-hunt) gap noted below.
+    const [stalled, setStalled] = useState(false);
+    useEffect(() => {
+        const id = window.setTimeout(() => {
+            if (document.visibilityState === 'visible' && document.hasFocus()) {
+                setStalled(true);
+            }
+        }, 4000);
+        return () => window.clearTimeout(id);
+    }, []);
 
     useEffect(() => {
         const deepLink = `weblab://auth/handoff?ticket=${encodeURIComponent(ticket)}`;
@@ -51,12 +68,11 @@ export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
             }
         }, 1200);
 
-        // TODO(bug-hunt): no detection / fallback if `weblab://` isn't
-        // registered (user uninstalled the desktop app, browser blocks unknown
-        // schemes). User stays on the spinner; only escape is the manual
-        // "Open Weblab" button. Consider a ~3-5s timeout with a "Don't have
-        // Weblab desktop? Download here" fallback. See CODE_REVIEW_BACKLOG.md →
-        // "Bug Hunt 2026-05-28 — Desktop auth".
+        // Detection for an unregistered `weblab://` (user uninstalled the
+        // desktop app, browser blocks unknown schemes) is handled by the
+        // separate `stalled` timer above: after ~4s with the page still
+        // focused/visible we surface "Download desktop / Continue in browser"
+        // fallbacks instead of leaving the user on the spinner.
         return () => {
             window.clearTimeout(mountId);
             window.clearTimeout(fallbackId);
@@ -90,6 +106,31 @@ export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
                 >
                     {retried ? 'Try again' : 'Open Weblab'}
                 </button>
+
+                {/* The deep link never switched away — the desktop app likely
+                    isn't installed, or the browser blocked the scheme. Give the
+                    user a real way out instead of an endless spinner. */}
+                {stalled && (
+                    <div className="border-foreground/10 mt-2 flex flex-col items-center gap-3 border-t pt-6">
+                        <p className="text-foreground-secondary text-small">
+                            Don&apos;t have the Weblab desktop app?
+                        </p>
+                        <div className="flex items-center gap-4">
+                            <Link
+                                href="/download"
+                                className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
+                            >
+                                Download the app
+                            </Link>
+                            <Link
+                                href="/projects"
+                                className="text-foreground-secondary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
+                            >
+                                Continue in browser
+                            </Link>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
