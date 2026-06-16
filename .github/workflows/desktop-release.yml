@@ -35,14 +35,17 @@ jobs:
         run: bun install
 
       # Decode the .p8 App Store Connect API key (if the secret is present)
-      # so notarytool can find it. Skipped if not configured — the build then
-      # produces an unsigned DMG and the notarize hook no-ops.
+      # so notarytool can find it. No-op if the secrets aren't configured —
+      # the build then produces an unsigned DMG and the notarize hook no-ops.
       - name: Stage Apple notary API key
-        if: ${{ secrets.APPLE_API_KEY_P8_BASE64 != '' }}
         env:
           APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
         run: |
+          if [ -z "$APPLE_API_KEY_P8_BASE64" ] || [ -z "$APPLE_API_KEY_ID" ]; then
+            echo "Apple notary API key secrets not set — skipping (build will be unsigned)."
+            exit 0
+          fi
           if [[ ! "$APPLE_API_KEY_ID" =~ ^[A-Za-z0-9]+$ ]]; then
             echo "::error::APPLE_API_KEY_ID must be alphanumeric" >&2
             exit 1
