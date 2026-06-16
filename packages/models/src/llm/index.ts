@@ -18,7 +18,9 @@ export enum OPENROUTER_MODELS {
     CLAUDE_OPUS_4_8 = 'anthropic/claude-opus-4.8',
     CLAUDE_SONNET_4_6 = 'anthropic/claude-sonnet-4.6',
     CLAUDE_3_5_HAIKU = 'anthropic/claude-3.5-haiku',
-    KIMI_K2_6 = 'moonshotai/kimi-k2.6',
+    KIMI_K2_7_CODE = 'moonshotai/kimi-k2.7-code',
+    GLM_5_2 = 'z-ai/glm-5.2',
+    MINIMAX_M3 = 'minimax/minimax-m3',
     DEEPSEEK_V4_PRO = 'deepseek/deepseek-v4-pro',
     DEEPSEEK_V4_FLASH = 'deepseek/deepseek-v4-flash',
     MISTRAL_CODESTRAL = 'mistralai/codestral-2501',
@@ -95,7 +97,9 @@ export const MODEL_MAX_TOKENS: Record<string, number> = {
     [OPENROUTER_MODELS.CLAUDE_OPUS_4_8]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_SONNET_4_6]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_3_5_HAIKU]: 200000,
-    [OPENROUTER_MODELS.KIMI_K2_6]: 1000000,
+    [OPENROUTER_MODELS.KIMI_K2_7_CODE]: 1000000,
+    [OPENROUTER_MODELS.GLM_5_2]: 128000,
+    [OPENROUTER_MODELS.MINIMAX_M3]: 1000000,
     [OPENROUTER_MODELS.DEEPSEEK_V4_PRO]: 1048576,
     [OPENROUTER_MODELS.DEEPSEEK_V4_FLASH]: 1048576,
     [OPENROUTER_MODELS.MISTRAL_CODESTRAL]: 256000,
@@ -161,8 +165,16 @@ export const CHAT_MODEL_OPTIONS = [
         model: OPENROUTER_MODELS.DEEPSEEK_V4_PRO,
     },
     {
-        label: 'Kimi K2.6',
-        model: OPENROUTER_MODELS.KIMI_K2_6,
+        label: 'Kimi K2.7 Code',
+        model: OPENROUTER_MODELS.KIMI_K2_7_CODE,
+    },
+    {
+        label: 'GLM-5.2',
+        model: OPENROUTER_MODELS.GLM_5_2,
+    },
+    {
+        label: 'MiniMax M3',
+        model: OPENROUTER_MODELS.MINIMAX_M3,
     },
 ] as const;
 

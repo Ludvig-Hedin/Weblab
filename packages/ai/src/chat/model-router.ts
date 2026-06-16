@@ -52,14 +52,14 @@ export function classifySize(estimatedInputTokens: number): SizeBucket {
  *   visual/UI taste, fast, cheap on cache miss).
  * - EDIT / FIX: code editing favours GPT-5.4-mini for backend changes;
  *   user picks better model manually when needed.
- * - ASK: read-only Q&A → Kimi K2.6 (cheap, fast, strong reasoning).
+ * - ASK: read-only Q&A → MiniMax M3 (cheap, fast, 1M context).
  */
 const DEFAULTS: Record<ChatType, Models> = {
     [ChatTypeEnum.CREATE]: OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
     [ChatTypeEnum.PLAN]: OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
     [ChatTypeEnum.EDIT]: OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI,
     [ChatTypeEnum.FIX]: OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI,
-    [ChatTypeEnum.ASK]: OPENROUTER_MODELS.KIMI_K2_6,
+    [ChatTypeEnum.ASK]: OPENROUTER_MODELS.MINIMAX_M3,
 };
 
 /**
@@ -85,7 +85,7 @@ export const MODEL_ROUTER_CONFIG = {
      * Default lookup — used when no tier override applies.
      */
     defaultFor(chatType: ChatType): Models {
-        return DEFAULTS[chatType] ?? OPENROUTER_MODELS.KIMI_K2_6;
+        return DEFAULTS[chatType] ?? OPENROUTER_MODELS.MINIMAX_M3;
     },
 
     /**
@@ -98,15 +98,14 @@ export const MODEL_ROUTER_CONFIG = {
 
     /**
      * Free users (not yet heavy) get a slightly better model than free-heavy
-     * but still cheap. Kimi K2.6 has the best perf-per-dollar for most chat.
+     * but still cheap. MiniMax M3 has the best perf-per-dollar for most chat.
      */
     freeOverride(chatType: ChatType): Models {
-        // UI work for free users still goes to Gemini Flash-class — Kimi
-        // is competent for UI but Gemini has the edge on visual taste.
+        // UI work for free users still goes to Gemini — strong visual taste.
         if (chatType === ChatTypeEnum.CREATE || chatType === ChatTypeEnum.PLAN) {
             return OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW;
         }
-        return OPENROUTER_MODELS.KIMI_K2_6;
+        return OPENROUTER_MODELS.MINIMAX_M3;
     },
 
     /**
@@ -121,10 +120,10 @@ export const MODEL_ROUTER_CONFIG = {
         if (chatType === ChatTypeEnum.CREATE || chatType === ChatTypeEnum.PLAN) {
             return OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW;
         }
-        // EDIT / FIX / ASK with non-small payload → Kimi K2.6 (1M context,
+        // EDIT / FIX / ASK with non-small payload → MiniMax M3 (1M context,
         // cheap, strong reasoning). Avoids paying Sonnet input rates on huge
         // file contexts when the marginal quality gain is small.
-        return OPENROUTER_MODELS.KIMI_K2_6;
+        return OPENROUTER_MODELS.MINIMAX_M3;
     },
 
     /**
@@ -135,7 +134,7 @@ export const MODEL_ROUTER_CONFIG = {
         if (chatType === ChatTypeEnum.CREATE || chatType === ChatTypeEnum.PLAN) {
             return OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW;
         }
-        return OPENROUTER_MODELS.KIMI_K2_6;
+        return OPENROUTER_MODELS.MINIMAX_M3;
     },
 } as const;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 
@@ -52,7 +52,9 @@ const MODEL_DESCRIPTIONS: Record<string, string> = {
     'anthropic/claude-opus-4.8': 'Most capable Claude for the hardest tasks',
     'google/gemini-3.1-pro-preview': "Google's latest flagship model",
     'deepseek/deepseek-v4-pro': 'High performance open-source reasoning model',
-    'moonshotai/kimi-k2.6': 'Efficient model for coding and analysis',
+    'moonshotai/kimi-k2.7-code': 'Efficient model for coding and analysis',
+    'z-ai/glm-5.2': 'GLM 5.2 — fast and capable reasoning model',
+    'minimax/minimax-m3': 'MiniMax M3 — efficient 1M-context model',
 };
 
 function cloudProviderIconName(modelId: string | undefined): string {
@@ -62,6 +64,8 @@ function cloudProviderIconName(modelId: string | undefined): string {
     if (modelId.startsWith('google/')) return 'GeminiMonoLogo';
     if (modelId.startsWith('deepseek/')) return 'DeepSeekLogo';
     if (modelId.startsWith('moonshotai/')) return 'KimiLogo';
+    if (modelId.startsWith('z-ai/')) return 'Sparkles';
+    if (modelId.startsWith('minimax/')) return 'Sparkles';
     return 'Sparkles';
 }
 
@@ -130,6 +134,8 @@ export const ModelSelectorV2 = ({
     const [setupEntry, setSetupEntry] = useState<ProviderManifestEntry | null>(null);
     const [pullDialogOpen, setPullDialogOpen] = useState(false);
     const [disconnectTarget, setDisconnectTarget] = useState<ProviderManifestEntry | null>(null);
+    const [customModelInput, setCustomModelInput] = useState('');
+    const customInputRef = useRef<HTMLInputElement>(null);
     const { statuses, refresh } = useProviderStatuses({
         localModels,
         localModelsLoading,
@@ -496,6 +502,42 @@ export const ModelSelectorV2 = ({
                         <CommandSeparator className="hidden" />
                     </CommandList>
                 </Command>
+                <div className="border-border/40 border-t px-2 py-2">
+                    <div className="flex items-center gap-1.5">
+                        <Icons.Sparkles className="text-foreground-quaternary h-3 w-3 shrink-0" />
+                        <input
+                            ref={customInputRef}
+                            value={customModelInput}
+                            onChange={(e) => setCustomModelInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const id = customModelInput.trim();
+                                    if (id) {
+                                        handleSelectModel(id);
+                                        setCustomModelInput('');
+                                    }
+                                }
+                            }}
+                            placeholder="Custom OpenRouter model ID…"
+                            className="text-foreground-secondary placeholder:text-foreground-quaternary bg-transparent flex-1 text-xs outline-none"
+                        />
+                        {customModelInput.trim() && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const id = customModelInput.trim();
+                                    if (id) {
+                                        handleSelectModel(id);
+                                        setCustomModelInput('');
+                                    }
+                                }}
+                                className="text-foreground-tertiary hover:text-foreground-primary shrink-0"
+                            >
+                                <Icons.Return className="h-3 w-3" />
+                            </button>
+                        )}
+                    </div>
+                </div>
                 {reasoningEffort &&
                     onReasoningEffortChange &&
                     modelSupportsReasoningEffort(value) && (

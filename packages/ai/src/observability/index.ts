@@ -69,9 +69,21 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
         cacheCreationUsdPerMTok: 0,
         cacheReadUsdPerMTok: 0,
     },
-    [OPENROUTER_MODELS.KIMI_K2_6]: {
-        inputUsdPerMTok: 0.15,
-        outputUsdPerMTok: 2.5,
+    [OPENROUTER_MODELS.KIMI_K2_7_CODE]: {
+        inputUsdPerMTok: 0.74,
+        outputUsdPerMTok: 3.5,
+        cacheCreationUsdPerMTok: 0,
+        cacheReadUsdPerMTok: 0,
+    },
+    [OPENROUTER_MODELS.GLM_5_2]: {
+        inputUsdPerMTok: 1.4,
+        outputUsdPerMTok: 4.4,
+        cacheCreationUsdPerMTok: 0,
+        cacheReadUsdPerMTok: 0,
+    },
+    [OPENROUTER_MODELS.MINIMAX_M3]: {
+        inputUsdPerMTok: 0.3,
+        outputUsdPerMTok: 1.2,
         cacheCreationUsdPerMTok: 0,
         cacheReadUsdPerMTok: 0,
     },
@@ -126,6 +138,47 @@ export function estimateLLMCost(model: ChatModel, tokens: TokenBreakdown): numbe
         ((tokens.cacheCreationTokens ?? 0) / 1_000_000) * pricing.cacheCreationUsdPerMTok;
     const cacheReadCost = ((tokens.cacheReadTokens ?? 0) / 1_000_000) * pricing.cacheReadUsdPerMTok;
     return inputCost + outputCost + cacheCreateCost + cacheReadCost;
+}
+
+/**
+ * Estimate a request's cost straight from the AI SDK's result shape
+ * (`{ usage, providerMetadata }` off `generateText`/`streamText`). A thin
+ * convenience over {@link estimateLLMCost} for the one-shot micro-agents
+ * (inline-edit, tab-complete, terminal-command, summarizer) that don't build a
+ * full {@link AIUsageEvent} but still need a dollar cost to reconcile billing.
+ *
+ * Defensive by design: any missing/odd field degrades to 0 tokens (→ cost 0),
+ * never throws. Anthropic cache token counts are read from
+ * `providerMetadata.anthropic` when present; non-Anthropic models simply have none.
+ */
+export function estimateCostFromResult(params: {
+    model: ChatModel;
+    usage:
+        | {
+              inputTokens?: number;
+              outputTokens?: number;
+              cachedInputTokens?: number;
+          }
+        | undefined;
+    providerMetadata?: unknown;
+}): number {
+    const anthropic =
+        params.providerMetadata && typeof params.providerMetadata === 'object'
+            ? (
+                  params.providerMetadata as {
+                      anthropic?: {
+                          cacheReadInputTokens?: number;
+                          cacheCreationInputTokens?: number;
+                      };
+                  }
+              ).anthropic
+            : undefined;
+    return estimateLLMCost(params.model, {
+        inputTokens: params.usage?.inputTokens ?? 0,
+        outputTokens: params.usage?.outputTokens ?? 0,
+        cacheReadTokens: params.usage?.cachedInputTokens ?? anthropic?.cacheReadInputTokens ?? 0,
+        cacheCreationTokens: anthropic?.cacheCreationInputTokens ?? 0,
+    });
 }
 
 /**
