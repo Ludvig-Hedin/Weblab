@@ -5,6 +5,20 @@ This doc covers three paths: building locally, sharing with friends, and publish
 
 ## Changelog
 
+### v0.2.5
+
+- **Code-sign + notarize ready.** Build config now wires hardened-runtime
+  entitlements (`build/entitlements.mac.plist` + `.inherit.plist`) and a
+  conditional `afterSign` notarize hook (`scripts/notarize.js`). With a
+  Developer ID Application cert and Apple notary credentials in env, the DMG
+  ships ticket-stapled and Gatekeeper opens it without the "unidentified
+  developer" warning. Without credentials the hook no-ops, so unsigned local
+  builds still work. CI workflow (`.github/workflows/desktop-release.yml`)
+  now forwards the signing/notarize secrets when present.
+- **Signing guide.** Step-by-step terminal instructions added to this file
+  (see "Code signing & notarization" below) covering one-time cert acquisition,
+  notarytool keychain setup, local signed build, and CI secret config.
+
 ### v0.2.4
 
 First public release since v0.2.1 — includes everything from the unreleased
@@ -255,3 +269,207 @@ Then uncomment the two `CSC_*` lines in `desktop-release.yml`.
 | Linux    | `Weblab.AppImage` |
 
 > **Note:** The download URLs in `constants/index.ts` point to the *latest* release, not a specific version, so they stay valid across releases without any code changes.
+
+---
+
+## 8. Code signing & notarization (eliminate the macOS warning)
+
+To ship a `.dmg` that opens with **no warning at all** on every Mac, you need
+two things from Apple:
+
+1. A **Developer ID Application** certificate (one-time setup, $99/year via the
+   Apple Developer Program).
+2. An **App Store Connect API key** (or app-specific password) so notarytool
+   can submit the signed `.app` for Apple's automated malware scan.
+
+Once both are in place, every build automatically signs, notarizes, and
+staples — the user sees Finder open the DMG normally and double-clicking the
+app just works.
+
+### 8.1 One-time setup — get the signing certificate
+
+```bash
+# 1. Enroll at https://developer.apple.com/programs/  ($99/yr).
+#    Wait for the "Welcome to the Apple Developer Program" email.
+
+# 2. Generate a Certificate Signing Request from Keychain Access:
+#    Keychain Access → Certificate Assistant → Request a Certificate
+#    From a Certificate Authority…
+#      • User Email Address: ludvig@ludvighedin.com
+#      • Common Name:        Ludvig Hedin
+#      • CA Email Address:   (leave blank)
+#      • Request is:         Saved to disk
+#    Save the .certSigningRequest file (e.g. ~/Desktop/weblab.certSigningRequest)
+
+# 3. Upload the CSR at https://developer.apple.com/account/resources/certificates/list
+#    Click "+", pick "Developer ID Application", upload the CSR.
+#    Download the resulting `developerID_application.cer`.
+
+# 4. Double-click the .cer to install it into your login keychain.
+
+# 5. Verify it landed and grab the full identity name:
+security find-identity -v -p codesigning
+# Expect a line like:
+#   1) ABCDEF1234567890… "Developer ID Application: Ludvig Hedin (TEAMID12345)"
+```
+
+The 10-character team ID inside the parentheses is your `APPLE_TEAM_ID`.
+
+### 8.2 Export the cert to a `.p12` (for CI)
+
+```bash
+# Open Keychain Access → "My Certificates" tab → expand the
+# "Developer ID Application: Ludvig Hedin (TEAMID12345)" entry → right-click
+# the private key → Export. Choose Personal Information Exchange (.p12).
+# Set a strong password and save as ~/Desktop/weblab-developer-id.p12.
+
+# Convert to base64 for GitHub Secrets:
+base64 -i ~/Desktop/weblab-developer-id.p12 | pbcopy
+# (now paste into the MAC_CERT_P12_BASE64 GitHub secret — see 8.5)
+```
+
+### 8.3 Create the notary credentials
+
+Pick **one** of these two methods. API key is recommended (no 2FA prompts,
+no Apple ID password reuse).
+
+#### Option A — App Store Connect API key (recommended)
+
+```bash
+# 1. Go to https://appstoreconnect.apple.com/access/api  →  Keys tab.
+# 2. Click "Generate API Key". Access = "Developer". Save the issuer ID and
+#    key ID shown on the page (Apple never shows them again).
+# 3. Download the .p8 file ONCE — it cannot be re-downloaded.
+mkdir -p ~/.appstoreconnect/private_keys
+mv ~/Downloads/AuthKey_*.p8 ~/.appstoreconnect/private_keys/
+
+# 4. Test it works with notarytool:
+xcrun notarytool history \
+  --key ~/.appstoreconnect/private_keys/AuthKey_XXXXXXXX.p8 \
+  --key-id XXXXXXXX \
+  --issuer XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+# Should print "No history found" (or your previous submissions). No errors.
+```
+
+Optionally store the credentials in the system keychain so you don't have to
+pass `--key/--key-id/--issuer` on every build:
+
+```bash
+xcrun notarytool store-credentials "WEBLAB_NOTARY" \
+  --key ~/.appstoreconnect/private_keys/AuthKey_XXXXXXXX.p8 \
+  --key-id XXXXXXXX \
+  --issuer XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+```
+
+#### Option B — App-specific password (alternative)
+
+```bash
+# 1. https://appleid.apple.com  →  Sign-In and Security  →
+#    App-Specific Passwords  →  Generate.
+#    Label it "weblab notarytool". Copy the password (e.g. abcd-efgh-ijkl-mnop).
+
+# 2. Test it:
+xcrun notarytool history \
+  --apple-id ludvig@ludvighedin.com \
+  --password abcd-efgh-ijkl-mnop \
+  --team-id TEAMID12345
+```
+
+### 8.4 Local signed build — terminal recipe
+
+```bash
+# From the repo root, switch to a build-capable Node version (electron-builder
+# requires Node 20+; the nvm default is 18 — see project memory).
+nvm use 20
+
+cd apps/desktop
+bun install
+bun add -d @electron/notarize     # only the first time
+
+# Tell electron-builder which identity to use and unlock the keychain so the
+# build can sign without interactive prompts.
+export CSC_IDENTITY_AUTO_DISCOVERY=true
+security unlock-keychain -p "<your login password>" ~/Library/Keychains/login.keychain-db
+
+# --- Auth method A: App Store Connect API key ---
+export APPLE_API_KEY="$HOME/.appstoreconnect/private_keys/AuthKey_XXXXXXXX.p8"
+export APPLE_API_KEY_ID="XXXXXXXX"
+export APPLE_API_ISSUER="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+
+# --- OR auth method B: app-specific password ---
+# export APPLE_ID="ludvig@ludvighedin.com"
+# export APPLE_APP_SPECIFIC_PASSWORD="abcd-efgh-ijkl-mnop"
+# export APPLE_TEAM_ID="TEAMID12345"
+
+# Enable notarization for this build (default is `notarize: false` in
+# package.json so unsigned local builds keep working).
+export NOTARIZE=1   # the hook reads creds from env — see scripts/notarize.js
+
+# Build the universal DMG. electron-builder picks up the keychain identity,
+# signs the .app with hardened runtime + entitlements, then the afterSign
+# hook submits it to Apple notary and waits for the ticket.
+bun run build:mac
+# → apps/desktop/dist/Weblab.dmg (signed + notarized + stapled)
+
+# Verify the result.
+codesign --verify --deep --strict --verbose=2 dist/mac-universal/Weblab.app
+# Expect: "Weblab.app: valid on disk … satisfies its Designated Requirement"
+
+spctl --assess --type execute --verbose dist/mac-universal/Weblab.app
+# Expect: "accepted source=Notarized Developer ID"
+
+xcrun stapler validate dist/mac-universal/Weblab.app
+# Expect: "The validate action worked!"
+
+# Validate the DMG itself too.
+spctl --assess --type install --verbose dist/Weblab.dmg
+# Expect: "accepted source=Notarized Developer ID"
+```
+
+If any of the three verify commands fails, do NOT ship — re-run the build and
+inspect the log printed by `scripts/notarize.js`.
+
+### 8.5 CI — sign on every tagged release
+
+Add these to **GitHub → Settings → Secrets and variables → Actions** so the
+`Desktop Release` workflow signs and notarizes too:
+
+| Secret | Value |
+|--------|-------|
+| `MAC_CERT_P12_BASE64`           | Output of `base64 -i weblab-developer-id.p12` |
+| `MAC_CERT_PASSWORD`             | The .p12 export password from step 8.2 |
+| `APPLE_API_KEY_P8_BASE64`       | `base64 -i AuthKey_XXXXXXXX.p8` |
+| `APPLE_API_KEY_ID`              | Key ID from App Store Connect |
+| `APPLE_API_ISSUER`              | Issuer UUID from App Store Connect |
+| `APPLE_TEAM_ID`                 | Your 10-char team ID |
+
+(Or, with Option B: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.)
+
+The macOS job in `.github/workflows/desktop-release.yml` reads these env vars
+and runs the same build as locally — no extra config needed after the secrets
+land.
+
+### 8.6 Verifying from a fresh Mac
+
+The fastest sanity check is to download the released DMG from
+`weblab.build/api/download/mac` on a Mac that has never run the app:
+
+1. Double-click the DMG. Finder should open it with no warning.
+2. Drag `Weblab.app` to `Applications`.
+3. Double-click `Weblab.app`. macOS should launch it without any prompt.
+
+If a "this app was downloaded from the internet, are you sure?" dialog
+appears, that's normal first-run behavior, not the unsigned warning. The bad
+one is *"Weblab can't be opened because Apple cannot check it for malicious
+software"* — if you see that, the notarization step silently failed.
+
+### 8.7 Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `errSecInternalComponent` during sign | Keychain locked | `security unlock-keychain ~/Library/Keychains/login.keychain-db` |
+| `Asset has not completed processing` | Notarization queue slow | Wait ~5 min, re-run `xcrun notarytool history` — Apple usually returns in 1–3 min |
+| `Invalid` from notarytool | Hardened runtime / entitlements missing | Re-check `build/entitlements.mac.plist` is referenced in `package.json` |
+| `spctl: rejected` | Stapling missing | Re-run `xcrun stapler staple dist/mac-universal/Weblab.app` |
+| `No identity found` in CI | `MAC_CERT_P12_BASE64` not decoded into the runner keychain | Confirm the workflow imports it via `security import` before build (see workflow) |
+

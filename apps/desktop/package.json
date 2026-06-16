@@ -1,6 +1,6 @@
 {
     "name": "@weblab/desktop",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "Weblab desktop app",
     "author": {
         "name": "Weblab",
@@ -23,6 +23,7 @@
         "electron-updater": "^6.3.9"
     },
     "devDependencies": {
+        "@electron/notarize": "^2.5.0",
         "electron": "^33.0.0",
         "electron-builder": "^25.1.8"
     },
@@ -55,6 +56,11 @@
                 { "target": "dmg", "arch": ["universal"] }
             ],
             "artifactName": "Weblab.dmg",
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false,
+            "entitlements": "build/entitlements.mac.plist",
+            "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+            "notarize": false,
             "extendInfo": {
                 "CFBundleDocumentTypes": [
                     {
@@ -65,6 +71,11 @@
                     }
                 ]
             }
+        },
+        "afterSign": "scripts/notarize.js",
+        "dmg": {
+            "writeUpdateInfo": true,
+            "sign": false
         },
         "win": {
             "icon": "assets/icon.ico",

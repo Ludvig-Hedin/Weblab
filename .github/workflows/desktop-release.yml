@@ -34,13 +34,38 @@ jobs:
         working-directory: apps/desktop
         run: bun install
 
+      # Decode the .p8 App Store Connect API key (if the secret is present)
+      # so notarytool can find it. Skipped if not configured — the build then
+      # produces an unsigned DMG and the notarize hook no-ops.
+      - name: Stage Apple notary API key
+        if: ${{ secrets.APPLE_API_KEY_P8_BASE64 != '' }}
+        env:
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          if [[ ! "$APPLE_API_KEY_ID" =~ ^[A-Za-z0-9]+$ ]]; then
+            echo "::error::APPLE_API_KEY_ID must be alphanumeric" >&2
+            exit 1
+          fi
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s' "$APPLE_API_KEY_P8_BASE64" | base64 -d > "$KEY_PATH"
+          echo "APPLE_API_KEY=$KEY_PATH" >> "$GITHUB_ENV"
+
       - name: Build macOS DMG (x64 + arm64)
         working-directory: apps/desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Code signing — leave blank if you don't have a certificate yet.
-          # CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
-          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          # Signing — electron-builder reads CSC_LINK as a path or base64.
+          CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          # Notarization credentials — Option A (API key) is preferred.
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Option B (app-specific password) — used only if API key absent.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: bun run build:mac
 
       - name: Upload DMG artifacts
