@@ -38,6 +38,90 @@ later without re-discovering the context.
 
 ## Open
 
+### Token-cost billing: follow-ups after the reserve-then-reconcile cutover
+
+- **Discovered:** 2026-06-17 (token-cost billing ship)
+- **Where:** `apps/web/client/convex/{usage,lib/creditCost,schema}.ts`, F-557
+- **Symptom / follow-ups (none blocking — feature is live & verified):**
+  1. **Deploy gate:** the new `costUsd` field on `usageRecords` + the
+     `reconcileUsage` mutation must be deployed to the Convex backend (dev
+     `avid-gnat-539` synced via `convex codegen`; prod ships via
+     `convex-deploy-production.yml`). Until prod deploys, `reconcileUsage`
+     calls 404 and the route's try/catch swallows it → billing silently stays
+     at the conservative reserved 1 credit. Verify after the next prod deploy.
+  2. **Tuning levers** live in `convex/lib/creditCost.ts`:
+     `LLM_COST_BUDGET_FRACTION` (0.5 = 50% of plan price is model-spend budget)
+     and `FREE_CREDIT_VALUE_USD` (0.125, mirrors T1). Free users currently get
+     ~$6.25/mo of model spend (50 credits × $0.125) — lower `FREE_CREDIT_VALUE_USD`
+     if free-tier burn is too high at scale.
+  3. **Sync footgun:** `PRO_TIER_COST_CENTS` in `creditCost.ts` mirrors the
+     `cost` of `PRO_PRICES` in `packages/stripe/src/constants.ts` (the Convex
+     `prices` table has no `cost` column). Cross-ref comments added on both
+     sides; a future improvement is to store `cost`/`creditValueUsd` on the
+     `prices` row + backfill via the Stripe webhook to kill the duplication.
+  4. **Not yet token-priced (intentional, out of scope):** `ASK`/`PLAN` chat
+     remain free (as before); image generation stays a flat 5 credits
+     (`reserveImage`). Re-price these if/when desired.
+  5. **Unknown-model cost = 0** → reconcile fully refunds the reservation (free
+     message). All routed models are in `MODEL_PRICING`; a registry gap would
+     silently make those requests free. The existing `[observability] no pricing
+     for model` warning is the signal to watch.
+
+### Cloud preview overlay never reveals an alive-but-not-yet-bridged page
+
+- **Discovered:** 2026-06-16 (bug-hunt; preview AI-1, verdict partial/high)
+- **Where:** `apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx:312,578-586`; `frame-connection.ts:28-43`; `use-sandbox-liveness.ts`
+- **Symptom:** For a CLOUD (Vercel) frame, the opaque `bg-background` boot overlay only lifts on `isFrameReady = preloadScriptReady && isPenpalConnected`. A sandbox serving HTTP 200 (`livenessState==='alive'`) stays fully hidden behind the overlay until the preload+penpal bridge completes. The `alive`-lifts-overlay shortcut (`localPreviewReady`, index.tsx:312) is `isLocalFrame`-only — no cloud equivalent.
+- **Root cause:** No `cloudPreviewReady`. `shouldUnlockCodeSandboxPreview()` hardwired false.
+- **Next step:** Add `const cloudPreviewReady = !isLocalFrame && livenessState==='alive' && !hasBuildErrors && preloadScriptReady;` and, once true, switch the overlay from opaque to a translucent "connecting tools" hint (show the rendered page, small corner spinner) while penpal finishes. Do NOT reveal before `preloadScriptReady` (an unbridged iframe makes select/edit no-op). Keep build-error + `sandboxIsGone`/Restart paths intact.
+- **Risk if ignored:** After the :8080 deploy lands, normal boots are fine, but a slow/failed penpal handshake reads as "blank page, loading forever" instead of a usable preview.
+- **Tags:** `#bug` `#editor` `#preview`
+
+### Blank-create path forces a full window.location.reload() mid-create
+
+- **Discovered:** 2026-06-16 (bug-hunt; creation AI-3, verdict confirmed/high)
+- **Where:** `apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx:183-189`; `convex/projectActions.ts:472-491` (createBlank optimistic) vs `:683-728` (createFromPrompt synchronous)
+- **Symptom:** "Start blank" inserts frames with empty URLs + provisions in the background; when the real URL lands, the frame effect calls `window.location.reload()`, replaying the whole loader chain (loading.tsx → Main → frame overlay) + a white flash. The hero AI-prompt path (`createFromPrompt`) provisions synchronously and is NOT affected.
+- **Next step (preferred):** Align `createBlank` with `createFromPrompt` — provision the sandbox synchronously and `_insertProjectGraph` with `sandboxUrl` set, so frames are never inserted at `url:''` and the reload effect never fires. Cost: blank open waits ~13s (warm) on one loader (same UX as the prompt path). Alternative (keeps optimistic open): replace `window.location.reload()` with `immediateReload()` (reloadKey bump) ONLY after making the EditorEngine branch sandbox metadata reactive to the live Convex query — naive reloadKey swap regresses the "boot with correct branch sandboxId" guarantee (comment at index.tsx:180-182).
+- **Risk if ignored:** Blank-create feels broken (double loaders + flash). Not on the user's AI-prompt flow.
+- **Tags:** `#bug` `#editor` `#ux`
+
+### projectReadyState.sandbox flips true on provider construction, not real readiness
+
+- **Discovered:** 2026-06-16 (bug-hunt; wiring AI-3, verdict partial/high)
+- **Where:** `apps/web/client/src/app/project/[id]/_hooks/use-start-project.tsx:186-188`; `components/store/editor/sandbox/session.ts:157-161`
+- **Symptom:** `sandbox` ready-flag flips the instant `VercelBrowserProvider` is constructed (synchronous), independent of whether the :8080 WS actually connected or the dev server started. So the editor can open (isProjectReady true via Convex-driven canvas+conversations) with a dead/booting preview and no surfaced error.
+- **Next step:** Add a `session.devServerReady` observable set after `task.open()`/dev-server start resolves, and gate `updateProjectReadyState({ sandbox: true })` on it. (Partly mitigated already by the 60s `startDevServer` WS timeout added 2026-06-16 in `vercel-browser-provider.ts`, which now surfaces a hard error instead of hanging.)
+- **Risk if ignored:** "Entered the editor but preview never works, no error" until the watchdog fires.
+- **Tags:** `#bug` `#editor` `#preview`
+
+### Preload-injection failure can't be re-armed by the user; "alive but preload-failed" mislabeled
+
+- **Discovered:** 2026-06-16 (bug-hunt; preview AI-2, verdict partial/high)
+- **Where:** `components/store/editor/sandbox/index.ts:373-401` (latch + private `resetPreloadRetryState`); `use-frame-reload.ts:68-80` (`immediateReload` doesn't reset preload state); `frame/index.tsx` restart panel
+- **Symptom:** After the preload-retry budget (5 non-transient / 30 transient) is exhausted, `preloadScriptState` latches NOT_INJECTED. The existing Restart/Retry panels reload the iframe but never re-call `ensurePreloadScriptExists()`, so a preload/parse failure can't recover without a full provider restart or page reload. When the page is `alive` but preload failed, the panel offers "Restart dev server" — which doesn't fix injection.
+- **Next step:** Expose a public `retryPreloadInjection()` (calls `resetPreloadRetryState()` + `ensurePreloadScriptExists()`) and call it from the frame retry/restart handlers. Add a distinct `preloadFailed` signal (NOT_INJECTED && budget exhausted && !sandboxGone) with a panel whose primary action is `retryPreloadInjection()`.
+- **Risk if ignored:** Rare terminal preload failures need a manual page reload to recover.
+- **Tags:** `#bug` `#editor` `#preview`
+
+### resumeCreate doesn't mark the create request terminal on send failure
+
+- **Discovered:** 2026-06-16 (bug-hunt; wiring AI-5, verdict partial/medium)
+- **Where:** `apps/web/client/src/app/project/[id]/_hooks/use-start-project.tsx:541-547` (catch); `convex/projectCreateRequests.ts:24-39` (`updateStatus` accepts FAILED already)
+- **Symptom:** If `sendMessage` throws, the create request stays PENDING forever (`hasPendingCreation` truthy), the right panel keeps its mount-only wide "first-creation" layout, and the user gets only a dismissible toast — no inline retry.
+- **Next step:** In the catch, when the failure is at/after `sendMessage`, `await updateCreateRequest({ projectId, status: ProjectCreateRequestStatus.FAILED })` (enum value exists). For pre-send (context-gather) failures, trigger a real retry (bump a retry-counter in the effect deps; `processedRequestIdRef=null` alone doesn't re-fire). Surface an inline retry CTA in the chat panel, not the frame overlay.
+- **Risk if ignored:** A failed first AI send leaves a stale PENDING request + lingering wide panel until reload.
+- **Tags:** `#bug` `#editor` `#ai`
+
+### Editor AI tool loop: one full HTTP round-trip per tool step
+
+- **Discovered:** 2026-06-16 (bug-hunt; ai-loop AI-1, verdict partial/high)
+- **Where:** `packages/ai/src/tools/toolset.ts:54-73`; `apps/web/client/src/app/project/[id]/_hooks/use-chat/index.tsx:161-164`; `apps/web/client/src/app/api/chat/route.ts`
+- **Symptom:** read/list/grep/edit are client tools with no server `execute`, so each assistant turn ending in tool-calls terminates the server stream and the browser fires a fresh POST `/api/chat` that re-runs the full route setup + re-sends the growing transcript. N sequential tool turns ≈ N round-trips. (The biggest per-step stall — unbounded mem0 search — was fixed 2026-06-16: timeout + skip-on-continuation in route.ts.)
+- **Next step (cheap wins first):** Cache per-turn-invariant context (skills, tier, summary, projects.get) across continuation POSTs of the same turn (key on conversationId+traceId or thread via the transport). Lean on the existing conversation summarizer so continuations ship a compacted transcript. Confirm the Anthropic prefix cache is actually hit on continuations. Server-side tool batching (convert read tools to ServerTool) is a separate, large architecture project — requires a server-authoritative file store for the agent; do not bundle.
+- **Risk if ignored:** Multi-step AI tasks feel slow on high-latency networks even after the mem0 fix.
+- **Tags:** `#tech-debt` `#ai` `#perf`
+
 ### GitHub OAuth completes but bounces to /sign-in (Clerk verified-email / account-linking config)
 
 - **Discovered:** 2026-06-16 (user-reported "GitHub login doesn't work; Vercel works")
