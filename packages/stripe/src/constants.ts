@@ -27,6 +27,12 @@ export interface PriceConfig {
     paymentInterval: 'month' | 'year';
 }
 
+// SYNC: the `cost` (cents) of each tier below is mirrored in
+// apps/web/client/convex/lib/creditCost.ts (`PRO_TIER_COST_CENTS`) — the Convex
+// `prices` table stores only `key` + `monthlyMessageLimit`, not the dollar cost,
+// and token-cost billing needs the price to value a credit. If you change a
+// tier's `cost` here, update that map too.
+//
 // NOTE: legacy tiers TIER_25/50/75 were removed from this list. They were
 // rendered as selectable options in the pricing modal but the Convex
 // `vPriceKey` validator only accepts TIER_1..11, so selecting them threw a

@@ -13,6 +13,7 @@ import {
     decrementUsage,
     getSupabaseUser,
     incrementUsage,
+    reconcileUsageCost,
 } from '../../chat/helpers';
 
 const MAX_INSTRUCTION_BYTES = 4 * 1024;
@@ -111,13 +112,26 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        let costUsd: number | undefined;
         const command = await generateTerminalCommand({
             instruction: body.instruction,
             context,
             userId: user.id,
             projectId: body.projectId,
             abortSignal: req.signal,
+            onUsage: ({ estimatedCostUsd }) => {
+                costUsd = estimatedCostUsd;
+            },
         });
+
+        // Reconcile the reserved credit against the real token cost. Awaited
+        // (not fire-and-forget) because this non-streaming handler returns right
+        // after — a background promise could be dropped when the function
+        // freezes. reconcileUsageCost swallows its own errors, so this never
+        // throws and adds only one fast mutation round-trip.
+        if (costUsd !== undefined) {
+            await reconcileUsageCost(incrementResult, costUsd);
+        }
 
         return new Response(JSON.stringify({ command }), {
             status: 200,

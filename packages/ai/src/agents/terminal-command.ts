@@ -4,6 +4,7 @@ import type { ChatModel, OPENROUTER_MODELS } from '@weblab/models';
 import { getProviderFromModel, LLMProvider, OPENROUTER_MODELS as MODELS } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
+import { estimateCostFromResult } from '../observability';
 import { escapeXml } from './xml-escape';
 
 /**
@@ -38,6 +39,12 @@ export interface TerminalCommandArgs {
     userId: string;
     projectId: string;
     abortSignal?: AbortSignal;
+    /**
+     * Reports the request's real token cost (USD) once translation completes,
+     * so the caller can reconcile token-cost billing. Best-effort; a sink error
+     * never affects the returned command.
+     */
+    onUsage?: (info: { estimatedCostUsd: number }) => void;
 }
 
 /**
@@ -88,6 +95,7 @@ export const generateTerminalCommand = async ({
     userId,
     projectId,
     abortSignal,
+    onUsage,
 }: TerminalCommandArgs): Promise<string> => {
     const selectedModel: ChatModel = model ?? DEFAULT_TERMINAL_COMMAND_MODEL;
     const provider = getProviderFromModel(selectedModel);
@@ -106,7 +114,7 @@ export const generateTerminalCommand = async ({
                   model: DEFAULT_TERMINAL_COMMAND_MODEL,
               });
 
-    const { text } = await generateText({
+    const result = await generateText({
         model: modelConfig.model,
         providerOptions: modelConfig.providerOptions,
         system: SYSTEM_PROMPT,
@@ -125,7 +133,21 @@ export const generateTerminalCommand = async ({
         },
     });
 
-    const command = sanitizeCommand(text);
+    if (onUsage) {
+        try {
+            onUsage({
+                estimatedCostUsd: estimateCostFromResult({
+                    model: selectedModel,
+                    usage: result.usage,
+                    providerMetadata: result.providerMetadata,
+                }),
+            });
+        } catch {
+            // Best-effort metering — never let a sink error break translation.
+        }
+    }
+
+    const command = sanitizeCommand(result.text);
     // An empty result (model returned only fences/whitespace) is a failed
     // translation, not a valid command. Throw so the route's catch refunds the
     // charged credit instead of returning `{ command: '' }` with a 200 (which

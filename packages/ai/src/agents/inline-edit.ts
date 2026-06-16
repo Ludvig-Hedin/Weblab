@@ -4,6 +4,7 @@ import type { ChatModel, OllamaModelId, OPENROUTER_MODELS } from '@weblab/models
 import { DEFAULT_INLINE_EDIT_MODEL, getProviderFromModel, LLMProvider } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
+import { estimateCostFromResult } from '../observability';
 import { escapeXml } from './xml-escape';
 
 const SYSTEM_PROMPT = `You are an inline code editor. The user will give you a snippet of code and an instruction.
@@ -58,6 +59,14 @@ export interface InlineEditStreamArgs {
      * Optional; omitting it preserves the prior behavior exactly.
      */
     onAbort?: () => void;
+    /**
+     * Reports the request's real token cost (USD) when the stream finishes
+     * successfully, so the caller can reconcile token-cost billing. Fires from
+     * the SDK's `onFinish` (after the route has already returned the lazy
+     * stream), so the caller must perform the reconcile inside this hook.
+     * Best-effort; omitting it preserves prior behavior.
+     */
+    onUsage?: (info: { estimatedCostUsd: number }) => void;
 }
 
 export const createInlineEditStream = ({
@@ -75,6 +84,7 @@ export const createInlineEditStream = ({
     abortSignal,
     onError,
     onAbort,
+    onUsage,
 }: InlineEditStreamArgs): ReturnType<typeof streamText> => {
     const selectedModel: ChatModel = model ?? DEFAULT_INLINE_EDIT_MODEL;
     const provider = getProviderFromModel(selectedModel);
@@ -105,6 +115,21 @@ export const createInlineEditStream = ({
         abortSignal,
         onError: onError ? (event) => onError(event.error) : undefined,
         onAbort: onAbort ? () => onAbort() : undefined,
+        onFinish: onUsage
+            ? (event) => {
+                  try {
+                      onUsage({
+                          estimatedCostUsd: estimateCostFromResult({
+                              model: selectedModel,
+                              usage: event.usage,
+                              providerMetadata: event.providerMetadata,
+                          }),
+                      });
+                  } catch {
+                      // Best-effort metering — never let a sink error surface.
+                  }
+              }
+            : undefined,
         experimental_transform: smoothStream(),
         experimental_telemetry: {
             isEnabled: true,

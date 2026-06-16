@@ -100,6 +100,38 @@ export const incrementUsage = async (
     return null;
 };
 
+// Reconcile a reserved credit against the request's REAL token cost. The route
+// reserves a flat 1 credit up front (`incrementUsage`); once generation
+// finishes and the dollar cost is known, this re-bases the deduction to the
+// per-tier credit cost (Pro: adjusts the bucket; Free: rewrites the counted
+// amount). Best-effort — token-cost billing must never surface an error or
+// block a response, so a failure here just leaves the conservative 1-credit
+// charge in place.
+export const reconcileUsageCost = async (
+    usageRecord:
+        | { usageRecordId: string | undefined; rateLimitId: string | undefined }
+        | { limitReached: true }
+        | null,
+    estimatedCostUsd: number,
+): Promise<void> => {
+    try {
+        if (!usageRecord || 'limitReached' in usageRecord || !usageRecord.usageRecordId) {
+            return;
+        }
+        const token = await getConvexToken();
+        await fetchMutation(
+            api.usage.reconcileUsage,
+            {
+                usageRecordId: usageRecord.usageRecordId as Id<'usageRecords'>,
+                estimatedCostUsd,
+            },
+            { token },
+        );
+    } catch (error) {
+        console.error('Error reconciling usage cost', error);
+    }
+};
+
 export const decrementUsage = async (
     _req: NextRequest,
     usageRecord: {

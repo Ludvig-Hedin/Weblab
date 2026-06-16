@@ -292,7 +292,7 @@ export const ProCard = ({
         <Select value={selectedTier} onValueChange={(value) => setSelectedTier(value as PriceKey)}>
             <SelectTrigger
                 size="lg"
-                className="w-auto min-w-[96px] gap-2 rounded-full px-4 text-base font-medium"
+                className="w-auto min-w-[96px] gap-2 rounded-full border-transparent px-4 text-base font-medium bg-[#0d0d0d] text-white hover:bg-[#141414] [&_svg]:text-white dark:bg-white dark:text-[#181818] dark:hover:bg-white/90 dark:[&_svg]:text-[#181818]"
             >
                 <span className="flex items-center gap-1.5">
                     <Coins className="h-4 w-4" aria-hidden="true" />

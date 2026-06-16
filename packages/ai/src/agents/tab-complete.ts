@@ -4,6 +4,7 @@ import type { ChatModel, OllamaModelId, OPENROUTER_MODELS } from '@weblab/models
 import { DEFAULT_TAB_COMPLETE_MODEL, getProviderFromModel, LLMProvider } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
+import { estimateCostFromResult } from '../observability';
 import { escapeXml } from './xml-escape';
 
 /** Codestral and Mistral models accept Mistral-style FIM tokens directly in the
@@ -46,6 +47,12 @@ export interface TabCompleteArgs {
     userId: string;
     projectId: string;
     abortSignal?: AbortSignal;
+    /**
+     * Reports the request's real token cost (USD) once generation completes, so
+     * the caller can reconcile token-cost billing. Optional; best-effort and
+     * wrapped so a sink failure never affects the returned completion.
+     */
+    onUsage?: (info: { estimatedCostUsd: number }) => void;
 }
 
 export const generateTabCompletion = async ({
@@ -58,6 +65,7 @@ export const generateTabCompletion = async ({
     userId,
     projectId,
     abortSignal,
+    onUsage,
 }: TabCompleteArgs): Promise<string> => {
     const selectedModel: ChatModel = model ?? DEFAULT_TAB_COMPLETE_MODEL;
     const provider = getProviderFromModel(selectedModel);
@@ -81,7 +89,7 @@ export const generateTabCompletion = async ({
     // FIM-tuned models (Codestral) get raw FIM tokens with no system prompt;
     // chat-tuned models get a structured XML prompt + system instructions.
     const useFim = typeof selectedModel === 'string' && isCodestral(selectedModel);
-    const { text } = await generateText({
+    const result = await generateText({
         model: modelConfig.model,
         providerOptions: modelConfig.providerOptions,
         system: useFim ? undefined : SYSTEM_PROMPT,
@@ -101,5 +109,19 @@ export const generateTabCompletion = async ({
         },
     });
 
-    return text;
+    if (onUsage) {
+        try {
+            onUsage({
+                estimatedCostUsd: estimateCostFromResult({
+                    model: selectedModel,
+                    usage: result.usage,
+                    providerMetadata: result.providerMetadata,
+                }),
+            });
+        } catch {
+            // Best-effort metering — never let a sink error break the completion.
+        }
+    }
+
+    return result.text;
 };

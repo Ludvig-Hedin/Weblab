@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-17 — Token-cost credit billing (reserve-then-reconcile)
+Author: Claude (Opus 4.8)
+Area: `apps/web/client/convex/{usage,lib/creditCost,schema}.ts`, 5 AI API routes, `packages/ai` agents + observability
+Summary: Switched credit metering from flat 1-per-message to **real token cost**. A credit is now valued **per-tier** as `(planCost×0.5)/monthlyMessageLimit` (budget = 50% of plan price → ~50% margin floor; T11 "Unlimited" is now dollar-bounded instead of an unbounded-loss landmine). Model is **reserve-then-reconcile**: `increment` still reserves a flat 1 credit pre-stream (unchanged concurrency gate); a new `reconcileUsage` mutation re-bases the deduction to the request's `estimatedCostUsd` once the stream finishes — cheap turns refund part of the reservation, expensive turns deduct more (`left` floors at 0, bounded overshoot). Free tier converts too (rewrites `usageRecords.amount` via `FREE_CREDIT_VALUE_USD`, no bucket). Cost flows from the existing `estimateLLMCost` pipeline; the 4 non-chat micro-agents (inline-edit, tab-complete, terminal-command, summarizer) gained an optional `onUsage` callback (+ `estimateCostFromResult` helper) so each route can reconcile. **tab-complete** was the biggest fix — it flat-charged 1 credit per ~$0.001 completion (~100× overcharge), now reconciled. `reconcileUsage` is **one-time idempotent** (guarded on `costUsd`) + clamps negative cost — anti-credit-farming, mirroring `revertIncrement`'s server-held-id + one-shot model (caught in self-review: a public mutation taking client cost was replay-refundable). UI rounds fractional credits at the `usage.get` boundary only (internal callers stay precise). No schema migration (`left`/`max`/`amount` already floats; added optional `usageRecords.costUsd` for audit). 16 new pure-math tests; 124 convex lib tests green; web-client typecheck + lint clean.
+Files: `convex/lib/creditCost.ts` (+test), `convex/usage.ts` (`reconcileUsage`, `get` rounding), `convex/schema.ts` (`costUsd`), `src/app/api/chat/{route,helpers/usage,summarize/route}.ts`, `src/app/api/ai/{inline-edit,terminal-command,tab-complete}/route.ts`, `packages/ai/src/{observability/index,agents/inline-edit,agents/tab-complete,agents/terminal-command,chat/summarizer}.ts`, `packages/stripe/src/constants.ts` (sync note)
+Links: changelog v4.5; tuning levers = `LLM_COST_BUDGET_FRACTION` (0.5) + `FREE_CREDIT_VALUE_USD` (0.125) in creditCost.ts
+
 ## 2026-06-13 — AI Wireframes correction: real shadcn blocks + local-AND-cloud emit
 Author: Claude (Opus 4.8)
 Area: `@weblab/wireframe-blocks`, `apps/web/client/convex/wireframeEmit.ts`, `wireframe/_components/emit-button.tsx`

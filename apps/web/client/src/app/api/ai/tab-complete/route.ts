@@ -9,7 +9,12 @@ import { generateTabCompletion, inferProviderFromModelId } from '@weblab/ai';
 import { AUTO_MODEL_ID, DEFAULT_TAB_COMPLETE_MODEL } from '@weblab/models';
 
 import type { Id } from '@convex/_generated/dataModel';
-import { checkMessageLimit, getSupabaseUser, incrementUsage } from '../../chat/helpers';
+import {
+    checkMessageLimit,
+    getSupabaseUser,
+    incrementUsage,
+    reconcileUsageCost,
+} from '../../chat/helpers';
 
 const ALLOWED_OLLAMA_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
@@ -162,6 +167,7 @@ export async function POST(req: NextRequest) {
 
     try {
         // Honor client-side aborts so cancelled keystrokes don't burn tokens.
+        let costUsd: number | undefined;
         const completion = await generateTabCompletion({
             filePath: body.filePath,
             language: body.language,
@@ -172,14 +178,25 @@ export async function POST(req: NextRequest) {
             userId: user.id,
             projectId: body.projectId,
             abortSignal: req.signal,
+            onUsage: ({ estimatedCostUsd }) => {
+                costUsd = estimatedCostUsd;
+            },
         });
         // Meter after generation so aborted/failed requests don't count.
         // Fire-and-forget: tab completions are best-effort; don't block the
-        // response. Log metering failures so silent telemetry drift is at
-        // least visible in server logs.
-        void incrementUsage(req).catch((err) => {
-            console.error('[tab-complete] meter increment failed', err);
-        });
+        // response. Reserve 1 credit, then reconcile it down to the real token
+        // cost (a completion is ~$0.001 ≈ a tiny fraction of a credit — charging
+        // a flat credit would overcharge ~100x). Log metering failures so silent
+        // telemetry drift is at least visible in server logs.
+        void incrementUsage(req)
+            .then((incrementResult) => {
+                if (costUsd !== undefined) {
+                    return reconcileUsageCost(incrementResult, costUsd);
+                }
+            })
+            .catch((err) => {
+                console.error('[tab-complete] meter increment failed', err);
+            });
         return new Response(JSON.stringify({ completion }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

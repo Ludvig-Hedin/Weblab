@@ -47,6 +47,7 @@ import type * as lib_cmsCredentials from "../lib/cmsCredentials.js";
 import type * as lib_cmsRemoteRef from "../lib/cmsRemoteRef.js";
 import type * as lib_cmsValueValidation from "../lib/cmsValueValidation.js";
 import type * as lib_comments from "../lib/comments.js";
+import type * as lib_creditCost from "../lib/creditCost.js";
 import type * as lib_enums from "../lib/enums.js";
 import type * as lib_freestyle from "../lib/freestyle.js";
 import type * as lib_hostingFactory from "../lib/hostingFactory.js";
@@ -142,6 +143,7 @@ declare const fullApi: ApiFromModules<{
   "lib/cmsRemoteRef": typeof lib_cmsRemoteRef;
   "lib/cmsValueValidation": typeof lib_cmsValueValidation;
   "lib/comments": typeof lib_comments;
+  "lib/creditCost": typeof lib_creditCost;
   "lib/enums": typeof lib_enums;
   "lib/freestyle": typeof lib_freestyle;
   "lib/hostingFactory": typeof lib_hostingFactory;

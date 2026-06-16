@@ -609,7 +609,7 @@ See F-151 to F-160. Plus:
 | F-554 | `#convex` | `storageActions` | [convex/storageActions.ts](apps/web/client/convex/storageActions.ts) | (per file) | Blob upload + sign |
 | F-555 | `#convex` `#billing` | `subscriptionActions` | [convex/subscriptionActions.ts](apps/web/client/convex/subscriptionActions.ts) | `startPromoCheckout`, Stripe webhook handlers, portal | Stripe lifecycle |
 | F-556 | `#convex` `#billing` | `subscriptions` | [convex/subscriptions.ts](apps/web/client/convex/subscriptions.ts) | (per file) | Subscription records |
-| F-557 | `#convex` `#billing` | `usage` | [convex/usage.ts](apps/web/client/convex/usage.ts) | (per file) | Usage caps + reads |
+| F-557 | `#convex` `#billing` | `usage` | [convex/usage.ts](apps/web/client/convex/usage.ts) | `increment` (reserve 1), `reconcileUsage` (token-cost re-base, one-time), `revertIncrement`, `reserveImage`, `get`/`tier`. Token-cost billing values a credit per-tier via [convex/lib/creditCost.ts](apps/web/client/convex/lib/creditCost.ts) | Usage caps + token-cost billing |
 | F-558 | `#convex` | `userActions` | [convex/userActions.ts](apps/web/client/convex/userActions.ts) | (per file) | User-level actions |
 | F-559 | `#convex` | `userActionsInternal` | [convex/userActionsInternal.ts](apps/web/client/convex/userActionsInternal.ts) | (per file) | Internal user helpers |
 | F-560 | `#convex` | `users` | [convex/users.ts](apps/web/client/convex/users.ts) | (per file) | User profile reads/writes |

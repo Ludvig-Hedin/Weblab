@@ -14,6 +14,7 @@ import {
     decrementUsage,
     getSupabaseUser,
     incrementUsage,
+    reconcileUsageCost,
 } from '../../chat/helpers';
 
 const ALLOWED_OLLAMA_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
@@ -246,6 +247,14 @@ export async function POST(req: NextRequest) {
             // up-front charge so a cancelled inline edit doesn't burn a credit.
             onAbort: () => {
                 void refundOnce();
+            },
+            // Stream finished successfully — reconcile the reserved credit
+            // against the real token cost. Fires after this handler returned the
+            // lazy stream, so the reconcile happens here. A refunded request
+            // (error/abort) leaves no record, so reconcile is a safe no-op.
+            onUsage: ({ estimatedCostUsd }) => {
+                if (refunded) return;
+                void reconcileUsageCost(usageRecord, estimatedCostUsd);
             },
         });
 

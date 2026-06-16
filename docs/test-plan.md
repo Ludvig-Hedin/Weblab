@@ -446,6 +446,8 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-553 | F-553, F-554 | I | Upload + sign URL | URL returned; resolves blob | `[ ]` |
 | T-555 | F-555, F-556, F-619 | I | `startPromoCheckout` (test mode) | Session URL returned | `[ ]` |
 | T-557 | F-557, F-621 | I | Increment usage past cap | 429 on next call (F-475) | `[ ]` |
+| T-826 | F-557 | U | Token-cost credit math (`convex/lib/creditCost.test.ts`) | Per-tier creditValueUsd (T1 0.125, T11 ~0.01875), usd→credits, reconciledBucketLeft floor/cap — 16 cases | `[x]` |
+| T-827 | F-557 | I | `reconcileUsage` re-bases reserved credit to real cost | Pro bucket `left` adjusts by (actual−reserved) cost; free rewrites `usageRecords.amount`; one-time (replay = no-op); cost 0 → full refund; never throws to user | `[ ]` |
 | T-560 | F-560, F-559 | I | User read + internal helpers | No PII leak across users | `[ ]` |
 | T-562 | F-562 | I | Workspace CRUD | Slug uniqueness enforced | `[ ]` |
 | T-565 | F-565, F-710 | I | Clerk JWT verification | Valid JWT accepted; spoofed rejected | `[ ]` |

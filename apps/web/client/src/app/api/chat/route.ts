@@ -153,6 +153,16 @@ const ChatRequestBodySchema = z.object({
 // user staring at a finished bubble.
 const CONVEX_FINISH_TIMEOUT_MS = 8_000;
 
+// Hard ceiling on the mem0 memory search, which sits on the pre-stream critical
+// path: `buildChatRequest` can't start streaming until the Promise.all gate
+// below resolves. mem0's SDK `search()` uses a raw `fetch` with NO timeout and
+// NO AbortController, so a slow/hung mem0 endpoint stalled the FIRST token for
+// minutes — felt as "the AI is stuck after every action" (bug-hunt 2026-06-16,
+// AI-2). runWithTimeout can't abort the underlying fetch (the SDK exposes no
+// signal), but it stops mem0 from blocking the stream: on timeout we proceed
+// with no memories. 1.5s is generous for a healthy vector lookup.
+const MEMORY_SEARCH_TIMEOUT_MS = 1_500;
+
 async function runWithTimeout<T>(
     promise: Promise<T>,
     timeoutMs: number,
@@ -295,6 +305,13 @@ const streamResponse = async (req: NextRequest, userId: string) => {
         .join(' ');
     const memoryQueryText = rawQueryText ? extractInstructionText(rawQueryText) : '';
 
+    // Only search memories on a FRESH user turn. On a tool-continuation POST the
+    // last message is the assistant's tool-call turn (no new trailing user
+    // message), so `memoryQueryText` — derived from findLast(role==='user') —
+    // is identical to the turn's first step. Re-running mem0 on every tool step
+    // pays a full round-trip per step for zero new signal (bug-hunt AI-2).
+    const isFreshUserTurn = messages.at(-1)?.role === 'user';
+
     const selectedModel = (parsedBody.model ?? CHAT_MODEL_OPTIONS[0].model) as ChatModel | 'auto';
     if (!isValidChatModel(selectedModel)) {
         return new Response(JSON.stringify({ error: 'Invalid model identifier.', code: 400 }), {
@@ -365,12 +382,14 @@ const streamResponse = async (req: NextRequest, userId: string) => {
         // Mem0 is best-effort: a flaky vector store must not take down chat.
         // Without this catch, a rejection here propagates through Promise.all
         // and kills the whole turn.
-        const memoriesPromise = memoryQueryText
-            ? searchMemories(memoryQueryText, userId).catch((err: unknown) => {
-                  console.warn('[chat] memory search failed; continuing without', err);
-                  return [];
-              })
-            : Promise.resolve([]);
+        const memoriesPromise =
+            memoryQueryText && isFreshUserTurn
+                ? runWithTimeout(
+                      searchMemories(memoryQueryText, userId),
+                      MEMORY_SEARCH_TIMEOUT_MS,
+                      'memorySearch',
+                  ).then((r) => r ?? [])
+                : Promise.resolve([]);
         const skillsPromise = loadSkillSummaries({
             userId,
             projectId: projectId ?? undefined,
@@ -476,31 +495,63 @@ const streamResponse = async (req: NextRequest, userId: string) => {
             toolCallCount?: number;
             errorType?: string;
         }) => {
-            await fetchMutation(
-                api.aiUsageEvents.insert,
-                {
-                    userId: userId as Id<'users'>,
-                    conversationId: event.conversationId
-                        ? (event.conversationId as Id<'conversations'>)
-                        : undefined,
-                    projectId: event.projectId ? (event.projectId as Id<'projects'>) : undefined,
-                    messageId: event.messageId,
-                    provider: event.provider,
-                    model: event.model,
-                    chatType: event.chatType,
-                    resolvedFromAuto: event.resolvedFromAuto,
-                    inputTokens: event.inputTokens,
-                    outputTokens: event.outputTokens,
-                    cacheCreationTokens: event.cacheCreationTokens,
-                    cacheReadTokens: event.cacheReadTokens,
-                    estimatedCostUsd: event.estimatedCostUsd,
-                    ttfMs: event.ttfMs,
-                    totalMs: event.totalMs,
-                    toolCallCount: event.toolCallCount,
-                    errorType: event.errorType,
-                },
-                { token: convexToken },
-            );
+            // Telemetry insert is isolated from billing below: a failed
+            // aiUsageEvents write must NOT skip the credit reconcile (billing
+            // matters more than analytics). Without this guard, a thrown insert
+            // would exit the sink before reconcile ran, silently leaving the
+            // charge at the conservative reserved 1 credit.
+            try {
+                await fetchMutation(
+                    api.aiUsageEvents.insert,
+                    {
+                        userId: userId as Id<'users'>,
+                        conversationId: event.conversationId
+                            ? (event.conversationId as Id<'conversations'>)
+                            : undefined,
+                        projectId: event.projectId
+                            ? (event.projectId as Id<'projects'>)
+                            : undefined,
+                        messageId: event.messageId,
+                        provider: event.provider,
+                        model: event.model,
+                        chatType: event.chatType,
+                        resolvedFromAuto: event.resolvedFromAuto,
+                        inputTokens: event.inputTokens,
+                        outputTokens: event.outputTokens,
+                        cacheCreationTokens: event.cacheCreationTokens,
+                        cacheReadTokens: event.cacheReadTokens,
+                        estimatedCostUsd: event.estimatedCostUsd,
+                        ttfMs: event.ttfMs,
+                        totalMs: event.totalMs,
+                        toolCallCount: event.toolCallCount,
+                        errorType: event.errorType,
+                    },
+                    { token: convexToken },
+                );
+            } catch (err) {
+                console.warn('[chat] failed to record usage event', err);
+            }
+
+            // Reconcile the reserved credit against this request's real token
+            // cost (reserve-then-reconcile billing). Only on the success path:
+            // an errored/aborted/empty turn is refunded by `refundUsageOnce`,
+            // not reconciled. Best-effort — a failure here must never break the
+            // stream, so it's logged and swallowed (the user keeps the
+            // conservative 1-credit charge).
+            if (usageRecord?.usageRecordId && !usageRefunded && !event.errorType) {
+                try {
+                    await fetchMutation(
+                        api.usage.reconcileUsage,
+                        {
+                            usageRecordId: usageRecord.usageRecordId as Id<'usageRecords'>,
+                            estimatedCostUsd: event.estimatedCostUsd,
+                        },
+                        { token: convexToken },
+                    );
+                } catch (err) {
+                    console.warn('[chat] failed to reconcile usage cost', err);
+                }
+            }
         };
 
         const messageCreatedAt = new Date();

@@ -8,9 +8,10 @@
  */
 import { generateText } from 'ai';
 
-import type { ChatMessage } from '@weblab/models';
+import type { ChatMessage, ChatModel } from '@weblab/models';
 import { DEFAULT_REPAIR_MODEL, LLMProvider } from '@weblab/models';
 
+import { estimateCostFromResult } from '../observability';
 import { initModel } from './providers';
 import { KEEP_RECENT_TURNS } from './summarizer-utils';
 
@@ -38,6 +39,11 @@ export interface SummarizeConversationInput {
     /** Optional override for which fast model to use. Defaults to repair model. */
     summarizerModel?: string;
     abortSignal?: AbortSignal;
+    /**
+     * Reports the request's real token cost (USD) once the summary completes,
+     * so the caller can reconcile token-cost billing. Best-effort.
+     */
+    onUsage?: (info: { estimatedCostUsd: number }) => void;
 }
 
 export interface SummarizeConversationResult {
@@ -80,7 +86,7 @@ export async function summarizeConversation(
         model: summarizerModel,
     });
 
-    const { text } = await generateText({
+    const result = await generateText({
         model,
         providerOptions,
         maxOutputTokens: Math.min(1500, maxOutputTokens),
@@ -89,8 +95,22 @@ export async function summarizeConversation(
         prompt: flatTranscript,
     });
 
+    if (input.onUsage) {
+        try {
+            input.onUsage({
+                estimatedCostUsd: estimateCostFromResult({
+                    model: summarizerModel as ChatModel,
+                    usage: result.usage,
+                    providerMetadata: result.providerMetadata,
+                }),
+            });
+        } catch {
+            // Best-effort metering — never let a sink error break summarization.
+        }
+    }
+
     return {
-        summaryText: text.trim(),
+        summaryText: result.text.trim(),
         summarizedUpToMessageId: lastId,
         summarizedMessageCount: summarizable.length,
     };

@@ -757,6 +757,11 @@ export default defineSchema({
         // such as image generation (IMAGE_CREDIT_COST). `revertIncrement`
         // refunds exactly this many credits to the linked bucket.
         amount: v.optional(v.number()),
+        // Real model spend (USD) this request cost, written by `reconcileUsage`
+        // after the stream finishes. Audit only — explains why `amount` (the
+        // credit cost) came out the way it did. Undefined until reconciled, and
+        // on free/legacy rows that never reconcile.
+        costUsd: v.optional(v.number()),
         // The rateLimit bucket the original `increment` mutation decremented
         // from (Pro users only — undefined for free-tier records). Required
         // so `revertIncrement` can refund the SAME bucket and ignore the

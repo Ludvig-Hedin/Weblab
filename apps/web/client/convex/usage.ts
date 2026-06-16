@@ -3,6 +3,12 @@ import { v } from 'convex/values';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation, query } from './_generated/server';
+import {
+    creditValueUsd,
+    FREE_CREDIT_VALUE_USD,
+    reconciledBucketLeft,
+    usdToCredits,
+} from './lib/creditCost';
 import { vUsageType } from './lib/enums';
 import {
     IMAGE_BURST_PER_MIN,
@@ -12,7 +18,12 @@ import {
     IMAGE_DAILY_CAP_PRO,
 } from './lib/imageLimits';
 import { requireUser } from './lib/permissions';
-import { isAtOrOverCap, normalizeCredits, selectDeductionBucket, sumUsageAmount } from './lib/usageMath';
+import {
+    isAtOrOverCap,
+    normalizeCredits,
+    selectDeductionBucket,
+    sumUsageAmount,
+} from './lib/usageMath';
 
 // Convex usage tracking.
 //
@@ -144,16 +155,30 @@ async function proPlanUsage(ctx: QueryCtx, userId: Id<'users'>, now: number): Pr
     };
 }
 
+// Token-cost billing makes credit costs fractional (a request burns its real
+// per-tier credit cost, not a flat 1). The internal callers (`tier`,
+// `reserveImage`, the deduction gate) need that precision, but the UI shows
+// whole credits — so round at the display boundary only. Clamp to [0, limit]
+// so a floored-at-0 bucket never renders as "101 of 100".
+function roundUsageForDisplay(result: UsageResult): UsageResult {
+    const round = (p: UsagePeriod): UsagePeriod => ({
+        ...p,
+        usageCount: Math.min(p.limitCount, Math.max(0, Math.round(p.usageCount))),
+    });
+    return { daily: round(result.daily), monthly: round(result.monthly) };
+}
+
 export const get = query({
     args: {},
     handler: async (ctx): Promise<UsageResult> => {
         const user = await requireUser(ctx);
         const now = Date.now();
         const active = await loadActiveSubscriptionWithProduct(ctx, user._id);
-        if (!active || !active.isPro) {
-            return freePlanUsage(ctx, user._id, now);
-        }
-        return proPlanUsage(ctx, user._id, now);
+        const usage =
+            !active || !active.isPro
+                ? await freePlanUsage(ctx, user._id, now)
+                : await proPlanUsage(ctx, user._id, now);
+        return roundUsageForDisplay(usage);
     },
 });
 
@@ -181,9 +206,7 @@ export const tier = query({
                 ? await freePlanUsage(ctx, user._id, now)
                 : await proPlanUsage(ctx, user._id, now);
         const monthlyRatio =
-            usage.monthly.limitCount > 0
-                ? usage.monthly.usageCount / usage.monthly.limitCount
-                : 0;
+            usage.monthly.limitCount > 0 ? usage.monthly.usageCount / usage.monthly.limitCount : 0;
         if (!active || !active.isPro) {
             return monthlyRatio >= 0.8 ? 'free-heavy' : 'free';
         }
@@ -223,7 +246,10 @@ async function applyIncrement(
     type: 'message' | 'deployment' | 'image',
     credits: number,
     traceId?: string,
-): Promise<{ rateLimitId: Id<'rateLimits'> | undefined; usageRecordId: Id<'usageRecords'> }> {
+): Promise<{
+    rateLimitId: Id<'rateLimits'> | undefined;
+    usageRecordId: Id<'usageRecords'>;
+}> {
     const now = Date.now();
     const amount = normalizeCredits(credits);
 
@@ -327,6 +353,108 @@ export const revertIncrement = mutation({
         // record was still deleted (idempotency holds) but no credit
         // movement happened.
         return { ok: true as const, refunded: creditRefunded };
+    },
+});
+
+// Reconcile a reserved credit against the request's REAL token cost.
+//
+// Billing is reserve-then-reconcile: `increment` deducts a flat 1 credit BEFORE
+// the stream (the concurrency-safe gate), because the token cost is only known
+// AFTER the stream finishes. Once the route has the request's `estimatedCostUsd`
+// (from the same usage event it logs to aiUsageEvents), it calls this to convert
+// that dollar cost into credits at the user's per-tier credit value and re-base
+// the deduction:
+//   * PRO: adjust the linked bucket by (actualCredits - reserved). A cheap turn
+//     refunds part of the reservation; an expensive turn deducts more (floored
+//     at 0 — single-turn overshoot is accepted, see plan).
+//   * FREE: no bucket exists, so just rewrite usageRecords.amount; freePlanUsage
+//     sums `amount` against the daily/monthly caps.
+//
+// CUTOVER SAFETY: this never throws for the expected races. A missing record
+// (already reverted), a rolled-over/missing bucket, an ownership mismatch, or an
+// unpriceable request (cost 0 / no price / unknown model) all degrade to a
+// silent no-op or a full reservation refund — a reconcile failure must never
+// surface an error to the user or break the stream.
+//
+// SECURITY: this is a public mutation (the Next.js route calls it with the
+// user's Clerk token, like `increment`/`revertIncrement`), and `estimatedCostUsd`
+// is supplied by that caller. Two properties keep it from being abused to farm
+// credits, mirroring `revertIncrement`:
+//   1. `usageRecordId` is SERVER-HELD — `increment` returns it only to the route,
+//      never to the browser, and no query exposes it. A client can't obtain a
+//      valid id to target (Convex ids are unguessable).
+//   2. ONE-TIME — a record is reconciled at most once (guarded on `costUsd`
+//      already being set). Without this, a replay with a low cost would refund a
+//      real charge over and over. The first (legitimate) call wins; later calls
+//      are no-ops. Negative costs are clamped to 0 so a caller can't inflate a
+//      refund past the reservation.
+export const reconcileUsage = mutation({
+    args: {
+        usageRecordId: v.id('usageRecords'),
+        estimatedCostUsd: v.number(),
+    },
+    handler: async (ctx, { usageRecordId, estimatedCostUsd }) => {
+        const user = await requireUser(ctx);
+
+        const record = await ctx.db.get(usageRecordId);
+        // Record gone (a prior revert deleted it) or not ours → nothing to do.
+        if (!record || record.userId !== user._id) {
+            return { ok: true as const, reconciled: false as const };
+        }
+        // ONE-TIME: a set `costUsd` means this record was already reconciled.
+        // Reject replays — this is the anti-credit-farming guard (mirrors how
+        // `revertIncrement` deletes the record to prevent refund replay).
+        if (record.costUsd !== undefined) {
+            return { ok: true as const, reconciled: false as const };
+        }
+        // Clamp: never trust a negative cost (would inflate a refund); Convex
+        // already rejects NaN/Infinity at the validator boundary.
+        const cost = estimatedCostUsd > 0 ? estimatedCostUsd : 0;
+        // Credits already deducted up-front by `increment` (a flat 1; legacy
+        // rows with no `amount` count as 1).
+        const reserved = record.amount ?? 1;
+
+        const linkedId = record.linkedRateLimitId;
+        if (linkedId) {
+            // PRO path — adjust the exact bucket the reservation hit.
+            const bucket = await ctx.db.get(linkedId);
+            // Bucket rolled over / missing → the reservation is already forfeit
+            // to the new period; leave it and just record the cost for audit
+            // (which also marks the record reconciled, so it can't be replayed).
+            if (!bucket || bucket.userId !== user._id) {
+                await ctx.db.patch(usageRecordId, { costUsd: cost });
+                return { ok: true as const, reconciled: false as const };
+            }
+            const subscription = await ctx.db.get(bucket.subscriptionId);
+            const price = subscription ? await ctx.db.get(subscription.priceId) : null;
+            const cv = price ? creditValueUsd(price) : 0;
+            // cv === 0 (no price / bad data) → usdToCredits returns 0 → full
+            // refund of the reservation. Unpriceable means free, never a throw.
+            const actualCredits = usdToCredits(cost, cv);
+            await ctx.db.patch(linkedId, {
+                left: reconciledBucketLeft({
+                    bucketLeft: bucket.left,
+                    bucketMax: bucket.max,
+                    reserved,
+                    actualCredits,
+                }),
+                updatedAt: Date.now(),
+            });
+            await ctx.db.patch(usageRecordId, {
+                amount: actualCredits,
+                costUsd: cost,
+            });
+            return { ok: true as const, reconciled: true as const };
+        }
+
+        // FREE path — no bucket to adjust. Rewrite the counted amount so
+        // freePlanUsage charges the real token cost against the free caps.
+        const actualCredits = usdToCredits(cost, FREE_CREDIT_VALUE_USD);
+        await ctx.db.patch(usageRecordId, {
+            amount: actualCredits,
+            costUsd: cost,
+        });
+        return { ok: true as const, reconciled: true as const };
     },
 });
 

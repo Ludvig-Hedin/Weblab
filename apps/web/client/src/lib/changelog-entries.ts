@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-5-token-cost-credits',
+        version: '4.5',
+        title: 'Credits now reflect real usage',
+        description:
+            'Credits are now metered by the actual model cost of each request instead of a flat one-per-message. A quick edit or autocomplete costs a fraction of a credit, while a long, heavy turn costs more — so light sessions stretch much further and your plan stays fairly priced. Your monthly credit allotment is unchanged; only how fast it draws down now tracks what each request genuinely uses.',
+        date: '2026-06-17',
+        tags: ['Billing', 'Credits'],
+    },
+    {
         slug: 'v4-4-ai-wireframes',
         version: '4.4',
         title: 'AI wireframes: from a brief to a real site',

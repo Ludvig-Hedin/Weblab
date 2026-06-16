@@ -8,7 +8,13 @@ import type { ChatMessage } from '@weblab/models';
 import { summarizeConversation } from '@weblab/ai';
 
 import type { Id } from '../../../../../convex/_generated/dataModel';
-import { checkMessageLimit, decrementUsage, getSupabaseUser, incrementUsage } from '../helpers';
+import {
+    checkMessageLimit,
+    decrementUsage,
+    getSupabaseUser,
+    incrementUsage,
+    reconcileUsageCost,
+} from '../helpers';
 
 // Caps on client-supplied LLM input. Without these, any signed-in caller
 // could POST a megabyte-sized `messages` array and drive OpenRouter spend
@@ -223,13 +229,23 @@ export async function POST(req: NextRequest) {
         }
         usageRecord = incrementResult;
 
+        let costUsd: number | undefined;
         const result = await summarizeConversation({
             messages: parsed.messages as ChatMessage[],
             abortSignal: req.signal,
+            onUsage: ({ estimatedCostUsd }) => {
+                costUsd = estimatedCostUsd;
+            },
         });
         if (!result) {
             await refundOnce();
             return new Response(null, { status: 204 });
+        }
+        // Reconcile the reserved credit against the real token cost. Awaited so
+        // the mutation isn't dropped when this non-streaming handler freezes
+        // after returning; reconcileUsageCost swallows its own errors.
+        if (costUsd !== undefined) {
+            await reconcileUsageCost(usageRecord, costUsd);
         }
         await fetchMutation(
             api.conversations.setSummary,
