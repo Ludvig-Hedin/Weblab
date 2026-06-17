@@ -91,6 +91,10 @@ function spacingClassValue(value: string): string {
 }
 
 function displayClassValue(value: string): string {
+    // Keep this in sync with the `displayTokens` strip set in
+    // `removeUtilityClasses`. If a value can be stripped as a bare token it
+    // must also emit as that bare token here, otherwise a rebase converts a
+    // clean `table` into the ugly arbitrary `[display:table]`.
     const map: Record<string, string> = {
         block: 'block',
         'inline-block': 'inline-block',
@@ -101,6 +105,12 @@ function displayClassValue(value: string): string {
         'inline-grid': 'inline-grid',
         none: 'hidden',
         contents: 'contents',
+        table: 'table',
+        'inline-table': 'inline-table',
+        'table-row': 'table-row',
+        'table-cell': 'table-cell',
+        'flow-root': 'flow-root',
+        'list-item': 'list-item',
     };
     return map[value.trim()] ?? `[display:${value.trim()}]`;
 }

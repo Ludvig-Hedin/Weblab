@@ -18,6 +18,28 @@ describe('tailwindClassFor', () => {
         expect(tailwindClassFor('display', 'none')).toBe('hidden');
     });
 
+    test('table-family display values emit bare utilities, not arbitrary', () => {
+        // These are valid Tailwind display utilities AND are in the
+        // removeUtilityClasses strip set — emit must stay symmetric so a
+        // rebase never converts a clean `table` into `[display:table]`.
+        expect(tailwindClassFor('display', 'table')).toBe('table');
+        expect(tailwindClassFor('display', 'inline-table')).toBe('inline-table');
+        expect(tailwindClassFor('display', 'table-row')).toBe('table-row');
+        expect(tailwindClassFor('display', 'table-cell')).toBe('table-cell');
+        expect(tailwindClassFor('display', 'flow-root')).toBe('flow-root');
+        expect(tailwindClassFor('display', 'list-item')).toBe('list-item');
+    });
+
+    test('rebasing a sibling property preserves a bare `table` display token', () => {
+        // Regression: editing padding on an element with `className="table"`
+        // used to strip `table` then re-emit `[display:table]`. It must round-
+        // trip the padding edit without mangling the display token.
+        const out = applyResponsiveTailwind('table p-2', 'display', [
+            { tailwindPrefix: '', value: 'table' },
+        ]);
+        expect(out.split(/\s+/).sort()).toEqual(['p-2', 'table']);
+    });
+
     test('background-color → bg-[…]', () => {
         expect(tailwindClassFor('backgroundColor', '#abcdef')).toBe('bg-[#abcdef]');
     });

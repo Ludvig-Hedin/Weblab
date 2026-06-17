@@ -38,6 +38,25 @@ later without re-discovering the context.
 
 ## Open
 
+### Auth/billing/chat bug-hunt (iter-4 — untouched areas; subagent line refs, confirm before fixing)
+
+- **Discovered:** 2026-06-17 (QA pass iter-4 — Sonnet subagent over auth / settings-billing / AI-chat / breakpoints)
+- **Findings (ranked; verify each line ref before fixing — moderate-confidence pass):**
+  1. **HIGH — segment error boundaries dead-end on token expiry** (`src/app/projects/error.tsx`, `src/app/project/[id]/error.tsx`): a Convex `UNAUTHORIZED` thrown under these segments is caught by the segment boundary *before* the root boundary's re-auth redirect can fire → "Something went wrong" card with no sign-in path; "Try again" re-throws. Fix: mirror the root `error.tsx` — detect the unauthenticated error + `useAuth`, redirect to `/sign-in?returnUrl=…`. (Relates to the already-fixed root boundary, agent-memory `project_auth_signout_boundary`.) **Most actionable next fix; verifiable once an authed session exists.**
+  2. **HIGH — pricing `pro-card` double-submit** (`src/components/ui/pricing-modal/pro-card.tsx:87-108`): `setIsCheckingOut(true)` happens inside each branch, not before dispatch → rapid double-click fires two Stripe checkouts. Fix: set the flag as the first line of `handleCheckout`. (Same class as iter-1's create double-submit + the commit double-submit.)
+  3. **HIGH — raw error strings to users**: `pro-card.tsx:134-168` shows `ALREADY_SUBSCRIBED` verbatim in a toast; `free-card.tsx:75-94` "Downgrade to Free" throws raw `"No active subscription found"` when `subscription` is transiently null. Fix: friendly mapping + early-return guard.
+  4. **MED** — `use-chat/index.tsx:489` `editMessage` calls `stop()` without awaiting then re-queues → two streams in flight, old `onFinish` may still debit credits; `use-chat` `void regenerate(...)` (286/383) swallows pre-stream rejections (no `.catch`); queued messages stranded on non-`stop` finish reasons (712-718). `subscription-tab.tsx:67-79` "Manage billing" opens nothing + no error when `session.url` absent. `stripeWebhook.ts:330-358` `cancelAt` branch doesn't clear `scheduledPriceId` → UI shows downgrade + cancel at once.
+  5. **LOW** — `subscriptions.ts:175` `getPriceId` declared `mutation` but pure read (write-lock per click; same pattern as iter-1's `_countProjectsByNamePrefix`, needs codegen to change); two middleware files (`src/middleware.ts` vs `apps/web/client/middleware.ts`) drifted; `src/components/ui/settings-modal/billing/` subtree + `auth-redirect.tsx` are dead code; import layouts drop `returnUrl`.
+  6. **Corroboration** — the subagent independently re-found the shared-debounce style-write data loss (`editor/code/index.ts:276`), already logged from iter-1. Raises its confidence; same `do-not-fix-blind` caveat (core live-sync).
+- **Next step:** Fix #1 (auth dead-end) first — highest user impact, mirrors an existing fix. #2/#3 are quick + safe once verified in an authed session.
+- **Tags:** `#bug` `#auth` `#billing` `#ai`
+
+### NOT-A-BUG correction: file-tree directory rename → `moveFile` (iter-3 finding retracted)
+
+- **Discovered:** 2026-06-17 (QA pass iter-4 verification of the iter-3 "directory rename OID staleness" finding)
+- **Resolution:** Not reachable. `file-tree-node.tsx:71` blocks rename for directories (`if (node.data.isDirectory) return`), so `handleRenameFile` (`code-tab/index.tsx:519`) only ever receives **file** paths — `moveFile` is correct for its inputs. Directory moves that DO happen (page rename/move) already call `moveDirectory` via `pages/helper.ts:962-1073`. The iter-3 entry below over-rated this; left as a record so it isn't "fixed" again.
+- **Tags:** `#not-a-bug`
+
 ### Editor bug-hunt: CMS bind-dialog, file-tree directory rename, commit flow (iter-3)
 
 - **Discovered:** 2026-06-17 (QA pass iter-3 — focused editor bug-hunt subagent, 39 tool-uses, line refs read-confirmed)

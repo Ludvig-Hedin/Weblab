@@ -121,10 +121,38 @@ findings logged to BACKLOG, top 3:
 Logged as a cleanup candidate (don't delete unilaterally — confirm `/landing-old`
 isn't an intentional reference route first).
 
+## Iteration 4 (2026-06-17, scheduled wake)
+
+**Blocker:** weblab-agent token still `AUTH_FAILED`.
+
+**Fixed + unit-test-verified + committed:** parser `displayClassValue`
+(`responsive-classes.ts`) was missing the table-family / `flow-root` /
+`list-item` display values that `removeUtilityClasses`'s strip set already
+recognized — the asymmetry meant a rebase converted a clean `className="table"`
+into the ugly arbitrary `[display:table]`. Added the 6 missing emit entries
+(now symmetric with the strip set) + 2 regression tests. `bun test
+responsive-classes.test.ts` → 17 pass / 0 fail.
+
+**Retracted iter-3 finding:** the "directory rename → `moveFile` not
+`moveDirectory`" bug is NOT reachable — `file-tree-node.tsx:71` blocks directory
+rename; page moves already use `moveDirectory`. Logged as not-a-bug.
+
+**Untouched-area bug-hunt (subagent — auth / billing / chat / breakpoints):**
+logged to BACKLOG. Highest-value: segment error boundaries
+(`projects/error.tsx`, `project/[id]/error.tsx`) dead-end users on token expiry
+with no re-auth path (mirrors the already-fixed root boundary) — best next fix.
+Plus pricing double-submit + raw error strings, and corroboration of the iter-1
+shared-debounce style-write data loss.
+
+**Parser note:** `bun --filter @weblab/parser typecheck` is red on
+*pre-existing* issues (cross-package `--jsx` config, `Object.groupBy`/es2024 lib,
+a `CodeActionType` test mismatch) — unrelated to this change; the repo gate is
+the web-client-scoped `bun typecheck`.
+
 ## Next iteration
 
 1. Clear a live-QA blocker (token refresh, or a Chrome logged into weblab.build).
-2. Get the #418 component stack from a non-minified build / `onRecoverableError`.
-3. Once authed: fix CMS bind-dialog stale-target + directory-rename OID bugs and
-   verify in the editor; exercise blank-create → editor → design-sync →
-   responsive live.
+2. Fix the auth segment error-boundary dead-ends (mirror root `error.tsx`) — a
+   contained, high-value fix; verify the re-auth redirect.
+3. Get the #418 component stack from a non-minified build / `onRecoverableError`.
+4. Once authed: verify the logged CMS / chat / billing bugs in-editor.
