@@ -25,7 +25,12 @@ export class CanvasManager {
 
     constructor(private readonly editorEngine: EditorEngine) {
         this._position = this.getDefaultPanPosition();
-        makeAutoObservable(this);
+        // Exclude `saveCanvas` from auto-annotation: it holds a lodash
+        // `debounce(...)` whose `.cancel`/`.flush` helpers MobX would strip by
+        // wrapping the function-valued field as an action. `clear()` calls
+        // `this.saveCanvas.cancel()`, which then threw "cancel is not a
+        // function" on every editor teardown.
+        makeAutoObservable(this, { saveCanvas: false });
     }
 
     applyCanvas(canvas: Canvas) {
