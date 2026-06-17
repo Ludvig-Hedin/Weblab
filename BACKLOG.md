@@ -38,6 +38,14 @@ later without re-discovering the context.
 
 ## Open
 
+### Deep-editing-flow verification (2026-06-18 iter-9, authed Playwright) — UI works; code-sync blocked by test collision
+
+Drove the editor on a rendered preview: clicked the `<h1>` in the iframe → **element selection works**, design panel populated correctly (Tag `h1`, ID `hero-section`, Classes `text-2xl`/`font-medium` removable, Position/Layout/Padding/Margin/Size controls, font toolbar). So the editor↔iframe preload bridge + the design panel are **functional**.
+
+- ⚠️ **Could NOT fully verify design→code sync (the style-change → JSX write-back)** because the multi-agent **session collision** invalidated this run's Clerk token mid-session (9× `UNAUTHORIZED`), so the sandbox server's `runCommand`/`listFiles` failed (`Closed before connection`) → source files unreadable → `No metadata found for id qq.8e4g tagName: H1`. That metadata-missing + runCommand failures are **most likely collision fallout, not a product bug** — needs an **isolated session** (pause the parallel agent, or an owner-approved dedicated Clerk user) to confirm code-sync end-to-end.
+- The "N Issues" badge in the editor aggregates these console errors (was 1 after the saveCanvas fix; rose to 6 under the collision's UNAUTHORIZED/runCommand noise).
+- **Next:** a clean isolated-session pass to (a) confirm a padding/class change syncs to the JSX in the Code tab, and (b) confirm `No metadata found` does NOT occur when the source files load normally.
+
 ### Connected-flow round (2026-06-18, authed Playwright) — 2 bugs FIXED + preview root-caused
 
 Drove the full flow live: sign-in → dashboard → `/projects/new` → **Start blank** → stack modal (Cloud + Next.js/Static HTML) → **create** → editor → **preview renders** ("Hello from Weblab"). Findings:
