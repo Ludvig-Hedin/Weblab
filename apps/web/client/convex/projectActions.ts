@@ -456,10 +456,13 @@ export const createBlank = action({
                 userId: me._id,
             }));
 
-        // TODO(bug-hunt): `_countProjectsByNamePrefix` matches by startsWith,
-        // so "New Project · Jun 1" also counts "New Project · Jun 10"–"Jun 19",
-        // inflating the (N) suffix. Match on the exact base name (plus an
-        // optional " (N)" suffix) instead of a raw prefix.
+        // `_countProjectsByNamePrefix` counts the exact base name plus any
+        // numbered " (N)" sibling (no longer a raw startsWith prefix, which
+        // over-counted "Jun 1" against "Jun 10".."Jun 19"). `existingCount + 1`
+        // is correct for sequential same-day creates. Residual edge: deleting a
+        // middle sibling leaves a gap, so the suffix can still collide, and two
+        // creates in the same tick both read the same count — acceptable until
+        // naming moves into an atomic insert. See BACKLOG.md (name dedup race).
         const existingCount: number = await ctx.runMutation(
             internal.projects._countProjectsByNamePrefix,
             { workspaceId, namePrefix: baseName },

@@ -38,6 +38,62 @@ later without re-discovering the context.
 
 ## Open
 
+### Preview-down (`SANDBOX_NOT_LISTENING`) gives a silent dead-end, and edits are lost after a false recovery
+
+- **Discovered:** 2026-06-17 (QA pass — editor preview/sandbox bug-hunt, subagent line refs need a final confirm)
+- **Where:** `apps/web/client/src/lib/sandbox-server-client.ts` (`:8080` WS URL fallback); `apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx` + `view.tsx` (boot overlay grace windows: `NOTFOUND_GRACE_MS` ~90s, `PENPAL_LOG_FAILURE_THRESHOLD` = 2)
+- **Symptom:** Two coupled problems. (1) When the in-sandbox `:8080` web-server (`@weblab/web-server` running `next dev`) is unreachable in prod (the known un-deployed-Railway-service case), the boot overlay suppresses any retry CTA for up to ~90s while `livenessState === 'notFound'`, and the first 2 Penpal/502 failures are silenced — so the user stares at a blank canvas + spinner with **zero affordance** for up to ~90s. (2) Worse false-recovery: the Convex liveness probe checks the *public preview URL*, which can eventually return 200 once `next dev` boots, so the overlay clears and the editor *looks live* — but the edit channel (WS to `:8080`) never connected, so **every code/style edit is silently discarded**. No edit-channel health indicator exists.
+- **Root cause:** Preview liveness and edit-channel liveness are checked independently; only preview liveness gates the overlay. Plus the grace windows optimize for the cold-boot happy path at the cost of the genuine-failure path.
+- **Next step:** (a) Surface a WS/edit-channel connection status indicator in the editor toolbar (highest-impact single fix). (b) Show a "still connecting…" banner from the *first* 502 instead of waiting for the threshold. (c) Gate the overlay-clear on edit-channel health, not just public-URL 200. Pairs with the still-pending manual Railway `:8080` service + `NEXT_PUBLIC_SANDBOX_SERVER_URL` (see agent-memory `project_sandbox_server_not_deployed`).
+- **Risk if ignored:** Core prod failure mode = user silently loses all edits with no error. This is the most dangerous UX defect found.
+- **Tags:** `#bug` `#editor` `#infra`
+
+### Hero create flow: AI-prompt dead-end + "Start blank" is visually buried
+
+- **Discovered:** 2026-06-17 (QA pass — UX assessment, 32-tool-use subagent, higher confidence)
+- **Where:** `apps/web/client/src/app/_components/hero/create.tsx` (AI input + UNAVAILABLE toast path, ~line 272); the hero "Start blank" button component; `apps/web/client/convex/projectActions.ts` create-cap gating
+- **Symptom:** On Vercel the hero AI prompt input is the most visually prominent element but is non-functional — typing a prompt and submitting yields a developer-worded toast ("…sandbox layer is being migrated to Convex…") with **no forward action**, then the hero resets. The only working path, "Start blank", is rendered as low-weight `text-foreground-secondary` link-style text below the pill buttons — easy to miss. New users hit a dead end on their most likely first action.
+- **Next step:** (a) Add a "Start blank instead" action button to the unavailable toast + rewrite the copy in user terms. (b) Elevate "Start blank" to an outline pill button matching the other CTAs. (c) Ideally render the AI input in a visibly-disabled "coming soon" state at render time (feature flag) instead of failing at submit. Verify visually once an authenticated browser session is available.
+- **Risk if ignored:** High new-user bounce — first interaction looks broken and the working path is hidden.
+- **Tags:** `#bug` `#ux` `#editor`
+
+### Project-create reliability: orphaned rows on scheduler failure + orphaned paid VM on provision timeout
+
+- **Discovered:** 2026-06-17 (QA pass — create-flow bug-hunt; subagent line refs are approximate, confirm before fixing)
+- **Where:** `apps/web/client/convex/projectActions.ts` (`createBlank` insert→`scheduler.runAfter(_provisionSandbox)`, ~line 472-491); `packages/code-provider/src/providers/vercel-sandbox/index.ts` (`withTimeout` ~45s race around `Sandbox.create`, and `VercelTerminal.run()` overwriting `this.command` without `.kill()`)
+- **Symptom:** (1) If scheduling `_provisionSandbox` throws after the optimistic project graph is inserted, the project rows persist with no sandbox and no `_markProvisioningFailed` — the editor spins forever with no error path. (2) On the 45s provision timeout the overlay errors out but the underlying `Sandbox.create` SDK call keeps running to Vercel's own timeout → orphaned **paid** VM (no abort/cancel). (3) `VercelTerminal.run()` can accumulate zombie background processes (no kill of the prior detached command).
+- **Next step:** (1) Compensating cleanup in the catch, or move inserts into the scheduled action so partial state is impossible. (2) Wire an `AbortController`/SDK cancel into the `withTimeout` race `finally`. (3) `this.command?.kill()` before reassigning. Confirm exact lines first (these came from a low-tool-use subagent).
+- **Risk if ignored:** Stuck "ghost" projects; real billing leak from orphaned VMs.
+- **Tags:** `#bug` `#convex` `#infra`
+
+### Editor style-write data loss via single shared rebase debounce (needs confirmation)
+
+- **Discovered:** 2026-06-17 (QA pass — subagent finding, line ref approximate)
+- **Where:** `apps/web/client/src/components/store/editor/code/index.ts` (`scheduleSourceRebase` shared `lodash.debounce`, ~line 276); related `apps/web/client/src/components/store/editor/sandbox/index.ts` (async sync-engine init reaction, no serialization guard)
+- **Symptom:** A single debounce instance is shared across all `(oid, property)` rebases — two different elements/properties edited within ~600ms cancel each other, dropping the first element's style write (silent data loss). Separately, an async MobX reaction can call `releaseSyncEngine()` on an in-flight `initializeSyncEngine()` during rapid provider transitions, silently stopping canvas sync.
+- **Next step:** Per-`(oid, property)` keyed debounce map; serialize the sync-engine init with an `isInitializing` guard or cancel-in-flight. **Verify both line refs and the actual debounce sharing before changing — do not fix blind; this is core live-sync code and a wrong fix breaks editing.**
+- **Risk if ignored:** Intermittent lost style edits during fast multi-element editing.
+- **Tags:** `#bug` `#editor`
+
+### Project-name dedup — over-count fixed; residual gap/race remains
+
+- **Discovered:** 2026-06-17 (QA pass) — **over-count FIXED this commit**
+- **Where:** `apps/web/client/convex/projects.ts` `_countProjectsByNamePrefix` (~line 1099); caller `apps/web/client/convex/projectActions.ts` (~line 459)
+- **Symptom (fixed part):** `startsWith` prefix match counted `"New Project · Jun 1"` against `"Jun 10".."Jun 19"`, inflating the `(N)` suffix. Now matches the exact base + numbered siblings only (offline-verified: 6→3, suffix 7→4).
+- **Residual:** Two creates in the same tick read the same count (no atomicity), and deleting a middle sibling leaves a gap so `existingCount + 1` can still collide.
+- **Next step:** Move dedup into an atomic insert (compute next-free suffix inside the insert mutation), or switch `_countProjectsByNamePrefix` → an `internalQuery` returning taken names and pick the smallest free `(N)` — note this requires Convex codegen regen (blast-radius care on the shared tree).
+- **Risk if ignored:** Occasional duplicate/gapped project names on rapid or post-delete same-day creation. Cosmetic.
+- **Tags:** `#bug` `#convex`
+
+### QA tooling blockers (live authenticated QA could not run autonomously)
+
+- **Discovered:** 2026-06-17 (QA pass)
+- **Where:** environment / MCP config, not app code
+- **Symptom:** Three blockers stopped live end-to-end QA of the authenticated app: (1) `weblab-agent` MCP returns `[AUTH_FAILED] invalid or missing agent token` — no live API signal even read-only (agent token expired/unset; per memory the agent API is dev-only / prod unconfigured). (2) gstack `browse` daemon fails — Playwright chromium not installed (`npx playwright install` needed). (3) The live app (create/editor/preview/publish) is Clerk-gated, unreachable headless without a logged-in browser session. Public marketing landing is healthy (verified via WebFetch).
+- **Next step:** To enable live authed QA next iteration: (a) refresh the `weblab-agent` MCP token (and confirm whether it points at dev `avid-gnat-539` or prod), or (b) run `npx playwright install` + drive gstack `browse` in CDP mode against a real Chrome already logged into weblab.build, or (c) provide an authenticated cookie export for `browse cookie-import`.
+- **Risk if ignored:** Project-creation + editor flows can only be reviewed at code level, not exercised live; the preview-down recovery defect above can't be reproduced end-to-end without this.
+- **Tags:** `#infra` `#test-gap`
+
 ### Layers panel: "Cannot delete element — Remove action not found"
 
 - **Discovered:** 2026-06-17 (user report — deleting `div` / `main` rows from the Layers panel)

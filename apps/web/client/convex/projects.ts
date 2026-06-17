@@ -1103,7 +1103,13 @@ export const _countProjectsByNamePrefix = internalMutation({
             .query('projects')
             .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
             .collect();
-        return projects.filter((p) => p.name.startsWith(namePrefix)).length;
+        // Count the exact base name plus any numbered " (N)" sibling — NOT a
+        // raw prefix. A prefix match let "New Project · Jun 1" also count
+        // "New Project · Jun 10".."Jun 19", inflating the suffix. Escape the
+        // base first so date punctuation can't be parsed as regex.
+        const escaped = namePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const sibling = new RegExp(`^${escaped}(?: \\(\\d+\\))?$`);
+        return projects.filter((p) => sibling.test(p.name)).length;
     },
 });
 
