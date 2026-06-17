@@ -137,7 +137,21 @@ const nextConfig: NextConfig = {
                             // sandbox WS is CSP-blocked and previews never boot.
                             process.env.NODE_ENV === 'production'
                                 ? "connect-src 'self' https: wss:"
-                                : "connect-src 'self' https: wss: ws://localhost:8080 ws://127.0.0.1:8080 http://localhost:11434 http://127.0.0.1:11434",
+                                : // Dev: the local Fastify sandbox server speaks an insecure WS.
+                                  // It defaults to :8080, but DERIVE the origin from
+                                  // NEXT_PUBLIC_SANDBOX_SERVER_URL when set so running the
+                                  // sandbox server on a non-default port (e.g. when :8080 is
+                                  // taken by another app) isn't silently CSP-blocked.
+                                  `connect-src 'self' https: wss: ws://localhost:8080 ws://127.0.0.1:8080${(() => {
+                                      const u = process.env.NEXT_PUBLIC_SANDBOX_SERVER_URL?.trim();
+                                      if (!u) return '';
+                                      try {
+                                          const { protocol, host } = new URL(u);
+                                          return ` ${protocol === 'https:' ? 'wss:' : 'ws:'}//${host}`;
+                                      } catch {
+                                          return '';
+                                      }
+                                  })()} http://localhost:11434 http://127.0.0.1:11434`,
                             "frame-src 'self' https:",
                             "media-src 'self' blob: https:",
                             "worker-src 'self' blob:",
