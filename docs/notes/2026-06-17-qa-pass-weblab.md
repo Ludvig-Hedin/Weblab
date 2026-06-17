@@ -149,10 +149,35 @@ shared-debounce style-write data loss.
 a `CodeActionType` test mismatch) — unrelated to this change; the repo gate is
 the web-client-scoped `bun typecheck`.
 
+## Iteration 5 (2026-06-17, scheduled wake)
+
+**Blocker:** weblab-agent token still `AUTH_FAILED`.
+
+**Fixed + typecheck-verified + committed:** the auth **segment** error-boundary
+dead-ends. A Convex `UNAUTHORIZED` (expired session) thrown under `/projects` or
+`/project/[id]` was caught by the segment boundary *before* the root boundary's
+re-auth redirect could fire → user stranded on a card with no sign-in path.
+Extracted the proven root-boundary logic into a shared
+`useErrorBoundaryAuthRedirect` hook (faithful copy — root file left untouched)
+and wired it into both segment boundaries; a confirmed signed-out session now
+bounces to `/sign-in?returnUrl=…` and stale-chunk crashes self-recover.
+`bun typecheck` exit 0. (Not unit-tested: the analogous root boundary isn't
+either — Clerk/`window` deps; verification is the faithful mirror + typecheck.)
+
+**Assessed, deferred (payment code, not live-verifiable):** pricing `pro-card`
+double-submit. The earlier "set the flag first line" suggestion is insufficient
+(React state isn't a synchronous guard) — corrected the backlog to specify a
+`useRef` in-flight guard.
+
+**Untouched-area bug-hunt (component system / wireframes / copy-to-figma):**
+logged to BACKLOG. 3 new BLOCKERS — parser writes `"[object Object]"` on HTML
+prop-reset (strongest verifiable next fix), copy-to-Figma loses the user-gesture
+activation window (clipboard write after an await), and the wireframe route maps
+every SSR error (incl. auth) to "not found".
+
 ## Next iteration
 
 1. Clear a live-QA blocker (token refresh, or a Chrome logged into weblab.build).
-2. Fix the auth segment error-boundary dead-ends (mirror root `error.tsx`) — a
-   contained, high-value fix; verify the re-auth redirect.
+2. Fix the parser `[object Object]` HTML prop-reset BLOCKER (unit-testable).
 3. Get the #418 component stack from a non-minified build / `onRecoverableError`.
-4. Once authed: verify the logged CMS / chat / billing bugs in-editor.
+4. Once authed: verify the logged CMS / chat / billing / figma bugs in-editor.

@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
 
 import { Button } from '@weblab/ui/button';
 
+import { useErrorBoundaryAuthRedirect } from '@/utils/auth/use-error-boundary-auth-redirect';
 import { Routes } from '@/utils/constants';
 
+// A Convex UNAUTHORIZED (expired session) thrown while opening the editor would
+// otherwise dead-end here with no re-auth path — `useErrorBoundaryAuthRedirect`
+// bounces a confirmed signed-out session to /sign-in (mirrors the root boundary).
 export default function ProjectErrorBoundary({
     error,
     reset,
@@ -14,13 +17,13 @@ export default function ProjectErrorBoundary({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
-    useEffect(() => {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error('Project route error:', error);
-        }
-    }, [error]);
+    const { shouldRenderBlank } = useErrorBoundaryAuthRedirect(error);
 
     const reference = error?.digest ?? null;
+
+    if (shouldRenderBlank) {
+        return <div className="bg-background min-h-screen" aria-hidden="true" />;
+    }
 
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">

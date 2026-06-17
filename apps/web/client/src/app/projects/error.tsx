@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 
+import { useErrorBoundaryAuthRedirect } from '@/utils/auth/use-error-boundary-auth-redirect';
 import { Routes } from '@/utils/constants';
 
 // Segment-scoped error boundary for the projects dashboard. The /projects pages
@@ -14,6 +14,11 @@ import { Routes } from '@/utils/constants';
 // unreachable), that query THROWS and, without this boundary, bubbles to the
 // framework's bare "This page couldn't load" crash screen. Catching it here lets
 // a transient blip degrade into a retryable state instead of a hard crash.
+//
+// A Convex UNAUTHORIZED (expired session) would otherwise be caught here and
+// dead-end the user on the card with no re-auth path — `useErrorBoundaryAuthRedirect`
+// bounces a confirmed signed-out session to /sign-in instead (mirrors the root
+// boundary).
 export default function ProjectsErrorBoundary({
     error,
     reset,
@@ -22,14 +27,13 @@ export default function ProjectsErrorBoundary({
     reset: () => void;
 }) {
     const t = useTranslations('projects.errorPage');
-
-    useEffect(() => {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error('Projects route error:', error);
-        }
-    }, [error]);
+    const { shouldRenderBlank } = useErrorBoundaryAuthRedirect(error);
 
     const reference = error?.digest ?? null;
+
+    if (shouldRenderBlank) {
+        return <div className="bg-background min-h-screen" aria-hidden="true" />;
+    }
 
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">
