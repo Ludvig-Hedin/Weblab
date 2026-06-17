@@ -261,6 +261,13 @@ export function useChat({
         messagesRef.current = messages;
     }, [messages]);
 
+    // Live status mirror for reads inside async callbacks (e.g. the recovery
+    // setTimeout below), where the captured `status` closure would be stale.
+    const statusRef = useRef(status);
+    useEffect(() => {
+        statusRef.current = status;
+    }, [status]);
+
     const processMessage = useCallback(
         async (content: string, type: ChatType, context?: MessageContext[]) => {
             userStoppedRef.current = false;
@@ -488,9 +495,11 @@ export function useChat({
             posthog.capture('user_edit_message', { type: ChatType.EDIT });
 
             if (isStreaming) {
-                // Stop current streaming immediately, then process the edit
-                // with immediate priority (higher than queue).
-                stop();
+                // Abort the in-flight stream and WAIT for it to settle before
+                // regenerating. Without the await, the still-aborting stream's
+                // late onFinish/addToolResult can land in the superseded turn
+                // (with auto-continuation re-enabled by processMessageEdit).
+                await stop();
                 return await processMessageEdit(messageId, newContent, chatType);
             }
 
@@ -541,6 +550,10 @@ export function useChat({
         clearStreamInFlight(conversationId);
         clearPendingTurn(conversationId);
         const t = setTimeout(() => {
+            // Re-assert the stream is still idle — another init path may have
+            // started a stream during the 800ms wait; don't stomp it (and don't
+            // double-send on top of an already-running turn).
+            if (statusRef.current !== 'ready') return;
             // The route does not persist aborted turns, so the interrupted
             // USER message may never have reached the DB — in that case the
             // hydrated history ends at the PREVIOUS user message, and

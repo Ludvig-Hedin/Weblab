@@ -1,7 +1,7 @@
 'use client';
 
 import type { z } from 'zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { AskUserQuestionTool } from '@weblab/ai/client';
@@ -24,6 +24,14 @@ export function PlanQuestionCard({
     const t = useTranslations('editor.chat.planQuestion');
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [submitted, setSubmitted] = useState(answered ?? false);
+
+    // `submitted` seeds from `answered` only on mount. If the question is
+    // resolved elsewhere (the 5-min auto-timeout, another tab/client), the
+    // `answered` prop flips false→true after mount — sync local state so the
+    // card stops showing live, clickable options.
+    useEffect(() => {
+        if (answered) setSubmitted(true);
+    }, [answered]);
 
     const toggle = (label: string) => {
         if (submitted) return;

@@ -13,6 +13,7 @@ import type { MentionConfig, SlashCommand } from './types';
 import type { Editor } from '@tiptap/react';
 import { buildFileMentionExtension } from './extensions/file-mention';
 import { buildSlashCommandsExtension } from './extensions/slash-commands';
+import { isSuggestionPopupOpen, resetSuggestionPopups } from './extensions/suggestion-popup-state';
 
 interface TipTapEditorProps {
     value: string;
@@ -97,13 +98,15 @@ export function TipTapEditor({
                 'aria-label': ariaLabel ?? placeholder ?? 'Message',
             },
             handleKeyDown(view, event) {
-                // TODO(bug-hunt): when a @mention or /slash popup is open, the parent
-                // onKeyDown (chat-input) unconditionally preventDefault()s Enter and
-                // sends the message; returning true here short-circuits before the
-                // @tiptap/suggestion plugin's Enter-to-select handler runs, so Enter
-                // sends instead of selecting the highlighted item (arrows/click still
-                // work). Fix: expose an "isSuggestionOpen" signal from the mention/
-                // slash extensions and skip the parent submit while a popup is open.
+                // While a @mention / slash popup is open, hand Enter and Escape to
+                // the @tiptap/suggestion plugin (its keydown props run AFTER this
+                // handler): Enter selects the highlighted item, Escape closes the
+                // popup. Forwarding them to the parent composer instead SENT the
+                // message on Enter / cleared the input on Escape. Arrows already
+                // reach the plugin (the parent ignores them while text is typed).
+                if (isSuggestionPopupOpen() && (event.key === 'Enter' || event.key === 'Escape')) {
+                    return false;
+                }
                 onKeyDownRef.current?.(event);
                 if (event.defaultPrevented) return true;
                 // Drop printable keystrokes that would push past maxLength. Allow
@@ -178,6 +181,13 @@ export function TipTapEditor({
             editorRef.current = editor;
         }
     }, [editor, editorRef]);
+
+    // Safety net: if the editor unmounts mid-suggestion the plugin's onExit may
+    // not fire; clear any leaked popup-open state so it can't keep swallowing
+    // Enter/Escape after the popup is gone.
+    useEffect(() => {
+        return () => resetSuggestionPopups();
+    }, []);
 
     // Sync externally-set value. `value` is plain text only — setContent replaces rich
     // mention atoms with flat text, so callers must only set non-empty values before

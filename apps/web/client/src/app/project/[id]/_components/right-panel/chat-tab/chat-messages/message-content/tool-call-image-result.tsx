@@ -15,6 +15,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { CHAT_RETRY_TOOL_EVENT } from './tool-call-simple';
+import { getToolNameFromPart } from './tool-name';
 
 interface ImageToolOutput {
     id?: string;
@@ -35,7 +36,7 @@ const ToolCallImageResultComponent = ({
 }) => {
     const t = useTranslations('editor.chat.imageResult');
     const editorEngine = useEditorEngine();
-    const toolName = toolPart.type.split('-')[1] ?? '';
+    const toolName = getToolNameFromPart(toolPart);
     const ToolClass = TOOLS_MAP.get(toolName);
     const Icon = ToolClass?.icon ?? Icons.Image;
     const title = ToolClass ? safeGetLabel(ToolClass, toolPart.input, t('generatedImage')) : t('generatedImage');

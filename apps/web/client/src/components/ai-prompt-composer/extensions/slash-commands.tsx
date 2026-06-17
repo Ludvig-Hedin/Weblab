@@ -8,6 +8,7 @@ import Suggestion from '@tiptap/suggestion';
 import type { SlashListRef } from '../slash-list';
 import type { SlashCommand } from '../types';
 import { SlashList } from '../slash-list';
+import { createSuggestionPopupHandle } from './suggestion-popup-state';
 
 export function buildSlashCommandsExtension(commands: SlashCommand[]) {
     return Extension.create({
@@ -32,6 +33,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                     render: () => {
                         let component: ReactRenderer<SlashListRef> | undefined;
                         let popupEl: HTMLDivElement | undefined;
+                        const popup = createSuggestionPopupHandle();
 
                         return {
                             onStart(props) {
@@ -51,6 +53,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                                     'bg-background-primary border-border absolute z-[100] min-w-[280px] max-w-sm overflow-hidden rounded-lg border shadow-lg';
                                 popupEl.appendChild(component.element);
                                 document.body.appendChild(popupEl);
+                                popup.show();
 
                                 const rect = props.clientRect?.();
                                 if (rect) positionPopup(popupEl, rect);
@@ -58,6 +61,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
 
                             onUpdate(props) {
                                 if (!component || !popupEl) return;
+                                popup.show();
 
                                 // Re-show if a prior Escape hid the popup but the
                                 // user kept typing in the same suggestion session.
@@ -84,6 +88,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                                     // until the trigger char was retyped. onExit
                                     // performs the real teardown.
                                     popupEl.style.display = 'none';
+                                    popup.hide();
                                     return true;
                                 }
                                 return component.ref?.onKeyDown({ event: props.event }) ?? false;
@@ -92,6 +97,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                             onExit() {
                                 popupEl?.remove();
                                 component?.destroy();
+                                popup.hide();
                             },
                         };
                     },

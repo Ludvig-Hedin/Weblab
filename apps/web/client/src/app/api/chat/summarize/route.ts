@@ -96,9 +96,13 @@ export async function POST(req: NextRequest) {
     try {
         parsed = BodySchema.parse(await req.json());
     } catch (err: unknown) {
+        // Log the detailed Zod error server-side; return a fixed message so the
+        // response doesn't echo request-body slices back to the caller (matches
+        // the sibling /api/chat route's handling).
+        console.error('[chat/summarize] invalid request body', err);
         return new Response(
             JSON.stringify({
-                error: err instanceof Error ? err.message : 'Invalid body',
+                error: 'Invalid request body.',
                 code: 400,
             }),
             { status: 400, headers: { 'Content-Type': 'application/json' } },

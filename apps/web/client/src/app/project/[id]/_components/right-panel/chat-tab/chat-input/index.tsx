@@ -199,11 +199,18 @@ export const ChatInput = observer(
             });
         };
 
+        // Refocus the composer on first mount and when a turn finishes
+        // (streaming → idle), NOT on every `messages` change. Depending on
+        // `messages` re-stole focus from the canvas / other inputs whenever a
+        // message updated while idle (optimistic add, refetch merge, edit).
+        const wasStreamingRef = useRef<boolean | null>(null);
         useEffect(() => {
-            if (editorRef.current && !isStreaming) {
+            const prev = wasStreamingRef.current;
+            wasStreamingRef.current = isStreaming;
+            if (!isStreaming && editorRef.current && (prev === null || prev === true)) {
                 focusInput();
             }
-        }, [isStreaming, messages]);
+        }, [isStreaming]);
 
         useEffect(() => {
             const focusHandler = () => {
@@ -454,8 +461,13 @@ export const ChatInput = observer(
                             return;
                         }
 
-                        const fileContent = await branchData.codeEditor.readFile(data.originPath);
-                        if (!fileContent) {
+                        // readFile THROWS on a missing file (it never returns a
+                        // nullish value), so the specific toast must live in a
+                        // catch — a falsy check on the returned Uint8Array is dead.
+                        let fileContent: string | Uint8Array;
+                        try {
+                            fileContent = await branchData.codeEditor.readFile(data.originPath);
+                        } catch {
                             toast.error('Failed to load image file');
                             return;
                         }
@@ -607,9 +619,12 @@ export const ChatInput = observer(
                 },
                 onMentionSelect: async (item: MentionItem): Promise<void> => {
                     try {
-                        const branchData = editorEngine.branches.activeBranchData;
+                        // Guard the branch id BEFORE touching activeBranchData — that
+                        // getter THROWS when no branch is selected, so reading it
+                        // first made the `!branchId` guard below unreachable.
                         const branchId = editorEngine.branches.activeBranch?.id;
                         if (!branchId) return;
+                        const branchData = editorEngine.branches.activeBranchData;
 
                         if (item.isDirectory) {
                             // Reuse cached file list when available
@@ -632,8 +647,14 @@ export const ChatInput = observer(
 
                             const fileContexts = await Promise.all(
                                 dirFiles.map(async (f) => {
-                                    const raw = await branchData.codeEditor.readFile(f.path);
-                                    if (!raw) return null;
+                                    // readFile THROWS on a missing file (and returns
+                                    // '' for an empty one). Catch so one unreadable
+                                    // file doesn't drop the whole directory add, and
+                                    // treat '' as valid empty content.
+                                    const raw = await branchData.codeEditor
+                                        .readFile(f.path)
+                                        .catch(() => null);
+                                    if (raw == null) return null;
                                     const content =
                                         typeof raw === 'string'
                                             ? raw
@@ -652,8 +673,13 @@ export const ChatInput = observer(
                                 fileContexts.filter((c): c is NonNullable<typeof c> => c !== null),
                             );
                         } else {
-                            const raw = await branchData.codeEditor.readFile(item.path);
-                            if (!raw) {
+                            // readFile THROWS on a missing file; catch it for the
+                            // specific toast. An empty (0-byte) file returns '' and
+                            // is valid content, so don't treat it as a read failure.
+                            let raw: string | Uint8Array;
+                            try {
+                                raw = await branchData.codeEditor.readFile(item.path);
+                            } catch {
                                 toast.error(`Could not read file: ${item.label}`);
                                 return;
                             }

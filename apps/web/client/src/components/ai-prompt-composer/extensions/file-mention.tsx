@@ -7,6 +7,7 @@ import { ReactRenderer } from '@tiptap/react';
 import type { MentionListRef } from '../mention-list';
 import type { MentionConfig, MentionItem } from '../types';
 import { MentionList } from '../mention-list';
+import { createSuggestionPopupHandle } from './suggestion-popup-state';
 
 export function buildFileMentionExtension(config: MentionConfig) {
     return Mention.configure({
@@ -25,6 +26,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
             render: () => {
                 let component: ReactRenderer<MentionListRef> | undefined;
                 let popupEl: HTMLDivElement | undefined;
+                const popup = createSuggestionPopupHandle();
 
                 return {
                     onStart(props) {
@@ -44,6 +46,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
                             'bg-background-primary border-border absolute z-[100] min-w-[240px] max-w-sm overflow-hidden rounded-lg border shadow-lg';
                         popupEl.appendChild(component.element);
                         document.body.appendChild(popupEl);
+                        popup.show();
 
                         const rect = props.clientRect?.();
                         if (rect) positionPopup(popupEl, rect);
@@ -51,6 +54,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
 
                     onUpdate(props) {
                         if (!component || !popupEl) return;
+                        popup.show();
 
                         // Re-show if a prior Escape hid the popup but the user
                         // kept typing in the same suggestion session. Mirrors
@@ -79,6 +83,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
                             // the user keeps typing. Real teardown happens in
                             // onExit when the suggestion session ends.
                             popupEl.style.display = 'none';
+                            popup.hide();
                             return true;
                         }
                         return component.ref?.onKeyDown({ event: props.event }) ?? false;
@@ -87,6 +92,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
                     onExit() {
                         popupEl?.remove();
                         component?.destroy();
+                        popup.hide();
                     },
                 };
             },

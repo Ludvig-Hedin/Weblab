@@ -16,6 +16,7 @@ import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { ActionsGroup } from './actions-group';
 import { sanitizeReasoningText } from './sanitize-reasoning';
 import { ToolCallDisplay } from './tool-call-display';
+import { getToolNameFromPart } from './tool-name';
 
 // Languages we recognise as "run in terminal" code blocks.
 const SHELL_LANGS = new Set([
@@ -88,7 +89,7 @@ const isActionPart = (part: Part | undefined): boolean => {
     if (!part) return false;
     if (part.type === 'reasoning') return true;
     if (!part.type.startsWith('tool-')) return false;
-    const toolName = part.type.split('-')[1] ?? '';
+    const toolName = getToolNameFromPart(part);
     return !ALWAYS_VISIBLE_TOOLS.has(toolName);
 };
 
@@ -249,7 +250,11 @@ const MessageContentComponent = ({
                     groupKey={`${messageId}-${groupCounter}`}
                     isStreaming={groupIsStreaming}
                     actionCount={groupChildren.length}
-                    startedAt={createdAt}
+                    // Only the FIRST group starts when the message was created.
+                    // Later groups anchor to their own mount time (≈ when that
+                    // group started streaming); passing the message createdAt to
+                    // every group inflated the 2nd+ group's "Worked for Xs".
+                    startedAt={groupCounter === 0 ? createdAt : undefined}
                 >
                     {groupChildren}
                 </ActionsGroup>,

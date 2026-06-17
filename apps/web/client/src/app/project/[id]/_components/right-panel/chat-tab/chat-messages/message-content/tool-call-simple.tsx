@@ -9,6 +9,7 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
 import { transKeys } from '@/i18n/keys';
+import { getToolNameFromPart } from './tool-name';
 
 /** Global event dispatched when a stalled tool's Retry button is clicked.
  *  The chat hook listens for this and re-fires only the failed tool —
@@ -33,7 +34,7 @@ const ToolCallSimpleComponent = ({
     stalled?: boolean;
 }) => {
     const t = useTranslations();
-    const toolName = toolPart.type.split('-')[1] ?? '';
+    const toolName = getToolNameFromPart(toolPart);
     const ToolClass = TOOLS_MAP.get(toolName);
     const Icon = ToolClass?.icon ?? Icons.QuestionMarkCircled;
     const title = ToolClass

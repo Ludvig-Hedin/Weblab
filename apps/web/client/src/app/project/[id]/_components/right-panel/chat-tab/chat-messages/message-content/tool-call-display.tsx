@@ -27,6 +27,7 @@ import { PlanApprovalCard } from './plan-approval-card';
 import { PlanQuestionCard } from './plan-question-card';
 import { ToolCallImageResult } from './tool-call-image-result';
 import { ToolCallSimple } from './tool-call-simple';
+import { getToolNameFromPart } from './tool-name';
 
 const ToolCallDisplayComponent = ({
     messageId,
@@ -40,7 +41,7 @@ const ToolCallDisplayComponent = ({
     applied: boolean;
 }) => {
     const editorEngine = useEditorEngine();
-    const toolName = toolPart.type.split('-')[1];
+    const toolName = getToolNameFromPart(toolPart);
 
     if (toolName === AskUserQuestionTool.toolName) {
         const args = toolPart.input as z.infer<typeof AskUserQuestionTool.parameters> | null;

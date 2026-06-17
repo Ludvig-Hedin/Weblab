@@ -1,3 +1,4 @@
+import type { LanguageModelUsage } from 'ai';
 import { type NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
@@ -130,6 +131,13 @@ function isValidChatModel(model: string): boolean {
     const name = model.slice('ollama/'.length);
     return name.length > 0 && OLLAMA_NAME_RE.test(name);
 }
+
+// Hosted web only serves the curated OpenRouter line-up (plus `auto` + local
+// Ollama). Any other OpenRouter slug is refused: an unpriced model isn't in
+// MODEL_PRICING, so `estimateLLMCost` returns 0 → a free, fully-refunded paid
+// turn (token-cost-billing abuse). The client model picker only ever offers
+// these, so the allow-list never rejects a legitimate request.
+const ALLOWED_OPENROUTER_MODELS = new Set<string>(CHAT_MODEL_OPTIONS.map((o) => o.model));
 
 const ChatRequestBodySchema = z.object({
     messages: z.array(z.any()).min(1),
@@ -272,7 +280,9 @@ const streamResponse = async (req: NextRequest, userId: string) => {
     // SINGLE projects.get — previously called twice (once for access check, once
     // for framework). One round-trip serves both: the query throws on access
     // denial via requireCap so the absence of a throw is the access check.
-    let projectDoc: { runtimeMetadata?: { framework?: ProjectFrameworkId } } | null = null;
+    let projectDoc: {
+        runtimeMetadata?: { framework?: ProjectFrameworkId };
+    } | null = null;
     if (projectId) {
         try {
             projectDoc = await fetchQuery(
@@ -334,6 +344,15 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                 }),
                 { status: 501, headers: { 'Content-Type': 'application/json' } },
             );
+        }
+        // Reject OpenRouter slugs outside the curated, priced line-up so an
+        // unpriced model can't stream at $0 cost. (Local ollama/* models are
+        // format-validated by isValidChatModel above and priced separately.)
+        if (provider === 'openrouter' && !ALLOWED_OPENROUTER_MODELS.has(selectedModel as string)) {
+            return new Response(JSON.stringify({ error: 'Unsupported model.', code: 400 }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
         }
     }
 
@@ -556,6 +575,25 @@ const streamResponse = async (req: NextRequest, userId: string) => {
 
         const messageCreatedAt = new Date();
 
+        // Cumulative usage across ALL steps. The per-message metadata only holds
+        // the LAST finish-step's usage, so a multi-step tool turn (stepCountIs)
+        // would undercharge if billed from metadata. `StreamTextResult.totalUsage`
+        // is the SDK's authoritative aggregate. Bounded by the same finish
+        // timeout so a stuck `totalUsage` promise can't hold onFinish (and the
+        // response) open; on timeout / rejection the caller falls back to the
+        // metadata usage (the conservative pre-fix behavior, never worse).
+        const readTotalUsage = async (): Promise<LanguageModelUsage | undefined> => {
+            try {
+                return await runWithTimeout(
+                    built.stream.totalUsage,
+                    CONVEX_FINISH_TIMEOUT_MS,
+                    'totalUsage',
+                );
+            } catch {
+                return undefined;
+            }
+        };
+
         return built.stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
             generateMessageId: () => uuidv4(),
@@ -575,13 +613,11 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                     context: [],
                     checkpoints: [],
                     finishReason: part.type === 'finish-step' ? part.finishReason : undefined,
-                    // TODO(bug-hunt): billing undercharge. `part.usage` is PER-STEP,
-                    // so on a multi-step turn (agent runs up to stepCountIs(8) tool
-                    // loops) the metadata keeps only the LAST step's usage. onFinish
-                    // then bills/reconciles against that single step (see
-                    // responseMetadata?.usage below), undercounting tokens for every
-                    // multi-step EDIT turn. Fix: capture cumulative usage from the
-                    // `finish` part (`part.totalUsage`) instead of `finish-step`.
+                    // PER-STEP usage (the last finish-step wins in stored metadata).
+                    // Billing must NOT use this for multi-step tool turns — it would
+                    // count only the final step. onFinish bills the cumulative
+                    // `built.stream.totalUsage` instead; this stays as a display value
+                    // and a billing fallback only.
                     usage: part.type === 'finish-step' ? part.usage : undefined,
                     providerMetadata: part.type === 'finish-step' ? providerMetadata : undefined,
                     resolvedModel: built.resolvedModel,
@@ -603,13 +639,33 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                             p.type === 'file',
                     );
 
-                // TODO(bug-hunt): an aborted multi-step turn that already consumed
-                // provider tokens is FULLY refunded here and never calls
-                // finalizeUsage, so real spend goes unbilled and untracked (no
-                // aiUsageEvents row). Consider finalizing partial usage + reconciling
-                // to the real partial cost on abort instead of a blanket refund.
                 if (isAborted || !responseHasContent) {
+                    // Refund the reserved credit — keeping aborted/empty turns free
+                    // for the user is deliberate (a Stop click shouldn't cost a
+                    // credit). But still RECORD the partial provider spend so it's
+                    // tracked: finalizeUsage with an errorType writes the
+                    // aiUsageEvents row and the sink skips credit reconcile (it gates
+                    // on `!errorType`), so this never double-charges.
                     await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
+                    const partialUsage = await readTotalUsage();
+                    const abortToolCallCount = (responseMessage?.parts ?? []).filter((p) =>
+                        p.type?.startsWith('tool-'),
+                    ).length;
+                    try {
+                        await runWithTimeout(
+                            built.finalizeUsage({
+                                usage: partialUsage,
+                                toolCallCount: abortToolCallCount,
+                                messageId: responseMessage?.id,
+                                errorType: isAborted ? 'aborted' : 'empty_response',
+                                sink: usageSink,
+                            }),
+                            CONVEX_FINISH_TIMEOUT_MS,
+                            'finalizeUsage(interrupted)',
+                        );
+                    } catch (err) {
+                        console.warn('[chat] failed to record interrupted-turn usage', err);
+                    }
                     return;
                 }
 
@@ -642,9 +698,14 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                 const toolCallCount = (responseMessage?.parts ?? []).filter((p) =>
                     p.type?.startsWith('tool-'),
                 ).length;
+                // Bill the cumulative usage across all steps, not the last
+                // finish-step's per-step usage held in metadata (multi-step tool
+                // turns would otherwise undercharge). Fall back to metadata usage
+                // if totalUsage didn't resolve.
+                const totalUsage = await readTotalUsage();
                 await runWithTimeout(
                     built.finalizeUsage({
-                        usage: responseMetadata?.usage,
+                        usage: totalUsage ?? responseMetadata?.usage,
                         providerMetadata: responseMetadata?.providerMetadata,
                         toolCallCount,
                         messageId: responseMessage?.id,

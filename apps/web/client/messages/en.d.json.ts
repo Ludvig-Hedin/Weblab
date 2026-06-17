@@ -2094,6 +2094,8 @@ declare const messages: {
       "multiBranchRevert": {
         "toastSelectFirst": "Please select at least one branch to revert",
         "toastAllFailed": "Failed to restore all selected branches",
+        "toastPartialFailed": "Some branches could not be restored",
+        "toastSuccess": "Branches restored",
         "toastFailed": "Failed to restore branches",
         "dialogTitle": "Restore Multiple Branches",
         "dialogDesc": "Select the branches you want to restore to their previous state.",

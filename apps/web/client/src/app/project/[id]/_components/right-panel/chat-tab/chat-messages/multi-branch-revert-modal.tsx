@@ -81,8 +81,15 @@ export const MultiBranchRevertModal = ({
             const successCount = results.filter((r) => r.success).length;
             const failCount = results.length - successCount;
 
-            if (failCount > 0) {
+            // Distinguish all-succeeded / partial / all-failed. The old code
+            // showed "all failed" whenever any branch failed (so a partial
+            // success read as a total failure) and showed no toast on success.
+            if (failCount === 0) {
+                toast.success(t('toastSuccess'));
+            } else if (successCount === 0) {
                 toast.error(t('toastAllFailed'));
+            } else {
+                toast.error(t('toastPartialFailed'));
             }
         } catch (error) {
             toast.error(t('toastFailed'), {
