@@ -93,12 +93,38 @@ live QA is now possible. Authed app still needs a logged-in browser.
 jargon ("sandbox layer is being migrated to Convex") and pointed users to the
 working blank path. `bun typecheck` exit 0 (covers both iter-1 + iter-2 edits).
 
+## Iteration 3 (2026-06-17, scheduled wake)
+
+**Blocker:** weblab-agent token still `AUTH_FAILED`. No code fix shipped this
+pass — output is diagnosis + verified bug logging (shipping a blind,
+live-unverifiable editor fix would be lower quality than logging it).
+
+**Hydration #418 — thorough diagnosis, not pinned (logged):** ruled out, on the
+*reachable* landing tree, `unicorn-background` + `promo-banner` (both
+mount-guarded), `changelog-grid` (date-fns deterministic), and
+`feature-blocks/ComponentsBlock` (dead — only on `/landing-old`). A live
+Playwright DOM scan found no reparenting nesting (`a a`, `button button`,
+`p>div`). Needs the React component stack from a non-minified build — logged
+with that next step.
+
+**Editor bug-hunt (focused subagent, 39 tool-uses, read-confirmed):** 12
+findings logged to BACKLOG, top 3:
+- HIGH — CMS `bind-dialog` reads `selected[0]` every render → can save a REPEAT
+  binding onto the wrong (non-list) element.
+- HIGH — directory rename calls `moveFile` not `moveDirectory` → OID index
+  goes stale, canvas can't resolve elements under the renamed dir.
+- HIGH — CMS binding re-save drops previously-saved `filters` (whole-doc
+  overwrite).
+
+**Dead code found:** `/landing-old` route + `home-page-client-old` + V1
+`what-can-weblab-do-section` + `ComponentsBlock` + `_demo-backup-20260605/`.
+Logged as a cleanup candidate (don't delete unilaterally — confirm `/landing-old`
+isn't an intentional reference route first).
+
 ## Next iteration
 
-1. Clear a live-QA blocker (token refresh, or a Chrome logged into weblab.build
-   for CDP/cookie-driven authed QA).
-2. Exercise blank-create → editor → design-sync → responsive live.
-3. Investigate the hydration #418 (non-minified build or grep landing tree for
-   SSR-time locale/date/random/window rendering).
-4. Reproduce the preview-down edit-loss path, then fix with a toolbar
-   edit-channel health indicator.
+1. Clear a live-QA blocker (token refresh, or a Chrome logged into weblab.build).
+2. Get the #418 component stack from a non-minified build / `onRecoverableError`.
+3. Once authed: fix CMS bind-dialog stale-target + directory-rename OID bugs and
+   verify in the editor; exercise blank-create → editor → design-sync →
+   responsive live.

@@ -38,13 +38,41 @@ later without re-discovering the context.
 
 ## Open
 
+### Editor bug-hunt: CMS bind-dialog, file-tree directory rename, commit flow (iter-3)
+
+- **Discovered:** 2026-06-17 (QA pass iter-3 — focused editor bug-hunt subagent, 39 tool-uses, line refs read-confirmed)
+- **Where:** CMS `…/cms/bind-dialog.tsx`, `…/cms/items-table.tsx`, `convex/cmsBindings.ts`; file tree `…/file-tree/index.tsx`, `packages/file-system/src/code-fs.ts`; commit `…/top-bar/git-actions.tsx`
+- **Findings (ranked):**
+  1. **HIGH — CMS bind-dialog stale target** (`bind-dialog.tsx:157-174`): mode detection reads `editorEngine.elements.selected[0]` on every render. Open the dialog on element A, click element B on canvas → `mode` reflects B while `oid` still targets A; saving can persist a `REPEAT`/`CURRENT_FIELD` binding onto a non-list element. Fix: resolve by `oid` (not `selected[0]`), or close on selection change.
+  2. **HIGH — directory rename leaves OID index stale** (`file-tree/index.tsx:533` `handleRenameFile` → `code-fs.ts:499`): renaming a *directory* calls `CodeFileSystem.moveFile` (re-keys OID only for file pairs), never `moveDirectory`, so OID metadata for files under the renamed dir keeps old paths → canvas silently can't resolve elements in those files. Fix: dispatch directory targets to `moveDirectory`.
+  3. **HIGH — CMS filters silently dropped on re-save** (`bind-dialog.tsx:167-174`): re-saving a `FIRST_FIELD`/`REPEAT` binding doesn't load existing `filters`/`filterMode` into form state; `upsert` overwrites the whole doc → saved filters lost. Fix: round-trip or merge existing payload.
+  4. **MED** — `items-table.tsx:72` item list capped at 100 (badge/search/preview miss overflow; TODO at :69); `items-table.tsx:186-192` bulk-delete partial failure deselects failed ids + swallows error message; `git-actions.tsx:109` commit double-submit race (`useState` guard read before re-render → two commits — use a `useRef` in-flight guard); `git-actions.tsx:158-162` staged-only commit always uses `'New Weblab backup'` placeholder instead of auto-generating (TODO at :156); `file-tree/index.tsx:561-597` delete-directory tab-close prefix check can miss orphaned tabs (path normalization).
+  5. **LOW** — `cmsBindings.ts:82,102` binding list truncates at 2000; `git-actions.tsx` `continueDisabled` excludes `fileCount===null` (commit possible while count loads); code-tab rapid double-close dirty-check race.
+- **Clean:** `cmsCollections.remove` cascades correctly; `cmsBindings.upsert` dedup handles the TOCTOU race; file/folder create modals derive collision warnings correctly; commit dialog surfaces git errors + PR URL and blocks committing on the default branch.
+- **Next step:** Fix #1–#3 first (data-corruption / silent-failure). All are editor-internal → verify in an authed editor session (currently blocked).
+- **Risk if ignored:** Corrupted CMS bindings, broken element resolution after directory rename, duplicate commits.
+- **Tags:** `#bug` `#editor` `#cms` `#convex`
+
+### Dead code: `/landing-old` route + old home chain (`home-page-client-old`, V1 section, `ComponentsBlock`)
+
+- **Discovered:** 2026-06-17 (QA pass iter-3, while tracing hydration #418)
+- **Where:** `apps/web/client/src/app/landing-old/page.tsx`; `…/_components/home-page-client-old.tsx`; `…/landing-page/what-can-weblab-do-section.tsx` (V1, vs the live `-v2`); `…/landing-page/feature-blocks/components.tsx` (`ComponentsBlock`); `…/landing-page/_demo-backup-20260605/` dir
+- **Symptom:** The live landing (`/`) renders `home-page-client.tsx` (V2 sections). The V1 chain is reachable only via the separate `/landing-old` route. It still ships in the bundle and carries real SSR hazards (e.g. `ComponentsBlock`'s live `new Date().toLocaleString('default')` calendar). An iter-1 UX critique and an iter-3 #418 hunt both wasted time on this dead chain.
+- **Next step:** Confirm `/landing-old` isn't an intentional reference/A-B route (ask owner — do NOT delete unilaterally), then remove the route + `home-page-client-old.tsx` + V1 section + `ComponentsBlock` + the `_demo-backup-20260605` dir. `bun typecheck` will confirm nothing else imports them.
+- **Risk if ignored:** Dead code rots and repeatedly misleads audits; ships unused JS.
+- **Tags:** `#tech-debt`
+
 ### React hydration error #418 on the production landing page
 
 - **Discovered:** 2026-06-17 (QA pass iter-2 — direct Playwright against live `weblab.build`)
 - **Where:** `apps/web/client/src/app/page.tsx` + `_components/hero/*` / promo bar / footer (exact component TBD)
 - **Symptom:** Live landing throws a single `pageerror`: *"Minified React error #418; …args[]=HTML"* (hydration: server-rendered HTML did not match client). Console is otherwise clean (0 console errors) and the page renders fine across 1440/768/375. Also seen: one `net::ERR_ABORTED` on a `/projects?_rsc=` prefetch — likely benign Next prefetch cancellation, not tracked separately.
-- **Root cause:** Not yet pinned. #418 is a text/HTML hydration mismatch — usual suspects: a value that differs server vs client during SSR (locale/date formatting, relative time, `Date.now()`/`Math.random()`, the promo "Save 60%…" bar, or a `typeof window`-gated render) in the hero/promo/footer.
-- **Next step:** Reproduce against a non-minified build (the `react.dev/errors/418` decoder names the component) or grep the landing tree for date/locale/random/`window`-gated rendering done during SSR; wrap the offending client-only value in a mounted guard or `suppressHydrationWarning`.
+- **Root cause:** Not yet pinned. Iter-3 ruled out the obvious suspects on the *reachable* landing tree (page.tsx → HomePageClient → HeroV2 / ResponsiveMockupSection / WhatCanWeblabDoSectionV2 / FeatureTrioSection / FAQSection / ChangelogGrid / CTASection / PageFooter):
+  - `unicorn-background.tsx` + `promo-banner/index.tsx` — both correctly mount-guarded (`webglSupported===null` / `mounted` flag) → render identically server vs first-client. Not it.
+  - `changelog-grid.tsx` — formats dates via `date-fns format(parsed,'MMM d, yyyy')`, which is locale-deterministic. Not it.
+  - `feature-blocks/components.tsx` (`ComponentsBlock`, renders live `new Date().toLocaleString('default',…)` + a "today"-highlighted calendar — a genuine SSR hazard) is **dead on the real landing**: only `what-can-weblab-do-section.tsx` (V1) renders it, and V1 is only reachable via `home-page-client-old.tsx` → the `/landing-old` route. Not the `/` culprit.
+  - Live DOM nesting scan (Playwright) found no reparenting patterns (`a a`, `button button`, `p>div`, `p>p`). Only `div`-in-`button` (×17 swatch indicators) — invalid per spec but browsers don't reparent it, so not a hydration cause.
+- **Next step:** Static + DOM analysis didn't pin it — needs the React component stack. Run the landing against a non-minified build (`next dev` or a non-prod-minified build) so the `react.dev/errors/418` decoder names the component, OR add a temporary `onRecoverableError` logger in the root layout to capture the component stack in prod. Likely a motion-driven conditional render or a third-party (UnicornScene / next-intl / framer) SSR/client divergence.
 - **Risk if ignored:** Hydration mismatch forces a client re-render of the subtree (layout flash / wasted work) and can desync interactive state; also a soft SEO/perf signal. Cosmetic today but real.
 - **Tags:** `#bug` `#perf` `#public`
 
