@@ -61,6 +61,11 @@ import {
     ProviderTask,
     ProviderTerminal,
 } from '../../types';
+import {
+    instrumentScaffoldJsx,
+    NEXT_SCAFFOLD_LAYOUT_SRC,
+    NEXT_SCAFFOLD_PAGE_SRC,
+} from './scaffold-instrument';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_RUNTIME = 'node24';
@@ -317,6 +322,15 @@ async function checkpointAndResume(sandbox: Sandbox, port: number) {
 }
 
 async function scaffoldNextProject(sandbox: Sandbox) {
+    // Pre-stamp `data-oid` onto the scaffold JSX so the first render the dev
+    // server serves is already source-mapped and editable. Scaffold files are
+    // written straight to the sandbox, bypassing CodeFileSystem (the only other
+    // oid-injection path) — without this, deleting a freshly-scaffolded element
+    // fails with "Remove action not found". See scaffold-instrument.ts.
+    const [pageContent, layoutContent] = await Promise.all([
+        instrumentScaffoldJsx(NEXT_SCAFFOLD_PAGE_SRC),
+        instrumentScaffoldJsx(NEXT_SCAFFOLD_LAYOUT_SRC),
+    ]);
     await sandbox.writeFiles([
         {
             path: 'package.json',
@@ -347,13 +361,11 @@ async function scaffoldNextProject(sandbox: Sandbox) {
         },
         {
             path: 'src/app/page.tsx',
-            content:
-                'export default function Page() {\n  return <main className="min-h-screen" />;\n}\n',
+            content: pageContent,
         },
         {
             path: 'src/app/layout.tsx',
-            content:
-                'import \'./globals.css\';\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return <html lang="en"><body>{children}</body></html>;\n}\n',
+            content: layoutContent,
         },
         {
             path: 'src/app/globals.css',
