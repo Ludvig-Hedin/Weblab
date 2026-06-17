@@ -240,11 +240,16 @@ export async function getTemplateNodeChild(
             const node = path.node;
             const childName = (node.openingElement.name as T.JSXIdentifier).name;
             if (childName === child.component) {
-                const instanceId = getOidFromJsxElement(node.openingElement);
-                if (instanceId) {
-                    res = { instanceId, component: child.component };
-                }
+                // Resolve the oid only for the requested sibling index (or the
+                // first match when index === -1), then stop. Previously `res`
+                // was overwritten for every same-name sibling on the way to the
+                // target, so a target sibling that lacked an oid would leak the
+                // PREVIOUS sibling's instanceId instead of resolving to null.
                 if (currentIndex === index || index === -1) {
+                    const instanceId = getOidFromJsxElement(node.openingElement);
+                    if (instanceId) {
+                        res = { instanceId, component: child.component };
+                    }
                     path.stop();
                 }
                 currentIndex++;

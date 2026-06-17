@@ -6,6 +6,7 @@ import {
     createTemplateNodeMap,
     getCoreElementInfo,
     getDynamicTypeInfo,
+    getTemplateNodeChild,
     isNodeElementArray,
 } from 'src/template-node/map';
 
@@ -235,6 +236,58 @@ describe('Template Tests', () => {
             });
 
             expect(arrayElement && getDynamicTypeInfo(arrayElement)).toBe(DynamicType.ARRAY);
+        });
+    });
+
+    describe('getTemplateNodeChild', () => {
+        // Only `.component` is read, so a minimal cast keeps the fixtures small.
+        const child = { component: 'Card' } as unknown as Parameters<
+            typeof getTemplateNodeChild
+        >[1];
+        const twoSiblings = `
+            function Parent() {
+                return (
+                    <div>
+                        <Card data-oid="card-0">A</Card>
+                        <Card data-oid="card-1">B</Card>
+                    </div>
+                );
+            }
+        `;
+
+        test('maps the Nth same-name sibling to the Nth instance oid', async () => {
+            expect(await getTemplateNodeChild(twoSiblings, child, 0)).toEqual({
+                instanceId: 'card-0',
+                component: 'Card',
+            });
+            expect(await getTemplateNodeChild(twoSiblings, child, 1)).toEqual({
+                instanceId: 'card-1',
+                component: 'Card',
+            });
+        });
+
+        test('index === -1 returns the first matching sibling', async () => {
+            expect(await getTemplateNodeChild(twoSiblings, child, -1)).toEqual({
+                instanceId: 'card-0',
+                component: 'Card',
+            });
+        });
+
+        test('a target sibling without an oid resolves to null, not a sibling oid', async () => {
+            // Regression: the second <Card> has no data-oid. The resolver used to
+            // overwrite `res` for every sibling and stop at the target, leaking
+            // the FIRST sibling's oid here instead of returning null.
+            const targetNoOid = `
+                function Parent() {
+                    return (
+                        <div>
+                            <Card data-oid="card-0">A</Card>
+                            <Card>B</Card>
+                        </div>
+                    );
+                }
+            `;
+            expect(await getTemplateNodeChild(targetNoOid, child, 1)).toBeNull();
         });
     });
 });
