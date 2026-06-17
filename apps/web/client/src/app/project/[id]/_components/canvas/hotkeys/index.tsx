@@ -602,7 +602,6 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             }
             e.preventDefault();
             editorEngine.copy.copy();
-            toast.success('Copied');
         },
         { enableOnFormTags: true, enableOnContentEditable: true },
         [getKey('COPY')],

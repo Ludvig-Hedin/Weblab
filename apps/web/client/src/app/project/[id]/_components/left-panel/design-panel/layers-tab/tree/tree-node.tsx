@@ -12,6 +12,8 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 
+import { getWindowLabel } from './window-label';
+
 const isComponentAncestor = (node: NodeApi<LayerNode>): boolean => {
     if (!node) {
         return false;
@@ -97,8 +99,7 @@ export const TreeNode = memo(
                 isWindow &&
                 editorEngine.elements.selected.length === 0 &&
                 editorEngine.frames.selected.some((el) => el.frame.id === node.data.frameId);
-            const showBadges =
-                node.data.htmlId || node.data.hasCustomAttributes || node.data.isInteractive;
+            const showBadges = node.data.htmlId || node.data.isInteractive;
 
             const { hovered, selected, isParentSelected } = useMemo(
                 () => ({
@@ -269,7 +270,10 @@ export const TreeNode = memo(
 
             function getNodeName() {
                 if (isWindow) {
-                    return 'window';
+                    // The window row represents a frame, so label it with the
+                    // frame's breakpoint/device name (Desktop / Tablet / Phone)
+                    // instead of the literal `<body>` tag.
+                    return getWindowLabel(editorEngine.frames.get(node.data.frameId)?.frame);
                 }
                 return (
                     (node.data.component
@@ -403,17 +407,6 @@ export const TreeNode = memo(
                                                 )}
                                             >
                                                 #
-                                            </LayerBadge>
-                                        )}
-                                        {node.data.hasCustomAttributes && (
-                                            <LayerBadge
-                                                className={cn(
-                                                    selected
-                                                        ? 'border-foreground/30 bg-foreground/10 text-foreground'
-                                                        : 'border-border text-foreground-secondary',
-                                                )}
-                                            >
-                                                []
                                             </LayerBadge>
                                         )}
                                         {node.data.isInteractive && (
