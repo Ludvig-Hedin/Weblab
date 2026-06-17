@@ -106,6 +106,46 @@ describe('htmlPipeline.applyEdits', () => {
         expect(html).toContain('class="a b"');
     });
 
+    test('{ __remove: true } sentinel deletes the attribute (not "[object Object]")', async () => {
+        // Regression: an instance prop reset passes a `{ __remove: true }`
+        // sentinel. The HTML pipeline used to String()-coerce it into the
+        // literal "[object Object]" and write THAT as the attribute value,
+        // instead of deleting the attribute (the JSX pipeline already deletes).
+        const ast = htmlPipeline.parse('<div data-foo="bar" class="a">x</div>')!;
+        htmlPipeline.injectOids(ast);
+        const map = htmlPipeline.buildTemplateNodeMap({
+            ast,
+            filename: 'index.html',
+            branchId: 'branch-1',
+        });
+        const oid = map.keys().next().value!;
+        await htmlPipeline.applyEdits(
+            ast,
+            new Map([
+                [
+                    oid,
+                    {
+                        oid,
+                        branchId: 'branch-1',
+                        // `className` sentinel must also map to the `class` attr.
+                        attributes: {
+                            'data-foo': { __remove: true },
+                            className: { __remove: true },
+                        },
+                        tagName: null,
+                        textContent: null,
+                        overrideClasses: null,
+                        structureChanges: [],
+                    },
+                ],
+            ]),
+        );
+        const html = await htmlPipeline.generate(ast, '');
+        expect(html).not.toContain('[object Object]');
+        expect(html).not.toContain('data-foo');
+        expect(html).not.toContain('class=');
+    });
+
     test('overrides class when overrideClasses=true', async () => {
         const ast = htmlPipeline.parse('<div class="a">x</div>')!;
         htmlPipeline.injectOids(ast);

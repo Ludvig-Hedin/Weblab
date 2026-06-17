@@ -76,6 +76,22 @@ function removeAttribute(element: Element, name: string): void {
 }
 
 /**
+ * `{ __remove: true }` is the instance-prop-reset sentinel (see
+ * code-edit/style.ts — when an instance prop is reset to the component default).
+ * The JSX pipeline deletes the attribute for it; the HTML pipeline must too, or
+ * `String(raw)` coerces the object into the literal "[object Object]" and writes
+ * THAT into the attribute. Checked structurally here rather than imported from
+ * the JSX module so this HTML pipeline stays free of the babel/JSX dependency.
+ */
+function isRemoveSentinel(value: unknown): boolean {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        (value as { __remove?: unknown }).__remove === true
+    );
+}
+
+/**
  * Tags whose contents are not real DOM elements (raw text containers,
  * metadata, control flow). Skipping them avoids decorating script/style
  * source positions and keeps the editor's element tree focused on what's
@@ -474,9 +490,17 @@ export const htmlPipeline: EditorPipeline<HtmlAst> = {
 
             if (attributes) {
                 for (const [key, raw] of Object.entries(attributes)) {
-                    const value = raw == null ? '' : String(raw);
                     // JSX uses `className`; HTML uses `class`. Translate
                     // transparently so callers pass the same diff shape.
+                    const attrName = key === 'className' ? 'class' : key;
+                    // A `{ __remove: true }` sentinel (instance prop reset to the
+                    // component default) DELETES the attribute — it must not be
+                    // coerced via String() into the literal "[object Object]".
+                    if (isRemoveSentinel(raw)) {
+                        removeAttribute(element, attrName);
+                        continue;
+                    }
+                    const value = raw == null ? '' : String(raw);
                     if (key === 'className' || key === 'class') {
                         if (overrideClasses) {
                             if (value === '') {
