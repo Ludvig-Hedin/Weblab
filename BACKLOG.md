@@ -38,6 +38,25 @@ later without re-discovering the context.
 
 ## Open
 
+### React hydration error #418 on the production landing page
+
+- **Discovered:** 2026-06-17 (QA pass iter-2 — direct Playwright against live `weblab.build`)
+- **Where:** `apps/web/client/src/app/page.tsx` + `_components/hero/*` / promo bar / footer (exact component TBD)
+- **Symptom:** Live landing throws a single `pageerror`: *"Minified React error #418; …args[]=HTML"* (hydration: server-rendered HTML did not match client). Console is otherwise clean (0 console errors) and the page renders fine across 1440/768/375. Also seen: one `net::ERR_ABORTED` on a `/projects?_rsc=` prefetch — likely benign Next prefetch cancellation, not tracked separately.
+- **Root cause:** Not yet pinned. #418 is a text/HTML hydration mismatch — usual suspects: a value that differs server vs client during SSR (locale/date formatting, relative time, `Date.now()`/`Math.random()`, the promo "Save 60%…" bar, or a `typeof window`-gated render) in the hero/promo/footer.
+- **Next step:** Reproduce against a non-minified build (the `react.dev/errors/418` decoder names the component) or grep the landing tree for date/locale/random/`window`-gated rendering done during SSR; wrap the offending client-only value in a mounted guard or `suppressHydrationWarning`.
+- **Risk if ignored:** Hydration mismatch forces a client re-render of the subtree (layout flash / wasted work) and can desync interactive state; also a soft SEO/perf signal. Cosmetic today but real.
+- **Tags:** `#bug` `#perf` `#public`
+
+### Dead component: `hero/start-blank.tsx` (`StartBlank`) has no importers
+
+- **Discovered:** 2026-06-17 (QA pass iter-2)
+- **Where:** `apps/web/client/src/app/_components/hero/start-blank.tsx`
+- **Symptom:** `StartBlank` is not imported anywhere (`rg "import .*StartBlank|<StartBlank"` → 0 hits). The real "Start blank" CTA users see is in `apps/web/client/src/app/projects/_components/project-chooser-cards.tsx` (calls `useCreateBlankProject` directly). Iter-1's UX assessment critiqued this dead component's low-weight `text-foreground-secondary` button — moot until it's wired up or deleted. Note: the live component is also a raw `<button>` (button-enforcement candidate).
+- **Next step:** Delete `start-blank.tsx`, or wire it in if it was meant to be the hero CTA. Separately, audit `project-chooser-cards.tsx`'s blank CTA against [button-enforcement.md](docs/agent-context/button-enforcement.md).
+- **Risk if ignored:** Dead code rots; future agents (like iter-1) waste effort assessing it.
+- **Tags:** `#tech-debt`
+
 ### Preview-down (`SANDBOX_NOT_LISTENING`) gives a silent dead-end, and edits are lost after a false recovery
 
 - **Discovered:** 2026-06-17 (QA pass — editor preview/sandbox bug-hunt, subagent line refs need a final confirm)

@@ -23,7 +23,7 @@ import { parseRepoUrl } from './parse-repo-url';
 // silently corrupting state. `generateName` is wired through Convex so the
 // title-generation path remains usable for the rest of the create UI.
 const UNAVAILABLE_MESSAGE =
-    'Project creation is temporarily unavailable while the sandbox layer is being migrated to Convex. Please check back shortly.';
+    'Creating a project from a prompt, GitHub repo, or template is temporarily unavailable. You can still start a blank project — or check back soon.';
 
 /**
  * Returns the workspace id the new project should land in. The dashboard

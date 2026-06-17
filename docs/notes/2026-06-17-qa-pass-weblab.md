@@ -61,10 +61,44 @@ with `Jun 1`, `Jun 10/11/19`, `Jun 1 (2)/(3)` went from a wrong count of 6
 (next name `(7)`) to the correct 3 (next name `(4)`). Stale `TODO(bug-hunt)`
 comment updated to note the residual same-tick/gap race.
 
+## Iteration 2 (2026-06-17, scheduled wake)
+
+**Blockers:** weblab-agent token still `AUTH_FAILED`. gstack `browse` still
+broken (its vendored Playwright wants chromium-shell **1217**, system has
+**1223**) — but **direct Playwright works** (1223 installed), so public-surface
+live QA is now possible. Authed app still needs a logged-in browser.
+
+**Live public QA (direct Playwright vs live `weblab.build`):**
+
+- Landing renders cleanly at 1440 / 768 / 375; **0 console errors**.
+- ✅ unauth `/projects/new` → clean redirect to
+  `/sign-in?returnUrl=%2Fprojects%2Fnew` (returnUrl preserved); sign-in page
+  renders well (Google/GitHub/Vercel + email).
+- 🟠 **1 page error: React hydration #418** on the landing — logged to BACKLOG.
+- 1 benign `ERR_ABORTED` on a `/projects?_rsc=` prefetch.
+
+**Agent claims corrected this iteration (verified against source):**
+
+- `StartBlank` (hero) is **dead code** — no importers. The real blank CTA is in
+  `project-chooser-cards.tsx`. The iter-1 "Start blank buried" critique targeted
+  unused code.
+- The UNAVAILABLE create error surfaces via the `<CreateError>` banner **with a
+  Retry** (create-error.tsx) — not a bare dead-end toast.
+- `_provisionSandbox` handles **all** provision-time failures via `markFailed`
+  (writes `_markProvisioningFailed`). The orphan gap is narrower than iter-1
+  implied: only if the `scheduler.runAfter` call itself throws after the insert
+  commits.
+
+**Fixed + verified:** `UNAVAILABLE_MESSAGE` copy (manager.ts) — dropped internal
+jargon ("sandbox layer is being migrated to Convex") and pointed users to the
+working blank path. `bun typecheck` exit 0 (covers both iter-1 + iter-2 edits).
+
 ## Next iteration
 
-1. Clear a live-QA blocker (token refresh, or CDP browser, or cookie export).
+1. Clear a live-QA blocker (token refresh, or a Chrome logged into weblab.build
+   for CDP/cookie-driven authed QA).
 2. Exercise blank-create → editor → design-sync → responsive live.
-3. Reproduce the preview-down edit-loss path, then fix with a toolbar
+3. Investigate the hydration #418 (non-minified build or grep landing tree for
+   SSR-time locale/date/random/window rendering).
+4. Reproduce the preview-down edit-loss path, then fix with a toolbar
    edit-channel health indicator.
-4. Re-verify the hero UX fixes visually before applying.
