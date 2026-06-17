@@ -1,0 +1,27 @@
+# Railway config-as-code for the SECOND service: the editor sandbox tRPC/WS
+# server (@weblab/web-server). It exists because the repo-root railway.toml is
+# the Next.js CLIENT config (dockerfilePath = "Dockerfile", which runs
+# `next build`). Railway applies that root config to EVERY service in the repo
+# and "configuration defined in code always overrides the dashboard", so the
+# Dockerfile-Path field in the service UI is ignored — the sandbox service kept
+# building the client Dockerfile and failed on the client-only build ARG
+# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (the /offline prerender).
+#
+# To use this file, set the sandbox service's "Custom config as code file" to
+#   /railway.sandbox-server.toml
+# (Service → Settings → Config-as-code). Then it builds Dockerfile.sandbox-server
+# (no next build, no client build ARGs) and the failure goes away.
+#
+# Runbook: docs/notes/2026-06-16-sandbox-server-deploy.md
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.sandbox-server"
+
+[deploy]
+# The server serves both /health and /api/health (200 {ok:true}); use /api/health
+# to match the client service's convention.
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

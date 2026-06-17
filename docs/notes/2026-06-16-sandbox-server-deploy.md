@@ -52,7 +52,21 @@ wired:
 ## Manual deploy steps (you must do these — Railway dashboard/CLI)
 
 1. **Create a second Railway service** in the same project, from this repo.
-   - Build: **Dockerfile**, path `Dockerfile.sandbox-server`.
+   - **Point it at the dedicated config file, NOT the Dockerfile-Path field.**
+     Service → Settings → Config-as-code → set the path to
+     `/railway.sandbox-server.toml`.
+     - ⚠️ **Gotcha (this is why the first build failed):** the repo-root
+       `railway.toml` is the *client* config (`dockerfilePath = "Dockerfile"`,
+       which runs `next build`). Railway applies the root config to every service
+       and *"configuration defined in code always overrides the dashboard"*, so
+       the service's **Dockerfile Path** field is ignored — the sandbox service
+       built the client image and failed on the client-only build ARG
+       `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (the `/offline` prerender). A separate
+       config file is the only clean override. `railway.sandbox-server.toml`
+       pins `dockerfilePath = "Dockerfile.sandbox-server"` + `/api/health`.
+     - (Alternative if you don't want a config file: set the service variable
+       `RAILWAY_DOCKERFILE_PATH=Dockerfile.sandbox-server`. Less certain to win
+       against the root `railway.toml`; the config-file path is preferred.)
    - Generate a public domain (e.g. `weblab-sandbox.up.railway.app`). Railway
      terminates TLS on 443 and proxies WebSockets, so no port mapping is needed —
      the server reads `PORT` from Railway.
