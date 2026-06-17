@@ -83,6 +83,13 @@ export class OllamaWebTransport implements ChatTransport<UIMessage> {
                             delta: chunk,
                         });
                     }
+                    // TODO(bug-hunt): if streamOllamaChat yields ZERO chunks (empty /
+                    // instant model response), envelopeStarted/started stay false, so
+                    // no start/text-start/finish chunks are enqueued — only close().
+                    // The SDK message is left non-finalized and onFinish/finishReason
+                    // may never fire for that turn. Fix: emit a start+finish envelope
+                    // (and decide whether to synthesize an empty assistant message)
+                    // even on a zero-chunk completion.
                     if (started) {
                         controller.enqueue({ type: 'text-end', id: messageId });
                     }

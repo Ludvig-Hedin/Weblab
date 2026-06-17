@@ -336,8 +336,12 @@ export function useChat({
                 // AI is stopped but there are queued messages - add to top of queue (priority)
                 setQueuedMessages((prev) => [newMessage, ...prev]);
             } else {
-                // No queue and not streaming - send immediately
-                return processMessage(content, type);
+                // No queue and not streaming - send immediately. Forward the
+                // context fetched ABOVE (before clearImagesFromContext): passing
+                // it lets processMessage skip a second getContextByChatType call
+                // that would now return image-stripped context, silently
+                // dropping attached images from the first message of a turn.
+                return processMessage(content, type, context);
             }
 
             return getUserChatMessageFromString(content, [], conversationId);

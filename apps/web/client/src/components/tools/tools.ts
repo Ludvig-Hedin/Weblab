@@ -48,7 +48,7 @@ export async function handleToolCall(
 
         const tool = availableTools.find((tool) => tool.toolName === toolName);
         if (!tool) {
-            toast.error(`Tool "${toolName}" not available in ask mode`, {
+            toast.error(`Tool "${toolName}" not available in ${currentChatMode} mode`, {
                 description: `Switch to build mode to use this tool.`,
                 duration: 2000,
             });

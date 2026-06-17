@@ -575,6 +575,13 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                     context: [],
                     checkpoints: [],
                     finishReason: part.type === 'finish-step' ? part.finishReason : undefined,
+                    // TODO(bug-hunt): billing undercharge. `part.usage` is PER-STEP,
+                    // so on a multi-step turn (agent runs up to stepCountIs(8) tool
+                    // loops) the metadata keeps only the LAST step's usage. onFinish
+                    // then bills/reconciles against that single step (see
+                    // responseMetadata?.usage below), undercounting tokens for every
+                    // multi-step EDIT turn. Fix: capture cumulative usage from the
+                    // `finish` part (`part.totalUsage`) instead of `finish-step`.
                     usage: part.type === 'finish-step' ? part.usage : undefined,
                     providerMetadata: part.type === 'finish-step' ? providerMetadata : undefined,
                     resolvedModel: built.resolvedModel,
@@ -596,6 +603,11 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                             p.type === 'file',
                     );
 
+                // TODO(bug-hunt): an aborted multi-step turn that already consumed
+                // provider tokens is FULLY refunded here and never calls
+                // finalizeUsage, so real spend goes unbilled and untracked (no
+                // aiUsageEvents row). Consider finalizing partial usage + reconciling
+                // to the real partial cost on abort instead of a blanket refund.
                 if (isAborted || !responseHasContent) {
                     await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
                     return;

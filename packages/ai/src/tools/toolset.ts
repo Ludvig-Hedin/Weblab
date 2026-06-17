@@ -135,16 +135,32 @@ export const TOOLS_MAP = new Map<string, ToolClass>(
 );
 
 /**
+ * Image tools whose execution requires OPENAI_API_KEY. Only the server-side
+ * GENERATION tools need the key — the client tools that consume a generated
+ * image (add-to-project, replace-in-element) run in the browser and need no
+ * key, so they must NOT be filtered out here. See `filterUnavailable`.
+ */
+const keyGatedImageToolClasses: ToolClass[] = [GenerateImageTool, EditImageTool];
+
+/**
  * Drop tools whose required runtime env keys are missing so the model
  * never sees a tool that's guaranteed to throw at execution time. Today
- * that means filtering image tools when OPENAI_API_KEY is unset (Ollama
- * users, dev without an OpenAI key).
+ * that means filtering the server image-GENERATION tools when OPENAI_API_KEY
+ * is unset (Ollama users, dev without an OpenAI key).
+ *
+ * IMPORTANT: only the key-gated SERVER tools are filtered. `getToolClassesFromType`
+ * also runs in the client bundle (handleToolCall → dispatch), where
+ * `process.env.OPENAI_API_KEY` is always undefined. Filtering the whole
+ * `imageOnlyToolClasses` set here stripped the two ClientTools
+ * (add_generated_image_to_project, replace_image_in_element) from the client
+ * dispatch table, so the server→client image hand-off threw
+ * "Tool not available in <mode> mode" and the generated image never landed.
  */
 function filterUnavailable(classes: ToolClass[]): ToolClass[] {
     const hasOpenAi = Boolean(process.env.OPENAI_API_KEY);
     if (hasOpenAi) return classes;
-    const imageNames = new Set(imageOnlyToolClasses.map((c) => c.toolName));
-    return classes.filter((c) => !imageNames.has(c.toolName));
+    const gatedNames = new Set(keyGatedImageToolClasses.map((c) => c.toolName));
+    return classes.filter((c) => !gatedNames.has(c.toolName));
 }
 
 export function getToolClassesFromType(chatType: ChatType): ToolClass[] {
