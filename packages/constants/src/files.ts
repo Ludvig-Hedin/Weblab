@@ -22,8 +22,10 @@ export const WEBLAB_DEV_PRELOAD_SCRIPT_PATH = `public/${WEBLAB_PRELOAD_SCRIPT_FI
 // existing user projects and re-inject the current one on next sandbox boot.
 // Skipping the bump silently breaks every preload method added since the pin —
 // penpal throws "Method `X` is not found" (incident: copy-to-figma, 2026-06-17).
-// TODO(preload-pin): replace SHA pinning with an app-origin URL or a build-time
-// auto-bump so this can't rot again — see BACKLOG "Prod preload pin staleness".
+// After bumping, run `bun run check:preload-pin` to confirm jsDelivr serves the
+// new bundle with every client-required method BEFORE deploying.
+// TODO(preload-pin): the SHA still needs a manual bump per rebuild; full removal
+// (app-origin delivery) is tracked in BACKLOG "Prod preload pin staleness".
 const WEBLAB_PROD_PRELOAD_SCRIPT_SRC =
     'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@d73589eedb16a13b17b8bf5edf22511bde77053a/apps/web/client/public/weblab-preload-script.js';
 // Superseded prod pins. Every previous WEBLAB_PROD_PRELOAD_SCRIPT_SRC must live

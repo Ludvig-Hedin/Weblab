@@ -6,7 +6,11 @@ import { getAstFromContent, getContentFromAst, injectPreloadScript } from 'src';
 const __dirname = import.meta.dir;
 
 describe('injectPreloadScript', () => {
-    const SHOULD_UPDATE_EXPECTED = true;
+    // Default: ENFORCE generated output === committed expected.tsx (the assertion
+    // below is the test). Set UPDATE_EXPECTED=true to regenerate fixtures after an
+    // intentional injector / preload-pin change. Previously hardcoded `true`,
+    // which silently rewrote fixtures every run and made this suite a no-op gate.
+    const SHOULD_UPDATE_EXPECTED = process.env.UPDATE_EXPECTED === 'true';
     const casesDir = path.resolve(__dirname, 'data/layout');
 
     const testCases = fs.readdirSync(casesDir);
