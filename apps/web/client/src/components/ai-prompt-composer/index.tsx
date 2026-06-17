@@ -16,6 +16,7 @@ import {
     AI_CHAT_INPUT_DRAG_CLASS,
     AI_CHAT_INPUT_SURFACE_CLASS,
 } from '@/components/ui/ai-chat-input-styles';
+import { isStopButtonDisabled } from './stop-button';
 import { TipTapEditor } from './tiptap-editor';
 
 export interface AiPromptComposerImage {
@@ -227,7 +228,10 @@ export function AiPromptComposer({
                 submitButtonClassName,
             )}
             onClick={() => void onStop?.()}
-            disabled={disabled}
+            // Stop aborts a local in-flight stream — never gate it behind the
+            // AI-availability `disabled` flag, or a transient offline blip
+            // makes Stop a dead button mid-stream. See stop-button.ts.
+            disabled={isStopButtonDisabled({ composerDisabled: disabled, onStop })}
         >
             <Icons.Stop className={buttonIconClassName} />
         </Button>
