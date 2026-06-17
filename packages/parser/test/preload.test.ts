@@ -1,10 +1,10 @@
-import fs from 'fs';
 import path from 'path';
 import * as t from '@babel/types';
 import { describe, expect, test } from 'bun:test';
 import {
     getAstFromContent,
     getContentFromAst,
+    injectPreloadScript,
     removeDeprecatedPreloadScripts,
     scanForPreloadScript,
 } from 'src';
@@ -328,5 +328,45 @@ describe('scanForPreloadScript', () => {
         expect(result.scriptCount).toBe(0);
         expect(result.deprecatedScriptCount).toBe(0);
         expect(result.injectedCorrectly).toBe(false);
+    });
+});
+
+// Regression for the copy-to-figma prod incident (2026-06-17): the prod preload
+// is pinned to a jsDelivr commit SHA. When the bundle is rebuilt the pin must be
+// bumped AND the previous URL deprecated, otherwise projects keep loading the
+// stale bundle and penpal rejects newer methods with
+// "Method `getFigmaSceneData` is not found." These tests lock that invariant.
+describe('superseded prod preload pin migration', () => {
+    const SUPERSEDED_PROD_PIN =
+        'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@ec326199ed4eb89b135594a4ad57277c625aa9ac/apps/web/client/public/weblab-preload-script.js';
+
+    test('the superseded pin is deprecated and no longer the active src', () => {
+        expect(DEPRECATED_PRELOAD_SCRIPT_SRCS).toContain(SUPERSEDED_PROD_PIN);
+        expect(WEBLAB_PRELOAD_SCRIPT_SRC).not.toBe(SUPERSEDED_PROD_PIN);
+    });
+
+    test('injectPreloadScript migrates a layout off the superseded pin', async () => {
+        const input = `import Script from 'next/script';
+export default function RootLayout({ children }) {
+    return (
+        <html lang="en">
+            <body>
+                <Script type="module" id="weblab-preload-script" src="${SUPERSEDED_PROD_PIN}" />
+                {children}
+            </body>
+        </html>
+    );
+}`;
+
+        const ast = getAstFromContent(input);
+        if (!ast) throw new Error('Failed to parse input code');
+
+        injectPreloadScript(ast);
+        const result = await getContentFromAst(ast, input);
+
+        // Stale tag stripped, current pin injected exactly once.
+        expect(result).not.toContain(SUPERSEDED_PROD_PIN);
+        expect(result).toContain(`src="${WEBLAB_PRELOAD_SCRIPT_SRC}"`);
+        expect(result.match(/id="weblab-preload-script"/g)?.length).toBe(1);
     });
 });

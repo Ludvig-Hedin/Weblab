@@ -10,9 +10,28 @@ export const WEBLAB_PRELOAD_SCRIPT_FILE = 'weblab-preload-script.js';
 export const WEBLAB_DEV_PRELOAD_SCRIPT_SRC = `/${WEBLAB_PRELOAD_SCRIPT_FILE}`;
 // Path to write into sandbox
 export const WEBLAB_DEV_PRELOAD_SCRIPT_PATH = `public/${WEBLAB_PRELOAD_SCRIPT_FILE}`;
-// Fetch url to load from CDN
+// Fetch url to load from CDN.
+//
+// jsDelivr serves this file from the PINNED commit only — it does not track a
+// branch. So whenever the preload bundle is rebuilt
+// (apps/web/client/public/weblab-preload-script.js), you MUST:
+//   1. push the rebuilt bundle to a commit on `main`,
+//   2. bump this SHA to that commit, AND
+//   3. append the PREVIOUS url to PRIOR_WEBLAB_PROD_PRELOAD_SCRIPT_SRCS below.
+// Step 3 lets the layout injector strip the stale <Script> tag baked into
+// existing user projects and re-inject the current one on next sandbox boot.
+// Skipping the bump silently breaks every preload method added since the pin —
+// penpal throws "Method `X` is not found" (incident: copy-to-figma, 2026-06-17).
+// TODO(preload-pin): replace SHA pinning with an app-origin URL or a build-time
+// auto-bump so this can't rot again — see BACKLOG "Prod preload pin staleness".
 const WEBLAB_PROD_PRELOAD_SCRIPT_SRC =
-    'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@ec326199ed4eb89b135594a4ad57277c625aa9ac/apps/web/client/public/weblab-preload-script.js';
+    'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@d73589eedb16a13b17b8bf5edf22511bde77053a/apps/web/client/public/weblab-preload-script.js';
+// Superseded prod pins. Every previous WEBLAB_PROD_PRELOAD_SCRIPT_SRC must live
+// here so projects whose layout baked in an old URL get migrated to the current
+// pin via DEPRECATED_PRELOAD_SCRIPT_SRCS below.
+const PRIOR_WEBLAB_PROD_PRELOAD_SCRIPT_SRCS = [
+    'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@ec326199ed4eb89b135594a4ad57277c625aa9ac/apps/web/client/public/weblab-preload-script.js',
+];
 // Officially exported src to load from local or CDN
 export const WEBLAB_PRELOAD_SCRIPT_SRC = isDev
     ? WEBLAB_DEV_PRELOAD_SCRIPT_SRC
@@ -22,6 +41,8 @@ export const DEPRECATED_PRELOAD_SCRIPT_SRCS = [
     '/onlook-preload-script.js',
     'https://cdn.jsdelivr.net/gh/onlook-dev/onlook@d3887f2/apps/web/client/public/onlook-preload-script.js',
     'https://cdn.jsdelivr.net/gh/onlook-dev/onlook@main/apps/web/client/public/onlook-preload-script.js',
+    // Superseded weblab prod pins — strip + migrate stale tags baked into layouts.
+    ...PRIOR_WEBLAB_PROD_PRELOAD_SCRIPT_SRCS,
     // Intentionally reversed to deprecate non-preferred (local in prod, CDN in dev) usage.
     isDev ? WEBLAB_PROD_PRELOAD_SCRIPT_SRC : WEBLAB_DEV_PRELOAD_SCRIPT_SRC,
 ];
