@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
@@ -64,6 +64,9 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
     const [commitMessage, setCommitMessage] = useState('');
     const [action, setAction] = useState<CommitAction>(initialAction);
     const [isLoading, setIsLoading] = useState(false);
+    // Synchronous double-submit guard — `isLoading` is React state, so it can't
+    // block a second click that fires in the same frame before the re-render.
+    const inFlightRef = useRef(false);
 
     useEffect(() => {
         if (open) {
@@ -107,6 +110,8 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
     }
 
     async function handleContinue() {
+        if (inFlightRef.current) return;
+        inFlightRef.current = true;
         setIsLoading(true);
         try {
             const gitManager = editorEngine.activeSandbox?.gitManager;
@@ -219,6 +224,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
             toast.error(t('toastActionFailed'));
         } finally {
             setIsLoading(false);
+            inFlightRef.current = false;
         }
     }
 
