@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useMutation } from 'convex/react';
 import { Coins } from 'lucide-react';
@@ -65,6 +65,9 @@ export const ProCard = ({
     );
 
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    // Synchronous double-submit guard — `isCheckingOut` is React state, so it
+    // can't block a second click that fires in the same frame before re-render.
+    const inFlightRef = useRef(false);
     const [selectedTier, setSelectedTier] = useState<PriceKey>(PriceKey.PRO_MONTHLY_TIER_1);
 
     const selectedTierData = PRO_PRODUCT_CONFIG.prices.find((tier) => tier.key === selectedTier);
@@ -85,6 +88,12 @@ export const ProCard = ({
     }
 
     const handleCheckout = async () => {
+        // Block a same-frame second click before it can fire a SECOND Stripe
+        // checkout (double-charge risk). The branch handlers still own the
+        // `isCheckingOut` UI flag; this only gates re-entry synchronously.
+        if (inFlightRef.current) return;
+        inFlightRef.current = true;
+        setIsCheckingOut(true);
         try {
             if (isPro) {
                 if (isPendingTierSelected) {
@@ -104,6 +113,7 @@ export const ProCard = ({
             console.error('Payment error:', error);
         } finally {
             setIsCheckingOut(false);
+            inFlightRef.current = false;
         }
     };
 
