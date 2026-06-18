@@ -72,8 +72,16 @@ export function StyleGuideView({ full }: { full: FullDoc }) {
 
     async function handleSaveApply() {
         if (!active) return;
-        await update({ styleGuideId: active._id, conceptName, tokens });
-        await apply({ styleGuideId: active._id });
+        setError(null);
+        setBusy(true);
+        try {
+            await update({ styleGuideId: active._id, conceptName, tokens });
+            await apply({ styleGuideId: active._id });
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Failed to save and apply the style guide.');
+        } finally {
+            setBusy(false);
+        }
     }
 
     if (!active) {
@@ -170,8 +178,9 @@ export function StyleGuideView({ full }: { full: FullDoc }) {
                     {error && <p className="text-destructive text-sm">{error}</p>}
 
                     <div className="flex flex-col gap-2">
-                        <Button onClick={() => void handleSaveApply()}>
-                            <Check /> Save & apply to all pages
+                        <Button onClick={() => void handleSaveApply()} disabled={busy}>
+                            {busy ? <Loader2 className="animate-spin" /> : <Check />} Save & apply
+                            to all pages
                         </Button>
                         <Button
                             variant="outline"
