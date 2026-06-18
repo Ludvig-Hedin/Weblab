@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
@@ -27,6 +27,17 @@ function FullScreenLoader({ label }: { label: string }) {
     );
 }
 
+function FullScreenError({ message, onRetry }: { message: string; onRetry: () => void }) {
+    return (
+        <div className="bg-background-secondary flex h-screen w-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <p className="text-muted-foreground max-w-sm text-sm">{message}</p>
+            <Button variant="outline" size="sm" onClick={onRetry}>
+                Try again
+            </Button>
+        </div>
+    );
+}
+
 export function WireframeWorkspace({
     projectId,
     projectName,
@@ -37,13 +48,27 @@ export function WireframeWorkspace({
     const existing = useQuery(api.wireframes.getDoc, { projectId });
     const ensureDoc = useMutation(api.wireframes.ensureDoc);
     const ensuredRef = useRef(false);
+    const [ensureError, setEnsureError] = useState<string | null>(null);
+
+    const runEnsure = useCallback(() => {
+        setEnsureError(null);
+        ensuredRef.current = true;
+        // Previously fire-and-forget (`void ensureDoc(...)`): a rejection left
+        // `existing` null forever, so the "Preparing your project…" loader spun
+        // with no error and no way to retry. Surface the failure + allow retry.
+        ensureDoc({ projectId }).catch((err: unknown) => {
+            ensuredRef.current = false;
+            setEnsureError(
+                err instanceof Error ? err.message : 'Failed to prepare your workspace.',
+            );
+        });
+    }, [ensureDoc, projectId]);
 
     useEffect(() => {
         if (existing === null && !ensuredRef.current) {
-            ensuredRef.current = true;
-            void ensureDoc({ projectId });
+            runEnsure();
         }
-    }, [existing, ensureDoc, projectId]);
+    }, [existing, runEnsure]);
 
     const docId = existing?._id ?? null;
     const full = useQuery(api.wireframes.getFullDoc, docId ? { docId } : 'skip');
@@ -51,6 +76,9 @@ export function WireframeWorkspace({
     const [mode, setMode] = useState<WireframeMode>('sitemap');
 
     if (existing === undefined) return <FullScreenLoader label="Loading workspace…" />;
+    if (existing === null && ensureError) {
+        return <FullScreenError message={ensureError} onRetry={runEnsure} />;
+    }
     if (!full) return <FullScreenLoader label="Preparing your project…" />;
 
     const fullDoc = full as FullDoc;
