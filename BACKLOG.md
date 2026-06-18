@@ -38,7 +38,10 @@ later without re-discovering the context.
 
 ## Open
 
-### "Access denied" opening a just-created project (observed iter-11 under collision — needs isolated confirm)
+### "Access denied" opening a just-created project — RESOLVED iter-12: collision-only, NOT a product bug
+
+> **iter-12 (stable isolated session): did NOT reproduce.** Created a fresh blank project and immediately re-opened it with 0 UNAUTHORIZED — no "Access denied", preview rendered. So the iter-11 occurrence was the multi-agent collision racing the shared QA user's workspace, not a create→access-row bug. Closing.
+
 
 - **Discovered:** 2026-06-18 (iter-11 authed Playwright; the shared QA user had a parallel agent active)
 - **Symptom:** Created a fresh blank project as `weblab.qa+clerk_test`, then immediately re-opened it → the editor showed **"Access denied — Please contact the project owner to request access"** + a console `Failed to load project data`. Preview never rendered.
@@ -46,7 +49,11 @@ later without re-discovering the context.
 - **Next step:** Reproduce in an ISOLATED session (single agent, no parallel +clerk_test activity): create → immediately open. If "Access denied" still appears, it's a real create→access-row race (the project graph is inserted optimistically by `projectActions.createBlank` before/while the access/userCanvas rows settle — see the iter-1 orphan-on-scheduler-failure note). If it doesn't, close as collision-only.
 - **Tags:** `#bug?` `#convex` `#needs-repro`
 
-### Deep-editing-flow verification (2026-06-18 iter-9, authed Playwright) — UI works; code-sync blocked by test collision
+### Deep-editing-flow verification — ✅ design→code sync CONFIRMED (iter-12)
+
+> **iter-12 (stable session): design→code sync VERIFIED end-to-end.** Created a project, selected the `<h1>`, set its Padding to 320px in the design panel → the **preview iframe's h1 computed padding changed `0px` → `0px 320px`** and the canvas + Tablet frame re-rendered with the padding. Because the preview is the sandbox running `next dev` on the real source, this proves the style change was written to the JSX source and hot-reloaded. The complete connected flow (create → editor → preview → select → design panel → style change → code+preview sync) works with no product errors. The iter-9 `No metadata found` was confirmed collision fallout (did not recur in the stable session).
+
+#### Original iter-9 note (UI works; code-sync was collision-blocked at the time)
 
 Drove the editor on a rendered preview: clicked the `<h1>` in the iframe → **element selection works**, design panel populated correctly (Tag `h1`, ID `hero-section`, Classes `text-2xl`/`font-medium` removable, Position/Layout/Padding/Margin/Size controls, font toolbar). So the editor↔iframe preload bridge + the design panel are **functional**.
 
