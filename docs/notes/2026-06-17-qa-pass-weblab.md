@@ -181,3 +181,63 @@ every SSR error (incl. auth) to "not found".
 2. Fix the parser `[object Object]` HTML prop-reset BLOCKER (unit-testable).
 3. Get the #418 component stack from a non-minified build / `onRecoverableError`.
 4. Once authed: verify the logged CMS / chat / billing / figma bugs in-editor.
+
+---
+
+# Session Summary (capstone, 2026-06-18)
+
+End-to-end QA campaign run as a self-paced loop (iters 1–16 + two foreground
+rounds). Every fix below was read-and-confirmed real + reachable before any code
+change, verified (typecheck / test / lint, and live where possible), and
+committed file-scoped alongside an active parallel agent (never `git add .`).
+
+## Connected user flow — VERIFIED end-to-end (live, authed)
+`sign-in → dashboard → /projects/new → Start blank → Next.js → create → editor
+opens → preview renders ("Hello from Weblab") → select element → design panel
+(reads source classes) → change padding → source written + sandbox hot-reload →
+preview + Tablet frame update`. Confirmed iter-12 with the preview-affecting
+fixes (CSP, saveCanvas) in place; later fixes are in unrelated areas, so no
+regression. (The recurring preview failure under load was a multi-agent session
+collision — UNAUTHORIZED invalidating the shared QA token — NOT a product bug.)
+
+## Access unblock (durable, dev-only) — commit `d71911163`
+Root-caused `[AUTH_FAILED]` (the weblab-agent MCP token wasn't in Claude Code's
+launch env; backend already configured). Documented + tooled two routes in
+`docs/agent-context/agent-qa-access.md`: (1) the read-only agent API, (2)
+`scripts/qa/auth-setup.mjs` — localhost Clerk dev keys + `+clerk_test` email +
+OTP `424242` → reusable Playwright storageState for full authed editor QA.
+
+## 12 fixes shipped (all verified)
+| # | commit | area | fix |
+|---|--------|------|-----|
+| 1 | `fcd6a610a` | create | exact-match blank-project name dedup (was over-counting via `startsWith`) |
+| 2 | `bb330a79f` | create | de-jargon the unavailable-create message |
+| 3 | `b0a26de72` | parser | emit bare `table`/`flow-root`/`list-item` display utilities on rebase (+ tests) |
+| 4 | `8424ce7ab` | auth | re-auth redirect for segment error boundaries (no dead-end on token expiry) |
+| 5 | `b6da02251` | parser | HTML prop-reset removes the attr instead of writing `"[object Object]"` (+ test) |
+| 6 | `f9c66d8e0` | editor | keep `saveCanvas` debounced so `clear()` can `.cancel()` (MobX annotation) |
+| 7 | `165eb1dab` | dev | derive editor sandbox-WS origin in the dev CSP from `NEXT_PUBLIC_SANDBOX_SERVER_URL` |
+| 8 | `12f95012c` | parser | `getTemplateNodeChild` resolves the target sibling's oid or null (+ tests) |
+| 9 | `ad282b794` | wireframe | `ensureDoc` failure surfaces an error + retry (was infinite "Preparing…") |
+| 10 | `78fbe8158` | wireframe | `handleSaveApply` error/busy handling + disabled button |
+| 11 | `96e50d61f` | git | synchronous `useRef` double-submit guard on commit/PR `handleContinue` |
+| 12 | `bdd2494ce` | billing | synchronous `useRef` double-submit guard on pricing `handleCheckout` (double-charge) |
+
+Highest-impact: #7 + #6 jointly unblocked the local editor preview (the
+`SANDBOX_NOT_LISTENING` from earlier iters was a local :8080/Open-WebUI port
+conflict + a CSP that hardcoded :8080 — NOT product code). #11/#12 close the
+double-submit class (create/commit/billing).
+
+## Findings corrected (verified NOT real / collision-only)
+- figma-clipboard version-skip — test-only decode path, no production caller.
+- `getTemplateNodeChild` "writes to LAST sibling" — misread; only the no-oid edge was real (fixed).
+- "Access denied on freshly-created project" — multi-agent collision, did not reproduce isolated.
+- Shared-debounce "all rebases" scope — upstream `scheduleSourceRebase` is already per-key.
+
+## Deferred (one item)
+**Responsive-debounce data loss** (`editor/code/index.ts:276` `writeResponsiveStyle`
+shared 600ms debounce): real but narrow (editing 2+ properties within 600ms on a
+non-default breakpoint drops the earlier responsive write). Core live-sync code;
+NOT fixed because it needs a live-verifiable approach (responsive multi-property
+editing) that the session collision blocks. Precise lowest-blast fix plan logged
+in BACKLOG (`runSourceRebase` → undebounced `writeResponsiveStyleNow`).
