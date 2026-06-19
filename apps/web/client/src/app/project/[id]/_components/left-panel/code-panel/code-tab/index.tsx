@@ -143,13 +143,13 @@ export const CodeTab = memo(
                 );
 
                 if (existingFileIndex >= 0) {
-                    updateExistingFile(existingFileIndex, newLocalFile, currentFiles);
+                    await updateExistingFile(existingFileIndex, newLocalFile, currentFiles);
                 } else {
                     await addNewFile(newLocalFile, currentFiles);
                 }
             };
 
-            const updateExistingFile = (
+            const updateExistingFile = async (
                 index: number,
                 newFile: EditorFile,
                 currentFiles: EditorFile[],
@@ -157,7 +157,12 @@ export const CodeTab = memo(
                 const existingFile = currentFiles[index];
                 if (!existingFile) return;
 
-                const updatedFile = createUpdatedFile(existingFile, newFile);
+                // Whether the open buffer has unsaved edits — needed so a disk
+                // change underneath it doesn't silently clobber the user's work.
+                const existingDirty = await isDirty(existingFile);
+                if (isStale()) return;
+
+                const updatedFile = createUpdatedFile(existingFile, newFile, existingDirty);
                 if (isStale()) return;
                 const updatedFiles = [...currentFiles];
                 updatedFiles[index] = updatedFile;
@@ -196,7 +201,11 @@ export const CodeTab = memo(
                 setActiveEditorFile(newFile);
             };
 
-            const createUpdatedFile = (existing: EditorFile, newFile: EditorFile): EditorFile => {
+            const createUpdatedFile = (
+                existing: EditorFile,
+                newFile: EditorFile,
+                existingDirty: boolean,
+            ): EditorFile => {
                 if (existing.type === 'binary') {
                     return { ...existing, content: newFile.content };
                 }
@@ -204,6 +213,20 @@ export const CodeTab = memo(
                 const existingText = existing as TextEditorFile;
                 const newText = newFile as TextEditorFile;
                 const diskContentChanged = existingText.originalHash !== newText.originalHash;
+
+                // Disk changed underneath an unsaved buffer (e.g. an AI write or
+                // a design-panel restyle touched the same file the user is
+                // editing in the Code tab). Adopting disk content here would
+                // silently destroy the user's edits. Keep their content + hash
+                // so the file stays dirty; they can save (last write wins) or
+                // close the file to take the new version. Without this guard the
+                // edits vanished with no signal.
+                if (diskContentChanged && existingDirty) {
+                    toast.warning(
+                        'This file changed on disk. Your unsaved edits were kept — save to overwrite, or close the file to take the new version.',
+                    );
+                    return { ...existingText };
+                }
 
                 return {
                     ...existingText,
@@ -527,6 +550,15 @@ export const CodeTab = memo(
                 toast.error(
                     `Cannot rename "${fileName}" with unsaved changes. Save or discard first.`,
                 );
+                return;
+            }
+
+            // Guard against clobbering an existing file. `moveFile` does a raw
+            // rename with no collision check, so renaming onto an existing path
+            // would silently overwrite/destroy that file. Skip the check for a
+            // no-op rename to the same path.
+            if (!pathsEqual(oldPath, newPath) && (await branchData.codeEditor.fileExists(newPath))) {
+                toast.error(`A file named "${newFileName}" already exists.`);
                 return;
             }
 

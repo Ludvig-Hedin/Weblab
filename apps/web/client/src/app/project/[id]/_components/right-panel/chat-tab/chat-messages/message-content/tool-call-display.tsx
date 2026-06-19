@@ -160,6 +160,13 @@ const ToolCallDisplayComponent = ({
         if (!filePath || !codeContent) {
             return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
+        // NO `showApply`: unlike WriteFileTool, a fuzzy-edit `content` is a
+        // PARTIAL sketch (it contains literal `// ... existing code` markers).
+        // The real apply runs through editorEngine.api.applyDiff (a merge model)
+        // inside the tool handler. The manual Apply button does a raw whole-file
+        // write of `content`, which would replace the entire file with the
+        // few-line snippet and destroy everything outside it. Mirror the
+        // SearchReplace branches below, which also omit showApply.
         return (
             <CollapsibleCodeBlock
                 path={filePath}
@@ -168,7 +175,6 @@ const ToolCallDisplayComponent = ({
                 applied={applied}
                 isStream={isStream}
                 branchId={branchId}
-                showApply
             />
         );
     }

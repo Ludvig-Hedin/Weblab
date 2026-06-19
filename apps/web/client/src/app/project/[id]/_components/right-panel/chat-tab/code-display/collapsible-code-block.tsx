@@ -85,7 +85,12 @@ const CollapsibleCodeBlockComponent = ({
     const applyFile = async () => {
         setApplying(true);
         try {
-            const sandbox = editorEngine.activeSandbox;
+            // Write to the branch the tool call targeted, not whatever branch
+            // happens to be active now. Falling back to activeSandbox when the
+            // tool carried no branchId preserves the prior behavior.
+            const sandbox = branchId
+                ? editorEngine.branches.getSandboxById(branchId)
+                : editorEngine.activeSandbox;
             if (!sandbox) {
                 // Optional-chaining the write would silently resolve to
                 // `undefined` and flip the button to "Applied" without

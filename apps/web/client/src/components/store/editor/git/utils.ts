@@ -44,6 +44,13 @@ export async function restoreCheckpoint(
             throw new Error(restoreResult.error || 'Failed to restore commit');
         }
 
+        // The restore rewound the branch's files to an earlier commit, but the
+        // in-memory undo/redo stack still holds actions recorded against the
+        // pre-restore file state. The next undo would apply a diff against now
+        // mismatched content and corrupt the restored files. Drop the stale
+        // history so the restored state is the new baseline.
+        branchData.history.clear();
+
         await branchData.sandbox.gitManager.listCommits();
 
         const branchName =

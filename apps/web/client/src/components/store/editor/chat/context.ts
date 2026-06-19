@@ -127,7 +127,14 @@ export class ChatContext {
             case ChatType.PLAN:
                 return await this.getChatEditContext();
             case ChatType.FIX:
-                return this.getErrorContext();
+                // FIX is error-driven, but a user can still attach an image to
+                // a /fix message (e.g. a screenshot of the broken UI). Carry
+                // user-attached images through — without this they were
+                // silently dropped because only the error context was returned.
+                return [
+                    ...this.context.filter((c) => c.type === MessageContextType.IMAGE),
+                    ...this.getErrorContext(),
+                ];
             default:
                 assertNever(type);
         }

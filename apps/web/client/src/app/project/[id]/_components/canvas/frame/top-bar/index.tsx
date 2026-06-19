@@ -136,6 +136,15 @@ export const TopBar = observer(
             groupSiblings.length > 0 &&
             groupSiblings[groupSiblings.length - 1]?.frame.id === frame.id;
 
+        // Breakpoint ids must be unique within a group: the responsive rebase
+        // resolves widths by breakpoint.id (first match wins) and the override
+        // map is keyed by id. Re-adding a preset already in the group would
+        // create a second frame sharing that id and mis-target later edits, so
+        // hide presets that are already present.
+        const existingBreakpointIds = new Set(
+            groupSiblings.map((s) => s.frame.breakpoint?.id).filter(Boolean),
+        );
+
         // A "drifted" frame is one whose current width differs from its
         // breakpoint preset (e.g. user dragged Desktop from 1200 → 800). We
         // surface this in the badge instead of auto-renaming so the breakpoint
@@ -395,7 +404,9 @@ export const TopBar = observer(
                                         },
                                         { id: 'wide', name: 'Wide', width: 1440 },
                                         { id: 'ultra-wide', name: 'Ultra Wide', width: 1920 },
-                                    ].map((preset) => (
+                                    ]
+                                        .filter((preset) => !existingBreakpointIds.has(preset.id))
+                                        .map((preset) => (
                                         <DropdownMenuItem
                                             key={preset.id}
                                             onSelect={() => {
