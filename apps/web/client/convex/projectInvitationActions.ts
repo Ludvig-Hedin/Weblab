@@ -21,8 +21,11 @@ function randomToken(): string {
 
 function constructInvitationLink(siteUrl: string, invitationId: string, token: string): string {
     const base = siteUrl.replace(/\/$/, '');
-    const params = new URLSearchParams({ id: invitationId, token });
-    return `${base}/invite?${params.toString()}`;
+    // The accept route is /invitation/[id]?token= (see app/invitation/[id],
+    // which reads searchParams.get('token')). The old /invite?id=&token= shape
+    // has no route, so every emailed project invite 404'd. Mirror the workspace
+    // invite link (/invitation/workspace/[id]?token=).
+    return `${base}/invitation/${invitationId}?token=${encodeURIComponent(token)}`;
 }
 
 async function sendInvitationEmail(args: {

@@ -3,11 +3,11 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
-import { fetchQuery } from 'convex/nextjs';
 
 import { TopBar } from '@/app/projects/_components/top-bar';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
+import { fetchQueryWithTimeout } from '@/utils/convex/server-fetch';
 import { SettingsNav } from './_components/settings-nav';
 
 interface SettingsLayoutProps {
@@ -33,7 +33,7 @@ export default async function WorkspaceSettingsLayout({ children, params }: Sett
     const { getToken } = await auth();
     const token = await getToken({ template: 'convex' });
 
-    const workspace = await fetchQuery(
+    const workspace = await fetchQueryWithTimeout(
         api.workspaces.getBySlug,
         { slug },
         { token: token ?? undefined },
@@ -42,7 +42,7 @@ export default async function WorkspaceSettingsLayout({ children, params }: Sett
         redirect(Routes.PROJECTS);
     }
 
-    const caps = await fetchQuery(
+    const caps = await fetchQueryWithTimeout(
         api.users.capabilities,
         { workspaceId: workspace._id },
         { token: token ?? undefined },

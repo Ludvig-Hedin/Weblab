@@ -310,12 +310,13 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     );
     const shouldShowTemplate = templateProjects.length > 0;
 
-    const persistFolders = async (nextFolders: ProjectFolder[]) => {
+    const persistFolders = async (nextFolders: ProjectFolder[]): Promise<boolean> => {
         const previousFolders = folders;
         setFolders(nextFolders);
 
         try {
             await localforage.setItem(foldersStorageKey, nextFolders);
+            return true;
         } catch (error) {
             console.error('Failed to save folders:', error);
             // Roll the optimistic state back so the UI matches what's actually
@@ -324,6 +325,9 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
             toast.error(t('saveFoldersFailed'), {
                 description: t('saveFoldersFailedBody'),
             });
+            // Signal failure so callers skip their own success toast — otherwise
+            // a folder create/move shows both this error AND a false "success".
+            return false;
         }
     };
 
@@ -632,7 +636,8 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         };
 
         const nextFolders = [...folders, nextFolder];
-        await persistFolders(nextFolders);
+        const ok = await persistFolders(nextFolders);
+        if (!ok) return; // persistFolders already rolled back + toasted the error
         setOpenFolderId(nextFolder.id);
         toast.success(t('folderCreated'));
     };
@@ -666,7 +671,8 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         }
 
         const nextFolders = moveProjectIdsToFolder(folders, ids, folderId);
-        await persistFolders(nextFolders);
+        const ok = await persistFolders(nextFolders);
+        if (!ok) return; // persistFolders already rolled back + toasted the error
         if (folderId) {
             setOpenFolderId(folderId);
         }

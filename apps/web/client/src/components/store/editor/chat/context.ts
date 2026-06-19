@@ -55,7 +55,32 @@ export class ChatContext {
                     const existingImages = this._context.filter(
                         (c) => c.type === MessageContextType.IMAGE,
                     );
-                    this.context = [...context, ...manualCodeEditorHighlights, ...existingImages];
+                    // Preserve files the user attached manually via @-mention
+                    // (fromSelection !== true). Without this they were dropped
+                    // on the next selection change and never sent to the AI,
+                    // since the freshly-derived context only re-adds files that
+                    // contain a currently-selected element. addContexts-style
+                    // de-dup by path::branchId keeps a manual file from doubling
+                    // up when the new selection also derives it.
+                    const manualFiles = this._context.filter(
+                        (c) => c.type === MessageContextType.FILE && c.fromSelection !== true,
+                    );
+                    const derivedFileKeys = new Set(
+                        context
+                            .filter((c) => c.type === MessageContextType.FILE)
+                            .map((c) => `${c.path}::${c.branchId}`),
+                    );
+                    const preservedManualFiles = manualFiles.filter(
+                        (c) =>
+                            c.type === MessageContextType.FILE &&
+                            !derivedFileKeys.has(`${c.path}::${c.branchId}`),
+                    );
+                    this.context = [
+                        ...context,
+                        ...preservedManualFiles,
+                        ...manualCodeEditorHighlights,
+                        ...existingImages,
+                    ];
                 });
             },
         );
@@ -240,6 +265,10 @@ export class ChatContext {
                 path: filePath,
                 content,
                 branchId: branchId,
+                // Mark as selection-derived so the selection reaction can drop
+                // it on the next selection change without dropping files the
+                // user attached manually via @-mention.
+                fromSelection: true,
             });
         }
         return fileContext;

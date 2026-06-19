@@ -24,6 +24,13 @@ export type FileMessageContext = BaseMessageContext & {
     type: MessageContextType.FILE;
     path: string;
     branchId: string;
+    /**
+     * True when this file context was auto-derived from the current canvas
+     * selection (a file containing a selected element). User-attached files
+     * (via @-mention) leave this undefined. The selection reaction uses it to
+     * preserve manual attachments while swapping the selection-derived ones.
+     */
+    fromSelection?: boolean;
 };
 
 export type HighlightMessageContext = BaseMessageContext & {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
@@ -28,8 +28,15 @@ export const AccountTab = observer(() => {
     const [displayName, setDisplayName] = useState('');
     const [provider, setProvider] = useState<string | null>(null);
 
+    // Seed the form once from the loaded user. `user` is a reactive Convex
+    // query that re-emits a fresh object on any update/re-subscription; without
+    // this guard the effect re-ran on every emit and clobbered whatever the
+    // user was typing but hadn't saved yet. The ref resets when the modal
+    // remounts, so reopening re-seeds from the latest DB values.
+    const seededRef = useRef(false);
     useEffect(() => {
-        if (user) {
+        if (user && !seededRef.current) {
+            seededRef.current = true;
             setFirstName(user.firstName ?? '');
             setLastName(user.lastName ?? '');
             setDisplayName(user.displayName ?? '');
