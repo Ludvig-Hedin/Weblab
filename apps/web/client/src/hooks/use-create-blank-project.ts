@@ -24,6 +24,15 @@ function readActiveWorkspaceId(): string | undefined {
     }
 }
 
+function clearActiveWorkspaceId(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+    } catch {
+        // ignore — best-effort cleanup of a stale key
+    }
+}
+
 export type BlankCreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
 
 const SUPPORTED_FRAMEWORKS = new Set<string>([
@@ -45,6 +54,7 @@ type ConvexFramework =
 
 export function useCreateBlankProject() {
     const user = useQuery(api.users.me);
+    const workspaces = useQuery(api.workspaces.list);
     const createBlankProject = useAction(api.projectActions.createBlank);
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
@@ -70,7 +80,27 @@ export function useCreateBlankProject() {
         setPhase('forking-sandbox');
         try {
             setPhase('creating-project');
-            const workspaceId = readActiveWorkspaceId();
+            // Resolve the active workspace from localStorage, but DROP a stale
+            // or inaccessible id. If the stored workspace was deleted, or the
+            // user was removed from it, forwarding the id makes `createBlank`
+            // throw `FORBIDDEN: project.create` from `_requireProjectCreateCap`.
+            // Convex redacts that plain Error to "Server Error" in prod, so the
+            // user hits a dead-end "Failed to create project" toast with no
+            // in-UI recovery (Retry re-fails with the same stale id). When the
+            // membership list has loaded and no longer contains the stored id,
+            // clear it and fall back to the personal workspace (always allowed).
+            // While the list is still loading we forward as-is (unchanged
+            // behavior — no regression vs. before this guard).
+            const storedWorkspaceId = readActiveWorkspaceId();
+            let workspaceId = storedWorkspaceId;
+            if (
+                workspaceId &&
+                workspaces &&
+                !workspaces.some((w) => (w._id as string) === workspaceId)
+            ) {
+                clearActiveWorkspaceId();
+                workspaceId = undefined;
+            }
             const convexFramework: ConvexFramework = SUPPORTED_FRAMEWORKS.has(framework)
                 ? (framework as ConvexFramework)
                 : 'nextjs';
