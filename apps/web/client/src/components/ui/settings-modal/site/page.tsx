@@ -359,12 +359,17 @@ export const PageTab = ({
 
             if (uploadedImage) {
                 try {
-                    await editorEngine.image.upload(uploadedImage, DefaultSettings.IMAGE_FOLDER);
+                    const { fileName } = await editorEngine.image.upload(
+                        uploadedImage,
+                        DefaultSettings.IMAGE_FOLDER,
+                    );
                     updatedMetadata.openGraph = {
                         ...updatedMetadata.openGraph,
                         images: [
                             {
-                                url: `/${uploadedImage.name}`,
+                                // Sanitized stored name — raw file.name 404s
+                                // when sanitizeFilename changed it.
+                                url: `/${fileName}`,
                                 width: 1200,
                                 height: 630,
                                 alt: siteTitle,

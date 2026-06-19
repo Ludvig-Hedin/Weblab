@@ -112,13 +112,21 @@ export class ImageManager {
         this._isSelectingImage = isSelectingImage;
     }
 
-    async upload(file: File, destinationFolder: string): Promise<void> {
+    async upload(
+        file: File,
+        destinationFolder: string,
+    ): Promise<{ filePath: string; fileName: string }> {
         try {
             // Sanitize filename from user upload
             const sanitizedName = sanitizeFilename(file.name);
             const filePath = path.join(destinationFolder, sanitizedName);
             const uint8Array = new Uint8Array(await file.arrayBuffer());
             await this.editorEngine.activeSandbox.writeFile(filePath, uint8Array);
+            // Return the SANITIZED stored path so callers reference the file
+            // that was actually written. Rebuilding the path from the raw
+            // `file.name` 404s whenever sanitizeFilename changed it (spaces,
+            // punctuation, non-ASCII).
+            return { filePath, fileName: sanitizedName };
         } catch (error) {
             console.error('Error uploading image:', error);
             throw error;

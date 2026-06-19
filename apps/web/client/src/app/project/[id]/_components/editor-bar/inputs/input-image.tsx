@@ -70,15 +70,22 @@ export const InputImage = observer(() => {
         setUploadError(null);
 
         try {
-            await editorEngine.image.upload(file, DefaultSettings.IMAGE_FOLDER);
+            const { filePath, fileName } = await editorEngine.image.upload(
+                file,
+                DefaultSettings.IMAGE_FOLDER,
+            );
 
             const reader = new FileReader();
             reader.onload = (event) => {
                 const result = event.target?.result as string;
                 const imageData: ImageContentData = {
-                    originPath: `${DefaultSettings.IMAGE_FOLDER}/${file.name}`,
+                    // Use the sanitized stored path returned by upload(). The
+                    // raw `file.name` 404s when sanitizeFilename changed it, so
+                    // the persisted background-image URL pointed at a missing
+                    // file and the fill never rendered.
+                    originPath: filePath,
                     content: result,
-                    fileName: file.name,
+                    fileName,
                     mimeType: file.type,
                 };
 

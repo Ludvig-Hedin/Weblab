@@ -117,7 +117,7 @@ export const ProjectBreadcrumb = observer(() => {
 
             const result = await editorEngine.activeSandbox.downloadFiles(project.name);
 
-            if (result) {
+            if (result?.downloadUrl) {
                 window.open(result.downloadUrl, '_blank', 'noopener,noreferrer');
 
                 posthog.capture('download_project_code', {

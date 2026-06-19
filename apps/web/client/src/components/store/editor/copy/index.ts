@@ -148,14 +148,15 @@ export class CopyManager {
         await this.editorEngine.action.run(action);
     }
 
-    async cut() {
+    async cut(): Promise<boolean> {
         const copied = await this.copy();
         if (!copied) {
             // Nothing was captured — deleting now would destroy the element
             // with no way to paste it back.
-            return;
+            return false;
         }
         await this.editorEngine.elements.delete();
+        return true;
     }
 
     async duplicate() {

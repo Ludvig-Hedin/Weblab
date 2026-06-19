@@ -236,6 +236,22 @@ export const remove = mutation({
             }
         }
 
+        // (c) Remove detail-page routing configs that match items by this
+        // field. `cmsCollectionPages.matchFieldKey` is a required non-empty
+        // string, so it can't be cleared — a dangling key silently breaks
+        // URL→item routing (data-pusher matches items by page.matchFieldKey).
+        // Delete the now-broken page config rather than leave routing dead,
+        // mirroring the broken-binding cleanup above.
+        const collectionPages = await ctx.db
+            .query('cmsCollectionPages')
+            .withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
+            .collect();
+        for (const page of collectionPages) {
+            if (page.matchFieldKey === fieldKey) {
+                await ctx.db.delete(page._id);
+            }
+        }
+
         await ctx.db.delete(fieldId);
         return { success: true } as const;
     },

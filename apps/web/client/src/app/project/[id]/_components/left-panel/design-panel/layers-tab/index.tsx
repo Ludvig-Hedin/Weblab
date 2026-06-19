@@ -86,13 +86,17 @@ export const LayersTab = observer(() => {
             }
 
             const childEl = await view.getElementByDomId(dragNode.data.domId, false);
-            if (!childEl) {
-                console.error('Failed to get element');
+            // `getElementByDomId` falls back to <body> for a stale/removed domId
+            // instead of returning null, so the `!childEl` guard alone is dead.
+            // Bail when the resolved element isn't the row we dragged — otherwise
+            // the move action reparents <body> and corrupts the JSX.
+            if (!childEl || childEl.domId !== dragNode.data.domId) {
+                console.error('Failed to resolve dragged element (stale layer row)');
                 return;
             }
             const parentEl = await view.getElementByDomId(parentNode.data.domId, false);
-            if (!parentEl) {
-                console.error('Failed to get parent element');
+            if (!parentEl || parentEl.domId !== parentNode.data.domId) {
+                console.error('Failed to resolve drop-target element (stale layer row)');
                 return;
             }
 

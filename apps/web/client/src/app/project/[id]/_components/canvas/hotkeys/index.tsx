@@ -635,8 +635,12 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
                 return;
             }
             e.preventDefault();
-            editorEngine.copy.cut();
-            toast.success('Cut');
+            // Only toast when something was actually cut. `cut()` no-ops for a
+            // frame-only selection (cut is element-only) or when copy() fails
+            // (e.g. an element with no oid) — a "Cut" toast then lies.
+            void editorEngine.copy.cut().then((didCut) => {
+                if (didCut) toast.success('Cut');
+            });
         },
         { enableOnFormTags: true, enableOnContentEditable: true },
         [getKey('CUT')],

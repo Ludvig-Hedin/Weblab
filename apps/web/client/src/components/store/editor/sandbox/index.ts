@@ -501,10 +501,20 @@ export class SandboxManager {
                     path: './',
                 },
             });
+            // No URL means the provider has no working download path (e.g. the
+            // Vercel browser provider's fileDownload route isn't ported yet).
+            // Return null so the caller surfaces an honest error instead of an
+            // empty-string URL — `{ downloadUrl: '' }` is a truthy object, so
+            // callers that guard on `if (result)` would open a blank tab and
+            // show a false "download succeeded" toast.
+            if (!url) {
+                console.warn(
+                    '[SandboxManager] downloadFiles returned no URL — download unavailable for this provider.',
+                );
+                return null;
+            }
             return {
-                // in case there is no URL provided then the code must be updated
-                // to handle this case
-                downloadUrl: url ?? '',
+                downloadUrl: url,
                 fileName: `${projectName ?? 'weblab-project'}-${Date.now()}.zip`,
             };
         } catch (error) {

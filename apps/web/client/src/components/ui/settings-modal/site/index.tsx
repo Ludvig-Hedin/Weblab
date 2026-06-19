@@ -130,15 +130,21 @@ export const SiteTab = observer(() => {
             let darkFaviconPath = faviconUrls.dark;
             try {
                 if (uploadedFavicon) {
-                    await editorEngine.image.upload(uploadedFavicon, DefaultSettings.IMAGE_FOLDER);
-                    lightFaviconPath = `/${uploadedFavicon.name}`;
+                    const { fileName } = await editorEngine.image.upload(
+                        uploadedFavicon,
+                        DefaultSettings.IMAGE_FOLDER,
+                    );
+                    // Use the sanitized stored name — the raw file.name 404s
+                    // when sanitizeFilename changed it (the file is written as
+                    // public/<sanitized>).
+                    lightFaviconPath = `/${fileName}`;
                 }
                 if (uploadedFaviconDark) {
-                    await editorEngine.image.upload(
+                    const { fileName } = await editorEngine.image.upload(
                         uploadedFaviconDark,
                         DefaultSettings.IMAGE_FOLDER,
                     );
-                    darkFaviconPath = `/${uploadedFaviconDark.name}`;
+                    darkFaviconPath = `/${fileName}`;
                 }
             } catch (error) {
                 console.error('Failed to upload favicon:', error);
@@ -162,8 +168,12 @@ export const SiteTab = observer(() => {
             if (uploadedImage) {
                 let imagePath;
                 try {
-                    await editorEngine.image.upload(uploadedImage, DefaultSettings.IMAGE_FOLDER);
-                    imagePath = `/${uploadedImage.name}`;
+                    const { fileName } = await editorEngine.image.upload(
+                        uploadedImage,
+                        DefaultSettings.IMAGE_FOLDER,
+                    );
+                    // Sanitized stored name — raw file.name 404s when changed.
+                    imagePath = `/${fileName}`;
                 } catch (error) {
                     // Mirror the favicon branch above: surface the failure
                     // so the user knows the OG image won't be saved.
