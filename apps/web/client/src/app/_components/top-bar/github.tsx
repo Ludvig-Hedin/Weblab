@@ -58,7 +58,14 @@ export function useGitHubStats() {
                     );
                 }
             } catch (error) {
-                console.error('Failed to fetch GitHub stats:', error);
+                // Expected, fully-handled fallback: GitHub's unauthenticated API
+                // rate-limits to 60 req/hr/IP and the request can also fail when
+                // offline or blocked by a privacy extension. We already fall back
+                // to sensible defaults, so this is not an error — log at warn so it
+                // doesn't pollute error monitoring (Sentry) on every such load.
+                // TODO(github-stats): fetch server-side with ISR + a token so real
+                // counts show reliably and DEFAULT_* (inherited values) aren't surfaced.
+                console.warn('GitHub stats unavailable, using defaults:', error);
                 setRaw(DEFAULT_STAR_COUNT);
                 setFormatted(formatStarCount(DEFAULT_STAR_COUNT));
                 setContributors(DEFAULT_CONTRIBUTORS_COUNT);
