@@ -92,6 +92,14 @@ const suggestionField = StateField.define<GhostSuggestion | null>({
         if (next && tr.docChanged && tr.annotation(suggestionAnnotation) !== 'tab-complete') {
             next = null;
         }
+        // A pure caret move (click / arrow keys, no doc change) also dismisses
+        // the ghost: it is anchored to `next.pos`, so accepting it later would
+        // insert at that stale position instead of the caret. Without this,
+        // pressing Tab after moving the cursor silently drops the completion at
+        // the old line and yanks the caret there.
+        if (next && !tr.docChanged && tr.newSelection.main.head !== next.pos) {
+            next = null;
+        }
         return next;
     },
     provide: (f) =>
@@ -119,6 +127,13 @@ const ghostTextTheme = EditorView.theme({
 const acceptSuggestion = (view: EditorView): boolean => {
     const s = view.state.field(suggestionField, false);
     if (!s) return false;
+    // Defensive: never insert at a stale anchor. If the caret isn't at the
+    // suggestion position, drop the ghost and let Tab fall through to its
+    // normal action (indent) instead of inserting at the old position.
+    if (view.state.selection.main.from !== s.pos) {
+        view.dispatch({ effects: setSuggestionEffect.of(null) });
+        return false;
+    }
     view.dispatch({
         changes: { from: s.pos, to: s.pos, insert: s.text },
         selection: { anchor: s.pos + s.text.length },

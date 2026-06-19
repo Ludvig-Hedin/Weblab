@@ -112,16 +112,24 @@ export const createFreestyleDomainVerification = async (
     return { freestyleVerificationId: id, verificationCode };
 };
 
-export const verifyFreestyleDomain = async (verificationId: string): Promise<string | null> => {
+export type FreestyleVerifyResult =
+    | { ok: true; domain: string | null }
+    | { ok: false; message: string };
+
+export const verifyFreestyleDomain = async (
+    verificationId: string,
+): Promise<FreestyleVerifyResult> => {
     try {
         const sdk = initializeFreestyleSdk();
         const res: HandleVerifyDomainResponse =
             await sdk.verifyDomainVerificationRequest(verificationId);
-        if (!res.domain) return null;
-        return res.domain;
+        // A clean negative (`domain == null`, DNS not propagated yet) is
+        // distinct from a thrown provider/network error. The caller must not
+        // report the latter as a DNS misconfiguration.
+        return { ok: true, domain: res.domain ?? null };
     } catch (error) {
         console.error('[freestyle] verifyDomain failed', error);
-        return null;
+        return { ok: false, message: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
 
@@ -222,8 +230,15 @@ export const buildFailureReason = async (verification: {
         }
         errors.push(err);
     }
+    const apex = parse(verification.fullDomain).domain ?? verification.fullDomain;
     for (const aRecord of verification.aRecords) {
-        const aResp = await isARecordPresent(verification.fullDomain, aRecord.value);
+        // Resolve the record's actual FQDN, not the bare apex. A `www` (or any
+        // sub-host) A record must be looked up at `www.<apex>` — checking the
+        // apex's A records for every record falsely reported the www record as
+        // missing (or present). `@` maps to the apex; a subdomain record's
+        // host already equals fullDomain via this same rule.
+        const recordHost = !aRecord.name || aRecord.name === '@' ? apex : `${aRecord.name}.${apex}`;
+        const aResp = await isARecordPresent(recordHost, aRecord.value);
         if (!aResp.isPresent) {
             let err = `A Record Missing:\n`;
             err += `    Expected:\n`;

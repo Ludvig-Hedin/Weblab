@@ -52,6 +52,9 @@ export default function MembersPage() {
     const [role, setRole] = useState<WorkspaceRole>(WorkspaceRole.MEMBER);
     const [invitePending, setInvitePending] = useState(false);
     const [transferPending, setTransferPending] = useState(false);
+    // Workspace invites have no email delivery (unlike project invites), so we
+    // surface a shareable accept link the inviter can copy and send.
+    const [inviteLink, setInviteLink] = useState<string | null>(null);
 
     const inviteCreate = useMutation(api.workspaces.inviteCreate);
     const updateRole = useMutation(api.workspaces.updateMemberRole);
@@ -59,17 +62,41 @@ export default function MembersPage() {
     const transferOwnership = useMutation(api.workspaces.transferOwnership);
 
     const handleInvite = async () => {
-        if (!email.trim()) return;
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) return;
         setInvitePending(true);
         try {
-            await inviteCreate({ workspaceId, email: email.trim(), role });
-            toast.success(`Invite sent to ${email}`);
+            const invitation = await inviteCreate({ workspaceId, email: trimmedEmail, role });
+            // No email is sent for workspace invites — build the accept link
+            // (mirrors the /invitation/workspace/[id]?token= route) and hand it
+            // to the inviter to share. The previous "Invite sent" toast was a
+            // lie: nothing was delivered, so invitees could never join.
+            const link = `${window.location.origin}/invitation/workspace/${invitation._id}?token=${invitation.token}`;
+            setInviteLink(link);
+            try {
+                await navigator.clipboard.writeText(link);
+                toast.success('Invite link copied to clipboard', {
+                    description: `Send it to ${trimmedEmail} to join ${workspace.name}.`,
+                });
+            } catch {
+                toast.success('Invite link created', {
+                    description: 'Copy the link below and send it to the invitee.',
+                });
+            }
             setEmail('');
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+            toast.error(err instanceof Error ? err.message : 'Failed to create invite');
         } finally {
             setInvitePending(false);
         }
+    };
+
+    const handleCopyInviteLink = () => {
+        if (!inviteLink) return;
+        void navigator.clipboard.writeText(inviteLink).then(
+            () => toast.success('Copied'),
+            () => toast.error('Copy failed'),
+        );
     };
 
     const handleUpdateRole = async (userId: Id<'users'>, newRole: WorkspaceRole) => {
@@ -173,9 +200,30 @@ export default function MembersPage() {
                             disabled={!email.trim() || invitePending}
                             onClick={() => void handleInvite()}
                         >
-                            {invitePending ? 'Sending…' : 'Send invite'}
+                            {invitePending ? 'Creating…' : 'Create invite link'}
                         </Button>
                     </div>
+                    {inviteLink && (
+                        <div className="border-border bg-background flex items-center gap-2 rounded-md border p-2">
+                            <Input
+                                readOnly
+                                value={inviteLink}
+                                className="text-mini flex-1"
+                                onFocus={(e) => e.currentTarget.select()}
+                            />
+                            <Button
+                                size="compact"
+                                variant="secondary"
+                                onClick={handleCopyInviteLink}
+                            >
+                                Copy link
+                            </Button>
+                        </div>
+                    )}
+                    <p className="text-foreground-tertiary text-mini">
+                        We don&apos;t email invites yet — copy this link and send it to the person
+                        you&apos;re inviting.
+                    </p>
                 </section>
             )}
 

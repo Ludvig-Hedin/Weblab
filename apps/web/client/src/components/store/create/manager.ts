@@ -42,6 +42,15 @@ function readActiveWorkspaceId(): string | undefined {
     }
 }
 
+function clearActiveWorkspaceId(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+    } catch {
+        // best-effort cleanup of a stale key
+    }
+}
+
 /**
  * Phases the create-from-prompt flow goes through. Drives the loader the
  * Create component renders right after submit so the user sees real progress
@@ -107,6 +116,32 @@ export class CreateManager {
     }
 
     /**
+     * Resolve the active-workspace id to forward to a create action, dropping a
+     * stale/inaccessible one. If localStorage points at a workspace the user is
+     * no longer a member of (deleted, or they were removed), forwarding it makes
+     * the create action throw `FORBIDDEN: project.create` — which Convex redacts
+     * to "Server Error" in prod, a dead-end with no retry. Validate against the
+     * caller's real memberships and fall back to the personal workspace (always
+     * allowed) when the stored id is gone. Mirrors the createBlank hook fix. If
+     * the membership lookup itself fails, forward the stored id as before (no
+     * regression — the server still gates it).
+     */
+    private async resolveValidWorkspaceId(): Promise<Id<'workspaces'> | undefined> {
+        const stored = readActiveWorkspaceId();
+        if (!stored) return undefined;
+        try {
+            const workspaces = await this.convex.query(convexApi.workspaces.list, {});
+            if (!workspaces.some((w) => (w._id as string) === stored)) {
+                clearActiveWorkspaceId();
+                return undefined;
+            }
+        } catch {
+            // Lookup failed — preserve prior behavior and let the server gate it.
+        }
+        return stored as Id<'workspaces'>;
+    }
+
+    /**
      * AI create: provision a blank Vercel sandbox and seed the user's prompt
      * (+ images) so the editor replays it into the AI chat on first open. Wraps
      * `projectActions.createFromPrompt`; the editor's `use-start-project`
@@ -130,7 +165,7 @@ export class CreateManager {
                 {
                     prompt,
                     images: images.map((i) => ({ content: i.content, mimeType: i.mimeType })),
-                    workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
+                    workspaceId: await this.resolveValidWorkspaceId(),
                 },
             );
             runInAction(() => {
@@ -168,7 +203,7 @@ export class CreateManager {
         try {
             const { projectId } = await this.convex.action(convexApi.projectActions.createFromGit, {
                 repoUrl: cloneUrl,
-                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
+                workspaceId: await this.resolveValidWorkspaceId(),
             });
             return { id: projectId };
         } catch (error) {
@@ -246,7 +281,7 @@ export class CreateManager {
                 name: input.name,
                 description: input.description,
                 framework: input.framework,
-                workspaceId: readActiveWorkspaceId() as Id<'workspaces'> | undefined,
+                workspaceId: await this.resolveValidWorkspaceId(),
             });
             return { id: projectId };
         } catch (error) {

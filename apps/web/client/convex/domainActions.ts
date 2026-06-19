@@ -103,8 +103,19 @@ export const verificationVerify = action({
         });
         if (!verification) throw new Error('NOT_FOUND: verification');
 
-        const domain = await verifyFreestyleDomain(verification.freestyleVerificationId);
+        const result = await verifyFreestyleDomain(verification.freestyleVerificationId);
 
+        // A thrown provider/network error is NOT a DNS misconfiguration.
+        // Surfacing the DNS-records diagnostic for it misleads the user into
+        // "fixing" correct records — tell them to retry instead.
+        if (!result.ok) {
+            return {
+                success: false,
+                failureReason: `Could not reach the domain verification service. Please try again in a moment. (${result.message})`,
+            };
+        }
+
+        const domain = result.domain;
         if (!domain) {
             const failureReason = await buildFailureReason({
                 fullDomain: verification.fullDomain,
