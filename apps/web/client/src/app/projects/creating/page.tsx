@@ -47,6 +47,18 @@ function CreatingContent() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [importDuration, setImportDuration] = useState(0);
     const hasStarted = useRef(false);
+    const [retryNonce, setRetryNonce] = useState(0);
+
+    // In-place retry for the template-import error state. Resets the run guard
+    // and bumps a nonce so the create effect re-fires — a plain <Link> to the
+    // same route is a client-nav no-op that never remounts (so `hasStarted`
+    // would stay true and nothing would retry).
+    const handleRetry = () => {
+        setErrorMessage(null);
+        hasStarted.current = false;
+        setPhase('initialising');
+        setRetryNonce((n) => n + 1);
+    };
 
     const template = templateId ? getExternalTemplate(templateId) : null;
     const isFastImport = Boolean(template?.sandboxId);
@@ -153,7 +165,7 @@ function CreatingContent() {
         };
 
         void run();
-    }, [user?._id, template, createManager, router, redirectToSignIn]);
+    }, [user?._id, template, createManager, router, redirectToSignIn, retryNonce]);
 
     // ── Derived state ────────────────────────────────────────────────────────
     const currentStepIndex =
@@ -180,6 +192,7 @@ function CreatingContent() {
                 backHref={Routes.MARKETPLACE}
                 backLabel={t('backToMarketplace')}
                 retryHref={null}
+                onRetry={handleRetry}
             />
         );
     }
@@ -326,12 +339,14 @@ function ErrorCard({
     backHref,
     backLabel,
     retryHref,
+    onRetry,
 }: {
     title: string;
     detail: string;
     backHref: string;
     backLabel: string;
     retryHref: string | null;
+    onRetry?: () => void;
 }) {
     return (
         <motion.div
@@ -350,10 +365,16 @@ function ErrorCard({
                 <Button variant="outline" size="sm" asChild>
                     <Link href={backHref}>{backLabel}</Link>
                 </Button>
-                {retryHref && (
-                    <Button size="sm" asChild>
-                        <Link href={retryHref}>Try again</Link>
+                {onRetry ? (
+                    <Button size="sm" onClick={onRetry}>
+                        Try again
                     </Button>
+                ) : (
+                    retryHref && (
+                        <Button size="sm" asChild>
+                            <Link href={retryHref}>Try again</Link>
+                        </Button>
+                    )
                 )}
             </div>
         </motion.div>
