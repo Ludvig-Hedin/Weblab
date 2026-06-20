@@ -38,6 +38,14 @@ later without re-discovering the context.
 
 ## Open
 
+### iter-26 (2026-06-20, hand-traced) — LOG: duplicating a frame creates a same-breakpoint-id collision → responsive rebase mis-resolves width
+
+- **Goal:** "duplicate a frame/breakpoint". **Where:** `frames/manager.ts:420` `duplicate()` does `{ ...frame, id: uuid(), groupId: uuid(), position }` — so the new frame inherits the SAME `branchId` AND the SAME `breakpoint.id` as the source (only `id`/`groupId`/`position` change).
+- **Bug:** the responsive rebase `code/index.ts:303-310` builds `widthById` from `frames.getAll()` (ALL frames, every group/branch), keyed by `breakpoint.id`, FIRST-WINS, with no branch/group scoping. After duplicating a frame there are two frames sharing one `breakpoint.id` (e.g. two "desktop"). Initially identical width (duplicate copies it), so no immediate harm — but once the user RESIZES the copy (or the original), the two diverge and the rebase resolves the breakpoint's width from whichever frame `getAll()` returns first → responsive style edits emit the wrong min-width and target the wrong frame. Same root cause as the iter-15 duplicate-breakpoint-id bug (whose fix only covered the add-breakpoint MENU within a group, not frame duplication).
+- **Severity:** MED — needs the compound sequence (duplicate → resize the copy → responsive-edit), not a first-action break. Reachable via Cmd+D / `duplicateSelected()`.
+- **Why NOT surgically fixed:** entangled with the responsive-frame design. Assigning the duplicate a UNIQUE `breakpoint.id` would break its Tailwind-variant mapping (the rebase maps known breakpoint ids → md:/lg:); scoping `widthById` by branch doesn't fix the same-branch duplicate. The clean fix is a responsive-frame design decision (how identical-breakpoint frames coexist) — same family as the deferred iter-15 responsive-orphan. **Next:** decide whether duplicate should share a branch at all (vs a forked branch, currently disabled on Vercel), or make `widthById` scope to the edited element's specific frame/group.
+- **Tags:** `#editor` `#responsive` `#design-decision`
+
 ### QA loop — UX audit + CMS/publish polish (2026-06-20 iter-5, /loop dynamic, Workflow: 7 UX auditors + 3 verifiers) — 3 FIXED, full UX audit delivered
 
 > Ran a 10-agent Workflow (7 sonnet UX flow auditors over the core journey + 3 adversarial fix-verifiers). **Delivered the prioritized UX audit** → [docs/notes/ux-audit-2026-06-20.md](docs/notes/ux-audit-2026-06-20.md) (4 blockers, ~22 frustrating, ~14 minor). All 3 verified polish leads were REAL and fixed. Typecheck ✓, lint = pre-existing warnings only.
