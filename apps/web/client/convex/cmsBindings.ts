@@ -100,15 +100,26 @@ export const snapshot = query({
             .query('cmsBindings')
             .withIndex('by_project', (q) => q.eq('projectId', projectId))
             .take(BINDING_LIMIT);
+        const bindingCollectionIds = bindings
+            .map((b) => {
+                const p = b.binding as { collectionId?: string } | null;
+                return p && typeof p.collectionId === 'string' ? p.collectionId : null;
+            })
+            .filter((id): id is string => !!id);
+        // PAGE_ITEM_FIELD (detail-page) bindings carry no top-level
+        // `collectionId` — their collection is resolved from the detail-page
+        // routing config (cmsCollectionPages) via matchFieldKey. Without
+        // unioning those collection ids in, a detail page's bound item fields
+        // fetch no items and render nothing.
+        const collectionPages = await ctx.db
+            .query('cmsCollectionPages')
+            .withIndex('by_project', (q) => q.eq('projectId', projectId))
+            .collect();
         const collectionIds = Array.from(
-            new Set(
-                bindings
-                    .map((b) => {
-                        const p = b.binding as { collectionId?: string } | null;
-                        return p && typeof p.collectionId === 'string' ? p.collectionId : null;
-                    })
-                    .filter((id): id is string => !!id),
-            ),
+            new Set([
+                ...bindingCollectionIds,
+                ...collectionPages.map((p) => p.collectionId as unknown as string),
+            ]),
         );
         if (collectionIds.length === 0) {
             return { bindings, items: [], collectionIds: [] as string[] };

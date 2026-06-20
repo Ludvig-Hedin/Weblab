@@ -385,10 +385,19 @@ const streamResponse = async (req: NextRequest, userId: string) => {
         if (chatType === ChatType.EDIT && !isLocalModel) {
             const incrementResult = await incrementUsage(req, traceId);
             if (incrementResult && 'limitReached' in incrementResult) {
+                // Include `usage` so the client renders the "Get more credits"
+                // upgrade CTA (error-message.tsx gates that button on
+                // code===402 && usage). The sibling checkMessageLimit 402 above
+                // includes it; this concurrency/fractional-bucket gate omitted
+                // it, so a user who hit the limit here only got a Retry button
+                // that re-sends and fails identically — a dead-end with no
+                // in-chat path to upgrade.
+                const { usage } = await checkMessageLimit(req);
                 return new Response(
                     JSON.stringify({
                         error: 'Credit limit exceeded. Please upgrade to a paid plan.',
                         code: 402,
+                        usage,
                     }),
                     { status: 402, headers: { 'Content-Type': 'application/json' } },
                 );

@@ -238,6 +238,17 @@ export class GitManager {
             // Set default branch to main
             await this.runCommand('git branch -M main');
 
+            // Baseline commit so a fresh project always has a recoverable
+            // origin. Without it the first turn's checkpoint has no prior state
+            // to restore to, and `git restore --source <oid>` needs at least one
+            // commit to exist. Best-effort — a failure here must not fail init.
+            const addResult = await this.runCommand('git add .');
+            if (addResult.success) {
+                await this.runCommand(
+                    'git commit --allow-empty --no-verify -m "Initial commit"',
+                );
+            }
+
             console.log('Git repository initialized successfully');
             return true;
         } catch (error) {
