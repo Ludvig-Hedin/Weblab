@@ -616,9 +616,15 @@ export function getLanguageFromFileName(fileName: string): string {
             return 'javascript';
         case 'jsx':
             return 'javascript';
+        case 'mjs':
+        case 'cjs':
+            return 'javascript';
         case 'ts':
             return 'typescript';
         case 'tsx':
+            return 'typescript';
+        case 'mts':
+        case 'cts':
             return 'typescript';
         case 'css':
             return 'css';
@@ -629,7 +635,10 @@ export function getLanguageFromFileName(fileName: string): string {
         case 'md':
             return 'markdown';
         default:
-            return 'typescript';
+            // Unknown extensions (.env, .yml, .toml, Dockerfile, .sh, lockfiles,
+            // …) → plain text. Defaulting to 'typescript' painted them with
+            // TS/JSX highlighting AND spurious parser error markers.
+            return 'text';
     }
 }
 
@@ -648,6 +657,10 @@ export function getExtensions(language: string): any[] {
             return [json()];
         case 'markdown':
             return [markdown()];
+        case 'text':
+            // Plain text — no language extension, so no spurious error markers
+            // on config files, dotfiles, lockfiles, etc.
+            return [];
         default:
             return [javascript({ jsx: true, typescript: true })];
     }

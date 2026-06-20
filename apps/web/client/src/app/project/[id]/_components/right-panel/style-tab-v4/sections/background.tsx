@@ -131,10 +131,16 @@ export const BackgroundSection = observer(function BackgroundSection() {
             }
             setMultiple(entries);
         } else if (t === 'image') {
-            // Clear color. Don't seed an invalid `url()` — leave bg-image
-            // empty until the user actually picks an asset; the URL row's
-            // placeholder advertises affordance without polluting the AST.
-            setMultiple([{ property: 'background-color', value: '' }]);
+            // Clear color AND any existing background-image — e.g. a gradient the
+            // user is switching away from (gradients live in `background-image`).
+            // Without clearing it, the old gradient keeps rendering while the
+            // panel claims "image", until the user picks an asset. Don't seed an
+            // invalid `url()` — leave bg-image empty; the URL row's placeholder
+            // advertises affordance without polluting the AST.
+            setMultiple([
+                { property: 'background-color', value: '' },
+                { property: 'background-image', value: '' },
+            ]);
         } else if (t === 'none') {
             setMultiple([
                 { property: 'background-color', value: '' },
