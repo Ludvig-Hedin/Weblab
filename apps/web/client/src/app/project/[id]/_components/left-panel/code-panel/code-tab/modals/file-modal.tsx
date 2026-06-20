@@ -74,7 +74,22 @@ export const FileModal = ({
             : `A file named "${existing.name}" already exists here.`;
     }, [fileEntries, fullPath]);
 
-    const effectiveWarning = warning || collisionWarning;
+    // Reject illegal / path-traversal names up front so the raw
+    // "Path escapes basePath" filesystem error never leaks to the user.
+    const nameWarning = useMemo(() => {
+        if (!name) return '';
+        if (name.trim() !== name) return "Name can't start or end with spaces.";
+        if (name.startsWith('/')) return "Name can't start with '/'.";
+        if (name.endsWith('/')) return "Name can't end with '/'.";
+        if (name.split('/').some((seg) => seg === '..' || seg === '.')) {
+            return "Name can't contain '.' or '..' path segments.";
+        }
+        // eslint-disable-next-line no-control-regex
+        if (/[\\:*?"<>|\x00-\x1f]/.test(name)) return 'Name contains an invalid character.';
+        return '';
+    }, [name]);
+
+    const effectiveWarning = warning || nameWarning || collisionWarning;
 
     const handleSubmit = async () => {
         if (!name || effectiveWarning) return;
