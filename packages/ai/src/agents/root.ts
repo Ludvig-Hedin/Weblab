@@ -27,6 +27,7 @@ import {
     convertToStreamMessages,
     getAskModeSystemPrompt,
     getCreatePageSystemPrompt,
+    getFixModeSystemPrompt,
     getPlanModeSystemPrompt,
     getSystemPrompt,
     getToolSetFromType,
@@ -133,7 +134,7 @@ export const createRootAgentStream = ({
     });
 };
 
-const getSystemPromptFromType = (
+export const getSystemPromptFromType = (
     chatType: ChatType,
     memories: MemorySearchResult[],
     framework?: FrameworkId | null,
@@ -146,8 +147,9 @@ const getSystemPromptFromType = (
             return getAskModeSystemPrompt(memories, framework, skills);
         case ChatType.PLAN:
             return getPlanModeSystemPrompt(memories, framework, skills);
-        case ChatType.EDIT:
         case ChatType.FIX:
+            return getFixModeSystemPrompt(memories, framework, skills);
+        case ChatType.EDIT:
         default:
             return getSystemPrompt(memories, framework, skills);
     }

@@ -4,6 +4,7 @@ export * from './clone';
 export * from './components';
 export * from './create';
 export * from './design';
+export * from './fix';
 export * from './format';
 export * from './slop-checklist';
 export * from './weblab';

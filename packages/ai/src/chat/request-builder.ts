@@ -29,7 +29,7 @@ import type { UserTier } from './model-router';
 import { createRootAgentStream } from '../agents/root';
 import { buildUsageEvent, measureStreamTiming, trackAIUsage } from '../observability';
 import { getCachedSystemBlocks, toAnthropicSystemBlocks } from '../prompt/cache-blocks';
-import { CREATE_NEW_PAGE_SYSTEM_PROMPT } from '../prompt/constants';
+import { CREATE_NEW_PAGE_SYSTEM_PROMPT, FIX_SYSTEM_PROMPT } from '../prompt/constants';
 import { wrapXml } from '../prompt/helpers';
 import { getPlanModeSystemPrompt } from '../prompt/plan';
 import { getAskModeSystemPrompt } from '../prompt/provider';
@@ -174,6 +174,10 @@ function getModeSuffix(chatType: ChatType): string | undefined {
     switch (chatType) {
         case ChatType.CREATE:
             return wrapXml('create-system-prompt', CREATE_NEW_PAGE_SYSTEM_PROMPT);
+        case ChatType.FIX:
+            // FIX reuses the cached Build stable prefix; the fix-mode suffix
+            // gives it a distinct cache lane while sharing the heavy prefix.
+            return wrapXml('fix-mode', FIX_SYSTEM_PROMPT);
         default:
             return undefined;
     }

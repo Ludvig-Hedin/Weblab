@@ -25,6 +25,7 @@ import {
     COMPONENT_REGISTRY_PROMPT,
     CREATE_NEW_PAGE_SYSTEM_PROMPT,
     DESIGN_SYSTEM_PROMPT,
+    FIX_SYSTEM_PROMPT,
     frameworkSupportsShadcn,
     getSystemPromptForFramework,
     SHELL_PROMPT,
@@ -87,6 +88,22 @@ export function getCreatePageSystemPrompt(
 ) {
     let prompt = getSystemPrompt(memories, framework, skills) + '\n\n';
     prompt += wrapXml('create-system-prompt', CREATE_NEW_PAGE_SYSTEM_PROMPT);
+    return prompt;
+}
+
+/**
+ * FIX mode system prompt. Reuses the full Build (EDIT) prompt — same framework
+ * guidance, design system, shadcn catalog, and full edit toolset — and appends
+ * the FIX_SYSTEM_PROMPT focusing block so the model fixes ONLY the reported
+ * errors with minimal, surgical edits. Mirrors getCreatePageSystemPrompt.
+ */
+export function getFixModeSystemPrompt(
+    memories?: MemorySearchResult[],
+    framework?: FrameworkId | null,
+    skills?: SkillSummary[],
+) {
+    let prompt = getSystemPrompt(memories, framework, skills) + '\n\n';
+    prompt += wrapXml('fix-mode', FIX_SYSTEM_PROMPT);
     return prompt;
 }
 
