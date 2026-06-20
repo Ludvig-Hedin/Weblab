@@ -19,6 +19,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { useStateManager } from '@/components/store/state';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
+import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { Routes } from '@/utils/constants';
 
 export function ProjectsCommandPalette() {
@@ -28,6 +29,13 @@ export function ProjectsCommandPalette() {
     const [open, setOpen] = useState(false);
 
     const projects = useQuery(api.projects.list, open ? {} : 'skip');
+    // Local projects only open in the desktop app; in the browser they boot a
+    // runtime that throws. Hide them from the quick-jump rather than offering a
+    // dead navigation (cards keep them but block the open). `isDesktop` is read
+    // after mount so SSR/first render don't touch `window`.
+    const [isDesktop, setIsDesktop] = useState(false);
+    useEffect(() => setIsDesktop(isDesktopLocalAvailable()), []);
+    const jumpProjects = (projects ?? []).filter((p) => isDesktop || p.storageMode !== 'local');
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -56,9 +64,9 @@ export function ProjectsCommandPalette() {
             <CommandList>
                 <CommandEmpty>{t('noResults')}</CommandEmpty>
 
-                {projects && projects.length > 0 && (
+                {jumpProjects.length > 0 && (
                     <CommandGroup heading={t('headingJump')}>
-                        {projects.slice(0, 25).map((project) => (
+                        {jumpProjects.slice(0, 25).map((project) => (
                             <CommandItem
                                 key={project._id}
                                 value={`Open ${project.name} project ${project._id}`}

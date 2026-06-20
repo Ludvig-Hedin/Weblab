@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
 import { STORAGE_BUCKETS } from '@weblab/constants';
 import { timeAgo } from '@weblab/utility';
 
+import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { Routes } from '@/utils/constants';
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
 import { EditAppButton } from '../edit-app';
@@ -26,6 +29,18 @@ export function SquareProjectCard({
 }) {
     const [img, setImg] = useState<string | null>(null);
     const projectHref = `${Routes.PROJECT}/${project.id}`;
+    const t = useTranslations('selectProject');
+    // Local projects only open inside the desktop app (NodeFs bridge). In the
+    // browser, navigating to the editor route boots a runtime that throws, so
+    // block the open and explain — mirrors the guard ProjectCard/ProjectRow
+    // already have. `isDesktop` is read after mount to keep SSR/first-render
+    // markup identical (no hydration mismatch from reading `window`).
+    const [isDesktop, setIsDesktop] = useState(false);
+    useEffect(() => setIsDesktop(isDesktopLocalAvailable()), []);
+    const openBlocked = project.metadata?.storageMode === 'local' && !isDesktop;
+    const handleBlockedOpen = useCallback(() => {
+        toast.error(t('localDesktopOnly'));
+    }, [t]);
 
     useEffect(() => {
         let isMounted = true;
@@ -76,6 +91,14 @@ export function SquareProjectCard({
         <ProjectCardContextMenu project={project} refetch={refetch}>
             <Link
                 href={projectHref}
+                onClick={
+                    openBlocked
+                        ? (e) => {
+                              e.preventDefault();
+                              handleBlockedOpen();
+                          }
+                        : undefined
+                }
                 className="group block cursor-pointer transition-all duration-300"
             >
                 <div

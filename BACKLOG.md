@@ -38,6 +38,26 @@ later without re-discovering the context.
 
 ## Open
 
+### QA loop — core-systems hunt (2026-06-21 iter-9, /loop dynamic, 4 sonnet subagents) — 2 FIXED, 5 refuted, ~6 logged
+
+> Fresh hunt of un-swept CORE areas (credits/billing, parser, sync-engine, desktop/local). The credit-correctness findings were ALL refuted (documented-deliberate — verifying the rationale prevented breaking money code); shipped 2 clean desktop guards; logged real data-loss finds that need a test harness / live verification to fix safely. Typecheck ✓, lint clean.
+
+**✅ FIXED (this commit):**
+1. **`#desktop` — local project in the "Recent Projects" carousel had no open-guard.** `projects/_components/select/square-project-card.tsx` wrapped the whole card in an unconditional `<Link>`, so clicking a `storageMode:'local'` project in the BROWSER navigated to an editor route whose NodeFs runtime throws. `ProjectCard`/`ProjectRow` already gate this. **Fix:** mirrored the `openBlocked = isLocal && !isDesktop` guard — the card's onClick now `preventDefault`s + toasts `localDesktopOnly` instead of navigating.
+2. **`#desktop` — Cmd-K command palette offered local projects as dead jumps.** `projects-command-palette.tsx` listed all projects and `router.push`ed unconditionally. **Fix:** filter `storageMode:'local'` out of the quick-jump when not in the desktop app (cleaner than a dead nav). (Both are defense-in-depth over the known root issue: local projects leak into the web dashboard at all — no list-level storageMode filter.)
+
+**❌ REFUTED — verifying the rationale prevented bad fixes:**
+- **CREDITS (4 findings) — all documented-deliberate.** `usageMath.sumUsageAmount`'s `r.amount ?? 1` is for LEGACY no-amount rows; the free caps intentionally count REAL TOKEN COST (`usage.ts:450` "charges the real token cost against the free caps"), so unpriced/local models legitimately cost 0 and don't consume the cap ("Unpriceable means free" :432). The "PRO refund eaten" claim is impossible: reconcile (success) and revertIncrement (failure) are mutually exclusive and revert deletes the record. Changing `??`→`||` would have BROKEN the intended real-cost accounting. (The Stripe `past_due→active` mid-period recovery edge is a narrow real lead — logged, not fixed.)
+- **PARSER text-children wipe — already a documented `TODO(bug-hunt)`** in `code-edit/text.ts:5-13` (the multi-line branch `node.children = []` wipes inline `<strong>`/etc; needs "a JSX-aware child-preserving merge"). Not a new find; a naive partial fix risks worse output than the predictable wipe. Left to a focused pass.
+
+**📋 LOGGED — confirmed/likely data-loss finds (need a test harness or live verification before fixing):**
+- **`#sync` `#data-loss` — stale hash suppresses re-delivery after a FAILED ZenFS write.** `services/sync-engine/sync-engine.ts` (~write/hash loops): the write-loop swallows the error, then the hash-storage loop runs unconditionally, so the next sandbox tick sees a matching hash and skips re-delivery → local+sandbox diverge silently. **Fix:** track failed paths in a Set; skip hash storage for them. (Sync-engine has no tests — verify before shipping.)
+- **`#sync` — OID index corrupted after a sandbox-initiated DIRECTORY rename.** `sync-engine.ts` rename handler calls `moveFile()` (rekeys only JSX/HTML source pairs), not `moveDirectory()` (recursive rekey), so entries under the renamed dir keep stale paths until the 2s debounced `rebuildIndex`.
+- **`#sync` `#race` — `write-queue.ts` `supersedePriorRecords` read+delete is non-atomic** → two concurrent `enqueue()` for the same path can both pass the check → duplicate records skew the conflict-log baseline. Minor.
+- **`#parser` — `getTemplateNodeChild` returns null for namespaced components** (`<UI.Button>`, `<Icons.Arrow>`): `(name as JSXIdentifier).name` is undefined on a `JSXMemberExpression`. Branch on node-name type + reconstruct the dotted string.
+- **`#parser` — `insert.ts` sets the oid twice on paste** (`addParamToElement` with `insertedChild.oid` then `addPasteParamsToElement` no-ops with `replace=false`) → pasted element keeps the wrong oid. Pass `replace=true` or order the oid set after paste params.
+- **`#billing` — Stripe `past_due→active` recovery within the same period mints no new bucket** (`usage.ts:279` `isRenewal` requires status active AND a new `current_period_end`). Narrow dunning edge.
+
 ### QA loop — logged-defect fixes (2026-06-21 iter-8, /loop dynamic) — 2 FIXED, 1 refuted, 1 deferred
 
 > Verified + fixed the next tier of iter-7 LOGGED defects. Typecheck ✓, lint clean.
