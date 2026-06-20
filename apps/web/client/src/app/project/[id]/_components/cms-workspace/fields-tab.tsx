@@ -158,8 +158,16 @@ export const FieldsTab = observer(() => {
     if (!projectId) return null;
     if (!collectionId) {
         return (
-            <div className="text-foreground-tertiary text-small flex h-full items-center justify-center">
-                {t(transKeys.cms.fields.needCollection)}
+            <div className="text-foreground-tertiary text-small flex h-full flex-col items-center justify-center gap-3">
+                <span>{t(transKeys.cms.fields.needCollection)}</span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editorEngine.state.setCmsTab(CmsTabValue.COLLECTIONS)}
+                >
+                    <Icons.ArrowLeft className="mr-1 h-3.5 w-3.5" />
+                    {t(transKeys.cms.fields.back)}
+                </Button>
             </div>
         );
     }

@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import { Icons } from '@weblab/ui/icons';
 
 import { useAuthContext } from '@/app/auth/auth-context';
+import { PROJECT_SUGGESTIONS } from '@/app/projects/_components/select';
 import { SplitText } from '@/components/motion/split-text';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { Routes } from '@/utils/constants';
@@ -83,6 +84,7 @@ export function HeroV2() {
                             setIsCreatingProject={setIsCreatingProject}
                             user={user ?? null}
                             variant="hero"
+                            suggestions={PROJECT_SUGGESTIONS}
                         />
                     </motion.div>
 
