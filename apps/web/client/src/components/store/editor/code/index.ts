@@ -1,4 +1,3 @@
-import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
 import type { BreakpointId } from '@weblab/models';
@@ -9,6 +8,7 @@ import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
 import { type EditorEngine } from '@/components/store/editor/engine';
+import { keyedDebounce } from '@/utils/keyed-debounce';
 import { getOrCreateCodeDiffRequest } from './helpers';
 import {
     getEditTextRequests,
@@ -27,7 +27,11 @@ import { addResponsiveTailwindToRequest } from './tailwind';
 
 export class CodeManager {
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable(this);
+        // Exclude `writeResponsiveStyle`: it's a function-valued field holding a
+        // keyed debounce with a `.cancel` helper. makeAutoObservable would wrap
+        // it as an action and strip `.cancel` (the same trap as `saveCanvas`),
+        // making `clear()`'s teardown-cancel a silent no-op.
+        makeAutoObservable(this, { writeResponsiveStyle: false });
         this.attachBeforeUnload();
     }
 
@@ -265,15 +269,23 @@ export class CodeManager {
      * project-level overrides.css is a follow-up the parser modules already
      * have the rebase math for.
      *
-     * Debounced upstream by `ActionManager.scheduleSourceRebase` per
-     * `(oid, property)` so a slider drag doesn't thrash files. The 600ms
-     * debounce here is a single shared timer — if you call this directly
-     * (outside the action pipeline) for two different keys in quick
-     * succession, only the last call within the window will fire. The
-     * action pipeline is the only high-frequency caller; one-shot callers
-     * (alt-click clear) are safe.
+     * Debounced per `(oid, property)` (600ms). A previous version used a single
+     * shared `lodash.debounce`, so two different keys firing within the window
+     * cancelled each other — editing two properties quickly on a non-default
+     * breakpoint silently dropped the first property's responsive write. Keying
+     * the debounce makes each `(oid, property)` independent. (The action
+     * pipeline also debounces per key upstream in `scheduleSourceRebase`; that
+     * stays — double-debouncing the same key is harmless, just delayed.)
      */
-    writeResponsiveStyle = debounce(this.undebouncedWriteResponsiveStyle.bind(this), 600);
+    writeResponsiveStyle = keyedDebounce(
+        (args: {
+            oid: string;
+            property: string;
+            valuesByBreakpoint: Record<BreakpointId, string>;
+        }) => void this.undebouncedWriteResponsiveStyle(args),
+        600,
+        (args) => `${args.oid}::${args.property}`,
+    );
 
     private async undebouncedWriteResponsiveStyle({
         oid,
