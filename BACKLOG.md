@@ -38,6 +38,15 @@ later without re-discovering the context.
 
 ## Open
 
+### iter-23 (2026-06-20, hand-traced) — ✅ FIXED `#security` workspace privilege-escalation (admin → owner via updateMemberRole)
+
+> The user-journey Workflow was server-rate-limited (all 4 finders), so I hand-traced the "change a teammate's role" goal in the main thread and found a real privilege-escalation.
+
+- **Where:** `apps/web/client/convex/workspaces.ts` `updateMemberRole` (gated only on `workspace.manage_members`).
+- **Bug:** `WORKSPACE_ROLE_CAPS` (`packages/auth/src/matrices.ts:24-30`) grants `workspace.manage_members` to **ADMIN**, and `updateMemberRole` did not restrict `role === OWNER`. So any admin could `updateMemberRole({ userId: self, role: 'owner' })` → self-promote to OWNER, bypassing the owner-only `transferOwnership` (which atomically demotes the prior owner). Then, as a second owner, demote the original owner (the last-owner guard now passes with 2 owners) → **full workspace takeover** by an admin. The OWNER role is meant to be granted only via `transferOwnership`.
+- **Fix:** reject `role === OWNER` in `updateMemberRole` (`throw BAD_REQUEST: use transferOwnership to grant the owner role`); owner grants must go through the owner-gated transfer path. Simplified the now-unreachable `role !== OWNER` branch of the last-owner guard (TS narrowing). typecheck code 0, eslint clean. Member↔admin↔viewer changes + owner demotion (via the last-owner guard) are unaffected; admins can no longer create a second owner, so they also can't oust the sole owner.
+- **Note:** the role-change UI (`members/page.tsx` INVITABLE_ROLES) doesn't offer "owner", so exploitation was via a direct Convex call — but the backend must enforce it (defense in depth). Otherwise the role-change goal is solid (cap-gated, last-owner/self-removal guards present).
+
 ### User-GOAL journey hunt iter-22 (2026-06-20, Workflow) — delete-account/subscription/timeout/nav; 4 confirmed, 0 surgical (ops/platform/preload/high-blast)
 
 > 4-goal pass. 4 confirmed blockers — none has a safe surgical fix this session (1 ops env step I can't perform, 2 in the boot-sync/snapshot-fork work-loss area with no tests, 1 preload-rooted). Subscription cancel = SOLID (Stripe portal path works; webhook-reflection refuted as non-blocking). All logged; the env one is flagged as a MANUAL STEP.

@@ -382,7 +382,19 @@ export const updateMemberRole = mutation({
         });
         const target = await getMembership(ctx, workspaceId, userId);
         if (!target) throw new Error('NOT_FOUND: member');
-        if (target.role === OWNER && role !== OWNER) {
+        // The OWNER role is granted ONLY via `transferOwnership` (which is
+        // owner-gated and atomically demotes the current owner). Allowing it
+        // here would let anyone holding `workspace.manage_members` — which
+        // ADMIN does (see WORKSPACE_ROLE_CAPS) — promote themselves (or anyone)
+        // to owner, bypassing the owner-only transfer path and enabling a full
+        // workspace takeover (self-promote → second owner → demote the original
+        // owner). Block it; demotions/other role changes are unaffected.
+        if (role === OWNER) {
+            throw new Error('BAD_REQUEST: use transferOwnership to grant the owner role');
+        }
+        // Demoting an owner (role is guaranteed non-OWNER here, since granting
+        // OWNER was rejected above): block removing the last owner.
+        if (target.role === OWNER) {
             const owners = await ctx.db
                 .query('workspaceMembers')
                 .withIndex('by_workspace_user', (q) => q.eq('workspaceId', workspaceId))
