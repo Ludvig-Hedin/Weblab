@@ -12,6 +12,18 @@ import { requireCap, requireUser } from './lib/permissions';
 // in `publishActions.ts` (node runtime) and call back into the internal
 // mutations exported here.
 
+// `envVars` are the user's plaintext build secrets (API keys, tokens). The
+// public deployment queries below are gated only on `project.view`, so ANY
+// collaborator can subscribe to them — never let those queries echo the
+// secrets back. Strip the field at the boundary (mirrors
+// hostingConnections.stripTokenField). The deploy/redeploy actions read
+// envVars via INTERNAL queries (publishActions), so this doesn't affect them,
+// and no client code reads `deployment.envVars`.
+function stripEnvVars(row: Doc<'deployments'>): Omit<Doc<'deployments'>, 'envVars'> {
+    const { envVars: _drop, ...rest } = row;
+    return rest;
+}
+
 export const getByType = query({
     args: {
         projectId: v.id('projects'),
@@ -25,7 +37,8 @@ export const getByType = query({
             .collect();
         const matching = rows.filter((r) => r.type === type);
         matching.sort((a, b) => b._creationTime - a._creationTime);
-        return matching[0] ?? null;
+        const latest = matching[0];
+        return latest ? stripEnvVars(latest) : null;
     },
 });
 
@@ -41,7 +54,7 @@ export const list = query({
             .withIndex('by_project', (q) => q.eq('projectId', projectId))
             .collect();
         rows.sort((a, b) => b._creationTime - a._creationTime);
-        return rows.slice(0, limit);
+        return rows.slice(0, limit).map(stripEnvVars);
     },
 });
 

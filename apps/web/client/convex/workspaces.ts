@@ -453,6 +453,16 @@ export const inviteCreate = mutation({
     },
     handler: async (ctx, { workspaceId, email, role }) => {
         const { user } = await requireCap(ctx, 'workspace.invite', { workspaceId });
+        // The OWNER role is granted ONLY via `transferOwnership` (owner-gated,
+        // atomically demotes the current owner). `workspace.invite` is held by
+        // ADMIN, so without this guard an admin could invite a new member (or a
+        // second account of their own) as `owner`, and `inviteAccept` would
+        // insert `role: 'owner'` — bypassing the owner-only transfer path and
+        // enabling a workspace takeover. This is the same escalation vector that
+        // `updateMemberRole` blocks; the invite path needs the identical guard.
+        if (role === OWNER) {
+            throw new Error('BAD_REQUEST: use transferOwnership to grant the owner role');
+        }
         // Personal workspaces are intentionally single-seat. Reject invites
         // regardless of the caller's cap so a stale UI or hand-crafted call
         // cannot create a second member in someone's personal space.
