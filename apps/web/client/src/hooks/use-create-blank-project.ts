@@ -77,9 +77,15 @@ export function useCreateBlankProject() {
             return;
         }
 
+        // Stay on 'forking-sandbox' for the whole provisioning await below —
+        // that single `createBlankProject` action IS the long operation
+        // (~13–90s). Setting 'creating-project' here (before the await) made
+        // the loader mark "Preparing workspace" as already-complete while the
+        // sandbox was still provisioning (start-blank.tsx steps map step 1's
+        // `ready` to phase === 'creating-project'). Advance straight to
+        // 'opening-editor' once the action resolves.
         setPhase('forking-sandbox');
         try {
-            setPhase('creating-project');
             // Resolve the active workspace from localStorage, but DROP a stale
             // or inaccessible id. If the stored workspace was deleted, or the
             // user was removed from it, forwarding the id makes `createBlank`

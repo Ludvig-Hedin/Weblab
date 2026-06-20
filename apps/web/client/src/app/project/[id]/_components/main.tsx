@@ -15,6 +15,7 @@ import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { ProjectCapabilitiesProvider } from '@/hooks/use-project-capabilities-context';
 import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
+import { useLockedCanvasLayout } from '../_hooks/use-locked-canvas-layout';
 import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
@@ -98,6 +99,8 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         leftPanelRef,
         rightPanelRef,
     );
+    // Webflow-style "Lock canvas": pin + fit the focused frame between panels.
+    useLockedCanvasLayout(editorEngine, toolbarLeft, toolbarRight);
     // Initialize false (SSR-safe) so SSR and client hydration output the same
     // markup. useLayoutEffect then sets the correct value synchronously before
     // the browser paints, eliminating the hydration mismatch that arose when
@@ -172,12 +175,22 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         };
     }, []);
 
-    // Don't pre-empt the editor mount on a sandbox connection error — when the
-    // remote sandbox is unreachable (synthetic test project, deployment with
-    // no CSB/Vercel credentials, transient outage), we still want the canvas
+    // Don't pre-empt the editor mount on a transient sandbox *connection* error —
+    // when the remote sandbox is unreachable (synthetic test project, deployment
+    // with no Vercel credentials, transient outage), we still want the canvas
     // shell, layers panel, and AI chat to render so the user gets context for
     // what's broken. The bottom-bar surfaces the reconnect state separately.
-    if (error && error.toLowerCase().includes('no project')) {
+    //
+    // A *terminal* failure is different: "no project" (the project row/graph is
+    // missing) and "Workspace setup failed: …" (Convex marked provisioning as
+    // failed — see use-start-project `provisioningError`) will never resolve by
+    // waiting, so route them to ProjectLoadError with an honest message + Retry
+    // instead of an eternal "Setting up your workspace" spinner or a blank shell.
+    if (
+        error &&
+        (error.toLowerCase().includes('no project') ||
+            error.toLowerCase().includes('workspace setup failed'))
+    ) {
         return <ProjectLoadError variant="unknown" message={error} />;
     }
 
