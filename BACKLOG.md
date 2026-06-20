@@ -38,9 +38,24 @@ later without re-discovering the context.
 
 ## Open
 
+### User-GOAL journey hunt iter-21 (2026-06-20, Workflow) — ai-modes/duplicate/nav/domain; 0 FIXED (both blockers are platform gaps), 1 correction
+
+> 4-goal pass (AI ask/plan/fix modes, duplicate/import, multi-page nav, custom-domain). 2 confirmed blockers — **both are Vercel snapshot-fork platform gaps, not surgical code fixes**, so logged not patched. AI-modes goal = SOLID (fix/ask/plan behave correctly; the only finding was the already-logged cosmetic /create-/fix label).
+
+**🚧 PLATFORM GAPS (confirmed real, NOT quick-fixable — need the Vercel snapshot-based fork):**
+1. **HIGH `#convex` `#data-loss` — "Clone project" silently copies the blank/stale snapshot, not the user's edits (false success).** `projectActions.fork` (1382) is LIVE (NOT the throwing stub the old BACKLOG entry at ~1023 claims — that entry is STALE). It reads `branches[0].runtimeMetadata.cloud.snapshotId` (1416), which is frozen at create time and never refreshed (no snapshot-on-edit anywhere; the only `sandbox.snapshot()` is the initial scaffold). So the clone resumes the create-time/blank snapshot, and `_insertProjectGraph` inserts DEFAULT frames (not the source's). The fork's expiry guard (1473) passes because resuming the stale snapshot succeeds. 3/3 verified. Result: clone toasts "Cloned successfully" + opens a near-empty project — the user believes they duplicated their work and silently got an empty/stale variant. **Next step (needs design + the snapshot-fork feature):** capture a FRESH `sandbox.snapshot()` of the source's LIVE sandbox + copy its frames/canvas into the new graph; OR, until that lands, DISABLE clone with an honest "coming soon" (don't ship a feature that silently loses work). Reclassify the stale `:1023` entry to this high-severity content-loss reality.
+2. **CRITICAL `#publish` (DOCUMENTED, communicated) — publish is disabled on Vercel for ALL domains.** `publishActions.run` calls `forkBuildSandbox` (`publishHelpers.ts:51`) at `publishActions.ts:88` **before** `deployFreestyle` (139); `forkBuildSandbox` is the disabled stub that throws `"Publish is temporarily unavailable on the Vercel runtime…"`. So no publish ever reaches Freestyle. This matches CLAUDE.md (`TODO(publish-vercel)`) and the failure IS clearly surfaced (the publish panel renders the parsed error + suggestion). So it's a known, communicated platform gap — NOT a new bug. Minor UX nit: the panel still offers a "Try Updating Again" button that will always fail; could special-case the platform-unavailable error to hide retry. **This corrects my iter-20 claim (below) that publish was "solid" — that was wrong.**
+
+**🔍 Lead to re-verify (1 verifier confirmed, didn't reach 2/3):**
+- `editor/engine/.../view.tsx:631` — clicking an in-iframe nav link navigates the preview but the editor's current-page + element-selection bridge may not update (so editing the newly-navigated page breaks). Multi-page editing goal. Re-verify next pass. `#preview`
+
+**Refuted (3):** Fix mode behaves like Build (refuted — fix has its own prompt/behavior); Fix mode unreachable from dropdown (refuted — reachable via /fix + error CTA, goal is "use fix mode" not "select from dropdown"); custom-domain shows green "Verified" prematurely (refuted — cosmetic copy nit on top of the real publish gap).
+
 ### User-GOAL journey hunt iter-20 (2026-06-20, Workflow) — can the user achieve their goals?; 3 FIXED, 1 deferred, 4 refuted
 
-> Reframed the hunt around end-to-end USER GOALS (what the user sees + does, can they finish) rather than per-function bugs. Small 4-goal batches dodged the server rate-limiting that throttled the full passes. **share/publish goal traced by hand = SOLID** (publishes via Freestyle; failures show parsed error + suggestion + retry — CLAUDE.md's "publish disabled on Vercel" note is STALE, like the create-paths note was). 3 goal-blockers FIXED, 1 deferred:
+> Reframed the hunt around end-to-end USER GOALS (what the user sees + does, can they finish) rather than per-function bugs. Small 4-goal batches dodged the server rate-limiting that throttled the full passes. 3 goal-blockers FIXED, 1 deferred:
+>
+> ⚠️ **CORRECTION (iter-21):** the "share/publish goal traced by hand = SOLID / CLAUDE.md publish-disabled note is STALE" claim made here was **WRONG** — I missed that `publishActions.run` calls the disabled `forkBuildSandbox` stub at `publishActions.ts:88` **before** `deployFreestyle` (line 139), so publish actually throws for every deploy. Publish IS disabled on Vercel exactly as CLAUDE.md documents (the failure is clearly surfaced in the publish panel). See the iter-21 entry above.
 
 **✅ FIXED (this commit):**
 1. **HIGH `#cms` — CMS detail-page bindings (`PAGE_ITEM_FIELD`) rendered nothing**, so a user building a blog/collection detail page saw blank content. `convex/cmsBindings.ts` `snapshot` derived collection ids ONLY from binding payloads, but detail-page item-field bindings carry no top-level `collectionId` (it's resolved via the `cmsCollectionPages` routing config). Fix: union the collection ids from `cmsCollectionPages` rows with the binding-derived ones before fetching items.
@@ -1017,11 +1032,13 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** none functional — editor URLs stay ugly but fully working. Cosmetic only.
 - **Tags:** `#feature` `#editor` `#convex` `#ux`
 
-### Fork-based create paths still stubbed: project clone + marketplace templates (`TODO(sandbox-fork)`)
+### Fork-based create paths: project clone + marketplace templates (`TODO(sandbox-fork)`)
+
+> ⚠️ **STALE (corrected iter-21 2026-06-20):** `projectActions.fork` is **no longer a throwing stub** — it is LIVE and runs (auth + VERCEL_TOKEN check → loads source → resumes `sourceSnapshotId` → inserts a new graph). It does NOT toast "temporarily unavailable". The REAL current bug is **worse**: it silently produces a blank/stale clone (false success) because `sourceSnapshotId` is frozen at create time and the graph uses default frames — see the **iter-21** entry near the top of Open (`#data-loss`). Marketplace "Use template" likely shares this. The text below is the original (now-inaccurate) 2026-06-03 note, kept for history.
 
 - **Discovered:** 2026-06-03 (create-paths audit session)
-- **Where:** `projectActions.fork` ([convex/projectActions.ts](apps/web/client/convex/projectActions.ts)) throws "Project fork is temporarily unavailable… snapshot-based fork is not yet implemented". Callers: project clone ([clone-project.tsx](apps/web/client/src/app/projects/_components/settings/clone-project.tsx), `clone-project-dialog.tsx`) and marketplace "Use template" ([template-modal.tsx](apps/web/client/src/app/projects/_components/templates/template-modal.tsx) → `forkTemplate`).
-- **Symptom:** "Clone project" and marketplace "Use template" toast "Sandbox service temporarily unavailable".
+- **Where:** `projectActions.fork` ([convex/projectActions.ts](apps/web/client/convex/projectActions.ts)) — ORIGINALLY threw "Project fork is temporarily unavailable… snapshot-based fork is not yet implemented" (NO LONGER TRUE, see correction above). Callers: project clone ([clone-project.tsx](apps/web/client/src/app/projects/_components/settings/clone-project.tsx), `clone-project-dialog.tsx`) and marketplace "Use template" ([template-modal.tsx](apps/web/client/src/app/projects/_components/templates/template-modal.tsx) → `forkTemplate`).
+- **Symptom (ORIGINAL, now inaccurate):** "Clone project" and marketplace "Use template" toast "Sandbox service temporarily unavailable". **Current symptom:** clone toasts SUCCESS but opens a near-empty/stale project.
 - **Root cause:** Fork = duplicate an existing project's sandbox state into a new one. Needs Vercel snapshot-based fork (resume the source project's persisted `snapshotId` into a fresh sandbox, then insert a new project graph). Same blocker as `branch.fork` / publish.
 - **Next step:** implement `fork` via snapshot resume — read source `projects.snapshotId`, provision from it (model on `createBlank`/`createFromGit`), insert project graph. Handle expired/missing snapshot (re-scaffold fallback or clear error).
 - **Risk if ignored:** can't duplicate a project or start from a marketplace template. (Start-blank / AI-prompt / git-URL / folder / GitHub-repo / website-clone all work as of 2026-06-03.)
