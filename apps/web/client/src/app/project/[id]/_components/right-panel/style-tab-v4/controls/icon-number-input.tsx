@@ -118,6 +118,13 @@ export function IconNumberInput({
     const [unit, setUnit] = React.useState<string>(() => parsedValue.unit || defaultUnit);
     const [keyword, setKeyword] = React.useState<string | null>(() => parsedValue.keyword);
 
+    // Tracks whether the user actually edited the draft since focusing. The
+    // sync effect below deliberately skips updating the draft while focused, so
+    // without this guard a blur (or Enter) AFTER an external value change (undo,
+    // selection change, raw CSS edit) would commit the now-stale draft and clobber
+    // the new value. Only commit-on-blur/Enter when the user really typed/nudged.
+    const userTouchedRef = React.useRef(false);
+
     // Sync local state from the incoming value when it changes externally
     // (selection change, raw CSS edit, undo). Skip the sync while the
     // input has focus — never stomp on what the user is actively typing.
@@ -166,6 +173,7 @@ export function IconNumberInput({
     );
 
     const handleInputChange = React.useCallback((raw: string) => {
+        userTouchedRef.current = true;
         // If the user types a unit inline ("14px"), strip the unit
         // from the input and shift it onto the pill immediately.
         const p = parse(raw);
@@ -189,6 +197,7 @@ export function IconNumberInput({
             if (keyword !== null) return;
             const p = parse(numDraft);
             if (p.num === null) return;
+            userTouchedRef.current = true;
             const next = Number.parseFloat((p.num + delta).toFixed(4));
             setNumDraft(trim(next));
             commit({ num: next });
@@ -200,10 +209,16 @@ export function IconNumberInput({
         (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                commit();
+                // Only commit if the user actually edited — otherwise Enter on a
+                // draft made stale by an external change would clobber it.
+                if (userTouchedRef.current) {
+                    commit();
+                    userTouchedRef.current = false;
+                }
                 event.currentTarget.blur();
             } else if (event.key === 'Escape') {
                 event.preventDefault();
+                userTouchedRef.current = false;
                 setNumDraft(parsedValue.num === null ? '' : trim(parsedValue.num));
                 setUnit(parsedValue.unit || defaultUnit);
                 setKeyword(parsedValue.keyword);
@@ -293,7 +308,17 @@ export function IconNumberInput({
                     aria-label={ariaLabel}
                     onChange={(e) => handleInputChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    onBlur={() => commit()}
+                    onFocus={() => {
+                        userTouchedRef.current = false;
+                    }}
+                    onBlur={() => {
+                        // Skip the commit when focus is lost without a user edit —
+                        // the draft may be stale relative to an external value
+                        // change the focus-guarded sync effect intentionally skipped.
+                        if (!userTouchedRef.current) return;
+                        userTouchedRef.current = false;
+                        commit();
+                    }}
                     className={cn(
                         'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent tabular-nums outline-none',
                         mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',

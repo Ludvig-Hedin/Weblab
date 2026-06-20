@@ -5,6 +5,16 @@ import { motion } from 'motion/react';
 import type { PageNode } from '@weblab/models/pages';
 import { RouterType } from '@weblab/models';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
+import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
@@ -45,6 +55,7 @@ export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style
         mode: 'create',
         itemType: 'page',
     });
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const hasChildren = node.data.children && node.data.children.length > 0;
     const isActive = editorEngine.pages.isNodeActive(node.data);
@@ -194,7 +205,7 @@ export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style
         },
         {
             label: 'Delete',
-            action: handleDelete,
+            action: () => setShowDeleteDialog(true),
             icon: <Icons.Trash className="mr-2 h-4 w-4" />,
             destructive: true,
             disabled: node.data.isRoot,
@@ -283,6 +294,33 @@ export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style
                 initialName={modalState.mode === 'rename' ? getBaseName(node.data.path) : ''}
                 supportsFolderOperations={supportsFolderOperations}
             />
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {isFolderNode(node.data) ? 'Delete folder' : 'Delete page'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {isFolderNode(node.data)
+                                ? `Delete "${node.data.name}" and everything inside it? This can't be undone.`
+                                : `Delete the "${node.data.name}" page? This can't be undone.`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                void handleDelete();
+                            }}
+                            className="bg-destructive text-primary-foreground hover:bg-destructive/80"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 });

@@ -95,6 +95,11 @@ export function ModeNumberCell({
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
 
+    // The sync effect below skips updating the draft while focused, so a
+    // blur/Enter after an external value change (undo, selection change) must
+    // NOT commit the now-stale draft and clobber it. Track real user edits.
+    const userTouchedRef = React.useRef(false);
+
     React.useEffect(() => {
         if (document.activeElement !== inputRef.current) setDraft(value);
     }, [value]);
@@ -146,10 +151,14 @@ export function ModeNumberCell({
         (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                commit(event.currentTarget.value);
+                if (userTouchedRef.current) {
+                    commit(event.currentTarget.value);
+                    userTouchedRef.current = false;
+                }
                 event.currentTarget.blur();
             } else if (event.key === 'Escape') {
                 event.preventDefault();
+                userTouchedRef.current = false;
                 setDraft(value);
                 event.currentTarget.blur();
             } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -165,6 +174,7 @@ export function ModeNumberCell({
                     },
                     defaultUnit,
                 );
+                userTouchedRef.current = true;
                 setDraft(next);
                 onCommit(next);
             }
@@ -207,9 +217,22 @@ export function ModeNumberCell({
                     value={isKeyword ? '' : draft}
                     placeholder={mixed ? t('mixed') : undefined}
                     aria-label={ariaLabel}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => {
+                        userTouchedRef.current = true;
+                        setDraft(e.target.value);
+                    }}
                     onKeyDown={handleKeyDown}
-                    onBlur={(e) => commit(e.currentTarget.value)}
+                    onFocus={() => {
+                        userTouchedRef.current = false;
+                    }}
+                    onBlur={(e) => {
+                        // Skip the commit when focus is lost without a user edit —
+                        // the draft may be stale vs. an external value change the
+                        // focus-guarded sync effect intentionally skipped.
+                        if (!userTouchedRef.current) return;
+                        userTouchedRef.current = false;
+                        commit(e.currentTarget.value);
+                    }}
                     className={cn(
                         'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 cursor-text bg-transparent px-[10px] tabular-nums outline-none',
                         mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
