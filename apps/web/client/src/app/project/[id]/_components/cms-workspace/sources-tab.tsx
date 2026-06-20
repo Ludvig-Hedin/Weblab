@@ -71,18 +71,26 @@ export const SourcesTab = observer(() => {
                 prune,
             });
             // Convex live queries auto-revalidate — no manual invalidate needed.
-            // TODO(bug-hunt): result.perCollection[].error is currently
-            // dropped. If one of N mapped collections fails (adapter
-            // rejection, network error, missing remote ref), the user
-            // sees a green "written: 0" success toast and no indication
-            // that part of the sync failed. Surface failed-collection
-            // count and the first error message in the toast — or
-            // switch to a richer "Synced X, Y failed (click to view)"
-            // notification with per-collection breakdown.
             const prunedSuffix = result.pruned > 0 ? ` (${result.pruned} pruned)` : '';
-            toast.success(
-                `${t(transKeys.cms.sources.refreshDonePrefix)} ${result.written} ${t(transKeys.cms.sources.refreshDoneSuffix)}${prunedSuffix}`,
-            );
+            // A per-collection failure (adapter rejection, bad credential, missing
+            // remote ref) does NOT throw — the action records it in
+            // perCollection[].error and continues. Surface it instead of showing
+            // a green "written: N" success that hides a silently-failed collection.
+            const failedCollections = result.perCollection.filter((c) => c.error);
+            if (failedCollections.length > 0) {
+                const firstError = failedCollections[0]?.error ?? 'unknown error';
+                const failedLabel =
+                    failedCollections.length === 1
+                        ? '1 collection failed'
+                        : `${failedCollections.length} collections failed`;
+                toast.warning(
+                    `Synced ${result.written} item${result.written !== 1 ? 's' : ''}${prunedSuffix} — ${failedLabel}: ${firstError}`,
+                );
+            } else {
+                toast.success(
+                    `${t(transKeys.cms.sources.refreshDonePrefix)} ${result.written} ${t(transKeys.cms.sources.refreshDoneSuffix)}${prunedSuffix}`,
+                );
+            }
         } catch (err) {
             toast.error(
                 err instanceof Error ? err.message : t(transKeys.cms.sources.refreshFailed),

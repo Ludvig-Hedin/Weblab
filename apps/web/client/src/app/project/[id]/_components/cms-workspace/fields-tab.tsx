@@ -67,6 +67,7 @@ export const FieldsTab = observer(() => {
 
     // Convex live queries auto-revalidate — no useUtils equivalent needed.
     const reorderMutation = useMutation(api.cmsFields.reorder);
+    const [reorderPending, setReorderPending] = useState(false);
     const deleteMutation = useMutation(api.cmsFields.remove);
     const { confirm, dialog: confirmDialog } = useConfirm();
 
@@ -99,14 +100,13 @@ export const FieldsTab = observer(() => {
         }
     }, [editing]);
 
-    // TODO(bug-hunt): two fast clicks on Move Up/Down race — the second
-    // click reads `fieldsData` before Convex has re-emitted the post-
-    // mutation list, so it computes its splice against the pre-move order
-    // and sends an `orderedFieldIds` that effectively undoes the first
-    // move. Guard with an in-flight ref (reject second click while a
-    // mutation is pending) or coalesce rapid clicks into a single reorder.
+    // Two fast clicks on Move Up/Down used to race: the second click read
+    // `fieldsData` before Convex re-emitted the post-mutation list, computed its
+    // splice against the pre-move order, and sent an `orderedFieldIds` that
+    // undid the first move. The `reorderPending` guard rejects a second reorder
+    // while one is in flight (and disables the buttons via FieldRow).
     const moveField = async (fieldId: string, direction: -1 | 1) => {
-        if (!collectionId) return;
+        if (!collectionId || reorderPending) return;
         // Use the displayed list (cached query data), not a fresh fetch —
         // a server-side concurrent reorder would cause the splice to operate
         // on a different order than what the user just clicked.
@@ -117,6 +117,7 @@ export const FieldsTab = observer(() => {
         const ordered = current.map((f) => f._id);
         ordered.splice(idx, 1);
         ordered.splice(nextIdx, 0, fieldId as Id<'cmsFields'>);
+        setReorderPending(true);
         try {
             await reorderMutation({
                 projectId: projectId as Id<'projects'>,
@@ -126,6 +127,8 @@ export const FieldsTab = observer(() => {
             // Convex live queries auto-revalidate — no manual invalidate needed.
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to reorder fields');
+        } finally {
+            setReorderPending(false);
         }
     };
 
@@ -233,7 +236,7 @@ export const FieldsTab = observer(() => {
                                 onClose={() => setEditing(null)}
                                 onMove={(id, dir) => void moveField(id, dir)}
                                 onRemove={(id, name) => void removeField(id, name)}
-                                reorderPending={false}
+                                reorderPending={reorderPending}
                                 deletePending={false}
                                 projectId={projectId}
                                 collectionId={collectionId}

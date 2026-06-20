@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
@@ -26,6 +27,20 @@ export const TriggerButton = observer(() => {
     const isFailed = isPreviewFailed || isCustomFailed;
     const isDeploying = isPreviewDeploying || isCustomDeploying;
 
+    // Snapshot the undo-stack length at the moment a deploy FINISHES so the
+    // "Live" / "Update" label reflects edits-since-last-deploy, not raw undo
+    // depth. Using `history.length > 0` directly stuck the label on "Update"
+    // forever after the first edit (undo never reset it). Tracking the previous
+    // deploying state in a ref lets us detect the deploying→done transition;
+    // mutating a ref during render is the sanctioned "track previous value"
+    // pattern (refs aren't part of render output).
+    const publishedHistoryLenRef = useRef(0);
+    const wasDeployingRef = useRef(false);
+    if (wasDeployingRef.current && !isDeploying && isCompleted) {
+        publishedHistoryLenRef.current = editorEngine.history.length;
+    }
+    wasDeployingRef.current = isDeploying;
+
     let colorClasses =
         'border-input bg-background hover:bg-background-weblab text-foreground-primary';
     let icon: React.ReactNode | null = <Icons.Globe className="mr-1 h-4 w-4" />;
@@ -34,13 +49,11 @@ export const TriggerButton = observer(() => {
     if (isCompleted) {
         colorClasses =
             'border-foreground-brand/60 bg-foreground-brand/90 hover:bg-foreground-brand text-white hover:text-background';
-        // TODO(bug-hunt): `history.length` is the editor's undo stack size, not
-        // a "changes since last deploy" counter. Any edit pushes history; undo
-        // doesn't reset. After publishing then editing once, this stays >0
-        // forever for the session, so "Live" effectively only renders right
-        // after a fresh publish. Track changes-since-deploy on the deployment
-        // itself (e.g. compare HEAD vs deployment.commitSha) for accuracy.
-        text = editorEngine.history.length > 0 ? 'Update' : 'Live';
+        // "Update" only when there are edits since the last successful deploy
+        // (baseline snapshotted above). Falls back to "Live" once the user undoes
+        // back to the published state. On a fresh open with no deploy this session
+        // the baseline is 0 and the undo stack is empty, so this reads "Live".
+        text = editorEngine.history.length > publishedHistoryLenRef.current ? 'Update' : 'Live';
         icon = <Icons.Globe className="mr-1 h-4 w-4" />;
     } else if (isDeploying) {
         icon = <Icons.LoadingSpinner className="mr-1 h-4 w-4 animate-spin" />;
