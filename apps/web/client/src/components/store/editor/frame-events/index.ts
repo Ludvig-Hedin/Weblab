@@ -98,9 +98,13 @@ export class FrameEventManager {
             const frameCenterX = firstFrame.position.x + firstFrame.dimension.width / 2;
             const frameCenterY = firstFrame.position.y + firstFrame.dimension.height / 2;
 
-            const defaultPosition = this.editorEngine.canvas.getDefaultPanPosition();
-            const viewportCenterX = window.innerWidth / 2 - defaultPosition.x;
-            const viewportCenterY = window.innerHeight / 2 - defaultPosition.y;
+            // Center the frame's midpoint in the viewport. With the canvas
+            // transform screenX = canvasPos.x + worldX * scale, centering needs
+            // canvasPos.x = innerWidth/2 - frameCenterX*scale. The previous code
+            // subtracted the default pan offset (200,100) here, landing the
+            // frame 200px left / 100px above true center.
+            const viewportCenterX = window.innerWidth / 2;
+            const viewportCenterY = window.innerHeight / 2;
 
             runInAction(() => {
                 this.editorEngine.canvas.position = {

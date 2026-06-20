@@ -61,7 +61,16 @@ export const PageSelector = observer(
         }, [editorEngine.pages.tree]);
 
         const currentPage = useMemo(() => {
-            const framePathname = new URL(frame.url).pathname;
+            let framePathname: string;
+            try {
+                framePathname = new URL(frame.url).pathname;
+            } catch {
+                // frame.url is '' (or a bare path) during sandbox provisioning —
+                // `new URL('')` throws and would crash this observer render (the
+                // CanvasErrorBoundary then shows a misleading "sandbox isn't
+                // reachable" card). Fall back to the inferred page, like line 57.
+                return undefined;
+            }
             return allPages.find((page) => {
                 const pagePath = page.path === '/' ? '' : page.path;
                 return pathsEqual(framePathname, pagePath) || pathsEqual(framePathname, page.path);
