@@ -40,14 +40,10 @@ export const SourcesTab = observer(() => {
 
     const [connectOpen, setConnectOpen] = useState(false);
     const [mappingSourceId, setMappingSourceId] = useState<string | null>(null);
-    // TODO(bug-hunt): syncingId/testingId track a single id — clicking Sync
-    // on row A then row B before A completes causes A's finally to clear
-    // the in-flight state for B, so B's "Refreshing…" pill flips back to
-    // "Refresh" while the request is still pending. User can double-fire
-    // sync on B. Switch to `Set<string>` (add/delete per source id) to
-    // preserve per-row state across concurrent in-flight calls. Same
-    // pattern applies to `testingId` below.
-    const [syncingId, setSyncingId] = useState<string | null>(null);
+    // Per-source in-flight tracking. A Set (not a single id) so syncing/testing
+    // source B while A is still pending doesn't let A's finally clear B's
+    // "Refreshing…"/"Testing…" state and let the user double-fire on B.
+    const [syncingIds, setSyncingIds] = useState<Set<string>>(() => new Set());
 
     const sourcesData = useQuery(
         api.cmsSources.list,
@@ -60,14 +56,14 @@ export const SourcesTab = observer(() => {
     const testExistingAction = useAction(api.cmsActions.sourceTestExisting);
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
-    const [testingId, setTestingId] = useState<string | null>(null);
+    const [testingIds, setTestingIds] = useState<Set<string>>(() => new Set());
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     if (!projectId) return null;
     const sources = sourcesData ?? [];
 
     const handleSync = async (sourceId: string, prune = false) => {
-        setSyncingId(sourceId);
+        setSyncingIds((prev) => new Set(prev).add(sourceId));
         try {
             const result = await syncAction({
                 projectId: projectId as Id<'projects'>,
@@ -92,7 +88,11 @@ export const SourcesTab = observer(() => {
                 err instanceof Error ? err.message : t(transKeys.cms.sources.refreshFailed),
             );
         } finally {
-            setSyncingId(null);
+            setSyncingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(sourceId);
+                return next;
+            });
         }
     };
 
@@ -109,7 +109,7 @@ export const SourcesTab = observer(() => {
     };
 
     const handleTest = async (sourceId: string) => {
-        setTestingId(sourceId);
+        setTestingIds((prev) => new Set(prev).add(sourceId));
         try {
             const result = await testExistingAction({
                 projectId: projectId as Id<'projects'>,
@@ -123,7 +123,11 @@ export const SourcesTab = observer(() => {
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Connection test failed');
         } finally {
-            setTestingId(null);
+            setTestingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(sourceId);
+                return next;
+            });
         }
     };
 
@@ -241,9 +245,9 @@ export const SourcesTab = observer(() => {
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => void handleTest(s._id)}
-                                                disabled={testingId === s._id}
+                                                disabled={testingIds.has(s._id)}
                                             >
-                                                {testingId === s._id ? 'Testing…' : 'Test'}
+                                                {testingIds.has(s._id) ? 'Testing…' : 'Test'}
                                             </Button>
                                             <Button
                                                 size="sm"
@@ -264,9 +268,9 @@ export const SourcesTab = observer(() => {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        disabled={syncingId === s._id}
+                                                        disabled={syncingIds.has(s._id)}
                                                     >
-                                                        {syncingId === s._id
+                                                        {syncingIds.has(s._id)
                                                             ? t(transKeys.cms.sources.refreshing)
                                                             : t(transKeys.cms.sources.refresh)}
                                                     </Button>
@@ -292,7 +296,7 @@ export const SourcesTab = observer(() => {
                                                 variant="ghost"
                                                 className="text-red"
                                                 onClick={() => void handleDelete(s)}
-                                                disabled={isDeleting || syncingId === s._id}
+                                                disabled={isDeleting || syncingIds.has(s._id)}
                                             >
                                                 <Icons.Trash className="h-3.5 w-3.5" />
                                             </Button>

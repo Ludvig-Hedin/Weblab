@@ -38,6 +38,26 @@ later without re-discovering the context.
 
 ## Open
 
+### QA loop — minor-leads + route-group triage (2026-06-20 iter-4, /loop dynamic) — 2 FIXED, 1 refuted, route-group fix scoped+deferred
+
+> Attempted the iter-3 route-group/`.jsx` page FS-path fix; **deferred it** (see below) because the only safe shape is a multi-helper FS resolver whose new branch can't be integration-tested headless. Pivoted to the safer fallback leads. Typecheck ✓, lint = pre-existing warnings only.
+
+**✅ FIXED (this commit):**
+1. **`#commit` — Commit "Continue" button was clickable before git status loaded.** `top-bar/git-actions.tsx:234` `continueDisabled` didn't cover the load window: `noWorkingTreeChanges`/`stagedOnlyDisabled` both gate on `fileCount !== null`/`stagedFileCount !== null`, and `isLoading` is the commit-in-flight flag (not the git-info-loading flag), so a fast click right after opening the modal could fire a commit before we knew whether there was anything to commit. **Fix:** added `gitInfoLoading = fileCount === null` (null only during the initial `loadGitInfo`, which sets a number on both success AND error) to `continueDisabled`.
+2. **`#cms` — concurrent source Sync/Test clobbered each other's in-flight state.** `cms-workspace/sources-tab.tsx` tracked `syncingId`/`testingId` as a single `string | null`, so syncing/testing source B while A was pending let A's `finally` reset B's "Refreshing…"/"Testing…" pill and re-enable a double-fire (its own `TODO(bug-hunt)`). **Fix:** switched both to `Set<string>` (add on start, delete on finish, `.has()` for per-row disabled/label).
+
+**❌ REFUTED:**
+- **frame deselect leaves a stale "active breakpoint."** `frames/manager.ts` `select()` sets the active breakpoint (`:260`); `deselect`/`deselectAll` don't. But retaining the last active breakpoint when nothing is selected is defensible — there's no obviously-correct alternative (clear? reset to default?) and no confirmable live UX harm. Not a bug.
+
+**⏸ ROUTE-GROUP / EXTENSION page-FS-path fix — CONFIRMED REAL, scoped, DEFERRED to an editor-capable session** (supersedes the iter-3 deferral with a concrete design):
+- **Bugs (both have `TODO`s in `pages/helper.ts`):** (a) `:311` page delete/rename/move resolve `basePath + group-stripped route` → wrong dir for `app/(group)/…` pages → "Selected page not found"; (b) `:326` `getPageFilePathForRoute` + `deletePageInSandbox` non-dir branch hardcode `page.tsx` → break `.jsx`/`.js` page files.
+- **Verified data flow:** `scanAppDirectory` already has the real FS-relative path (`parentPath`, line 508 — INCLUDES `(group)` segments) and the real page file (`pageFile.name` via `getPageAndLayoutFiles`) at node-creation time, but `createPageNode` stores only the group-stripped `currentPath`.
+- **Safe design (deferred because the new FS-search branch can't be integration-tested headless, and the blast radius is ALL page CRUD):**
+  1. Add `resolveRouteDirectory(sandboxManager, basePath, route): Promise<string|null>` — try the naive `basePath/route` FIRST (so non-route-group projects, incl. the default scaffold, are byte-identical to today = zero regression risk), and only on miss search one `(group)` level per segment via `readDir` + `isRouteGroupSegment`. Match is unambiguous in valid Next projects (duplicate parallel routes are a build error).
+  2. Replace `getRouteDirectoryPath(...)` for EXISTING-path lookups in `deletePageInSandbox`/`deleteFolderInSandbox`/`renamePageInSandbox`(old)/`movePageInSandbox`(source)/metadata+schema with the resolver. Keep the naive join for NEW target paths (rename/move/create destinations — derive from `getDirName(resolvedOld)+newName` to stay in the same group).
+  3. For the extension: after resolving the dir, pick the real page file via the existing `getPageAndLayoutFiles(await readDir(dir))` instead of hardcoding `page.tsx`.
+  4. Unit-test the pure route-group matcher (group / non-group / nested) before wiring. Multi-consecutive-group `(a)/(b)/x` is an acceptable known limitation to note.
+
 ### User-GOAL journey hunt iter-25 (2026-06-20, Workflow) — copy-paste/group/rename; 3 FIXED (all surgical), 1 refuted
 
 > 3-goal pass (copy/paste, group/wrap, project name/icon). All 3 confirmed blockers were contained + surgically fixable — fixed this commit.

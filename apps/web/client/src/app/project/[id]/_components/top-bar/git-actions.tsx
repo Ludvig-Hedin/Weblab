@@ -231,7 +231,13 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
     const stagedOnlyDisabled =
         !includeUnstaged && stagedFileCount !== null && stagedFileCount === 0;
     const noWorkingTreeChanges = includeUnstaged && fileCount !== null && fileCount === 0;
-    const continueDisabled = isLoading || stagedOnlyDisabled || noWorkingTreeChanges;
+    // Git status hasn't loaded yet — `fileCount` is null only during the initial
+    // loadGitInfo() (it's set to a number on both success AND error). Without
+    // this, Continue is briefly clickable before we know whether there's
+    // anything to commit, so a fast click could fire a commit on an unknown tree.
+    const gitInfoLoading = fileCount === null;
+    const continueDisabled =
+        isLoading || gitInfoLoading || stagedOnlyDisabled || noWorkingTreeChanges;
 
     const branchName =
         editorEngine.branches.activeBranch?.git?.branch ??
