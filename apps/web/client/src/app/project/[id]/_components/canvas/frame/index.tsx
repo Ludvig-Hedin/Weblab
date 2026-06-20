@@ -423,15 +423,39 @@ export const FrameView = observer(
             }
         };
 
+        // "Primary" frame in a branch = lowest breakpoint.order (Desktop wins),
+        // with frame.id as a stable tiebreaker; single-frame branches are always
+        // primary. Used to gate per-branch-singleton behavior: the rich loading
+        // panel, the iframe lazy-mount, AND auto-restore below.
+        const isPrimaryFrameInBranch = (() => {
+            const branchFrames = editorEngine.frames.getByBranchId(frame.branchId);
+            if (branchFrames.length <= 1) return true;
+            let primary = branchFrames[0]!;
+            for (const f of branchFrames) {
+                const aOrder = primary.frame.breakpoint?.order ?? 0;
+                const bOrder = f.frame.breakpoint?.order ?? 0;
+                if (bOrder < aOrder || (bOrder === aOrder && f.frame.id < primary.frame.id)) {
+                    primary = f;
+                }
+            }
+            return primary.frame.id === frame.id;
+        })();
+
         // Auto-recovery on genuine 410 Gone: fire restore mutation once
         // silently. If it succeeds the user never sees the panel; if it
         // fails the panel stays visible so they can retry manually.
+        // ONLY the primary frame restores: a branch with N breakpoint frames
+        // each observes the 410 independently, so without this gate a single
+        // 'gone' fired N concurrent Sandbox.create calls — leaking N-1 orphaned
+        // VMs and racing the branch-sandbox DB write (last-writer-wins).
         useEffect(() => {
+            if (!isPrimaryFrameInBranch) return;
             if (livenessState !== 'gone') return;
             if (autoRestoreFiredRef.current) return;
             autoRestoreFiredRef.current = true;
             void handleRestoreSandbox({ silent: true });
-        }, [livenessState]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [livenessState, isPrimaryFrameInBranch]);
 
         // Auto-recovery on cold-boot transition: when the URL flips from
         // 404/error to alive, the iframe is still pointing at the old
@@ -475,25 +499,9 @@ export const FrameView = observer(
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [livenessState, bootElapsedMs, isPenpalConnected]);
 
-        // Only the primary frame in a branch renders the rich loading
-        // panel (spinner, messages, restore/restart CTAs). Sibling
-        // breakpoints render just a centered spinner so we don't show
-        // the same panel 3x stacked across Desktop/Tablet/Phone frames.
-        // "Primary" = lowest breakpoint.order (Desktop wins), with
-        // frame.id as a stable tiebreaker.
-        const isPrimaryFrameInBranch = (() => {
-            const branchFrames = editorEngine.frames.getByBranchId(frame.branchId);
-            if (branchFrames.length <= 1) return true;
-            let primary = branchFrames[0]!;
-            for (const f of branchFrames) {
-                const aOrder = primary.frame.breakpoint?.order ?? 0;
-                const bOrder = f.frame.breakpoint?.order ?? 0;
-                if (bOrder < aOrder || (bOrder === aOrder && f.frame.id < primary.frame.id)) {
-                    primary = f;
-                }
-            }
-            return primary.frame.id === frame.id;
-        })();
+        // `isPrimaryFrameInBranch` (declared above, near the auto-restore
+        // effect) also gates the rich loading panel + iframe lazy-mount so
+        // sibling breakpoints don't stack the same panel 3x.
 
         // Lazy-mount sibling iframes. Cold `next dev` compiles each
         // page on first request; with 3 breakpoint siblings hitting the
