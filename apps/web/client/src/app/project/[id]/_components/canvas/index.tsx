@@ -15,9 +15,11 @@ import { useEditorEngine } from '@/components/store/editor';
 import { getRelativeMousePositionToFrameView } from '@/components/store/editor/overlay/utils';
 import { Frames } from './frames';
 import { HotkeysArea } from './hotkeys';
+import { LOCKED_PADDING, LOCKED_TOP_GAP } from './locked-layout';
 import { Overlay } from './overlay';
 import { DragSelectOverlay } from './overlay/drag-select';
 import { LayoutGuideOverlay } from './overlay/layout-guide';
+import { LockedResizeHandles } from './overlay/locked-resize-handles';
 import { PanOverlay } from './overlay/pan';
 import { RecenterCanvasButton } from './recenter-canvas-button';
 import { Rulers } from './rulers';
@@ -252,16 +254,48 @@ export const Canvas = observer(() => {
                 return;
             }
             editorEngine.state.canvasScrolling = true;
+            // Lock canvas: vertical scroll only. No zoom-roam, no horizontal pan.
+            // Clamp so the pinned frame can't scroll off-screen; X is owned by the
+            // fit/center layout (useLockedCanvasLayout).
+            if (editorEngine.state.canvasLocked) {
+                event.preventDefault();
+                const focused = editorEngine.frames.selected[0] ?? editorEngine.frames.getAll()[0];
+                if (!focused) return;
+                const frame = focused.frame;
+                const frameHeight =
+                    editorEngine.frames.get(frame.id)?.contentHeight ?? frame.dimension.height;
+                const frameHeightPx = frameHeight * scale;
+                const availHeight = Math.max(
+                    1,
+                    window.innerHeight - LOCKED_TOP_GAP - LOCKED_PADDING,
+                );
+                // When the page fits, lock the top at LOCKED_TOP_GAP. When taller,
+                // scroll between top-pinned and bottom-pinned.
+                const topY = LOCKED_TOP_GAP - frame.position.y * scale;
+                let y = topY;
+                if (frameHeightPx > availHeight) {
+                    const proposedY = position.y - event.deltaY * PAN_SENSITIVITY;
+                    const minY =
+                        window.innerHeight -
+                        LOCKED_PADDING -
+                        (frame.position.y + frameHeight) * scale;
+                    y = Math.min(Math.max(proposedY, minY), topY);
+                }
+                editorEngine.canvas.position = { x: position.x, y };
+                return;
+            }
             if (event.ctrlKey || event.metaKey) {
                 handleZoom(event);
             } else {
                 handlePan(event);
             }
         },
-        [handleZoom, handlePan, editorEngine.state],
+        [handleZoom, handlePan, editorEngine, scale, position],
     );
 
     const middleMouseButtonDown = useCallback((e: MouseEvent) => {
+        // No middle-mouse pan while the canvas is locked.
+        if (editorEngine.state.canvasLocked) return;
         if (e.button === 1) {
             editorEngine.state.setEditorMode(EditorMode.PAN);
             editorEngine.state.setCanvasPanning(true);
@@ -276,6 +310,7 @@ export const Canvas = observer(() => {
     // pan while in PREVIEW/COMMENT/CMS drops the user into DESIGN. Capture the
     // prior mode in middleMouseButtonDown and restore it here.
     const middleMouseButtonUp = useCallback((e: MouseEvent) => {
+        if (editorEngine.state.canvasLocked) return;
         if (e.button === 1) {
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             editorEngine.state.setCanvasPanning(false);
@@ -518,6 +553,8 @@ export const Canvas = observer(() => {
                         clampPosition(position, scale)
                     }
                 />
+                {/* Webflow-style gutter resize handles — only while locked. */}
+                {editorEngine.state.canvasLocked && <LockedResizeHandles />}
                 {isDropping && (
                     <div
                         aria-hidden="true"

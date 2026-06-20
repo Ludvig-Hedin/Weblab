@@ -87,6 +87,12 @@ export function useEditorStatePersistence(
             if (persisted.activeBreakpointId) {
                 editorEngine.breakpoints.setActive(persisted.activeBreakpointId as BreakpointId);
             }
+            // Restore the Webflow-style lock so the editor reopens pinned. The
+            // fit/center layout runs reactively once frames + panel measurements
+            // are ready (see useLockedCanvasLayout).
+            if (typeof persisted.canvasLocked === 'boolean') {
+                editorEngine.state.setCanvasLocked(persisted.canvasLocked);
+            }
         } catch (err) {
             console.warn('[editor-state] failed to restore frame/breakpoint', err);
         }
@@ -187,6 +193,11 @@ export function useEditorStatePersistence(
             (activeId) => queue({ activeBreakpointId: activeId }),
         );
 
+        const disposeCanvasLocked = reaction(
+            () => editorEngine.state.canvasLocked,
+            (locked) => queue({ canvasLocked: locked }),
+        );
+
         const disposeElement = reaction(
             () => {
                 const first = editorEngine.elements.selected[0];
@@ -205,6 +216,7 @@ export function useEditorStatePersistence(
         return () => {
             disposeFrame();
             disposeBreakpoint();
+            disposeCanvasLocked();
             disposeElement();
             if (timer) {
                 clearTimeout(timer);

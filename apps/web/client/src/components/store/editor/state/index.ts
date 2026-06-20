@@ -23,6 +23,13 @@ export class StateManager {
     canvasPanning = false;
     isDragSelecting = false;
     /**
+     * Webflow-style "Lock canvas": pins the focused frame fit-to-width between
+     * the side panels, disables free pan/zoom-roam, and shows gutter resize
+     * handles. Composed on top of DESIGN mode (not a separate EditorMode) so all
+     * chrome stays. Persisted per-project via the editor-state localStorage.
+     */
+    canvasLocked = false;
+    /**
      * When true, the left and right panels are fully hidden (collapsed off-canvas).
      * Used by the panel-collapse buttons and surfaces that need to temporarily
      * un-hide the chrome (e.g. opening fix flow from the bottom-bar).
@@ -99,6 +106,14 @@ export class StateManager {
 
     setLeftPanelLocked(locked: boolean) {
         this.leftPanelLocked = locked;
+    }
+
+    setCanvasLocked(locked: boolean) {
+        this.canvasLocked = locked;
+    }
+
+    toggleCanvasLocked() {
+        this.canvasLocked = !this.canvasLocked;
     }
 
     togglePanelsHidden() {

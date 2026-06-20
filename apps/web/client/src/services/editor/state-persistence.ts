@@ -14,6 +14,8 @@ export interface EditorPersistedState {
     selectedElementOid?: string;
     selectedElementFrameId?: string;
     activeBreakpointId?: string;
+    /** Webflow-style "Lock canvas" toggle — restored so the editor reopens pinned. */
+    canvasLocked?: boolean;
 }
 
 function storageKey(projectId: string): string {

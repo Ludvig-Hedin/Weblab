@@ -152,29 +152,37 @@ export const BottomBar = observer(() => {
                     <TerminalArea>
                         {/* Mode buttons — plain buttons to avoid Radix rounding overrides */}
                         <div className="flex items-center gap-0.5">
-                            {toolbarItems.map((item) => (
-                                <Tooltip key={item.mode}>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            onClick={() =>
-                                                editorEngine.state.setEditorMode(item.mode)
-                                            }
-                                            aria-label={item.hotkey.description}
-                                            className={cn(
-                                                'flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-all duration-150 ease-in-out',
-                                                editorEngine.state.editorMode === item.mode
-                                                    ? 'bg-background-bar-active text-foreground-primary'
-                                                    : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active',
-                                            )}
-                                        >
-                                            <item.icon />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent sideOffset={5} hideArrow>
-                                        <HotkeyLabel hotkey={item.hotkey} />
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))}
+                            {toolbarItems.map((item) => {
+                                // Free pan is meaningless while the canvas is locked.
+                                const disabled =
+                                    item.mode === EditorMode.PAN && editorEngine.state.canvasLocked;
+                                return (
+                                    <Tooltip key={item.mode}>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() => {
+                                                    if (disabled) return;
+                                                    editorEngine.state.setEditorMode(item.mode);
+                                                }}
+                                                disabled={disabled}
+                                                aria-label={item.hotkey.description}
+                                                className={cn(
+                                                    'flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-all duration-150 ease-in-out',
+                                                    editorEngine.state.editorMode === item.mode
+                                                        ? 'bg-background-bar-active text-foreground-primary'
+                                                        : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active',
+                                                    disabled && 'pointer-events-none opacity-40',
+                                                )}
+                                            >
+                                                <item.icon />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent sideOffset={5} hideArrow>
+                                            <HotkeyLabel hotkey={item.hotkey} />
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            })}
                         </div>
 
                         <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
@@ -244,6 +252,51 @@ export const BottomBar = observer(() => {
                                 <Icons.Plus className="h-3 w-3" />
                             </button>
                         </div>
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Lock canvas — Webflow-style pinned, fit-to-width preview. */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={() => {
+                                        // Leaving PAN when locking — free pan is
+                                        // disabled while locked.
+                                        if (
+                                            !editorEngine.state.canvasLocked &&
+                                            editorEngine.state.editorMode === EditorMode.PAN
+                                        ) {
+                                            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+                                        }
+                                        editorEngine.state.toggleCanvasLocked();
+                                    }}
+                                    aria-label={
+                                        editorEngine.state.canvasLocked
+                                            ? 'Unlock canvas'
+                                            : 'Lock canvas'
+                                    }
+                                    className={cn(
+                                        'flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-all duration-150 ease-in-out',
+                                        editorEngine.state.canvasLocked
+                                            ? 'bg-background-bar-active text-foreground-primary'
+                                            : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active',
+                                    )}
+                                >
+                                    {editorEngine.state.canvasLocked ? (
+                                        <Icons.LockClosed />
+                                    ) : (
+                                        <Icons.LockOpen />
+                                    )}
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={5} hideArrow>
+                                {/* TODO(i18n): hardcoded (mirrors recent bottom-bar/main
+                                    strings) to avoid next-intl typegen staleness. */}
+                                {editorEngine.state.canvasLocked
+                                    ? 'Unlock canvas'
+                                    : 'Lock canvas — fit to width'}
+                            </TooltipContent>
+                        </Tooltip>
 
                         <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
 

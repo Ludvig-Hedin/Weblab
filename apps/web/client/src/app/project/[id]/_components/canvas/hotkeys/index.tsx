@@ -159,9 +159,16 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         undefined,
         [getKey('ESCAPE')],
     );
-    useHotkeys(getKey('PAN'), () => editorEngine.state.setEditorMode(EditorMode.PAN), undefined, [
+    useHotkeys(
         getKey('PAN'),
-    ]);
+        () => {
+            // Lock canvas mode disables free panning.
+            if (editorEngine.state.canvasLocked) return;
+            editorEngine.state.setEditorMode(EditorMode.PAN);
+        },
+        undefined,
+        [getKey('PAN')],
+    );
     useHotkeys(
         getKey('COMMENT'),
         () => editorEngine.state.setEditorMode(EditorMode.COMMENT),
@@ -425,6 +432,8 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         'space',
         () => {
+            // Lock canvas mode disables space-drag panning.
+            if (editorEngine.state.canvasLocked) return;
             if (editorEngine.state.editorMode === EditorMode.PAN) return;
             // Remember where we came from so keyup can return there.
             priorModeBeforeSpaceRef.current = editorEngine.state.editorMode;
