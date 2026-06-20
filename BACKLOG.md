@@ -342,7 +342,9 @@ Final clean run: preview rendered, **0 saveCanvas errors, 0 other product consol
 - **Risk if ignored:** Stuck "ghost" projects; real billing leak from orphaned VMs.
 - **Tags:** `#bug` `#convex` `#infra`
 
-### Editor style-write data loss via single shared rebase debounce (needs confirmation)
+### Editor style-write data loss via single shared rebase debounce — ✅ FIXED (commit `b711cb426`)
+
+> **FIXED 2026-06-18 (user-requested).** `CodeManager.writeResponsiveStyle` now uses a reusable per-`${oid}::${property}` `keyedDebounce` (new `src/utils/keyed-debounce.ts` + tests) instead of a single shared `lodash.debounce`, so two responsive writes within 600ms no longer cancel each other. Also excluded the field from `makeAutoObservable` so MobX stops stripping `.cancel` (teardown-cancel was a silent no-op). Verified: keyed-debounce unit tests (3 pass, incl. the two-keys-both-fire regression), typecheck/lint clean, and a 4-lens adversarial review (GO, no blocking findings). The sandbox async sync-engine serialization-guard (below) remains separate + open. Residual (non-blocking, pre-existing): `flushPendingRebases` re-debounces on `beforeunload` (best-effort, unchanged); could later call the undebounced write directly.
 
 - **Discovered:** 2026-06-17 (QA pass — subagent finding, line ref approximate)
 - **Where:** the final `writeResponsiveStyle` shared `lodash.debounce` in `apps/web/client/src/components/store/editor/code/index.ts:276`; related `apps/web/client/src/components/store/editor/sandbox/index.ts` (async sync-engine init reaction, no serialization guard)
