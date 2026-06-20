@@ -258,14 +258,29 @@ export const ProjectTab = observer(() => {
     }, [formData, name, installCommand, runCommand, buildCommand]);
 
     const handleSave = async () => {
+        // The backend trims + rejects an empty name with a BAD_REQUEST that
+        // surfaces here only as a generic "save failed" toast, and a
+        // leading/trailing-space name leaves the form perpetually dirty
+        // (formData.name !== the saved, trimmed name). Validate + normalize
+        // client-side first.
+        const trimmedName = formData.name.trim();
+        if (trimmedName.length === 0) {
+            toast.error('Project name cannot be empty');
+            return;
+        }
         setIsSaving(true);
         try {
             // Update project name if changed
-            if (formData.name !== name) {
+            if (trimmedName !== name) {
                 await updateProject({
                     projectId,
-                    name: formData.name,
+                    name: trimmedName,
                 });
+            }
+            // Reflect the trimmed value so a space-only edit doesn't keep the
+            // form in a dirty state with nothing left to save.
+            if (trimmedName !== formData.name) {
+                setFormData((prev) => ({ ...prev, name: trimmedName }));
             }
 
             // Update commands if any changed

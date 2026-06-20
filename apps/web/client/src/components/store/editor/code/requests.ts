@@ -84,6 +84,7 @@ export async function getStyleRequests({ targets }: UpdateStyleAction): Promise<
 }
 
 export async function getInsertRequests({
+    targets,
     location,
     element,
     pasteParams,
@@ -98,7 +99,14 @@ export async function getInsertRequests({
 
     const request = await getOrCreateCodeDiffRequest(
         insertedEl.location.targetOid,
-        element.branchId,
+        // Key the source-write on the PASTE-TARGET's branch, not the copied
+        // element's source branch. `location.targetOid` is the target
+        // element's oid and only exists in the target branch's file tree, so
+        // `element.branchId` (the copy source) writes to the wrong branch — or
+        // throws "Metadata not found for oid" — on a cross-branch paste. This
+        // mirrors getMoveRequests / getEditTextRequests, which key on
+        // target.branchId. Same-branch paste is unchanged (target===source).
+        targets[0]?.branchId ?? element.branchId,
         oidToCodeChange,
     );
     request.structureChanges.push(insertedEl);

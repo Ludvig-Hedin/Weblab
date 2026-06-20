@@ -23,6 +23,14 @@ export function groupElementsInNode(path: NodePath<T.JSXElement>, element: CodeG
         return targetOids.includes(oid);
     });
 
+    if (targetChildren.length === 0) {
+        // No direct-child JSX element matched the group's target oids. Without
+        // this guard, `Math.min(...[])` is Infinity and we'd insert a stray
+        // empty <div> at the end of the node — a phantom element the user never
+        // asked for. Abort the group instead (no-op).
+        return;
+    }
+
     const insertIndex = Math.min(...targetChildren.map((c) => jsxElements.indexOf(c)));
 
     targetChildren.forEach((targetChild) => {
