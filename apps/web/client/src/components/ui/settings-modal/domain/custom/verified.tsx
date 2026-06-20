@@ -11,11 +11,13 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { timeAgo } from '@weblab/utility';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useDomainVerification } from './use-domain-verification';
 
 export const Verified = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { customDomain, removeVerifiedDomain } = useDomainVerification();
+    const { confirm, dialog } = useConfirm();
 
     if (!customDomain) {
         return <div>No custom domain found</div>;
@@ -25,6 +27,16 @@ export const Verified = () => {
     const lastUpdated = customDomain.publishedAt ? timeAgo(customDomain.publishedAt) : null;
 
     async function removeDomain() {
+        // Destructive + irreversible: detaches the live custom domain. Confirm
+        // first so a stray click on the menu item can't drop a verified domain.
+        const ok = await confirm({
+            title: 'Remove custom domain?',
+            description:
+                'Your published site will stop serving on this domain. This cannot be undone — re-adding it requires verifying DNS again.',
+            confirmLabel: 'Remove domain',
+            destructive: true,
+        });
+        if (!ok) return;
         setIsLoading(true);
         await removeVerifiedDomain(baseUrl);
         setIsLoading(false);
@@ -51,7 +63,7 @@ export const Verified = () => {
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem
                                 variant="destructive"
-                                onClick={removeDomain}
+                                onClick={() => void removeDomain()}
                                 className="cursor-pointer"
                                 disabled={isLoading}
                             >
@@ -65,6 +77,7 @@ export const Verified = () => {
                     </DropdownMenu>
                 </div>
             </div>
+            {dialog}
         </div>
     );
 };

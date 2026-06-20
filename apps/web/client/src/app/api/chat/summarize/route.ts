@@ -209,6 +209,15 @@ export async function POST(req: NextRequest) {
     recentSummaryFires.set(parsed.conversationId, now);
     pruneSummaryFiresIfLarge(now);
 
+    // The cooldown set above is an in-flight concurrency guard (dedupes rapid /
+    // concurrent summarize calls so they don't double-charge). RETAIN it only
+    // when summarization actually succeeds — the `finally` below clears it on
+    // every failure path (credit-limit 402, null result, thrown error) so the
+    // next chat turn can re-attempt, instead of being silently 204'd for the
+    // full cooldown window. Without this, a single failure blocked summaries for
+    // SUMMARIZE_COOLDOWN_MS, contradicting the catch comment's retry promise.
+    let succeeded = false;
+
     let usageRecord: {
         usageRecordId: string | undefined;
         rateLimitId: string | undefined;
@@ -260,6 +269,7 @@ export async function POST(req: NextRequest) {
             },
             { token: ownershipToken },
         );
+        succeeded = true;
         return new Response(null, { status: 204 });
     } catch (err: unknown) {
         await refundOnce();
@@ -274,5 +284,11 @@ export async function POST(req: NextRequest) {
             }),
             { status: 500, headers: { 'Content-Type': 'application/json' } },
         );
+    } finally {
+        // Keep the cooldown only after a successful summary; clear it on every
+        // failure path so the next chat turn can re-attempt summarization.
+        if (!succeeded) {
+            recentSummaryFires.delete(parsed.conversationId);
+        }
     }
 }
