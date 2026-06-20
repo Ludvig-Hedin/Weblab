@@ -174,9 +174,9 @@ const nextConfig: NextConfig = {
                 ],
             },
             // Edge-cache marketing HTML on Cloudflare so non-EU TTFB is not gated
-            // on the Railway origin in europe-west4. Keep auth/api/projects/dynamic
+            // on the Railway origin in europe-west4. Keep auth/API/app/dynamic
             // routes excluded — they still default to no-store via Next's dynamic
-            // rendering pipeline.
+            // rendering pipeline and must not serve stale auth state across deploys.
             //
             // Two rules: an explicit '/' rule (Next's named-param `:path` does
             // not match the empty path) and a wildcard rule for everything else
@@ -198,7 +198,7 @@ const nextConfig: NextConfig = {
             },
             {
                 source:
-                    '/:path((?!api|auth|login|projects|project|invitation|sw\\.js|manifest\\.webmanifest|_next).*)',
+                    '/:path((?!api|auth|login|sign-in|sign-up|projects|project|settings|w/|admin|profile-setup|invitation|callback/|dev/|sw\\.js|manifest\\.webmanifest|_next).*)',
                 headers: [
                     {
                         key: 'Cache-Control',

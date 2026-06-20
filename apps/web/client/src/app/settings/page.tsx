@@ -7,6 +7,10 @@ import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { LAST_WORKSPACE_SLUG_COOKIE } from '@/app/w/[slug]/_components/workspace-context';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 /**
  * Top-level `/settings` shim. Workspaces own the canonical settings UI at
  * `/w/[slug]/settings/general`, but old links and habit bring users to

@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-20 — Auth route cache hardening from local/prod E2E QA
+Author: Codex
+Area: `apps/web/client` route caching, auth-gated layouts, QA docs
+Summary: Ran unauthenticated main-flow smoke coverage locally and on `weblab.build`. Found production `/sign-in` still serving marketing CDN cache headers and logging React minified error #418, consistent with stale auth HTML/chunk hydration after deploys. Fixed by excluding auth/account/workspace/callback/dev paths from the marketing HTML cache rule, forcing key auth-gated layouts dynamic/no-store, and adding the missing `/w/new` server auth gate so signed-out users redirect instead of seeing a broken create-workspace form.
+Files: `apps/web/client/next.config.ts`, auth/protected route layouts under `src/app`, `docs/agent-context/current-progress.md`
+Links: local validation: typecheck/build/targeted lint; production fix requires deployment before live re-check
+
 ## 2026-06-17 — Token-cost credit billing (reserve-then-reconcile)
 Author: Claude (Opus 4.8)
 Area: `apps/web/client/convex/{usage,lib/creditCost,schema}.ts`, 5 AI API routes, `packages/ai` agents + observability

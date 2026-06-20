@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-06-08.
+Last updated: 2026-06-20.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the
@@ -104,6 +104,23 @@ URL returned `HTTP/2 200`. Offline project-cache writes were serialized, capped,
 and disabled after quota/abort/backing-store failures. Lower-level ZenFS/browser
 storage pressure remains open in `BACKLOG.md`; production authenticated E2E
 still requires a deployed build plus a production auth session.
+
+**Local/prod QA update 2026-06-20:** unauthenticated main flows were re-smoked
+on localhost and `https://weblab.build`: landing hero prompt/auth modal,
+promo-banner dismissal, public marketing routes (`/`, `/pricing`, `/download`,
+`/blog`, `/changelog`), sign-in validation, protected redirects (`/projects`,
+`/projects/new`, `/projects/import`, `/settings`), and mobile landing/menu
+layout. Production had the latest public changelog live (`v4.5`, June 17), but
+`/sign-in` emitted React minified error #418 while serving
+`Cache-Control: public, max-age=0, s-maxage=600, stale-while-revalidate=86400`.
+Local fix excludes auth/account/workspace/callback/dev routes from the marketing
+HTML CDN cache rule, forces the key auth-gated layouts dynamic/no-store, and
+adds the missing `/w/new` server-side auth gate. Local production build now
+serves `/sign-in`, `/sign-up`, `/sign-in/verify`, `/projects`, `/settings`, and
+`/w/new` with `private, no-cache, no-store, max-age=0, must-revalidate`; `/w/new`
+redirects signed-out users to `/sign-in?returnUrl=%2Fw%2Fnew`. Full signed-in
+editor/project E2E still needs an auth session and a free local sandbox port;
+`:8080` was occupied by Open WebUI during this pass.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /

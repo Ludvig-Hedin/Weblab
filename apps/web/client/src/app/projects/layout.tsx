@@ -12,11 +12,15 @@ export const metadata: Metadata = {
     description: `${APP_NAME} – Projects`,
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
     const user = await getCurrentUser();
     if (!user) {
         const headersList = await headers();
-        const pathname = headersList.get('x-pathname') || Routes.PROJECTS;
+        const pathname = headersList.get('x-pathname') ?? Routes.PROJECTS;
         redirect(getSignInUrl(pathname));
     }
 

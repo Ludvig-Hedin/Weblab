@@ -13,6 +13,10 @@ import { fetchQuery } from 'convex/nextjs';
  * makes the route invisible to anyone who isn't an admin AND adds a
  * defense-in-depth layer in case the Convex env var is ever misconfigured.
  */
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
     const { userId, getToken } = await auth();
     if (!userId) {
