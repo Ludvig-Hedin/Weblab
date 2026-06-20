@@ -31,7 +31,10 @@ interface InputIconProps {
 
 export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: InputIconProps) => {
     const [unitValue, setUnitValue] = useState(unit);
-    const { localValue, handleKeyDown, handleChange } = useInputControl(value, onChange);
+    const { localValue, handleKeyDown, handleChange, handleBlur } = useInputControl(
+        value,
+        onChange,
+    );
 
     const IconComponent = icon ? Icons[icon] : null;
 
@@ -48,6 +51,11 @@ export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: 
                     value={localValue}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    // Flush the pending debounce on focus-out. Without this, a
+                    // per-side value typed <500ms before the dropdown closes is
+                    // dropped: Radix unmounts the dropdown content, whose
+                    // cleanup cancels the debounce. Mirrors InputDropdown.
+                    onBlur={handleBlur}
                     className="text-foreground hover:text-foreground text-small w-[40px] bg-transparent uppercase focus:outline-none"
                 />
 

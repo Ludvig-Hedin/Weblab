@@ -77,6 +77,11 @@ export const InputRange = ({
         if (!isNaN(numValue)) {
             setLocalValue(String(numValue));
             debouncedOnChange(numValue);
+            // Flush immediately: this input lives in DropdownMenuContent that
+            // unmounts on close, and the unmount cleanup cancels the debounce —
+            // so a value committed via blur/Enter <500ms before the dropdown
+            // closes is otherwise silently dropped.
+            debouncedOnChange.flush();
         } else {
             setLocalValue(String(value));
         }

@@ -82,7 +82,6 @@ export const LayoutSection = observer(function LayoutSection() {
     const marginLeft = useStyleValue('margin-left');
 
     // ── Setters ───────────────────────────────────────────────────────────
-    const displaySetter = useStyleSetter('display');
     const gapSetter = useStyleSetter('gap');
     const { setMultiple } = useStyleBatchSetter();
 
@@ -95,7 +94,17 @@ export const LayoutSection = observer(function LayoutSection() {
     // ── Flow commit ───────────────────────────────────────────────────────
     function commitFlow(value: string) {
         if (value === 'block') {
-            displaySetter.set('block');
+            // Clear flex/grid-only properties so switching away from a flex
+            // container doesn't leave orphan classes (flex-row/-col, justify-*,
+            // items-*, gap-*) on a block element. Empty value ⇒ the parser
+            // strips the class (same idiom as position.tsx / size.tsx).
+            setMultiple([
+                { property: 'display', value: 'block' },
+                { property: 'flex-direction', value: '' },
+                { property: 'justify-content', value: '' },
+                { property: 'align-items', value: '' },
+                { property: 'gap', value: '' },
+            ]);
         } else if (value === 'flex-col') {
             setMultiple([
                 { property: 'display', value: 'flex' },
@@ -107,7 +116,12 @@ export const LayoutSection = observer(function LayoutSection() {
                 { property: 'flex-direction', value: 'row' },
             ]);
         } else if (value === 'grid') {
-            displaySetter.set('grid');
+            // justify-content / align-items / gap stay valid on a grid
+            // container; only flex-direction is flex-only and would orphan.
+            setMultiple([
+                { property: 'display', value: 'grid' },
+                { property: 'flex-direction', value: '' },
+            ]);
         }
     }
 

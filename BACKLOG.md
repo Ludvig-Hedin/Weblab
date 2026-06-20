@@ -38,6 +38,24 @@ later without re-discovering the context.
 
 ## Open
 
+### User-flow bug-hunt iter-19 (2026-06-20, Workflow) — editor mechanics; 3 FIXED, 5 UNVERIFIED (rate-limited), partial run
+
+> 8 editor-mechanics finders (canvas pan/zoom, style inputs, AI model/mode, in-preview nav, sandbox reconnect, thumbnail, layout tools, inline text). **The run was repeatedly server-rate-limited** ("not your usage limit") — many verify steps failed, so only 3 findings reached a 2/3 verdict and were confirmed+fixed. The other 5 finder claims could NOT be adversarially verified (their verifiers were throttled) — they are **leads to re-verify**, NOT confirmed and NOT refuted.
+
+**✅ FIXED (this commit):**
+1. **HIGH `#editor` — per-side spacing inputs (InputIcon) dropped a typed value when the dropdown closed.** `editor-bar/inputs/input-icon.tsx` used `useInputControl` but never wired `handleBlur`/`onBlur` (the `<input>` had only `onChange` + arrow-key `onKeyDown`, no Enter commit). The only commit path was a 500ms debounce, which the Radix dropdown's unmount-cleanup cancels — so a value typed <500ms before closing (Padding/Margin/Radius/Border → Individual tab) was lost. Fix: destructure + wire `onBlur={handleBlur}` (flushes the debounce; mirrors `InputDropdown`/`InputRange`). No `{min:0}` — margins can be negative.
+2. **HIGH `#editor` — the "all sides" spacing slider (InputRange) also dropped the final value on fast dropdown close.** `input-range.tsx` `handleBlur` armed the debounce (`debouncedOnChange(numValue)`) but never flushed, so the same unmount-cancel dropped it (and the Enter branch routes through `handleBlur`). Fix: `debouncedOnChange.flush()` in `handleBlur`.
+3. **HIGH `#editor` — switching the Flow display mode left orphan layout classes in source.** `style-tab-v4/sections/layout.tsx` `commitFlow` set `display` but never cleared flex-only props, so flex→block/grid left `flex-row`/`justify-*`/`items-*`/`gap-*` orphans. Fix: clear the orphan-prone properties via `setMultiple` with `value: ''` (the parser-strip idiom already used by position.tsx/size.tsx) — block clears flex-direction+justify+align+gap; grid clears flex-direction (justify/align/gap stay valid on grid). Batched as one history entry; removed the now-unused `displaySetter`.
+
+**🔍 UNVERIFIED candidates — re-verify when the throttle clears (verifiers were rate-limited, so NOT confirmed):**
+- `frame-events/index.ts:101` — "Re-Center the Canvas" offsets the frame by the default pan (200,100) instead of truly centering. `#canvas`
+- `ai-prompt-composer/chat-mode-toggle.tsx:54` — `/create` and `/fix` slash commands mislabel the mode toggle as "Build" + wrong placeholder. `#ai`
+- `canvas/frame/top-bar/page-selector.tsx:64` — PageSelector may crash the canvas during provisioning (`new URL('')` on an empty `frame.url`). `#preview`
+- `canvas/frame/index.tsx:429` — sandbox auto-restore may fire once per breakpoint frame (3× concurrent `Sandbox.create` on a single 410) → orphaned VMs + DB write race. `#sandbox`
+- `screenshot/index.tsx:29` — navigate-away screenshot capture possibly lost to the 10s debounce (thumbnails stale). **One verifier disputed the "never refresh" claim** ("structural facts correct but the load-bearing claim…") — lowest-confidence lead. `#thumbnail`
+
+> NOTE for next pass: re-run these 5 file:line leads through verification once the server throttle clears; canvas/model/nav/sandbox/thumbnail were NOT cleanly scanned.
+
 ### User-flow bug-hunt iter-18 (2026-06-19, Workflow) — search/dashboard/rules/theme/errors/toast/share/account; 5 FIXED, 1 deferred, 2 refuted
 
 > 8 fresh-area finders (command-palette/search, dashboard list, AI rules/context-pills, theme, error-boundary, toast, share, account) → 3 diverse-lens skeptics + BACKLOG dedup per finding. 6 confirmed; **5 FIXED this commit, 1 deferred.**
