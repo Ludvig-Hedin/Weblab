@@ -65,10 +65,16 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     // redirect loop.
     const user = await getCurrentUser();
     if (user) {
-        const safeTarget =
-            sanitized && sanitized !== Routes.LOGIN && sanitized !== '/sign-up'
-                ? sanitized
-                : Routes.PROJECTS;
+        // Reject the sign-in/sign-up surfaces AND their sub-paths (e.g.
+        // `/sign-in/verify`, `/sign-in/sso-callback`) — the old exact-match-only
+        // check let those through and bounced the user back into the auth flow.
+        // The trailing-slash form avoids false matches like `/sign-in-help`.
+        const isAuthSurface = (p: string) =>
+            p === Routes.LOGIN ||
+            p.startsWith(`${Routes.LOGIN}/`) ||
+            p === '/sign-up' ||
+            p.startsWith('/sign-up/');
+        const safeTarget = sanitized && !isAuthSurface(sanitized) ? sanitized : Routes.PROJECTS;
         redirect(safeTarget);
     }
 

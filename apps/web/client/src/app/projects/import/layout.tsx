@@ -1,4 +1,5 @@
 import { type Metadata } from 'next';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { APP_NAME } from '@weblab/constants';
@@ -13,7 +14,8 @@ export const metadata: Metadata = {
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
     const user = await getCurrentUser();
     if (!user) {
-        redirect(getSignInUrl());
+        const pathname = (await headers()).get('x-pathname') ?? '/projects/import';
+        redirect(getSignInUrl(pathname));
     }
     return <>{children}</>;
 }

@@ -38,6 +38,16 @@ later without re-discovering the context.
 
 ## Open
 
+### QA loop — auth deep-link returnUrl fixes (2026-06-21 iter-13, /loop dynamic) — 2 FIXED (6 files)
+
+> Shipped the verified auth `returnUrl` leads from iter-12. Typecheck ✓, lint clean.
+
+**✅ FIXED (this commit):**
+1. **`#auth` — unauthenticated deep-links to create/import dropped the user on `/projects` after sign-in instead of where they were going.** All 5 create/import layouts (`projects/new/layout.tsx`, `projects/import/layout.tsx`, `projects/import/{local,github,figma}/layout.tsx`) called `redirect(getSignInUrl())` with NO returnUrl, while the sibling `projects/layout.tsx` correctly forwards `x-pathname`. **Fix:** each now reads `(await headers()).get('x-pathname')` (middleware-set, includes the query string) and passes it to `getSignInUrl`, falling back to its own path. So a shared `/projects/import/github` link now returns the user there post-login.
+2. **`#auth` (minor) — sign-in self-loop guard was exact-match-only.** `sign-in/[[...rest]]/page.tsx:68` rejected `returnUrl === Routes.LOGIN` / `=== '/sign-up'` but not sub-paths (`/sign-in/verify`, `/sign-in/sso-callback`), producing a 2-hop bounce for an authed visitor. **Fix:** an `isAuthSurface` helper rejecting `/sign-in`, `/sign-in/*`, `/sign-up`, `/sign-up/*` (trailing-slash form avoids false-matching `/sign-in-help`).
+
+> Still-open iter-12 auth leads (lower priority): two divergent `sanitizeReturnUrl` impls (`utils/auth` `string|null` vs `utils/url` `string`) — consolidate to the canonical `utils/auth` one (`verify/page.tsx` + `profile-setup` use the other, leaving a dead null-branch); missing `loading.tsx` on `/sign-in/verify`, `/profile-setup`, `/w/new`, `/invitation/[id]`, `/invitation/workspace/[id]`. Plus the still-OPEN owner decisions: wireframe spend exposure (dedicated rate-limit table vs. credit pricing) and loop continue/redirect/wind-down.
+
 ### QA loop — auth/UI/wireframe hunt (2026-06-21 iter-12, /loop dynamic, 3 sonnet subagents) — 1 FIXED, 1 refuted, wireframe-RL re-analyzed, leads logged
 
 > Fresh hunt of auth/session, editor left-panel tools, and the wireframe rate-limit feasibility. Shipped 1 clean editor fix; refuted a claimed drag bug (already guarded); **re-analyzed the wireframe rate-limit and found the subagent's proposal would cause a credit side-effect** (so still not a blind ship). Typecheck ✓.
