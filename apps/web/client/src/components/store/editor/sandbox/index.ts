@@ -213,6 +213,18 @@ export class SandboxManager {
      */
     suppressSyncInitForReplay(): void {
         this.suppressSyncInit = true;
+        // Stop the offline write watcher SYNCHRONOUSLY, before the caller swaps
+        // to the cloud provider and drains the queue. The provider-reaction also
+        // stops it (the `suppressSyncInit` branch), but that runs asynchronously
+        // AFTER `swapToOnline` changes the provider — leaving a window where the
+        // watcher is still live during `replayQueue`. A write captured in that
+        // window enqueues a NEW record whose `supersedePriorRecords` deletes the
+        // snapshot record's content blob mid-replay (so the snapshot write fails
+        // "missing content blob"), and the new record isn't in the replay
+        // snapshot — so the user's last offline edit is silently dropped.
+        // Stopping here closes that window deterministically; going offline
+        // again restarts the watcher via the reaction's offline branch.
+        this.stopOfflineWatcher();
     }
 
     /**
