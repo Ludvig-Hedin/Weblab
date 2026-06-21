@@ -83,6 +83,14 @@ export const ChatModeToggle = observer(
                                 )}
                             />
                             <span>{currentMode.label}</span>
+                            <Icons.ChevronDown
+                                className={cn(
+                                    'h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180',
+                                    disabled
+                                        ? 'text-foreground-tertiary'
+                                        : 'text-foreground-tertiary group-hover:text-foreground-primary',
+                                )}
+                            />
                         </Button>
                     </DropdownMenuTrigger>
                 </HoverOnlyTooltip>
