@@ -2090,6 +2090,8 @@
       "multiBranchRevert": {
         "toastSelectFirst": "Välj minst en gren att återställa",
         "toastAllFailed": "Det gick inte att återställa alla valda grenar",
+        "toastPartialFailed": "Vissa grenar kunde inte återställas",
+        "toastSuccess": "Grenar återställda",
         "toastFailed": "Det gick inte att återställa grenar",
         "dialogTitle": "Återställ flera grenar",
         "dialogDesc": "Välj de grenar du vill återställa till sitt föregående tillstånd.",
