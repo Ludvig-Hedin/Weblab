@@ -417,17 +417,27 @@ export class CodeProviderSync {
             }
         }
 
-        // Write files sequentially to avoid race conditions
+        // Write files sequentially to avoid race conditions.
+        // Track paths whose write failed so we can skip storing their hash —
+        // a stored hash on a failed write causes the file to be silently skipped
+        // on every subsequent watcher tick, permanently diverging local state.
+        const failedWrites = new Set<string>();
         for (const { path, content } of filesToWrite) {
             try {
                 await this.fs.writeFile(path, content);
             } catch (error) {
-                console.error(`[Sync] Failed to write ${path}:`, error);
+                failedWrites.add(path);
+                console.warn(
+                    `[Sync] Failed to write ${path} — hash not stored, will retry on next pull:`,
+                    error,
+                );
             }
         }
 
-        // Store hashes of files so we can skip syncing if the content hasn't changed later.
+        // Store hashes only for successfully written files so we can skip
+        // syncing if the content hasn't changed later.
         for (const { path, content } of filesToWrite) {
+            if (failedWrites.has(path)) continue;
             const hash = await hashContent(content);
             this.fileHashes.set(path, hash);
         }
