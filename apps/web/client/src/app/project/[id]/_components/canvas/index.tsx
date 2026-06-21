@@ -261,27 +261,30 @@ export const Canvas = observer(() => {
                 event.preventDefault();
                 const focused = editorEngine.frames.selected[0] ?? editorEngine.frames.getAll()[0];
                 if (!focused) return;
+                // Read the transform fresh from the engine: several wheel ticks can
+                // fire before React re-renders this callback, so the closure
+                // position/scale would be stale and fast scroll would stutter.
+                const sc = editorEngine.canvas.scale;
+                const pos = editorEngine.canvas.position;
                 const frame = focused.frame;
                 const frameHeight =
                     editorEngine.frames.get(frame.id)?.contentHeight ?? frame.dimension.height;
-                const frameHeightPx = frameHeight * scale;
+                const frameHeightPx = frameHeight * sc;
                 const availHeight = Math.max(
                     1,
                     window.innerHeight - LOCKED_TOP_GAP - LOCKED_PADDING,
                 );
                 // When the page fits, lock the top at LOCKED_TOP_GAP. When taller,
                 // scroll between top-pinned and bottom-pinned.
-                const topY = LOCKED_TOP_GAP - frame.position.y * scale;
+                const topY = LOCKED_TOP_GAP - frame.position.y * sc;
                 let y = topY;
                 if (frameHeightPx > availHeight) {
-                    const proposedY = position.y - event.deltaY * PAN_SENSITIVITY;
+                    const proposedY = pos.y - event.deltaY * PAN_SENSITIVITY;
                     const minY =
-                        window.innerHeight -
-                        LOCKED_PADDING -
-                        (frame.position.y + frameHeight) * scale;
+                        window.innerHeight - LOCKED_PADDING - (frame.position.y + frameHeight) * sc;
                     y = Math.min(Math.max(proposedY, minY), topY);
                 }
-                editorEngine.canvas.position = { x: position.x, y };
+                editorEngine.canvas.position = { x: pos.x, y };
                 return;
             }
             if (event.ctrlKey || event.metaKey) {
@@ -290,7 +293,10 @@ export const Canvas = observer(() => {
                 handlePan(event);
             }
         },
-        [handleZoom, handlePan, editorEngine, scale, position],
+        // Locked branch reads scale/position fresh from the engine; the
+        // unlocked branch delegates to handleZoom/handlePan (which already
+        // close over scale/position), so neither is needed here directly.
+        [handleZoom, handlePan, editorEngine],
     );
 
     const middleMouseButtonDown = useCallback((e: MouseEvent) => {

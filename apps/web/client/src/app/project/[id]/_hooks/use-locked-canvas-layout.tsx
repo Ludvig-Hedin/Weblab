@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { EditorMode } from '@weblab/models';
+
 import type { EditorEngine } from '@/components/store/editor/engine';
 import {
     clampLockedPosition,
@@ -37,6 +39,15 @@ export function useLockedCanvasLayout(
     }, []);
 
     const locked = editorEngine.state.canvasLocked;
+    // CODE stretches the left panel across the gap; CMS/PREVIEW hide the canvas
+    // entirely. Fitting in those modes would thrash canvas.scale against a
+    // collapsed gap, so only drive the layout in canvas-visible modes.
+    const mode = editorEngine.state.editorMode;
+    const layoutActive =
+        locked &&
+        mode !== EditorMode.CODE &&
+        mode !== EditorMode.CMS &&
+        mode !== EditorMode.PREVIEW;
     // Focused frame: selected, falling back to the primary (order-sorted [0]).
     const focused = editorEngine.frames.selected[0] ?? editorEngine.frames.getAll()[0] ?? null;
     const focusedId = focused?.frame.id ?? null;
@@ -51,7 +62,7 @@ export function useLockedCanvasLayout(
     // Structural re-fit: on lock-on, frame switch, responsive-width change, and
     // panel/window resize — recompute fit-to-width scale + centered position.
     useEffect(() => {
-        if (!locked || !focusedId) return;
+        if (!layoutActive || !focusedId) return;
         const fit = computeLockedFit({
             frameWidth: focusedWidth,
             frameX: focusedX,
@@ -65,7 +76,7 @@ export function useLockedCanvasLayout(
         editorEngine.canvas.position = { x: fit.x, y: fit.y };
     }, [
         editorEngine,
-        locked,
+        layoutActive,
         focusedId,
         focusedWidth,
         focusedX,
@@ -79,7 +90,7 @@ export function useLockedCanvasLayout(
     // Keep the frame contained on manual +/- zoom (scale changes) without
     // re-fitting — so zooming in never reveals empty canvas.
     useEffect(() => {
-        if (!locked || !focusedId) return;
+        if (!layoutActive || !focusedId) return;
         const height = editorEngine.frames.get(focusedId)?.contentHeight ?? focusedDimHeight;
         const clamped = clampLockedPosition({
             position: editorEngine.canvas.position,
@@ -94,7 +105,7 @@ export function useLockedCanvasLayout(
         editorEngine.canvas.position = clamped;
     }, [
         editorEngine,
-        locked,
+        layoutActive,
         scale,
         focusedId,
         focusedWidth,
