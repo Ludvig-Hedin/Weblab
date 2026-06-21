@@ -8,6 +8,8 @@
   <url><loc>https://weblab.build/about</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://weblab.build/faq</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://weblab.build/download</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://weblab.build/security</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://weblab.build/see-a-demo</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://weblab.build/site-map</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.3</priority></url>
   <url><loc>https://weblab.build/changelog</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://weblab.build/features</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
@@ -15,9 +17,11 @@
   <url><loc>https://weblab.build/features/ai-for-frontend</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
   <url><loc>https://weblab.build/features/builder</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://weblab.build/features/prototype</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://weblab.build/features/blocks</loc><lastmod>2026-06-21</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://weblab.build/workflows</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://weblab.build/workflows/claude-code</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://weblab.build/workflows/vibe-coding</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://weblab.build/workflows/codex</loc><lastmod>2026-06-21</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://weblab.build/compare</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://weblab.build/compare/lovable</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
   <url><loc>https://weblab.build/compare/bolt</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
@@ -31,6 +35,7 @@
   <url><loc>https://weblab.build/compare/one-com</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
   <url><loc>https://weblab.build/compare/onlook</loc><lastmod>2026-05-09</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://weblab.build/blog</loc><lastmod>2026-05-09</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://weblab.build/blog/claude-opus-4-8</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://weblab.build/blog/ai-learns-your-design-system</loc><lastmod>2026-05-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://weblab.build/blog/best-ai-design-tools-2026</loc><lastmod>2026-04-28</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
   <url><loc>https://weblab.build/blog/best-visual-editor-react-2026</loc><lastmod>2026-05-07</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>

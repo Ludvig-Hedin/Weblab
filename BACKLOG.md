@@ -38,6 +38,25 @@ later without re-discovering the context.
 
 ## Open
 
+### QA loop — history/agent/SEO hunt (2026-06-21 iter-11, /loop dynamic, 3 sonnet subagents) — 1 FIXED, 1 HIGH flagged, leads logged
+
+> Fresh hunt of history/undo-redo, agent API + wireframe, and public/SEO routes. Shipped the one clean+safe fix (sitemap gaps); flagged a real cost/abuse exposure (wireframe credit bypass) that needs a product decision; logged history leads that are risky to fix without a test harness. Sitemap XML validated (xmllint).
+
+**✅ FIXED (this commit):**
+1. **`#seo` — 5 live public routes were missing from the sitemap.** `public/sitemap.xml` is hand-maintained and had drifted: the live `blog/claude-opus-4-8` post (Google could never discover it) plus `/security`, `/features/blocks`, `/workflows/codex`, `/see-a-demo`. **Fix:** added all 5 entries. *(Attempted the proper drift-proof fix — a dynamic `app/sitemap.ts` generating blog URLs from `getAllPosts()` — but deleting the published `public/sitemap.xml` was declined, so reverted to the additive fix and removed the conflicting `sitemap.ts`. Converting to a dynamic sitemap remains the recommended follow-up to stop the recurring blog-post drift.)*
+
+**🚩 HIGH — flagged, needs a product decision (not a blind fix):**
+- **`#cost` `#abuse` — the 3 wireframe AI actions bypass the credit system entirely.** `convex/wireframeActions.ts` `generateSitemap`/`generateWireframe`/`generateStyleGuide` (228/265/333) call `requireOpenRouter()` (gpt-5, up to ~16k tokens each) after only `internal.wireframes._getDocForAction` (a `project.use_ai` membership check — NOT credit-gated). The credit system lives in the Next.js route handlers (`api/chat/route.ts` `checkMessageLimit`/`incrementUsage`), so any workspace member with `project.use_ai` can call all three in a loop and burn unbounded OpenRouter spend. **Fix direction:** reserve credits (`usage.increment` / reserve-then-reconcile) or a per-user wireframe rate-limit in each action before `requireOpenRouter`, mirroring the chat route. Needs a pricing decision for wireframe gens + a Convex-side credit-reservation call → deferred, not shipped blind.
+
+**📋 LOGGED — leads (risky to fix without a test harness; editor history has none):**
+- `#history` — `updateTransactionActions` (`history/helpers.ts:232`) coalesces by `action.type` alone (non-style). **Plausibly intentional gesture-collapse** (a drag's repeated same-element updates → keep latest; `update-style` has a dedicated by-target merge), so whether two *different* elements' same-type edits ever share one transaction (vs. multi-target actions) is unverified — a wrong `(type,oid)` key could break gesture-collapse. Verify with the real transaction/action shapes before touching.
+- `#history` — `transformRedoAction` (`helpers.ts:277`) has no explicit cases for `add/remove/update-interaction` → they hit `default: return action` un-cloned, aliasing the object across undo+redo storage; corruption only if the object is later mutated. Add clone cases mirroring `insert-image` if confirmed mutated.
+- `#history` (minor) — `reverseGroupAction` ungroup drops child position hints (children land in undefined order); `undoStack` has no in-memory cap (only the persisted snapshot is capped at 100/50).
+- `#wireframe` (minor) — `wireframes.deleteSection` (:353) skips `reindexWireframeSections` when the linked section is already gone, leaving a gap in order ints; call reindex using the known `wireframePageId`.
+- `#test` (minor) — `agentTestSeed.foreignProjectIdForQa` (:346) does an unindexed full `projects` scan → may hit Convex's 8,192-row read cap on a large dev DB and silently skip the IDOR QA check.
+
+> Agent API surface verified SOLID: token auth correct, `WEBLAB_AGENT_USER_ID` scoping enforced, IDOR blocked by the `createdByUserId` check, blockId enum+coerce prevents hallucinated blocks reaching emit. Blog `[slug]` route correctly `notFound()`s on unknown slugs.
+
 ### QA loop — parser-bug verification (2026-06-21 iter-10, /loop dynamic) — 0 bugs (both REFUTED), +1 regression test, 1 tooling note
 
 > Verified the 2 iter-9 PARSER finds against the actual code + data flow. **Both refuted — the parser is correct in both cases.** Added a regression test locking the (subtle) paste-oid correctness. Parser suite: 210 pass, 0 fail.
