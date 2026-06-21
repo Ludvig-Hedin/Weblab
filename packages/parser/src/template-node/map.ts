@@ -215,6 +215,19 @@ export function isNodeElementArray(node: T.CallExpression): boolean {
     );
 }
 
+function getJSXOpeningElementName(
+    name: T.JSXIdentifier | T.JSXMemberExpression | T.JSXNamespacedName,
+): string {
+    if (t.isJSXIdentifier(name)) {
+        return name.name;
+    }
+    if (t.isJSXMemberExpression(name)) {
+        return `${getJSXOpeningElementName(name.object)}.${name.property.name}`;
+    }
+    // JSXNamespacedName: "ns:local"
+    return `${name.namespace.name}:${name.name.name}`;
+}
+
 export async function getTemplateNodeChild(
     parentContent: string,
     child: TemplateNode,
@@ -238,7 +251,7 @@ export async function getTemplateNodeChild(
                 return;
             }
             const node = path.node;
-            const childName = (node.openingElement.name as T.JSXIdentifier).name;
+            const childName = getJSXOpeningElementName(node.openingElement.name);
             if (childName === child.component) {
                 // Resolve the oid only for the requested sibling index (or the
                 // first match when index === -1), then stop. Previously `res`

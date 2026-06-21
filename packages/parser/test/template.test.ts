@@ -273,6 +273,34 @@ describe('Template Tests', () => {
             });
         });
 
+        test('finds JSXMemberExpression children (e.g. <UI.Button>)', async () => {
+            const uiChild = { component: 'UI.Button' } as unknown as Parameters<
+                typeof getTemplateNodeChild
+            >[1];
+            const code = `
+                function Parent() {
+                    return (
+                        <div>
+                            <UI.Button data-oid="btn-0">First</UI.Button>
+                            <UI.Button data-oid="btn-1">Second</UI.Button>
+                        </div>
+                    );
+                }
+            `;
+            expect(await getTemplateNodeChild(code, uiChild, 0)).toEqual({
+                instanceId: 'btn-0',
+                component: 'UI.Button',
+            });
+            expect(await getTemplateNodeChild(code, uiChild, 1)).toEqual({
+                instanceId: 'btn-1',
+                component: 'UI.Button',
+            });
+            expect(await getTemplateNodeChild(code, uiChild, -1)).toEqual({
+                instanceId: 'btn-0',
+                component: 'UI.Button',
+            });
+        });
+
         test('a target sibling without an oid resolves to null, not a sibling oid', async () => {
             // Regression: the second <Card> has no data-oid. The resolver used to
             // overwrite `res` for every sibling and stop at the target, leaking
