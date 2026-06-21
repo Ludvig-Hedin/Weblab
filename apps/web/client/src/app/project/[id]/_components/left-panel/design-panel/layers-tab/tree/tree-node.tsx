@@ -131,8 +131,12 @@ export const TreeNode = memo(
                         node.domId,
                         action === MouseAction.MOUSE_DOWN,
                     );
-                    if (!el) {
-                        console.error('Failed to get element');
+                    // `getElementByDomId` falls back to <body> for a stale/removed
+                    // domId instead of returning null, so the `!el` guard alone is
+                    // dead. Bail when the resolved element isn't the row we're
+                    // acting on — otherwise hover/click corrupts the selection onto
+                    // <body> (mirrors the guard in layers-tab/index.tsx handleDrop).
+                    if (!el || el.domId !== node.domId) {
                         return;
                     }
 
