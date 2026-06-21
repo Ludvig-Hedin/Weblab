@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-21 — QA loop campaign: 30 fixes (incl. 2 security + 2 offline data-loss) over 19 iters
+Author: Claude (Opus 4.8)
+Area: cross-cutting — creation/editor/auth/CMS/security/offline-sync/SEO/desktop, + 2 test files
+Summary: A 19-iteration autonomous `/loop` end-to-end QA campaign (code-path QA + adversarial subagent verification; no live browser/agent-API this session). **30 fixes shipped**, every one typecheck/lint/test-verified, foreign multi-session work never touched. Highlights: **2 security** (`5257a8c57` — workspace owner-invite privilege escalation; deployment `envVars` plaintext-secret leak to any collaborator); **2 offline data-loss, test/justification-backed** (`4fa3a101b` write-queue concurrent-coalesce w/ regression test; `e55ea0151` replay watcher-race dropping the last offline edit); auth deep-link `returnUrl` preserved across sign-in on 5 layouts + self-loop guard + 5 `loading.tsx`; editor fixes (number-input blur clobber, page-delete confirm, layer-row `<body>` selection corruption, bg gradient leftover, CMS sync/fields/publish-label); a prioritized **UX audit** (`docs/notes/ux-audit-2026-06-20.md`); sitemap drift; desktop local-project nav guards. **The campaign's highest-value behavior was REFUTING ~15 subagent "findings"** — several (a billing cap-bypass, an auth role-change bypass, parser/offline non-bugs) would have introduced regressions had they been applied blind; ≥5 overlapped an existing guard the subagent skimmed past. Full writeup: `docs/notes/qa-loop-campaign-2026-06-21.md`. **Open (owner-gated):** wireframe spend rate-limit (dedicated table); a live-browser offline→online reconnect pass to verify the data-loss fixes end-to-end (none are click-tested).
+Files: see BACKLOG "QA loop" entries (iters 1-19) for per-commit detail; commits `66531af89`…`8559dab60`
+Links: `docs/notes/qa-loop-campaign-2026-06-21.md`, `docs/notes/ux-audit-2026-06-20.md`
+
+---
+
 ## 2026-06-20 — Auth route cache hardening from local/prod E2E QA
 Author: Codex
 Area: `apps/web/client` route caching, auth-gated layouts, QA docs
