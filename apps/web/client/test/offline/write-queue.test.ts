@@ -94,8 +94,13 @@ mock.module('localforage', () => {
 // Import AFTER the module mock so the in-memory store is wired in.
 import {
     enqueue,
+    getDeadLetterDepth,
+    getQueueContent,
     getQueueDepth,
+    listDeadLetter,
     listQueueForProject,
+    moveToDeadLetter,
+    retryDeadLetterRecord,
 } from '../../src/services/offline/write-queue';
 
 describe('write-queue coalescing', () => {
@@ -239,5 +244,54 @@ describe('write-queue coalescing', () => {
         const queue = await listQueueForProject(projectId);
         const paths = queue.map((r) => r.path);
         expect(paths).toEqual(['/a.tsx', '/b.tsx', '/c.tsx']);
+    });
+});
+
+describe('write-queue concurrency + dead-letter', () => {
+    beforeEach(() => {
+        stores.clear();
+    });
+    afterEach(() => {
+        stores.clear();
+    });
+
+    test('concurrent writes to the same path coalesce to a single record', async () => {
+        const projectId = 'proj-race';
+        const branchId = 'branch-1';
+        const path = '/src/Race.tsx';
+
+        // Two writes to the same path fire concurrently. Without serialization,
+        // each runs its supersede pass against the pre-insert state (neither
+        // sees the other) and both records survive — bloating the queue and
+        // risking a spurious conflict from a stale baseHash on replay.
+        await Promise.all([
+            enqueue({ projectId, branchId, op: 'write', path, content: 'a' }),
+            enqueue({ projectId, branchId, op: 'write', path, content: 'b' }),
+        ]);
+
+        const queue = await listQueueForProject(projectId);
+        expect(queue.length).toBe(1);
+        expect(queue[0]?.path).toBe(path);
+    });
+
+    test('retrying the same dead-letter record twice is idempotent', async () => {
+        const projectId = 'proj-dl';
+        const branchId = 'branch-1';
+        const path = '/src/Dead.tsx';
+
+        const rec = await enqueue({ projectId, branchId, op: 'write', path, content: 'final' });
+        await moveToDeadLetter(rec);
+        const [dl] = await listDeadLetter();
+        expect(dl).toBeDefined();
+
+        // Double-retry (e.g. a double-click on "Retry") must not duplicate the
+        // live record or apply the wrong content — the requeued id is stable so
+        // both writes target the same key with identical content.
+        await Promise.all([retryDeadLetterRecord(dl!), retryDeadLetterRecord(dl!)]);
+
+        const queue = await listQueueForProject(projectId);
+        expect(queue.length).toBe(1);
+        expect(await getQueueContent(queue[0]!)).toBe('final');
+        expect(await getDeadLetterDepth()).toBe(0);
     });
 });

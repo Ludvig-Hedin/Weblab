@@ -65,7 +65,29 @@ function makeId(): string {
     return `${ts}-${rand}`;
 }
 
-export async function enqueue(
+// Serialize enqueues so each record's coalesce (`supersedePriorRecords`) runs
+// against the fully-committed state of the prior enqueue. Without this, two
+// concurrent writes to the same path each run their supersede pass against the
+// pre-insert state (neither sees the other) and BOTH records survive — which
+// defeats coalescing and can log a spurious conflict from a stale `baseHash`
+// on replay. The queue is an offline buffer, so global serialization is cheap.
+let enqueueLock: Promise<unknown> = Promise.resolve();
+
+export function enqueue(
+    record: Omit<QueueRecord, 'id' | 'enqueuedAt' | 'attempts'> & {
+        content?: string | Uint8Array;
+    },
+): Promise<QueueRecord> {
+    const result = enqueueLock.then(() => enqueueInner(record));
+    // Keep the chain alive even if this enqueue rejects.
+    enqueueLock = result.then(
+        () => undefined,
+        () => undefined,
+    );
+    return result;
+}
+
+async function enqueueInner(
     record: Omit<QueueRecord, 'id' | 'enqueuedAt' | 'attempts'> & {
         content?: string | Uint8Array;
     },
