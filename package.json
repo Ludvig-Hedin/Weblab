@@ -75,5 +75,5 @@
         "ws": "8.20.1"
     },
     "ignoredBuildScripts": ["better-sqlite3"],
-    "packageManager": "bun@1.3.1"
+    "packageManager": "bun@1.3.10"
 }

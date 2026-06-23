@@ -38,16 +38,6 @@ later without re-discovering the context.
 
 ## Open
 
-### CI "Unit Test" job red on main since 2026-06-20 — bun 1.3.1 (CI) vs 1.3.10 (local) env discrepancy
-
-- **Discovered:** 2026-06-21 (full-repo code-review session; surfaced while verifying a push to prod)
-- **Where:** `.github/workflows/ci.yml:80` (`bun test --timeout 30000 --coverage`); CI runs **bun 1.3.1** (line 67), local dev is on **bun 1.3.10**
-- **Symptom:** CI `Unit Test` job concludes `failure` / exit 1 on every main push (`029b30ece` 06-20, `ee63617d6` + `d35141c2b` 06-21). Last green was `e0add6f8b` (06-17). The GH log shows passes but **no `(fail)` markers and no bun summary line** before exit 1 — the process terminates before printing its summary.
-- **Root cause (narrowed, not final):** NOT test content. The pushed tree (`origin/main`) contains exactly **154 tracked `*.test.*` files**; running that exact set locally with `bun test --timeout 30000 --coverage` on bun 1.3.10 = **1853 pass / 0 fail / exit 0**. Typecheck job is green. The red reproduces only in CI, so the remaining variables are **bun 1.3.1 + the Linux runner + `--coverage`** (a bun-version/env quirk that aborts after the coverage table). Note: a *local* full `bun test` from root reports ~160 failures, but those are 100% from **gitignored, untracked** dirs (`docs/archive/t3code/**`, `template-sources/_forks/**` — vitest tests using `vi.*` + missing deps) that do NOT exist on a fresh CI checkout (`git ls-tree origin/main` = 0 files there) — local-only noise, ignore it.
-- **Next step:** bump CI `bun-version` to match local (1.3.10) and re-run — most likely fix. If still red, run `bun test --coverage` under bun 1.3.1 locally to capture the real abort, or split coverage off the gating run (`bun test` to gate, `--coverage` as a separate non-blocking job). Also worth pinning bun centrally so CI/local can't drift again.
-- **Risk if ignored:** CI stays red → the test gate is meaningless (real regressions won't be caught by a job that's already failing), and every push looks broken. Not user-facing — the app builds, deploys (Railway + Convex), and serves 200; all tracked tests pass on a current toolchain.
-- **Tags:** `#infra` `#flake` `#tech-debt`
-
 ### QA loop — WIND DOWN (2026-06-21 iter-21, /loop dynamic) — quick-win queue dry, both title→tooltip candidates refuted
 
 > Post-capstone ship-or-stop mode. The two remaining audit quick-wins both failed verify-first → no clean safe change left → loop wound down (no churn). **Final tally: 31 fixes (2 security) + UX audit + 2 test files + capstone across iters 1-21.**
@@ -2647,6 +2637,17 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### CI "Unit Test" job red on main since 2026-06-20 — bun 1.3.1 (CI) vs 1.3.10 (local) env discrepancy
+
+- **Discovered:** 2026-06-21 (full-repo code-review session; surfaced while verifying a push to prod)
+- **Resolved:** 2026-06-23 (CI workflow and root `packageManager` now pin Bun 1.3.10)
+- **Where:** `.github/workflows/ci.yml` (`bun test --timeout 30000 --coverage`); root `package.json` `packageManager`.
+- **Symptom:** CI `Unit Test` job concluded `failure` / exit 1 on every main push (`029b30ece` 06-20, `ee63617d6` + `d35141c2b` 06-21, `b0b1a0f3e` and `9dac8332a` 06-23). The GH log showed passes but no `(fail)` markers and no Bun summary line before exit 1; the process terminated after the coverage table.
+- **Root cause:** CI was pinned to Bun 1.3.1 while local validation and the Chromatic workflow were on Bun 1.3.10. The tracked test set passes locally with coverage on 1.3.10, while CI failed only under the older runner/toolchain combination.
+- **Fix:** Updated the CI typecheck/test jobs, the commented lint job template, and root `packageManager` from Bun 1.3.1 to 1.3.10 so local and GitHub Actions use the same toolchain.
+- **Validation:** `git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage` on Bun 1.3.10 = 1862 pass / 1 skip / 0 fail across 155 tracked files; GitHub Actions re-run after push.
+- **Tags:** `#infra` `#flake` `#tech-debt`
 
 ### Figma import — finalize step needs sandbox wiring (was gated "Coming soon")
 

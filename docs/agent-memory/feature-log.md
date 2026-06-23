@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-23 — CI Bun toolchain pin matches local validation
+Author: Codex
+Area: GitHub Actions, repo toolchain metadata
+Summary: Followed up on the post-push CI failure from the main-flow QA hardening commit. The unit-test job was the existing Bun 1.3.1 coverage-runner failure documented in BACKLOG, while local validation and Chromatic were already on Bun 1.3.10. CI and root `packageManager` now pin Bun 1.3.10 so the tracked coverage test set runs under the same toolchain locally and in GitHub Actions.
+Files: `.github/workflows/ci.yml`, `package.json`, `BACKLOG.md`, `docs/agent-context/current-progress.md`
+Links: validation: `git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage` = 1862 pass / 1 skip / 0 fail across 155 tracked files; GitHub Actions re-run after push.
+
+---
+
 ## 2026-06-23 — Main-flow QA hardening: sign-in hydration, sitemap build, editor provisioning label
 Author: Codex
 Area: `apps/web/client` root layout, sitemap route, editor frame page selector, QA docs

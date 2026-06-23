@@ -142,6 +142,14 @@ during this pass), production authenticated E2E needs an owned OTP inbox, and
 Railway deployment metadata could not be checked because the Railway connector
 was unauthorized.
 
+**CI follow-up 2026-06-23:** after pushing the QA hardening commit, GitHub
+Actions typecheck and Chromatic passed but the existing `Unit Test` job failed
+again on the already-known Bun 1.3.1 coverage-runner issue. The CI workflow and
+root `packageManager` now pin Bun 1.3.10, matching local validation and the
+Chromatic workflow. Production was still serving the prior build during the
+first post-push probe (`/sign-in` still had two viewport tags), so the live
+hydration fix must be rechecked after the replacement CI/deploy run completes.
+
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /
 `scaffoldStaticHtmlProject`. Vite/Remix/Astro/TanStack Start are gated upstream
