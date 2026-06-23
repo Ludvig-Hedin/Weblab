@@ -41,8 +41,9 @@ const OTP_SEND_COOLDOWN_MS = 30_000;
 // that gap.
 const LAST_USED_EMAIL_KEY = 'weblab-clerk-last-email';
 
+const DEFAULT_AUTH_PROVIDERS = 'github,google';
 const AUTH_PROVIDERS = new Set(
-    (env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '')
+    (env.NEXT_PUBLIC_AUTH_PROVIDERS?.trim() || DEFAULT_AUTH_PROVIDERS)
         .split(',')
         .map((p) => p.trim().toLowerCase())
         .filter(Boolean),
@@ -638,7 +639,6 @@ export function ClerkAuthForm({
                         // Sign-in page's sole primary action — focus the input so
                         // desktop users can start typing without a click. Matches
                         // the Supabase /login form.
-                        // eslint-disable-next-line jsx-a11y/no-autofocus
                         autoFocus
                         maxLength={254}
                     />

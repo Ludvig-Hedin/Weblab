@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-23 — Sign-in auth provider hydration mismatch fixed
+Author: Codex
+Area: `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`, auth QA
+Summary: Production `/sign-in` still logged React #418 after the service-worker v4 rollout. A no-JS server render compared against the hydrated DOM showed SSR rendered only the always-on Vercel OAuth button, while the browser rendered GitHub, Google, and Vercel because the public auth-provider env fell back differently. The form now normalizes blank `NEXT_PUBLIC_AUTH_PROVIDERS` to the documented `github,google` default before parsing, so SSR and client render the same OAuth button list.
+Files: `clerk-auth-form.tsx`, docs (`BACKLOG.md`, `feature-catalog.md`, `test-plan.md`, `current-progress.md`)
+Links: validation: production `/sign-in` no-JS vs hydrated DOM comparison isolated the mismatch; local production server with `NEXT_PUBLIC_AUTH_PROVIDERS=''` rendered matching server/hydrated OAuth buttons with 0 browser errors.
+
+---
+
 ## 2026-06-23 — Service worker chunk cache hardened after live sign-in QA
 Author: Codex
 Area: `apps/web/client/public/sw.js`, PWA/offline runtime cache

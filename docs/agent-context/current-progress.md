@@ -159,6 +159,14 @@ The service worker is now v4 and fetches `/_next/static/chunks/*` network-first
 with cached offline fallback, preventing fresh HTML from hydrating against old
 Turbopack JS/CSS after adjacent deploys.
 
+**Auth hydration follow-up 2026-06-23:** after the v4 service worker deployed,
+`/sign-in` still produced React #418 even with service workers blocked. A
+no-JS vs hydrated DOM comparison isolated the mismatch to OAuth provider
+buttons: SSR saw a blank `NEXT_PUBLIC_AUTH_PROVIDERS` runtime value and rendered
+only Vercel, while the browser bundle fell back to GitHub/Google/Vercel.
+`clerk-auth-form` now treats blank/whitespace the same as unset and uses the
+documented `github,google` default on both sides.
+
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /
 `scaffoldStaticHtmlProject`. Vite/Remix/Astro/TanStack Start are gated upstream

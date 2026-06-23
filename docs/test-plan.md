@@ -99,7 +99,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 
 | ID | Targets | Scope | How | Pass | Status |
 |---|---|---|---|---|---|
-| T-080 | F-080, F-081 | E + I | Visit signed-out + mock Clerk SDK | OAuth + email forms render; correct Clerk method per path | `[ ]` |
+| T-080 | F-080, F-081 | E + I | Visit signed-out + mock Clerk SDK; compare `/sign-in` server HTML vs hydrated DOM with blank/unset `NEXT_PUBLIC_AUTH_PROVIDERS` | OAuth + email forms render; OAuth button list matches across SSR/client; no React #418; correct Clerk method per path | `[~]` |
 | T-081 | F-082 | E | Submit valid + invalid OTP | Valid → next route; invalid → error | `[ ]` |
 | T-082 | F-083 | E (mocked OAuth) | Hit with code+state | New sign-ups → `/profile-setup`; existing → `/projects` | `[ ]` |
 | T-083 | F-084 | E | Visit `/sign-up?returnUrl=/projects` | Redirects to `/sign-in?returnUrl=/projects` and unified auth form renders | `[ ]` |
