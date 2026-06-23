@@ -144,11 +144,20 @@ was unauthorized.
 
 **CI follow-up 2026-06-23:** after pushing the QA hardening commit, GitHub
 Actions typecheck and Chromatic passed but the existing `Unit Test` job failed
-again on the already-known Bun 1.3.1 coverage-runner issue. The CI workflow and
-root `packageManager` now pin Bun 1.3.10, matching local validation and the
-Chromatic workflow. Production was still serving the prior build during the
-first post-push probe (`/sign-in` still had two viewport tags), so the live
-hydration fix must be rechecked after the replacement CI/deploy run completes.
+again on the coverage-runner/log-output issue. The CI workflow and root
+`packageManager` now pin Bun 1.3.10, matching local validation and the Chromatic
+workflow, and the unit job redirects the large coverage table to `/tmp` before
+printing only a short tail on success. The same tracked-file coverage run exits
+0 locally when redirected.
+
+**Service-worker follow-up 2026-06-23:** production rolled forward and direct
+probes showed `/sign-in` now emits one viewport tag while `/sitemap.xml` serves
+the explicit XML route. A fresh Chrome Playwright context with service workers
+blocked loaded `/sign-in` with zero console errors, but the persistent test
+browser still reproduced React #418 through stale service-worker runtime chunks.
+The service worker is now v4 and fetches `/_next/static/chunks/*` network-first
+with cached offline fallback, preventing fresh HTML from hydrating against old
+Turbopack JS/CSS after adjacent deploys.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /

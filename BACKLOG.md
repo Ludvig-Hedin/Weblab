@@ -926,16 +926,6 @@ Final clean run: preview rendered, **0 saveCanvas errors, 0 other product consol
 - **Risk if ignored:** GitHub sign-in unusable; users sharing an email across providers can't sign in / link.
 - **Tags:** `#bug` `#auth` `#config`
 
-### React #418 hydration mismatch on /sign-in — ROOT-CAUSED (not a markup bug)
-
-- **Discovered:** 2026-06-16 (seen in console during the GitHub OAuth bounce above)
-- **Investigated:** 2026-06-16 — **confirmed NOT a code/markup bug.** Two fresh prod SSR renders of `/sign-in` are byte-identical; every layout provider that wraps it (theme/cookie-consent/desktop-chrome/appearance/smooth-scroll) is mounted-guarded; a **clean cloud browser (no SW, no extensions) shows ZERO #418** on both the clean load and the `?returnUrl=` bounce URL (status 200, form renders, 0 console errors).
-- **Root cause (client-state, not our React tree):** (1) **Stale service worker** — the user's console also showed the SW returning a network-error response: after a deploy the old `/_next/static/*` chunks 404, `cacheFirstAsset` returns `Response.error()`, and a stale document hydrates against a newer bundle → #418 (+ the "preloaded font/css not used" warnings = stale-HTML signature). (2) **Form-injecting browser extension** — `/sign-in` is a `<form>` with an email input; password managers / Grammarly mutate it before hydration, which React #418's own message lists as a cause. Both are user-browser-specific.
-- **Fix shipped:** SW `VERSION` v2→v3 (purges every poisoned shell/runtime/data cache for all users on next visit) + dropped auth-dynamic `/projects` from the precached shell (`apps/web/client/public/sw.js`). User-side immediate workaround: hard-reload / DevTools → Application → unregister SW + Clear storage; test in incognito with extensions off to confirm the extension half.
-- **Residual / follow-up:** consider serving only `/offline` (never a build-versioned cached document) as the navigation fallback so a future deploy can't re-poison a slow-nav user; React already recovers from the extension case (no action needed).
-- **Risk if ignored:** Occasional hydration regeneration on `/sign-in` after a deploy until the SW updates; cosmetic flicker, no functional break.
-- **Tags:** `#bug` `#tech-debt` `#auth` `#infra`
-
 ### Verify production desktop build ships prod Clerk keys (not the dev instance)
 
 - **Discovered:** 2026-06-15 (user-reported "desktop app opens weblab.build in browser, not the app")
@@ -1758,16 +1748,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Next step:** `railway login`, then read the web-client service var. Must equal `https://rapid-crab-113.convex.cloud`. If it's the dev URL (`avid-gnat-539`), that's a second bug — repoint it and redeploy. While there, sanity-check `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is the `pk_live_*` prod key.
 - **Risk if ignored:** If prod actually points at dev Convex, login still fails after the prod deploy (prod Clerk token rejected by dev's issuer).
 - **Tags:** `#infra` `#auth` `#convex`
-
-### React error #418 (hydration) on /sign-in — confirm resolved post-fix
-
-- **Discovered:** 2026-05-28 (prod Google-login crash investigation)
-- **Where:** `apps/web/client/src/app/sign-in/**` (rendered with Clerk + Convex providers)
-- **Symptom:** Console `Minified React error #418` (hydration text-content mismatch) on the sign-in page during the failed login.
-- **Root cause:** Unverified. Most likely secondary — the thrown `users:me` Convex Server Error crashing mid-hydration — and should disappear now that prod Convex is deployed. Could also be an independent SSR/client mismatch.
-- **Next step:** After confirming live login works, reload /sign-in and check the console. If #418 persists, run the dev build (non-minified React) to get the real component + reproduce.
-- **Risk if ignored:** Possible flicker / hydration warning on the auth page; low user impact if the underlying query no longer throws.
-- **Tags:** `#bug` `#auth` `#frontend`
 
 ### F-558 — `userActions.remove` deletes Clerk identity before cascade can fail; orphan PII on partial-fail
 
@@ -2638,15 +2618,25 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 
 ## Resolved
 
+### React #418 hydration mismatch on /sign-in from stale service-worker chunk cache
+
+- **Discovered:** 2026-05-28 (prod Google-login crash investigation), re-confirmed 2026-06-16 and 2026-06-23.
+- **Resolved:** 2026-06-23 (service worker v4; chunk requests are network-first with cached fallback)
+- **Where:** `apps/web/client/public/sw.js`; `apps/web/client/src/app/sign-in/**`.
+- **Root cause:** Not a sign-in markup bug. A clean fresh Chrome context with service workers blocked renders `/sign-in` with 0 console errors and a single viewport tag. A persistent browser context with an installed SW could still serve cached `/_next/static/chunks/*` JS/CSS from the previous build against fresh HTML, reproducing React #418 for returning users. The older v3 fix only purged one poisoned cache generation; it did not prevent stale chunk reuse if a Turbopack chunk URL stayed stable across adjacent deploys.
+- **Fix:** Bumped the SW namespace to v4 to purge v3 runtime caches, and changed `/_next/static/chunks/*` handling from cache-first to network-first with runtime-cache fallback. Other static assets remain cache-first; chunks still work offline from cache when the network is unavailable.
+- **Validation:** Live `https://weblab.build/sign-in` after deploy served one viewport tag and the new sitemap route. Fresh Chrome Playwright context (`serviceWorkers: 'block'`) loaded `/sign-in` with 0 console errors; the stale persistent browser context reproduced #418 before the SW cache hardening.
+- **Tags:** `#bug` `#auth` `#infra` `#pwa`
+
 ### CI "Unit Test" job red on main since 2026-06-20 — bun 1.3.1 (CI) vs 1.3.10 (local) env discrepancy
 
 - **Discovered:** 2026-06-21 (full-repo code-review session; surfaced while verifying a push to prod)
-- **Resolved:** 2026-06-23 (CI workflow and root `packageManager` now pin Bun 1.3.10)
+- **Resolved:** 2026-06-23 (CI workflow/root `packageManager` now pin Bun 1.3.10; coverage output is redirected to avoid GitHub log-pipe aborts)
 - **Where:** `.github/workflows/ci.yml` (`bun test --timeout 30000 --coverage`); root `package.json` `packageManager`.
 - **Symptom:** CI `Unit Test` job concluded `failure` / exit 1 on every main push (`029b30ece` 06-20, `ee63617d6` + `d35141c2b` 06-21, `b0b1a0f3e` and `9dac8332a` 06-23). The GH log showed passes but no `(fail)` markers and no Bun summary line before exit 1; the process terminated after the coverage table.
-- **Root cause:** CI was pinned to Bun 1.3.1 while local validation and the Chromatic workflow were on Bun 1.3.10. The tracked test set passes locally with coverage on 1.3.10, while CI failed only under the older runner/toolchain combination.
-- **Fix:** Updated the CI typecheck/test jobs, the commented lint job template, and root `packageManager` from Bun 1.3.1 to 1.3.10 so local and GitHub Actions use the same toolchain.
-- **Validation:** `git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage` on Bun 1.3.10 = 1862 pass / 1 skip / 0 fail across 155 tracked files; GitHub Actions re-run after push.
+- **Root cause:** CI was initially pinned to Bun 1.3.1 while local validation and the Chromatic workflow were on Bun 1.3.10. After aligning Bun, the runner still failed with the same shape: no `(fail)` markers, exit 1 immediately after dumping the huge coverage table. A local direct stream reproduced a Bun `WriteFailed`, while the same coverage run redirected to a file exited 0.
+- **Fix:** Updated the CI typecheck/test jobs, the commented lint job template, and root `packageManager` from Bun 1.3.1 to 1.3.10 so local and GitHub Actions use the same toolchain. The unit job now runs the tracked test list explicitly and redirects coverage output to `/tmp/bun-test.log`, printing the full log only on failure and the tail on success.
+- **Validation:** `git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage > /tmp/weblab-tracked-tests.log 2>&1` on Bun 1.3.10 = 1862 pass / 1 skip / 0 fail across 155 tracked files; GitHub Actions re-run after push.
 - **Tags:** `#infra` `#flake` `#tech-debt`
 
 ### Figma import — finalize step needs sandbox wiring (was gated "Coming soon")

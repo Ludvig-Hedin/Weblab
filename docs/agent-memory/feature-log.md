@@ -16,12 +16,21 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-23 — Service worker chunk cache hardened after live sign-in QA
+Author: Codex
+Area: `apps/web/client/public/sw.js`, PWA/offline runtime cache
+Summary: Live production probes confirmed the viewport and sitemap fixes had deployed: `/sign-in` emitted one viewport tag and `/sitemap.xml` served the explicit XML route. A fresh Chrome context loaded `/sign-in` with 0 console errors, but a persistent browser with an installed service worker still reproduced React #418 through stale `/_next/static/chunks/*` runtime cache. The service worker is now v4 and fetches Next chunks network-first with cached fallback, so returning users get fresh build assets after deploys while offline fallback still works.
+Files: `apps/web/client/public/sw.js`, docs (`BACKLOG.md`, `feature-catalog.md`, `test-plan.md`, `current-progress.md`)
+Links: validation: fresh Chrome Playwright `/sign-in` = 0 errors; persistent SW context reproduced stale-cache #418 before hardening.
+
+---
+
 ## 2026-06-23 — CI Bun toolchain pin matches local validation
 Author: Codex
 Area: GitHub Actions, repo toolchain metadata
-Summary: Followed up on the post-push CI failure from the main-flow QA hardening commit. The unit-test job was the existing Bun 1.3.1 coverage-runner failure documented in BACKLOG, while local validation and Chromatic were already on Bun 1.3.10. CI and root `packageManager` now pin Bun 1.3.10 so the tracked coverage test set runs under the same toolchain locally and in GitHub Actions.
+Summary: Followed up on the post-push CI failure from the main-flow QA hardening commit. The unit-test job was the existing Bun coverage-runner/log-output failure documented in BACKLOG: no failing assertions, exit 1 after the huge coverage table. CI and root `packageManager` now pin Bun 1.3.10, and the unit job runs the tracked test list with coverage output redirected to a file so GitHub's log pipe no longer determines the test result.
 Files: `.github/workflows/ci.yml`, `package.json`, `BACKLOG.md`, `docs/agent-context/current-progress.md`
-Links: validation: `git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage` = 1862 pass / 1 skip / 0 fail across 155 tracked files; GitHub Actions re-run after push.
+Links: validation: redirected `git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage` = 1862 pass / 1 skip / 0 fail across 155 tracked files; GitHub Actions re-run after push.
 
 ---
 

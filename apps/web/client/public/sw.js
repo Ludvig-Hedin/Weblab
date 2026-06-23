@@ -4,7 +4,8 @@
 //   - precache shell + critical assets on install
 //   - /api/*  -> network only (failures surface so the client switches to offline mode)
 //   - navigations -> network-first with cache fallback, then /offline
-//   - /_next/static/* and other GET assets -> cache-first with runtime cache
+//   - /_next/static/chunks/* -> network-first with runtime fallback
+//   - other /_next/static/* and GET assets -> cache-first with runtime cache
 //   - /_next/data/* -> stale-while-revalidate
 //   - non-GET -> bypass
 
@@ -18,7 +19,12 @@
 // `Response.error()` ("FetchEvent … resulted in a network error response") and
 // the stale document hydrates against a newer bundle → React error #418 on
 // prod (seen on /sign-in). Bumping the VERSION purges every prior cache.
-const VERSION = 'v3';
+//
+// v4 (2026-06-23): Turbopack chunk URLs can be stable across adjacent deploys.
+// Cache-first chunk handling can therefore serve old JS/CSS against fresh HTML,
+// which reproduces React #418 for returning users with an active SW. Purge v3
+// caches and fetch chunks network-first, with cached fallback for offline use.
+const VERSION = 'v4';
 const SHELL_CACHE = `weblab-shell-${VERSION}`;
 const RUNTIME_CACHE = `weblab-runtime-${VERSION}`;
 const DATA_CACHE = `weblab-next-data-${VERSION}`;
@@ -104,6 +110,10 @@ function isNextStatic(url) {
     return url.pathname.startsWith('/_next/static/');
 }
 
+function isNextChunk(url) {
+    return url.pathname.startsWith('/_next/static/chunks/');
+}
+
 function isNextData(url) {
     return url.pathname.startsWith('/_next/data/');
 }
@@ -168,6 +178,21 @@ async function cacheFirstAsset(request) {
     }
 }
 
+async function networkFirstAsset(request) {
+    const cache = await caches.open(RUNTIME_CACHE);
+    try {
+        const fresh = await fetch(new Request(request, { cache: 'no-store' }));
+        if (fresh && fresh.ok && request.url.startsWith(self.location.origin)) {
+            cache.put(request, fresh.clone()).catch(() => {});
+        }
+        return fresh;
+    } catch {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        return Response.error();
+    }
+}
+
 async function staleWhileRevalidate(request) {
     const cache = await caches.open(DATA_CACHE);
     const cached = await cache.match(request);
@@ -206,6 +231,11 @@ self.addEventListener('fetch', (event) => {
 
     if (isNavigation(request)) {
         event.respondWith(networkFirstNavigation(request));
+        return;
+    }
+
+    if (isNextChunk(url)) {
+        event.respondWith(networkFirstAsset(request));
         return;
     }
 

@@ -88,7 +88,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 |---|---|---|---|---|---|
 | T-050 | F-051 | I | Mock Clerk, open/close, submit email | No crash; correct Clerk method calls | `[ ]` |
 | T-051 | F-052 | U | Mount cookie banner | Shows once; persists dismissal in localStorage | `[ ]` |
-| T-052 | F-057 | M | Devtools → Application | SW registered | `[ ]` |
+| T-052 | F-057, F-753 | M | Devtools → Application after deploy; reload `/sign-in` in a returning-user browser and in a fresh browser | SW registered; old cache namespace purged; `/sign-in` hydrates without React #418; Next chunks refetch network-first and still fall back from cache offline | `[~]` |
 | T-053 | F-062 | E | Open promo banner link | Routes through `/api/promo-resume` → checkout | `[ ]` |
 | T-054 | F-066 (`locale-switcher`) | I | Switch locale | next-intl reloads with new strings | `[ ]` |
 | T-055 | F-066 (`theme-switcher`) | U | Toggle | `<html data-theme>` flips; persists | `[ ]` |

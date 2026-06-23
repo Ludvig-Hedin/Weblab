@@ -77,4 +77,9 @@ jobs:
         run: bun install --frozen
 
       - name: Run tests
-        run: bun test --timeout 30000 --coverage
+        run: |
+          git ls-files '*test.*' | xargs bun test --timeout 30000 --coverage > /tmp/bun-test.log 2>&1 || {
+            cat /tmp/bun-test.log
+            exit 1
+          }
+          tail -n 80 /tmp/bun-test.log
