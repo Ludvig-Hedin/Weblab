@@ -102,7 +102,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-080 | F-080, F-081 | E + I | Visit signed-out + mock Clerk SDK | OAuth + email forms render; correct Clerk method per path | `[ ]` |
 | T-081 | F-082 | E | Submit valid + invalid OTP | Valid → next route; invalid → error | `[ ]` |
 | T-082 | F-083 | E (mocked OAuth) | Hit with code+state | New sign-ups → `/profile-setup`; existing → `/projects` | `[ ]` |
-| T-083 | F-084 | E | Visit `/sign-up` | Clerk hosted form renders | `[ ]` |
+| T-083 | F-084 | E | Visit `/sign-up?returnUrl=/projects` | Redirects to `/sign-in?returnUrl=/projects` and unified auth form renders | `[ ]` |
 | T-084 | F-085 | U | returnUrl sanitization | Strips dangerous protocols; passes internal | `[ ]` |
 | T-085 | F-086 | E | Trigger OAuth failure | Error code displayed | `[ ]` |
 | T-086 | F-087 | E | Complete profile | Required fields enforced; persists to `users` (F-580) | `[ ]` |
@@ -538,7 +538,7 @@ Per package (F-680 … F-705) at least one smoke test.
 | T-756 | F-756 | E | Visit incognito | `data-theme="dark"` | `[ ]` |
 | T-757 | F-680 | U | No "Onlook" leak | grep `Onlook` outside allowlist = 0 | `[ ]` |
 | T-758 | F-758 | U | Snapshot SEO helpers | Canonical / OG / twitter as expected | `[ ]` |
-| T-759 | F-759 | U | `next-sitemap` build | XML matches expected URLs | `[ ]` |
+| T-759 | F-759 | U | Build + GET `/sitemap.xml` | XML response includes expected static/blog URLs and build prerender succeeds | `[ ]` |
 | T-763 | F-763 | U | Import via `@/` and `~/` | Resolve identically | `[ ]` |
 
 ---

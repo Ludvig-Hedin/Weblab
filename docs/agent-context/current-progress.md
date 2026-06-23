@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-06-20.
+Last updated: 2026-06-23.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the
@@ -121,6 +121,26 @@ serves `/sign-in`, `/sign-up`, `/sign-in/verify`, `/projects`, `/settings`, and
 redirects signed-out users to `/sign-in?returnUrl=%2Fw%2Fnew`. Full signed-in
 editor/project E2E still needs an auth session and a free local sandbox port;
 `:8080` was occupied by Open WebUI during this pass.
+
+**Local/prod QA update 2026-06-23:** main browser flows were re-tested with
+`bun dev:ui` on `localhost:3000`, a production build on `localhost:3001`, and
+direct probes against `https://weblab.build`. Public/protected route status
+matched locally and in production; `/sign-up` correctly redirects to the
+unified `/sign-in` form. Local Clerk dev OTP sign-in completed end-to-end into
+the workspace dashboard on both dev and production-build servers. Blank static
+HTML project creation opened the editor; editor Design/Code/CMS/Preview mode
+switches worked without app errors. Two fixes landed: empty provisioning frame
+URLs now show `Home` instead of logging `Failed to construct 'URL'`, and the
+root layout now uses Next's `viewport` export instead of emitting a duplicate
+viewport tag that reproduced production `/sign-in` React #418 locally once
+tested against a build. The XML sitemap was converted to an explicit
+`/sitemap.xml` route after `next build` failed prerendering the metadata route
+with `response.blob is not a function`; the production build now passes and
+`/sitemap.xml` returns XML. Remaining blockers: full sandbox-backed editor sync
+still needs the local Fastify sandbox server on `:8080` (occupied by Open WebUI
+during this pass), production authenticated E2E needs an owned OTP inbox, and
+Railway deployment metadata could not be checked because the Railway connector
+was unauthorized.
 
 **Working create paths:** "Start blank" CTA (hero + dashboard) →
 `api.projectActions.createBlank` → `scaffoldNextProject` /

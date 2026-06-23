@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-06-23 — Main-flow QA hardening: sign-in hydration, sitemap build, editor provisioning label
+Author: Codex
+Area: `apps/web/client` root layout, sitemap route, editor frame page selector, QA docs
+Summary: Ran browser QA across localhost dev, a local production build, and `weblab.build` public routes. Production `/sign-in` still emitted React #418; local production-build validation traced the fix to duplicate viewport metadata, now handled through Next's `viewport` export. The build also failed on the metadata sitemap route (`response.blob is not a function`), so `/sitemap.xml` now returns explicit XML from an App Router route handler and `next build` passes. Editor cold-provisioning frames with empty URLs now show `Home` instead of logging URL-construction errors.
+Files: `apps/web/client/src/app/layout.tsx`, `apps/web/client/src/app/sitemap.xml/route.ts`, `apps/web/client/src/app/project/[id]/_components/canvas/frame/top-bar/page-selector.tsx`, docs (`current-progress`, feature catalog, test plan)
+Links: validation: `bun --filter @weblab/web-client build`; local production `/sign-in` browser check; production deploy still required before live #418 can be rechecked.
+
+---
+
 ## 2026-06-21 — QA loop campaign: 30 fixes (incl. 2 security + 2 offline data-loss) over 19 iters
 Author: Claude (Opus 4.8)
 Area: cross-cutting — creation/editor/auth/CMS/security/offline-sync/SEO/desktop, + 2 test files

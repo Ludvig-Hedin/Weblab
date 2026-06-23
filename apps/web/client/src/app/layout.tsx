@@ -1,7 +1,7 @@
 import '@/styles/globals.css';
 import '@weblab/ui/globals.css';
 
-import { type Metadata } from 'next';
+import { type Metadata, type Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 
@@ -132,13 +132,17 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+};
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
     const locale = await getLocale();
 
     return (
         <html lang={locale || 'en'} suppressHydrationWarning>
             <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
                 {/* Desktop (Electron) chrome wiring.
 
                     The inline <script> promotes the `weblabDesktop` preload
