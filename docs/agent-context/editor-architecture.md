@@ -40,6 +40,33 @@ not replace it with `useMemo`.
 When adding behavior, put it in the narrow manager that owns the concept. Avoid
 threading unrelated state through the route component.
 
+### Manager teardown rules (updated 2026-07-04)
+
+- **`EditorEngine.clear()`** now also calls `state.clear()` and
+  `screenshot.clear()` (both were previously omitted — `state.clear()` would in
+  fact have thrown because its debounce field wasn't excluded from
+  `makeAutoObservable`).
+- **`HistoryManager` has two teardown methods.** `dispose()` — used by engine
+  teardown / branch re-init — flushes the pending persist and drops the
+  in-memory stacks but **keeps IndexedDB history** so re-opening the project
+  hydrates it. `clear()` — used only on **branch deletion** — additionally wipes
+  the persisted history. Do not route engine teardown through `clear()`.
+- **`disposed` latches on per-branch async managers.** `SandboxManager`,
+  `SessionManager`, and `CommentManager` set a `disposed` flag in their teardown
+  and check it after each `await` in `init()`/`start()`, so a `clear()` that
+  lands mid-init can't resurrect a provider / sync engine / poller. These are
+  safe as permanent latches **because the instance is recreated fresh on
+  re-init** — never do this with a one-way latch on the engine-level singletons
+  (`EditorEngine` itself is reused across React StrictMode's dev double-mount, so
+  an engine-level guard must be generation/epoch-based, not a latch).
+- **MobX debounce footgun:** any lodash-debounced function stored as a class
+  field on a `makeAutoObservable` store must be excluded (`{ field: false }`) or
+  MobX wraps it as an action and strips `.cancel`/`.flush` — teardown-cancel then
+  silently no-ops (or throws). Fixed instances: `saveCanvas`,
+  `writeResponsiveStyle`, `persistDebounced`, `captureScreenshot`,
+  `resetCanvasScrollingDebounced`, `FrameEventManager`'s handlers,
+  `OverlayManager.refresh`.
+
 ## Canvas And Preview Loop
 
 High-level flow:

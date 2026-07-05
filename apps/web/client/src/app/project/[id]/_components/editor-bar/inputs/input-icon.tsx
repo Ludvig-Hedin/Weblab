@@ -31,7 +31,7 @@ interface InputIconProps {
 
 export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: InputIconProps) => {
     const [unitValue, setUnitValue] = useState(unit);
-    const { localValue, handleKeyDown, handleChange, handleBlur } = useInputControl(
+    const { localValue, handleKeyDown, handleChange, handleBlur, inputRef } = useInputControl(
         value,
         onChange,
     );
@@ -45,6 +45,7 @@ export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: 
             )}
             <div className="bg-background-tertiary/50 flex h-[36px] w-full items-center justify-between rounded-full px-3">
                 <input
+                    ref={inputRef}
                     type="text"
                     inputMode="decimal"
                     pattern="[0-9]*\.?[0-9]*"

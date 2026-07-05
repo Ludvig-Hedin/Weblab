@@ -227,7 +227,11 @@ export class ActionManager {
     private async runSourceRebase(oid: string, property: string) {
         const map = this.editorEngine.style.breakpointMapFor(oid, property);
         if (!map || Object.keys(map).length === 0) return;
-        await this.editorEngine.code.writeResponsiveStyle?.({
+        // Immediate variant: this call is already debounced per key by
+        // scheduleSourceRebase, and flushPendingRebases needs the write to
+        // enqueue NOW (routing through the debounced `writeResponsiveStyle`
+        // re-armed a 600ms timer that never fired on unload).
+        await this.editorEngine.code.writeResponsiveStyleNow({
             oid,
             property,
             valuesByBreakpoint: map,
@@ -437,5 +441,8 @@ export class ActionManager {
             clearTimeout(timer);
         }
         this.rebaseTimers.clear();
+        // Drop the trailing re-click: without this, the 100ms trailing edge
+        // fires after teardown and re-selects elements on a cleared engine.
+        this.refreshDomElement.cancel();
     }
 }

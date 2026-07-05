@@ -98,7 +98,19 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         () => (rawBootstrap ? fromConvexBootstrap(rawBootstrap as never) : undefined),
         [rawBootstrap],
     );
-    const effectiveBootstrap = initialBootstrap ?? bootstrap ?? undefined;
+    // Normally the server-rendered `initialBootstrap` wins (fast, no query
+    // round-trip). BUT in the optimistic-creation case the initial bootstrap
+    // carries frames with empty URLs (createBlank returned before
+    // `_provisionSandbox` ran). We explicitly subscribed the live query above
+    // for exactly this case — so once it resolves with the provisioned URLs,
+    // prefer it. Without this, `effectiveBootstrap` stayed pinned to the stale
+    // empty-URL snapshot forever: `applyFrames` never saw a real URL, the
+    // frame's reload-on-URL effect never fired, and blank projects (the
+    // primary create path) stranded on "Setting up your workspace".
+    const effectiveBootstrap =
+        framesPendingSandbox && bootstrap
+            ? bootstrap
+            : (initialBootstrap ?? bootstrap ?? undefined);
 
     // Surface background-provisioning failures written by `_provisionSandbox`
     // → `_markProvisioningFailed`. Read from the LIVE query (not the stale

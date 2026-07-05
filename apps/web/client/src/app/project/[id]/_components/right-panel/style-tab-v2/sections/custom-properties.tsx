@@ -44,7 +44,14 @@ function VarRow({
                 autoFocus={autoFocus}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={() => {
-                    if (name && (name !== row.name || value !== row.value)) {
+                    // Require a non-empty value too: for the draft row (row.name
+                    // === '', value still empty), tabbing from the name field to
+                    // the value field would otherwise commit `onCommit(name, '')`,
+                    // which the style pipeline treats as a delete — the row
+                    // vanishes before the user can type the value. Renames of
+                    // existing rows always carry a value, so this doesn't regress
+                    // them.
+                    if (name && value && (name !== row.name || value !== row.value)) {
                         onCommit(name, value);
                     }
                 }}
@@ -142,7 +149,10 @@ export const CustomPropertiesSection = observer(function CustomPropertiesSection
                     row={{ name: '', value: '' }}
                     autoFocus
                     onCommit={(n, v) => {
-                        if (!n) return;
+                        // Only persist + close once BOTH a name and a value are
+                        // present. An empty value would be treated as a delete
+                        // and the row would silently disappear with nothing saved.
+                        if (!n || !v) return;
                         upsert(n, v);
                         setDraft(false);
                     }}

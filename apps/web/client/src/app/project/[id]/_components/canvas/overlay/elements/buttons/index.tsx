@@ -37,23 +37,30 @@ export const OverlayButtons = observer(() => {
         prevChatPositionRef.current = chatPosition;
     }, [chatPosition.x, chatPosition.y]);
 
-    const animationClass = 'origin-center opacity-0 -translate-y-2 transition-all duration-200';
-
+    // Declarative enter animation. The previous version revealed the buttons by
+    // imperatively mutating classList in an effect keyed only on [domId] — so
+    // after any hide→show cycle with the SAME selection (e.g. chat streaming
+    // finishing), React re-created the div in its hidden `opacity-0` state, the
+    // effect didn't re-run (domId unchanged), and the buttons stayed invisible
+    // yet still clickable (an invisible dead-zone above the element). Driving
+    // the reveal off `entered` state fixes both.
+    const [entered, setEntered] = useState(false);
     useEffect(() => {
-        if (domId) {
-            requestAnimationFrame(() => {
-                const element = document.querySelector(`[data-element-id="${domId}"]`);
-                if (element) {
-                    element.classList.remove('scale-[0.2]', 'opacity-0', '-translate-y-2');
-                    element.classList.add('scale-100', 'opacity-100', 'translate-y-0');
-                }
-            });
+        if (shouldHideButton) {
+            setEntered(false);
+            return;
         }
-    }, [domId]);
+        const raf = requestAnimationFrame(() => setEntered(true));
+        return () => cancelAnimationFrame(raf);
+    }, [shouldHideButton, domId]);
 
     if (shouldHideButton) {
         return null;
     }
+
+    const animationClass = entered
+        ? 'origin-center opacity-100 translate-y-0 transition-all duration-200'
+        : 'origin-center opacity-0 -translate-y-2 transition-all duration-200';
 
     const EDITOR_HEADER_HEIGHT = 86;
     const MARGIN = 8;

@@ -61,7 +61,9 @@ export class BranchManager {
         this.reactionDisposer = null;
         for (const { sandbox, history, error, codeEditor } of this.branchMap.values()) {
             sandbox.clear();
-            history.clear();
+            // dispose(), not clear(): the branch still exists — wiping its
+            // persisted undo history here would defeat hydrate() on re-init.
+            history.dispose();
             error.clear();
             void codeEditor.cleanup();
         }
@@ -429,7 +431,10 @@ export class BranchManager {
         this.reactionDisposer = null;
         for (const branchData of this.branchMap.values()) {
             branchData.sandbox.clear();
-            branchData.history.clear();
+            // dispose(), not clear(): engine teardown (route change / project
+            // switch) must keep persisted undo history so reopening the
+            // project restores it. clear() is reserved for branch deletion.
+            branchData.history.dispose();
             branchData.error.clear();
             await branchData.codeEditor.cleanup();
         }

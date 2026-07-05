@@ -12,7 +12,11 @@ export class FrameEventManager {
     private viewportReactionDisposer?: () => void;
 
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable(this);
+        // Exclude the debounced function fields: makeAutoObservable wraps
+        // function-valued fields as actions, which strips lodash's
+        // `.cancel`/`.flush` (the saveCanvas/writeResponsiveStyle trap) and
+        // would make clear()'s teardown-cancel below a silent no-op.
+        makeAutoObservable(this, { handleWindowMutated: false, handleViewportCheck: false });
     }
 
     init() {
@@ -158,8 +162,13 @@ export class FrameEventManager {
                     return null;
                 }
                 try {
-                    const domEl = await frameData.view.getElementByDomId(el.domId, false);
-                    return domEl ? el : null;
+                    // Fetch WITH styles and return the FRESH element, not the
+                    // stale click-time snapshot. re-clicking with the old object
+                    // (element/index.ts draws overlay rects from `el.rect`) would
+                    // repaint selection rects at pre-mutation positions/sizes,
+                    // undoing the overlay.refresh that just ran.
+                    const domEl = await frameData.view.getElementByDomId(el.domId, true);
+                    return domEl ? { ...el, ...domEl } : null;
                 } catch {
                     return null;
                 }
@@ -177,5 +186,10 @@ export class FrameEventManager {
     clear() {
         this.viewportReactionDisposer?.();
         this.viewportReactionDisposer = undefined;
+        // Drop pending trailing edges so a mutation that landed just before
+        // teardown can't run refreshLayers/overlay refresh on a cleared engine
+        // (console noise + wasted penpal round-trips against dead frames).
+        this.handleWindowMutated.cancel();
+        this.handleViewportCheck.cancel();
     }
 }

@@ -210,7 +210,7 @@ export const TextSection = observer(function TextSection() {
         try {
             const res = await frameData.view.editText(selected.domId, next);
             if (!res) return;
-            await editorEngine.history.push({
+            const pushed = await editorEngine.history.push({
                 type: 'edit-text',
                 targets: [
                     {
@@ -223,6 +223,19 @@ export const TextSection = observer(function TextSection() {
                 originalContent: textContent,
                 newContent: next,
             });
+            if (!pushed) {
+                // Source write failed (sandbox gone / offline / parse refusal).
+                // history.push already surfaced the error and dropped the action.
+                // Revert the optimistic iframe edit and DON'T advance the panel
+                // baseline — otherwise the `next === textContent` guard above
+                // would block the user from retrying the same text.
+                try {
+                    await frameData.view.editText(targetDomId, textContent);
+                } catch (revertError) {
+                    console.error('Error reverting failed text edit:', revertError);
+                }
+                return;
+            }
             const current = editorEngine.elements.selected[0];
             if (current?.oid === targetOid && current?.domId === targetDomId) {
                 setActionElement((prev) => (prev ? { ...prev, textContent: next } : prev));

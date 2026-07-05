@@ -320,6 +320,20 @@ export class FramesManager {
         }
     }
 
+    /**
+     * Reloads only the frames belonging to `branchId`. A source change (font,
+     * asset rename/delete) lands in ONE branch's sandbox; other branches point
+     * at different sandboxes that never received the edit, so `reloadAllViews`
+     * would blank their canvases behind the boot overlay for no reason.
+     */
+    reloadByBranchId(branchId: string) {
+        for (const frameData of this.getAll()) {
+            if (frameData.frame.branchId === branchId) {
+                frameData.view?.reload();
+            }
+        }
+    }
+
     // Navigation history methods
     async goBack(frameId: string): Promise<void> {
         const previousPath = this._navigation.goBack(frameId);

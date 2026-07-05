@@ -44,6 +44,12 @@ export class PagesManager {
     private currentPath = '';
     private groupedRoutes = '';
     private _isScanning = false;
+    // Set when scanPages is called while a scan is already in flight. Instead of
+    // silently dropping the request (which left the Pages panel showing the
+    // previous branch's tree after a fast branch switch, and made
+    // create/rename/delete's own re-scan a no-op), we run exactly one more scan
+    // in the finally block so the final tree reflects the latest branch/state.
+    private _rescanRequested = false;
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -52,15 +58,33 @@ export class PagesManager {
     init() {}
 
     async scanPages() {
+        if (this._isScanning) {
+            // Coalesce concurrent requests into a single trailing re-scan.
+            this._rescanRequested = true;
+            return;
+        }
+        runInAction(() => {
+            this._isScanning = true;
+        });
+        // Snapshot the branch this scan is for. If the active branch changes
+        // while the async scan is in flight (branch switch), the resolved tree
+        // belongs to the wrong branch — discard it rather than install it over
+        // the now-active branch's panel.
+        const scannedBranchId = this.editorEngine.branches.hasActiveBranch
+            ? this.editorEngine.branches.activeBranch.id
+            : null;
         try {
-            if (this._isScanning) {
-                return;
-            }
-            runInAction(() => {
-                this._isScanning = true;
-            });
             const realPages = await scanPagesFromSandbox(this.editorEngine.activeSandbox);
             const settingsMap = await getPageSettingsMap(this.editorEngine.activeSandbox);
+            const currentBranchId = this.editorEngine.branches.hasActiveBranch
+                ? this.editorEngine.branches.activeBranch.id
+                : null;
+            if (currentBranchId !== scannedBranchId) {
+                // Branch switched mid-scan; a fresh scan for the new branch is
+                // (or will be) queued. Drop this stale result.
+                this._rescanRequested = true;
+                return;
+            }
             this.setPages(applyPageSettingsToNodes(realPages, settingsMap));
             return;
         } catch (error) {
@@ -73,6 +97,10 @@ export class PagesManager {
             runInAction(() => {
                 this._isScanning = false;
             });
+            if (this._rescanRequested) {
+                this._rescanRequested = false;
+                void this.scanPages();
+            }
         }
     }
 

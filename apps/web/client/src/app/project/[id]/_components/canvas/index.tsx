@@ -173,6 +173,14 @@ export const Canvas = observer(() => {
                 return;
             }
             event.preventDefault();
+            // Read the transform FRESH from the engine at event time. Trackpads
+            // emit 2+ wheel events per animation frame and MobX writes land
+            // immediately, so a closure snapshot (refreshed only on React
+            // commit) makes consecutive ticks each apply their delta to the
+            // same stale base — deltas overwrite instead of accumulating and
+            // fast pinch-zoom stutters. Mirrors the locked-canvas branch.
+            const scale = editorEngine.canvas.scale;
+            const position = editorEngine.canvas.position;
             const zoomFactor = -event.deltaY * ZOOM_SENSITIVITY;
             const rect = containerRef.current.getBoundingClientRect();
             const x = event.clientX - rect.left;
@@ -206,7 +214,7 @@ export const Canvas = observer(() => {
             );
             editorEngine.canvas.position = newPosition;
         },
-        [scale, position, editorEngine.canvas],
+        [editorEngine.canvas],
     );
 
     function clampZoom(scale: number) {
@@ -227,6 +235,11 @@ export const Canvas = observer(() => {
 
     const handlePan = useCallback(
         (event: WheelEvent) => {
+            // Fresh read (see handleZoom): consecutive wheel ticks within one
+            // React commit would otherwise each pan from the same stale base,
+            // dropping input on fast trackpad scroll.
+            const scale = editorEngine.canvas.scale;
+            const position = editorEngine.canvas.position;
             const deltaX = (event.deltaX + (event.shiftKey ? event.deltaY : 0)) * PAN_SENSITIVITY;
             const deltaY = (event.shiftKey ? 0 : event.deltaY) * PAN_SENSITIVITY;
 
@@ -239,7 +252,7 @@ export const Canvas = observer(() => {
             );
             editorEngine.canvas.position = newPosition;
         },
-        [scale, position, editorEngine.canvas],
+        [editorEngine.canvas],
     );
 
     const handleWheel = useCallback(

@@ -1,4 +1,4 @@
-import { processDom } from './dom.ts';
+import { processDomNow } from './dom.ts';
 import { listenForDomChanges } from './events/index.ts';
 import { cssManager } from './style/css-manager.ts';
 
@@ -18,7 +18,12 @@ function keepDomUpdated() {
 
     const interval = setInterval(() => {
         try {
-            if (processDom() !== null) {
+            // Use the IMMEDIATE variant: `processDom` is debounced and returns
+            // the last completed run's result (undefined on the first tick), so
+            // `!== null` was true on tick one and the interval cleared itself
+            // before ever attempting a real run — killing the child-side
+            // layer-tree self-heal during cold boot.
+            if (processDomNow() !== null) {
                 clearInterval(interval);
                 domUpdateInterval = null;
             }

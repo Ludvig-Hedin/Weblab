@@ -74,9 +74,18 @@ export const useTextControl = () => {
 
     const handleFontFamilyChange = (fontFamily: Font) => {
         editorEngine.style.updateFontFamily('fontFamily', fontFamily);
-        // Reload all views after a delay to ensure the font is applied
-        setTimeout(async () => {
-            await editorEngine.frames.reloadAllViews();
+        // Reload only the frames of the branch whose source we edited — the
+        // font change lands in that branch's sandbox, so reloading every branch
+        // would blank unrelated canvases behind the boot overlay for nothing.
+        const branchId =
+            editorEngine.elements.selected[0]?.branchId ??
+            (editorEngine.branches.hasActiveBranch ? editorEngine.branches.activeBranch.id : null);
+        setTimeout(() => {
+            if (branchId) {
+                editorEngine.frames.reloadByBranchId(branchId);
+            } else {
+                editorEngine.frames.reloadAllViews();
+            }
         }, 500);
     };
 

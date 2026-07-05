@@ -36,6 +36,17 @@ export class SandboxManager {
     readonly gitManager: GitManager;
     private providerReactionDisposer?: () => void;
     private sync: CodeProviderSync | null = null;
+    /**
+     * Latched by `clear()`. `init()` is invoked from `BranchManager.init`'s
+     * `Promise.all` AFTER an `await codeEditor.initialize()`, so a `clear()`
+     * (engine teardown / project switch) can land before `init()` even runs.
+     * Without this guard the continuation would start a session and register a
+     * `fireImmediately` provider reaction + refcounted `CodeProviderSync` that
+     * nothing ever disposes — a zombie sandbox stack per abandoned load.
+     * Per-branch instances are never reused after clear(), so a permanent
+     * latch is safe (a fresh SandboxManager is created on re-init).
+     */
+    private disposed = false;
     private offlineWatcher: OfflineWriteWatcher | null = null;
     private preloadRetryTimeout: ReturnType<typeof setTimeout> | null = null;
     private preloadRetryCount = 0;
@@ -74,6 +85,11 @@ export class SandboxManager {
     }
 
     async init() {
+        // Bail if this manager was already torn down while its enclosing
+        // BranchManager.init() was awaiting an earlier step (codeEditor
+        // initialize). Continuing would start a session and register the
+        // provider reaction / sync engine on a disposed manager.
+        if (this.disposed) return;
         // Defensive: a branch with no real sandbox id (test fixtures, synthetic
         // projects created directly via Convex mutation without forking a
         // CodeSandbox / Vercel Sandbox) used to throw
@@ -142,6 +158,14 @@ export class SandboxManager {
                         this.stopOfflineWatcher();
                         try {
                             await this.initializeSyncEngine(provider);
+                            // clear() may have landed while the sync engine was
+                            // starting (the reaction body is async and outlives
+                            // the disposer). Release what we just acquired
+                            // instead of leaking a running sync engine.
+                            if (this.disposed) {
+                                this.releaseSyncEngine();
+                                return;
+                            }
                         } catch (err) {
                             // 410 here means the Vercel sandbox got
                             // reclaimed between session start and the
@@ -543,6 +567,7 @@ export class SandboxManager {
     }
 
     clear() {
+        this.disposed = true;
         this.providerReactionDisposer?.();
         this.providerReactionDisposer = undefined;
         this.sync?.release();

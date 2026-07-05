@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 
 interface InputControlOptions {
@@ -14,9 +14,20 @@ export const useInputControl = (
 ) => {
     const { min, max } = options ?? {};
     const [localValue, setLocalValue] = useState<string>(String(value));
+    // Consumers attach this to their <input>. The sync effect below skips
+    // overwriting the draft while the field is focused.
+    const inputRef = useRef<HTMLInputElement>(null);
 
+    // Sync the draft from the committed value ONLY when the field isn't
+    // focused. Without the focus guard, the debounced commit's round-trip
+    // (style.update → recompute → new `value` prop) stomps the user's
+    // in-progress text mid-typing — type "1", pause >500ms, type "5" and the
+    // field snaps back to "1", losing the "5". Mirrors input-range.tsx /
+    // text-field.tsx / @weblab/ui number-input.
     useEffect(() => {
-        setLocalValue(String(value));
+        if (document.activeElement !== inputRef.current) {
+            setLocalValue(String(value));
+        }
     }, [value]);
 
     const clamp = (n: number): number => {
@@ -94,5 +105,5 @@ export const useInputControl = (
         };
     }, [debouncedOnChange]);
 
-    return { localValue, handleKeyDown, handleChange, handleBlur };
+    return { localValue, handleKeyDown, handleChange, handleBlur, inputRef };
 };

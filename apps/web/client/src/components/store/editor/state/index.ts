@@ -77,7 +77,13 @@ export class StateManager {
     pageSettingsWidth = 420;
 
     constructor() {
-        makeAutoObservable(this);
+        // Exclude the debounced field: makeAutoObservable wraps function-valued
+        // fields as actions, stripping lodash's `.cancel` — clear()'s
+        // `resetCanvasScrollingDebounced.cancel()` would then throw TypeError
+        // (same trap already fixed for saveCanvas / persistDebounced).
+        makeAutoObservable<this, 'resetCanvasScrollingDebounced'>(this, {
+            resetCanvasScrollingDebounced: false,
+        });
     }
 
     setEditorMode(mode: EditorMode) {

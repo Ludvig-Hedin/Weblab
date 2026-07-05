@@ -44,7 +44,7 @@ export const InputDropdown = ({
     onDropdownChange,
     onUnitChange,
 }: InputDropdownProps) => {
-    const { localValue, handleKeyDown, handleChange, handleBlur } = useInputControl(
+    const { localValue, handleKeyDown, handleChange, handleBlur, inputRef } = useInputControl(
         value,
         onChange,
         {
@@ -57,6 +57,7 @@ export const InputDropdown = ({
         <div className="flex items-center">
             <div className="bg-background-tertiary/50 flex h-[36px] min-w-[72px] flex-1 items-center justify-between rounded-l-md px-2.5">
                 <input
+                    ref={inputRef}
                     type="text"
                     inputMode="decimal"
                     pattern="[0-9]*\.?[0-9]*"

@@ -135,6 +135,12 @@ export class CommentManager {
     private loadPromise: Promise<void> | null = null;
     private commentsUnavailable = false;
     private hasLoggedLoadError = false;
+    // Latched by clear(); reset at the top of init(). init() is fired unawaited
+    // from EditorEngine.init() and awaits loadComments (auth + network). Without
+    // this guard, a clear() landing during that await would still let the
+    // continuation call startPolling — registering a 30s interval + a
+    // visibilitychange listener on a torn-down manager that nothing stops.
+    private disposed = false;
     private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
@@ -142,6 +148,7 @@ export class CommentManager {
     }
 
     async init() {
+        this.disposed = false;
         const projectId = this.editorEngine.projectId;
         // Set this here (not only in startPolling) so the comment mutations
         // — which refresh the UI via `if (this.currentProjectId) loadComments(...)`
@@ -150,6 +157,8 @@ export class CommentManager {
         this.currentProjectId = projectId;
         this.loadSeenIds(projectId);
         await this.loadComments(projectId);
+        // Bail if the manager was cleared while loadComments was awaiting.
+        if (this.disposed) return;
         if (!this.commentsUnavailable) {
             this.startPolling(projectId);
         }
@@ -276,7 +285,7 @@ export class CommentManager {
     }
 
     startPolling(projectId: string) {
-        if (this.commentsUnavailable) {
+        if (this.commentsUnavailable || this.disposed) {
             return;
         }
         this.currentProjectId = projectId;
@@ -444,6 +453,7 @@ export class CommentManager {
     }
 
     clear() {
+        this.disposed = true;
         if (this.currentProjectId) {
             this.saveSeenIds(this.currentProjectId);
         }

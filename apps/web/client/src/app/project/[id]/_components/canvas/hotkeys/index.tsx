@@ -14,6 +14,26 @@ import { OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { useStateManager } from '@/components/store/state';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 
+/**
+ * True when keyboard focus is in a text-entry surface (style-panel input,
+ * chat/composer, code editor, file-name field, contentEditable). Canvas
+ * clipboard/move shortcuts must yield to native behaviour there: every
+ * inspector input is mounted precisely BECAUSE a canvas element is selected,
+ * so the "is anything selected?" gate on those handlers never fires while the
+ * user is typing — Cmd+X would cut the element instead of the input text.
+ */
+const isEditableTarget = (): boolean => {
+    const el = document.activeElement;
+    if (!(el instanceof HTMLElement)) return false;
+    const tag = el.tagName;
+    return (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        el.isContentEditable
+    );
+};
+
 export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     const t = useTranslations('editor.canvas.hotkeys');
     const editorEngine = useEditorEngine();
@@ -603,6 +623,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('COPY'),
         (e) => {
+            if (isEditableTarget()) return;
             if (
                 editorEngine.elements.selected.length === 0 &&
                 editorEngine.frames.selected.length === 0
@@ -624,6 +645,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             // we use the same conditions as the gate. When neither is
             // true, yield to the native input handler so users can
             // paste text into chat/code/file-name fields normally.
+            if (isEditableTarget()) return;
             if (!editorEngine.copy.copied || editorEngine.elements.selected.length === 0) {
                 return;
             }
@@ -637,6 +659,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('CUT'),
         (e) => {
+            if (isEditableTarget()) return;
             if (
                 editorEngine.elements.selected.length === 0 &&
                 editorEngine.frames.selected.length === 0
@@ -657,6 +680,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('DUPLICATE'),
         (e) => {
+            if (isEditableTarget()) return;
             if (editorEngine.elements.selected.length > 0) {
                 e.preventDefault();
                 editorEngine.copy.duplicate();
@@ -682,6 +706,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('COPY_STYLES'),
         (e) => {
+            if (isEditableTarget()) return;
             if (editorEngine.elements.selected.length === 0) {
                 return;
             }
@@ -694,6 +719,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('PASTE_STYLES'),
         (e) => {
+            if (isEditableTarget()) return;
             if (editorEngine.elements.selected.length === 0) {
                 return;
             }
@@ -752,6 +778,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('MOVE_LAYER_UP'),
         (e) => {
+            if (isEditableTarget()) return;
             if (editorEngine.elements.selected.length === 0) return;
             e.preventDefault();
             editorEngine.move.moveSelected('up');
@@ -762,6 +789,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('MOVE_LAYER_DOWN'),
         (e) => {
+            if (isEditableTarget()) return;
             if (editorEngine.elements.selected.length === 0) return;
             e.preventDefault();
             editorEngine.move.moveSelected('down');

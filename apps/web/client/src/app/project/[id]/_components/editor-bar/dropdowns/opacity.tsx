@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-
 import { useTranslations } from 'next-intl';
 
 import {
@@ -41,10 +40,12 @@ const useOpacityControl = () => {
         }
     }, [editorEngine.elements.selected]);
 
+    // Commit a final percentage (0-100) to source as ONE undoable style action.
+    // Used by presets and by the input's blur/Enter commit — never per keystroke.
     const handleOpacityChange = (value: number) => {
-        setOpacity(value);
-        // Convert percentage to decimal (e.g., 50 -> 0.5)
-        const opacityDecimal = value / 100;
+        const clamped = Math.min(100, Math.max(0, value));
+        setOpacity(clamped);
+        const opacityDecimal = clamped / 100;
         const action = editorEngine.style.getUpdateStyleAction({
             opacity: opacityDecimal.toString(),
         });
@@ -58,17 +59,48 @@ export const Opacity = observer(() => {
     const t = useTranslations('editor.editorBar');
     const { opacity, handleOpacityChange } = useOpacityControl();
     const inputRef = useRef<HTMLInputElement>(null);
+    // Local draft so clearing the field to retype doesn't instantly commit
+    // opacity 0 to source (and snap the input back to "0"). The committed
+    // `opacity` seeds the draft; edits stay local until blur/Enter.
+    const [draft, setDraft] = useState<string>(String(opacity));
+
+    // Re-seed the draft from the committed value only while the field is not
+    // focused, so incoming selection changes don't stomp an in-progress edit.
+    useEffect(() => {
+        if (document.activeElement !== inputRef.current) {
+            setDraft(String(opacity));
+        }
+    }, [opacity]);
 
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'opacity-dropdown',
     });
 
+    // Hold the raw text as a draft; do NOT commit per keystroke. Empty/NaN is
+    // kept as a draft (not coerced to 0) so the element doesn't flash fully
+    // transparent while the user is mid-edit.
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let value = parseInt(e.target.value, 10);
-        if (isNaN(value)) value = 0;
-        if (value > 100) value = 100;
-        if (value < 0) value = 0;
-        handleOpacityChange(value);
+        setDraft(e.target.value);
+    };
+
+    // Commit on blur/Enter: parse, clamp, and write once. Invalid/empty drafts
+    // revert to the last committed value instead of committing 0.
+    const commitDraft = () => {
+        const parsed = parseInt(draft, 10);
+        if (isNaN(parsed)) {
+            setDraft(String(opacity));
+            return;
+        }
+        handleOpacityChange(parsed);
+        setDraft(String(Math.min(100, Math.max(0, parsed))));
+    };
+
+    const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            commitDraft();
+            inputRef.current?.blur();
+        }
     };
 
     const handleInputAreaClick = () => {
@@ -97,8 +129,10 @@ export const Opacity = observer(() => {
                             min={0}
                             max={100}
                             data-state={isOpen ? 'open' : 'closed'}
-                            value={opacity}
+                            value={draft}
                             onChange={onInputChange}
+                            onBlur={commitDraft}
+                            onKeyDown={onInputKeyDown}
                             onClick={(e) => e.stopPropagation()}
                             className="data-[state=open]:text-foreground text-small focus:text-foreground-primary group-hover:text-foreground-primary text-muted-foreground !hide-spin-buttons no-focus-ring w-8 [appearance:textfield] border-none !bg-transparent px-1 text-left transition-colors duration-150 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
                             aria-label={t('opacityPercentage')}

@@ -12,7 +12,11 @@ export class OverlayManager {
     private canvasReactionDisposer?: () => void;
 
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable(this);
+        // Exclude `refresh`: makeAutoObservable wraps function-valued fields
+        // as actions, stripping lodash's `.cancel` — clear()'s teardown-cancel
+        // would silently no-op and the trailing refresh would run against a
+        // cleared engine.
+        makeAutoObservable(this, { refresh: false });
     }
 
     init() {
@@ -152,5 +156,7 @@ export class OverlayManager {
     clear = () => {
         this.canvasReactionDisposer?.();
         this.canvasReactionDisposer = undefined;
+        // Cancel the trailing debounced refresh so it can't fire post-teardown.
+        this.refresh.cancel();
     };
 }

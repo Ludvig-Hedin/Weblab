@@ -33,19 +33,26 @@ const inputVariants = cva(
 
 type InputProps = Omit<React.ComponentProps<'input'>, 'size'> & VariantProps<typeof inputVariants>;
 
-function Input({ className, type, size, variant, ...props }: InputProps) {
-    return (
-        <input
-            type={type}
-            data-slot="input"
-            data-size={size ?? 'default'}
-            data-variant={variant ?? 'primary'}
-            className={cn(inputVariants({ size, variant }), className)}
-            {...props}
-            data-oid="eeefa768a4"
-        />
-    );
-}
+// forwardRef so callers can reach the DOM input (focus management, focus-guard
+// checks like the opacity toolbar's `document.activeElement === inputRef.current`).
+// Without it a passed `ref` is silently dropped and `ref.current` stays null.
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+    ({ className, type, size, variant, ...props }, ref) => {
+        return (
+            <input
+                ref={ref}
+                type={type}
+                data-slot="input"
+                data-size={size ?? 'default'}
+                data-variant={variant ?? 'primary'}
+                className={cn(inputVariants({ size, variant }), className)}
+                {...props}
+                data-oid="eeefa768a4"
+            />
+        );
+    },
+);
+Input.displayName = 'Input';
 
 export { Input, inputVariants };
 export type { InputProps };

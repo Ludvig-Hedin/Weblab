@@ -393,20 +393,33 @@ export class StyleManager {
     requestSourceRebase: ((oid: string, property: string) => void) | undefined = undefined;
 
     updateStyleNoAction(styles: CSSProperties) {
+        // Merge into `defined` AND `computed` — every consumer reads
+        // `styles.computed[prop]` / `styles.defined[prop]` (useStyleValue,
+        // editor-bar hooks, useStyleSetter's same-value short-circuit). A
+        // previous version spread the flat CSS keys at the top level next to
+        // `defined`/`computed`, so the optimistic mirror was invisible to all
+        // readers until the debounced post-edit re-click refreshed selection.
+        const flat: Record<string, string> = {};
+        for (const [property, value] of Object.entries(styles)) {
+            flat[property] = value == null ? '' : String(value);
+        }
+        const mergeInto = (selectedStyle: SelectedStyle): SelectedStyle => ({
+            ...selectedStyle,
+            styles: {
+                ...selectedStyle.styles,
+                defined: { ...selectedStyle.styles.defined, ...flat },
+                computed: { ...selectedStyle.styles.computed, ...flat },
+            },
+        });
+
         for (const [selector, selectedStyle] of this.domIdToStyle.entries()) {
-            this.domIdToStyle.set(selector, {
-                ...selectedStyle,
-                styles: { ...selectedStyle.styles, ...styles },
-            });
+            this.domIdToStyle.set(selector, mergeInto(selectedStyle));
         }
 
         if (this.selectedStyle == null) {
             return;
         }
-        this.selectedStyle = {
-            ...this.selectedStyle,
-            styles: { ...this.selectedStyle.styles, ...styles },
-        };
+        this.selectedStyle = mergeInto(this.selectedStyle);
     }
 
     private onSelectedElementsChanged(selectedElements: DomElement[]) {

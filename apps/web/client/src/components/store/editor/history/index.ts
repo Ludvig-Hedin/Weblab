@@ -255,6 +255,25 @@ export class HistoryManager {
         this.persistDebounced();
     };
 
+    /**
+     * Teardown for engine disposal (route change, project switch, re-init).
+     * Flushes any pending persist so the LAST state is saved, then drops the
+     * in-memory stacks. Does NOT touch persisted history — `hydrate()` on the
+     * next open restores undo/redo. (A previous version routed teardown
+     * through `clear()`, which wiped IndexedDB on every in-app navigation and
+     * silently defeated cross-session undo persistence.)
+     */
+    dispose = () => {
+        this.persistDebounced.flush();
+        this.undoStack = [];
+        this.redoStack = [];
+    };
+
+    /**
+     * Destructive reset: drops in-memory stacks AND deletes persisted history.
+     * Use only when the branch itself is going away (branch delete) — for
+     * engine teardown use `dispose()`.
+     */
     clear = () => {
         this.persistDebounced.cancel();
         this.undoStack = [];

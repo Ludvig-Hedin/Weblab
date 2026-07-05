@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-07-04 — Editor stability, performance & UX hardening sweep
+Author: Claude (Fable 5 → Opus 4.8)
+Area: editor core loop — `apps/web/client/src/components/store/editor/**`, `_components/canvas/**`, `right-panel/**`, `editor-bar/**`, `apps/web/preload/**`, `packages/ui/input`
+Summary: Evidence-based 10-dimension audit (56 raw → 36 candidates) with a 2-lens adversarial verify + hand-verification. Fixed 23 issues: blank-project boot dead-end (live vs stale bootstrap precedence), engine-teardown zombie sandbox/session/comment leaks (per-branch `disposed` latches — safe against StrictMode remount), penpal safe-fallback proxy contributing zero methods, canvas wheel stale-closure input drops, per-tick style-slider AST writes (now transaction-wrapped), `updateStyleNoAction` writing to the wrong object level, persisted-undo wipe on in-app nav (`dispose()` vs `clear()`), canvas hotkeys hijacking inspector-input text editing, numeric-input draft reset while typing, opacity force-committing 0 on clear, custom-property Tab flow, text-commit write-failure contract, text-edit-start rollback, stale selection-rect repaint, dead resize-drag overlay feedback, permanently-invisible overlay buttons, font change reloading all branches, branch-switch page-scan race, preload duplicate observers + broken cold-boot self-heal, three MobX `.cancel`-stripping debounce footguns (incl. a `StateManager.clear()` that would have thrown), and forwarded the `@weblab/ui/input` ref (was silently dropped). Confirmed-but-deferred: the responsive-rebase source-write corruption cluster, `isChildTextEditable` stub, post-ready sandbox reclaim recovery, and several perf items — all logged with exact next actions.
+Files: audit `docs/editor-stability-audit-2026-07-04.md`; `store/editor/{sandbox/index.ts,sandbox/session.ts,comment/index.ts,pages/index.ts,history/index.ts,branch/manager.ts,code/index.ts,action/index.ts,style/index.ts,text/index.ts,overlay/{index.ts,state.ts},frame-events/index.ts,frames/manager.ts,screenshot/index.tsx,state/index.ts,engine.ts,index.tsx}`; `_hooks/use-start-project.tsx`; `_components/canvas/{index.tsx,frame/view.tsx,hotkeys/index.tsx,overlay/elements/buttons/index.tsx}`; `right-panel/style-tab-{v2/controls/slider-field.tsx,v2/sections/custom-properties.tsx,v3/sections/text.tsx,v4/sections/text.tsx}`; `editor-bar/{dropdowns/opacity.tsx,hooks/{use-input-control.ts,use-text-control.ts},inputs/{input-dropdown.tsx,input-icon.tsx}}`; `preload/script/api/{ready.ts,events/index.ts}`; `packages/ui/src/components/input.tsx`; tests `overlay/state.test.ts`, `style/update-style-no-action.test.ts`, `history/dispose.test.ts`
+Links: audit doc; BACKLOG.md (deferred cluster); validation: `@weblab/web-client typecheck` 0, lint 0 errors, `bun test apps/web/client packages/parser packages/code-provider` 817 pass / 0 fail
+
+---
+
 ## 2026-06-23 — Sign-in auth provider hydration mismatch fixed
 Author: Codex
 Area: `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`, auth QA

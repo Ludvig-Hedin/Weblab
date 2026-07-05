@@ -84,6 +84,21 @@ export class TextEditingManager {
             );
         } catch (error) {
             console.error('Error starting text edit:', error);
+            // Roll back the iframe-side start: startEditingText may have already
+            // marked the element with data-weblab-editing-text, which the
+            // injected stylesheet hides with `opacity: 0`. If a later step threw
+            // (e.g. getComputedStyleByDomId returned null on a penpal hiccup)
+            // before targetDomEl was assigned, clean()'s guarded path can't
+            // reach stopEditingText — the element would stay invisible with no
+            // editor and no recovery short of an iframe reload. Best-effort
+            // clear the attribute here.
+            try {
+                const frameData = this.editorEngine.frames.get(el.frameId);
+                await frameData?.view?.stopEditingText(el.domId);
+            } catch (cleanupError) {
+                console.error('Error rolling back text edit start:', cleanupError);
+            }
+            this.editorEngine.overlay.state.removeTextEditor();
             // Reset the guard so a failure after it was set doesn't permanently
             // block editSelectedElement() for the rest of the session — it is
             // otherwise only reset in clean().

@@ -75,9 +75,14 @@ export class OverlayState {
     };
 
     updateClickedRects = (newRect: Partial<RectDimensions>) => {
-        for (const rect of this.clickRects) {
-            Object.assign(rect, newRect);
-        }
+        // Replace the array (and each element) rather than Object.assign-ing in
+        // place. The canvas overlay memoizes its rendered rects on the
+        // `clickRects` array reference; an in-place mutation never changes that
+        // reference, so the memo returned stale nodes and — worse — dropped the
+        // rect's width/height reads from the observer's tracked set, freezing
+        // resize-drag feedback entirely. A fresh array + fresh objects make the
+        // reactive update land.
+        this.clickRects = this.clickRects.map((rect) => ({ ...rect, ...newRect }));
     };
 
     updateClickRectStyles = (

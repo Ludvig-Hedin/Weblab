@@ -176,6 +176,21 @@ in `@weblab/framework` until their scaffolders land.
 
 Newest first. Append in `docs/agent-memory/feature-log.md` for the canonical record.
 
+- **2026-07-04** — Editor stability/perf/UX hardening sweep. 10-dimension
+  evidence-based audit → 23 fixes across the core editing loop: blank-project
+  boot dead-end (live vs stale bootstrap), engine-teardown zombie
+  sandbox/session/comment leaks (per-branch `disposed` latches), penpal
+  safe-fallback proxy, canvas wheel input drops, per-tick style-slider AST
+  writes, `updateStyleNoAction` wrong-level mirror, persisted-undo wipe on nav
+  (`dispose()` vs `clear()`), hotkeys hijacking inspector inputs, numeric-input
+  draft reset, opacity/custom-property/text-commit UX, overlay feedback,
+  branch-switch page-scan race, preload duplicate observers, MobX `.cancel`
+  footguns, `@weblab/ui/input` ref. Confirmed-but-deferred: responsive-rebase
+  corruption cluster, `isChildTextEditable` stub, post-ready sandbox reclaim,
+  perf items — all in `BACKLOG.md`. Audit:
+  `docs/editor-stability-audit-2026-07-04.md`. Validation: typecheck 0, lint 0
+  errors, 817 tests pass.
+
 - **2026-06-05** — Component registry + anti-slop design prompt (F-785), then
   extended to the **full catalog (1533)**. `component-registry/` catalogues all
   free shadcn/ui (78), shadcnblocks-free (293), Watermelon UI (964) + 198 vendored

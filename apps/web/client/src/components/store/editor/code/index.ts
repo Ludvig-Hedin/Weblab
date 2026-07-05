@@ -287,6 +287,21 @@ export class CodeManager {
         (args) => `${args.oid}::${args.property}`,
     );
 
+    /**
+     * Immediate (non-debounced) variant for callers that already debounced
+     * upstream — the ActionManager's per-key `scheduleSourceRebase` — and for
+     * the beforeunload flush path. `flushPendingRebases` previously routed
+     * through the debounced field above, which re-armed a fresh 600ms timer
+     * that never fired once the page unloaded, silently dropping the write.
+     */
+    writeResponsiveStyleNow(args: {
+        oid: string;
+        property: string;
+        valuesByBreakpoint: Record<BreakpointId, string>;
+    }): Promise<void> {
+        return this.undebouncedWriteResponsiveStyle(args);
+    }
+
     private async undebouncedWriteResponsiveStyle({
         oid,
         property,

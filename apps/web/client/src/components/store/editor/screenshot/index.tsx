@@ -14,7 +14,12 @@ export class ScreenshotManager {
     private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable(this);
+        // Exclude the debounced field: makeAutoObservable wraps function-valued
+        // fields as actions, stripping lodash's `.cancel` (same trap as
+        // saveCanvas / writeResponsiveStyle). Without this, clear()'s cancel is
+        // a silent no-op and the trailing capture fires 10s after teardown,
+        // hitting a Convex action for a project the user already left.
+        makeAutoObservable(this, { captureScreenshot: false });
     }
 
     get lastScreenshotAt() {
@@ -57,6 +62,7 @@ export class ScreenshotManager {
     }
 
     clear() {
+        this.captureScreenshot.cancel();
         this.lastScreenshotAt = null;
     }
 }

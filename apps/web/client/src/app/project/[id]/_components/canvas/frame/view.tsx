@@ -66,31 +66,55 @@ function looksLikeUpstreamErrorPage(doc: Document | null | undefined): boolean {
     return titleLooksLikeError || shortBodyMatches;
 }
 
-// Creates a proxy that provides safe fallback methods for any property access
-const createSafeFallbackMethods = (): PromisifiedPendpalChildMethods => {
-    return new Proxy({} as PromisifiedPendpalChildMethods, {
-        get(_target, prop: string | symbol) {
-            if (typeof prop === 'symbol') return undefined;
+// Safe no-op result for a single bridge method, matching the pre-connect
+// contract the rest of the editor expects (getters resolve null, counts 0,
+// capability checks false).
+const safeFallbackResult = (method: string): unknown => {
+    if (method.startsWith('get') || method.includes('capture') || method.includes('build')) {
+        return null;
+    }
+    if (method.includes('Count')) {
+        return 0;
+    }
+    if (method.includes('Editable') || method.includes('supports')) {
+        return false;
+    }
+    return undefined;
+};
 
-            return async (..._args: any[]) => {
-                const method = String(prop);
-                if (
-                    method.startsWith('get') ||
-                    method.includes('capture') ||
-                    method.includes('build')
-                ) {
-                    return null;
-                }
-                if (method.includes('Count')) {
-                    return 0;
-                }
-                if (method.includes('Editable') || method.includes('supports')) {
-                    return false;
-                }
-                return undefined;
-            };
-        },
-    });
+// The full set of penpal child methods. MUST stay in sync with the explicit
+// `remoteMethods` mapping below (and `PromisifiedPendpalChildMethods`) — the
+// two lists describe the same bridge surface. Kept as a real array (not an
+// interface) so the fallback can be materialised as own-enumerable properties.
+const PENPAL_METHOD_NAMES = [
+    'processDom', 'processDomNow', 'getElementAtLoc', 'getElementByDomId', 'getElementByOid',
+    'setFrameId', 'setBranchId', 'getElementIndex', 'getComputedStyleByDomId',
+    'updateElementInstance', 'getFirstWeblabElement', 'setElementType', 'getElementType',
+    'getParentElement', 'getChildrenCount', 'getChildElement', 'getOffsetParent',
+    'getActionLocation', 'getActionElement', 'getFigmaSceneData', 'getInsertLocation',
+    'getRemoveAction', 'getTheme', 'setTheme', 'startDrag', 'drag', 'dragAbsolute',
+    'endDragAbsolute', 'endDrag', 'endAllDrag', 'startEditingText', 'editText',
+    'stopEditingText', 'updateStyle', 'insertElement', 'removeElement', 'moveElement',
+    'groupElements', 'ungroupElements', 'insertImage', 'removeImage', 'isChildTextEditable',
+    'handleBodyReady', 'captureScreenshot', 'buildLayerTree', 'setCapabilities', 'setCmsData',
+    'findListAncestorOid', 'serializeDocumentForOffline', 'playInteraction', 'pauseInteraction',
+    'scrubInteraction', 'applyInitialStates', 'reloadInteractions', 'applyInteractionsConfig',
+    'listInteractionTargets',
+] as const;
+
+// Creates a plain object of safe fallback methods, used before penpal connects
+// (or after an in-place reload drops the channel). Must be a PLAIN OBJECT with
+// real own-enumerable function properties: the caller does
+// `Object.assign(iframe, { ...remoteMethods })`, and a get-only Proxy over an
+// empty target enumerates as `{}` — the spread would contribute ZERO methods,
+// leaving the registered view without any bridge method (`processDom is not a
+// function` on a still-booting frame).
+const createSafeFallbackMethods = (): PromisifiedPendpalChildMethods => {
+    const fallback: Record<string, (...args: any[]) => Promise<unknown>> = {};
+    for (const name of PENPAL_METHOD_NAMES) {
+        fallback[name] = async () => safeFallbackResult(name);
+    }
+    return fallback as unknown as PromisifiedPendpalChildMethods;
 };
 
 const canReadIframeDocument = (iframe: HTMLIFrameElement): boolean => {

@@ -161,6 +161,8 @@ export class EditorEngine {
         this.screenshot.clear();
         this.comment.clear();
         this.presence.clear();
+        this.screenshot.clear();
+        this.state.clear();
         this.snap.hideSnapLines();
     }
 
@@ -177,7 +179,16 @@ export class EditorEngine {
                 console.error('No frame view found');
                 continue;
             }
-            await frame.view.processDom();
+            // Guard per-frame: a frame still in its cold-boot handshake carries
+            // the safe-fallback bridge (processDom resolves null) or, on an
+            // in-place reload, can reject — either way one booting/broken frame
+            // must not abort the refresh for its already-connected siblings.
+            try {
+                if (typeof frame.view.processDom !== 'function') continue;
+                await frame.view.processDom();
+            } catch (error) {
+                console.warn('processDom failed for frame; skipping', frame.frame.id, error);
+            }
         }
     }
 }

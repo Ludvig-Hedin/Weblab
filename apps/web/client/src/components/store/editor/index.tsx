@@ -168,10 +168,6 @@ export const EditorEngineProvider = ({
         };
     }, []);
 
-    if (!isReady) {
-        return null;
-    }
-
     // Hold children until the first `initBranches` + `init` pair resolves.
     // Without this gate, observer components downstream read
     // `editorEngine.activeSandbox` on the first render — which calls

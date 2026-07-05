@@ -218,7 +218,7 @@ export const TextSection = observer(function TextSection() {
         try {
             const res = await frameData.view.editText(selected.domId, trimmed);
             if (!res) return;
-            await editorEngine.history.push({
+            const pushed = await editorEngine.history.push({
                 type: 'edit-text',
                 targets: [
                     {
@@ -231,6 +231,18 @@ export const TextSection = observer(function TextSection() {
                 originalContent: textContent,
                 newContent: trimmed,
             });
+            if (!pushed) {
+                // Source write failed — revert the optimistic iframe edit and
+                // leave the panel baseline unchanged so the user can retry the
+                // same text (the `trimmed === textContent` guard above would
+                // otherwise block a re-commit). Mirrors v4.
+                try {
+                    await frameData.view.editText(targetDomId, textContent);
+                } catch (revertError) {
+                    console.error('Error reverting failed text edit:', revertError);
+                }
+                return;
+            }
             // Skip the optimistic patch if selection moved on during the await
             // — the effect reloads fresh data for the new selection anyway.
             const current = editorEngine.elements.selected[0];

@@ -54,6 +54,17 @@ export class SessionManager {
      * snapshot and resets this flag on the next `start()`.
      */
     sandboxGone = false;
+    /**
+     * Latched by `clear()` (engine teardown / branch rebuild). `start()` and
+     * its retry loop are multi-second multi-await operations; without this
+     * flag a `clear()` that lands mid-retry is silently undone by the
+     * surviving continuation, which creates a live provider + terminal
+     * sessions + dev-server setup on an abandoned sandbox. Reconnect / restart
+     * / swap-to-online never call `clear()` (they destroy the provider and
+     * re-`start()` on the same instance), so a permanent latch is safe — a
+     * cleared SessionManager is never reused.
+     */
+    private disposed = false;
     terminalSessions = new Map<string, CLISession>();
     activeTerminalSessionId = 'cli';
     // Tracks the sandbox ID returned by the last successful sandbox.start call.
@@ -72,7 +83,7 @@ export class SessionManager {
         const MAX_RETRIES = 3;
         const RETRY_DELAY_MS = 2000;
 
-        if (this.isConnecting || this.provider) {
+        if (this.disposed || this.isConnecting || this.provider) {
             return;
         }
 
@@ -166,6 +177,14 @@ export class SessionManager {
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             try {
                 await attemptConnection();
+                // A clear() landed while attemptConnection was awaiting: the
+                // provider + terminals we just created belong to a disposed
+                // session. Tear them down instead of leaking a live provider
+                // (and its dev-server setup) for an abandoned sandbox.
+                if (this.disposed) {
+                    await this.clear();
+                    return;
+                }
                 runInAction(() => {
                     this.isConnecting = false;
                 });
@@ -219,6 +238,14 @@ export class SessionManager {
                 if (attempt < MAX_RETRIES) {
                     console.log(`Retrying sandbox connection in ${RETRY_DELAY_MS}ms...`);
                     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+                    // Bail if the session was torn down during the backoff so we
+                    // don't resurrect a provider on a disposed session.
+                    if (this.disposed) {
+                        runInAction(() => {
+                            this.isConnecting = false;
+                        });
+                        return;
+                    }
                 }
             }
         }
@@ -608,6 +635,9 @@ export class SessionManager {
     }
 
     async clear() {
+        // Latch disposed FIRST so any in-flight start()/retry sees it after its
+        // next await and tears down instead of resurrecting the session.
+        this.disposed = true;
         // probably need to be moved in `Provider.destroy()`
         this.terminalSessions.forEach((terminal) => {
             if (terminal.type === CLISessionType.TERMINAL) {
