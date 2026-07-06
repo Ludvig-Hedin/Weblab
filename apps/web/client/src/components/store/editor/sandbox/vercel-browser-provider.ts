@@ -387,16 +387,27 @@ export class VercelBrowserProvider extends Provider {
     }
 }
 
+// TODO(sandbox-watch): All three methods are intentional no-ops. Vercel Sandbox
+// has no server-push filesystem mechanism, so there is no event source to subscribe
+// to here. Sandbox → local propagation is dead: if a server-side process inside the
+// sandbox VM writes to the filesystem, those changes never reach the editor.
+// The working path is the reverse direction only — AI writes → ZenFS (in-browser
+// IndexedDB) → fs.watchFile() native event → editor buffer re-render.
+// To implement real watching we'd need either polling the sandbox for file changes
+// via tRPC, or a WebSocket event stream from the sandbox server pushing change events.
 class VercelBrowserFileWatcher extends ProviderFileWatcher {
     async start(_input: WatchFilesInput): Promise<void> {
+        // TODO(sandbox-watch): no-op — nothing to start; no sandbox-side push source exists.
         return undefined;
     }
 
     async stop(): Promise<void> {
+        // TODO(sandbox-watch): no-op — start() never registers a watcher, so nothing to tear down.
         return undefined;
     }
 
     registerEventCallback(_callback: (event: WatchEvent) => Promise<void>): void {
+        // TODO(sandbox-watch): no-op — callback is never invoked because no sandbox→local events fire.
         return undefined;
     }
 }
