@@ -1,6 +1,20 @@
 import type { T } from '../packages';
 import { t } from '../packages';
 
+// A bare `<br/>` is the line-break marker this function itself inserts between
+// text segments. On re-edit it must be treated as part of the OLD text run
+// (removed/replaced), not as "preserved markup" — otherwise every repeated
+// multi-line edit to the same node leaves its previous <br/> behind and they
+// accumulate without bound.
+function isTextRunLineBreak(child: T.JSXElement['children'][number]): boolean {
+    return (
+        t.isJSXElement(child) &&
+        child.openingElement.selfClosing &&
+        t.isJSXIdentifier(child.openingElement.name) &&
+        child.openingElement.name.name === 'br'
+    );
+}
+
 export function updateNodeTextContent(node: T.JSXElement, textContent: string): void {
     // TODO(bug-hunt): user text is written verbatim into a JSXText node, so
     // characters significant in JSX — `{`, `}`, `<`, `>` — are not escaped:
@@ -53,12 +67,14 @@ export function updateNodeTextContent(node: T.JSXElement, textContent: string): 
     // no-text-node branch above. Distributing text between multiple preserved
     // elements isn't recoverable once mixed content is flattened to one string,
     // so a single anchor point is the faithful reconstruction.
-    const firstTextIndex = node.children.findIndex((child) => t.isJSXText(child));
+    const firstTextIndex = node.children.findIndex(
+        (child) => t.isJSXText(child) || isTextRunLineBreak(child),
+    );
     const anchor = firstTextIndex === -1 ? 0 : firstTextIndex;
     // Explicit type: TS 5.5 infers `!isJSXText` as a negated type predicate and
     // would narrow this to exclude JSXText, rejecting the spliced-in text run.
     const preserved: T.JSXElement['children'] = node.children.filter(
-        (child) => !t.isJSXText(child),
+        (child) => !(t.isJSXText(child) || isTextRunLineBreak(child)),
     );
     preserved.splice(anchor, 0, ...newTextRun);
     node.children = preserved;

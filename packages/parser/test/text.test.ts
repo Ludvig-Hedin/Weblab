@@ -105,5 +105,21 @@ describe('updateNodeTextContent', () => {
             // two <br/> between three lines
             expect(out.match(/<br\s*\/>/g)?.length).toBe(2);
         });
+
+        // Regression: a <br/> is this function's OWN line-break marker. On
+        // re-edit it must be replaced along with the old text, not kept as
+        // "preserved markup" — otherwise every repeated multi-line edit to the
+        // same node leaves the previous <br/> behind and they pile up forever.
+        test('repeated multi-line edits do not accumulate stray <br/>', async () => {
+            const node = parseJsx('<p>Hello <strong>world</strong></p>');
+            updateNodeTextContent(node, 'line1\nline2');
+            updateNodeTextContent(node, 'line3\nline4');
+            updateNodeTextContent(node, 'L5\nL6');
+            const out = await generate(node);
+            expect(out.match(/<br\s*\/>/g)?.length).toBe(1);
+            expect(out.match(/<strong>/g)?.length).toBe(1);
+            expect(out).toContain('L5');
+            expect(out).toContain('L6');
+        });
     });
 });
