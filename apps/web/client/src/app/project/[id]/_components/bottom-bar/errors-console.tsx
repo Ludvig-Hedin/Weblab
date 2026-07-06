@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -64,11 +64,23 @@ const CopyButton = ({
     className?: string;
 }) => {
     const [copied, setCopied] = useState(false);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(
+        () => () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        },
+        [],
+    );
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onClick();
         setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => setCopied(false), 1500);
     };
     return (
         <Tooltip>
@@ -147,7 +159,7 @@ export const ErrorsConsole = observer(() => {
                         >
                             <Icons.ExclamationTriangle className="h-4 w-4" />
                             {errorCount > 0 && (
-                                <span className="bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-tiny leading-none font-medium">
+                                <span className="bg-destructive text-destructive-foreground text-tiny absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 leading-none font-medium">
                                     {errorCount > 99 ? '99+' : errorCount}
                                 </span>
                             )}
@@ -198,11 +210,11 @@ export const ErrorsConsole = observer(() => {
                             {t(transKeys.editor.panels.edit.tabs.chat.errors.cleanDevServer)}
                         </p>
                     ) : (
-                        errors.map((error: ParsedError) => {
+                        errors.map((error: ParsedError, idx: number) => {
                             const severity = classifySeverity(error.content);
                             return (
                                 <div
-                                    key={`${error.branchId}-${error.content}`}
+                                    key={`${error.branchId}-${idx}`}
                                     className={cn(
                                         'group mb-2 rounded-md border p-2 last:mb-0',
                                         SEVERITY_BORDER[severity],

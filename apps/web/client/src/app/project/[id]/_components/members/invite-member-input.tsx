@@ -12,6 +12,20 @@ import { toast } from '@weblab/ui/sonner';
 
 import type { Id } from '@convex/_generated/dataModel';
 
+// Server errors are prefixed with a code (`CONFLICT:`, `BAD_REQUEST:`, ...) —
+// strip the code for display. Errors with no recognized prefix are server
+// internals (e.g. "RESEND_API_KEY is not set") and must not reach the user.
+const KNOWN_ERROR_PREFIXES = ['CONFLICT', 'BAD_REQUEST', 'NOT_FOUND', 'FORBIDDEN'];
+
+function friendlyInviteError(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    const prefix = KNOWN_ERROR_PREFIXES.find((code) => message.startsWith(`${code}:`));
+    if (prefix) {
+        return message.slice(prefix.length + 1).trim();
+    }
+    return 'Could not send the invitation. Please try again.';
+}
+
 export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
     const [email, setEmail] = useState('');
     // Default to EDITOR — granting MANAGER (admin-equivalent) on every invite is too aggressive.
@@ -25,7 +39,7 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
         try {
             setIsLoading(true);
             await createInvitation({
-                inviteeEmail: email,
+                inviteeEmail: email.trim().toLowerCase(),
                 memberRole: selectedRole,
                 projectId: projectId as Id<'projects'>,
             });
@@ -33,7 +47,7 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
             toast.success('Invitation sent');
         } catch (error) {
             toast.error('Failed to invite member', {
-                description: error instanceof Error ? error.message : String(error),
+                description: friendlyInviteError(error),
             });
         } finally {
             setIsLoading(false);

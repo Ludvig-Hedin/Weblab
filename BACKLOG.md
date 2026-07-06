@@ -1838,17 +1838,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** First PR that imports `api.layoutGuideStyles` will fail CI; reviewer will have to ask "did you re-run codegen?" instead of the diff being clean.
 - **Tags:** `#docs` `#dx` `#convex`
 
-### F-335 — Aborted restart leaves the button spinner stuck forever
-
-- **Resolved:** 2026-05-28 (backlog user-flow sweep) — verified fixed in code: [restart-sandbox-button.tsx:213-221](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L213) now resets `restarting` / `restartElapsedSec` / `restartGraceUntilRef` on the abort path before returning. Stale entry.
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/restart-sandbox-button.tsx:214](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L214)
-- **Symptom:** User clicks Restart Sandbox once → cancels (unmounts mid-restart or grace-window expires) → button stays in `restarting=true` spinner state, `restartElapsedSec` keeps the last value, `restartGraceUntilRef.current` keeps the future timestamp. The button is permanently disabled (`disabled={... || restarting}`) until the component remounts.
-- **Root cause:** `if (abortController.signal.aborted) return;` exits early without calling `setRestarting(false)` / `setRestartElapsedSec(0)` / `restartGraceUntilRef.current = null`.
-- **Next step:** mirror the cleanup block from the success path before the `return`.
-- **Risk if ignored:** any abort path (route change during restart, sibling sandbox change, manual cancel) bricks the bottom-bar restart UI; user must reload the page.
-- **Tags:** `#bug` `#editor` `#bottom-bar`
-
 ### F-313 ImgSelected toolbar variant is dead code — never dispatched
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
@@ -1869,52 +1858,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Partial fix (2026-05-29):** `BranchManager.createBlankSandbox` now surfaces a `toast.error` with the structured `ConvexError` message as the description (see [branch/manager.ts](apps/web/client/src/components/store/editor/branch/manager.ts) + [convex/lib/sandboxErrors.ts](apps/web/client/convex/lib/sandboxErrors.ts)). `forkBranch` (the stub at `branch-controls.tsx`) is still `console.error`-only — this entry stays open for it.
 - **Risk if ignored:** user thinks the button is dead; reports a "nothing happens" bug; T-361 keeps failing.
 - **Tags:** `#bug` `#editor` `#branch` `#disabled-contract`
-
-### F-333 — ErrorsConsole keys errors by `branchId + content` → duplicate keys
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/errors-console.tsx:205](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx#L205)
-- **Symptom:** Two identical error strings on the same branch (very common during HMR — `Module not found: 'foo'` repeated) → React warning "Each child in a list should have a unique key" + the second occurrence shares the first's reconciled state (CopyButton "Copied" tick bleeds across rows).
-- **Root cause:** `key={\`${error.branchId}-${error.content}\`}` is not unique under repeat errors.
-- **Next step:** add `error.id` to `ParsedError` upstream (uuid per parse) and key by that. As a quick fix: `key={\`${error.branchId}-${idx}-${hashOfContent}\`}` using `useId` or the index.
-- **Risk if ignored:** subtle UI state leaks between rows; React warning fatigue masks future real warnings.
-- **Tags:** `#bug` `#editor` `#bottom-bar`
-
-### F-333 — `CopyButton` setTimeout not cleared on unmount
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/errors-console.tsx:66-72](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx#L66)
-- **Symptom:** Close the errors popover within 1.5s of clicking Copy → React fires `setCopied(false)` on an unmounted component → "Can't perform a React state update on an unmounted component" warning + held closure.
-- **Next step:** store timeout id in a `useRef` and clear it in a cleanup effect; or migrate the copy-flash UX to a `useEffect` driven by `copied` state.
-- **Tags:** `#bug` `#editor` `#bottom-bar`
-
-### F-301 — `formatRelativeTime` returns `"NaNm ago"` on invalid date
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/right-panel/comments-tab/index.tsx:14-25](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L14)
-- **Symptom:** If `comment.createdAt` arrives as malformed string (Convex serialization edge case), `new Date(...).getTime()` is `NaN` → time label renders `"NaNm ago"`.
-- **Root cause:** no `Number.isNaN(d.getTime())` guard, no future-date guard either (negative `diff`).
-- **Next step:** `if (Number.isNaN(d.getTime())) return ''; if (diff < 0) return 'in the future';`. Better yet, swap to `Intl.RelativeTimeFormat`.
-- **Risk if ignored:** broken time label across the comment list whenever the upstream serialization changes.
-- **Tags:** `#bug` `#editor` `#comments`
-
-### F-360 — Invite-member toast leaks raw Convex error message
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/members/invite-member-input.tsx:35-37](apps/web/client/src/app/project/[id]/_components/members/invite-member-input.tsx#L35)
-- **Symptom:** When `api.projectInvitationActions.create` throws, the raw `error.message` is shown in the toast description. Convex errors can include stack frames, table names, and request IDs.
-- **Root cause:** `description: error instanceof Error ? error.message : String(error)` — verbatim pass-through.
-- **Next step:** map known error codes (`USER_ALREADY_INVITED`, `INVALID_EMAIL`, `NO_INVITE_CAP`, …) to user-readable strings; only show raw `message` in `NODE_ENV !== 'production'`.
-- **Risk if ignored:** internal API names + request IDs visible to end users on every error; unprofessional + small info leak.
-- **Tags:** `#bug` `#editor` `#members` `#error-handling`
-
-### F-360 — Invite-member email not normalized client-side (trim + lowercase)
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/members/invite-member-input.tsx:27-32](apps/web/client/src/app/project/[id]/_components/members/invite-member-input.tsx#L27)
-- **Symptom:** `"  Foo@Bar.COM  "` is sent verbatim → server-side dedupe may store it as a different invitation than `foo@bar.com` → pending-invites list shows both rows.
-- **Next step:** `inviteeEmail: email.trim().toLowerCase()` before the mutation call. Verify server canonicalizes too.
-- **Tags:** `#bug` `#editor` `#members`
 
 ### F-402 — NonProjectSettingsModal missing `'use client'`, ARIA, focus trap
 
@@ -2686,6 +2629,30 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### F-335 — Aborted restart leaves the button spinner stuck forever
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — [restart-sandbox-button.tsx:213-221](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L213) resets `restarting` / `restartElapsedSec` / `restartGraceUntilRef` on the abort path before returning.
+- **Tags:** `#bug` `#editor` `#bottom-bar`
+
+### F-301 — `formatRelativeTime` returns `"NaNm ago"` on invalid date
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `comments-tab/index.tsx:14-19` guards `Number.isNaN(d.getTime())` (returns `''`) and negative `diff` (returns `'just now'`).
+- **Tags:** `#bug` `#editor` `#comments`
+
+### F-333 — ErrorsConsole keys errors by `branchId + content` → duplicate keys, and `CopyButton` setTimeout not cleared on unmount
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — [errors-console.tsx](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx): list key is now `${error.branchId}-${idx}` (unique per render, no more cross-row `CopyButton` state bleed); `CopyButton`'s `setTimeout` is tracked in a `useRef` and cleared on unmount and on rapid re-clicks.
+- **Tags:** `#bug` `#editor` `#bottom-bar`
+
+### F-360 — Invite-member toast leaks raw Convex error message, and email not normalized client-side
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — [invite-member-input.tsx](apps/web/client/src/app/project/[id]/_components/members/invite-member-input.tsx): email is `.trim().toLowerCase()`d before the mutation call; the catch block now maps the server's coded errors (`CONFLICT:`/`BAD_REQUEST:`/`NOT_FOUND:`/`FORBIDDEN:` prefixes, stripped for display) to a friendly message, falling back to a generic string for anything else (server internals like a missing `RESEND_API_KEY` no longer reach the toast).
+- **Tags:** `#bug` `#editor` `#members` `#error-handling`
 
 ### `/sign-in` React #418 from SSR/client auth-provider divergence
 
