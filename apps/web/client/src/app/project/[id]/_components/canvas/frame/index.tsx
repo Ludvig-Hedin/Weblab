@@ -241,6 +241,13 @@ export const FrameView = observer(
             hasTimedOut,
             isPenpalConnected,
         });
+        // A sandbox reclaimed AFTER the bridge came up (provider TTL, ~30 min)
+        // previously had no recovery surface: penpal keeps serving DOM ops so
+        // the frame looks healthy, but every code write/AI/terminal call fails
+        // — and isFrameReady never flips back. Treat a post-ready reclaim as
+        // not-ready so the liveness probe + restore/auto-restore flow below
+        // re-engages instead of failing silently until a manual reload.
+        const sandboxReclaimed = branchData?.sandbox?.session.sandboxGone ?? false;
         // CodeSandbox can insert a trust prompt before the app boots, which
         // leaves Penpal disconnected. We unlock the iframe by switching to
         // PREVIEW so the user can dismiss it. But this must NOT fire on the
@@ -297,8 +304,11 @@ export const FrameView = observer(
         // start — that's what reveals the site within a second or two of the
         // port binding instead of after the 30s soft hint.
         const livenessEnabled =
-            !isFrameReady &&
-            (isLocalFrame || bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1);
+            // Post-ready reclaim: probe immediately — the 410 confirmation is
+            // what routes into the restore/auto-restore flow.
+            sandboxReclaimed ||
+            (!isFrameReady &&
+                (isLocalFrame || bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1));
         const livenessState = useSandboxLiveness(
             frame.branchId as Id<'branches'>,
             frame.url,
@@ -583,7 +593,7 @@ export const FrameView = observer(
                     )}
                     <GestureScreen frame={frame} isResizing={isResizing} />
 
-                    {(!isFrameReady || !frame.url) &&
+                    {(!isFrameReady || sandboxReclaimed || !frame.url) &&
                         !localPreviewReady &&
                         !shouldTemporarilyUnlockPreview && (
                         <div

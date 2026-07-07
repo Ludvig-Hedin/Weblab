@@ -153,7 +153,7 @@ export const GestureScreen = observer(
                                 // text-bound element inside an instance edits
                                 // THAT instance's value, not the master. Takes
                                 // priority over entering master edit.
-                                if (el.oid && (await frameData.view.isChildTextEditable(el.oid)) === true) {
+                                if (el.oid && (await editorEngine.text.isChildTextEditable(el)) === true) {
                                     const propTarget =
                                         await components.resolveInstanceTextProp(el);
                                     if (propTarget) {
@@ -199,7 +199,7 @@ export const GestureScreen = observer(
                             }
                             if (
                                 el.oid &&
-                                (await frameData.view.isChildTextEditable(el.oid)) === true
+                                (await editorEngine.text.isChildTextEditable(el)) === true
                             ) {
                                 await editorEngine.text.start(el, frameData.view);
                             } else if (el.oid) {

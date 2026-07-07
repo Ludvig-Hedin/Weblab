@@ -1,10 +1,12 @@
 import { makeAutoObservable } from 'mobx';
 
 import type { DomElement, EditTextResult, ElementPosition } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '../engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { adaptRectToCanvas } from '../overlay/utils';
+import { canEditJsxChildrenAsText, isHtmlSourcePath } from './editable';
 
 export class TextEditingManager {
     private targetDomEl: DomElement | null = null;
@@ -31,21 +33,54 @@ export class TextEditingManager {
         return this.targetDomEl;
     }
 
+    /**
+     * Source-AST editability gate. The preload's DOM-side check cannot tell
+     * static text from a rendered `{expression}` (both are text nodes), so the
+     * verdict comes from the element's source snippet via the code index.
+     * `true` = safe to inline-edit; `false` = dynamic/markup children;
+     * `null` = can't determine (no metadata / unparsable snippet).
+     */
+    async isChildTextEditable(el: Pick<DomElement, 'oid' | 'branchId'>): Promise<boolean | null> {
+        if (!el.oid) {
+            return null;
+        }
+        const branchData = this.editorEngine.branches.getBranchDataById(el.branchId);
+        if (!branchData) {
+            return null;
+        }
+        try {
+            const metadata = await branchData.codeEditor.getJsxElementMetadata(el.oid);
+            if (!metadata) {
+                return null;
+            }
+            if (isHtmlSourcePath(metadata.path)) {
+                return true;
+            }
+            return canEditJsxChildrenAsText(metadata.code);
+        } catch (error) {
+            console.error('Error checking text editability:', error);
+            return null;
+        }
+    }
+
     async start(
         el: DomElement,
         frameView: IFrameView,
         commitOverride?: (newContent: string) => Promise<void>,
     ): Promise<void> {
+        const isEditable = await this.isChildTextEditable(el);
+        if (isEditable !== true) {
+            // Nothing has been started iframe-side yet — safe to bail without
+            // rollback. Surface why, or double-click looks silently broken.
+            toast.info(
+                isEditable === null
+                    ? 'Could not verify this text is safe to edit inline — edit it in code instead.'
+                    : 'This text is dynamic — edit it in code or ask AI to change it.',
+            );
+            return;
+        }
         try {
             this.commitOverride = commitOverride ?? null;
-            const isEditable = await frameView.isChildTextEditable(el.oid ?? '');
-            if (isEditable !== true) {
-                throw new Error(
-                    isEditable === null
-                        ? "Can't determine if text is editable"
-                        : "Can't edit text because it's not plain text. Edit in code or use AI.",
-                );
-            }
 
             const res = await frameView.startEditingText(el.domId);
             if (!res) {
