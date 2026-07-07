@@ -1150,7 +1150,7 @@ gaps rather than mechanical fixes.
 
 - **Discovered:** 2026-06-13 (editor hotkeys + style-control bug fix session; 10 bugs fixed in the same session). Each item has a matching `TODO(bug-hunt)` comment in code.
   1. **UNDO/REDO hijack native text undo** — `apps/web/client/src/app/project/[id]/_components/canvas/hotkeys/index.tsx` (UNDO/REDO bindings): both run with `enableOnFormTags + enableOnContentEditable`, so cmd+z/cmd+shift+z fire the canvas history even when focus is in a text field, hijacking the browser's native text undo. Possibly intentional Figma parity, but pairs badly with stale-draft commits. Next step: canvas-ownership gate (like COPY/PASTE) or yield when focus is in an editable field with its own undo stack. `#bug`
-  2. **Space / middle-mouse pan-end always forces DESIGN mode** — `canvas/hotkeys/index.tsx` (space keyup) + `canvas/index.tsx` (`middleMouseButtonUp`): both reset to DESIGN on pan-end instead of restoring the mode active before the pan, so panning while in PREVIEW/COMMENT/CMS drops the user into DESIGN. Next step: capture the prior mode on pan-start and restore it. `#bug`
+  2. ~~**Space / middle-mouse pan-end always forces DESIGN mode**~~ — FIXED 2026-07-07. Space-key pan restore had already landed; middle-mouse pan now snapshots and restores the previous editor mode instead of forcing DESIGN. See Resolved.
   3. **Layer eye-toggle desyncs from undo** — `left-panel/design-panel/layers-tab/tree/tree-node.tsx` (`toggleVisibility`): mutates `node.data.isVisible` locally outside the undo action, so undoing the visibility change reverts the style but leaves the eye icon desynced. Next step: drive `isVisible` from committed style, or refresh on undo/redo. `#bug`
 
 ### Bug-hunt 2026-06-13 — deferred findings (main-user-flow sweep)
@@ -2298,6 +2298,12 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Editor pan-end restores the previous mode
+
+- **Discovered:** 2026-06-13 (editor hotkeys + canvas deferred findings)
+- **Resolved:** 2026-07-07 — `canvas/index.tsx` now stores the mode active before middle-mouse panning and restores it on mouseup, matching the already-fixed space-key pan behavior. Panning while in PREVIEW/COMMENT/CMS no longer drops the user into DESIGN.
+- **Tags:** `#bug` `#editor` `#user-flow`
 
 ### ~~ESLint config — `react-hooks/exhaustive-deps` rule unregistered at inline disable sites~~ FALSE ALARM (2026-07-07)
 

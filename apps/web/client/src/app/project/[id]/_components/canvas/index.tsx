@@ -47,6 +47,7 @@ export const Canvas = observer(() => {
     const editorEngine = useEditorEngine();
     const t = useTranslations('editor.canvas');
     const containerRef = useRef<HTMLDivElement>(null);
+    const middleMousePriorModeRef = useRef<EditorMode | null>(null);
     const scale = editorEngine.canvas.scale;
     const position = editorEngine.canvas.position;
     const [isDragSelecting, setIsDragSelecting] = useState(false);
@@ -162,7 +163,7 @@ export const Canvas = observer(() => {
         [isDragSelecting, dragSelectStart, updateFramesInSelection, editorEngine],
     );
 
-    const handleCanvasMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
+    const handleCanvasMouseUp = (_event: React.MouseEvent<HTMLDivElement>) => {
         // Mouse up is now handled by the global listener in useEffect
         // This function is kept for consistency but the logic is in the global handler
     };
@@ -318,14 +319,10 @@ export const Canvas = observer(() => {
         [handleZoom, handlePan, editorEngine],
     );
 
-    // TODO(bug-hunt): like the space-keyup handler in canvas/hotkeys/index.tsx,
-    // this always forces DESIGN mode on middle-mouse pan-end instead of
-    // restoring the mode that was active before the pan started. Middle-drag to
-    // pan while in PREVIEW/COMMENT/CMS drops the user into DESIGN. Capture the
-    // prior mode in middleMouseButtonDown and restore it here.
     const middleMouseButtonUp = useCallback<(e: MouseEvent) => void>((e) => {
         if (e.button === 1) {
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            editorEngine.state.setEditorMode(middleMousePriorModeRef.current ?? EditorMode.DESIGN);
+            middleMousePriorModeRef.current = null;
             editorEngine.state.setCanvasPanning(false);
             e.preventDefault();
             e.stopPropagation();
@@ -338,6 +335,9 @@ export const Canvas = observer(() => {
             // No middle-mouse pan while the canvas is locked.
             if (editorEngine.state.canvasLocked) return;
             if (e.button === 1) {
+                if (editorEngine.state.editorMode !== EditorMode.PAN) {
+                    middleMousePriorModeRef.current = editorEngine.state.editorMode;
+                }
                 editorEngine.state.setEditorMode(EditorMode.PAN);
                 editorEngine.state.setCanvasPanning(true);
                 e.preventDefault();

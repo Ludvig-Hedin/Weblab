@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-06-23.
+Last updated: 2026-07-07.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the
@@ -175,6 +175,15 @@ in `@weblab/framework` until their scaffolders land.
 ## Recent Significant Ships
 
 Newest first. Append in `docs/agent-memory/feature-log.md` for the canonical record.
+
+- **2026-07-07** — Transcribe anti-spam cap moved from the old per-process
+  in-memory helper to Convex (`convex/transcribeRateLimit.ts`) with one bounded
+  rolling timestamp log per user, plus daily stale-row cleanup. This keeps
+  `/api/transcribe` at 10 requests/minute across Railway replicas instead of
+  per Node process. Unit coverage: `convex/lib/transcribeRateLimit.test.ts`.
+  The same full user-flow bug hunt also fixed local folder import framework
+  validation after auto-detect, middle-mouse pan mode restore, and async text
+  edit cleanup races.
 
 - **2026-07-04** — Editor stability/perf/UX hardening sweep. 10-dimension
   evidence-based audit → 23 fixes across the core editing loop: blank-project

@@ -97,7 +97,7 @@ export const GestureScreen = observer(
                                 return;
                             }
                             // Ignore right-clicks
-                            if (e.button == 2) {
+                            if (e.button === 2) {
                                 break;
                             }
                             const wasTextEditing = editorEngine.text.isEditing;
@@ -455,10 +455,14 @@ export const GestureScreen = observer(
             await editorEngine.insert.end(e, frameData.view);
         }
 
-        const handleDragOver = async (e: React.DragEvent<HTMLDivElement>) => {
+        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
             e.stopPropagation();
-            await handleMouseEvent(e, MouseAction.MOVE);
+            // Native dragover fires continuously (often faster than once per
+            // frame); calling handleMouseEvent directly issued one penpal
+            // getElementAtLoc RPC per event. Route through the same 16ms
+            // throttle the mousemove path uses.
+            void throttledMouseMove(e);
         };
 
         const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {

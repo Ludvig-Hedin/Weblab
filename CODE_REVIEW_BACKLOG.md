@@ -1,5 +1,38 @@
 # Code Review Backlog
 
+## Bug Hunt — 2026-07-07 — full user-flow pass
+
+Reviewed changed and broader user-flow surfaces across `/api/transcribe`,
+Convex metering/cleanup, local folder import, canvas mode transitions, and text
+editing. Only verified defects were fixed; suspected but unproven issues were
+left alone.
+
+### Auto-fixed this pass
+
+- **F-476 transcribe rate limit** — replaced the per-process in-memory helper
+  with a Convex-backed rolling-window mutation and stale-row cron cleanup. This
+  keeps the 10 requests/minute cap per user across Railway replicas.
+- **Local folder import framework validation** — `autoDetectFramework` now
+  returns the detected framework and the folder picker validates with that value
+  immediately, so static HTML folders are not rejected by the previous render's
+  Next.js adapter.
+- **Canvas middle-mouse panning** — pan-end now restores the previous editor
+  mode instead of forcing DESIGN.
+- **Text edit session races** — start/end/cleanup now snapshot the active edit
+  session so overlapping async stops cannot commit or clear a newer editor.
+- **Strict equality cleanup** — replaced three verified loose numeric/length
+  comparisons with strict equality.
+
+### Validation
+
+- Targeted unit test: `bun test apps/web/client/convex/lib/transcribeRateLimit.test.ts`
+- Typecheck: `bun typecheck`
+- Lint: targeted ESLint error-only pass on touched source files. Package lint
+  `bun --filter @weblab/web-client lint` reports 0 errors but exits non-zero
+  because 16,724 pre-existing warnings exceed the package's
+  `--max-warnings 5000` threshold; full workspace `bun lint` also remains blocked by unrelated
+  existing lint/config failures outside this patch.
+
 ## Full-Repo Review Pass — 2026-06-14 — editor i18n (canvas + style panel) + masked build break
 
 Reviewed all local changes: **46 uncommitted files** (45 i18n editor files —

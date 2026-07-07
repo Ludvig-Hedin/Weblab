@@ -1,12 +1,18 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { DomElement, EditTextResult, ElementPosition } from '@weblab/models';
+import type { DomElement, ElementPosition } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '../engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { adaptRectToCanvas } from '../overlay/utils';
 import { canEditJsxChildrenAsText, isHtmlSourcePath } from './editable';
+
+interface TextEditSessionSnapshot {
+    targetDomEl: DomElement;
+    originalContent: string | null;
+    commitOverride: ((newContent: string) => Promise<void>) | null;
+}
 
 export class TextEditingManager {
     private targetDomEl: DomElement | null = null;
@@ -68,8 +74,14 @@ export class TextEditingManager {
         frameView: IFrameView,
         commitOverride?: (newContent: string) => Promise<void>,
     ): Promise<void> {
+        if (this.shouldNotStartEditing || this.targetDomEl) {
+            return;
+        }
+        this.shouldNotStartEditing = true;
+
         const isEditable = await this.isChildTextEditable(el);
         if (isEditable !== true) {
+            this.shouldNotStartEditing = false;
             // Nothing has been started iframe-side yet — safe to bail without
             // rollback. Surface why, or double-click looks silently broken.
             toast.info(
@@ -98,8 +110,7 @@ export class TextEditingManager {
             const { originalContent } = res;
             this.targetDomEl = el;
             this.originalContent = originalContent;
-            this.shouldNotStartEditing = true;
-            this.editorEngine.history.startTransaction();
+            void this.editorEngine.history.startTransaction();
 
             const adjustedRect = adaptRectToCanvas(el.rect, frameView);
             const isComponent = el.instanceId !== null;
@@ -110,10 +121,10 @@ export class TextEditingManager {
                 this.originalContent,
                 el.styles?.computed ?? {},
                 (content: string) => {
-                    this.edit(content);
+                    void this.edit(content);
                 },
                 () => {
-                    this.end();
+                    void this.end();
                 },
                 isComponent,
             );
@@ -163,17 +174,28 @@ export class TextEditingManager {
     }
 
     async end(): Promise<void> {
+        // Captured at entry: end() awaits penpal RPCs, so every step below
+        // must act on THIS session's element even if callers race cleanup.
+        const target = this.targetDomEl;
+        const commitOverride = this.commitOverride;
+        const session = target
+            ? {
+                  targetDomEl: target,
+                  originalContent: this.originalContent,
+                  commitOverride,
+              }
+            : null;
         try {
-            if (!this.targetDomEl) {
+            if (!target) {
                 throw new Error('No target dom element to stop editing');
             }
 
-            const frameData = this.editorEngine.frames.get(this.targetDomEl.frameId);
+            const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {
                 throw new Error('No frameView found for end text editing');
             }
 
-            const res = await frameData.view.stopEditingText(this.targetDomEl.domId);
+            const res = await frameData.view.stopEditingText(target.domId);
             if (!res) {
                 throw new Error('Failed to stop editing text. No result returned');
             }
@@ -182,14 +204,19 @@ export class TextEditingManager {
                 newContent: string;
                 domEl: DomElement;
             };
-            if (this.commitOverride) {
+            if (commitOverride) {
                 // Per-instance prop edit: don't write the master's text; the
                 // override persists the value at the instance usage site. The
                 // live DOM change reverts on the next reprocess and is replaced
                 // by the re-rendered instance.
-                await this.commitOverride(newContent);
+                await commitOverride(newContent);
             } else {
-                await this.handleEditedText(domEl, newContent, frameData.view);
+                await this.handleEditedText(
+                    domEl,
+                    newContent,
+                    frameData.view,
+                    session ?? undefined,
+                );
             }
         } catch (error) {
             console.error('Error ending text edit:', error);
@@ -199,11 +226,19 @@ export class TextEditingManager {
             // start() — skipping it left editing permanently blocked with an
             // open transaction. clean() is safe here: its own frame/view
             // lookups are guarded and stopEditingText errors are caught.
-            await this.clean();
+            await this.clean(target ?? undefined);
         }
     }
 
-    async clean(): Promise<void> {
+    /**
+     * @param expected When provided, clean only tears down if this element is
+     * still the active edit target. If cleanup sequencing changes later, a
+     * stale clean must not close a newer editor or commit its transaction.
+     */
+    async clean(expected?: DomElement): Promise<void> {
+        if (expected && this.targetDomEl !== expected) {
+            return;
+        }
         if (this.targetDomEl) {
             try {
                 const frameData = this.editorEngine.frames.get(this.targetDomEl.frameId);
@@ -231,12 +266,15 @@ export class TextEditingManager {
         domEl: DomElement,
         newContent: string,
         frameView: IFrameView,
+        session?: TextEditSessionSnapshot,
     ): Promise<void> {
         try {
+            const commitOverride = session ? session.commitOverride : this.commitOverride;
+            const originalContent = session ? session.originalContent : this.originalContent;
             // Per-instance prop edits don't persist the master text — the
             // override (run on end) writes the instance attribute instead, so
             // skip the edit-text history push but keep live visual feedback.
-            if (!this.commitOverride) {
+            if (!commitOverride) {
                 await this.editorEngine.history.push({
                     type: 'edit-text',
                     targets: [
@@ -247,9 +285,12 @@ export class TextEditingManager {
                             oid: domEl.oid,
                         },
                     ],
-                    originalContent: this.originalContent ?? '',
+                    originalContent: originalContent ?? '',
                     newContent,
                 });
+            }
+            if (session && this.targetDomEl !== session.targetDomEl) {
+                return;
             }
             const adjustedRect = adaptRectToCanvas(domEl.rect, frameView);
             this.editorEngine.overlay.state.updateTextEditor(adjustedRect, {

@@ -1,6 +1,7 @@
 'use client';
 
 import type { MouseEvent } from 'react';
+import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { DefaultSettings } from '@weblab/constants';
@@ -22,6 +23,17 @@ import { useEditorEngine } from '@/components/store/editor';
  */
 export const LockedResizeHandles = observer(() => {
     const editorEngine = useEditorEngine();
+    // Safety net for a drag interrupted by unmount (canvas unlocked, frame
+    // deleted, mode change): without it the window listeners live forever and
+    // every later mousemove keeps writing frame width. Mirrors
+    // frame/resize-handles.tsx's activeResizeCleanupRef.
+    const activeResizeCleanupRef = useRef<(() => void) | null>(null);
+    useEffect(
+        () => () => {
+            activeResizeCleanupRef.current?.();
+        },
+        [],
+    );
 
     // Focused frame: selected, falling back to the primary (lowest
     // breakpoint.order — getAll() is order-sorted, so [0]).
@@ -45,6 +57,12 @@ export const LockedResizeHandles = observer(() => {
         const minWidth = parseInt(DefaultSettings.MIN_DIMENSIONS.width);
 
         const resize = (ev: globalThis.MouseEvent) => {
+            // Button released outside the window: mouseup never fired, so on
+            // re-entry the width would chase the cursor with nothing held.
+            if (ev.buttons === 0) {
+                stopResize(ev);
+                return;
+            }
             // Read scale fresh each tick — the layout re-fits as the width grows,
             // so the canvas scale shifts mid-drag.
             const currentScale = editorEngine.canvas.scale;
@@ -65,13 +83,19 @@ export const LockedResizeHandles = observer(() => {
         const stopResize = (ev: globalThis.MouseEvent) => {
             ev.preventDefault();
             ev.stopPropagation();
+            removeListeners();
+            editorEngine.frames.repackGroup(frame.groupId);
+        };
+
+        const removeListeners = () => {
             window.removeEventListener('mousemove', resize);
             window.removeEventListener('mouseup', stopResize);
-            editorEngine.frames.repackGroup(frame.groupId);
+            activeResizeCleanupRef.current = null;
         };
 
         window.addEventListener('mousemove', resize);
         window.addEventListener('mouseup', stopResize);
+        activeResizeCleanupRef.current = removeListeners;
     };
 
     const handle = (side: 'left' | 'right', edge: number) => (

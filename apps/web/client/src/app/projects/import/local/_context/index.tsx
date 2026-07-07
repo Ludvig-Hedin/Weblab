@@ -80,8 +80,8 @@ interface ProjectCreationContextValue {
     framework: FrameworkId;
     setFramework: (id: FrameworkId) => void;
     isMultiFrameworkEnabled: boolean;
-    /** Run every adapter against `files` and update `framework` to the first match. */
-    autoDetectFramework: (files: ProcessedFile[]) => Promise<void>;
+    /** Run every adapter against `files`, update `framework`, and return the first match. */
+    autoDetectFramework: (files: ProcessedFile[]) => Promise<FrameworkId | null>;
 
     // Actions
     error: string | null;
@@ -93,7 +93,10 @@ interface ProjectCreationContextValue {
     resetProjectData: () => void;
     retry: () => void;
     cancel: () => void;
-    validateNextJsProject: (files: ProcessedFile[]) => Promise<NextJsProjectValidation>;
+    validateNextJsProject: (
+        files: ProcessedFile[],
+        frameworkOverride?: FrameworkId,
+    ) => Promise<NextJsProjectValidation>;
 }
 
 export type ImportFinalizePhase =
@@ -432,15 +435,19 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
      * flag is on, and the existing default ('nextjs') keeps the import flow
      * working).
      */
-    const autoDetectFramework = async (files: ProcessedFile[]): Promise<void> => {
+    const autoDetectFramework = async (files: ProcessedFile[]): Promise<FrameworkId | null> => {
         try {
             const detected = await detectFrameworkFromFiles(toProjectFiles(files));
-            if (detected) setFramework(detected);
+            if (detected) {
+                setFramework(detected);
+                return detected;
+            }
         } catch (err: unknown) {
             // Detection failures are non-fatal — log for diagnostics and
             // leave the picker at its current value.
             console.warn('[import] framework auto-detection failed', err);
         }
+        return null;
     };
 
     /**
@@ -453,8 +460,9 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
      */
     const validateNextJsProject = async (
         files: ProcessedFile[],
+        frameworkOverride?: FrameworkId,
     ): Promise<NextJsProjectValidation> => {
-        const adapter = getFrameworkAdapter(framework);
+        const adapter = getFrameworkAdapter(frameworkOverride ?? framework);
         const result = await adapter.validate(toProjectFiles(files));
         if (!result.isValid) {
             return { isValid: false, error: result.error };

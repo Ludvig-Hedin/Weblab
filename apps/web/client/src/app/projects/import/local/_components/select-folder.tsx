@@ -196,13 +196,11 @@ export const NewSelectFolder = () => {
             // against the right adapter (e.g. an HTML folder validates via
             // static-html, not Next.js). Detection failure is non-fatal —
             // validation will surface a clearer error if no adapter matches.
-            await autoDetectFramework(processedFiles);
-            // TODO(bug-hunt): stale closure — autoDetectFramework calls setFramework
-            // (async React state update) but validateNextJsProject reads the old
-            // `framework` closure value from the current render pass, so validation
-            // runs against the wrong adapter. Fix: return detected FrameworkId from
-            // autoDetectFramework and pass it as an override to validateNextJsProject.
-            const validationResult = await validateNextJsProject(processedFiles);
+            const detectedFramework = await autoDetectFramework(processedFiles);
+            const validationResult = await validateNextJsProject(
+                processedFiles,
+                detectedFramework ?? undefined,
+            );
             setValidation(validationResult);
 
             setProjectData({

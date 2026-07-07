@@ -9,7 +9,8 @@
       "port": 3000,
       "autoPort": true,
       "env": {
-        "NEXT_PUBLIC_STYLE_PANEL_V4": "true"
+        "NEXT_PUBLIC_STYLE_PANEL_V4": "true",
+        "NEXT_PUBLIC_SANDBOX_SERVER_URL": "ws://localhost:8081"
       }
     }
   ]

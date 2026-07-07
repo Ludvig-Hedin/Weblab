@@ -1,8 +1,10 @@
 import { type NextRequest } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@convex/_generated/api';
+import { fetchMutation } from 'convex/nextjs';
 
 import { env } from '@/env';
 import { getSupabaseUser } from '../chat/helpers';
-import { checkTranscribeRateLimit } from './helpers/rate-limit';
 
 // Whisper accepts files up to 25 MB.
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
@@ -26,7 +28,15 @@ export async function POST(req: NextRequest) {
             return jsonError(401, 'Unauthorized. Please sign in to use voice input.');
         }
 
-        const limit = checkTranscribeRateLimit(user.id);
+        // Fleet-wide rate limit (F-476): the count lives in Convex, not a
+        // per-process Map, so the cap holds across all Railway replicas.
+        const { getToken } = await auth();
+        const convexToken = (await getToken({ template: 'convex' })) ?? undefined;
+        const limit = await fetchMutation(
+            api.transcribeRateLimit.checkAndRecord,
+            {},
+            { token: convexToken },
+        );
         if (!limit.allowed) {
             return new Response(
                 JSON.stringify({

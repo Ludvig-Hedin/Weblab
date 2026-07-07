@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-
 import { useTranslations } from 'next-intl';
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
@@ -140,7 +139,7 @@ export const Margin = observer(() => {
             'margin',
         ].some((key) => definedStyles?.[key] === 'auto');
 
-        if (isAuto && top == bottom && left == right) {
+        if (isAuto && top === bottom && left === right) {
             return 'auto';
         }
 

@@ -16,6 +16,24 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-07-07 — Full user-flow bug hunt fixes
+Author: Codex
+Area: `apps/web/client/src/app/api/transcribe`, `apps/web/client/convex`, editor canvas/text/import flows
+Summary: Verified and fixed concrete user-flow bugs across the transcription endpoint, local folder import, canvas mode handling, and text editing. The transcribe cap is now enforced by Convex across replicas; static HTML imports validate with the newly detected adapter immediately; middle-mouse panning restores the prior editor mode; and text edit cleanup now snapshots the active session to avoid async race commits.
+Files: `src/app/api/transcribe/route.ts`, `convex/transcribeRateLimit.ts`, `convex/schema.ts`, `src/app/projects/import/local/_context/index.tsx`, `src/app/projects/import/local/_components/select-folder.tsx`, `src/app/project/[id]/_components/canvas/index.tsx`, `src/components/store/editor/text/index.ts`
+Links: `CODE_REVIEW_BACKLOG.md`, `BACKLOG.md`, `docs/feature-catalog.md` F-476, `docs/test-plan.md` T-771
+
+---
+
+## 2026-07-07 — Transcribe rate limit moved to Convex
+Author: Codex
+Area: `apps/web/client/src/app/api/transcribe`, `apps/web/client/convex`
+Summary: The voice transcription endpoint now uses a Convex-backed rolling-window anti-spam cap instead of a per-process in-memory map, so the 10/minute user cap is enforced across Railway replicas. The limiter stores a bounded timestamp list per user, includes daily stale-row cleanup, and has a unit test for the rolling-window boundary.
+Files: `src/app/api/transcribe/route.ts`, `convex/transcribeRateLimit.ts`, `convex/schema.ts`, `convex/internal/cleanup.ts`, `convex/lib/transcribeRateLimit.ts`
+Links: `docs/feature-catalog.md` F-476, `docs/test-plan.md` T-771
+
+---
+
 ## 2026-07-04 — Editor stability, performance & UX hardening sweep
 Author: Claude (Fable 5 → Opus 4.8)
 Area: editor core loop — `apps/web/client/src/components/store/editor/**`, `_components/canvas/**`, `right-panel/**`, `editor-bar/**`, `apps/web/preload/**`, `packages/ui/input`

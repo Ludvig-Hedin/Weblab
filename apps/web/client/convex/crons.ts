@@ -22,4 +22,12 @@ crons.interval(
     internal.internal.cleanup.purgeStaleStripeEvents,
 );
 
+// Purge stale `transcribeRateLimits` rows (F-476 fleet-wide anti-spam cap for
+// POST /api/transcribe). Windows are 1 minute; daily is ample margin.
+crons.interval(
+    'purge stale transcribe rate limits',
+    { hours: 24 },
+    internal.internal.cleanup.purgeStaleTranscribeRateLimits,
+);
+
 export default crons;

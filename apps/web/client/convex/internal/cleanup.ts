@@ -67,3 +67,31 @@ export const purgeStaleStripeEvents = internalMutation({
         return { deleted, hadMore: stale.length === PURGE_BATCH_LIMIT };
     },
 });
+
+// `transcribeRateLimits` (F-476) holds one row per user with a bounded
+// 1-minute timestamp log. A day of margin is ample — any row whose oldest
+// timestamp is this old is from a window that closed long ago and is never
+// read again — so purge daily to keep the table from accumulating one
+// permanent row per historical user.
+const TRANSCRIBE_RATE_LIMIT_TTL_MS = 24 * 60 * 60 * 1000;
+
+export const purgeStaleTranscribeRateLimits = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const cutoff = Date.now() - TRANSCRIBE_RATE_LIMIT_TTL_MS;
+        const stale = await ctx.db
+            .query('transcribeRateLimits')
+            .withIndex('by_window_start', (q) => q.lt('windowStart', cutoff))
+            .take(PURGE_BATCH_LIMIT);
+        let deleted = 0;
+        for (const row of stale) {
+            try {
+                await ctx.db.delete(row._id);
+                deleted++;
+            } catch (err) {
+                console.warn('[purgeStaleTranscribeRateLimits] delete failed', row._id, err);
+            }
+        }
+        return { deleted, hadMore: stale.length === PURGE_BATCH_LIMIT };
+    },
+});

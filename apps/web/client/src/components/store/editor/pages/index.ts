@@ -658,12 +658,53 @@ export class PagesManager {
             return value;
         };
 
+        const framesToNavigate: { frameId: string; route: string }[] = [];
         Object.entries(this.activeRoutesByFrameId).forEach(([frameId, route]) => {
-            this.activeRoutesByFrameId[frameId] = replacePath(route);
+            const nextRoute = replacePath(route);
+            this.activeRoutesByFrameId[frameId] = nextRoute;
+            if (nextRoute !== route) {
+                framesToNavigate.push({ frameId, route: nextRoute });
+            }
         });
         this.currentPath = replacePath(this.currentPath);
         if (this.groupedRoutes) {
             this.groupedRoutes = replacePath(this.groupedRoutes);
+        }
+
+        // Rewriting the active-route state alone leaves each affected iframe
+        // sitting on the old URL (a 404 in next dev after a rename/move), and
+        // the next handleFrameUrlChange would read that stale URL and overwrite
+        // the corrected state. Navigate the affected frames so URL and state
+        // stay in sync. Fire-and-forget: callers re-scan pages regardless.
+        for (const { frameId, route } of framesToNavigate) {
+            void this.navigateFrameToRenamedRoute(frameId, route);
+        }
+    }
+
+    /**
+     * Navigate a frame whose active route was rewritten by a page rename/move.
+     * Mirrors navigateTo(): (group) segments are stripped from the frame URL,
+     * but the grouped route is kept as the active path. Navigation is guarded
+     * because the underlying penpal call can reject (e.g. frame not ready).
+     */
+    private async navigateFrameToRenamedRoute(frameId: string, route: string) {
+        const urlPath =
+            '/' +
+            route
+                .replace(/\\/g, '/')
+                .split('/')
+                .filter(Boolean)
+                .filter((seg) => !(seg.startsWith('(') && seg.endsWith(')')))
+                .join('/');
+        try {
+            await this.editorEngine.frames.navigateToPath(frameId, urlPath, false);
+            if (urlPath !== route) {
+                // navigateToPath set the stripped path as active; restore the
+                // grouped route so the Pages panel highlights the right node.
+                this.setActivePath(frameId, route);
+            }
+        } catch (error) {
+            console.error(`Failed to navigate frame ${frameId} after page path change:`, error);
         }
     }
 

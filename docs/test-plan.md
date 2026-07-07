@@ -389,6 +389,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-474 | F-474 | I | POST inline-edit failure | Refund issued | `[ ]` |
 | T-475 | F-475 | I | POST tab-complete past rate limit | 429 returned | `[ ]` |
 | T-476 | F-476 | I | POST transcribe oversize | 413 returned | `[ ]` |
+| T-771 | F-476 | U | Transcribe rolling-window helper (`convex/lib/transcribeRateLimit.test.ts`) | 10 requests/minute enforced; boundary expiry does not reset the whole bucket | `[x]` |
 | T-477 | F-477, F-724 | I | POST email-capture with + without N8N env | Captured either way; forwarded when env set | `[ ]` |
 | T-478 | F-478, F-716 | I | GET local models with non-loopback URL | SSRF guard rejects | `[ ]` |
 | T-479 | F-479, F-555, F-720 | E (test mode) | GET promo-resume | Routes to checkout or `/pricing` based on subscription | `[ ]` |

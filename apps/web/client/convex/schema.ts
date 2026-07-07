@@ -803,6 +803,24 @@ export default defineSchema({
         // window so the table stays bounded.
         .index('by_processed_at', ['processedAt']),
 
+    // Sliding-window rate limit for POST /api/transcribe (F-476). Distinct
+    // from `rateLimits` above, which is the Pro billing/credit-quota table
+    // used by `usage.ts` — this is a pure anti-spam cap with no credit
+    // semantics, so it gets its own table rather than overloading that one.
+    // One row per user with a bounded timestamp log (max 10 entries);
+    // `checkAndRecord` reads-then-patches it inside a single mutation, so the
+    // cap is enforced against one shared Convex row instead of one in-memory
+    // Map per Railway replica.
+    transcribeRateLimits: defineTable({
+        userId: v.id('users'),
+        windowStart: v.number(),
+        timestamps: v.array(v.number()),
+    })
+        .index('by_user', ['userId'])
+        // Range index for the purge cron — drop rows whose window closed long
+        // ago, mirroring `stripeEventLog.by_processed_at`.
+        .index('by_window_start', ['windowStart']),
+
     // -------------------------------------------------------------------------
     // Presence (live cursors)
     // -------------------------------------------------------------------------

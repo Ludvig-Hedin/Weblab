@@ -523,7 +523,7 @@ See F-151 to F-160. Plus:
 | F-473 | `#rest` `#ai` | `/api/chat-images/[id]` | [api/chat-images/[id]/route.ts](apps/web/client/src/app/api/chat-images/[id]/route.ts) | GET | current user (per-user cache) | none | Retrieve AI-generated images from 30-min in-memory cache |
 | F-474 | `#rest` `#ai` | `/api/ai/inline-edit` | [api/ai/inline-edit/route.ts](apps/web/client/src/app/api/ai/inline-edit/route.ts) | POST | Supabase + Convex `project.view` cap | OpenRouter, Ollama, Convex (`projects.get`) | Streaming inline code edit, usage metering, refund on failure |
 | F-475 | `#rest` `#ai` | `/api/ai/tab-complete` | [api/ai/tab-complete/route.ts](apps/web/client/src/app/api/ai/tab-complete/route.ts) | POST | Supabase + Convex `project.view` cap | OpenRouter, Ollama, Convex (`projects.get`) | Tab-completion suggestions; 429 on rate limit |
-| F-476 | `#rest` `#ai` | `/api/transcribe` | [api/transcribe/route.ts](apps/web/client/src/app/api/transcribe/route.ts) | POST | Supabase + per-user rate limit | OpenAI Whisper, OpenRouter fallback | Audio → text (25 MB, 90 s) |
+| F-476 | `#rest` `#ai` | `/api/transcribe` | [api/transcribe/route.ts](apps/web/client/src/app/api/transcribe/route.ts) | POST | Clerk-bridged user + Convex rolling rate limit | Convex (`transcribeRateLimit.checkAndRecord`), OpenAI Whisper, OpenRouter fallback | Audio → text (25 MB, 90 s) |
 | F-477 | `#rest` | `/api/email-capture` | [api/email-capture/route.ts](apps/web/client/src/app/api/email-capture/route.ts) | POST | none | N8N webhook (optional) | Email + UTM capture for newsletter |
 | F-478 | `#rest` `#ai` | `/api/models/local` | [api/models/local/route.ts](apps/web/client/src/app/api/models/local/route.ts) | GET | Supabase user | Ollama `/api/tags` (loopback only) | Local Ollama model listing w/ SSRF guard |
 | F-479 | `#rest` `#billing` | `/api/promo-resume` | [api/promo-resume/route.ts](apps/web/client/src/app/api/promo-resume/route.ts) | GET | Clerk | Stripe, Convex `subscriptionActions.startPromoCheckout` | Post-login promo / discount flow |
@@ -894,6 +894,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-07-07 | F-476 | Transcribe anti-spam cap moved from a per-process in-memory helper to a Convex-backed fleet-wide rolling-window limiter with bounded timestamp storage and daily stale-row cleanup. |
 | 2026-06-23 | F-081 | Production hydration fix: `clerk-auth-form` now normalizes blank `NEXT_PUBLIC_AUTH_PROVIDERS` to the documented `github,google` default so SSR and client render the same OAuth button list. |
 | 2026-06-23 | F-057, F-753 | Service worker v4: purge prior runtime caches and fetch Next build chunks network-first with cached fallback so returning users do not hydrate fresh HTML against stale Turbopack JS/CSS after deploys. |
 | 2026-06-23 | F-084, F-759 | QA documentation sync: `/sign-up` is intentionally a unified-auth redirect to `/sign-in`, and the XML sitemap now lives at `src/app/sitemap.xml/route.ts` as an explicit XML `Response` route instead of the removed metadata-route array. |
