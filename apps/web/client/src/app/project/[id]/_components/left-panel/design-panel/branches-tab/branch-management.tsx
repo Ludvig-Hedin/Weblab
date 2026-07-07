@@ -6,6 +6,16 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import type { Branch } from '@weblab/models';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
@@ -26,6 +36,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
     const [newName, setNewName] = useState(branch.name);
     const [isForking, setIsForking] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     // Dedupe latch for handleRename (wired to both Enter and blur).
     const renameInFlightRef = useRef(false);
     const isActiveBranch = editorEngine.branches.activeBranch.id === branch.id;
@@ -229,7 +240,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                         <Button
                             variant="destructive"
                             className="w-full"
-                            onClick={handleDelete}
+                            onClick={() => setShowDeleteDialog(true)}
                             disabled={isDeleting || isOnlyBranch}
                             title={
                                 isOnlyBranch
@@ -261,6 +272,29 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                     </div>
                 </div>
             </div>
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete branch</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {`Delete the "${branch.name}" branch? This can't be undone.`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                void handleDelete();
+                            }}
+                            className="bg-destructive text-primary-foreground hover:bg-destructive/80"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 });

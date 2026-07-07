@@ -166,6 +166,11 @@ interface SideCellProps {
 function SideCell({ side, value, onCommit, glyph, inputRef, style, autoPlaceholder, sideOffsetLabel }: SideCellProps) {
     const pinned = isPinned(value);
     const [draft, setDraft] = React.useState(value === 'auto' ? '' : value);
+    // Mirrors NumberField: Escape reverts and blurs — the synchronous blur
+    // must not re-commit the stale DOM value the revert hasn't repainted yet.
+    const skipBlurCommitRef = React.useRef(false);
+    // Only commit on blur when the user actually typed in this focus session.
+    const userTouchedRef = React.useRef(false);
     React.useEffect(() => {
         if (document.activeElement !== inputRef.current) {
             setDraft(value === 'auto' ? '' : value);
@@ -192,8 +197,27 @@ function SideCell({ side, value, onCommit, glyph, inputRef, style, autoPlacehold
                 value={draft}
                 placeholder={autoPlaceholder}
                 aria-label={sideOffsetLabel}
-                onChange={(e) => setDraft(e.target.value)}
+                onFocus={() => {
+                    userTouchedRef.current = false;
+                }}
+                onChange={(e) => {
+                    userTouchedRef.current = true;
+                    setDraft(e.target.value);
+                }}
                 onBlur={(e) => {
+                    if (skipBlurCommitRef.current) {
+                        skipBlurCommitRef.current = false;
+                        userTouchedRef.current = false;
+                        return;
+                    }
+                    // No user input during this focus session — don't commit
+                    // a stale draft over an external value change.
+                    if (!userTouchedRef.current) {
+                        const synced = value === 'auto' ? '' : value;
+                        if (draft !== synced) setDraft(synced);
+                        return;
+                    }
+                    userTouchedRef.current = false;
                     const next = e.currentTarget.value.trim();
                     if (next === '') {
                         // Empty means "auto". Don't clobber an already-auto /
@@ -211,6 +235,8 @@ function SideCell({ side, value, onCommit, glyph, inputRef, style, autoPlacehold
                     } else if (e.key === 'Escape') {
                         e.preventDefault();
                         setDraft(value === 'auto' ? '' : value);
+                        skipBlurCommitRef.current = true;
+                        userTouchedRef.current = false;
                         (e.currentTarget as HTMLInputElement).blur();
                     }
                 }}

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import type { ActionElement } from '@weblab/models/actions';
 import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
@@ -243,6 +244,7 @@ export const TextSection = observer(function TextSection() {
             await editorEngine.overlay.refresh();
         } catch (error) {
             console.error('Error committing text content:', error);
+            toast.error(t('component.failedToUpdateProperty'));
         }
     };
 

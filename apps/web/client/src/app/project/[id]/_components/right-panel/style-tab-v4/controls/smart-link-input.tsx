@@ -92,6 +92,10 @@ export function SmartLinkInput({
     React.useEffect(() => {
         openRef.current = open;
     }, [open]);
+    // Mirrors NumberField: Escape reverts and a suggestion pick commits — in
+    // both cases the deferred blur handler (whose closure still holds the
+    // abandoned draft) must not re-commit as free text.
+    const skipBlurCommitRef = React.useRef(false);
 
     React.useEffect(() => {
         if (document.activeElement !== inputRef.current) setDraft(value);
@@ -200,6 +204,9 @@ export function SmartLinkInput({
         setDraft(s.href);
         if (s.href !== value) onCommit(s.href);
         setOpen(false);
+        // The blur below fires the deferred free-text commit whose closure
+        // still holds the pre-pick draft — suppress it.
+        skipBlurCommitRef.current = true;
         inputRef.current?.blur();
     };
 
@@ -254,6 +261,10 @@ export function SmartLinkInput({
                                     e.preventDefault();
                                     setDraft(value);
                                     setOpen(false);
+                                    // The deferred blur commit's closure still
+                                    // holds the abandoned draft — suppress it so
+                                    // Escape reverts instead of committing.
+                                    skipBlurCommitRef.current = true;
                                     e.currentTarget.blur();
                                 }
                             }}
@@ -264,6 +275,10 @@ export function SmartLinkInput({
                                 // because `open` is always `true` at blur time when the
                                 // user was typing in the popover-open input.
                                 window.setTimeout(() => {
+                                    if (skipBlurCommitRef.current) {
+                                        skipBlurCommitRef.current = false;
+                                        return;
+                                    }
                                     if (!openRef.current) commitFreeText();
                                 }, 100);
                                 void e;

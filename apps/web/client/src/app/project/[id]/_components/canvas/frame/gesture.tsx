@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import throttle from 'lodash/throttle';
 import { observer } from 'mobx-react-lite';
 
@@ -15,6 +15,7 @@ import { RightClickMenu } from '../../right-click-menu';
 export const GestureScreen = observer(
     ({ frame, isResizing }: { frame: Frame; isResizing: boolean }) => {
         const editorEngine = useEditorEngine();
+        const gestureRef = useRef<HTMLDivElement>(null);
 
         const getFrameData: () => FrameData | null = useCallback(() => {
             return editorEngine.frames.get(frame.id);
@@ -267,13 +268,38 @@ export const GestureScreen = observer(
         }, [throttledMouseMove]);
 
         useEffect(() => {
-            const handleGlobalMouseUp = () => {
+            const handleGlobalMouseUp = (event: MouseEvent) => {
+                const target = event.target instanceof Element ? event.target : null;
+                const ownedDrag = editorEngine.move.state?.dragTarget.frameId === frame.id;
                 void editorEngine.move.end();
+
+                // shouldSuppressNextClick is consumed by this frame's click
+                // handler, which only fires when the mouseup lands inside this
+                // gesture screen (mousedown started here). A release anywhere
+                // else would leak the flag and swallow the next real click, so
+                // clear it when no gesture-screen click will follow. The
+                // any-screen check also covers drags already cancelled via
+                // Escape (move state null by the time the mouse is released).
+                const overOwnScreen = target !== null && gestureRef.current?.contains(target);
+                const overAnyScreen = target?.closest('[data-gesture-screen]') != null;
+                if ((ownedDrag && !overOwnScreen) || !overAnyScreen) {
+                    editorEngine.move.consumeSuppressedClick();
+                }
+
+                // An insert draw whose mouseup lands outside every gesture
+                // screen never reaches a frame-level handleMouseUp — cancel it
+                // here so the ghost rect doesn't stick around waiting for a
+                // frame mouseup that will never come. When the release IS over
+                // a gesture screen, that frame's own (async) handleMouseUp
+                // completes the insert, so leave the state alone.
+                if (editorEngine.insert.isDrawing && !overAnyScreen) {
+                    editorEngine.insert.cancelDraw();
+                }
             };
 
             window.addEventListener('mouseup', handleGlobalMouseUp);
             return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-        }, [editorEngine.move]);
+        }, [editorEngine.move, editorEngine.insert, frame.id]);
 
         const handleClick = useCallback(
             async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -549,6 +575,8 @@ export const GestureScreen = observer(
         return (
             <RightClickMenu>
                 <div
+                    ref={gestureRef}
+                    data-gesture-screen=""
                     className={gestureScreenClassName}
                     onClick={handleClick}
                     onMouseOut={handleMouseOut}

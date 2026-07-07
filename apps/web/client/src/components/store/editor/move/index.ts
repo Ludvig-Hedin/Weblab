@@ -118,7 +118,22 @@ export class MoveManager {
             return;
         }
 
+        const stateAtCall = this.state;
         const originalIndex = await frameData.view.startDrag(el.domId);
+
+        // A mouseup landing during the await above can run end()/clear(),
+        // nulling this.state (or a new drag may have replaced it). The
+        // resolved startDrag has just re-marked the element as dragging
+        // inside the iframe with nobody left to end it — undo that and bail
+        // before any state writes.
+        if (this.state !== stateAtCall) {
+            try {
+                await frameData.view.endAllDrag();
+            } catch (error) {
+                console.error('Error ending orphaned drag:', error);
+            }
+            return;
+        }
 
         if (originalIndex === null || originalIndex === -1) {
             console.error('Element not found in frame');
@@ -276,6 +291,20 @@ export class MoveManager {
         } finally {
             this.clear();
         }
+    }
+
+    /**
+     * Cancel an in-flight drag without committing a move action (Escape
+     * mid-drag). endAllDrag restores the dragged element's saved inline
+     * styles in the iframe, so it snaps back to its original position; the
+     * upcoming mouseup then no-ops in end() because state is already null.
+     */
+    async cancel() {
+        if (!this.state) {
+            return;
+        }
+        this.clear();
+        await this.endAllDrag();
     }
 
     async endAllDrag() {

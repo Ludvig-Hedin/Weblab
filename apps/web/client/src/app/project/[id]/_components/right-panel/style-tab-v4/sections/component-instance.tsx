@@ -248,7 +248,7 @@ const PropField = ({
                     type="button"
                     title={t('component.resetToDefault')}
                     aria-label={t('component.resetNameToDefault', { name: prop.name })}
-                    className="text-foreground-tertiary hover:text-foreground-primary invisible h-4 w-4 shrink-0 group-hover/prop:visible"
+                    className="text-foreground-tertiary hover:text-foreground-primary invisible h-4 w-4 shrink-0 group-hover/prop:visible focus-visible:visible"
                     onClick={() => onReset(prop)}
                 >
                     <Icons.Reset className="h-2.5 w-2.5" />

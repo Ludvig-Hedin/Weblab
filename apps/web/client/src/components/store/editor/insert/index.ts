@@ -185,6 +185,19 @@ export class InsertManager {
         this.editorEngine.state.setEditorMode(EditorMode.DESIGN);
     }
 
+    /**
+     * Cancel an in-progress draw without inserting anything — used when the
+     * mouseup lands outside any frame, so the frame-level end() never fires.
+     */
+    cancelDraw() {
+        if (!this.isDrawing) {
+            return;
+        }
+        this.isDrawing = false;
+        this.drawOrigin = undefined;
+        this.editorEngine.overlay.state.updateInsertRect(null);
+    }
+
     private updateInsertRect(pos: ElementPosition) {
         const rect = this.getDrawRect(pos);
         const overlayContainer = document.getElementById(EditorAttributes.OVERLAY_CONTAINER_ID);

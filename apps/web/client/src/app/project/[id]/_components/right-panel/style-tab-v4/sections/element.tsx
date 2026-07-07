@@ -147,15 +147,21 @@ export const ElementSection = observer(function ElementSection() {
             }
             const targetOid = selected.oid;
             const targetDomId = selected.domId;
-            await editorEngine.code.updateElementMetadata({
-                oid: targetOid,
-                branchId: selected.branchId,
-                tagName: next,
-            });
+            try {
+                await editorEngine.code.updateElementMetadata({
+                    oid: targetOid,
+                    branchId: selected.branchId,
+                    tagName: next,
+                });
+            } catch (error) {
+                console.error('Failed to update tag name:', error);
+                toast.error(t('component.failedToUpdateProperty'));
+                return;
+            }
             if (!isStillSelected(targetOid, targetDomId)) return;
             setActionElement((current) => (current ? { ...current, tagName: next } : current));
         },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected],
+        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
     );
 
     const commitClassName = useCallback(
@@ -166,12 +172,18 @@ export const ElementSection = observer(function ElementSection() {
             }
             const targetOid = selected.oid;
             const targetDomId = selected.domId;
-            await editorEngine.code.updateElementMetadata({
-                oid: targetOid,
-                branchId: selected.branchId,
-                attributes: { className: next.trim() },
-                overrideClasses: true,
-            });
+            try {
+                await editorEngine.code.updateElementMetadata({
+                    oid: targetOid,
+                    branchId: selected.branchId,
+                    attributes: { className: next.trim() },
+                    overrideClasses: true,
+                });
+            } catch (error) {
+                console.error('Failed to update className:', error);
+                toast.error(t('component.failedToUpdateProperty'));
+                return;
+            }
             if (!isStillSelected(targetOid, targetDomId)) return;
             setActionElement((current) =>
                 current
@@ -182,7 +194,7 @@ export const ElementSection = observer(function ElementSection() {
                     : current,
             );
         },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected],
+        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
     );
 
     const commitId = useCallback(
@@ -193,11 +205,17 @@ export const ElementSection = observer(function ElementSection() {
             }
             const targetOid = selected.oid;
             const targetDomId = selected.domId;
-            await editorEngine.code.updateElementMetadata({
-                oid: targetOid,
-                branchId: selected.branchId,
-                attributes: { id: next.trim() },
-            });
+            try {
+                await editorEngine.code.updateElementMetadata({
+                    oid: targetOid,
+                    branchId: selected.branchId,
+                    attributes: { id: next.trim() },
+                });
+            } catch (error) {
+                console.error('Failed to update element id:', error);
+                toast.error(t('component.failedToUpdateProperty'));
+                return;
+            }
             if (!isStillSelected(targetOid, targetDomId)) return;
             setActionElement((current) =>
                 current
@@ -208,7 +226,7 @@ export const ElementSection = observer(function ElementSection() {
                     : current,
             );
         },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected],
+        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
     );
 
     const commitHref = useCallback(
@@ -219,11 +237,17 @@ export const ElementSection = observer(function ElementSection() {
             }
             const targetOid = selected.oid;
             const targetDomId = selected.domId;
-            await editorEngine.code.updateElementMetadata({
-                oid: targetOid,
-                branchId: selected.branchId,
-                attributes: { href: next.trim() },
-            });
+            try {
+                await editorEngine.code.updateElementMetadata({
+                    oid: targetOid,
+                    branchId: selected.branchId,
+                    attributes: { href: next.trim() },
+                });
+            } catch (error) {
+                console.error('Failed to update href:', error);
+                toast.error(t('component.failedToUpdateProperty'));
+                return;
+            }
             if (!isStillSelected(targetOid, targetDomId)) return;
             setActionElement((current) =>
                 current
@@ -234,7 +258,7 @@ export const ElementSection = observer(function ElementSection() {
                     : current,
             );
         },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected],
+        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
     );
 
     const commitTarget = useCallback(
@@ -245,11 +269,19 @@ export const ElementSection = observer(function ElementSection() {
             const newTarget = checked ? '_blank' : '';
             const newRel = checked ? 'noreferrer' : '';
             setOpenInNewTab(checked);
-            await editorEngine.code.updateElementMetadata({
-                oid: targetOid,
-                branchId: selected.branchId,
-                attributes: { target: newTarget, rel: newRel },
-            });
+            try {
+                await editorEngine.code.updateElementMetadata({
+                    oid: targetOid,
+                    branchId: selected.branchId,
+                    attributes: { target: newTarget, rel: newRel },
+                });
+            } catch (error) {
+                console.error('Failed to update link target:', error);
+                toast.error(t('component.failedToUpdateProperty'));
+                // Revert the optimistic toggle — the write never landed.
+                if (isStillSelected(targetOid, targetDomId)) setOpenInNewTab(!checked);
+                return;
+            }
             if (!isStillSelected(targetOid, targetDomId)) return;
             setActionElement((current) =>
                 current
@@ -264,7 +296,7 @@ export const ElementSection = observer(function ElementSection() {
                     : current,
             );
         },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected],
+        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
     );
 
     if (!selected) return null;

@@ -232,8 +232,11 @@ export class BranchManager {
             throw new Error('Branch not found');
         }
 
+        // Keyed loading toast: outcome paths reuse the id so the loading toast
+        // is replaced (error) or dismissed (success) instead of a global
+        // `toast.dismiss()` wiping every toast — including the error itself.
+        const toastId = toast.loading(`Forking branch "${branch.name}"...`);
         try {
-            toast.loading(`Forking branch "${branch.name}"...`);
             // Call the fork API
             const result = (await this.convex.action(convexApi.branchActions.fork, {
                 branchId: branchId as Id<'branches'>,
@@ -259,18 +262,20 @@ export class BranchManager {
 
             // Switch to the new branch
             await this.switchToBranch(newBranch.id);
+
+            // Callers surface their own success toast — just clear the loader.
+            toast.dismiss(toastId);
         } catch (error) {
             console.error('Failed to fork branch:', error);
-            toast.error('Failed to fork branch');
+            toast.error('Failed to fork branch', { id: toastId });
             throw error;
-        } finally {
-            toast.dismiss();
         }
     }
 
     async createBlankSandbox(branchName?: string): Promise<void> {
+        // Keyed loading toast — see forkBranch for why the id matters.
+        const toastId = toast.loading('Creating blank sandbox...');
         try {
-            toast.loading('Creating blank sandbox...');
             // Get current active frame for positioning
             const activeFrames = this.editorEngine.frames.selected;
             const activeFrame =
@@ -318,6 +323,9 @@ export class BranchManager {
 
             // Switch to the new branch
             await this.switchToBranch(newBranch.id);
+
+            // Callers surface their own success toast — just clear the loader.
+            toast.dismiss(toastId);
         } catch (error) {
             console.error('Failed to create blank sandbox:', error);
             // Surface the real reason when the action classified it (e.g. a
@@ -333,13 +341,11 @@ export class BranchManager {
                     : error instanceof Error
                       ? error.message
                       : undefined;
-            toast.error(
-                'Failed to create blank sandbox',
-                description ? { description } : undefined,
-            );
+            toast.error('Failed to create blank sandbox', {
+                id: toastId,
+                ...(description ? { description } : {}),
+            });
             throw error;
-        } finally {
-            toast.dismiss();
         }
     }
 

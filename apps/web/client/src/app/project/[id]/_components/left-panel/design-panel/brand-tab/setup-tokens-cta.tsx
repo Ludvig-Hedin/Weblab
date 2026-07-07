@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
+import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
 
@@ -21,14 +22,30 @@ export const SetupTokensCta = observer(function SetupTokensCta() {
 
     const handleSetup = () => {
         setBusy(true);
-        void tokens.scaffoldDefault().finally(() => setBusy(false));
+        void tokens
+            .scaffoldDefault()
+            .then(() => {
+                // `scaffoldDefault` console.warns and resolves on soft failures
+                // (no globals.css / unreadable content) — detect them here so
+                // the user isn't left with a button that seemingly did nothing.
+                if (!tokens.hasTokensLayer) {
+                    toast.error('Failed to set up tokens', {
+                        description: 'Could not find a writable globals.css in this project.',
+                    });
+                }
+            })
+            .catch((error: unknown) => {
+                console.error('Failed to set up tokens:', error);
+                toast.error('Failed to set up tokens', {
+                    description: error instanceof Error ? error.message : 'Please try again.',
+                });
+            })
+            .finally(() => setBusy(false));
     };
 
     return (
         <div className="bg-background-secondary border-border flex flex-col gap-3 rounded-lg border p-4">
-            <div className="text-foreground-primary text-small font-medium">
-                {t('setupTokens')}
-            </div>
+            <div className="text-foreground-primary text-small font-medium">{t('setupTokens')}</div>
             <div className="text-foreground-secondary text-mini leading-relaxed">
                 {t('setupTokensDescription')}
             </div>

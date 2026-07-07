@@ -79,9 +79,12 @@ export const BrandTab = observer(() => {
     const [paletteImported, setPaletteImported] = useState(false);
     const [importingPalette, setImportingPalette] = useState(false);
     const [importError, setImportError] = useState<string | null>(null);
+    // False until the first `tokens.scan()` settles — gates the SetupTokensCta
+    // so it doesn't flash while `hasTokensLayer` is still the pre-scan default.
+    const [hasScanned, setHasScanned] = useState(false);
 
     useEffect(() => {
-        void tokens.scan();
+        void tokens.scan().finally(() => setHasScanned(true));
         // Populate ThemeManager.colorGroups so we can detect a legacy Tailwind
         // palette worth importing into @theme variables (M5).
         void editorEngine.theme.scanConfig();
@@ -127,7 +130,11 @@ export const BrandTab = observer(() => {
         // (see plan: font-panel stays).
         body = <FontPanel />;
     } else if (!tokens.hasTokensLayer) {
-        body = (
+        body = !hasScanned ? (
+            <div className="flex items-center justify-center py-8">
+                <Icons.LoadingSpinner className="text-muted-foreground h-4 w-4 animate-spin" />
+            </div>
+        ) : (
             <div className="flex flex-col gap-3 p-3">
                 <SetupTokensCta />
             </div>

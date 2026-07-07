@@ -189,11 +189,17 @@ export const Canvas = observer(() => {
             const newScale = scale * (1 + zoomFactor);
             const lintedScale = clampZoom(newScale);
 
-            const deltaX = (x - position.x) * zoomFactor;
-            const deltaY = (y - position.y) * zoomFactor;
+            // Derive the position delta from the CLAMPED scale change: when
+            // newScale clamps at MIN/MAX the raw zoomFactor would keep
+            // shifting position while scale stays pinned, drifting the
+            // cursor-anchored zoom at the bounds.
+            const effectiveFactor = lintedScale / scale - 1;
+
+            const deltaX = (x - position.x) * effectiveFactor;
+            const deltaY = (y - position.y) * effectiveFactor;
 
             // Add slight Y offset to compensate for drift
-            const yOffset = zoomFactor * -32; // TODO: Debug where this offset is coming from
+            const yOffset = effectiveFactor * -32; // TODO: Debug where this offset is coming from
 
             // Skip when the next scale would be out of range AND we're already at the bound —
             // avoids drift where scale is set but position is not.
@@ -312,31 +318,39 @@ export const Canvas = observer(() => {
         [handleZoom, handlePan, editorEngine],
     );
 
-    const middleMouseButtonDown = useCallback((e: MouseEvent) => {
-        // No middle-mouse pan while the canvas is locked.
-        if (editorEngine.state.canvasLocked) return;
-        if (e.button === 1) {
-            editorEngine.state.setEditorMode(EditorMode.PAN);
-            editorEngine.state.setCanvasPanning(true);
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }, []);
-
     // TODO(bug-hunt): like the space-keyup handler in canvas/hotkeys/index.tsx,
     // this always forces DESIGN mode on middle-mouse pan-end instead of
     // restoring the mode that was active before the pan started. Middle-drag to
     // pan while in PREVIEW/COMMENT/CMS drops the user into DESIGN. Capture the
     // prior mode in middleMouseButtonDown and restore it here.
-    const middleMouseButtonUp = useCallback((e: MouseEvent) => {
-        if (editorEngine.state.canvasLocked) return;
+    const middleMouseButtonUp = useCallback<(e: MouseEvent) => void>((e) => {
         if (e.button === 1) {
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             editorEngine.state.setCanvasPanning(false);
             e.preventDefault();
             e.stopPropagation();
+            window.removeEventListener('mouseup', middleMouseButtonUp);
         }
     }, []);
+
+    const middleMouseButtonDown = useCallback(
+        (e: MouseEvent) => {
+            // No middle-mouse pan while the canvas is locked.
+            if (editorEngine.state.canvasLocked) return;
+            if (e.button === 1) {
+                editorEngine.state.setEditorMode(EditorMode.PAN);
+                editorEngine.state.setCanvasPanning(true);
+                e.preventDefault();
+                e.stopPropagation();
+                // Listen on window for the duration of the gesture so
+                // releasing the button outside the canvas still ends the pan
+                // (a canvas-bound mouseup would leave the editor stuck in PAN
+                // mode). The listener removes itself on middle-button release.
+                window.addEventListener('mouseup', middleMouseButtonUp);
+            }
+        },
+        [middleMouseButtonUp],
+    );
 
     const transformStyle = useMemo(
         () => ({
@@ -352,11 +366,12 @@ export const Canvas = observer(() => {
         if (div) {
             div.addEventListener('wheel', handleWheel, { passive: false });
             div.addEventListener('mousedown', middleMouseButtonDown);
-            div.addEventListener('mouseup', middleMouseButtonUp);
             return () => {
                 div.removeEventListener('wheel', handleWheel);
                 div.removeEventListener('mousedown', middleMouseButtonDown);
-                div.removeEventListener('mouseup', middleMouseButtonUp);
+                // Unmount mid-pan: drop the window mouseup listener that
+                // middleMouseButtonDown registered (no-op when not panning).
+                window.removeEventListener('mouseup', middleMouseButtonUp);
                 handleCanvasMouseMove.cancel?.(); // Clean up throttled function
             };
         }
@@ -532,6 +547,11 @@ export const Canvas = observer(() => {
                     void handleCanvasDrop(event);
                 }}
                 onMouseLeave={(e) => {
+                    // Drop any pending trailing invocation of the throttled
+                    // move handler first — it would re-broadcast a cursor
+                    // position right after clearCursor, leaving a ghost cursor
+                    // for remote users.
+                    handleCanvasMouseMove.cancel?.();
                     // Hide our cursor from remote users when the pointer exits the canvas
                     editorEngine.presence.clearCursor();
 

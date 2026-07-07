@@ -91,7 +91,7 @@ export function GroupShell({
                                 }}
                                 aria-label={t('common.reset')}
                                 title={t('common.reset')}
-                                className="text-foreground-tertiary hover:text-foreground-primary flex size-4 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
+                                className="text-foreground-tertiary hover:text-foreground-primary flex size-4 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                             >
                                 <X className="size-2.5" />
                             </button>

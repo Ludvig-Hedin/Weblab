@@ -184,6 +184,9 @@ export function ModeNumberCell({
 
     const isKeyword = parsed.keyword !== null;
     const modePillLabel = isKeyword ? parsed.keyword! : parsed.unit || defaultUnit;
+    // Controlled so a unit/keyword pick closes the popover (uncontrolled
+    // Radix popovers stay open on option click).
+    const [pillOpen, setPillOpen] = React.useState(false);
 
     return (
         <div
@@ -240,7 +243,7 @@ export function ModeNumberCell({
                     style={{ fontVariantNumeric: 'tabular-nums' }}
                 />
             )}
-            <Popover>
+            <Popover open={pillOpen} onOpenChange={setPillOpen}>
                 <PopoverTrigger asChild>
                     <button
                         type="button"
@@ -258,7 +261,10 @@ export function ModeNumberCell({
                             <button
                                 key={u}
                                 type="button"
-                                onClick={() => setMode(u)}
+                                onClick={() => {
+                                    setMode(u);
+                                    setPillOpen(false);
+                                }}
                                 className={cn(
                                     'hover:bg-accent focus-visible:ring-foreground-brand/30 cursor-pointer rounded-[6px] px-2 py-1 text-left text-xs outline-none focus-visible:ring-[3px]',
                                     !isKeyword &&
@@ -276,7 +282,10 @@ export function ModeNumberCell({
                             <button
                                 key={k}
                                 type="button"
-                                onClick={() => setMode(k)}
+                                onClick={() => {
+                                    setMode(k);
+                                    setPillOpen(false);
+                                }}
                                 className={cn(
                                     'hover:bg-accent focus-visible:ring-foreground-brand/30 cursor-pointer rounded-[6px] px-2 py-1 text-left text-xs capitalize outline-none focus-visible:ring-[3px]',
                                     isKeyword &&

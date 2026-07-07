@@ -51,6 +51,11 @@ export function ChipInput({
     const [draft, setDraft] = useState('');
     const chipInputRefs = useRef<Array<HTMLInputElement | null>>([]);
     const trailingInputRef = useRef<HTMLInputElement | null>(null);
+    // Mirrors NumberField: Enter/Escape already handled the chip commit /
+    // revert, so the blur they trigger (focus move or explicit blur) must not
+    // re-commit the stale draft. Only one chip is focused at a time, so a
+    // single shared ref is enough.
+    const skipBlurCommitRef = useRef(false);
 
     // Local drafts mirror the live `chips` prop but let the user edit each
     // chip in place without round-tripping every keystroke through the
@@ -150,7 +155,13 @@ export function ChipInput({
                                 next[index] = e.target.value;
                                 setChipDrafts(next);
                             }}
-                            onBlur={() => commitChip(index, value)}
+                            onBlur={() => {
+                                if (skipBlurCommitRef.current) {
+                                    skipBlurCommitRef.current = false;
+                                    return;
+                                }
+                                commitChip(index, value);
+                            }}
                             onKeyDown={(event) => {
                                 const input = event.currentTarget;
                                 const atStart =
@@ -185,6 +196,9 @@ export function ChipInput({
                                 } else if (event.key === 'Enter') {
                                     event.preventDefault();
                                     commitChip(index, value);
+                                    // The focus move below blurs this chip —
+                                    // don't let that blur commit again.
+                                    skipBlurCommitRef.current = true;
                                     if (index < chips.length - 1)
                                         window.setTimeout(() => focusChip(index + 1), 0);
                                     else window.setTimeout(() => focusTrailing(), 0);
@@ -193,6 +207,7 @@ export function ChipInput({
                                     const reset = chipDrafts.slice();
                                     reset[index] = chip;
                                     setChipDrafts(reset);
+                                    skipBlurCommitRef.current = true;
                                     input.blur();
                                 }
                             }}

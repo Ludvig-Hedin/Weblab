@@ -103,12 +103,18 @@ export const ProjectBreadcrumb = observer(() => {
     async function handleDownloadCode() {
         if (!project) {
             console.error('No project found');
+            toast.error(t(transKeys.projects.actions.downloadError), {
+                description: 'Project not loaded yet — please try again.',
+            });
             return;
         }
 
         const sandboxId = editorEngine.branches.activeBranch?.sandbox?.id;
         if (!sandboxId) {
             console.error('No sandbox ID found');
+            toast.error(t(transKeys.projects.actions.downloadError), {
+                description: 'No sandbox is connected to this branch.',
+            });
             return;
         }
 

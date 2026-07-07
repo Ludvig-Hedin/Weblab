@@ -14,6 +14,7 @@ import {
     ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from '@weblab/ui/context-menu';
+import { toast } from '@weblab/ui/sonner';
 
 import type { TokenRowData } from './lib/group-tokens';
 import type { ConfirmFn } from './lib/token-mutations';
@@ -61,15 +62,47 @@ export const TokenContextMenu = observer(function TokenContextMenu({
             destructive: true,
         });
         if (!ok) return;
-        if (row.kind === 'color-alias') await tokens.deleteColorStyle(row.name);
-        else if (row.kind === 'text-style') await tokens.deleteTextStyle(row.name);
-        else await tokens.deleteVariable(row.name);
+        try {
+            if (row.kind === 'color-alias') await tokens.deleteColorStyle(row.name);
+            else if (row.kind === 'text-style') await tokens.deleteTextStyle(row.name);
+            else await tokens.deleteVariable(row.name);
+        } catch (error) {
+            console.error('Failed to delete token:', error);
+            toast.error('Failed to delete token', {
+                description: error instanceof Error ? error.message : 'Please try again.',
+            });
+        }
     };
 
+    const handleDuplicate = async () => {
+        try {
+            await duplicateToken(tokens, row);
+        } catch (error) {
+            console.error('Failed to duplicate token:', error);
+            toast.error('Failed to duplicate token', {
+                description: error instanceof Error ? error.message : 'Please try again.',
+            });
+        }
+    };
+
+    const handleMove = async (group: string | null) => {
+        try {
+            await moveTokenToGroup(tokens, row, group);
+        } catch (error) {
+            console.error('Failed to move token:', error);
+            toast.error('Failed to move token', {
+                description: error instanceof Error ? error.message : 'Please try again.',
+            });
+        }
+    };
+
+    // TODO(B16): `window.prompt` is a native blocking dialog. No small
+    // text-input dialog primitive exists in this panel yet (`useConfirm` is
+    // confirm-only) — swap in a Dialog-based prompt when one lands.
     const handleNewGroup = async () => {
         const name = window.prompt('New group name');
         if (!name?.trim()) return;
-        await moveTokenToGroup(tokens, row, name.trim());
+        await handleMove(name.trim());
     };
 
     return (
@@ -77,24 +110,19 @@ export const TokenContextMenu = observer(function TokenContextMenu({
             <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
             <ContextMenuContent className="w-48">
                 <ContextMenuItem onSelect={onRename}>{t('tokenRename')}</ContextMenuItem>
-                <ContextMenuItem onSelect={() => void duplicateToken(tokens, row)}>
+                <ContextMenuItem onSelect={() => void handleDuplicate()}>
                     {t('tokenDuplicate')}
                 </ContextMenuItem>
                 <ContextMenuSub>
                     <ContextMenuSubTrigger>{t('tokenMoveToGroup')}</ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-44">
                         {otherGroups.map((group) => (
-                            <ContextMenuItem
-                                key={group}
-                                onSelect={() => void moveTokenToGroup(tokens, row, group)}
-                            >
+                            <ContextMenuItem key={group} onSelect={() => void handleMove(group)}>
                                 {group}
                             </ContextMenuItem>
                         ))}
                         {currentGroup && (
-                            <ContextMenuItem
-                                onSelect={() => void moveTokenToGroup(tokens, row, null)}
-                            >
+                            <ContextMenuItem onSelect={() => void handleMove(null)}>
                                 {t('tokenRemoveFromGroup')}
                             </ContextMenuItem>
                         )}

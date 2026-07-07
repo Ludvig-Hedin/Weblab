@@ -99,6 +99,14 @@ export function LabeledNumberInput({
     const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
+    // Mirrors NumberField: skip the blur commit when Escape/Enter already
+    // handled the keystroke, so Escape cancels without the synchronous blur
+    // re-committing the stale draft (and Enter doesn't double-commit).
+    const skipBlurCommitRef = React.useRef(false);
+    // True once the user has typed/nudged in this focus session — a blur
+    // without a real edit must not commit a draft made stale by an external
+    // value change (undo, selection change).
+    const userTouchedRef = React.useRef(false);
 
     React.useEffect(() => {
         if (document.activeElement !== inputRef.current) setDraft(value);
@@ -118,6 +126,7 @@ export function LabeledNumberInput({
         (delta: number) => {
             const parsed = parse(draft);
             if (parsed.num === null) return;
+            userTouchedRef.current = true;
             const next = format(
                 {
                     num: Number.parseFloat((parsed.num + delta).toFixed(4)),
@@ -137,10 +146,14 @@ export function LabeledNumberInput({
             if (event.key === 'Enter') {
                 event.preventDefault();
                 commit(event.currentTarget.value);
+                skipBlurCommitRef.current = true;
+                userTouchedRef.current = false;
                 event.currentTarget.blur();
             } else if (event.key === 'Escape') {
                 event.preventDefault();
                 setDraft(value);
+                skipBlurCommitRef.current = true;
+                userTouchedRef.current = false;
                 event.currentTarget.blur();
             } else if (event.key === 'ArrowUp') {
                 event.preventDefault();
@@ -178,9 +191,29 @@ export function LabeledNumberInput({
                 value={displayValue}
                 placeholder={mixed ? t('mixed') : placeholder}
                 aria-label={ariaLabel ?? label}
-                onChange={(e) => setDraft(e.target.value)}
+                onFocus={() => {
+                    userTouchedRef.current = false;
+                }}
+                onChange={(e) => {
+                    userTouchedRef.current = true;
+                    setDraft(e.target.value);
+                }}
                 onKeyDown={handleKeyDown}
-                onBlur={(e) => commit(e.currentTarget.value)}
+                onBlur={(e) => {
+                    if (skipBlurCommitRef.current) {
+                        skipBlurCommitRef.current = false;
+                        userTouchedRef.current = false;
+                        return;
+                    }
+                    // No user input/nudge during this focus session — don't
+                    // commit a stale draft over an external value change.
+                    if (!userTouchedRef.current) {
+                        if (draft !== value) setDraft(value);
+                        return;
+                    }
+                    userTouchedRef.current = false;
+                    commit(e.currentTarget.value);
+                }}
                 className={cn(
                     'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent text-left tabular-nums outline-none',
                     mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
@@ -285,6 +318,11 @@ export function LabeledTextInput({
     const t = useTranslations('editor.stylePanel.controls.numberInput');
     const [draft, setDraft] = React.useState(value);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
+    // Mirrors NumberField: Enter/Escape already handled the commit/revert, so
+    // the synchronous blur that follows must not re-commit the stale draft.
+    const skipBlurCommitRef = React.useRef(false);
+    // Only commit on blur when the user actually typed in this focus session.
+    const userTouchedRef = React.useRef(false);
 
     React.useEffect(() => {
         if (document.activeElement !== inputRef.current) setDraft(value);
@@ -308,19 +346,39 @@ export function LabeledTextInput({
                 value={draft}
                 placeholder={mixed ? t('mixed') : placeholder}
                 aria-label={ariaLabel ?? label}
-                onChange={(e) => setDraft(e.target.value)}
+                onFocus={() => {
+                    userTouchedRef.current = false;
+                }}
+                onChange={(e) => {
+                    userTouchedRef.current = true;
+                    setDraft(e.target.value);
+                }}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         if (draft !== value) onCommit(draft);
+                        skipBlurCommitRef.current = true;
+                        userTouchedRef.current = false;
                         e.currentTarget.blur();
                     } else if (e.key === 'Escape') {
                         e.preventDefault();
                         setDraft(value);
+                        skipBlurCommitRef.current = true;
+                        userTouchedRef.current = false;
                         e.currentTarget.blur();
                     }
                 }}
                 onBlur={() => {
+                    if (skipBlurCommitRef.current) {
+                        skipBlurCommitRef.current = false;
+                        userTouchedRef.current = false;
+                        return;
+                    }
+                    if (!userTouchedRef.current) {
+                        if (draft !== value) setDraft(value);
+                        return;
+                    }
+                    userTouchedRef.current = false;
                     if (draft !== value) onCommit(draft);
                 }}
                 className={cn(

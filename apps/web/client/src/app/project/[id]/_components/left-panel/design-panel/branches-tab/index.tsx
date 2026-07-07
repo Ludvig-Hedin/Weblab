@@ -28,7 +28,6 @@ export const BranchesTab = observer(() => {
     const t = useTranslations('editor.leftPanel.branches');
     const editorEngine = useEditorEngine();
     const { branches } = editorEngine;
-    const [hoveredBranchId, setHoveredBranchId] = useState<string | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [branchName, setBranchName] = useState('');
     const [createMode, setCreateMode] = useState<'fork' | 'blank'>('fork');
@@ -246,11 +245,13 @@ export const BranchesTab = observer(() => {
                     )}
                     {filteredBranches.map((branch) => {
                         const isActive = branch.id === branches.activeBranch.id;
-                        const isHovered = hoveredBranchId === branch.id;
 
                         return (
                             <div
                                 key={branch.id}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Switch to branch ${branch.name}`}
                                 className={cn(
                                     'group relative flex cursor-pointer items-center gap-3 rounded-lg border p-1 px-2 transition-colors',
                                     isActive
@@ -258,8 +259,15 @@ export const BranchesTab = observer(() => {
                                         : 'hover:bg-accent/50 text-foreground-secondary hover:text-foreground border-transparent',
                                 )}
                                 onClick={() => handleBranchSwitch(branch.id)}
-                                onMouseEnter={() => setHoveredBranchId(branch.id)}
-                                onMouseLeave={() => setHoveredBranchId(null)}
+                                onKeyDown={(e) => {
+                                    // Ignore key events bubbling from the
+                                    // manage-gear button inside the row.
+                                    if (e.target !== e.currentTarget) return;
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        void handleBranchSwitch(branch.id);
+                                    }
+                                }}
                             >
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
                                     {isActive ? (
@@ -277,20 +285,18 @@ export const BranchesTab = observer(() => {
                                     </div>
                                 </div>
 
-                                {isHovered && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="hover:bg-background h-8 w-8 p-2 opacity-50 transition-opacity hover:opacity-100"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleManageBranch(branch.id);
-                                        }}
-                                        title={t('manageBranch')}
-                                    >
-                                        <Icons.Gear className="h-3 w-3" />
-                                    </Button>
-                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hover:bg-background h-8 w-8 p-2 opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleManageBranch(branch.id);
+                                    }}
+                                    title={t('manageBranch')}
+                                >
+                                    <Icons.Gear className="h-3 w-3" />
+                                </Button>
                             </div>
                         );
                     })}

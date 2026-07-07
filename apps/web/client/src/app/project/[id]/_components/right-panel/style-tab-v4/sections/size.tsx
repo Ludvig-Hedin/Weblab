@@ -350,10 +350,13 @@ export const SizeSection = observer(function SizeSection() {
                         />
                         <LabeledSelectInput
                             label={t('size.overflow')}
-                            value={overflowValue}
+                            // 'mixed' is a sentinel, not a real option — passing it
+                            // as the value matches no SelectItem and blanks the
+                            // select. Surface it via `mixed` instead.
+                            value={overflowValue === 'mixed' ? '' : overflowValue}
                             options={OVERFLOW_OPTIONS}
                             onCommit={overflowSetter.set}
-                            mixed={overflow.mixed}
+                            mixed={overflowValue === 'mixed' || overflow.mixed}
                         />
                     </div>
                 </GroupShell>

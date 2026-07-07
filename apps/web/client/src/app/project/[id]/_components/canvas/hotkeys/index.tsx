@@ -165,6 +165,15 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('ESCAPE'),
         () => {
+            // Escape during an in-progress element drag cancels it without
+            // committing: move state is cleared and endAllDrag() restores the
+            // element's saved styles in the iframe, so it snaps back to its
+            // original position and the upcoming mouseup no-ops instead of
+            // running the move action.
+            if (editorEngine.move.isDragInProgress) {
+                void editorEngine.move.cancel();
+                return;
+            }
             // Layered escape: text editing (handled by the editor itself) →
             // component edit session → clear selection. One ESC per layer.
             if (!editorEngine.text.isEditing && editorEngine.components.editing) {

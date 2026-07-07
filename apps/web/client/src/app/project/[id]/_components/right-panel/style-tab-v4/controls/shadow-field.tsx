@@ -134,6 +134,11 @@ function OffsetRow({
     increaseLabel: string;
 }) {
     const [draft, setDraft] = React.useState(String(value));
+    // Mirrors NumberField: Escape/Enter already handled the keystroke, so the
+    // synchronous blur that follows must not re-commit the stale DOM value.
+    const skipBlurCommitRef = React.useRef(false);
+    // Only commit on blur when the user actually typed in this focus session.
+    const userTouchedRef = React.useRef(false);
 
     React.useEffect(() => {
         setDraft(String(value));
@@ -167,16 +172,38 @@ function OffsetRow({
                     spellCheck={false}
                     value={draft}
                     aria-label={label}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={(e) => commit(e.currentTarget.value)}
+                    onFocus={() => {
+                        userTouchedRef.current = false;
+                    }}
+                    onChange={(e) => {
+                        userTouchedRef.current = true;
+                        setDraft(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                        if (skipBlurCommitRef.current) {
+                            skipBlurCommitRef.current = false;
+                            userTouchedRef.current = false;
+                            return;
+                        }
+                        if (!userTouchedRef.current) {
+                            if (draft !== String(value)) setDraft(String(value));
+                            return;
+                        }
+                        userTouchedRef.current = false;
+                        commit(e.currentTarget.value);
+                    }}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
                             commit(e.currentTarget.value);
+                            skipBlurCommitRef.current = true;
+                            userTouchedRef.current = false;
                             e.currentTarget.blur();
                         } else if (e.key === 'Escape') {
                             e.preventDefault();
                             setDraft(String(value));
+                            skipBlurCommitRef.current = true;
+                            userTouchedRef.current = false;
                             e.currentTarget.blur();
                         }
                     }}
@@ -217,6 +244,9 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
     // blocked; validation/revert happens on blur, not on every keystroke.
     const lastValidHex = hex6.replace('#', '');
     const [hexDraft, setHexDraft] = React.useState(lastValidHex);
+    // Escape reverts the hex draft and blurs — the synchronous blur must not
+    // re-commit the abandoned draft still captured in the commit closure.
+    const skipHexBlurCommitRef = React.useRef(false);
     React.useEffect(() => {
         setHexDraft(lastValidHex);
     }, [lastValidHex]);
@@ -231,6 +261,25 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
         } else {
             // Revert to the last valid hex value.
             setHexDraft(lastValidHex);
+        }
+    };
+
+    // Local draft for the opacity input, mirroring the hex field — typing
+    // mid-entry must not commit on every keystroke; commit on blur/Enter,
+    // revert on Escape.
+    const [opacityDraft, setOpacityDraft] = React.useState(String(opacityPct));
+    const skipOpacityBlurCommitRef = React.useRef(false);
+    React.useEffect(() => {
+        setOpacityDraft(String(opacityPct));
+    }, [opacityPct]);
+
+    const commitOpacity = () => {
+        const n = Number.parseInt(opacityDraft, 10);
+        if (Number.isFinite(n) && n !== opacityPct) {
+            setOpacity(n);
+        } else {
+            // Revert to the last committed percentage.
+            setOpacityDraft(String(opacityPct));
         }
     };
 
@@ -354,7 +403,13 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                     onChange={(e) =>
                                         setHexDraft(e.target.value.replace(/[^0-9a-fA-F]/g, ''))
                                     }
-                                    onBlur={commitHex}
+                                    onBlur={() => {
+                                        if (skipHexBlurCommitRef.current) {
+                                            skipHexBlurCommitRef.current = false;
+                                            return;
+                                        }
+                                        commitHex();
+                                    }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
@@ -362,6 +417,7 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                         } else if (e.key === 'Escape') {
                                             e.preventDefault();
                                             setHexDraft(lastValidHex);
+                                            skipHexBlurCommitRef.current = true;
                                             e.currentTarget.blur();
                                         }
                                     }}
@@ -378,14 +434,28 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                     type="text"
                                     inputMode="numeric"
                                     spellCheck={false}
-                                    value={String(opacityPct)}
+                                    value={opacityDraft}
                                     aria-label={t('shadowOpacity')}
-                                    onChange={(e) => {
-                                        const n = Number.parseInt(
-                                            e.target.value.replace(/[^0-9]/g, ''),
-                                            10,
-                                        );
-                                        if (Number.isFinite(n)) setOpacity(n);
+                                    onChange={(e) =>
+                                        setOpacityDraft(e.target.value.replace(/[^0-9]/g, ''))
+                                    }
+                                    onBlur={() => {
+                                        if (skipOpacityBlurCommitRef.current) {
+                                            skipOpacityBlurCommitRef.current = false;
+                                            return;
+                                        }
+                                        commitOpacity();
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            e.currentTarget.blur();
+                                        } else if (e.key === 'Escape') {
+                                            e.preventDefault();
+                                            setOpacityDraft(String(opacityPct));
+                                            skipOpacityBlurCommitRef.current = true;
+                                            e.currentTarget.blur();
+                                        }
                                     }}
                                     className="text-foreground-primary text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none"
                                 />
