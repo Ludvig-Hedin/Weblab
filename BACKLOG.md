@@ -1847,6 +1847,18 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** unsaved input loss on stray backdrop click; medium-frequency annoyance, no data corruption.
 - **Tags:** `#bug` `#editor` `#modal` `#ux`
 
+### F-360 — MemberRow avatar `alt={initials}` is meaningless to screen readers
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — `member-row.tsx:68`: `<AvatarImage alt={initials} />` → `alt={displayName}`.
+- **Tags:** `#bug` `#editor` `#a11y` `#members`
+
+### F-313 — Editor-bar `restart-sandbox-button.tsx` comment cites CodeSandbox
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — comment rewritten for Vercel Sandbox (5-15s typical cold boot; explains the 60s ceiling is intentionally over-provisioned rather than the expected boot time). Left the numeric `RESTART_READY_CEILING_MS` unchanged (60s) — the backlog's "consider reducing to 30s" was speculative and touches live restart-timing behavior; not worth the regression risk for a comment-accuracy fix.
+- **Tags:** `#docs` `#brand-leak` `#editor`
+
 ### F-300 — Interactions tab couples to deprecated `style-tab-v2` (partial)
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
@@ -1881,21 +1893,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Next step:** after `xterm.options.theme = …`, call `terminalSession.xterm.refresh(0, terminalSession.xterm.rows - 1)`.
 - **Tags:** `#bug` `#editor` `#terminal`
 
-### F-360 — MemberRow avatar `alt={initials}` is meaningless to screen readers
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/members/member-row.tsx:68](apps/web/client/src/app/project/[id]/_components/members/member-row.tsx#L68)
-- **Symptom:** `<AvatarImage src={user.avatarUrl} alt={initials} />` — screen readers announce `"V B"` instead of the actual member name.
-- **Next step:** `alt={displayName}` OR `alt=""` (decorative, with name covered by sibling text).
-- **Tags:** `#bug` `#editor` `#a11y` `#members`
-
-### F-313 — Editor-bar `restart-sandbox-button.tsx` comment cites CodeSandbox
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/restart-sandbox-button.tsx:14-17](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L14)
-- **Symptom:** Comment says `"Real cold-boot times run 30–60s on CodeSandbox"`. CSB was archived 2026-05-24 (CLAUDE.md). Misleads future readers — Vercel Sandbox cold boots are typically 5–15s; the 60s ceiling is over-provisioned.
-- **Next step:** rewrite the comment for Vercel Sandbox; consider reducing the ceiling to 30s with a separate slow-path warning toast.
-- **Tags:** `#docs` `#brand-leak` `#editor`
 
 ### F-134 — invalid Convex ID on settings/access shows generic boundary error (not invalid-id)
 

@@ -65,7 +65,7 @@ export const MemberRow = observer(({ user, role, projectId }: MemberRowProps) =>
             {/* Avatar with online presence dot */}
             <div className="relative shrink-0">
                 <Avatar>
-                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={initials} />}
+                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={displayName} />}
                     <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span

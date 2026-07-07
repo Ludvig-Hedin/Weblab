@@ -12,10 +12,13 @@ import { cn } from '@weblab/ui/utils';
 import { useEditorEngine } from '@/components/store/editor';
 import { waitForSandboxReady } from '../canvas/frame/wait-for-sandbox-ready';
 
-// Ceiling for the post-restart readiness poll. Real cold-boot times
-// run 30–60s on CodeSandbox; the previous hardcoded 5s wait either
-// fired a 502 (too short) or made fast restarts feel sluggish. We
-// poll up to this ceiling and then reload anyway as a fallback.
+// Ceiling for the post-restart readiness poll. Vercel Sandbox cold boots
+// typically land in 5-15s; the previous hardcoded 5s wait either fired a
+// 502 (too short) or made fast restarts feel sluggish. This ceiling is
+// intentionally over-provisioned above the typical case so a slower boot
+// still gets picked up by the poll instead of falling through to the
+// fallback reload. We poll up to this ceiling and then reload anyway as
+// a fallback.
 const RESTART_READY_CEILING_MS = 60_000;
 
 export const RestartSandboxButton = observer(({ className }: { className?: string }) => {
