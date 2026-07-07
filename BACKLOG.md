@@ -1853,12 +1853,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Resolved:** 2026-07-07 — `member-row.tsx:68`: `<AvatarImage alt={initials} />` → `alt={displayName}`.
 - **Tags:** `#bug` `#editor` `#a11y` `#members`
 
-### F-313 — Editor-bar `restart-sandbox-button.tsx` comment cites CodeSandbox
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Resolved:** 2026-07-07 — comment rewritten for Vercel Sandbox (5-15s typical cold boot; explains the 60s ceiling is intentionally over-provisioned rather than the expected boot time). Left the numeric `RESTART_READY_CEILING_MS` unchanged (60s) — the backlog's "consider reducing to 30s" was speculative and touches live restart-timing behavior; not worth the regression risk for a comment-accuracy fix.
-- **Tags:** `#docs` `#brand-leak` `#editor`
-
 ### F-300 — Interactions tab couples to deprecated `style-tab-v2` (partial)
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
@@ -1888,14 +1882,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** a typo'd settings deep-link shows "couldn't open this project" instead of "invalid link". Minor copy mismatch; user always has an escape button.
 - **Tags:** `#ux` `#auth-gated` `#convex` `#low`
 
-### F-125 — `<iframe>` template preview missing `sandbox` attribute
-
-- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
-- **Where:** [apps/web/client/src/app/projects/templates/[id]/page.tsx:159-165](apps/web/client/src/app/projects/templates/[id]/page.tsx#L159-L165)
-- **Symptom:** `<iframe src={template.previewUrl} …>` has no `sandbox` attribute. `previewUrl` is currently static template data (low risk today), but loading any third-party URL into an iframe without `sandbox` gives that page full access to the parent origin via the `window.top` handle once anti-clickjacking headers permit.
-- **Next step:** add `sandbox="allow-scripts allow-same-origin allow-forms"` (or stricter — most marketing pages only need `allow-scripts`). Verify the live previews still render. If a specific template needs an exception, add a per-template opt-out rather than removing the attribute.
-- **Risk if ignored:** if `previewUrl` ever becomes user-controlled (e.g. user-submitted templates), this is a stored-XSS / clickjacking vector. Even with static data, an upstream demo host serving malicious JS can pivot through the frame.
-- **Tags:** `#security` `#defense-in-depth` `#auth-gated`
 
 ### F-120..F-135 import/create surface dead-ends at sandbox provisioning (Figma, Local, Templates, Prompt)
 
@@ -2376,6 +2362,18 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### F-125 — `<iframe>` template preview missing `sandbox` attribute
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Resolved:** 2026-07-07 — added `sandbox="allow-scripts allow-same-origin allow-forms"` to the preview iframe. All `previewUrl` values are third-party `*.vercel.app` demo apps (confirmed via `template-data.ts`), so `allow-same-origin` grants the framed page access only to its own origin, not the parent — the classic sandbox-escape risk doesn't apply here.
+- **Tags:** `#security` `#defense-in-depth` `#auth-gated`
+
+### F-313 — Editor-bar `restart-sandbox-button.tsx` comment cites CodeSandbox
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — comment rewritten for Vercel Sandbox (5-15s typical cold boot; explains the 60s ceiling is intentionally over-provisioned rather than the expected boot time). Left the numeric `RESTART_READY_CEILING_MS` unchanged (60s) — the backlog's "consider reducing to 30s" was speculative and touches live restart-timing behavior; not worth the regression risk for a comment-accuracy fix.
+- **Tags:** `#docs` `#brand-leak` `#editor`
 
 ### F-334 — Preview theme toggle `postMessage` uses wildcard targetOrigin
 

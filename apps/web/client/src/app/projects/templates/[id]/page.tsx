@@ -162,6 +162,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                     className="bg-background h-[620px] w-full"
                                     loading="lazy"
                                     referrerPolicy="no-referrer"
+                                    sandbox="allow-scripts allow-same-origin allow-forms"
                                 />
                             )}
                         </div>
