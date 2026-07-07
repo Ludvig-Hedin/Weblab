@@ -8,11 +8,11 @@ import { NumberInput } from '@weblab/ui/number-input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import { Section } from '../../_shared/section';
 import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
 import { PropertyLabel } from '../controls/property-label';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 type Side = 'top' | 'right' | 'bottom' | 'left';
 

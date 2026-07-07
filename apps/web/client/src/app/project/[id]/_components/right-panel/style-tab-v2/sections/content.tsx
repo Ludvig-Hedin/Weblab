@@ -20,7 +20,7 @@ import { toast } from '@weblab/ui/sonner';
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { Section } from './section';
+import { Section } from '../../_shared/section';
 
 /**
  * Right-panel "Content" section. Visible only when the selected element is

@@ -3,10 +3,10 @@
 import { MousePointerClick } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
+import { Section } from '../../_shared/section';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const CURSOR_OPTIONS = [
     { value: 'auto', label: 'Auto' },

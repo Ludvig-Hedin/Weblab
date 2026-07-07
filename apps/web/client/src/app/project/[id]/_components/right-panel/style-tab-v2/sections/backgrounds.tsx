@@ -3,12 +3,12 @@
 import { Image as ImageIcon } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
+import { Section } from '../../_shared/section';
 import { ColorField } from '../controls/color-field';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { TextField } from '../controls/text-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const BACKGROUND_CLIP_OPTIONS = [
     { value: 'border-box', label: 'Border box' },

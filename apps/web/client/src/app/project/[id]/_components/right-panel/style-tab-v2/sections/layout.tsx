@@ -25,11 +25,11 @@ import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { IconToggleField } from '../controls/icon-toggle-field';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const Icon = ({ icon: I, flipY }: { icon: LucideIcon; flipY?: boolean }) => (
     <I className={flipY ? 'size-3.5 -scale-y-100' : 'size-3.5'} />

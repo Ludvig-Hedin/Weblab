@@ -21,6 +21,7 @@ import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { ColorField } from '../controls/color-field';
 import { FontField } from '../controls/font-field';
 import { IconToggleField } from '../controls/icon-toggle-field';
@@ -29,7 +30,6 @@ import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { TextField } from '../controls/text-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const Icon = ({ icon: I }: { icon: LucideIcon }) => <I className="size-3.5" />;
 

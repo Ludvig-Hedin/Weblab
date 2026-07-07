@@ -1847,31 +1847,11 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** unsaved input loss on stray backdrop click; medium-frequency annoyance, no data corruption.
 - **Tags:** `#bug` `#editor` `#modal` `#ux`
 
-### F-318 — `useDropdownControl` effect omits `isOpen` from deps → stale closure race
+### F-300 — Interactions tab couples to deprecated `style-tab-v2` (partial)
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/editor-bar/hooks/use-dropdown-manager.tsx:137-143](apps/web/client/src/app/project/[id]/_components/editor-bar/hooks/use-dropdown-manager.tsx#L137)
-- **Symptom:** Two rapidly-opened dropdowns can leave one stuck open even though the manager thinks it's closed. The reproducer is racy and hard to catch in QA — most users will dismiss-and-retry rather than report.
-- **Root cause:** `useEffect` compares `shouldBeOpen !== isOpen` but only depends on `[openDropdownId, id, isOverflow]`. Stale closure when `isOpen` changes via `handleOpenChange` without one of those deps changing.
-- **Next step:** add `isOpen` to deps (acceptable — sync direction is openDropdownId → isOpen, not the reverse, so no loop) OR move `isOpen` into a ref read inside the effect.
-- **Risk if ignored:** sporadic "the picker won't close" reports the team won't be able to reproduce.
-- **Tags:** `#bug` `#editor` `#editor-bar` `#hook`
-
-### F-300 — `activeBranch.id` accessed without null guard (Interactions tab)
-
-- **Resolved:** 2026-05-28 (backlog user-flow sweep) — verified fixed: [list-view.tsx:96,107](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96) and [timeline-editor.tsx:60-64](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60) now use `activeBranch?.id` + early return. Stale entry.
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [list-view.tsx:96 + 106](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96) + [timeline-editor.tsx:60](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60)
-- **Symptom:** `const branchId = editorEngine.branches.activeBranch.id;` — during branch switch `activeBranch` is transiently `null` → TypeError uncaught.
-- **Next step:** `const branchId = editorEngine.branches.activeBranch?.id; if (!branchId) return;` in all three sites.
-- **Tags:** `#bug` `#editor` `#interactions`
-
-### F-300 — Interactions tab couples to deprecated `style-tab-v2`
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [list-view.tsx:11](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L11) and [timeline-editor.tsx:23](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L23) import from `../style-tab-v2/sections/*`.
-- **Symptom:** Catalog row F-262 tags `style-tab-v2` as `#deprecated`. Whoever deletes it will silently break F-300.
-- **Next step:** lift `Section` and `ElementHeaderSection` into a shared `right-panel/_shared/` directory; update both imports.
+- **Partial fix (2026-07-07):** `Section` (used by 13 files inside `style-tab-v2` plus 3 in `interactions-tab`) moved to a new [`right-panel/_shared/section.tsx`](apps/web/client/src/app/project/[id]/_components/right-panel/_shared/section.tsx); all 16 importers updated. Deleting `style-tab-v2` no longer breaks the Interactions tab's `Section` usage.
+- **Still open — `ElementHeaderSection`:** `list-view.tsx:11` still imports `ElementHeaderSection` from `style-tab-v2/sections/element-header.tsx`. Turned out bigger than the original ticket implied: that file also pulls `../controls/{property-label,select-field,text-field}` from `style-tab-v2/controls/*`, so a clean lift means moving 4 files (or duplicating the 3 controls, which likely already have v3/v4 equivalents worth reusing instead — needs a look before deciding). Deferred; not done in this pass.
 - **Tags:** `#tech-debt` `#editor` `#cross-feature-coupling`
 
 ### F-300..F-402 — Pervasive raw `<button>` + hardcoded English
@@ -2600,6 +2580,18 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### F-300 — `activeBranch.id` accessed without null guard (Interactions tab)
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `list-view.tsx:96,107` and `timeline-editor.tsx:60-64` use `activeBranch?.id` + early return.
+- **Tags:** `#bug` `#editor` `#interactions`
+
+### F-318 — `useDropdownControl` effect omits `isOpen` from deps → stale closure race
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `use-dropdown-manager.tsx:137-143` has `isOpen` in the effect's deps, with a comment explaining why it's safe (sync direction is `openDropdownId` → `isOpen`, not the reverse — no loop risk).
+- **Tags:** `#bug` `#editor` `#editor-bar` `#hook`
 
 ### F-402 — NonProjectSettingsModal / SettingsModalWithProjects missing ARIA, focus trap; `with-project.tsx` missing `'use client'`
 

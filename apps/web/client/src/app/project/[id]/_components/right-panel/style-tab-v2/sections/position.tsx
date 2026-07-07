@@ -5,10 +5,10 @@ import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const POSITION_OPTIONS = [
     { value: 'static', label: 'Static' },

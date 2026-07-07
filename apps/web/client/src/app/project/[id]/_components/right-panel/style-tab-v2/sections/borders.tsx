@@ -8,6 +8,7 @@ import { NumberInput } from '@weblab/ui/number-input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import { Section } from '../../_shared/section';
 import { ColorField } from '../controls/color-field';
 import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
 import { InlineButton } from '../controls/inline-button';
@@ -16,7 +17,6 @@ import { PropertyLabel } from '../controls/property-label';
 import { SelectField } from '../controls/select-field';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const BORDER_STYLE_OPTIONS = [
     { value: 'none', label: 'None' },

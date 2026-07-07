@@ -6,12 +6,12 @@ import { observer } from 'mobx-react-lite';
 import { Button } from '@weblab/ui/button';
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { TextField } from '../controls/text-field';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const TIMING_OPTIONS = [
     { value: 'linear', label: 'Linear' },

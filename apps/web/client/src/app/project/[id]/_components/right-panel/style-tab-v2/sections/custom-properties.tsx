@@ -8,8 +8,8 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { Section } from '../../_shared/section';
 import { TextField } from '../controls/text-field';
-import { Section } from './section';
 
 interface CustomPropertyRow {
     name: string;

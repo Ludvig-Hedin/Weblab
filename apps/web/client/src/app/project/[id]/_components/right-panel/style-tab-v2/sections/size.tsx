@@ -5,12 +5,12 @@ import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { PropertyControl } from '../controls/property-control';
 import { PropertyLabel } from '../controls/property-label';
 import { SelectField } from '../controls/select-field';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const OVERFLOW_OPTIONS = [
     { value: 'visible', label: 'Visible' },

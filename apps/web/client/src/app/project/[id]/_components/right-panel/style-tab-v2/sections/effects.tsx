@@ -5,13 +5,13 @@ import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { ColorField } from '../controls/color-field';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { SliderField } from '../controls/slider-field';
 import { TextField } from '../controls/text-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 const BLEND_MODE_OPTIONS = [
     { value: 'normal', label: 'Normal' },

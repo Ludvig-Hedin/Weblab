@@ -5,10 +5,10 @@ import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
+import { Section } from '../../_shared/section';
 import { PropertyControl } from '../controls/property-control';
 import { TextField } from '../controls/text-field';
 import { useStyleValue } from '../hooks/use-style-value';
-import { Section } from './section';
 
 /**
  * Transforms section. Today the panel exposes the standalone `transform` and

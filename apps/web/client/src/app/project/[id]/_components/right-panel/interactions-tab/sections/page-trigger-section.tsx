@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { Interaction, TriggerKind } from '@weblab/models';
 
 import { transKeys } from '@/i18n/keys';
-import { Section } from '../../style-tab-v2/sections/section';
+import { Section } from '../../_shared/section';
 import { InteractionRow } from '../controls/interaction-row';
 import { TriggerPicker } from '../controls/trigger-picker';
 
