@@ -1922,33 +1922,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** noisy "Failed to send invite" toasts with no actionable detail. Possible cost on transactional email provider if invalid addresses get retried.
 - **Tags:** `#bug` `#ux` `#auth-gated`
 
-### ESLint config — `react-hooks/exhaustive-deps` rule unregistered at inline disable sites
-
-- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
-- **Where:** repo-wide. Confirmed sites: [apps/web/client/src/app/projects/import/local/_components/verify-project.tsx:36](apps/web/client/src/app/projects/import/local/_components/verify-project.tsx#L36), [apps/web/client/src/app/projects/_components/select/use-screenshot-backfill.ts:127](apps/web/client/src/app/projects/_components/select/use-screenshot-backfill.ts#L127).
-- **Symptom:** `bunx eslint <file>` reports `warning: Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps` on every `// eslint-disable-next-line react-hooks/exhaustive-deps` comment. The rule is registered in [tooling/eslint/react.js](tooling/eslint/react.js) and the flat config in [apps/web/client/eslint.config.js](apps/web/client/eslint.config.js) spreads `reactConfig`, so the rule should be loaded. The fact that ESLint reports the disable directive as referencing an unknown rule means a later flat-config layer is shadowing the plugin map for the file.
-- **Next step:** add an explicit `plugins: { 'react-hooks': hooksPlugin }` to whichever layer in `apps/web/client/eslint.config.js` is shadowing it (likely the storybook layer added last). Verify by re-running `bunx eslint` on the two files above — the "Definition for rule … was not found" should disappear. While there, audit `@next/next/no-img-element` — same symptom across `projects/_components/select/*.tsx` (multiple sites).
-- **Risk if ignored:** every inline `eslint-disable-next-line react-hooks/exhaustive-deps` is currently a no-op. If the rule were to actually fire, several real dep-array bugs may be hiding behind suppressions that don't suppress.
-- **Tags:** `#infra` `#lint` `#tech-debt`
-
-### F-128 — GitHub setup.tsx still relies on `any`-typed responses on multiple paths
-
-- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
-- **Where:** [apps/web/client/src/app/projects/import/github/_components/setup.tsx](apps/web/client/src/app/projects/import/github/_components/setup.tsx) lines 40, 51, 67-73
-- **Symptom:** `(org: any)`, `(repo: any)`, and `.includes(...)` chains on optional GitHub API fields. The `filteredRepositories` filter was hardened this session (`?.` on `owner` / `name` / `full_name`), but the surrounding handlers (`handleOrganizationSelect`, `handleRepositorySelect`) still rely on the same untyped shape, and downstream sorting/display will throw if the shape drifts.
-- **Next step:** import the typed shape from the GitHub OAuth client (`@octokit/rest` or whatever the connector uses), replace `any` with `RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]["data"][number]`, drop the unsafe member-access warnings, and add a runtime fall-back for repos with `owner: null`.
-- **Risk if ignored:** silent regressions when GitHub adds / nulls a field; archived & transferred repos are most likely to surface this.
-- **Tags:** `#bug` `#tech-debt` `#integration`
-
-### CreateManager mutates `this.error` outside `runInAction`
-
-- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
-- **Where:** [apps/web/client/src/components/store/create/manager.ts:122,143,205](apps/web/client/src/components/store/create/manager.ts#L122)
-- **Symptom:** `this.error = null` runs in async function body before the explicit `runInAction(...)` block. Only a problem if MobX strict mode is enabled — current setup is not strict, but auto-binding via `makeAutoObservable` does enforce strict-mode rules in some MobX builds.
-- **Next step:** wrap each pre-check assignment in `runInAction(() => { this.error = null; })` for consistency with the rest of the file. Cheap, no behavior change.
-- **Risk if ignored:** if MobX is ever configured with `enforceActions: 'always'`, every entry point starts crashing on the first line.
-- **Tags:** `#tech-debt`
-
 ### ~~F-453 — Cookie consent read only at mount; no runtime re-init~~ FALSE ALARM (resolved 2026-05-28)
 
 - **Resolved:** `apps/web/client/src/app/_components/cookie-consent.tsx:52-56` calls `window.location.reload()` inside `onAccept`. The next mount runs the init effect with the consent cookie present, so SDKs DO initialize on accept. No code change needed.
@@ -2325,6 +2298,24 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### ~~ESLint config — `react-hooks/exhaustive-deps` rule unregistered at inline disable sites~~ FALSE ALARM (2026-07-07)
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Re-checked:** 2026-07-07 — does not reproduce. `bunx eslint` on both originally-confirmed sites (`verify-project.tsx`, `use-screenshot-backfill.ts`) now shows normal warnings only, no "Definition for rule ... was not found". `eslint --print-config` confirms `react-hooks/exhaustive-deps` resolves at severity `warn` with the plugin present; a full `bun lint` run fires real `react-hooks/exhaustive-deps` and `@next/next/no-img-element` warnings across dozens of files. `eslint.config.js` hasn't changed since before the original discovery — likely an ESLint/`eslint-plugin-storybook` dependency bump fixed the flat-config plugin-merge shadowing incidentally. No code change needed.
+- **Tags:** `#infra` `#lint`
+
+### F-128 — GitHub setup.tsx still relies on `any`-typed responses on multiple paths
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Resolved:** 2026-07-07 — replaced `any` with the real `GitHubOrganization`/`GitHubRepository` types from `@weblab/github` across all 5 org/repo callback sites in `setup.tsx`, and added the same `repo.owner?.login` guard the file's own `filteredRepositories` filter already used for archived/transferred repos.
+- **Tags:** `#bug` `#tech-debt` `#integration`
+
+### CreateManager mutates `this.error` outside `runInAction`
+
+- **Discovered:** 2026-05-28 (bug-hunt F-120..F-135)
+- **Resolved:** 2026-07-07 — wrapped all 3 pre-check `this.error = null` assignments (`startCreate`, `startGitHubTemplate`, `startPublicGitHubTemplate`) in `runInAction`, matching the rest of the file.
+- **Tags:** `#tech-debt`
 
 ### F-471 — `toolCallCount` over-counts `tool-input-start` and other trigger events
 
