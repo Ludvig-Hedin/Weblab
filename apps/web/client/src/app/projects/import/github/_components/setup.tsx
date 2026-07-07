@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
+import type { GitHubOrganization, GitHubRepository } from '@weblab/github';
 import { Button } from '@weblab/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
@@ -39,7 +40,9 @@ export const SetupGithub = () => {
         if (value === 'all') {
             setSelectedOrg(null);
         } else {
-            const organization = githubData.organizations.find((org: any) => org.login === value);
+            const organization = githubData.organizations.find(
+                (org: GitHubOrganization) => org.login === value,
+            );
             setSelectedOrg(organization || null);
         }
         setSelectedRepo(null);
@@ -50,7 +53,9 @@ export const SetupGithub = () => {
     };
 
     const handleRepositorySelect = (value: string) => {
-        const repository = githubData.repositories.find((repo: any) => repo.full_name === value);
+        const repository = githubData.repositories.find(
+            (repo: GitHubRepository) => repo.full_name === value,
+        );
         setSelectedRepo(repository || null);
     };
 
@@ -69,7 +74,7 @@ export const SetupGithub = () => {
     // Defensive `?.` guards: archived/transferred repos can return null for
     // `owner` or `name`; without guards `.login` / `.toLowerCase()` would
     // throw and crash the entire repo list.
-    const filteredRepositories = githubData.repositories.filter((repo: any) => {
+    const filteredRepositories = githubData.repositories.filter((repo: GitHubRepository) => {
         const matchesOrg = selectedOrg ? repo.owner?.login === selectedOrg.login : true;
         const query = searchQuery.toLowerCase();
         const matchesSearch =
@@ -143,7 +148,7 @@ export const SetupGithub = () => {
                                             <span>{t('allRepositories')}</span>
                                         </div>
                                     </SelectItem>
-                                    {githubData.organizations.map((org: any) => (
+                                    {githubData.organizations.map((org: GitHubOrganization) => (
                                         <SelectItem key={org.id} value={org.login}>
                                             <div className="flex w-full items-center gap-2">
                                                 <img
@@ -257,7 +262,9 @@ export const SetupGithub = () => {
                                             {searchQuery
                                                 ? t('noReposMatchSearch')
                                                 : selectedOrg
-                                                  ? t('noReposForOrg', { orgName: selectedOrg.login })
+                                                  ? t('noReposForOrg', {
+                                                        orgName: selectedOrg.login,
+                                                    })
                                                   : t('noReposFound')}
                                         </div>
                                     ) : (
@@ -266,7 +273,7 @@ export const SetupGithub = () => {
                                             className="h-full overflow-y-auto"
                                             onScroll={updateScrollIndicators}
                                         >
-                                            {filteredRepositories.map((repo: any) => (
+                                            {filteredRepositories.map((repo: GitHubRepository) => (
                                                 <button
                                                     key={repo.id}
                                                     onClick={() =>
@@ -286,7 +293,7 @@ export const SetupGithub = () => {
                                                                 <Icons.Globe className="text-foreground-secondary h-3 w-3" />
                                                             )}
                                                             <span className="text-sm font-medium">
-                                                                {repo.owner.login}
+                                                                {repo.owner?.login}
                                                             </span>
                                                             <span className="text-foreground-secondary">
                                                                 /

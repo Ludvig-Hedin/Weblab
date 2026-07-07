@@ -152,7 +152,9 @@ export class CreateManager {
         prompt: string,
         images: ImageMessageContext[],
     ): Promise<{ id: string }> {
-        this.error = null;
+        runInAction(() => {
+            this.error = null;
+        });
         if (!userId) {
             throw new CreateFlowNotAuthenticatedError();
         }
@@ -190,7 +192,9 @@ export class CreateManager {
      * `projectActions.createFromGit` action, then open the editor on it.
      */
     async startGitHubTemplate(userId: string, repoUrl: string): Promise<{ id: string }> {
-        this.error = null;
+        runInAction(() => {
+            this.error = null;
+        });
         if (!userId) {
             throw new CreateFlowNotAuthenticatedError();
         }
@@ -262,7 +266,9 @@ export class CreateManager {
          */
         framework?: FrameworkId;
     }): Promise<{ id: string }> {
-        this.error = null;
+        runInAction(() => {
+            this.error = null;
+        });
         if (!input.userId) {
             throw new CreateFlowNotAuthenticatedError();
         }
