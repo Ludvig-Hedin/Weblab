@@ -2062,15 +2062,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** cheap concurrent abuse with no daily-cap pressure.
 - **Tags:** `#bug` `#billing` `#concurrency`
 
-### F-476 — In-memory rate limit on transcription is per-process, not per-user
-
-- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
-- **Where:** [apps/web/client/src/app/api/transcribe/helpers/rate-limit.ts:12](apps/web/client/src/app/api/transcribe/helpers/rate-limit.ts#L12)
-- **Symptom:** Counter lives in `Map` on each Node replica. On Railway with N replicas a user gets `N × 10`/min instead of 10/min. Compounded by the fact that transcription has no daily quota — only this anti-spam limiter — so cost cap is effectively `N × 10 × MAX_AUDIO_BYTES`/minute per attacker.
-- **Next step:** move to Convex (`api.rateLimits.*` already used by chat) so the limit is global. While there, add a daily Whisper-spend counter so the cost ceiling does not scale with replicas.
-- **Risk if ignored:** unbounded Whisper / OpenRouter spend under abuse; documented in code as "not a replacement for distributed rate limiting" but ops cap is the only safety net today.
-- **Tags:** `#bug` `#billing` `#infra`
-
 ### ~~F-471 — Chat path: `aiUsageEvents.insert` + `replaceConversationMessages` awaited inside `onFinish` with no timeout~~ FIXED (2026-05-28)
 
 - **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
@@ -2328,6 +2319,26 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
 - **Resolved:** 2026-07-07 — `chat/route.ts` now dedupes by `toolCallId` via the AI SDK's `isToolOrDynamicToolUIPart` type guard instead of a raw `type?.startsWith('tool-')` substring filter, which counted every stream trigger event (`tool-input-start`, `tool-input-delta`, etc.) as a call.
 - **Tags:** `#bug` `#telemetry`
+
+### F-476 — In-memory rate limit on transcription is per-process, not per-user
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Resolved:** 2026-07-07 — replaced the per-process `Map` in
+  `src/app/api/transcribe/helpers/rate-limit.ts` (now deleted) with a
+  Convex-backed limiter: a new `transcribeRateLimits` table (one row per
+  user, distinct from the billing-quota `rateLimits` table used by
+  `usage.ts`) plus `convex/transcribeRateLimit.ts` (`checkAndRecord`
+  mutation) and a pure, unit-tested sliding-window helper in
+  `convex/lib/transcribeRateLimit.ts`. `route.ts` now calls
+  `fetchMutation(api.transcribeRateLimit.checkAndRecord, ...)` with the
+  Clerk-issued Convex token, mirroring the pattern in
+  `chat/helpers/usage.ts`. Convex's per-document OCC makes the
+  read-modify-write atomic, so the 10/min cap now holds fleet-wide across
+  every Railway replica instead of `replicas × 10`/min. A daily cron
+  (`purgeStaleTranscribeRateLimits` in `convex/internal/cleanup.ts`,
+  registered in `convex/crons.ts`) prunes rows whose window closed more
+  than a day ago so the table stays bounded.
+- **Tags:** `#bug` `#billing` `#infra`
 
 ### F-473 — `chat-images/[id]` double-allocates the response buffer
 
