@@ -16,7 +16,16 @@ export function SandboxServerAuthBridge() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
 
     useEffect(() => {
-        if (!isLoaded || !isSignedIn) {
+        // While Clerk is still loading, don't register anything: passing null
+        // here marked the WS auth gate "ready" with no token fetcher, so a
+        // sandbox call racing Clerk's load connected with an empty token and
+        // failed UNAUTHORIZED at editor boot. Leaving the gate unresolved lets
+        // `waitForAuthReady` hold the first connection until sign-in state is
+        // actually known.
+        if (!isLoaded) {
+            return;
+        }
+        if (!isSignedIn) {
             setSandboxServerAuthFetcher(null);
             return;
         }

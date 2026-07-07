@@ -48,12 +48,15 @@ async function waitForAuthReady(): Promise<void> {
  * `<SandboxServerAuthBridge>` (mounted under ClerkProvider) on session change.
  */
 export function setSandboxServerAuthFetcher(fetcher: (() => Promise<string | null>) | null): void {
+    // Only a real fetcher resolves the auth gate. Marking ready on `null`
+    // (Clerk not loaded yet / signed out) let the first WS connection go out
+    // with an empty token and fail UNAUTHORIZED — see SandboxServerAuthBridge.
     if (cachedTokenFetcher === fetcher) {
-        markAuthReady();
+        if (fetcher !== null) markAuthReady();
         return;
     }
     cachedTokenFetcher = fetcher;
-    markAuthReady();
+    if (fetcher !== null) markAuthReady();
     if (cachedWsClient) {
         void cachedWsClient.close();
         cachedWsClient = null;

@@ -6,7 +6,6 @@ import { useAuth } from '@clerk/nextjs';
 
 import { Button } from '@weblab/ui/button';
 
-import { env } from '@/env';
 import { isConvexUnauthenticatedError } from '@/utils/auth/convex-unauthenticated';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { clearSigningOut, isSigningOut } from '@/utils/auth/signing-out';
@@ -71,7 +70,11 @@ export default function RootErrorBoundary({
         }
         // Reload was guarded (already retried → broken build) — reveal the card.
         setRecovering(false);
-        if (env.NODE_ENV !== 'production') {
+        // process.env.NODE_ENV is statically inlined by Next on the client;
+        // `env.NODE_ENV` lives in the SERVER schema and THROWS in the browser —
+        // which made the error boundary itself crash inside this effect and
+        // storm the console on every boundary render.
+        if (process.env.NODE_ENV !== 'production') {
             console.error('Root error boundary:', error);
         }
     }, [error, isChunkError, redirectToSignIn, signingOut]);
