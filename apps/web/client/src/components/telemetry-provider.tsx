@@ -2,14 +2,23 @@
 
 import type Gleap from 'gleap';
 import type PostHog from 'posthog-js';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { PostHogProvider as PHProvider } from 'posthog-js/react';
 
 import { env } from '@/env';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
+
+// `posthog-js/react`'s ESM entry does `import posthogJs from 'posthog-js'` at
+// module scope — statically importing the wrapper here would pull the full
+// ~190KB posthog-js core into this file's chunk regardless of the dynamic
+// `import('posthog-js')` below, defeating the whole point of gating it on
+// consent. Lazy-load the wrapper too so nothing loads until PHProvider
+// actually renders (which only happens after consent + the core SDK init).
+const PHProvider = lazy(() =>
+    import('posthog-js/react').then((m) => ({ default: m.PostHogProvider })),
+);
 
 // TelemetryProvider
 // Unified initialization and identity management for analytics/feedback tools.
@@ -201,7 +210,11 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
     // resolve to `undefined` from the default context until then — they no-op
     // safely, which is the correct behaviour pre-consent / pre-init.
     if (posthogClient) {
-        return <PHProvider client={posthogClient}>{children}</PHProvider>;
+        return (
+            <Suspense fallback={children}>
+                <PHProvider client={posthogClient}>{children}</PHProvider>
+            </Suspense>
+        );
     }
     return <>{children}</>;
 }

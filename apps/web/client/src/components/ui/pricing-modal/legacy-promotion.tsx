@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 

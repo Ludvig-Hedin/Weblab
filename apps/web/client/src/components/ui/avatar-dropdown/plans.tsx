@@ -11,13 +11,15 @@ import { Icons } from '@weblab/ui/icons';
 import { Progress } from '@weblab/ui/progress';
 
 import { useStateManager } from '@/components/store/state';
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 
 export const UsageSection = observer((_props: { open: boolean }) => {
     const t = useTranslations();
     const locale = useLocale();
     const state = useStateManager();
-    const subscription = useQuery(api.subscriptions.get, {});
-    const usageData = useQuery(api.usage.get, {});
+    const hasAuthCookie = useHasAuthCookie();
+    const subscription = useQuery(api.subscriptions.get, hasAuthCookie === true ? {} : 'skip');
+    const usageData = useQuery(api.usage.get, hasAuthCookie === true ? {} : 'skip');
     const subscriptionLoading = subscription === undefined;
     const usageLoading = usageData === undefined;
 
