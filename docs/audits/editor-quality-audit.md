@@ -58,7 +58,7 @@ Comprehensive audit + fix pass of the Weblab editor (canvas, selection, style, t
 - **Root cause**: `undo()`/`redo()` only `code.write(inverse)`, never dispatch the inverse to frames; the optimistic edit lives in the injected `<style>` keyed by domId; StyleManager mirror + override map also never reverted.
 - **Fix**: dispatch inverse action to frames on successful undo/redo (mirror into `updateStyleNoAction`/override map).
 
-### A6. Partial multi-file write, then history drops the whole action — **open**
+### A6. Partial multi-file write, then history drops the whole action — **fixed** (batch 5: all diffs validated — branch lookup + pipeline re-parse — before any file is written; all-or-nothing)
 - **Where**: `components/store/editor/code/index.ts:153-197`; `history/index.ts:139-145`
 - **Failure**: multi-select edit across two files; file 2 fails parse guard after file 1 wrote → file 1 landed but un-undoable, UI diverges from disk.
 - **Fix**: validate all diffs for the group before writing any file (or restore `diff.original` of already-written files on mid-loop failure).

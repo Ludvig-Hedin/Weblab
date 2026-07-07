@@ -1,5 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 
+import type { CodeFileSystem } from '@weblab/file-system';
 import type { BreakpointId } from '@weblab/models';
 import type { BreakpointEntry } from '@weblab/parser';
 import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
@@ -173,6 +174,13 @@ export class CodeManager {
     private async processWriteRequest(requests: CodeDiffRequest[]) {
         const groupedRequests = await this.groupRequestByFile(requests);
         const codeDiffs = await processGroupedRequests(groupedRequests);
+
+        // Validate EVERY diff before writing ANY file. A multi-file action
+        // (multi-select edit across components) that failed validation on
+        // file 2 used to leave file 1 already written — and history then
+        // dropped the whole action, so the landed half was un-undoable and
+        // the UI diverged from disk. All-or-nothing: reject up front.
+        const validated: { codeEditor: CodeFileSystem; path: string; generated: string }[] = [];
         for (const diff of codeDiffs) {
             const fileGroup = groupedRequests.get(diff.path);
             if (!fileGroup) {
@@ -208,12 +216,20 @@ export class CodeManager {
                         : getAstFromContent(diff.generated) !== null;
                 if (!reparses) {
                     throw new Error(
-                        `Refusing to write ${diff.path}: generated content does not parse. The edit was not saved — your source file is untouched.`,
+                        `Refusing to write ${diff.path}: generated content does not parse. The edit was not saved — your source files are untouched.`,
                     );
                 }
             }
 
-            await branchData.codeEditor.writeFile(diff.path, diff.generated);
+            validated.push({
+                codeEditor: branchData.codeEditor,
+                path: diff.path,
+                generated: diff.generated,
+            });
+        }
+
+        for (const { codeEditor, path, generated } of validated) {
+            await codeEditor.writeFile(path, generated);
         }
     }
 
