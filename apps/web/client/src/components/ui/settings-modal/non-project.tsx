@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -11,6 +11,7 @@ import { capitalizeFirstLetter } from '@weblab/utility';
 
 import type { SettingTab } from './helpers';
 import { useStateManager } from '@/components/store/state';
+import { useModalFocusTrap } from '@/hooks/use-modal-focus-trap';
 import { AccountTab } from './account-tab';
 import { AITab } from './ai-tab';
 import { AppearanceTab } from './appearance-tab';
@@ -25,6 +26,7 @@ import { SubscriptionTab } from './subscription-tab';
 
 export const NonProjectSettingsModal = observer(() => {
     const stateManager = useStateManager();
+    const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!stateManager.isSettingsModalOpen) return;
@@ -34,6 +36,8 @@ export const NonProjectSettingsModal = observer(() => {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [stateManager, stateManager.isSettingsModalOpen]);
+
+    useModalFocusTrap(stateManager.isSettingsModalOpen, modalRef);
 
     const tabs: SettingTab[] = [
         {
@@ -109,7 +113,14 @@ export const NonProjectSettingsModal = observer(() => {
                         transition={{ duration: 0.15 }}
                         className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
                     >
-                        <div className="bg-background pointer-events-auto h-[700px] max-h-screen w-[900px] max-w-4xl overflow-hidden rounded-lg border p-0 shadow-lg">
+                        <div
+                            ref={modalRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Settings"
+                            tabIndex={-1}
+                            className="bg-background pointer-events-auto h-[700px] max-h-screen w-[900px] max-w-4xl overflow-hidden rounded-lg border p-0 shadow-lg outline-none"
+                        >
                             <div className="flex h-full overflow-hidden">
                                 {/* Sidebar */}
                                 <div className="flex w-52 shrink-0 flex-col overflow-y-auto p-3 select-none">

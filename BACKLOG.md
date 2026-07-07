@@ -1838,42 +1838,13 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** First PR that imports `api.layoutGuideStyles` will fail CI; reviewer will have to ask "did you re-run codegen?" instead of the diff being clean.
 - **Tags:** `#docs` `#dx` `#convex`
 
-### F-313 ImgSelected toolbar variant is dead code — never dispatched
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/editor-bar/index.tsx:23-57](apps/web/client/src/app/project/[id]/_components/editor-bar/index.tsx#L23) + [editor-bar/img-selected.tsx](apps/web/client/src/app/project/[id]/_components/editor-bar/img-selected.tsx)
-- **Symptom:** Selecting an `<img>` element shows the generic `DivSelected` toolbar — the image-specific controls (`src`, `alt`, `fit`, `bg`) listed in catalog F-313 never render.
-- **Root cause:** `TAG_TYPES[IMG]: []` is empty and `editor-bar/index.tsx` never imports `ImgSelected`. The `// TODO: Add img and video tag support` comment acknowledges the gap. `getSelectedTag` falls through to `TAG_CATEGORIES.DIV` for `<img>`.
-- **Next step:** import `ImgSelected`, populate `TAG_TYPES[IMG] = ['img']`, branch `if (selectedTag === IMG) return <ImgSelected ... />` in `getTopBar()`. Update [docs/feature-catalog.md](docs/feature-catalog.md) row F-313 either to `#disabled` (with `TODO(img-toolbar)`) or to remove the deceptive "img quick-edit" claim until the dispatch lands.
-- **Risk if ignored:** catalog lies; QA can't tell whether F-313 is shipped. Test row T-310 ("Select different element types → Correct variant renders") will fail when an `<img>` is selected.
-- **Tags:** `#bug` `#editor` `#editor-bar` `#catalog-drift`
-
-### F-361 — `forkBranch` / `createBlankSandbox` swallow errors to console, no user feedback
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/branch/branch-controls.tsx:29-57](apps/web/client/src/app/project/[id]/_components/branch/branch-controls.tsx#L29)
-- **Symptom:** Per catalog, F-361 is `#disabled` on Vercel Sandbox (`TODO(sandbox-fork)`). T-361 expects "clear error per `TODO(sandbox-fork)`". Reality: `forkBranch` and `createBlankSandbox` both `catch (error) { console.error(...); }`. The user sees the dropdown close + the spinner reset; no toast, no inline error, nothing.
-- **Root cause:** Error handling is `console.error`-only. The `#disabled` contract isn't enforced at the UI surface.
-- **Next step:** replace each `console.error` with `toast.error(...)` falling back to a fixed string when the upstream Convex error has no `message`. Use the existing `'Branch fork is not available on Vercel Sandbox yet.'` copy from the `TODO(sandbox-fork)` note.
-- **Partial fix (2026-05-29):** `BranchManager.createBlankSandbox` now surfaces a `toast.error` with the structured `ConvexError` message as the description (see [branch/manager.ts](apps/web/client/src/components/store/editor/branch/manager.ts) + [convex/lib/sandboxErrors.ts](apps/web/client/convex/lib/sandboxErrors.ts)). `forkBranch` (the stub at `branch-controls.tsx`) is still `console.error`-only — this entry stays open for it.
-- **Risk if ignored:** user thinks the button is dead; reports a "nothing happens" bug; T-361 keeps failing.
-- **Tags:** `#bug` `#editor` `#branch` `#disabled-contract`
-
-### F-402 — NonProjectSettingsModal missing `'use client'`, ARIA, focus trap
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/non-project.tsx:1, 104-167](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L1)
-- **Symptom (latent):** file uses `useEffect` / `addEventListener` / `observer` / `useStateManager` but doesn't start with `'use client'`. Today every caller is already a client component, so it works; the moment a server component tries to render `<NonProjectSettingsModal />` Next.js refuses. **Symptom (active):** modal has no `role="dialog"`, no `aria-modal`, no focus trap, no initial focus, no focus return — keyboard users tab into the page behind the modal, screen readers don't announce it as a dialog.
-- **Next step:** (a) prepend `'use client';`. (b) replace hand-rolled `motion.div` shell with `Dialog` from `@weblab/ui/dialog` (Radix gives focus trap + ARIA + ESC + overlay click for free). Keep slide animation via Radix `forceMount` + existing motion variants.
-- **Risk if ignored:** a11y bug (real users today) + latent build break (future regression).
-- **Tags:** `#bug` `#editor` `#modal` `#a11y` `#settings`
-
 ### F-402 — Settings modal backdrop click closes mid-edit without confirmation
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/non-project.tsx:100](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L100)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/non-project.tsx:100](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L100), same pattern in `with-project.tsx`.
 - **Symptom:** Backdrop click handler dismisses the modal unconditionally. A user typing in an AI/GitHub/Editor tab loses unsaved input on a stray click.
-- **Next step:** add `isDirty` state to `useStateManager` settings; gate close with a confirm dialog when any tab is dirty.
+- **Next step:** add `isDirty` state to `useStateManager` settings; gate close with a confirm dialog when any tab is dirty. This is a cross-cutting change (every tab component owns its own local `useState` draft, none currently report dirty status upward) — needs per-tab wiring plus live browser verification of each tab's save flow before shipping, not a quick patch.
+- **Risk if ignored:** unsaved input loss on stray backdrop click; medium-frequency annoyance, no data corruption.
 - **Tags:** `#bug` `#editor` `#modal` `#ux`
 
 ### F-318 — `useDropdownControl` effect omits `isOpen` from deps → stale closure race
@@ -2630,6 +2601,13 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 
 ## Resolved
 
+### F-402 — NonProjectSettingsModal / SettingsModalWithProjects missing ARIA, focus trap; `with-project.tsx` missing `'use client'`
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — `non-project.tsx` already had `'use client'`; **`with-project.tsx` was genuinely missing it** (real latent build-break risk, confirmed and fixed). Both modal shells now get `role="dialog"` / `aria-modal="true"` / `aria-label="Settings"` on the content div, plus a new shared [`use-modal-focus-trap.ts`](apps/web/client/src/hooks/use-modal-focus-trap.ts) hook: focuses the modal on open, cycles Tab/Shift+Tab within it, restores focus to the previously-focused element on close. Kept the existing hand-rolled `motion.div` shell (did not swap to Radix `Dialog` — bigger surface change, deferred; see risk note below).
+- **Verification:** `bun typecheck` + scoped `eslint --max-warnings 0` clean on all touched files. **Could not browser-verify** — local preview in this environment can't reach the dev server (blank page / Clerk redirect loop, a known prior limitation). The change is additive only (no existing close/backdrop/ESC behavior altered), but live keyboard-nav verification is still owed before calling this fully done.
+- **Tags:** `#bug` `#editor` `#modal` `#a11y` `#settings`
+
 ### F-335 — Aborted restart leaves the button spinner stuck forever
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
@@ -2642,11 +2620,23 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `comments-tab/index.tsx:14-19` guards `Number.isNaN(d.getTime())` (returns `''`) and negative `diff` (returns `'just now'`).
 - **Tags:** `#bug` `#editor` `#comments`
 
+### F-313 ImgSelected toolbar variant is dead code — never dispatched
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `editor-bar/index.tsx` imports `ImgSelected`, `TAG_TYPES[IMG] = ['img']`, and `getTopBar()` branches on `selectedTag === TAG_CATEGORIES.IMG`. Selecting an `<img>` renders the image-specific toolbar.
+- **Tags:** `#bug` `#editor` `#editor-bar` `#catalog-drift`
+
 ### F-333 — ErrorsConsole keys errors by `branchId + content` → duplicate keys, and `CopyButton` setTimeout not cleared on unmount
 
 - **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
 - **Resolved:** 2026-07-07 — [errors-console.tsx](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx): list key is now `${error.branchId}-${idx}` (unique per render, no more cross-row `CopyButton` state bleed); `CopyButton`'s `setTimeout` is tracked in a `useRef` and cleared on unmount and on rapid re-clicks.
 - **Tags:** `#bug` `#editor` `#bottom-bar`
+
+### F-361 — `forkBranch` / `createBlankSandbox` swallow errors to console, no user feedback
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `branch-controls.tsx`'s `handleForkBranch`/`handleCreateBlankSandbox` both `toast.error(...)` on failure (falling back to i18n `forkNotAvailable`/`createBlankFailed`), alongside the `console.error`. No longer silent.
+- **Tags:** `#bug` `#editor` `#branch` `#disabled-contract`
 
 ### F-360 — Invite-member toast leaks raw Convex error message, and email not normalized client-side
 

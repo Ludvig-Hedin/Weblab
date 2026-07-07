@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -10,6 +12,7 @@ import { capitalizeFirstLetter } from '@weblab/utility';
 import type { SettingTab } from './helpers';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
+import { useModalFocusTrap } from '@/hooks/use-modal-focus-trap';
 import { AccountTab } from './account-tab';
 import { AITab } from './ai-tab';
 import { AppearanceTab } from './appearance-tab';
@@ -35,6 +38,7 @@ const tabLabel = (label: string): string =>
 export const SettingsModalWithProjects = observer(() => {
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
+    const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!stateManager.isSettingsModalOpen) return;
@@ -44,6 +48,8 @@ export const SettingsModalWithProjects = observer(() => {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [stateManager, stateManager.isSettingsModalOpen]);
+
+    useModalFocusTrap(stateManager.isSettingsModalOpen, modalRef);
 
     const globalTabs: SettingTab[] = [
         {
@@ -157,7 +163,14 @@ export const SettingsModalWithProjects = observer(() => {
                         transition={{ duration: 0.15 }}
                         className="pointer-events-none fixed inset-0 z-50 flex items-start justify-center sm:items-center"
                     >
-                        <div className="bg-background pointer-events-auto h-[100dvh] w-screen overflow-hidden rounded-none border p-0 shadow-lg sm:h-[700px] sm:max-h-screen sm:w-[900px] sm:max-w-4xl sm:rounded-lg">
+                        <div
+                            ref={modalRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Settings"
+                            tabIndex={-1}
+                            className="bg-background pointer-events-auto h-[100dvh] w-screen overflow-hidden rounded-none border p-0 shadow-lg outline-none sm:h-[700px] sm:max-h-screen sm:w-[900px] sm:max-w-4xl sm:rounded-lg"
+                        >
                             <div className="flex h-full overflow-hidden">
                                 {/* Sidebar */}
                                 <div className="flex w-44 shrink-0 flex-col overflow-y-auto p-3 select-none sm:w-52">
