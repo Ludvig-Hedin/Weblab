@@ -80,13 +80,19 @@ export const TextEditor = observer(() => {
             ),
         });
 
+        // The initial-content seed below dispatches a docChanged transaction;
+        // without this flag dispatchTransaction would fire onChange(initialContent)
+        // immediately — a spurious editText RPC + a no-op history push inside
+        // the just-opened transaction. dispatch() is synchronous, so a closure
+        // flag around the seed is sufficient.
+        let seeding = false;
         const view = new EditorView(editorRef.current, {
             state,
             editable: () => !isDisabled,
             dispatchTransaction: (transaction) => {
                 const newState = view.state.apply(transaction);
                 view.updateState(newState);
-                if (onChangeRef.current && transaction.docChanged) {
+                if (!seeding && onChangeRef.current && transaction.docChanged) {
                     const textContent = contentHelpers.extractContentWithNewlines(view);
                     onChangeRef.current(textContent);
                 }
@@ -98,12 +104,18 @@ export const TextEditor = observer(() => {
 
         editorViewRef.current = view;
 
-        // Set initial content with proper line break handling
+        // Set initial content with proper line break handling. Suppress
+        // onChange while seeding — this is not a user edit.
         const nodes = contentHelpers.createNodesFromContent(content);
         const paragraph = schema.node('paragraph', null, nodes);
         const newDoc = schema.node('doc', null, [paragraph]);
         const tr = view.state.tr.replaceWith(0, view.state.doc.content.size, newDoc.content);
-        view.dispatch(tr);
+        seeding = true;
+        try {
+            view.dispatch(tr);
+        } finally {
+            seeding = false;
+        }
 
         // Apply styles
         applyStylesToEditor(view, styles);

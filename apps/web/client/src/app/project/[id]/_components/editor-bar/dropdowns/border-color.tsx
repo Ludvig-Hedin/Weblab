@@ -34,10 +34,9 @@ export const BorderColor = observer(() => {
 
     const colorHex = useMemo(() => tempColor?.toHex(), [tempColor]);
 
-    if (!borderExists) {
-        return null;
-    }
-
+    // Keep the slot rendered even without a border — unmounting made the
+    // control pop in/out of the toolbar as border width crossed 0 mid-drag,
+    // shifting the layout under the cursor. Disabled + dimmed instead.
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
             <HoverOnlyTooltip
@@ -45,12 +44,13 @@ export const BorderColor = observer(() => {
                 side="bottom"
                 className="mt-1"
                 hideArrow
-                disabled={isOpen}
+                disabled={isOpen || !borderExists}
             >
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger asChild disabled={!borderExists}>
                     <ToolbarButton
                         isOpen={isOpen}
-                        className="flex min-w-9 flex-col items-center justify-center gap-0.5"
+                        disabled={!borderExists}
+                        className="flex min-w-9 flex-col items-center justify-center gap-0.5 disabled:opacity-50"
                     >
                         <Icons.PencilIcon className="h-4 min-h-4 w-4 min-w-4" />
                         <div

@@ -14,6 +14,11 @@ import { RotateGroup } from './rotate-group';
 import { ThemeGroup } from './theme-group';
 import { WindowActionsGroup } from './window-actions-group';
 
+// Stable key list for useMeasureGroup — mirrors WINDOW_GROUPS below (which is
+// built per-render because it closes over frameData). Module-level so the
+// hook's memo deps don't churn every render.
+const WINDOW_GROUP_KEYS = ['device', 'rotate', 'window-actions', 'theme'];
+
 export const FrameSelected = observer(({ availableWidth = 0 }: { availableWidth?: number }) => {
     const editorEngine = useEditorEngine();
     const frameData = editorEngine.frames.selected[0];
@@ -49,6 +54,7 @@ export const FrameSelected = observer(({ availableWidth = 0 }: { availableWidth?
     const { visibleCount } = useMeasureGroup({
         availableWidth,
         count: WINDOW_GROUPS.length,
+        groupKeys: WINDOW_GROUP_KEYS,
     });
     const visibleGroups = WINDOW_GROUPS.slice(0, visibleCount);
     const overflowGroups = WINDOW_GROUPS.slice(visibleCount);

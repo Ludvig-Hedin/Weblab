@@ -13,6 +13,14 @@ import { ToolbarButton } from '../toolbar-button';
 
 type ObjectFitValue = 'fill' | 'contain' | 'cover' | 'none' | 'scale-down';
 
+const FIT_LABELS: Record<ObjectFitValue, string> = {
+    fill: 'Fill',
+    contain: 'Contain',
+    cover: 'Cover',
+    none: 'None',
+    'scale-down': 'Scale down',
+};
+
 export const ImgFit = () => {
     const editorEngine = useEditorEngine();
     const { isOpen, onOpenChange } = useDropdownControl({
@@ -37,18 +45,20 @@ export const ImgFit = () => {
 
     return (
         <DropdownMenu open={isOpen} onOpenChange={onOpenChange} modal={false}>
-            <DropdownMenuTrigger asChild>
-                <ToolbarButton isOpen={isOpen} className="flex items-center gap-2 px-3">
-                    <Icons.Image className="h-4 min-h-4 w-4 min-w-4" />
-                    <span className="text-small">
-                        {objectFit === 'cover'
-                            ? 'Cover'
-                            : objectFit === 'contain'
-                              ? 'Contain'
-                              : 'Fill'}
-                    </span>
-                </ToolbarButton>
-            </DropdownMenuTrigger>
+            <HoverOnlyTooltip
+                content="Image fit"
+                side="bottom"
+                className="mt-1"
+                hideArrow
+                disabled={isOpen}
+            >
+                <DropdownMenuTrigger asChild>
+                    <ToolbarButton isOpen={isOpen} className="flex items-center gap-2 px-3">
+                        <Icons.Image className="h-4 min-h-4 w-4 min-w-4" />
+                        <span className="text-small">{FIT_LABELS[objectFit] ?? 'Fill'}</span>
+                    </ToolbarButton>
+                </DropdownMenuTrigger>
+            </HoverOnlyTooltip>
             <DropdownMenuContent align="start" className="mt-2 min-w-[120px] rounded-lg p-1">
                 <div className="space-y-2 p-2">
                     <div className="space-y-1">

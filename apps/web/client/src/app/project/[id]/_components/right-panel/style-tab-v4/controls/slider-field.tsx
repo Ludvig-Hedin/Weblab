@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { Slider } from '@weblab/ui/slider';
 import { cn } from '@weblab/ui/utils';
 
@@ -40,9 +42,20 @@ export function SliderField({
     asPercent,
     disabled,
 }: SliderFieldProps) {
+    // Drag performance: `onValueChange` fires per pointer-move, so it only
+    // updates LOCAL state; the engine write — history entry, responsive
+    // fan-out, iframe injection, debounced AST write — happens ONCE per
+    // gesture via Radix's `onValueCommit`. Committing per tick queued one
+    // undo entry + AST write per drag tick. Same pattern as
+    // ColorPickerInline / the editor-bar's `useColorUpdate`.
+    const [dragValue, setDragValue] = useState<number | null>(null);
+
     const numeric = parseNumeric(value, min);
     const isPercentRatio = asPercent && numeric <= 1;
-    const display = isPercentRatio ? Math.round(numeric * 100) : numeric;
+    const committedDisplay = isPercentRatio ? Math.round(numeric * 100) : numeric;
+    const display = dragValue ?? committedDisplay;
+
+    const toCommitString = (next: number) => (isPercentRatio ? `${next / 100}` : `${next}`);
 
     return (
         <div
@@ -59,12 +72,11 @@ export function SliderField({
                 disabled={disabled}
                 value={[Math.min(Math.max(display, min), max)]}
                 onValueChange={(values) => {
-                    const next = values[0] ?? min;
-                    if (isPercentRatio) {
-                        onCommit(`${next / 100}`);
-                    } else {
-                        onCommit(`${next}`);
-                    }
+                    setDragValue(values[0] ?? min);
+                }}
+                onValueCommit={(values) => {
+                    setDragValue(null);
+                    onCommit(toCommitString(values[0] ?? min));
                 }}
                 className="flex-1"
             />

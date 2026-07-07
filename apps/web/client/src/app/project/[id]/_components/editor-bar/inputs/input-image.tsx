@@ -117,6 +117,10 @@ export const InputImage = observer(() => {
     const handleOpenChange = (open: boolean) => {
         if (open) {
             onOpenChange(true);
+        } else {
+            // Forward close so Escape / outside-click dismiss the panel and
+            // clear the image-selection state, same as the ✕ button.
+            handleClose();
         }
     };
 

@@ -49,6 +49,11 @@ export class ActionManager {
             this.editorEngine.history.rollbackUndo(result.redoEntry);
             return;
         }
+        // Also apply the inverse to the live frames: the preload's injected
+        // stylesheet and the style panel mirror don't watch the file system,
+        // so without this the undone value keeps winning the cascade in the
+        // preview (and the panel) until a full iframe reload.
+        await this.dispatchHistoryAction(result.inverse);
         this.editorEngine.posthog.capture('undo');
     }
 
@@ -64,13 +69,47 @@ export class ActionManager {
             this.editorEngine.history.rollbackRedo(result.forward, result.redoEntry);
             return;
         }
+        // Mirror of the undo path: re-apply the forward action to the frames.
+        await this.dispatchHistoryAction(result.forward);
         this.editorEngine.posthog.capture('redo');
     }
 
-    private async dispatch(action: Action) {
+    /**
+     * Apply a history-replayed action (the inverse on undo, the forward on
+     * redo) to the live frames. `code.write` already persisted the change to
+     * source before this runs, so the dispatch must be preview-only:
+     * `scheduleRebase: false` suppresses updateStyle's debounced
+     * source-rebase tail, which (a) would be a second source write and
+     * (b) reads the override map — still holding the pre-replay value at
+     * this point — and would re-apply the just-undone style to source
+     * ~600ms later.
+     */
+    private async dispatchHistoryAction(action: Action) {
+        if (action.type === 'update-style') {
+            // Sync the override map to the replayed values FIRST, so any
+            // later rebase for the same (oid, property) flushes the restored
+            // value instead of the stale pre-undo one.
+            const activeBp = this.editorEngine.breakpoints?.activeId ?? 'desktop';
+            for (const target of action.targets) {
+                if (!target.oid) continue;
+                const styles: Record<string, string> = {};
+                for (const [property, change] of Object.entries(target.change.updated)) {
+                    styles[property] = change.value;
+                }
+                this.editorEngine.style.recordOverrideForOid(
+                    target.oid,
+                    target.breakpoint?.id ?? activeBp,
+                    styles,
+                );
+            }
+        }
+        await this.dispatch(action, { scheduleRebase: false });
+    }
+
+    private async dispatch(action: Action, options?: { scheduleRebase?: boolean }) {
         switch (action.type) {
             case 'update-style':
-                await this.updateStyle(action);
+                await this.updateStyle(action, options);
                 break;
             case 'insert-element':
                 // Disabling real-time insert since this is buggy. Will still work but not as fast.
@@ -112,7 +151,7 @@ export class ActionManager {
         }
     }
 
-    async updateStyle({ targets }: UpdateStyleAction) {
+    async updateStyle({ targets }: UpdateStyleAction, options?: { scheduleRebase?: boolean }) {
         // Snapshot the selection BEFORE applying the edit. The action fans each
         // selected element out to its sibling responsive frames so the style
         // lands everywhere, but those sibling frames reuse the same
@@ -192,6 +231,15 @@ export class ActionManager {
         );
         if (refreshed.length > 0) {
             this.refreshDomElement(refreshed);
+        }
+
+        // History replay (undo/redo): the source was already written by
+        // `code.write` and the override map was synced by
+        // `dispatchHistoryAction`. Scheduling a rebase here would issue a
+        // SECOND source write — and one derived from the override map, which
+        // on the ordinary edit path lags the replay. Preview-only; stop.
+        if (options?.scheduleRebase === false) {
+            return;
         }
 
         // After all iframe injections settle, schedule a debounced source-write

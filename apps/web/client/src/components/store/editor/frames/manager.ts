@@ -99,12 +99,35 @@ export class FramesManager {
     // the first time it appears in an incoming poll (confirmed), after which
     // normal prune semantics apply. Deterministic — no timing window.
     private _pendingCreateIds = new Set<string>();
+    // Frames with local geometry (position/dimension) edits whose debounced
+    // save hasn't resolved yet. applyFrames must NOT overwrite geometry for
+    // these ids — a reactive refetch landing mid-drag/resize would snap the
+    // frame back to the stale server coords, then jump again when the 1s
+    // debounced save commits. Non-geometry fields still merge normally.
+    // Marked in updateAndSaveToStorage; cleared when the save mutation
+    // resolves (and no newer save is pending) or on dispose. Plain Set kept
+    // out of the MobX graph — nothing renders from it.
+    private _dirtyFrameIds = new Set<string>();
+    // Per-frame debounced-save handles (see saveToStorage). Kept as a class
+    // field (not a closure) so disposeFrame/clear can cancel timers — the
+    // old closure-scoped map let timers survive teardown and frame deletion,
+    // firing post-teardown Convex mutations / updates on deleted rows.
+    private _pendingSaves = new Map<
+        string,
+        { frame: Partial<Frame>; timer: ReturnType<typeof setTimeout> }
+    >();
     private _navigation = new FrameNavigationManager();
     private _disposers: Array<() => void> = [];
     private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable(this);
+        // Exclude the timer/dirty bookkeeping from the MobX graph: they carry
+        // setTimeout handles and are never observed by any view. (Private
+        // fields aren't in `keyof this`, hence the explicit AdditionalKeys.)
+        makeAutoObservable<FramesManager, '_pendingSaves' | '_dirtyFrameIds'>(this, {
+            _pendingSaves: false,
+            _dirtyFrameIds: false,
+        });
     }
 
     private updateFrameSelection(id: string, selected: boolean): void {
@@ -147,8 +170,18 @@ export class FramesManager {
 
         frames.forEach((frame, index) => {
             const existing = this._frameIdToData.get(frame.id);
+            // Local geometry edit in flight (drag/resize before the debounced
+            // save resolved): keep the local position/dimension, merge the rest.
+            const incoming =
+                existing && this._dirtyFrameIds.has(frame.id)
+                    ? {
+                          ...frame,
+                          position: existing.frame.position,
+                          dimension: existing.frame.dimension,
+                      }
+                    : frame;
             this._frameIdToData.set(frame.id, {
-                frame,
+                frame: incoming,
                 view: existing?.view ?? null,
                 selected: existing?.selected ?? (isInitialApply && index === 0),
                 contentHeight: existing?.contentHeight ?? null,
@@ -278,16 +311,53 @@ export class FramesManager {
         this._frameIdToData = new Map(this._frameIdToData);
     }
 
+    /** Cancel a frame's pending debounced save (if any) and drop its handle. */
+    private cancelPendingSave(frameId: string) {
+        const pending = this._pendingSaves.get(frameId);
+        if (pending) {
+            clearTimeout(pending.timer);
+            this._pendingSaves.delete(frameId);
+        }
+    }
+
     clear() {
         this.deregisterAll();
         this._disposers.forEach((dispose) => dispose());
         this._disposers = [];
+        // Cancel every pending debounced save so no Convex mutation fires
+        // post-teardown (route change / engine dispose).
+        for (const { timer } of this._pendingSaves.values()) {
+            clearTimeout(timer);
+        }
+        this._pendingSaves.clear();
+        this._dirtyFrameIds.clear();
         this._navigation.clearAllHistory();
     }
 
     disposeFrame(frameId: string) {
         this._frameIdToData.delete(frameId);
         this._pendingCreateIds.delete(frameId);
+        // A pending save for a deleted frame would fire an update on a dead row.
+        this.cancelPendingSave(frameId);
+        this._dirtyFrameIds.delete(frameId);
+        // Clean ElementsManager: selection/hover entries pointing at the dead
+        // frame otherwise persist (silent no-op edits + console churn).
+        const elements = this.editorEngine?.elements;
+        if (elements) {
+            const remaining = elements.selected.filter((el) => el.frameId !== frameId);
+            const selectionChanged = remaining.length !== elements.selected.length;
+            if (selectionChanged) {
+                elements.selected = remaining;
+            }
+            if (elements.hovered?.frameId === frameId) {
+                elements.clearHoveredElement();
+            }
+            if (selectionChanged) {
+                // Rebuild overlay click rects from the surviving selection so
+                // the dead frame's rects don't linger until the next pan/zoom.
+                void this.editorEngine.overlay?.refresh();
+            }
+        }
         this.editorEngine?.ast?.mappings?.remove(frameId);
         this._navigation.removeFrame(frameId);
     }
@@ -528,7 +598,11 @@ export class FramesManager {
                 selected: existingFrame.selected,
             });
         }
-        await this.saveToStorage(frameId, frame);
+        // Local geometry edit: protect it from applyFrames until the save lands.
+        if (frame.position || frame.dimension) {
+            this._dirtyFrameIds.add(frameId);
+        }
+        this.saveToStorage(frameId, frame);
     }
 
     /**
@@ -546,24 +620,18 @@ export class FramesManager {
     // frame's args, so multi-frame writes (repackGroup / navigateToPath /
     // addBreakpoint loops) would lose all but the last frame's position/url.
     // Each frameId gets its own 1s timer, and partial updates to the same frame
-    // within the window are merged. The pending map lives in this closure (not
-    // an observable field) so it stays out of the MobX graph.
-    saveToStorage = (() => {
-        const pending = new Map<
-            string,
-            { frame: Partial<Frame>; timer: ReturnType<typeof setTimeout> }
-        >();
-        return (frameId: string, frame: Partial<Frame>): void => {
-            const existing = pending.get(frameId);
-            if (existing) clearTimeout(existing.timer);
-            const mergedFrame: Partial<Frame> = { ...(existing?.frame ?? {}), ...frame };
-            const timer = setTimeout(() => {
-                pending.delete(frameId);
-                void this.undebouncedSaveToStorage(frameId, mergedFrame);
-            }, 1000);
-            pending.set(frameId, { frame: mergedFrame, timer });
-        };
-    })();
+    // within the window are merged. Handles live in `_pendingSaves` (excluded
+    // from MobX) so disposeFrame/clear can cancel them.
+    saveToStorage(frameId: string, frame: Partial<Frame>): void {
+        const existing = this._pendingSaves.get(frameId);
+        if (existing) clearTimeout(existing.timer);
+        const mergedFrame: Partial<Frame> = { ...(existing?.frame ?? {}), ...frame };
+        const timer = setTimeout(() => {
+            this._pendingSaves.delete(frameId);
+            void this.undebouncedSaveToStorage(frameId, mergedFrame);
+        }, 1000);
+        this._pendingSaves.set(frameId, { frame: mergedFrame, timer });
+    }
 
     async undebouncedSaveToStorage(frameId: string, frame: Partial<Frame>) {
         try {
@@ -577,6 +645,15 @@ export class FramesManager {
                 ...toConvexPartialFrame(frame),
             } as unknown as Parameters<typeof this.convex.mutation>[1];
             await this.convex.mutation(convexApi.frames.update, args);
+            // Save landed — server geometry now matches local, so applyFrames
+            // may resume merging it. Skip the clear if a NEWER save is already
+            // pending (another local edit arrived while this one was in
+            // flight); its resolve will clear the flag instead. On failure the
+            // flag is kept: local geometry stays authoritative rather than
+            // snapping back to stale server coords on the next poll.
+            if (!this._pendingSaves.has(frameId)) {
+                this._dirtyFrameIds.delete(frameId);
+            }
         } catch (error) {
             console.error('Failed to update frame', error);
         }

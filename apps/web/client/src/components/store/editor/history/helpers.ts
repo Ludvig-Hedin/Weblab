@@ -228,27 +228,104 @@ function handleUpdateStyleAction(
     );
 }
 
+/**
+ * B4: the identity of the element(s) an action operates on, as a sorted list
+ * of stable keys (oid preferred, domId fallback). Returns `null` for action
+ * types with no per-element identity (write-code, interactions, update-style —
+ * the latter is merged per-target upstream), where type-only matching remains
+ * correct.
+ */
+function actionTargetKeys(action: Action): string[] | null {
+    switch (action.type) {
+        case 'insert-element':
+        case 'remove-element':
+            // The element being inserted/removed IS the identity — `targets`
+            // only carries the frame fan-out.
+            return [action.element.oid];
+        case 'move-element':
+        case 'edit-text':
+        case 'insert-image':
+        case 'remove-image':
+            return action.targets.map((t) => t.oid ?? t.domId).sort();
+        case 'group-elements':
+        case 'ungroup-elements':
+            return [action.container.oid];
+        default:
+            return null;
+    }
+}
+
+function sameTargetKeys(existing: string[] | null, incoming: string[]): boolean {
+    if (existing === null || existing.length !== incoming.length) {
+        return false;
+    }
+    return existing.every((key, i) => key === incoming[i]);
+}
+
 export function updateTransactionActions(actions: Action[], newAction: Action): Action[] {
-    const existingActionIndex = actions.findIndex((a) => a.type === newAction.type);
+    if (newAction.type === 'update-style') {
+        // Style updates keep type-only matching: handleUpdateStyleAction
+        // already merges per-target, appending targets it hasn't seen.
+        const existingActionIndex = actions.findIndex((a) => a.type === 'update-style');
+        if (existingActionIndex === -1) {
+            return [...actions, newAction];
+        }
+        return handleUpdateStyleAction(actions, existingActionIndex, newAction);
+    }
+
+    // B4: a same-type action only replaces an earlier one when it hits the
+    // SAME element(s). Two edit-text (or remove-element, …) actions on
+    // different elements inside one transaction must BOTH survive — wholesale
+    // replace-by-type silently dropped the first.
+    const newKeys = actionTargetKeys(newAction);
+    const existingActionIndex = actions.findIndex(
+        (a) =>
+            a.type === newAction.type &&
+            (newKeys === null || sameTargetKeys(actionTargetKeys(a), newKeys)),
+    );
     if (existingActionIndex === -1) {
         return [...actions, newAction];
     }
 
-    if (newAction.type === 'update-style') {
-        return handleUpdateStyleAction(actions, existingActionIndex, newAction);
-    }
-
     return actions.map((a, i) => (i === existingActionIndex ? newAction : a));
 }
+
+/**
+ * B3: attributes that carry element semantics and must survive cleaning — an
+ * `<img>` without `src`/`alt` is broken. `getCleanedElement` rebuilds elements
+ * for undo/redo, and `getInsertedElement` (code/insert.ts) reads these straight
+ * off `element.attributes`; image inserts carry `codeBlock: null`, so the
+ * attributes here are the ONLY source when the insert is replayed.
+ */
+const SEMANTIC_ATTRIBUTES = [
+    'src',
+    'alt',
+    'href',
+    'title',
+    'target',
+    'rel',
+    'type',
+    'placeholder',
+    'value',
+] as const;
 
 export function getCleanedElement(
     copiedEl: ActionElement,
     domId: string,
     oid: string,
 ): ActionElement {
+    const semanticAttributes: Record<string, string> = {};
+    for (const attr of SEMANTIC_ATTRIBUTES) {
+        const attrValue = copiedEl.attributes[attr];
+        if (attrValue != null) {
+            semanticAttributes[attr] = attrValue;
+        }
+    }
+
     const cleanedEl: ActionElement = {
         tagName: copiedEl.tagName,
         attributes: {
+            ...semanticAttributes,
             class: copiedEl.attributes.class ?? '',
             [EditorAttributes.DATA_WEBLAB_DOM_ID]: domId,
             [EditorAttributes.DATA_WEBLAB_ID]: oid,

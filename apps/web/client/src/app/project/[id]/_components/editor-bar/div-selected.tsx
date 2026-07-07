@@ -67,10 +67,15 @@ const MUST_EXTEND_GROUPS = [
     },
 ];
 
+// Stable key list for useMeasureGroup (module-level so the hook's memo deps
+// don't churn every render).
+const DIV_SELECTED_GROUP_KEYS = DIV_SELECTED_GROUPS.map((group) => group.key);
+
 export const DivSelected = memo(({ availableWidth = 0 }: { availableWidth?: number }) => {
     const { visibleCount } = useMeasureGroup({
         availableWidth,
         count: DIV_SELECTED_GROUPS.length,
+        groupKeys: DIV_SELECTED_GROUP_KEYS,
     });
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'div-selected-overflow-dropdown',

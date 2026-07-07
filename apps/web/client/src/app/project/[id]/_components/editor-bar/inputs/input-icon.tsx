@@ -61,8 +61,10 @@ export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: 
                 />
 
                 <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground cursor-pointer text-[12px] transition-colors focus:outline-none">
-                        {unitValue === 'px' ? '' : unitValue}
+                    {/* Always render the unit — hiding 'px' left a zero-width,
+                        invisible trigger with no way to discover the menu. */}
+                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground cursor-pointer text-[12px] uppercase transition-colors focus:outline-none">
+                        {unitValue}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-[64px] min-w-0">
                         {UNITS.map((unitOption) => (

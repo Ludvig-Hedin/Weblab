@@ -10,13 +10,23 @@ import { adaptRectToCanvas } from './utils';
 export class OverlayManager {
     state: OverlayState = new OverlayState();
     private canvasReactionDisposer?: () => void;
+    // Monotonic refresh generation. Each undebouncedRefresh captures the value
+    // at entry; if a newer refresh starts (or the selection changes) during its
+    // sequential awaits, the stale run bails before mutating overlay state —
+    // otherwise a late removeClickRects()+re-add repaints the OLD selection.
+    private refreshEpoch = 0;
 
     constructor(private editorEngine: EditorEngine) {
         // Exclude `refresh`: makeAutoObservable wraps function-valued fields
         // as actions, stripping lodash's `.cancel` — clear()'s teardown-cancel
         // would silently no-op and the trailing refresh would run against a
-        // cleared engine.
-        makeAutoObservable(this, { refresh: false });
+        // cleared engine. `refreshEpoch` is bookkeeping mutated after awaits;
+        // keep it out of the MobX graph. (Private fields aren't in
+        // `keyof this`, hence the explicit AdditionalKeys.)
+        makeAutoObservable<OverlayManager, 'refreshEpoch'>(this, {
+            refresh: false,
+            refreshEpoch: false,
+        });
     }
 
     init() {
@@ -33,6 +43,10 @@ export class OverlayManager {
     }
 
     undebouncedRefresh = async () => {
+        const epoch = ++this.refreshEpoch;
+        // Selection is re-assigned wholesale on every click/shift-click, so a
+        // reference compare detects "selection changed during our awaits".
+        const selectionAtStart = this.editorEngine.elements.selected;
         this.state.removeHoverRect();
 
         // Refresh click rects
@@ -42,7 +56,7 @@ export class OverlayManager {
             isComponent: boolean;
             domId: string;
         }[] = [];
-        for (const selectedElement of this.editorEngine.elements.selected) {
+        for (const selectedElement of selectionAtStart) {
             const frameData = this.editorEngine.frames.get(selectedElement.frameId);
             if (!frameData) {
                 console.error('Frame data not found');
@@ -53,7 +67,21 @@ export class OverlayManager {
                 console.error('No frame view found');
                 continue;
             }
-            const el: DomElement = await view.getElementByDomId(selectedElement.domId, true);
+            // Per-element guard: one penpal rejection (frame reloading /
+            // channel destroyed) must not abort the whole refresh — that left
+            // every OTHER rect stale at pre-pan positions and skipped the
+            // scope-rect + text-editor refresh below.
+            let el: DomElement | null = null;
+            try {
+                el = await view.getElementByDomId(selectedElement.domId, true);
+            } catch (error) {
+                console.warn(
+                    'Failed to refresh overlay rect for element',
+                    selectedElement.domId,
+                    error,
+                );
+                continue;
+            }
             if (!el) {
                 console.error('Element not found');
                 continue;
@@ -70,6 +98,16 @@ export class OverlayManager {
             });
         }
 
+        // Bail before mutating overlay state if a newer refresh started or the
+        // selection changed while we awaited — repainting now would restore
+        // rects for a stale selection.
+        if (
+            epoch !== this.refreshEpoch ||
+            this.editorEngine.elements.selected !== selectionAtStart
+        ) {
+            return;
+        }
+
         this.state.removeClickRects();
         for (const clickRect of newClickRects) {
             this.state.addClickRect(
@@ -83,6 +121,12 @@ export class OverlayManager {
         // Keep the master-edit scope rect (dim cutout) in sync with pan/zoom
         // and post-edit DOM updates.
         await this.editorEngine.components.refreshScopeRect();
+
+        // Re-check after the scope-rect await — a newer refresh owns the
+        // text-editor update from here on.
+        if (epoch !== this.refreshEpoch) {
+            return;
+        }
 
         // Refresh text editor position if it's active
         if (this.editorEngine.text.isEditing && this.editorEngine.text.targetElement) {

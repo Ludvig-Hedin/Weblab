@@ -31,6 +31,11 @@ export const InputRadio = ({ options, value, onChange, className }: InputRadioPr
             {options.map((option, index) => (
                 <button
                     key={option.value}
+                    type="button"
+                    // Icon-only options have no text content — expose the
+                    // option's value so screen readers can name the choice.
+                    aria-label={isIconOption(option) ? option.value : undefined}
+                    aria-pressed={value === option.value}
                     className={cn(
                         'text-small h-9 flex-1 cursor-pointer px-1 transition-colors',
                         value === option.value

@@ -93,9 +93,20 @@ export class CodeManager {
                 // of them, so writing only diffs[0] would make the inverse
                 // asymmetric (undo restores files the redo never wrote) and
                 // silently drop every file after the first on a multi-diff write.
-                for (const diff of action.diffs) {
-                    await this.editorEngine.fileSystem.writeFile(diff.path, diff.generated);
-                }
+                //
+                // Routed through the serialized write chain so these raw
+                // writes (a) count toward `pendingWrites` for the
+                // beforeunload truncation guard and (b) can't interleave
+                // with an in-flight AST read-modify-write on the same files.
+                // The re-parse corruption guard in `processWriteRequest`
+                // deliberately does NOT apply here: write-code diffs are
+                // whole-file AI-apply outputs that may target non-JSX files
+                // (css, json, md, …) the JSX re-parse would falsely reject.
+                await this.enqueueWrite(async () => {
+                    for (const diff of action.diffs) {
+                        await this.editorEngine.fileSystem.writeFile(diff.path, diff.generated);
+                    }
+                });
             } else if (
                 action.type === 'add-interaction' ||
                 action.type === 'update-interaction' ||
@@ -134,12 +145,21 @@ export class CodeManager {
     private writeChain: Promise<void> = Promise.resolve();
 
     async writeRequest(requests: CodeDiffRequest[]): Promise<void> {
+        return this.enqueueWrite(() => this.processWriteRequest(requests));
+    }
+
+    /**
+     * Enqueue a write task on the serialized write chain with `pendingWrites`
+     * accounting. EVERY source write must go through here: a direct
+     * `fileSystem.writeFile` bypasses both the serialization (interleaved
+     * read-modify-writes clobber each other) and the beforeunload truncation
+     * guard (a reload mid-write can persist a truncated, unparseable file).
+     */
+    private enqueueWrite<T>(task: () => Promise<T>): Promise<T> {
         this.pendingWrites += 1;
-        const run = this.writeChain
-            .then(() => this.processWriteRequest(requests))
-            .finally(() => {
-                this.pendingWrites -= 1;
-            });
+        const run = this.writeChain.then(task).finally(() => {
+            this.pendingWrites -= 1;
+        });
         // Swallow errors on the chain itself so one failed write doesn't wedge
         // every subsequent write; the real result/rejection is returned to the
         // caller via `run`.

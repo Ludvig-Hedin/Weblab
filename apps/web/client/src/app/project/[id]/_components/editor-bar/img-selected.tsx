@@ -44,6 +44,10 @@ const MUST_EXTEND_GROUPS = [
     },
 ];
 
+// Stable key list for useMeasureGroup (module-level so the hook's memo deps
+// don't churn every render).
+const IMG_SELECTED_GROUP_KEYS = IMG_SELECTED_GROUPS.map((group) => group.key);
+
 export const ImgSelected = memo(({ availableWidth = 0 }: { availableWidth?: number }) => {
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'img-selected-overflow-dropdown',
@@ -52,6 +56,7 @@ export const ImgSelected = memo(({ availableWidth = 0 }: { availableWidth?: numb
     const { visibleCount } = useMeasureGroup({
         availableWidth,
         count: IMG_SELECTED_GROUPS.length,
+        groupKeys: IMG_SELECTED_GROUP_KEYS,
     });
 
     const visibleGroups = IMG_SELECTED_GROUPS.slice(0, visibleCount);

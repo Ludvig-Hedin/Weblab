@@ -66,10 +66,15 @@ const MUST_EXTEND_GROUPS = [
     },
 ];
 
+// Stable key list for useMeasureGroup (module-level so the hook's memo deps
+// don't churn every render).
+const TEXT_SELECTED_GROUP_KEYS = TEXT_SELECTED_GROUPS.map((group) => group.key);
+
 export const TextSelected = ({ availableWidth = 0 }: { availableWidth?: number }) => {
     const { visibleCount } = useMeasureGroup({
         availableWidth,
         count: TEXT_SELECTED_GROUPS.length,
+        groupKeys: TEXT_SELECTED_GROUP_KEYS,
     });
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'text-selected-overflow-dropdown',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { useTranslations } from 'next-intl';
@@ -80,6 +80,12 @@ export const Margin = observer(() => {
     const [activeTab, setActiveTab] = useState<MarginTab>(
         areAllMarginsEqual ? MarginTab.ALL : MarginTab.INDIVIDUAL,
     );
+
+    // Re-sync the tab when the selection (and thus the box values) changes —
+    // the initial useState only runs at mount. Mirrors border.tsx.
+    useEffect(() => {
+        setActiveTab(areAllMarginsEqual ? MarginTab.ALL : MarginTab.INDIVIDUAL);
+    }, [areAllMarginsEqual]);
 
     const getMarginIcon = () => {
         const margins = {

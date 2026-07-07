@@ -36,7 +36,7 @@ const ColorGroup = ({
     selectedColor?: Color;
 }) => {
     const [expanded, setExpanded] = useState(true);
-    const selectedRef = useRef<HTMLDivElement | null>(null);
+    const selectedRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         setExpanded(isExpanded);
@@ -70,10 +70,12 @@ const ColorGroup = ({
                         selectedColor && Color.from(color.lightColor).isEqual(selectedColor);
 
                     return (
-                        <div
+                        <button
                             key={color.name}
+                            type="button"
+                            aria-label={toNormalCase(color.name)}
                             ref={isSelected ? selectedRef : undefined}
-                            className={`hover:bg-background-secondary flex items-center gap-1.5 rounded-md p-1 hover:cursor-pointer ${isSelected ? 'bg-background-tertiary' : ''}`}
+                            className={`hover:bg-background-secondary flex w-full items-center gap-1.5 rounded-md p-1 hover:cursor-pointer ${isSelected ? 'bg-background-tertiary' : ''}`}
                             onClick={() => onColorSelect(color)}
                         >
                             <div
@@ -86,7 +88,7 @@ const ColorGroup = ({
                             {isSelected && (
                                 <Icons.CheckCircled className="text-primary ml-auto h-4 w-4" />
                             )}
-                        </div>
+                        </button>
                     );
                 })}
         </div>
@@ -124,6 +126,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
     const editorEngine = useEditorEngine();
     const [colorGroups, setColorGroups] = useState<Record<string, TailwindColor[]>>({});
     const [colorDefaults, setColorDefaults] = useState<Record<string, TailwindColor[]>>({});
+    const [scanError, setScanError] = useState(false);
     const [theme] = useState<SystemTheme>(SystemTheme.LIGHT);
     const { handleGradientUpdateEnd } = useGradientUpdate();
 
@@ -400,8 +403,12 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                 await editorEngine.theme.scanConfig();
                 setColorGroups(editorEngine.theme.colorGroups);
                 setColorDefaults(editorEngine.theme.colorDefaults);
+                setScanError(false);
             } catch (error) {
-                console.error('Failed to scan fonts:', error);
+                console.error('Failed to scan brand colors:', error);
+                // Surface the failure in the Brand tab instead of leaving it
+                // silently blank.
+                setScanError(true);
             }
         })();
     }, []);
@@ -534,8 +541,10 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                 {viewMode === 'grid' ? (
                     <div className="grid grid-cols-7 justify-between gap-1.5 p-1 text-center">
                         {colors.map((level) => (
-                            <div
+                            <button
                                 key={level}
+                                type="button"
+                                aria-label={`${palette.name}-${level}`}
                                 className="border-foreground-tertiary/50 h-6 w-6 cursor-pointer content-center rounded border-[0.5px]"
                                 style={{
                                     backgroundColor: palette.colors[Number.parseInt(level)],
@@ -556,8 +565,10 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                 ) : (
                     <div className="flex flex-col">
                         {colors.map((level) => (
-                            <div
-                                className="hover:bg-background-secondary align-center group flex cursor-pointer gap-2 rounded-md p-1"
+                            <button
+                                type="button"
+                                aria-label={`${palette.name}-${level}`}
+                                className="hover:bg-background-secondary align-center group flex w-full cursor-pointer gap-2 rounded-md p-1"
                                 key={level}
                                 onClick={() => {
                                     if (hasGradient(backgroundImage)) {
@@ -582,7 +593,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                                         {palette.name}-{level}
                                     </span>
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 )}
@@ -596,8 +607,10 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                 {viewMode === 'grid' ? (
                     <div className="grid grid-cols-7 justify-between gap-1.5 p-1 text-center">
                         {presetGradients.map((preset) => (
-                            <div
+                            <button
                                 key={preset.id}
+                                type="button"
+                                aria-label={preset.id}
                                 className="border-foreground-tertiary/50 h-6 w-6 cursor-pointer content-center rounded border-[0.5px]"
                                 style={{ background: preset.css }}
                                 onClick={() => applyPresetGradient(preset)}
@@ -607,8 +620,10 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                 ) : (
                     <div className="flex flex-col">
                         {presetGradients.map((preset) => (
-                            <div
-                                className="hover:bg-background-secondary align-center group flex cursor-pointer gap-2 rounded-md p-1"
+                            <button
+                                type="button"
+                                aria-label={preset.id}
+                                className="hover:bg-background-secondary align-center group flex w-full cursor-pointer gap-2 rounded-md p-1"
                                 key={preset.id}
                                 onClick={() => applyPresetGradient(preset)}
                             >
@@ -620,7 +635,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                                 <div className="text-small text-foreground-secondary group-hover:text-foreground-primary">
                                     <span>{preset.id}</span>
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 )}
@@ -716,6 +731,21 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                             </div>
                         </div>
                         <div className="mt-2 flex max-h-96 flex-col gap-1 overflow-y-auto px-2">
+                            {scanError && (
+                                <span className="text-mini text-foreground-tertiary px-1 py-2">
+                                    Couldn&apos;t load brand colors. Close and reopen the picker to
+                                    retry.
+                                </span>
+                            )}
+                            {!scanError &&
+                                filteredColorGroups.length === 0 &&
+                                filteredColorDefaults.length === 0 && (
+                                    <span className="text-mini text-foreground-tertiary px-1 py-2">
+                                        {searchQuery
+                                            ? 'No colors match your search.'
+                                            : 'No brand colors found in this project.'}
+                                    </span>
+                                )}
                             {filteredColorGroups.map(([name, colors]) => (
                                 <ColorGroup
                                     key={name}

@@ -70,8 +70,13 @@ export class StyleManager {
         const styleObj = { [style]: value };
         const action = this.getUpdateStyleAction(styleObj, domIds, StyleChangeType.Custom);
         this.editorEngine.action.run(action);
-        this.updateStyleNoAction(styleObj);
-        this.recordOverrides(styleObj);
+        // Scope the optimistic mirror + override recording to the same domId
+        // subset as the action targets. Without the filter, editing one
+        // element mirrored the value onto the WHOLE selection and recorded
+        // phantom override-map entries for elements that were never edited —
+        // entries a later source rebase would flush into their JSX.
+        this.updateStyleNoAction(styleObj, domIds);
+        this.recordOverrides(styleObj, domIds);
     }
 
     update(style: string, value: string) {
@@ -223,9 +228,13 @@ export class StyleManager {
         return { id, name, minWidth: width };
     }
 
-    private recordOverrides(styles: Record<string, unknown>) {
+    private recordOverrides(styles: Record<string, unknown>, domIds: string[] = []) {
+        // Same filter semantics as getUpdateStyleAction: an empty list means
+        // the whole selection, a non-empty list restricts to those domIds.
+        const filter = domIds.length > 0 ? new Set(domIds) : null;
         const breakpointId = this.editorEngine.breakpoints?.activeId ?? 'desktop';
         for (const selectedEl of this.editorEngine.elements.selected) {
+            if (filter && !filter.has(selectedEl.domId)) continue;
             const oid = this.mode === StyleMode.Instance ? selectedEl.instanceId : selectedEl.oid;
             if (!oid) continue;
             const propMap = this.overrides.get(oid) ?? new Map();
@@ -343,6 +352,27 @@ export class StyleManager {
     }
 
     /**
+     * Sync the override map from a history-replayed (undo/redo) update-style
+     * action. Unlike `recordOverrides`, this keys off the action target's own
+     * oid and recorded breakpoint context instead of the current selection /
+     * active breakpoint — the replayed elements may no longer be selected.
+     * Keeping the map current matters because a later source rebase for the
+     * same `(oid, property)` flushes whatever the map holds; a stale entry
+     * would silently re-apply the undone value to source.
+     */
+    recordOverrideForOid(oid: string, breakpointId: BreakpointId, styles: Record<string, string>) {
+        const propMap = this.overrides.get(oid) ?? new Map<string, Map<BreakpointId, string>>();
+        for (const [property, value] of Object.entries(styles)) {
+            const bpMap = propMap.get(property) ?? new Map<BreakpointId, string>();
+            bpMap.set(breakpointId, value);
+            propMap.set(property, bpMap);
+        }
+        this.overrides.set(oid, propMap);
+        // New Map reference so MobX observers re-evaluate.
+        this.overrides = new Map(this.overrides);
+    }
+
+    /**
      * Get the recorded value for an `(oid, property, breakpoint)` triple, if any.
      */
     getOverrideValue(oid: string, property: string, breakpointId: BreakpointId): string | null {
@@ -392,7 +422,7 @@ export class StyleManager {
      */
     requestSourceRebase: ((oid: string, property: string) => void) | undefined = undefined;
 
-    updateStyleNoAction(styles: CSSProperties) {
+    updateStyleNoAction(styles: CSSProperties, domIds: string[] = []) {
         // Merge into `defined` AND `computed` — every consumer reads
         // `styles.computed[prop]` / `styles.defined[prop]` (useStyleValue,
         // editor-bar hooks, useStyleSetter's same-value short-circuit). A
@@ -412,12 +442,24 @@ export class StyleManager {
             },
         });
 
+        // Same filter semantics as getUpdateStyleAction / recordOverrides:
+        // empty list = whole selection, non-empty = only those domIds.
+        const filter = domIds.length > 0 ? new Set(domIds) : null;
         for (const [selector, selectedStyle] of this.domIdToStyle.entries()) {
+            if (filter && !filter.has(selector)) continue;
             this.domIdToStyle.set(selector, mergeInto(selectedStyle));
         }
 
         if (this.selectedStyle == null) {
             return;
+        }
+        if (filter) {
+            // `selectedStyle` mirrors the FIRST selected element; only merge
+            // when that element is part of the edited subset.
+            const primaryDomId = this.editorEngine.elements.selected[0]?.domId;
+            if (!primaryDomId || !filter.has(primaryDomId)) {
+                return;
+            }
         }
         this.selectedStyle = mergeInto(this.selectedStyle);
     }

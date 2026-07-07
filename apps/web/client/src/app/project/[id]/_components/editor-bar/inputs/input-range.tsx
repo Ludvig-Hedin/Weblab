@@ -161,8 +161,10 @@ export const InputRange = ({
                     />
 
                     <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger className="text-muted-foreground cursor-pointer text-[12px] focus:outline-none">
-                            {unit === 'px' ? '' : unit}
+                        {/* Always render the unit — hiding 'px' left a zero-width,
+                            invisible trigger with no way to discover the menu. */}
+                        <DropdownMenuTrigger className="text-muted-foreground cursor-pointer text-[12px] uppercase focus:outline-none">
+                            {unit}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-[64px] min-w-0">
                             {UNITS.map((unitOption: string) => (
