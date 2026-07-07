@@ -9,6 +9,7 @@ import type { ChatModel } from '@weblab/models';
 import { createInlineEditStream, inferProviderFromModelId } from '@weblab/ai';
 
 import type { Id } from '../../../../../convex/_generated/dataModel';
+import { env } from '@/env';
 import {
     checkMessageLimit,
     decrementUsage,
@@ -259,9 +260,10 @@ export async function POST(req: NextRequest) {
         });
 
         return stream.toTextStreamResponse({
-            headers: {
-                'X-Trace-Id': traceId,
-            },
+            // Trace IDs correlate to internal Langfuse spans — only surface
+            // them outside production so they can't be used to poke at
+            // observability data from a live client.
+            headers: env.NODE_ENV !== 'production' ? { 'X-Trace-Id': traceId } : undefined,
         });
     } catch (error) {
         console.error('Error in inline-edit', error);

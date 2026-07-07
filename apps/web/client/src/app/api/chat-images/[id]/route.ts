@@ -29,7 +29,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         return new Response('Not found', { status: 404 });
     }
     const buffer = Buffer.from(entry.b64, 'base64');
-    return new Response(new Uint8Array(buffer), {
+    // Node 18+ undici accepts a Buffer directly as BodyInit; wrapping it in a
+    // new Uint8Array would copy the payload a second time.
+    return new Response(buffer, {
         status: 200,
         headers: {
             'Content-Type': entry.mimeType,

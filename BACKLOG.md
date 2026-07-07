@@ -2021,34 +2021,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** every validation pass on these 32 features blocks on Phase 3 — when Phase 3 infra breaks (as it did this run), validation has no fallback signal.
 - **Tags:** `#test-gap`
 
-### F-471 — `toolCallCount` over-counts `tool-input-start` and other trigger events
-
-- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
-- **Where:** [apps/web/client/src/app/api/chat/route.ts:524-526](apps/web/client/src/app/api/chat/route.ts#L524)
-- **Symptom:** `(responseMessage?.parts ?? []).filter((p) => p.type?.startsWith('tool-')).length` counts every `tool-*` part — including `tool-input-start`, `tool-input-delta`, `tool-input-available`, etc. — as a "tool call" recorded in `aiUsageEvents.toolCallCount`.
-- **Root cause:** AI SDK stream parts are a discriminated union; only `tool-call` / `tool-result` represent semantic invocations. The substring filter is too permissive.
-- **Next step:** narrow to the actual call/result variants, or count distinct `toolCallId`s.
-- **Risk if ignored:** inflated tool-call metrics in usage dashboards; cost-attribution per turn skewed; no user-facing impact.
-- **Tags:** `#bug` `#telemetry`
-
-### F-473 — `chat-images/[id]` double-allocates the response buffer
-
-- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
-- **Where:** [apps/web/client/src/app/api/chat-images/[id]/route.ts:31-32](apps/web/client/src/app/api/chat-images/[id]/route.ts#L31)
-- **Symptom:** `Buffer.from(entry.b64, 'base64')` decodes into a Buffer, then `new Uint8Array(buffer)` copies that into a fresh Uint8Array — two allocations of the same payload, doubling peak memory for large images.
-- **Next step:** `return new Response(buffer, ...)` (Node 18+ undici accepts `Buffer` directly), or `Buffer.from(entry.b64, 'base64').buffer` to hand off the underlying `ArrayBuffer`.
-- **Risk if ignored:** memory churn at scale; harmless functionally.
-- **Tags:** `#perf`
-
-### F-474 — `X-Trace-Id` exposed to client on `inline-edit`
-
-- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
-- **Where:** [apps/web/client/src/app/api/ai/inline-edit/route.ts:253-256](apps/web/client/src/app/api/ai/inline-edit/route.ts#L253)
-- **Symptom:** Server-generated `traceId` is returned in the response headers. Trace IDs are tied to Langfuse spans + usage events and are not strictly secret, but exposing them to the client lets anyone correlate their session with internal observability data and (combined with another bug) potentially poison telemetry across users.
-- **Next step:** decide policy — either drop the header in production, or keep it only when an opted-in dev/debug header is present on the request.
-- **Risk if ignored:** low — observability surface only. Worth a policy call.
-- **Tags:** `#security` `#observability`
-
 ### F-471 — `USAGE_LIMIT_REACHED` is detected via substring match
 
 - **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
@@ -2067,15 +2039,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Next step:** distinguish "no summary produced" (refund) from "summary attempted but LLM returned empty / parse failed" (keep deduction; log + metric). Or accept the asymmetry and document it as a policy choice.
 - **Risk if ignored:** small cost leak proportional to summarizer flakiness.
 - **Tags:** `#bug` `#billing` `#design-question`
-
-### F-479 — Invalid date strings in `banner.startsAt` / `banner.endsAt` fail open
-
-- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
-- **Where:** [apps/web/client/src/app/api/promo-resume/route.ts:37-42](apps/web/client/src/app/api/promo-resume/route.ts#L37)
-- **Symptom:** `new Date('not-a-date')` returns `Invalid Date`. `Invalid Date > now` and `Invalid Date < now` both evaluate `false` (NaN comparison), so a banner whose `startsAt` or `endsAt` is a malformed string is treated as currently active. A bad commit to `promo-banners.ts` could re-enable an expired promo without anyone noticing.
-- **Next step:** validate `startsAt` / `endsAt` at the `PromoBanner` schema layer (zod / TS guard), and bail out (fallback redirect) on `Number.isNaN(date.getTime())` here.
-- **Risk if ignored:** stale promo banners silently extend; low blast radius today.
-- **Tags:** `#bug` `#billing` `#defensive`
 
 ### F-471 / F-474 — `code` field on 501 response is a string while the rest of the API uses numbers
 
@@ -2362,6 +2325,30 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### F-471 — `toolCallCount` over-counts `tool-input-start` and other trigger events
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Resolved:** 2026-07-07 — `chat/route.ts` now dedupes by `toolCallId` via the AI SDK's `isToolOrDynamicToolUIPart` type guard instead of a raw `type?.startsWith('tool-')` substring filter, which counted every stream trigger event (`tool-input-start`, `tool-input-delta`, etc.) as a call.
+- **Tags:** `#bug` `#telemetry`
+
+### F-473 — `chat-images/[id]` double-allocates the response buffer
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Resolved:** 2026-07-07 — `return new Response(buffer, ...)` instead of wrapping in `new Uint8Array(buffer)`; Node 18+ undici accepts a `Buffer` directly.
+- **Tags:** `#perf`
+
+### F-474 — `X-Trace-Id` exposed to client on `inline-edit`
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Resolved:** 2026-07-07 — header now only set when `env.NODE_ENV !== 'production'`; omitted entirely in production.
+- **Tags:** `#security` `#observability`
+
+### F-479 — Invalid date strings in `banner.startsAt` / `banner.endsAt` fail open
+
+- **Discovered:** 2026-05-28 (deeper bug-hunt pass on F-470..F-479)
+- **Resolved:** 2026-07-07 — `promo-resume/route.ts` checks `Number.isNaN(date.getTime())` on both `startsAt`/`endsAt` before the range comparison and fails closed (redirects to fallback) instead of silently reading a malformed date as "active" via the NaN comparison bug.
+- **Tags:** `#bug` `#billing` `#defensive`
 
 ### F-125 — `<iframe>` template preview missing `sandbox` attribute
 

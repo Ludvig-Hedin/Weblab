@@ -35,9 +35,16 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
+    const startsAt = banner.startsAt ? new Date(banner.startsAt) : undefined;
+    const endsAt = banner.endsAt ? new Date(banner.endsAt) : undefined;
+    // Invalid Date comparisons (`Invalid Date > now`) evaluate to `false` via
+    // NaN, so a malformed startsAt/endsAt would otherwise read as "active".
+    // Fail closed instead.
     if (
-        (banner.startsAt && new Date(banner.startsAt) > now) ||
-        (banner.endsAt && new Date(banner.endsAt) < now)
+        (startsAt && Number.isNaN(startsAt.getTime())) ||
+        (endsAt && Number.isNaN(endsAt.getTime())) ||
+        (startsAt && startsAt > now) ||
+        (endsAt && endsAt < now)
     ) {
         return NextResponse.redirect(fallback);
     }

@@ -2,6 +2,7 @@ import type { LanguageModelUsage } from 'ai';
 import { type NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
+import { isToolOrDynamicToolUIPart } from 'ai';
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ import { z } from 'zod';
 import type { UserTier } from '@weblab/ai';
 import type {
     ChatMessage,
+    ChatMessagePart,
     ChatMetadata,
     ChatModel,
     ChatProviderMetadata,
@@ -603,6 +605,19 @@ const streamResponse = async (req: NextRequest, userId: string) => {
             }
         };
 
+        // Deduped by toolCallId via the AI SDK's own tool-part type guard —
+        // a single tool call can surface as multiple `tool-*`/`dynamic-tool`
+        // parts across streaming states, so a raw `.length` over-counts.
+        const countToolCalls = (parts: readonly ChatMessagePart[] | undefined): number => {
+            const toolCallIds = new Set<string>();
+            for (const part of parts ?? []) {
+                if (isToolOrDynamicToolUIPart(part)) {
+                    toolCallIds.add(part.toolCallId);
+                }
+            }
+            return toolCallIds.size;
+        };
+
         return built.stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
             generateMessageId: () => uuidv4(),
@@ -657,9 +672,7 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                     // on `!errorType`), so this never double-charges.
                     await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
                     const partialUsage = await readTotalUsage();
-                    const abortToolCallCount = (responseMessage?.parts ?? []).filter((p) =>
-                        p.type?.startsWith('tool-'),
-                    ).length;
+                    const abortToolCallCount = countToolCalls(responseMessage?.parts);
                     try {
                         await runWithTimeout(
                             built.finalizeUsage({
@@ -704,9 +717,7 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                 const responseMetadata = responseMessage.metadata as
                     | (ChatMetadata & { providerMetadata?: ChatProviderMetadata })
                     | undefined;
-                const toolCallCount = (responseMessage?.parts ?? []).filter((p) =>
-                    p.type?.startsWith('tool-'),
-                ).length;
+                const toolCallCount = countToolCalls(responseMessage?.parts);
                 // Bill the cumulative usage across all steps, not the last
                 // finish-step's per-step usage held in metadata (multi-step tool
                 // turns would otherwise undercharge). Fall back to metadata usage
