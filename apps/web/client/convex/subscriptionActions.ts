@@ -266,13 +266,15 @@ export const startPromoCheckout = action({
         { promotionCode },
     ): Promise<{ errorCode: string } | { redirectUrl: string }> => {
         const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
-        // TODO(bug-hunt 2026-05-28, F-491): conflates two states. If `caller`
-        // is null, the user is genuinely unauthenticated; if `caller` is set
-        // but `email` is missing, the user IS authenticated and just lacks an
-        // email on their Clerk profile. Surface a `missing_email` error code
-        // instead of the misleading `not_authenticated`.
-        if (!caller?.email) {
+        // `caller` null means genuinely unauthenticated; `caller` set but
+        // `email` missing means the user IS authenticated and just lacks an
+        // email on their Clerk profile — a distinct `missing_email` code so
+        // the banner doesn't tell a signed-in user to "please sign in".
+        if (!caller) {
             return { errorCode: 'not_authenticated' };
+        }
+        if (!caller.email) {
+            return { errorCode: 'missing_email' };
         }
 
         // Reject when caller already has an active Pro sub. Discounts on top

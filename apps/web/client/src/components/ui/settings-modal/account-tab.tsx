@@ -55,18 +55,24 @@ export const AccountTab = observer(() => {
     const initials = getInitials(user?.displayName ?? user?.firstName ?? '');
 
     const handleSave = async () => {
+        // updateProfile is tri-state (absent / string / null). Map cleared
+        // or whitespace-only inputs to null so the field is actually unset
+        // instead of stored as '' (which reads as "set" downstream).
+        const normalize = (value: string): string | null => {
+            const trimmed = value.trim();
+            return trimmed === '' ? null : trimmed;
+        };
+        const normalizedFirstName = normalize(firstName);
+        const normalizedLastName = normalize(lastName);
+        if ((normalizedFirstName?.length ?? 0) > 64 || (normalizedLastName?.length ?? 0) > 64) {
+            toast.error(t('toastFailed'));
+            return;
+        }
         setIsPending(true);
         try {
-            // updateProfile is tri-state (absent / string / null). Map cleared
-            // or whitespace-only inputs to null so the field is actually unset
-            // instead of stored as '' (which reads as "set" downstream).
-            const normalize = (value: string): string | null => {
-                const trimmed = value.trim();
-                return trimmed === '' ? null : trimmed;
-            };
             await updateProfileMutation({
-                firstName: normalize(firstName),
-                lastName: normalize(lastName),
+                firstName: normalizedFirstName,
+                lastName: normalizedLastName,
                 displayName: normalize(displayName),
             });
             toast.success(t('toastSuccess'));
@@ -103,9 +109,7 @@ export const AccountTab = observer(() => {
                         {/* Bug fix #29: Avatar upload UI removed for now — keep it read-only
                             and let it sync from the auth provider until we ship a proper
                             storage-backed upload flow. */}
-                        <p className="text-mini text-foreground-tertiary mt-1">
-                            {t('avatarSync')}
-                        </p>
+                        <p className="text-mini text-foreground-tertiary mt-1">{t('avatarSync')}</p>
                     </div>
                 </div>
 

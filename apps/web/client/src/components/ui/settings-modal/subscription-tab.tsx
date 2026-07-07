@@ -68,9 +68,10 @@ export const SubscriptionTab = observer(() => {
         setIsLoadingPortal(true);
         try {
             const session = (await manageSubscription({})) as { url?: string } | null;
-            if (session?.url) {
-                window.open(session.url, '_blank');
+            if (!session?.url) {
+                throw new Error('manageSubscription returned no portal url');
             }
+            window.open(session.url, '_blank');
         } catch (error) {
             console.error('Failed to create portal session:', error);
             toast.error(t('toastPortalFailed'));

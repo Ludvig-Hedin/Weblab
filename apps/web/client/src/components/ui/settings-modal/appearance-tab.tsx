@@ -90,8 +90,12 @@ export const AppearanceTab = observer(() => {
 
     const update = useCallback(
         async (patch: Record<string, unknown>) => {
-            // Optimistically apply data-* attrs
+            // Optimistically apply data-* attrs, snapshotting prior values so we
+            // can restore them if the mutation fails.
             const html = document.documentElement;
+            const prevAccent = html.getAttribute('data-accent');
+            const prevFontSize = html.getAttribute('data-font-size');
+            const prevFontFamily = html.getAttribute('data-font-family');
             if ('accentColor' in patch)
                 html.setAttribute('data-accent', patch.accentColor as string);
             if ('fontSize' in patch) html.setAttribute('data-font-size', patch.fontSize as string);
@@ -101,9 +105,21 @@ export const AppearanceTab = observer(() => {
             try {
                 await updateSettingsMutation(patch as Parameters<typeof updateSettingsMutation>[0]);
             } catch (error) {
-                // Optimistic DOM mutation already applied above — surface the
-                // failure to the user so they know the change won't persist.
+                // Restore the pre-mutation DOM state so the UI doesn't show a
+                // change that didn't actually persist.
                 console.error('Failed to update settings', error);
+                if ('accentColor' in patch) {
+                    if (prevAccent === null) html.removeAttribute('data-accent');
+                    else html.setAttribute('data-accent', prevAccent);
+                }
+                if ('fontSize' in patch) {
+                    if (prevFontSize === null) html.removeAttribute('data-font-size');
+                    else html.setAttribute('data-font-size', prevFontSize);
+                }
+                if ('fontFamily' in patch) {
+                    if (prevFontFamily === null) html.removeAttribute('data-font-family');
+                    else html.setAttribute('data-font-family', prevFontFamily);
+                }
                 toast.error(t('settings.appearance.saveError'));
             }
         },

@@ -29,8 +29,18 @@ function broadcastTheme(theme: PreviewTheme): void {
     if (typeof window === 'undefined') return;
     const frames = document.querySelectorAll('iframe');
     frames.forEach((frame) => {
+        // Scope the broadcast to the frame's own sandbox origin when we can
+        // derive one. `frame.src` can be a `data:` URL or empty while the
+        // sandbox is booting (opaque/invalid origin) — fall back to '*' only
+        // in that case rather than for every frame.
+        let targetOrigin = '*';
         try {
-            frame.contentWindow?.postMessage({ type: THEME_MESSAGE_TYPE, theme }, '*');
+            if (frame.src) targetOrigin = new URL(frame.src).origin;
+        } catch {
+            // Unparsable src (e.g. data:) — keep the '*' fallback.
+        }
+        try {
+            frame.contentWindow?.postMessage({ type: THEME_MESSAGE_TYPE, theme }, targetOrigin);
         } catch {
             // Cross-origin frames may throw — ignore; the message bus is best-effort.
         }

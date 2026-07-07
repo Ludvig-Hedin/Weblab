@@ -121,6 +121,7 @@ export const Terminal = memo(
             if (terminalSession?.xterm) {
                 terminalSession.xterm.options.theme =
                     resolvedTheme === 'light' ? TERMINAL_THEME.LIGHT : TERMINAL_THEME.DARK;
+                terminalSession.xterm.refresh(0, terminalSession.xterm.rows - 1);
             }
         }, [resolvedTheme, terminalSession]);
 

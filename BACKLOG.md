@@ -1876,23 +1876,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** non-English locales render English; design-system audit will keep flagging the same files.
 - **Tags:** `#tech-debt` `#design-system` `#i18n` `#button-enforcement`
 
-### F-334 — Preview theme toggle `postMessage` uses wildcard targetOrigin
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/preview-theme-toggle.tsx:33](apps/web/client/src/app/project/[id]/_components/bottom-bar/preview-theme-toggle.tsx#L33)
-- **Code:** `frame.contentWindow?.postMessage({ type: THEME_MESSAGE_TYPE, theme }, '*');`
-- **Symptom:** Theme broadcast goes to every iframe regardless of origin. For sandboxed iframes that load arbitrary user code, `'*'` is the wrong default — anyone listening for `'weblab:preview-theme'` gets a free signal that they're embedded in Weblab.
-- **Next step:** track the expected sandbox origin per frame; pass it as the second arg. Same-origin sandbox iframes can use `'/'` (same-origin only).
-- **Tags:** `#bug` `#editor` `#security` `#defense-in-depth`
-
-### F-332 — Terminal theme update doesn't `refresh()` xterm buffer
-
-- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
-- **Where:** [apps/web/client/src/app/project/\[id\]/_components/bottom-bar/terminal.tsx:91-96](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal.tsx#L91)
-- **Symptom:** Toggling app theme while a terminal has existing output keeps the old colors in the buffer; only new writes use the new theme.
-- **Next step:** after `xterm.options.theme = …`, call `terminalSession.xterm.refresh(0, terminalSession.xterm.rows - 1)`.
-- **Tags:** `#bug` `#editor` `#terminal`
-
 
 ### F-134 — invalid Convex ID on settings/access shows generic boundary error (not invalid-id)
 
@@ -1980,15 +1963,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** if MobX is ever configured with `enforceActions: 'always'`, every entry point starts crashing on the first line.
 - **Tags:** `#tech-debt`
 
-### F-453 — `PostHogProvider` static import defeats consent-gated dynamic-import claim
-
-- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
-- **Where:** [apps/web/client/src/components/telemetry-provider.tsx:9](apps/web/client/src/components/telemetry-provider.tsx#L9)
-- **Symptom:** Cold load of `/pricing` (anonymous, no `weblab.consent` cookie) fetches `_next/static/chunks/node_modules_posthog-js_*.js` regardless. The file's own comment claims "Dynamic import for posthog-js keeps the SDK out of the critical-path bundle on landing/login/dashboard until cookie consent fires" — partially false because `import { PostHogProvider as PHProvider } from 'posthog-js/react'` is static.
-- **Next step:** `const PHProvider = lazy(() => import('posthog-js/react').then(m => ({ default: m.PostHogProvider })))`, wrap the provider return in `<Suspense fallback={children}>`. Verify chunk does NOT appear in `_next/static/chunks` on anon `/pricing`.
-- **Risk if ignored:** ~50KB posthog-js shipped on every landing/login/marketing surface for visitors who never consent. Privacy and performance regression.
-- **Tags:** `#tech-debt` `#perf` `#privacy` `#telemetry`
-
 ### ~~F-453 — Cookie consent read only at mount; no runtime re-init~~ FALSE ALARM (resolved 2026-05-28)
 
 - **Resolved:** `apps/web/client/src/app/_components/cookie-consent.tsx:52-56` calls `window.location.reload()` inside `onAccept`. The next mount runs the init effect with the consent cookie present, so SDKs DO initialize on accept. No code change needed.
@@ -1997,27 +1971,9 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 
 - **Resolved:** `pricing-table/index.tsx` now distinguishes `authResolving` (null cookie OR loading user) from `isUnauthenticated`. Passes `isAuthLoading` prop to FreeCard + ProCard. CTAs render a disabled loading spinner while auth is resolving so the signed-in visitor cannot accidentally trigger the auth modal during the flicker window.
 
-### F-452 — Avatar dropdown Convex queries fire unconditionally
-
-- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
-- **Where:** [apps/web/client/src/components/ui/avatar-dropdown/index.tsx:53](apps/web/client/src/components/ui/avatar-dropdown/index.tsx#L53), [apps/web/client/src/components/ui/avatar-dropdown/plans.tsx:19-20](apps/web/client/src/components/ui/avatar-dropdown/plans.tsx#L19-L20)
-- **Symptom:** `useQuery(api.users.me, {})`, `useQuery(api.subscriptions.get, {})`, `useQuery(api.usage.get, {})` all run unconditionally. Parent routes currently gate the avatar render behind `isSignedIn`, so this is safe today — but the components carry no defensive auth-cookie gate of their own. Any future surface that mounts them in an unauthenticated context (Storybook, design-system page, marketing) flooded with 401s.
-- **Next step:** mirror the `useHasAuthCookie() === true ? {} : 'skip'` pattern from `use-subscription.tsx` and `telemetry-provider.tsx`.
-- **Risk if ignored:** defensive layer missing; first leak surfaces as a console flood when someone embeds the avatar somewhere new.
-- **Tags:** `#tech-debt` `#auth-gated`
-
 ### ~~F-450 — Legacy promotion clipboard handler shows false success~~ FIXED (2026-05-28)
 
 - **Resolved:** Handler is now async with try/catch on `navigator.clipboard.writeText`. On reject, falls back to a programmatic `document.execCommand('copy')` via a hidden textarea. Toast reflects real outcome — `toast.success('Copied to clipboard')` only on confirmed write, `toast.error('Could not copy code')` with a "select and copy manually" hint if both paths fail. Promo code revenue path no longer at risk.
-
-### F-450 — `legacy-promotion.tsx` imports from `framer-motion` while siblings use `motion/react`
-
-- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
-- **Where:** [apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx:6](apps/web/client/src/components/ui/pricing-modal/legacy-promotion.tsx#L6)
-- **Symptom:** This file imports `motion`, `AnimatePresence` from `framer-motion`. Every other file in the pricing UI (`index.tsx`, `free-card.tsx`, `pro-card.tsx`, `enterprise-card.tsx`) imports from `motion/react`. Both libs ship to the bundle for one feature.
-- **Next step:** replace `from 'framer-motion'` with `from 'motion/react'` in legacy-promotion.tsx. Confirm `bun build` removes the `framer-motion` chunk if no other importer remains.
-- **Risk if ignored:** wasted bundle size; future drift as one lib's API evolves and the other stagnates.
-- **Tags:** `#tech-debt` `#perf`
 
 ### F-453 — React-DOM dev warning on cold pricing load (source unknown)
 
@@ -2027,15 +1983,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Next step:** add `Error.captureStackTrace` shim in dev to surface the offending component, or bisect by progressively unmounting providers in `layout.tsx`.
 - **Risk if ignored:** real race condition may produce stale state in prod under load. Currently masked because the warning is dev-only.
 - **Tags:** `#bug` `#react`
-
-### F-437 — Uploaded favicon / OG image path uses raw `file.name`
-
-- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 deeper pass)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/site/index.tsx:88,101](apps/web/client/src/components/ui/settings-modal/site/index.tsx#L88-L101)
-- **Symptom:** `faviconPath = \`/${uploadedFavicon.name}\`` and the OG path are built from the raw `File.name`. If the user picks a file with spaces, unicode, parens, or path-separator characters in the name, the metadata URL ends up un-encoded and may fail to resolve in production (or, with crafted names like `../foo.png`, produce odd URLs).
-- **Next step:** sanitize the filename before constructing the URL — e.g. `encodeURIComponent(stripDirectorySegments(file.name))` — or read the canonical path returned by `editorEngine.image.upload(...)` instead of reconstructing it on the client.
-- **Risk if ignored:** broken favicon / OG image after upload for any user whose filename isn't `[a-z0-9.-]`.
-- **Tags:** `#bug` `#editor` `#cms`
 
 ### F-360 — `projectInvitations.accept` does not trim whitespace before email lookup
 
@@ -2236,52 +2183,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** regressions in chat / inline-edit / tab-complete / transcribe / promo-resume land silently until users feel them.
 - **Tags:** `#test-gap`
 
-### F-330..F-335 — Bottom-bar unguarded null/undefined access risks runtime crash
-
-- **Resolved:** 2026-05-28 (backlog user-flow sweep) — the one genuinely-unguarded write, [terminal-area.tsx:82](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L82), now guards `sandbox?.session` before assigning. The `terminal-area.tsx:55` access is inside a try/catch (`continue` on throw — safe), and `restart-sandbox-button.tsx:177` `activeBranch.sandbox.id` is type-safe (`Branch.sandbox` is non-optional in [branch.ts:39](packages/models/src/project/branch.ts#L39)), so neither can crash the editor.
-- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-420..F-439 run)
-- **Where:**
-  - [apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx:55](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L55) — `branches.activeBranch.id` accessed inside try/catch (caught) but only by accident.
-  - [apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx:83](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L83) — `sandbox.session.activeTerminalSessionId =` assigns into possibly-undefined `.session`; only `sandbox` itself is null-checked.
-  - [apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx:178](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L178) — `activeBranch.sandbox.id` dereferences a sub-field that may be undefined depending on Branch shape.
-- **Symptom:** if a branch is mid-init (no session yet) or has no `sandbox` sub-record, the terminal-switch / restart paths throw `Cannot read properties of undefined`.
-- **Root cause:** missing optional-chain / explicit guards on intermediate fields.
-- **Next step:** add `if (!sandbox?.session) return;` guards before writes, and `?.` on `activeBranch.sandbox?.id`. Verify Branch.sandbox type in [@weblab/models](packages/models) before deciding which is nullable.
-- **Risk if ignored:** terminal cycle hotkey and Restart Sandbox button can crash the editor during sandbox cold-boot.
-- **Tags:** `#bug` `#editor`
-
-### F-422 — Account-tab accepts unvalidated first/last name input
-
-- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/account-tab.tsx:48-57](apps/web/client/src/components/ui/settings-modal/account-tab.tsx#L48-L57)
-- **Symptom:** any length / character sequence accepted; no trim, no max length, no script-tag stripping before save.
-- **Next step:** zod-validate `firstName`/`lastName` (1..64 chars, trimmed) on submit; toast on invalid; mirror Convex `users.update` validator.
-- **Tags:** `#flag` `#validation`
-
-### F-424 — Appearance-tab still leaves DOM out of sync on save failure
-
-- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/appearance-tab.tsx:85-103](apps/web/client/src/components/ui/settings-modal/appearance-tab.tsx#L85-L103)
-- **Symptom:** optimistic `data-accent` / `data-density` / `data-font-size` mutations are not reverted on `updateSettingsMutation` failure. User now sees a toast (fix applied), but visually the change "stuck" until reload.
-- **Next step:** snapshot prior attr values before mutation, restore in `catch`.
-- **Tags:** `#flag` `#ux`
-
-### F-427 — GitHub-tab silently clears repo list on fetch failure (no toast / retry)
-
-- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/github-tab.tsx:83-87](apps/web/client/src/components/ui/settings-modal/github-tab.tsx#L83-L87)
-- **Symptom:** on `getOrgs` / `getReposWithApp` rejection, `orgs` and `repos` are set to `[]` with no user feedback — looks identical to "GitHub App has no repos".
-- **Next step:** preserve error, show inline retry surface (similar to installation-check retry at line 168-180).
-- **Tags:** `#flag` `#integration` `#ux`
-
-### F-431 — Subscription-tab uses unsafe `(response as { url?: string })` cast
-
-- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/subscription-tab.tsx:40](apps/web/client/src/components/ui/settings-modal/subscription-tab.tsx#L40)
-- **Symptom:** Convex action result is cast without runtime check; if shape ever changes, redirect will navigate to `undefined`.
-- **Next step:** validate shape with `if (!result?.url) throw new Error(...)` before redirect.
-- **Tags:** `#flag` `#billing`
-
 ### F-435 — Account deletion UI calls a not-yet-implemented Convex mutation (always toasts "unavailable")
 
 - **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
@@ -2291,14 +2192,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Risk if ignored:** users will repeatedly try, file support tickets, and assume their data is being deleted when it isn't.
 - **Tags:** `#bug` `#user-trust`
 
-### F-427 — `disconnectGitHub` button shows confirm dialog then no-ops
-
-- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
-- **Where:** [apps/web/client/src/components/ui/settings-modal/github-tab.tsx:123-133](apps/web/client/src/components/ui/settings-modal/github-tab.tsx#L123-L133)
-- **Symptom:** Disconnect → Confirm → toast "Disconnect is temporarily unavailable". User cannot actually revoke connection from the app.
-- **Next step:** implement `users.disconnectGitHub` Convex mutation that revokes the GitHub App installation and clears `providerConnections` row; until then disable the button instead of pretending it works.
-- **Tags:** `#bug` `#integration`
-
 ### GitHub connect — Convex env required per deployment + single Setup-URL caveat
 
 - **Discovered:** 2026-05-29 (debugging "Failed to generate GitHub installation URL").
@@ -2306,51 +2199,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 - **Open caveat:** the single GitHub App (id `3588674`) has one post-install Setup URL. It can only point at one host, so the install callback (`/callback/github/install` → `handleInstallationCallbackUrl`) lands on one deployment. **Local-dev connect won't complete** unless the Setup URL targets localhost; prod (weblab.build) is the supported target. A separate dev GitHub App would be needed for local end-to-end testing.
 - **Next step:** confirm the GitHub App Setup URL = `https://weblab.build/callback/github/install`; optionally register a second dev App for localhost. New deployments must run the provisioner (or set the 4 env vars) before GitHub connect works.
 - **Tags:** `#integration` `#config` `#convex`
-
-### F-491 — `checkout` allows multiple active subscriptions per user; downstream `.unique()` queries crash billing portal
-
-- **Resolved:** 2026-05-28 (backlog user-flow sweep) — both halves landed: (1) `checkout` now calls `_findActiveSubscriptionForCaller` first and throws `ALREADY_SUBSCRIBED` ([subscriptionActions.ts:73-79](apps/web/client/convex/subscriptionActions.ts#L73)), preventing new duplicates; (2) defense-in-depth — `_findActiveSubscriptionForCaller` + `_findActiveProSubscriptionForPromo` now use `.take(2)` + pick-first + `console.warn` instead of `.unique()`, so a pre-existing duplicate no longer throws and locks the user out of the billing portal / promo.
-- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
-- **Where:** [apps/web/client/convex/subscriptionActions.ts:52-91](apps/web/client/convex/subscriptionActions.ts#L52-L91) (`checkout` action) +
-  [apps/web/client/convex/lib/stripeWebhook.ts:630-647](apps/web/client/convex/lib/stripeWebhook.ts#L630-L647) (`_findActiveSubscriptionForCaller`) +
-  [stripeWebhook.ts:587-598](apps/web/client/convex/lib/stripeWebhook.ts#L587-L598) (`_findActiveProSubscriptionForPromo`)
-- **Symptom (chain):**
-  1. User double-clicks **Subscribe** on the pricing modal, or two browser tabs race. `checkout` action does not check for an existing active subscription, so both calls create Stripe Checkout Sessions and both complete.
-  2. Stripe fires two `customer.subscription.created` events. `_handleSubCreated` is idempotent only on `stripeSubscriptionItemId` (different items per sub) → two rows inserted in `subscriptions` with `status='active'`.
-  3. User opens **Settings → Subscription → Manage** → `manageSubscription` action calls `_findActiveSubscriptionForCaller` which does `.query('subscriptions').withIndex('by_user_status', q => q.eq('userId', userId).eq('status', 'active')).unique()`. With 2 rows the `.unique()` throws `Unique constraint failed`. Billing portal never opens. User cannot cancel or change the duplicate.
-  4. Same throw blocks `startPromoCheckout` for affected users (`_findActiveProSubscriptionForPromo` also `.unique()`s on `by_user_status`).
-- **Root cause:** missing idempotency guard at the `checkout` entry point; helper queries assume the invariant "≤1 active sub per user" that the entry point doesn't enforce.
-- **Next step:**
-  - In `checkout` (subscriptionActions.ts:54) call `_findActiveSubscriptionForCaller` (or an equivalent internal query) first; if a row exists, throw `ALREADY_SUBSCRIBED` and surface a friendly message in [pro-card.tsx:52](apps/web/client/src/components/ui/pricing-modal/pro-card.tsx#L52).
-  - Defense-in-depth: change the two `.unique()` calls on `by_user_status` to `.first()` + log when more than one is found, so a future repeat doesn't lock the user out of the portal.
-- **Risk if ignored:** support tickets from double-billed users who also can't open the billing portal to fix it themselves. Revenue impact + churn.
-- **Tags:** `#bug` `#billing` `#critical`
-
-### F-491 — `update` action does not catch already-released schedule from Stripe; upgrade/downgrade aborts
-
-- **Resolved:** 2026-05-28 (backlog user-flow sweep) — verified fixed: the `release` call is now wrapped in try/catch that swallows `invalid_request_error` ([subscriptionActions.ts:183-194](apps/web/client/convex/subscriptionActions.ts#L183)), mirroring `releaseSubscriptionSchedule`, so an already-released schedule no longer aborts the plan change. Stale entry.
-- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
-- **Where:** [apps/web/client/convex/subscriptionActions.ts:156-158](apps/web/client/convex/subscriptionActions.ts#L156-L158)
-- **Symptom:** User changes plan via the pricing modal while a previously scheduled downgrade is in-flight. `update` action sees `owned.stripeSubscriptionScheduleId` and calls `stripe.subscriptionSchedules.release(scheduleId)` without try/catch. If Stripe reports the schedule is already in `'released'` state (e.g. the scheduled phase fired and Stripe auto-released it just before this request, or the user released it manually from the portal), Stripe throws `StripeInvalidRequestError`. The action aborts; user sees a generic toast. Our DB still references the now-dead `stripeSubscriptionScheduleId`, so the next attempt repeats the failure.
-- **Root cause:** inconsistent error handling — `releaseSubscriptionSchedule` ([line 314-323](apps/web/client/convex/subscriptionActions.ts#L314-L323)) already handles this exact case by swallowing `invalid_request_error`; the `update` action does not.
-- **Next step:** wrap the `release` call in the same try/catch used by `releaseSubscriptionSchedule`; on swallowed error, fall through to the normal upgrade/downgrade path. Add a clearing patch (`_clearScheduleChange`) so our DB drops the stale schedule id.
-- **Risk if ignored:** users with pending schedules get permanently stuck — every plan change attempt aborts before reaching Stripe.
-- **Tags:** `#bug` `#billing`
-
-### F-491 — `startPromoCheckout` returns `not_authenticated` for users that are signed in but missing email
-
-- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
-- **Where:** [apps/web/client/convex/subscriptionActions.ts:228-231](apps/web/client/convex/subscriptionActions.ts#L228-L231)
-- **Symptom:** `_resolveCallerUserId` returns `null` only when there is no authenticated identity; an authenticated user without `email` returns a user object whose `email` is `undefined`. The check `if (!caller?.email)` then returns `errorCode: 'not_authenticated'`. Frontend renders a misleading "Please sign in" message even though the user is signed in.
-- **Root cause:** error code conflates two states (no identity vs identity-without-email).
-- **Next step:** split the check —
-  ```ts
-  if (!caller) return { errorCode: 'not_authenticated' };
-  if (!caller.email) return { errorCode: 'missing_email' };
-  ```
-  Add the new code to the promo banner's typed error handler.
-- **Risk if ignored:** support burden + confused users on the promo flow.
-- **Tags:** `#bug` `#billing` `#ux`
 
 ### F-501 — `NAMED_FUNCTION_RE` / `DEFAULT_FUNCTION_RE` miss `export async function` (Next.js server components dropped)
 
@@ -2381,55 +2229,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
   Optional: track visited real paths via `fs.realpath` + Set as defense-in-depth.
 - **Risk if ignored:** SANDBOX_BASE_DIR is operator-controlled today, so exposure is low — but the moment user-uploaded projects are scanned with this code path (or an attacker controls a file the scanner traverses), one symlink takes the Fastify server down. Latent denial-of-service.
 - **Tags:** `#bug` `#security` `#sandbox`
-
-### F-491 — Stripe webhook accepts only one `v1=` signature; rotation will reject valid requests
-
-- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
-- **Where:** [apps/web/client/convex/http.ts:112-117](apps/web/client/convex/http.ts#L112-L117) — `verifyStripeSignature`
-- **Symptom:** during a Stripe webhook signing-secret rotation Stripe sends
-  `Stripe-Signature: t=…,v1=oldSig,v1=newSig`. The current parser builds
-  `Object.fromEntries(...)` so only the LAST `v1` survives. If our held
-  secret signs the FIRST entry, verification fails and Stripe retries until
-  rotation finishes.
-- **Root cause:** `Object.fromEntries` collapses duplicate keys.
-- **Next step:** split header → keep an array of `v1` values; HMAC the
-  payload once → return true if any candidate matches via constant-time
-  compare. Add a test that feeds two `v1=` entries.
-- **Risk if ignored:** ~5-minute window of dropped events on every rotation,
-  silent until alerted by Stripe dashboard.
-- **Tags:** `#bug` `#billing` `#webhook`
-
-### F-491 — Stripe webhook lacks `evt.id` idempotency; replays grant duplicate credits
-
-- **Resolved:** 2026-05-28 (CodeRabbit-fix pass) — added a `stripeEventLog`
-  table (`by_event_id`) and an `alreadyProcessed()` guard at the top of every
-  `_handleSub*` mutation; `event.id` is threaded through `http.ts`. Dedup is
-  transactional (log insert + handler work in one mutation), so a failed
-  handler rolls back the log row and Stripe still retries genuine failures;
-  Convex OCC closes the concurrent-duplicate race. Table kept bounded by a
-  daily `purgeStaleStripeEvents` cron (7-day TTL, Stripe retries ≤3 days).
-  Note: the live risk was lower than stated below — existing state-guards
-  (priceId/periodEnd patches) plus OCC already prevented most duplicates in the
-  Convex runtime; this makes idempotency explicit and future-proof.
-- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
-- **Where:** [apps/web/client/convex/http.ts:235-270](apps/web/client/convex/http.ts#L235-L270) +
-  [apps/web/client/convex/lib/stripeWebhook.ts:220-401](apps/web/client/convex/lib/stripeWebhook.ts#L220-L401)
-- **Symptom:** `customer.subscription.updated` pro-rated upgrade branch
-  (`stripeWebhook.ts:268`) and renewal branch (`handleSubscriptionRenewed`,
-  `stripeWebhook.ts:379`) both `ctx.db.insert('rateLimits', …)`. Stripe
-  retries 5xx for up to 3 days and can double-deliver even on 2xx
-  (documented behavior). Each replay inserts another full-quota rateLimits
-  row → user receives N× credits.
-- **Root cause:** no event-id dedupe at the webhook entry point.
-  `_handleSubCreated` is idempotent (item-id upsert) but the `Updated`
-  paths are not.
-- **Next step:** introduce a `stripeEventLog` table indexed by
-  `stripeEventId` (= `evt.id` from raw payload). In the webhook handler,
-  attempt an insert before dispatch; on uniqueness conflict, return 200
-  early.
-- **Risk if ignored:** duplicate credits granted on every Stripe retry,
-  inflated `rateLimits.left` for affected users, silent revenue leak.
-- **Tags:** `#bug` `#billing` `#webhook` `#idempotency`
 
 ### F-492 — catalog row claims GitHub webhook but no HTTP handler exists
 
@@ -2577,6 +2376,108 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### F-334 — Preview theme toggle `postMessage` uses wildcard targetOrigin
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — `preview-theme-toggle.tsx`: derives `new URL(frame.src).origin` per-frame (try/catch fallback to `'*'` only when `frame.src` is empty/unparsable, e.g. mid-boot `data:`/opaque src).
+- **Tags:** `#bug` `#editor` `#security` `#defense-in-depth`
+
+### F-332 — Terminal theme update doesn't `refresh()` xterm buffer
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — `terminal.tsx`: added `terminalSession.xterm.refresh(0, terminalSession.xterm.rows - 1)` after the theme assignment so existing buffer content repaints in the new theme.
+- **Tags:** `#bug` `#editor` `#terminal`
+
+### F-330..F-335 — Bottom-bar unguarded null/undefined access risks runtime crash
+
+- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-420..F-439 run)
+- **Resolved:** 2026-05-28 (backlog user-flow sweep, found already fixed but never moved out of Open) — the one genuinely-unguarded write, `terminal-area.tsx:82`, guards `sandbox?.session` before assigning; `terminal-area.tsx:55` access is inside a try/catch (safe); `restart-sandbox-button.tsx:177` `activeBranch.sandbox.id` is type-safe (`Branch.sandbox` is non-optional).
+- **Tags:** `#bug` `#editor`
+
+### F-422 — Account-tab accepts unvalidated first/last name input
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Resolved:** 2026-07-07 — `account-tab.tsx`: trims first/last name and rejects (toast, no save) values over 64 chars before calling `updateProfileMutation`. Did not add full zod schema / script-tag stripping — Convex's own `users.update` validator is the actual trust boundary; this is client-side UX validation only.
+- **Tags:** `#flag` `#validation`
+
+### F-424 — Appearance-tab still leaves DOM out of sync on save failure
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Resolved:** 2026-07-07 — `appearance-tab.tsx`: snapshots `data-accent`/`data-font-size`/`data-font-family` before the optimistic mutation and restores them in the `catch` block, so a failed save no longer leaves the DOM showing an unpersisted change.
+- **Tags:** `#flag` `#ux`
+
+### F-427 — GitHub-tab silently clears repo list on fetch failure (no toast / retry)
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Resolved:** 2026-07-07 — `github-tab.tsx`: added `toast.error(t('toastReposFailed'))` in the catch (new i18n key, en + sv). Did not build the full inline-retry surface the original note suggested — bigger UX change, deferred.
+- **Tags:** `#flag` `#integration` `#ux`
+
+### F-431 — Subscription-tab uses unsafe `(response as { url?: string })` cast
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Resolved:** 2026-07-07 — `subscription-tab.tsx`: `if (!session?.url) throw new Error(...)` before `window.open`, so a malformed/empty portal response now surfaces the existing error toast instead of silently no-op'ing.
+- **Tags:** `#flag` `#billing`
+
+### F-427 — `disconnectGitHub` button shows confirm dialog then no-ops
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `api.users.disconnectGitHub` is a fully implemented Convex mutation (`convex/users.ts:164-173`) that patches `githubInstallationId: undefined`; the tab calls it, updates local state, and toasts success/failure. No "temporarily unavailable" stub remains.
+- **Tags:** `#bug` `#integration`
+
+### F-453 — `PostHogProvider` static import defeats consent-gated dynamic-import claim
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Resolved:** 2026-07-07 — see the dedicated commit; `telemetry-provider.tsx` now `lazy()`-loads `posthog-js/react` itself (its ESM entry statically imports the full posthog-js core), wrapped in `Suspense`.
+- **Tags:** `#tech-debt` `#perf` `#privacy` `#telemetry`
+
+### F-452 — Avatar dropdown Convex queries fire unconditionally
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Resolved:** 2026-07-07 — `avatar-dropdown/index.tsx` and `plans.tsx` both gate their Convex `useQuery` calls on `useHasAuthCookie() === true ? {} : 'skip'`.
+- **Tags:** `#tech-debt` `#auth-gated`
+
+### F-450 — `legacy-promotion.tsx` imports from `framer-motion` while siblings use `motion/react`
+
+- **Discovered:** 2026-05-28 (validate-feature F-450..F-453 deeper pass)
+- **Resolved:** 2026-07-07 — now imports `motion`/`AnimatePresence` from `motion/react`, consistent with every other pricing-modal file.
+- **Tags:** `#tech-debt` `#perf`
+
+### F-437 — Uploaded favicon / OG image path uses raw `file.name`
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 deeper pass)
+- **Resolved:** 2026-06-19 (bug-hunt iter-17, commit `4a0fa75c4`, found already fixed while triaging backlog) — `settings-modal/site/index.tsx` uses the sanitized stored filename returned from `editorEngine.image.upload()`, not raw `file.name`.
+- **Tags:** `#bug` `#editor` `#cms`
+
+### F-491 — `checkout` allows multiple active subscriptions per user; downstream `.unique()` queries crash billing portal
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Resolved:** 2026-05-28 (backlog user-flow sweep, found already fixed but never moved out of Open) — `checkout` calls `_findActiveSubscriptionForCaller` first and throws `ALREADY_SUBSCRIBED`; `_findActiveSubscriptionForCaller` + `_findActiveProSubscriptionForPromo` use `.take(2)` + pick-first + `console.warn` instead of `.unique()`.
+- **Tags:** `#bug` `#billing` `#critical`
+
+### F-491 — `update` action does not catch already-released schedule from Stripe; upgrade/downgrade aborts
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Resolved:** 2026-05-28 (backlog user-flow sweep, found already fixed but never moved out of Open) — the `release` call is wrapped in try/catch that swallows `invalid_request_error`, mirroring `releaseSubscriptionSchedule`.
+- **Tags:** `#bug` `#billing`
+
+### F-491 — `startPromoCheckout` returns `not_authenticated` for users that are signed in but missing email
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Resolved:** 2026-07-07 — split the check in `subscriptionActions.ts`: `!caller` → `not_authenticated`, `!caller.email` → new `missing_email` code. Added the `missingEmail` i18n key (en + sv) and a matching `case` in the promo banner's error handler.
+- **Tags:** `#bug` `#billing` `#ux`
+
+### F-491 — Stripe webhook accepts only one `v1=` signature; rotation will reject valid requests
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
+- **Resolved:** 2026-07-07 (found already fixed while triaging backlog) — `verifyStripeSignature` in `http.ts` collects every `v1=` pair into an array and accepts the request if any signature matches, with a comment explaining the rotation scenario.
+- **Tags:** `#bug` `#billing` `#webhook`
+
+### F-491 — Stripe webhook lacks `evt.id` idempotency; replays grant duplicate credits
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
+- **Resolved:** 2026-05-28 (CodeRabbit-fix pass, found already fixed but never moved out of Open) — `stripeEventLog` table (`by_event_id`) + `alreadyProcessed()` guard at the top of every `_handleSub*` mutation; transactional dedup; bounded by a daily `purgeStaleStripeEvents` cron.
+- **Tags:** `#bug` `#billing` `#webhook` `#idempotency`
 
 ### F-300 — `activeBranch.id` accessed without null guard (Interactions tab)
 

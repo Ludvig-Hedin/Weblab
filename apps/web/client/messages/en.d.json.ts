@@ -8,6 +8,7 @@ declare const messages: {
       "cta": "Claim offer"
     },
     "alreadyOnPlan": "You're already on the Pro plan.",
+    "missingEmail": "Add an email to your account before claiming this offer.",
     "genericError": "Something went wrong. Please try again.",
     "dismiss": "Dismiss banner"
   },
@@ -4409,7 +4410,8 @@ declare const messages: {
       "importRepository": "Import a repository",
       "toastUrlFailed": "Failed to generate GitHub installation URL",
       "toastDisconnected": "GitHub disconnected",
-      "toastDisconnectFailed": "Failed to disconnect GitHub"
+      "toastDisconnectFailed": "Failed to disconnect GitHub",
+      "toastReposFailed": "Failed to load GitHub repositories"
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",

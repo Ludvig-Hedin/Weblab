@@ -5,6 +5,7 @@
       "cta": "Hämta erbjudandet"
     },
     "alreadyOnPlan": "Du har redan Pro-planen.",
+    "missingEmail": "Lägg till en e-postadress på ditt konto innan du löser in erbjudandet.",
     "genericError": "Något gick fel. Försök igen.",
     "dismiss": "Stäng banner"
   },
@@ -4405,7 +4406,8 @@
       "importRepository": "Importera ett repositorium",
       "toastUrlFailed": "Det gick inte att generera GitHub-installations-URL",
       "toastDisconnected": "GitHub frånkopplat",
-      "toastDisconnectFailed": "Det gick inte att koppla från GitHub"
+      "toastDisconnectFailed": "Det gick inte att koppla från GitHub",
+      "toastReposFailed": "Det gick inte att läsa in GitHub-repositorier"
     },
     "shortcuts": {
       "title": "Kortkommandon",

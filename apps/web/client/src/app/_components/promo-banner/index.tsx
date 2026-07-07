@@ -172,6 +172,9 @@ function PromoBannerView({ banner, onDismiss }: PromoBannerViewProps) {
                     case 'already_subscribed':
                         toast.info(t('alreadyOnPlan'));
                         return;
+                    case 'missing_email':
+                        toast.error(t('missingEmail'));
+                        return;
                     default:
                         toast.error(t('genericError'));
                 }

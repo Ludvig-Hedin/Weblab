@@ -82,6 +82,7 @@ export const GitHubTab = () => {
                 if (!cancelled) {
                     setOrgs([]);
                     setRepos([]);
+                    toast.error(t('toastReposFailed'));
                 }
             } finally {
                 if (!cancelled) setIsLoadingRepos(false);
@@ -232,7 +233,9 @@ export const GitHubTab = () => {
                                         disabled={isDisconnecting}
                                         onClick={() => void handleDisconnect()}
                                     >
-                                        {isDisconnecting ? t('disconnecting') : t('confirmDisconnect')}
+                                        {isDisconnecting
+                                            ? t('disconnecting')
+                                            : t('confirmDisconnect')}
                                     </Button>
                                 </div>
                             </div>
