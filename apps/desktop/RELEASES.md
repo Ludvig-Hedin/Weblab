@@ -15,7 +15,9 @@ This doc covers three paths: building locally, sharing with friends, and publish
   the `electron-builder` `build.files` allowlist before a release is cut.
 - **Release workflow hardening.** Desktop release jobs now install from the
   frozen lockfile with dependency postinstall scripts disabled, preventing
-  unrelated third-party network fetches from blocking installer uploads.
+  unrelated third-party network fetches from blocking installer uploads. The
+  workflow also pins Bun to the repo version and times out stalled dependency
+  installs instead of leaving release jobs hanging.
 - **Updater metadata publishing.** Release jobs now upload the generated
   `latest-mac.yml`, `latest.yml`, `latest-linux.yml`, and blockmap files next
   to the installers, fixing the `electron-updater` 404 for

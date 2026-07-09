@@ -181,12 +181,12 @@ Newest first. Append in `docs/agent-memory/feature-log.md` for the canonical rec
   `Cannot find module './auth-hosts'` crash on launch. Added a desktop
   packaging regression test that verifies local runtime requires are covered by
   the `app.asar` file list, hardened the desktop release workflow against
-  third-party dependency postinstall network flakes, and added a release
-  artifact regression test so `latest-mac.yml`, `latest.yml`,
-  `latest-linux.yml`, and blockmaps ship with the installers. Published
-  v0.2.6 via the normal `desktop-v*` release path; local `/Applications`
-  installs still on v0.2.5 must be manually replaced once because that build
-  crashes before its updater can run.
+  third-party dependency postinstall network flakes, pinned the workflow to
+  Bun 1.3.10 with install timeouts, and added a release artifact regression
+  test so `latest-mac.yml`, `latest.yml`, `latest-linux.yml`, and blockmaps
+  ship with the installers. Published v0.2.6 via the normal `desktop-v*`
+  release path; local `/Applications` installs still on v0.2.5 must be
+  manually replaced once because that build crashes before its updater can run.
 
 - **2026-07-07** — Transcribe anti-spam cap moved from the old per-process
   in-memory helper to Convex (`convex/transcribeRateLimit.ts`) with one bounded

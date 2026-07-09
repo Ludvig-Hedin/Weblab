@@ -21,7 +21,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.10
 
       # Python 3.12 removed `distutils` from stdlib but node-gyp (used by
       # native deps like better-sqlite3) still imports it. Pin to 3.11 so
@@ -35,6 +35,7 @@ jobs:
       # so unrelated third-party network fetches cannot break installer releases
       # (for example free-email-domains fetching remote blocklists and hitting 429).
       - name: Install desktop dependencies
+        timeout-minutes: 10
         working-directory: apps/desktop
         run: bun install --frozen-lockfile --ignore-scripts
 
@@ -126,7 +127,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.10
 
       # Python 3.12 removed `distutils` from stdlib but node-gyp (used by
       # native deps like better-sqlite3) still imports it. Pin to 3.11 so
@@ -140,6 +141,7 @@ jobs:
       # so unrelated third-party network fetches cannot break installer releases
       # (for example free-email-domains fetching remote blocklists and hitting 429).
       - name: Install desktop dependencies
+        timeout-minutes: 10
         working-directory: apps/desktop
         run: bun install --frozen-lockfile --ignore-scripts
 
@@ -171,7 +173,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.10
 
       # Python 3.12 removed `distutils` from stdlib but node-gyp (used by
       # native deps like better-sqlite3) still imports it. Pin to 3.11 so
@@ -185,6 +187,7 @@ jobs:
       # so unrelated third-party network fetches cannot break installer releases
       # (for example free-email-domains fetching remote blocklists and hitting 429).
       - name: Install desktop dependencies
+        timeout-minutes: 10
         working-directory: apps/desktop
         run: bun install --frozen-lockfile --ignore-scripts
 

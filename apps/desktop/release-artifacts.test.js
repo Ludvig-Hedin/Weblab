@@ -44,6 +44,23 @@ function extractUploadedFiles(step) {
 }
 
 describe('desktop release artifacts', () => {
+    test('uses the repository-pinned Bun version', async () => {
+        const workflow = await readFile(WORKFLOW_PATH, 'utf8');
+        const packageJson = JSON.parse(
+            await readFile(resolve(REPO_ROOT, 'package.json'), 'utf8'),
+        );
+        const versionMatch = packageJson.packageManager.match(/^bun@(.+)$/);
+        expect(versionMatch).not.toBeNull();
+
+        const bunVersion = versionMatch[1];
+        const configuredVersions = [...workflow.matchAll(/bun-version:\s*(\S+)/g)].map(
+            ([, version]) => version,
+        );
+
+        expect(workflow).not.toContain('bun-version: latest');
+        expect(configuredVersions).toEqual([bunVersion, bunVersion, bunVersion]);
+    });
+
     test.each([
         [
             'Upload DMG artifacts',
