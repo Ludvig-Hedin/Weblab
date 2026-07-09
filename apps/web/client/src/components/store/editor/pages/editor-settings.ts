@@ -57,6 +57,27 @@ async function writeSettingsFile(
     await sandboxManager.writeFile(PAGE_SETTINGS_PATH, JSON.stringify(file, null, 2));
 }
 
+// Serialize read-modify-write cycles per sandbox (same pattern as
+// CodeManager.writeChain): concurrent page ops (rename racing delete, two
+// saves) used to interleave read→mutate→write and last-write-wins dropped
+// the other op's mutation. Chain errors are swallowed on the chain itself so
+// one failure doesn't wedge subsequent ops; the caller still gets its own
+// rejection through the returned promise.
+const settingsChains = new WeakMap<SandboxManager, Promise<void>>();
+
+function enqueueSettingsWrite<T>(sandboxManager: SandboxManager, task: () => Promise<T>): Promise<T> {
+    const chain = settingsChains.get(sandboxManager) ?? Promise.resolve();
+    const run = chain.then(task);
+    settingsChains.set(
+        sandboxManager,
+        run.then(
+            () => undefined,
+            () => undefined,
+        ),
+    );
+    return run;
+}
+
 export async function getPageSettingsMap(
     sandboxManager: SandboxManager,
 ): Promise<Record<string, PageEditorSettings>> {
@@ -64,77 +85,86 @@ export async function getPageSettingsMap(
     return file.pages;
 }
 
-export async function updatePageSettingsInSandbox(
+export function updatePageSettingsInSandbox(
     sandboxManager: SandboxManager,
     path: string,
     settings: PageEditorSettings,
 ): Promise<void> {
-    const file = await readSettingsFile(sandboxManager);
-    const normalizedPath = normalizePageSettingsPath(path);
-    const prunedSettings = pruneSettings(settings);
+    return enqueueSettingsWrite(sandboxManager, async () => {
+        const file = await readSettingsFile(sandboxManager);
+        const normalizedPath = normalizePageSettingsPath(path);
+        const prunedSettings = pruneSettings(settings);
 
-    if (prunedSettings) {
-        file.pages[normalizedPath] = prunedSettings;
-    } else {
-        delete file.pages[normalizedPath];
-    }
+        if (prunedSettings) {
+            file.pages[normalizedPath] = prunedSettings;
+        } else {
+            delete file.pages[normalizedPath];
+        }
 
-    await writeSettingsFile(sandboxManager, file);
-}
-
-export async function deletePageSettingsInSandbox(
-    sandboxManager: SandboxManager,
-    path: string,
-): Promise<void> {
-    const file = await readSettingsFile(sandboxManager);
-    delete file.pages[normalizePageSettingsPath(path)];
-    await writeSettingsFile(sandboxManager, file);
-}
-
-export async function deletePageSettingsByPrefixInSandbox(
-    sandboxManager: SandboxManager,
-    pathPrefix: string,
-): Promise<void> {
-    const file = await readSettingsFile(sandboxManager);
-    const normalizedPrefix = normalizePageSettingsPath(pathPrefix);
-    const nextPages = Object.fromEntries(
-        Object.entries(file.pages).filter(([path]) => {
-            return !isSameOrChildPath(path, normalizedPrefix);
-        }),
-    );
-    await writeSettingsFile(sandboxManager, {
-        ...file,
-        pages: nextPages,
+        await writeSettingsFile(sandboxManager, file);
     });
 }
 
-export async function movePageSettingsByPrefixInSandbox(
+export function deletePageSettingsInSandbox(
+    sandboxManager: SandboxManager,
+    path: string,
+): Promise<void> {
+    return enqueueSettingsWrite(sandboxManager, async () => {
+        const file = await readSettingsFile(sandboxManager);
+        delete file.pages[normalizePageSettingsPath(path)];
+        await writeSettingsFile(sandboxManager, file);
+    });
+}
+
+export function deletePageSettingsByPrefixInSandbox(
+    sandboxManager: SandboxManager,
+    pathPrefix: string,
+): Promise<void> {
+    return enqueueSettingsWrite(sandboxManager, async () => {
+        const file = await readSettingsFile(sandboxManager);
+        const normalizedPrefix = normalizePageSettingsPath(pathPrefix);
+        const nextPages = Object.fromEntries(
+            Object.entries(file.pages).filter(([path]) => {
+                return !isSameOrChildPath(path, normalizedPrefix);
+            }),
+        );
+        await writeSettingsFile(sandboxManager, {
+            ...file,
+            pages: nextPages,
+        });
+    });
+}
+
+export function movePageSettingsByPrefixInSandbox(
     sandboxManager: SandboxManager,
     oldPathPrefix: string,
     newPathPrefix: string,
 ): Promise<void> {
-    const file = await readSettingsFile(sandboxManager);
-    const normalizedOldPrefix = normalizePageSettingsPath(oldPathPrefix);
-    const normalizedNewPrefix = normalizePageSettingsPath(newPathPrefix);
-    const nextPages: Record<string, PageEditorSettings> = {};
+    return enqueueSettingsWrite(sandboxManager, async () => {
+        const file = await readSettingsFile(sandboxManager);
+        const normalizedOldPrefix = normalizePageSettingsPath(oldPathPrefix);
+        const normalizedNewPrefix = normalizePageSettingsPath(newPathPrefix);
+        const nextPages: Record<string, PageEditorSettings> = {};
 
-    for (const [path, settings] of Object.entries(file.pages)) {
-        if (!isSameOrChildPath(path, normalizedOldPrefix)) {
-            nextPages[path] = settings;
-            continue;
+        for (const [path, settings] of Object.entries(file.pages)) {
+            if (!isSameOrChildPath(path, normalizedOldPrefix)) {
+                nextPages[path] = settings;
+                continue;
+            }
+
+            const suffix =
+                normalizedOldPrefix === '/' ? path : path.slice(normalizedOldPrefix.length);
+            const targetPath =
+                normalizedNewPrefix === '/'
+                    ? normalizePageSettingsPath(suffix)
+                    : normalizePageSettingsPath(`${normalizedNewPrefix}${suffix}`);
+            nextPages[targetPath] = settings;
         }
 
-        const suffix = normalizedOldPrefix === '/' ? path : path.slice(normalizedOldPrefix.length);
-        const targetPath =
-            normalizedNewPrefix === '/'
-                ? normalizePageSettingsPath(suffix)
-                : normalizePageSettingsPath(`${normalizedNewPrefix}${suffix}`);
-        nextPages[targetPath] = settings;
-    }
-
-    await writeSettingsFile(sandboxManager, {
-        ...file,
-        pages: nextPages,
+        await writeSettingsFile(sandboxManager, {
+            ...file,
+            pages: nextPages,
+        });
     });
 }
 

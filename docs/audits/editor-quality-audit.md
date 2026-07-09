@@ -95,12 +95,12 @@ Comprehensive audit + fix pass of the Weblab editor (canvas, selection, style, t
 | B4 | `history/helpers.ts:231-242` | Transaction merge replaces same-type non-style actions wholesale (type-only match) — first element's write lost | fixed batch-4 |
 | B5 | `components/store/editor/insert/index.ts:147-186` + `gesture.tsx` window mouseup | Insert draw never terminates on mouseup outside frame — ghost rubber-band resumes on re-entry | fixed `68570acaf` |
 | B6 | `frames/manager.ts:148-156` + `use-start-project.tsx:364-397` | `applyFrames` clobbers in-flight local frame geometry (snap-back mid-drag); `userCanvas` has first-apply-only protection, frames don't | fixed batch-4 |
-| B7 | `components/store/editor/text/index.ts` + `gesture.tsx:102-111` | Edit A → double-click B: `end()`'s `finally clean()` sees `targetDomEl === B`, closes the just-opened editor | open |
+| B7 | `components/store/editor/text/index.ts` + `gesture.tsx:102-111` | Edit A → double-click B: `end()`'s `finally clean()` sees `targetDomEl === B`, closes the just-opened editor | fixed `a1d1a9f1d` (session snapshot in end/clean) |
 | B8 | `overlay/index.ts:35-108` | Click-rect refresh: unguarded penpal await aborts whole refresh; no epoch token → late repaint of old selection | fixed batch-4 |
-| B9 | `canvas/overlay/locked-resize-handles.tsx:47-76` | Window-listener leak on unmount mid-drag + no `buttons===0` bail (resize chases cursor with no button held) | open |
-| B10 | `pages/index.ts:250-289,642-713` | Rename/move of open page: iframe stays on old 404 URL; next `handleFrameUrlChange` re-corrupts active-route state | open |
+| B9 | `canvas/overlay/locked-resize-handles.tsx:47-76` | Window-listener leak on unmount mid-drag + no `buttons===0` bail (resize chases cursor with no button held) | fixed `a1d1a9f1d` (cleanup ref + buttons guard) |
+| B10 | `pages/index.ts:250-289,642-713` | Rename/move of open page: iframe stays on old 404 URL; next `handleFrameUrlChange` re-corrupts active-route state | fixed `a1d1a9f1d` (navigateFrameToRenamedRoute) |
 | B11 | `code/index.ts:87-104` | `write-code` + interaction writes bypass `pendingWrites` (beforeunload guard) and the re-parse corruption guard | fixed batch-4 |
-| B12 | `pages/editor-settings.ts:67-139` | Page-settings JSON read-modify-write unserialized → last-write-wins drops concurrent op | open |
+| B12 | `pages/editor-settings.ts:67-139` | Page-settings JSON read-modify-write unserialized → last-write-wins drops concurrent op | fixed batch-5 (per-sandbox settings write chain) |
 | B13 | `history/index.ts:58-72` | `hydrate()` replaces live stacks after await — actions pushed before IndexedDB resolves silently dropped | fixed batch-4 |
 | B14 | `branches-tab/index.tsx:105` + `store/editor/branch/manager.ts:236-264` | Fork leaves "Forking branch…" loading toast stuck forever (no id, never dismissed) | fixed `68570acaf` |
 | B15 | `brand-tab/index.tsx:129-134` | Brand tab flashes setup-CTA empty state until `tokens.scan()` resolves (no scanning flag; CTA clickable during flash) | fixed `68570acaf` |
