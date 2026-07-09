@@ -166,4 +166,23 @@ Comprehensive audit + fix pass of the Weblab editor (canvas, selection, style, t
 | 2 | A3 A8 A9 B5 B14 B15 B16 B17 B22 B23 B26 B27 B28 C1 C2 C3 C6 C12 C13 (+ fork/create toast dedupe, shadow-hex escape) | `68570acaf` | fixed, typecheck clean |
 | 3 | D1, D2 (live-audit discoveries) | `e9d4077ff` | fixed, live-validated |
 | 4 (in flight) | A4 A5 A7 A10 B2 B3 B4 B6 B8 B11 B13 B18 B19 B20 B21 B29 C4 C5 C7 C14 C15 C18 | — | fixer agents running |
-| deferred | C16/B25 i18n sweep, C17 text-size sweep | — | deferred: en.json typegen staleness trap + active collision risk with concurrent session editing messages/*; safe as a dedicated follow-up pass |
+| 5 | A6, B7, B9, B10 (B7/B9/B10 landed via concurrent-session commit `a1d1a9f1d` together with its work), B12, dragOver throttle | `4ced4771d`, `a1d1a9f1d`, `b54e5d649` | fixed |
+| deferred | C16/B25 i18n sweep, C17 text-size sweep | — | deferred: en.json typegen staleness trap + active collision risk with concurrent session editing messages/*; filed in BACKLOG.md |
+
+## Performance pass (evidence + honest scope)
+
+- **Fixed by construction (measurable by definition):** A4 — slider drag went from one undo entry + one AST write per tick (dozens per gesture) to exactly one per gesture. dragOver hover-tracking went from one penpal `getElementAtLoc` RPC per native dragover event (fires faster than once per frame) to the same 16 ms throttle the mousemove path uses.
+- **Reliability-perf:** B8 (one penpal rejection no longer aborts the whole overlay refresh), C5/C6 (leaked timers + trailing throttled broadcasts cancelled), B6 (no redundant geometry churn from refetch clobbers).
+- **Profiling limitation, documented:** an attempt to measure penpal message rate via window `message` events returned 0 — penpal switches to MessagePort after the handshake, so wire-rate profiling needs preload-side instrumentation.
+- **Deferred with reason:** buildLayerTree O(N²) per MutationObserver and other preload-side items require rebuilding + committing `public/weblab-preload-script.js` AND bumping the prod jsDelivr SHA pin — a release step, not an in-audit change. Remain in BACKLOG with next steps.
+
+## UX simplification pass (delivered within fixes)
+
+Destructive safety (branch delete confirm), mistake recovery (Escape-revert everywhere, Escape cancels drag), immediate feedback (silent failures → toasts across brand/token/element/download/terminal flows), fewer stuck states (fork toast, image-panel dismissal, popovers close on pick), keyboard access (branch rows, swatches, focus-visible reveals), less layout shift (BorderColor slot, brand-tab CTA flash). Terminology and step-count review found no removable steps in core flows this pass; the biggest remaining friction is the deferred i18n/text-size debt and the gradient-editor stub (owned in BACKLOG).
+
+## Final gates (2026-07-09)
+
+- `bun typecheck` — **clean** (a mid-audit failure in `api/transcribe/route.ts` was the concurrent session's in-flight Convex codegen; it resolved it in `a1d1a9f1d`).
+- `bun lint` — **exit 0**.
+- `bun test` (web-client) — 562 pass / **1 pre-existing fail**: `test/frame/preload-script.test.ts` fails only when run with the other `test/frame` files (test-isolation leak; passes standalone). Pre-dates this audit: at pre-audit commit `6ea3d868d` the same group fails 3/12. Not introduced here.
+- Live regression (Playwright, content project): boot → reclaim-restore → select → style panel → commit → **undo restores both source and panel** → Escape-revert holds. No editor console errors.

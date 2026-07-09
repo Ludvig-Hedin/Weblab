@@ -52,25 +52,19 @@ later without re-discovering the context.
 - **Risk if ignored:** theme colors can never be persisted on responsive elements; breakpoint-scoped edits corrupt on reload; quick undo is unreliable.
 - **Tags:** `#bug` `#editor` `#responsive` `#data-integrity`
 
-#### `isChildTextEditable` is a stub returning `true` (P1)
+#### Sandbox keepalive/extend while editor is active (P2)
 
-- **Discovered:** 2026-07-04 (editor stability audit)
-- **Where:** `apps/web/preload/script/api/elements/text.ts:131`
-- **Symptom:** double-clicking any element with a `{expression}` child opens the inline editor with no warning; committing writes wrong source (duplicated content next to the preserved expression) and undo bakes the rendered value in as a static literal.
-- **Root cause:** the source-AST plain-text check all callers gate on was ported as a hardcoded `return true`.
-- **Next step:** implement in `TextEditingManager.start()` via `codeEditor.getJsxElementMetadata` + element-snippet parse; return true only when all children are JSXText/`<br/>`, whitelisting trivial string-literal containers (`{' '}`) to avoid over-blocking. The parser-side child-preserving merge (in-flight `packages/parser/src/code-edit/text.ts`) stays as defense in depth.
-- **Risk if ignored:** silent JSX corruption + unrecoverable loss of dynamic bindings on a very common element shape.
-- **Tags:** `#bug` `#editor` `#text` `#data-integrity`
+- **Discovered:** 2026-07-04 (editor stability audit); recovery half resolved 2026-07-09
+- **Where:** `apps/web/client/src/components/store/editor/sandbox/session.ts` / provider
+- **Context:** post-ready reclaim now recovers via the restore flow (see Resolved), but an ACTIVE >30-min session still gets interrupted by the reclaim+restore round-trip. A periodic keepalive/`sandbox.extend()` while the editor has focus would avoid the interruption entirely.
+- **Tags:** `#editor` `#sandbox` `#enhancement`
 
-#### Sandbox reclaim after "ready" has no recovery surface (P1)
+#### Editor i18n + hardcoded text-size sweep (P2, deferred from 2026-07-09 audit)
 
-- **Discovered:** 2026-07-04 (editor stability audit)
-- **Where:** `apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx:299` (liveness gated on `!isFrameReady`; restore panel on `!isFrameReady || !frame.url`)
-- **Symptom:** any session outliving the 30-min Vercel sandbox lifetime silently breaks — canvas edits still render (penpal DOM ops) but all code writes/AI/terminal/git/preview fail with zero error, toast, or restore prompt until a full reload.
-- **Root cause:** the sandbox-gone design assumes the 410 only happens during boot; every recovery surface is gated on `!isFrameReady`, which never flips back. No keepalive/`sandbox.extend()` exists.
-- **Next step:** include `session.sandboxGone` in the overlay/panel condition (or force `isFrameReady=false`/`immediateReload()` when it flips) to re-enter the existing restore flow; add a periodic keepalive while the editor is active.
-- **Risk if ignored:** every >30-min editing session degrades invisibly.
-- **Tags:** `#bug` `#editor` `#sandbox`
+- **Discovered:** 2026-07-09 (editor quality audit — full enumeration in `docs/audits/editor-quality-audit.md` C16/C17/B25)
+- **What:** ~8 batches of hardcoded English (frame failure/recovery surfaces, style-panel option labels, left-panel tabs, editor-bar labels, gesture toasts) and 67 hardcoded `text-[11px]`/`text-[12px]` occurrences.
+- **Why deferred:** adding `messages/en.json` keys without a dev-server regen breaks typecheck via the build-generated `en.d.json.ts` (known trap), and `messages/*` was under active edit by a concurrent session throughout the audit. Safe as one dedicated pass.
+- **Tags:** `#editor` `#i18n` `#polish`
 
 #### Auto-height feedback loop on vh pages (P1, medium confidence)
 
@@ -2289,6 +2283,12 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+### 2026-07-09 — Editor quality audit (docs/audits/editor-quality-audit.md)
+
+- **`isChildTextEditable` stub returning `true` (P1)** — resolved `acbd9b0df`: source-AST gate in `TextEditingManager` (`text/editable.ts`, 16 unit tests); preload stub intentionally retained (prod SHA pin).
+- **Sandbox reclaim after "ready" has no recovery surface (P1)** — resolved `acbd9b0df`: `session.sandboxGone` re-enters the liveness-probe → restore CTA + auto-restore flow. Live-validated twice on genuinely reclaimed sandboxes. Keepalive half re-filed as its own P2 entry above.
+- Plus ~45 further fixes across batches `68570acaf`, `e9d4077ff`, `53145bc09`, `4ced4771d`, `b54e5d649` — escape-revert commits, undo→preview dispatch, commitTransaction races, multi-file write atomicity, slider per-tick writes, editor-bar overflow, silent-failure toasts, stale-state guards. Full ledger in the audit doc.
+
 
 ### Editor pan-end restores the previous mode
 

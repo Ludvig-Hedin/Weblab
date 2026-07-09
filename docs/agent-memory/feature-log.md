@@ -16,10 +16,17 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-07-09 — Editor quality audit: ~50 fixes across undo pipeline, text safety, recovery, panels
+Author: Claude (Fable 5)
+Area: apps/web/client editor (stores, canvas, style panel v4, editor bar, left panel)
+Summary: Full audit→fix pass (3 static sweeps + live Playwright walkthroughs; ledger in docs/audits/editor-quality-audit.md). Majors: source-AST text-edit gate replaces the `isChildTextEditable` stub (no more JSX-expression corruption; 16 tests); post-ready sandbox reclaim re-enters the restore flow (live-validated ×2); boot-time WS auth race fixed (empty-token UNAUTHORIZED); root error boundary no longer crashes itself; undo/redo now dispatch to frames + sync the override map (preview/panel no longer keep undone values); commitTransaction race + undo-during-write + multi-file write atomicity fixed with unit tests; slider drag = one write per gesture; editor-bar overflow menu no longer drops groups; Escape reverts (never commits) in all style inputs; branch delete confirms; ~15 silent-failure paths now toast; drag/pan/insert interrupted-gesture cleanup. Perf: dragOver RPC throttled; leaked timers/listeners cancelled. Deferred with reasons in BACKLOG: i18n+text-size sweep, preload-side perf (prod SHA pin), sandbox keepalive, responsive-rebase cluster (untouched — separately owned).
+Files: components/store/editor/{text,history,action,code,style,frames,overlay,move,insert,pages}/, canvas/frame/{index,gesture}.tsx, right-panel/style-tab-v4/, editor-bar/, left-panel/design-panel/, app/error.tsx, lib/sandbox-server-client.ts
+Links: docs/audits/editor-quality-audit.md; commits acbd9b0df, 68570acaf, e9d4077ff, 53145bc09, 4ced4771d, b54e5d649
+
 ## 2026-07-09 — Desktop v0.2.6 packaged startup fix
 Author: Codex
 Area: `apps/desktop`, desktop release/download
-Summary: Fixed the packaged desktop crash `Cannot find module './auth-hosts'` by adding `auth-hosts.js` to the Electron `build.files` allowlist and bumping the desktop app to v0.2.6. Added packaging and release workflow regression tests: the runtime `require('./…')` graph must be covered by `app.asar`, and release uploads must include Electron updater metadata (`latest-mac.yml`, `latest.yml`, `latest-linux.yml`, blockmaps) next to installers. Hardened the desktop release workflow to install from the frozen lockfile with dependency postinstall scripts disabled after the Windows release job hit a third-party `free-email-domains` 429. Public changelog now notes the repaired desktop installer.
+Summary: Fixed the packaged desktop crash `Cannot find module './auth-hosts'` by adding `auth-hosts.js` to the Electron `build.files` allowlist and bumping the desktop app to v0.2.6. Added packaging and release workflow regression tests: the runtime `require('./…')` graph must be covered by `app.asar`, release uploads must include Electron updater metadata (`latest-mac.yml`, `latest.yml`, `latest-linux.yml`, blockmaps) next to installers, and the desktop release workflow must use the repo-pinned Bun version. Hardened the desktop release workflow to install from the frozen lockfile with dependency postinstall scripts disabled after the Windows release job hit a third-party `free-email-domains` 429. Public changelog now notes the repaired desktop installer.
 Validation: desktop unit/package/release-artifact tests, local macOS DMG build, `app.asar` contents check, and web-client typecheck/lint for the changelog entry.
 Files: `.github/workflows/desktop-release.yml`, `apps/desktop/package.json`, `apps/desktop/package-files.test.js`, `apps/desktop/release-artifacts.test.js`, `apps/desktop/RELEASES.md`, `apps/web/client/src/lib/changelog-entries.ts`
 Links: desktop-v0.2.6 release
