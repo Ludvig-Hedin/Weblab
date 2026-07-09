@@ -16,6 +16,16 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-07-09 — Desktop v0.2.6 packaged startup fix
+Author: Codex
+Area: `apps/desktop`, desktop release/download
+Summary: Fixed the packaged desktop crash `Cannot find module './auth-hosts'` by adding `auth-hosts.js` to the Electron `build.files` allowlist and bumping the desktop app to v0.2.6. Added a packaging regression test that walks the desktop runtime's local `require('./…')` graph from `main.js`/`preload.js` and fails if any required file is not included in `app.asar`. Public changelog now notes the repaired desktop installer.
+Validation: desktop unit/package tests, local macOS DMG build, `app.asar` contents check, and web-client typecheck/lint for the changelog entry.
+Files: `apps/desktop/package.json`, `apps/desktop/package-files.test.js`, `apps/desktop/RELEASES.md`, `apps/web/client/src/lib/changelog-entries.ts`
+Links: desktop-v0.2.6 release
+
+---
+
 ## 2026-07-07 — Full user-flow bug hunt fixes
 Author: Codex
 Area: `apps/web/client/src/app/api/transcribe`, `apps/web/client/convex`, editor canvas/text/import flows

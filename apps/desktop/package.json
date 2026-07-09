@@ -1,6 +1,6 @@
 {
     "name": "@weblab/desktop",
-    "version": "0.2.5",
+    "version": "0.2.6",
     "description": "Weblab desktop app",
     "author": {
         "name": "Weblab",
@@ -44,6 +44,7 @@
         "files": [
             "main.js",
             "preload.js",
+            "auth-hosts.js",
             "weblab-cli.js",
             "weblab-local.js",
             "cli/**",

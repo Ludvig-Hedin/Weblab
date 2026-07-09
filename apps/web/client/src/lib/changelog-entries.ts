@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-6-desktop-startup-fix',
+        version: '4.6',
+        title: 'Desktop app startup fix',
+        description:
+            'The macOS desktop build now includes every runtime file it needs inside the packaged app, fixing a launch-time crash that could stop Weblab from opening after install. The download page now serves the repaired desktop release as the latest installer.',
+        date: '2026-07-09',
+        tags: ['Desktop', 'Release'],
+    },
+    {
         slug: 'v4-5-token-cost-credits',
         version: '4.5',
         title: 'Credits now reflect real usage',

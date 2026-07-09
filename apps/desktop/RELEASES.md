@@ -5,6 +5,15 @@ This doc covers three paths: building locally, sharing with friends, and publish
 
 ## Changelog
 
+### v0.2.6
+
+- **Packaged startup fix.** The macOS app now includes `auth-hosts.js` in
+  `app.asar`, fixing the launch-time `Cannot find module './auth-hosts'`
+  crash reported from `/Applications/Weblab.app`.
+- **Packaging regression guard.** Added a desktop test that walks the local
+  runtime `require('./…')` graph and verifies every required file is covered by
+  the `electron-builder` `build.files` allowlist before a release is cut.
+
 ### v0.2.5
 
 - **Code-sign + notarize ready.** Build config now wires hardened-runtime
@@ -472,4 +481,3 @@ software"* — if you see that, the notarization step silently failed.
 | `Invalid` from notarytool | Hardened runtime / entitlements missing | Re-check `build/entitlements.mac.plist` is referenced in `package.json` |
 | `spctl: rejected` | Stapling missing | Re-run `xcrun stapler staple dist/mac-universal/Weblab.app` |
 | `No identity found` in CI | `MAC_CERT_P12_BASE64` not decoded into the runner keychain | Confirm the workflow imports it via `security import` before build (see workflow) |
-

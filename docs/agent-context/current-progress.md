@@ -176,6 +176,13 @@ in `@weblab/framework` until their scaffolders land.
 
 Newest first. Append in `docs/agent-memory/feature-log.md` for the canonical record.
 
+- **2026-07-09** — Desktop v0.2.6 packaged startup fix. `auth-hosts.js` is now
+  included in the Electron `build.files` allowlist, fixing the packaged
+  `Cannot find module './auth-hosts'` crash on launch. Added a desktop
+  packaging regression test that verifies local runtime requires are covered by
+  the `app.asar` file list, and published the repaired desktop installer via
+  the normal `desktop-v*` release path.
+
 - **2026-07-07** — Transcribe anti-spam cap moved from the old per-process
   in-memory helper to Convex (`convex/transcribeRateLimit.ts`) with one bounded
   rolling timestamp log per user, plus daily stale-row cleanup. This keeps
