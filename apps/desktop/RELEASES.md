@@ -16,6 +16,11 @@ This doc covers three paths: building locally, sharing with friends, and publish
 - **Release workflow hardening.** Desktop release jobs now install from the
   frozen lockfile with dependency postinstall scripts disabled, preventing
   unrelated third-party network fetches from blocking installer uploads.
+- **Updater metadata publishing.** Release jobs now upload the generated
+  `latest-mac.yml`, `latest.yml`, `latest-linux.yml`, and blockmap files next
+  to the installers, fixing the `electron-updater` 404 for
+  `latest-mac.yml`. Installed v0.2.5 apps that crash before startup must still
+  be replaced once from the DMG because they cannot run the updater.
 
 ### v0.2.5
 

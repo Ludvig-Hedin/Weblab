@@ -19,9 +19,9 @@ Links: changelog / blog / migration / docs
 ## 2026-07-09 — Desktop v0.2.6 packaged startup fix
 Author: Codex
 Area: `apps/desktop`, desktop release/download
-Summary: Fixed the packaged desktop crash `Cannot find module './auth-hosts'` by adding `auth-hosts.js` to the Electron `build.files` allowlist and bumping the desktop app to v0.2.6. Added a packaging regression test that walks the desktop runtime's local `require('./…')` graph from `main.js`/`preload.js` and fails if any required file is not included in `app.asar`. Hardened the desktop release workflow to install from the frozen lockfile with dependency postinstall scripts disabled after the Windows release job hit a third-party `free-email-domains` 429. Public changelog now notes the repaired desktop installer.
-Validation: desktop unit/package tests, local macOS DMG build, `app.asar` contents check, and web-client typecheck/lint for the changelog entry.
-Files: `.github/workflows/desktop-release.yml`, `apps/desktop/package.json`, `apps/desktop/package-files.test.js`, `apps/desktop/RELEASES.md`, `apps/web/client/src/lib/changelog-entries.ts`
+Summary: Fixed the packaged desktop crash `Cannot find module './auth-hosts'` by adding `auth-hosts.js` to the Electron `build.files` allowlist and bumping the desktop app to v0.2.6. Added packaging and release workflow regression tests: the runtime `require('./…')` graph must be covered by `app.asar`, and release uploads must include Electron updater metadata (`latest-mac.yml`, `latest.yml`, `latest-linux.yml`, blockmaps) next to installers. Hardened the desktop release workflow to install from the frozen lockfile with dependency postinstall scripts disabled after the Windows release job hit a third-party `free-email-domains` 429. Public changelog now notes the repaired desktop installer.
+Validation: desktop unit/package/release-artifact tests, local macOS DMG build, `app.asar` contents check, and web-client typecheck/lint for the changelog entry.
+Files: `.github/workflows/desktop-release.yml`, `apps/desktop/package.json`, `apps/desktop/package-files.test.js`, `apps/desktop/release-artifacts.test.js`, `apps/desktop/RELEASES.md`, `apps/web/client/src/lib/changelog-entries.ts`
 Links: desktop-v0.2.6 release
 
 ---

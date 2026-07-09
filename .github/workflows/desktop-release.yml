@@ -104,7 +104,10 @@ jobs:
       - name: Upload DMG artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/dist/Weblab.dmg
+          files: |
+            apps/desktop/dist/Weblab.dmg
+            apps/desktop/dist/Weblab.dmg.blockmap
+            apps/desktop/dist/latest-mac.yml
           overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -149,7 +152,10 @@ jobs:
       - name: Upload EXE artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/dist/Weblab-Setup.exe
+          files: |
+            apps/desktop/dist/Weblab-Setup.exe
+            apps/desktop/dist/Weblab-Setup.exe.blockmap
+            apps/desktop/dist/latest.yml
           overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -191,6 +197,8 @@ jobs:
       - name: Upload AppImage artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/dist/Weblab.AppImage
+          files: |
+            apps/desktop/dist/Weblab.AppImage
+            apps/desktop/dist/latest-linux.yml
           overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
