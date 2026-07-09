@@ -13,6 +13,9 @@ This doc covers three paths: building locally, sharing with friends, and publish
 - **Packaging regression guard.** Added a desktop test that walks the local
   runtime `require('./…')` graph and verifies every required file is covered by
   the `electron-builder` `build.files` allowlist before a release is cut.
+- **Release workflow hardening.** Desktop release jobs now install from the
+  frozen lockfile with dependency postinstall scripts disabled, preventing
+  unrelated third-party network fetches from blocking installer uploads.
 
 ### v0.2.5
 
