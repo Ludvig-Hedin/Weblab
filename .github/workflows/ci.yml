@@ -10,7 +10,7 @@ jobs:
   # Will be handled in follow-up PR to avoid blocking CI setup / bloating this PR
   # lint:
   #   name: Lint
-  #   runs-on: ubuntu-latest
+  #   runs-on: blacksmith-4vcpu-ubuntu-2404
 
   #   steps:
   #     - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
 
   typecheck:
     name: Typecheck
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
 
   test:
     name: Unit Test
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - uses: actions/checkout@v4
