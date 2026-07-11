@@ -1,0 +1,6 @@
+# ⏸ CAMPAIGN SATURATION — recommendation (after 15 iters: 28 fixes incl 2 security, UX audit, 1 parser test)
+
+The broad subagent-hunt loop has hit diminishing returns: iters 9–15 mostly REFUTE or log-as-risky (cheap real bugs were fixed in iters 1–8). The verify-first discipline is doing its job (blocked several regressions-disguised-as-fixes), but raw fix throughput is near zero from broad hunts. **The remaining high-value work needs a decision/investment, not another hunt:**
+1. **Wireframe spend exposure** (`convex/wireframeActions.ts`) — build a DEDICATED rate-limit table (pure abuse guard, no billing change; `usageRecords` can't be used — it'd charge the message cap). Ready to build on an explicit go-ahead.
+2. **Editor-history + offline/sync data-loss leads** (this entry + iter-9/11/12) — all real-looking but UNFIXABLE blind because those areas have NO test harness. The high-leverage move is to BUILD a test harness (start with `services/offline/write-queue.ts` — most self-contained), then fix the logged data-loss bugs test-backed.
+3. **Live-browser QA** — nothing this campaign is click-tested (no Chrome ext / agent token this session). A real-browser pass is the single highest-value thing a human-in-the-loop can add.

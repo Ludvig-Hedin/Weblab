@@ -1,0 +1,11 @@
+# Deep-editing-flow verification — ✅ design→code sync CONFIRMED (iter-12)
+
+> **iter-12 (stable session): design→code sync VERIFIED end-to-end.** Created a project, selected the `<h1>`, set its Padding to 320px in the design panel → the **preview iframe's h1 computed padding changed `0px` → `0px 320px`** and the canvas + Tablet frame re-rendered with the padding. Because the preview is the sandbox running `next dev` on the real source, this proves the style change was written to the JSX source and hot-reloaded. The complete connected flow (create → editor → preview → select → design panel → style change → code+preview sync) works with no product errors. The iter-9 `No metadata found` was confirmed collision fallout (did not recur in the stable session).
+
+#### Original iter-9 note (UI works; code-sync was collision-blocked at the time)
+
+Drove the editor on a rendered preview: clicked the `<h1>` in the iframe → **element selection works**, design panel populated correctly (Tag `h1`, ID `hero-section`, Classes `text-2xl`/`font-medium` removable, Position/Layout/Padding/Margin/Size controls, font toolbar). So the editor↔iframe preload bridge + the design panel are **functional**.
+
+- ⚠️ **Could NOT fully verify design→code sync (the style-change → JSX write-back)** because the multi-agent **session collision** invalidated this run's Clerk token mid-session (9× `UNAUTHORIZED`), so the sandbox server's `runCommand`/`listFiles` failed (`Closed before connection`) → source files unreadable → `No metadata found for id qq.8e4g tagName: H1`. That metadata-missing + runCommand failures are **most likely collision fallout, not a product bug** — needs an **isolated session** (pause the parallel agent, or an owner-approved dedicated Clerk user) to confirm code-sync end-to-end.
+- The "N Issues" badge in the editor aggregates these console errors (was 1 after the saveCanvas fix; rose to 6 under the collision's UNAUTHORIZED/runCommand noise).
+- **Next:** a clean isolated-session pass to (a) confirm a padding/class change syncs to the JSX in the Code tab, and (b) confirm `No metadata found` does NOT occur when the source files load normally.

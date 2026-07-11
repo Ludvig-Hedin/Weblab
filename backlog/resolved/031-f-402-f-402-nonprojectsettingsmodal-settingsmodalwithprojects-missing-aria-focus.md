@@ -1,0 +1,6 @@
+# F-402 — NonProjectSettingsModal / SettingsModalWithProjects missing ARIA, focus trap; `with-project.tsx` missing `'use client'`
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Resolved:** 2026-07-07 — `non-project.tsx` already had `'use client'`; **`with-project.tsx` was genuinely missing it** (real latent build-break risk, confirmed and fixed). Both modal shells now get `role="dialog"` / `aria-modal="true"` / `aria-label="Settings"` on the content div, plus a new shared [`use-modal-focus-trap.ts`](apps/web/client/src/hooks/use-modal-focus-trap.ts) hook: focuses the modal on open, cycles Tab/Shift+Tab within it, restores focus to the previously-focused element on close. Kept the existing hand-rolled `motion.div` shell (did not swap to Radix `Dialog` — bigger surface change, deferred; see risk note below).
+- **Verification:** `bun typecheck` + scoped `eslint --max-warnings 0` clean on all touched files. **Could not browser-verify** — local preview in this environment can't reach the dev server (blank page / Clerk redirect loop, a known prior limitation). The change is additive only (no existing close/backdrop/ESC behavior altered), but live keyboard-nav verification is still owed before calling this fully done.
+- **Tags:** `#bug` `#editor` `#modal` `#a11y` `#settings`

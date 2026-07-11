@@ -1,0 +1,30 @@
+# QA audit (iter-15, 2026-06-19) — creation + editor bug sweep
+
+- **Discovered:** 2026-06-19 (iter-15 end-to-end QA `/loop`; 4-finder workflow `wf_708fabe4-3a0`, **Verify phase hung** so all-but-noted are CANDIDATES, not adversarially confirmed).
+- **Method:** read-only finders over creation paths / editor / brand-ux / latent bugs. github.tsx console fix already shipped (`43c15f59f`). Live authed re-test blocked (Clerk session forging is correctly disallowed) — these need confirming in the running editor.
+- **Verification update (2026-06-19, post-finder):** Verify phase hung, so the top findings were hand-checked against current code. **FALSE POSITIVES — already handled (likely by parallel iter-17/18/19 fixes):** (1) "concurrent external write discards unsaved edits" — `code-tab/index.tsx:204-229` keeps the buffer dirty + `toast.warning`s ("Your unsaved edits were kept"); (2) "code-save no success feedback" — `code-tab/status-bar.tsx:44` renders a relative-time "Saved" indicator when not dirty; (3) "commit-message divergence" — `git.ts:443 createCommit` and `:279 commit` both default to the same `'New ${APP_NAME} backup'` placeholder (the `git-actions.tsx:161` TODO premise is wrong — safe to delete that TODO). **FIXED this iter:** template-import Retry (`79bf579c2`), create-modal file/folder name validation (`file-modal.tsx` nameWarning), GitHub-stats console noise (`43c15f59f`). **Still real, unfixed:** folder-rename guard (`file-tree-node.tsx:72`) — needs a live non-empty-dir move test before unblocking. **Remaining CANDIDATE rows below are UNVERIFIED — recheck against current code before acting** (false-positive rate ~50% on the checked subset, since finders raced the parallel bug-fix sessions).
+
+**[VERIFIED by reading code]**
+- **Doc drift — create paths may be LIVE, not disabled.** `apps/web/client/src/components/store/create/manager.ts:13-26` still carries `UNAVAILABLE_MESSAGE` + `TODO(sandbox-port)`, but `convex/projectActions.ts` now defines `createFromPrompt` (~:643), `createFromGit` (~:509), `createFromWebsiteClone` (~:815), `fork` (~:1382), and `manager.startCreate`/`startGitHubTemplate` (~:115-180) appear to call them. If wired, CLAUDE.md + feature-catalog "prompt/GitHub/clone disabled" is stale → **confirm `startCreate` actually invokes the action vs throws UNAVAILABLE, then update docs.** `#docs` `#bug`
+- **Commit-message "divergence" is a FALSE POSITIVE.** `git-actions.tsx:161-165` `TODO(bug-hunt)` claims `createCommit` auto-generates while `commit` uses a placeholder. Reality: `git.ts:443 createCommit(message='New ${APP_NAME} backup')` just calls `commit(message)` — both default to the same placeholder. **Action: delete the stale TODO; no code change.** `#tech-debt`
+- **Folder rename blocked.** `file-tree-node.tsx:71-72` `handleRename` early-returns for `isDirectory`, yet `handleBlur`/input-selection already handle dirs. `moveFile` → `fs.rename` (fs.ts:233) + code-fs prefix index (code-fs.ts:604) *likely* support dir move. **Action: remove the dir guard, then live-test a non-empty folder rename before shipping.** `#bug`
+
+**[CANDIDATE — finder-reported, file:line cited, needs live confirm]**
+- 🔴 **Concurrent external write silently discards unsaved editor edits** — `code-tab/index.tsx:199-215 (createUpdatedFile)` via `loadedContent` effect + `use-file.ts:31 watchFile`. (Note: *rename* of a dirty file IS already blocked at code-tab:526; this is the external-write path.) `#bug`
+- 🔴 **GitHub import allows private repos but clone is unauthenticated → always fails** — `import/github/_components/setup.tsx:283-336`, `use-repo-import.ts:58-81`, `projectActions.ts createFromGit:567-573`, `vercel-sandbox/index.ts:596-626`. Dead-end. `#bug`
+- 🟠 **Failed provisioning leaks an orphaned paid Vercel VM** — `projectActions.ts:296-400 _provisionSandbox` install/checkpoint failure path lacks cleanup (also createFromGit/Prompt/WebsiteClone/Figma/fork). Cost + resource leak. `#bug` `#infra`
+- 🟠 **Cancelling an in-flight GitHub import leaves a created project + orphaned sandbox** — `import/github/_context/index.tsx:163-180`. `#bug`
+- 🟠 **Template-import error = dead-end (no Retry)** — `projects/creating/page.tsx:175-184` passes `retryHref={null}`; `hasStarted` ref blocks re-run. `#bug` `#ux`
+- 🟠 **Publish is clickable on Vercel, fails only post-deploy + leaves a dangling preview domain** — `top-bar/publish/dropdown/preview-domain-section.tsx:35-143`, throws at `convex/lib/publishHelpers.ts:56-61`. Contradicts CLAUDE.md "publish disabled". `#bug` `#ux`
+- 🟠 **SandboxManager provider-reaction not serialized** — `store/editor/sandbox/index.ts:104-195,256-290`; overlapping provider transitions can release the sync engine mid-start. `#bug`
+- 🟠 **resumeCreate can permanently fail to send the seeded prompt** if the chat panel doesn't wire within 2.5s — `_hooks/use-start-project.tsx:421-565`. `#bug`
+- 🟡 **Code-editor save: no success feedback** (only error toast) — `code-tab/index.tsx:330-385`. `#ux`
+- 🟡 **New-file / rename modals: no name validation** → raw "Path escapes basePath" leaks — `code-tab/modals/file-modal.tsx:63-98`. `#ux`
+- 🟡 **Responsive multi-property edits within ~600ms drop all-but-last property's source rebase** (shared lodash debounce) — `store/editor/code/index.ts:276`, `action/index.ts:214-235`. `#bug`
+- 🟡 **Pages tree goes stale** when pages are added/removed via the code editor — `design-panel/page-tab/index.tsx:54-57`. `#bug`
+- 🟡 **Optimistic blank-create can trigger up to 3 full-page reloads** — `canvas/frame/index.tsx:183-189`. `#ux` `#perf`
+- 🟡 **Template/clone double-submit guard relies on async setState** (no synchronous ref latch) — `templates/template-modal.tsx:72-114` (+ select-presentation, clone dialogs). `#bug`
+- 🟡 **`projectCreateRequests.updateStatus` patches an unfiltered `.first()` row** — `convex/projectCreateRequests.ts:31-37`. `#bug`
+- 🟡 **`createProjectFromGit` lacks the `withTimeout` + self-cleanup `createProject` has** — `vercel-sandbox/index.ts:596-675`. `#bug`
+
+**[VERIFIED clean by finder]** Blank create (scaffold + provisioning) and clone-website path — no defect found.

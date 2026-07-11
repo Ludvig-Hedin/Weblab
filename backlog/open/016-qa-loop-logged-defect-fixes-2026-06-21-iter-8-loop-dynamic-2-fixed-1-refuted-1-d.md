@@ -1,0 +1,13 @@
+# QA loop — logged-defect fixes (2026-06-21 iter-8, /loop dynamic) — 2 FIXED, 1 refuted, 1 deferred
+
+> Verified + fixed the next tier of iter-7 LOGGED defects. Typecheck ✓, lint clean.
+
+**✅ FIXED (this commit):**
+1. **`#ai` `#credits` — chat summarize cooldown blocked retries for 60s after ANY failure.** `api/chat/summarize/route.ts:209` set `recentSummaryFires` (the per-conversation cooldown) BEFORE the work, and neither the credit-limit 402 early-return nor the catch cleared it — so a single failure silently 204'd the next 60s of summarize attempts, contradicting the catch comment's "next chat turn will re-attempt." **Fix:** kept the `.set` as an in-flight CONCURRENCY guard (so concurrent summarize calls don't double-charge) but added a `let succeeded`/`finally` that clears the cooldown on every non-success exit (402, null result, throw). Chose this over the subagent's "move .set after success" because that would have dropped the concurrency guard and re-introduced a double-charge race.
+2. **`#settings` `#domains` — removing a verified custom domain had no confirmation.** `settings-modal/domain/custom/verified.tsx:27` fired `removeVerifiedDomain` straight from the menu item — a destructive, irreversible detach of the live domain. **Fix:** gated it behind the existing `useConfirm` dialog (destructive variant); also wrapped the async onClick (`() => void removeDomain()`) to clear a pre-existing misused-promise warning. (NOTE: the deeper iter-7 finding — `domainActions.customRemove` never calls the Freestyle API so the domain stays live provider-side — is still OPEN and separate.)
+
+**❌ REFUTED — proposed fix is unsafe:**
+- **workspace `inviteAccept` re-accept doesn't re-apply role** (`workspaces.ts:616`). The subagent wanted re-accept to patch the existing member's role to `row.role`. **Rejected:** that would create a SECOND role-mutation path that bypasses `updateMemberRole`'s guards (the owner-block + last-owner protection) — the exact secondary-path escalation class fixed in iter-7. The current no-op is the safe design; role changes must go through the guarded `updateMemberRole`. (Optional safe follow-up: reject re-inviting an already-member at `inviteCreate` with a clear error, rather than mutating roles on accept.)
+
+**⏸ DEFERRED:**
+- **git-tab naming fields can't be cleared** (`settings-modal/git-tab.tsx:72` strips blank `defaultBranchPattern`/`commitMessageFormat` before save → input snaps back). Clean fix needs local controlled input state (the editor-tab `buildFlags` pattern) AND confirming `users.updateSettings` treats an empty string as a reset for these fields — the latter can't be verified headless. Minor/advanced setting.

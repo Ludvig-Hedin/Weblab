@@ -1,0 +1,6 @@
+# Editor hotkeys/canvas 2026-06-13 — deferred findings (verified-bug fix pass)
+
+- **Discovered:** 2026-06-13 (editor hotkeys + style-control bug fix session; 10 bugs fixed in the same session). Each item has a matching `TODO(bug-hunt)` comment in code.
+  1. **UNDO/REDO hijack native text undo** — `apps/web/client/src/app/project/[id]/_components/canvas/hotkeys/index.tsx` (UNDO/REDO bindings): both run with `enableOnFormTags + enableOnContentEditable`, so cmd+z/cmd+shift+z fire the canvas history even when focus is in a text field, hijacking the browser's native text undo. Possibly intentional Figma parity, but pairs badly with stale-draft commits. Next step: canvas-ownership gate (like COPY/PASTE) or yield when focus is in an editable field with its own undo stack. `#bug`
+  2. ~~**Space / middle-mouse pan-end always forces DESIGN mode**~~ — FIXED 2026-07-07. Space-key pan restore had already landed; middle-mouse pan now snapshots and restores the previous editor mode instead of forcing DESIGN. See Resolved.
+  3. **Layer eye-toggle desyncs from undo** — `left-panel/design-panel/layers-tab/tree/tree-node.tsx` (`toggleVisibility`): mutates `node.data.isVisible` locally outside the undo action, so undoing the visibility change reverts the style but leaves the eye icon desynced. Next step: drive `isVisible` from committed style, or refresh on undo/redo. `#bug`

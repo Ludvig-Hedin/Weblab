@@ -1,0 +1,9 @@
+# Email / custom-domain values are not canonicalized at write — case-sensitive lookups can miss
+
+- **Discovered:** 2026-05-29 (test-hardening session: auth + domain audit, MEDIUM)
+- **Where:** invite member-conflict guard [convex/projectInvitations.ts:428](apps/web/client/convex/projectInvitations.ts#L428) (probes only lowercased + as-typed email); `users.email` stored raw from Clerk ([convex/clerkWebhooks.ts:31](apps/web/client/convex/clerkWebhooks.ts#L31), [convex/lib/permissions.ts:88](apps/web/client/convex/lib/permissions.ts#L88)). Custom-domain reuse/remove exact-match on stored `fullDomain`: [convex/domainActionsDb.ts:273](apps/web/client/convex/domainActionsDb.ts#L273) (`_ensureUserOwnsDomain`), [:82/:95](apps/web/client/convex/domainActionsDb.ts#L82) (`_customRemove`).
+- **Symptom:** A member whose stored email is `John.Doe@Acme.com` invited again as `john.doe@acme.com` (third casing) bypasses the "already a member" guard → duplicate pending invite (NOT a privilege escalation; `accept` is case-insensitive + idempotent). Custom-domain reuse/remove can miss when casing differs from the stored value.
+- **Root cause:** emails/domains persisted verbatim; guards assume a lowercased invariant that writers don't enforce. (The verification **create** path was normalized 2026-05-29 — see commit; reuse lookup left raw for backward-compat with pre-existing rows.)
+- **Next step:** lowercase `users.email` in the Clerk webhook + JIT writers (one-time backfill for existing rows), then normalize the reuse/remove domain lookups too. Extract a pure `canonicalizeEmail` + reuse the existing `isEmailMatch`.
+- **Risk if ignored:** duplicate invites + occasional "you don't own this domain" / silent no-op on remove for mixed-case entries. Low severity.
+- **Tags:** `#bug` `#auth` `#convex` `#low-severity`

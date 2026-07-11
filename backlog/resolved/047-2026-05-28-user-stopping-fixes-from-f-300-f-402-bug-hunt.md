@@ -1,0 +1,13 @@
+# 2026-05-28 — User-stopping fixes from F-300..F-402 bug-hunt
+
+Fixed in this session (code-level verified: `bun typecheck` exit 0, scoped lint 0 errors). Frontend re-validation still blocked by the Vercel hobby-plan 402 (project create), so these are logic-traced + type-checked, not yet clicked through the editor.
+
+- **F-335** restart button stuck after abort — [restart-sandbox-button.tsx:214](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L214). Added `setRestarting(false)` + `setRestartElapsedSec(0)` + `restartGraceUntilRef.current = null` before the abort `return`.
+- **F-300** `activeBranch.id` null crash (3 sites) — [list-view.tsx:96+106](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/list-view.tsx#L96), [timeline-editor.tsx:60](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L60). Switched to `activeBranch?.id` + early-return / persist guard.
+- **F-318** dropdown stale-closure (picker stuck open) — [use-dropdown-manager.tsx:143](apps/web/client/src/app/project/[id]/_components/editor-bar/hooks/use-dropdown-manager.tsx#L143). Added `isOpen` to effect deps (no loop — setState only fires when they disagree).
+- **F-313** ImgSelected unreachable — [editor-bar/index.tsx](apps/web/client/src/app/project/[id]/_components/editor-bar/index.tsx) (imported + `TAG_TYPES[IMG]=['img']` + dispatch branch) and [img-selected.tsx](apps/web/client/src/app/project/[id]/_components/editor-bar/img-selected.tsx) (wired functional `ImgFit` / object-fit control; deliberately omitted the no-op `ImageBackground` stub). `<img>` now gets a real image-specific toolbar.
+- **F-361** fork / createBlankSandbox silent fail — [branch-controls.tsx:37+52](apps/web/client/src/app/project/[id]/_components/branch/branch-controls.tsx#L37). Added `toast.error(...)` in both catch blocks (honors the `#disabled` "clear error" contract).
+- **F-402** missing `'use client'` (latent build break) — [non-project.tsx:1](apps/web/client/src/components/ui/settings-modal/non-project.tsx#L1).
+- **F-301** `formatRelativeTime` → `"NaNm ago"` — [comments-tab/index.tsx:16](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L16). Added `Number.isNaN` + negative-diff guards.
+
+**Still Open (intentionally deferred — cosmetic or broad, NOT user-stopping):** F-402 backdrop-close dirty-check + ARIA/focus-trap (broad — needs Radix Dialog swap + state-manager `isDirty`); F-333 duplicate keys / CopyButton timeout; F-360 error-leak / email-normalize; F-334 wildcard postMessage; F-332 xterm refresh; pervasive raw-`<button>` + i18n sweep; ImageBackground dead stub; F-313 catalog row should note object-fit-only scope.

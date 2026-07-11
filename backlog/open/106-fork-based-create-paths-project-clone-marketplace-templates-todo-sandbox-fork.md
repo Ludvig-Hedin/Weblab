@@ -1,0 +1,11 @@
+# Fork-based create paths: project clone + marketplace templates (`TODO(sandbox-fork)`)
+
+> ⚠️ **STALE (corrected iter-21 2026-06-20):** `projectActions.fork` is **no longer a throwing stub** — it is LIVE and runs (auth + VERCEL_TOKEN check → loads source → resumes `sourceSnapshotId` → inserts a new graph). It does NOT toast "temporarily unavailable". The REAL current bug is **worse**: it silently produces a blank/stale clone (false success) because `sourceSnapshotId` is frozen at create time and the graph uses default frames — see the **iter-21** entry near the top of Open (`#data-loss`). Marketplace "Use template" likely shares this. The text below is the original (now-inaccurate) 2026-06-03 note, kept for history.
+
+- **Discovered:** 2026-06-03 (create-paths audit session)
+- **Where:** `projectActions.fork` ([convex/projectActions.ts](apps/web/client/convex/projectActions.ts)) — ORIGINALLY threw "Project fork is temporarily unavailable… snapshot-based fork is not yet implemented" (NO LONGER TRUE, see correction above). Callers: project clone ([clone-project.tsx](apps/web/client/src/app/projects/_components/settings/clone-project.tsx), `clone-project-dialog.tsx`) and marketplace "Use template" ([template-modal.tsx](apps/web/client/src/app/projects/_components/templates/template-modal.tsx) → `forkTemplate`).
+- **Symptom (ORIGINAL, now inaccurate):** "Clone project" and marketplace "Use template" toast "Sandbox service temporarily unavailable". **Current symptom:** clone toasts SUCCESS but opens a near-empty/stale project.
+- **Root cause:** Fork = duplicate an existing project's sandbox state into a new one. Needs Vercel snapshot-based fork (resume the source project's persisted `snapshotId` into a fresh sandbox, then insert a new project graph). Same blocker as `branch.fork` / publish.
+- **Next step:** implement `fork` via snapshot resume — read source `projects.snapshotId`, provision from it (model on `createBlank`/`createFromGit`), insert project graph. Handle expired/missing snapshot (re-scaffold fallback or clear error).
+- **Risk if ignored:** can't duplicate a project or start from a marketplace template. (Start-blank / AI-prompt / git-URL / folder / GitHub-repo / website-clone all work as of 2026-06-03.)
+- **Tags:** `#feature` `#sandbox` `#convex`

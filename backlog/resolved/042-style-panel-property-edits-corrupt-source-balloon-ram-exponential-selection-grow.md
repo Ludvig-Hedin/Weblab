@@ -1,0 +1,9 @@
+# Style-panel property edits corrupt source + balloon RAM (exponential selection growth + unsynchronized writes)
+
+- **Discovered:** 2026-06-08 (user report: editing width up/down with shift → errors + 3× RAM)
+- **Resolved:** 2026-06-09 (local validation; not yet deployed)
+- **Where:** `apps/web/client/src/components/store/editor/{action,element,code,interactions,history}/`; `packages/file-system/src/code-fs.ts`; `apps/web/client/src/app/project/[id]/_components/editor-bar/`
+- **Root cause:** `ActionManager.updateStyle` re-selected the responsive sibling-frame fan-out and `ElementsManager.click()` never deduped, so the selection grew 1→3→9→27→81 per keystroke (the captured 81-target batch = 3⁴). That storm of edits drove unsynchronized concurrent source writes (immediate write + debounced responsive write + sync watcher) into a read-modify-write race that corrupted `page.tsx` → `No ast found` → Penpal `destroyed connection` cascade. Duplicate React keys, the MobX `_loaded` strict-mode warning, and the empty `Failed to persist history` were collateral.
+- **Fix:** (1) `click()` dedupes selection by `frameId:domId`; (2) `updateStyle` re-selects only the originally-selected nodes (fan-out still writes everywhere); (3) `CodeManager.writeRequest` serializes editor writes via a promise chain; (4) `CodeFileSystem` serializes `writeFile`/`deleteFile`/`moveFile`/`rebuildIndex` via an instance-wide write lock (covers editor + sandbox watcher + index mutations — this closes the former "Sync layer + index cache" open item); (5) interactions post-`await` observable writes wrapped in `runInAction`; (6) history persists a plain-JSON snapshot (no `DataCloneError`).
+- **Validation:** `bun typecheck` ✓, `bun lint` (touched files, max-warnings 0) ✓, parser suite 159 + 2 new regression tests ✓. Live editor flow not exercisable locally (Clerk auth + sandbox + `:8080` required) — needs manual confirmation.
+- **Tags:** `#bug` `#editor` `#concurrency` `#mobx`

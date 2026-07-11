@@ -1,0 +1,9 @@
+# QA loop — auth deep-link returnUrl fixes (2026-06-21 iter-13, /loop dynamic) — 2 FIXED (6 files)
+
+> Shipped the verified auth `returnUrl` leads from iter-12. Typecheck ✓, lint clean.
+
+**✅ FIXED (this commit):**
+1. **`#auth` — unauthenticated deep-links to create/import dropped the user on `/projects` after sign-in instead of where they were going.** All 5 create/import layouts (`projects/new/layout.tsx`, `projects/import/layout.tsx`, `projects/import/{local,github,figma}/layout.tsx`) called `redirect(getSignInUrl())` with NO returnUrl, while the sibling `projects/layout.tsx` correctly forwards `x-pathname`. **Fix:** each now reads `(await headers()).get('x-pathname')` (middleware-set, includes the query string) and passes it to `getSignInUrl`, falling back to its own path. So a shared `/projects/import/github` link now returns the user there post-login.
+2. **`#auth` (minor) — sign-in self-loop guard was exact-match-only.** `sign-in/[[...rest]]/page.tsx:68` rejected `returnUrl === Routes.LOGIN` / `=== '/sign-up'` but not sub-paths (`/sign-in/verify`, `/sign-in/sso-callback`), producing a 2-hop bounce for an authed visitor. **Fix:** an `isAuthSurface` helper rejecting `/sign-in`, `/sign-in/*`, `/sign-up`, `/sign-up/*` (trailing-slash form avoids false-matching `/sign-in-help`).
+
+> Still-open iter-12 auth leads (lower priority): two divergent `sanitizeReturnUrl` impls (`utils/auth` `string|null` vs `utils/url` `string`) — consolidate to the canonical `utils/auth` one (`verify/page.tsx` + `profile-setup` use the other, leaving a dead null-branch); missing `loading.tsx` on `/sign-in/verify`, `/profile-setup`, `/w/new`, `/invitation/[id]`, `/invitation/workspace/[id]`. Plus the still-OPEN owner decisions: wireframe spend exposure (dedicated rate-limit table vs. credit pricing) and loop continue/redirect/wind-down.

@@ -1,0 +1,9 @@
+# F-300..F-402 — Pervasive raw `<button>` + hardcoded English
+
+- **Discovered:** 2026-05-28 (static bug-hunt across F-300..F-402)
+- **Where:** (representative) [comments-tab/index.tsx:63-84, 99-133](apps/web/client/src/app/project/[id]/_components/right-panel/comments-tab/index.tsx#L63), [errors-console.tsx:76-90](apps/web/client/src/app/project/[id]/_components/bottom-bar/errors-console.tsx#L76), [restart-sandbox-button.tsx:254](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L254), [terminal-area.tsx:132, 160](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L132), [preview-theme-toggle.tsx:54](apps/web/client/src/app/project/[id]/_components/bottom-bar/preview-theme-toggle.tsx#L54), [timeline-editor.tsx:252](apps/web/client/src/app/project/[id]/_components/right-panel/interactions-tab/timeline/timeline-editor.tsx#L252)
+- **Symptom:** Raw `<button>` elements with bespoke Tailwind utility classes (color, radius, height overrides) where canonical `<Button>` from `@weblab/ui/button` is required. Also hardcoded English strings throughout (e.g. `'Open'`, `'Resolved'`, `'Toggle Terminal'`, `'Sandbox restarted successfully'`, `'Forking...'`, `'Remove?'`, `'Settings'`).
+- **Root cause:** CLAUDE.md button-enforcement + i18n rules not consistently applied during these features' build-out.
+- **Next step:** sweep in one PR per feature: replace each raw `<button>` with the appropriate `<Button>` variant (add new variants to `@weblab/ui/button` rather than per-call className overrides), and lift every English string into `apps/web/client/messages/*` under `editor.panels.edit.tabs.*` keys.
+- **Risk if ignored:** non-English locales render English; design-system audit will keep flagging the same files.
+- **Tags:** `#tech-debt` `#design-system` `#i18n` `#button-enforcement`

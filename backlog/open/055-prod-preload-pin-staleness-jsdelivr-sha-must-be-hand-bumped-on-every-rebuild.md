@@ -1,0 +1,10 @@
+# Prod preload pin staleness (jsDelivr SHA must be hand-bumped on every rebuild)
+
+- **Discovered:** 2026-06-17 (copy-to-figma "Method `getFigmaSceneData` is not found" investigation)
+- **Where:** `packages/constants/src/files.ts` (`WEBLAB_PROD_PRELOAD_SCRIPT_SRC`, `PRIOR_WEBLAB_PROD_PRELOAD_SCRIPT_SRCS`)
+- **Symptom:** In prod (`isDev=false`) the editor injects the preload `<Script>` from a jsDelivr URL pinned to a fixed commit SHA. The pin sat at `ec326199` (2026-05-03) while preload methods kept landing on `main`, so **every preload method added after the pin** (`getFigmaSceneData`, `serializeDocumentForOffline`, `playInteraction`/interactions bridge, `setCmsData`) threw penpal `METHOD_NOT_FOUND` in prod. Fixed this round by bumping the pin to `d73589eed` + deprecating the old URL so baked-in layouts self-heal on next sandbox boot.
+- **Root cause:** jsDelivr `@<sha>` is immutable, so the pin requires a manual bump + redeploy on every preload rebuild. Easy to forget; rots silently (no error until a user calls a newer method). 2nd preload-staleness class (see also "preload artifact must be committed").
+- **Next step:** kill the manual step. Either (a) serve the prod preload from the app's own origin (`https://weblab.build/weblab-preload-script.js`) via an env-driven absolute URL — scripts load cross-origin without CORS, the file is already in `public/` + allowed by middleware, and it auto-tracks every deploy; or (b) add a build/CI guard that diffs the artifact at the pinned SHA against `apps/web/client/public/weblab-preload-script.js` and fails on drift. (a) removes the footgun entirely; (b) just catches it.
+- **Also:** `packages/parser/test/layout.test.ts` hardcodes `SHOULD_UPDATE_EXPECTED = true`, so that suite always rewrites its `expected.tsx` fixtures and can never fail — a no-op gate. Flip to `false` (env-gated for updates) so it actually protects injection output.
+- **Risk if ignored:** next preload method added without a pin bump silently breaks in prod again; the always-green layout test masks injection regressions.
+- **Tags:** `#tech-debt` `#infra` `#test-gap`

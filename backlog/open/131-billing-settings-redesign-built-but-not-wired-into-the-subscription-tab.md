@@ -1,0 +1,9 @@
+# Billing settings redesign built but not wired into the Subscription tab
+
+- **Discovered:** 2026-05-29 (full-repo code review)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/billing/](apps/web/client/src/components/ui/settings-modal/billing/) — `plan-card.tsx`, `payment-methods.tsx`, `billing-information.tsx`, `billing-info-edit-dialog.tsx`, `billing-history.tsx`, `cancel-plan.tsx`, `use-billing-details.ts`, `format.ts`. Backed by new Convex actions in [convex/subscriptionActions.ts](apps/web/client/convex/subscriptionActions.ts) (`getBillingDetails`, `updateBillingInfo`, `setDefaultPaymentMethod`, `deletePaymentMethod`, `addPaymentMethod`, `cancelSubscription`, `reactivateSubscription`).
+- **Symptom:** Nothing imports any of these components — `grep` for `PlanCard`/`PaymentMethods`/`useBillingDetails` outside the dir returns zero hits. The live Subscription tab ([subscription-tab.tsx](apps/web/client/src/components/ui/settings-modal/subscription-tab.tsx)) still renders the old inline UI, so the new payment-method management, billing-address editor, invoice history, and native cancel/reactivate are invisible to users.
+- **Root cause:** In-flight WIP committed before the integration step. Components + actions typecheck/lint clean (compiled as dead code), so no build break — but the feature does nothing.
+- **Next step:** Wire the new `billing/*` components into `subscription-tab.tsx` (replace or augment the existing plan UI), then browser-verify the full Stripe flow end-to-end against test mode: load details, set/delete default card, add card (portal deep-link), edit billing address, cancel + reactivate. Treat as a payment-critical change — do not ship without manual verification of each path.
+- **Risk if ignored:** dead code in the bundle; the intended billing UX never reaches users; future readers assume it's live.
+- **Tags:** `#feature-gap` `#billing` `#convex` `#wip`
