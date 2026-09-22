@@ -78,6 +78,7 @@ Dated journal of in-flight work. Naming: `YYYY-MM-DD-<kebab-topic>.md`. See [`no
 
 ## Audits — `audits/` 🤝
 
+- [`fork-and-product-audit.md`](./audits/fork-and-product-audit.md) — Upstream comparison, editor risks, and designer beta path
 - [`website-product-audit.md`](./audits/website-product-audit.md)
 - [`seo/action-plan.md`](./audits/seo/action-plan.md) — SEO action plan
 - [`seo/full-audit-report.md`](./audits/seo/full-audit-report.md) — Full SEO audit + evidence
