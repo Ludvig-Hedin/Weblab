@@ -85,8 +85,8 @@ const localfsBridge = IS_APP_ORIGIN
               ipcRenderer.invoke('weblab:localfs:createPrivateWorkingCopy', { sourceRoot }),
           planPrivateHandoff: (root) =>
               ipcRenderer.invoke('weblab:localfs:planPrivateHandoff', { root }),
-          exportPrivateHandoff: (root, planToken) =>
-              ipcRenderer.invoke('weblab:localfs:exportPrivateHandoff', { root, planToken }),
+          exportPrivateHandoff: (root, planToken, files) =>
+              ipcRenderer.invoke('weblab:localfs:exportPrivateHandoff', { root, planToken, files }),
           read: (root, p) => ipcRenderer.invoke('weblab:localfs:read', { root, path: p }),
           writeIfUnchanged: (root, p, content, expectedSha256) =>
               ipcRenderer.invoke('weblab:localfs:writeIfUnchanged', {
@@ -115,6 +115,10 @@ const localfsBridge = IS_APP_ORIGIN
 
 const localdevBridge = IS_APP_ORIGIN
     ? {
+          installDependencies: (root) =>
+              ipcRenderer.invoke('weblab:localdev:installDependencies', { root }),
+          cancelInstallDependencies: (root) =>
+              ipcRenderer.invoke('weblab:localdev:cancelInstallDependencies', { root }),
           start: (root, command, port) =>
               ipcRenderer.invoke('weblab:localdev:start', { root, command, port }),
           pickPort: (root, preferredPort) =>

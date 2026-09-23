@@ -273,7 +273,7 @@ export class ComponentsManager {
                 this.editorEngine.overlay.state.removeClickRects();
                 return;
             }
-            const el: DomElement = await frameData.view.getElementByDomId(boundary.domId, false);
+            const el: DomElement | null = await frameData.view.getElementByDomId(boundary.domId, false);
             if (el) this.editorEngine.elements.click([el]);
         } catch {
             // Selection restore is best-effort.
@@ -411,7 +411,7 @@ export class ComponentsManager {
             if (!propName) continue;
             if (!this.isInEditScope(session.frameId, node.domId)) continue;
             try {
-                const el: DomElement = await frameData.view.getElementByDomId(node.domId, false);
+                const el: DomElement | null = await frameData.view.getElementByDomId(node.domId, false);
                 if (!el) continue;
                 rects.push({ propName, rect: adaptRectToCanvas(el.rect, frameData.view) });
             } catch {

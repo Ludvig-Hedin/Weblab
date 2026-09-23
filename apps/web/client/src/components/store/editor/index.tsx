@@ -91,13 +91,18 @@ export const EditorEngineProvider = ({
             if (currentProjectId.current !== project.id) {
                 setIsReady(false);
 
-                // Snapshot the previous engine so the deferred clear targets
-                // exactly that instance, not whichever one engineRef points to
-                // by the time the timeout fires.
+                // Finish the previous project's writes before starting a new
+                // engine. Its beforeunload guard remains attached until then.
                 const stale = engineRef.current;
                 if (stale) {
-                    setTimeout(() => stale.clear(), 0);
+                    try {
+                        await stale.clear();
+                    } catch (err) {
+                        console.error('[EditorEngineProvider] previous engine cleanup failed', err);
+                    }
                 }
+
+                if (cancelled) return;
 
                 const newEngine = new EditorEngine(
                     project.id,
@@ -116,7 +121,9 @@ export const EditorEngineProvider = ({
                 if (cancelled) {
                     // A newer project id superseded this run — dispose the
                     // losing engine instead of leaking its sandbox/listeners.
-                    setTimeout(() => newEngine.clear(), 0);
+                    void newEngine.clear().catch((err: unknown) => {
+                        console.error('[EditorEngineProvider] unused engine cleanup failed', err);
+                    });
                     return;
                 }
                 newEngine.screenshot.lastScreenshotAt =
@@ -164,7 +171,13 @@ export const EditorEngineProvider = ({
     useEffect(() => {
         return () => {
             const stale = engineRef.current;
-            setTimeout(() => stale?.clear(), 0);
+            if (stale) {
+                setTimeout(() => {
+                    void stale.clear().catch((err: unknown) => {
+                        console.error('[EditorEngineProvider] unmount cleanup failed', err);
+                    });
+                }, 0);
+            }
         };
     }, []);
 

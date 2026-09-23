@@ -44,12 +44,14 @@ export type { JsxElementMetadata } from './index-cache';
 
 export interface CodeEditorOptions {
     routerType?: RouterType;
+    localProject?: boolean;
 }
 
 export class CodeFileSystem extends FileSystem {
     private projectId: string;
     private branchId: string;
     private options: Required<CodeEditorOptions>;
+    private localWrite: ((path: string, content: string) => Promise<void>) | null = null;
     private indexPath = `${WEBLAB_CACHE_DIRECTORY}/index.json`;
     private componentIndexPath = `${WEBLAB_CACHE_DIRECTORY}/components.json`;
     private debouncedRebuild = debounce(() => void this.rebuildIndex(), 2000);
@@ -60,7 +62,70 @@ export class CodeFileSystem extends FileSystem {
         this.branchId = branchId;
         this.options = {
             routerType: options.routerType ?? RouterType.APP,
+            localProject: options.localProject ?? false,
         };
+    }
+
+    /**
+     * A local project is backed by the selected disk folder. Opening it must
+     * load source verbatim: the normal writeFile path instruments JSX/HTML and
+     * would change the apparent source before the user chose to edit it.
+     */
+    async replaceLocalSnapshot(files: Array<{ path: string; content: string }>): Promise<void> {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        return this.withWriteLock(async () => {
+            const incoming = new Map(files.map((file) => [file.path.replace(/^\/+/, ''), file.content]));
+            const oldFiles = (await this.listAll()).filter(
+                (entry) => entry.type === 'file' && !entry.path.replace(/^\/+/, '').startsWith(`${WEBLAB_CACHE_DIRECTORY}/`),
+            );
+            for (const old of oldFiles) {
+                const oldPath = old.path.replace(/^\/+/, '');
+                const prior = await this.readFile(old.path);
+                const next = incoming.get(oldPath);
+                if (typeof prior === 'string' && prior !== next) {
+                    await this.saveRecoveryCopy(oldPath, prior);
+                }
+                // The desktop text bridge cannot round-trip binary files yet.
+                // Leave a prior binary cache entry intact until that transport
+                // exists rather than silently discarding a possibly unsynced
+                // asset from an older local session.
+                if (next === undefined && typeof prior === 'string') {
+                    await super.deleteFile(old.path);
+                }
+            }
+            for (const file of files) {
+                await super.writeFile(file.path, file.content);
+            }
+            await this.performRebuildIndex();
+        });
+    }
+
+    async replaceLocalFile(path: string, content: string): Promise<void> {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        return this.withWriteLock(async () => {
+            await super.writeFile(path, content);
+            await this.performRebuildIndex();
+        });
+    }
+
+    async removeLocalFile(path: string): Promise<void> {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        return this.withWriteLock(async () => {
+            if (await this.fileExists(path)) await super.deleteFile(path);
+            await this.performRebuildIndex();
+        });
+    }
+
+    setLocalWriteHandler(write: (path: string, content: string) => Promise<void>): void {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        this.localWrite = write;
+    }
+
+    private async saveRecoveryCopy(path: string, content: string): Promise<string> {
+        const name = path.split('/').pop()?.replace(/[^a-zA-Z0-9._-]/g, '_') ?? 'source';
+        const recoveryPath = `${WEBLAB_CACHE_DIRECTORY}/recovery/${Date.now()}-${Math.random().toString(36).slice(2)}-${name}.txt`;
+        await super.writeFile(recoveryPath, content);
+        return recoveryPath;
     }
 
     // Serializes every operation that reads-then-writes the shared in-memory
@@ -86,15 +151,33 @@ export class CodeFileSystem extends FileSystem {
 
     async writeFile(path: string, content: string | Uint8Array): Promise<void> {
         return this.withWriteLock(async () => {
-            if (this.isJsxFile(path) && typeof content === 'string') {
-                const processedContent = await this.processJsxFile(path, content);
-                await super.writeFile(path, processedContent);
-            } else if (this.isHtmlFile(path) && typeof content === 'string') {
-                const processedContent = await this.processHtmlFile(path, content);
-                await super.writeFile(path, processedContent);
-            } else {
-                await super.writeFile(path, content);
+            if (this.options.localProject && (!this.localWrite || typeof content !== 'string')) {
+                throw new Error('Local source is not ready for a text write');
             }
+            if (this.options.localProject) {
+                // Local source remains byte-for-byte as the editor supplied it.
+                // The cloud path below stamps OIDs, injects scripts, and formats
+                // whole JSX files. Those broad changes require a separate
+                // reviewed preparation step for an existing Git project.
+                try {
+                    await this.localWrite!(path, content as string);
+                } catch (error) {
+                    const recoveryPath = await this.saveRecoveryCopy(path, content as string);
+                    throw new Error(
+                        `Local write failed for ${path}. Your attempted source is saved in ${recoveryPath}. ${error instanceof Error ? error.message : String(error)}`,
+                    );
+                }
+                await super.writeFile(path, content);
+                await this.performRebuildIndex();
+                return;
+            }
+            let processedContent: string | Uint8Array = content;
+            if (this.isJsxFile(path) && typeof content === 'string') {
+                processedContent = await this.processJsxFile(path, content);
+            } else if (this.isHtmlFile(path) && typeof content === 'string') {
+                processedContent = await this.processHtmlFile(path, content);
+            }
+            await super.writeFile(path, processedContent);
         });
     }
 
@@ -103,6 +186,28 @@ export class CodeFileSystem extends FileSystem {
         for (const { path, content } of files) {
             await this.writeFile(path, content);
         }
+    }
+
+    async createFile(path: string, content = ''): Promise<void> {
+        if (this.options.localProject) {
+            throw new Error('Creating local files from the editor is not ready');
+        }
+        await super.createFile(path, content);
+    }
+
+    async createDirectory(path: string): Promise<void> {
+        if (this.options.localProject) throw new Error('Creating local folders from the editor is not ready');
+        await super.createDirectory(path);
+    }
+
+    async copyDirectory(from: string, to: string): Promise<void> {
+        if (this.options.localProject) throw new Error('Copying local folders from the editor is not ready');
+        await super.copyDirectory(from, to);
+    }
+
+    async copyFile(from: string, to: string): Promise<void> {
+        if (this.options.localProject) throw new Error('Copying local files from the editor is not ready');
+        await super.copyFile(from, to);
     }
 
     private async processJsxFile(path: string, content: string): Promise<string> {
@@ -453,6 +558,9 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async deleteFile(path: string): Promise<void> {
+        if (this.options.localProject) {
+            throw new Error('Deleting local files from the editor is not ready');
+        }
         return this.withWriteLock(async () => {
             await super.deleteFile(path);
 
@@ -492,6 +600,9 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async moveFile(oldPath: string, newPath: string): Promise<void> {
+        if (this.options.localProject) {
+            throw new Error('Moving local files from the editor is not ready');
+        }
         return this.withWriteLock(async () => {
             await super.moveFile(oldPath, newPath);
 
@@ -568,6 +679,7 @@ export class CodeFileSystem extends FileSystem {
      * concurrent single-file index update.
      */
     async deleteDirectory(path: string): Promise<void> {
+        if (this.options.localProject) throw new Error('Deleting local folders from the editor is not ready');
         return this.withWriteLock(async () => {
             await super.deleteDirectory(path);
 
@@ -606,6 +718,7 @@ export class CodeFileSystem extends FileSystem {
      * and component keys, so edits route to the now-nonexistent old location.
      */
     async moveDirectory(oldPath: string, newPath: string): Promise<void> {
+        if (this.options.localProject) throw new Error('Moving local folders from the editor is not ready');
         return this.withWriteLock(async () => {
             await super.moveDirectory(oldPath, newPath);
 
@@ -708,7 +821,9 @@ export class CodeFileSystem extends FileSystem {
             return;
         }
         try {
-            await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
+            // In-memory cache folder only. The local-project override blocks
+            // user folder creation, and .weblab is never mirrored to disk.
+            await super.createDirectory(WEBLAB_CACHE_DIRECTORY);
         } catch {
             console.warn(`[CodeEditorApi] Failed to create ${WEBLAB_CACHE_DIRECTORY} directory`);
         }
@@ -733,7 +848,9 @@ export class CodeFileSystem extends FileSystem {
             return;
         }
         try {
-            await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
+            // In-memory cache folder only. The local-project override blocks
+            // user folder creation, and .weblab is never mirrored to disk.
+            await super.createDirectory(WEBLAB_CACHE_DIRECTORY);
         } catch {
             console.warn(`[CodeEditorApi] Failed to create ${WEBLAB_CACHE_DIRECTORY} directory`);
         }

@@ -2,7 +2,7 @@ const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron')
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { registerIpcHandlers: registerCliIpc } = require('./weblab-cli');
-const { registerLocalIpc, disposeLocal } = require('./weblab-local');
+const { registerLocalIpc, grantLocalRoot, disposeLocal } = require('./weblab-local');
 const { isOAuthHost } = require('./auth-hosts');
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Weblab';
@@ -104,10 +104,13 @@ ipcMain.handle('weblab:open-external', async (_event, url) => {
 let rendererReady = false;
 let pendingOpenFolderPath = null;
 
-function deliverOpenFolder(folderPath) {
+async function deliverOpenFolder(folderPath) {
     if (!folderPath || typeof folderPath !== 'string') return;
     if (rendererReady && mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('weblab:open-folder', { rootPath: folderPath });
+        let rootPath;
+        try { rootPath = await grantLocalRoot(folderPath); }
+        catch { return; }
+        mainWindow.webContents.send('weblab:open-folder', { rootPath });
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
     } else {
@@ -119,15 +122,20 @@ function deliverOpenFolder(folderPath) {
 // Register as early as possible — macOS may emit this before `whenReady`.
 app.on('open-file', (event, folderPath) => {
     event.preventDefault();
-    deliverOpenFolder(folderPath);
+    void deliverOpenFolder(folderPath);
 });
 
-ipcMain.on('weblab:renderer-ready', () => {
+ipcMain.on('weblab:renderer-ready', (event) => {
+    try {
+        if (event.sender !== mainWindow?.webContents ||
+            event.senderFrame !== event.sender.mainFrame ||
+            !ALLOWED_IPC_ORIGINS.has(new URL(event.senderFrame.url).origin)) return;
+    } catch { return; }
     rendererReady = true;
     if (pendingOpenFolderPath) {
         const p = pendingOpenFolderPath;
         pendingOpenFolderPath = null;
-        deliverOpenFolder(p);
+        void deliverOpenFolder(p);
     }
 });
 
@@ -142,13 +150,17 @@ registerLocalIpc({
     getWebContents: () => mainWindow?.webContents ?? null,
 });
 
-// Tear down any spawned local dev servers + file watchers on shutdown.
-app.on('before-quit', () => {
-    try {
-        disposeLocal();
-    } catch {
-        // best-effort cleanup
-    }
+// Wait for the desktop-owned preview/install children to stop before the
+// Electron process exits, especially on Windows where descendants survive a
+// parent exit unless their process tree is terminated explicitly.
+let localShutdownStarted = false;
+app.on('before-quit', (event) => {
+    if (localShutdownStarted) return;
+    event.preventDefault();
+    localShutdownStarted = true;
+    Promise.resolve().then(() => disposeLocal()).catch((err) => {
+        console.error('Could not stop a local preview during shutdown:', err);
+    }).finally(() => app.quit());
 });
 
 // --- Single-instance + custom protocol registration ---------------------------

@@ -185,7 +185,7 @@ export const GestureScreen = observer(
                                         el.domId,
                                     );
                                     if (boundary?.instanceId && frameData.view) {
-                                        const boundaryEl: DomElement =
+                                        const boundaryEl: DomElement | null =
                                             await frameData.view.getElementByDomId(
                                                 boundary.domId,
                                                 false,

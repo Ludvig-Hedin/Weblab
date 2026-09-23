@@ -37,8 +37,6 @@ import type { ProjectFolder } from './project-card-utils';
 import type { ProjectFilters, ProjectSort, ProjectView } from './projects-toolbar';
 import type { CreateSuggestion } from '@/app/_components/hero/create';
 import type { Id } from '@convex/_generated/dataModel';
-import { Create } from '@/app/_components/hero/create';
-import { CreateManagerProvider } from '@/components/store/create';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { Routes } from '@/utils/constants';
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
@@ -61,6 +59,9 @@ import { countActiveFilters, DEFAULT_FILTERS, ProjectsToolbar } from './projects
 import { useScreenshotBackfill } from './use-screenshot-backfill';
 
 const VIEW_STORAGE_KEY = 'weblab_projects_view_v1';
+// Cloud import and templates still create server-backed projects. Keep their
+// entry points hidden while the desktop release only supports local folders.
+const SHOW_CLOUD_PROJECT_ACTIONS = false;
 const getViewStorageKey = (userId?: string | null) =>
     `${VIEW_STORAGE_KEY}:${userId ?? 'anonymous'}`;
 const isProjectView = (value: unknown): value is ProjectView =>
@@ -267,11 +268,6 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
 
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
-    // Drives the full-screen ProjectCreationLoader inside <Create> while
-    // the sandbox forks (5–30s). Without real state the overlay never
-    // mounts and first-time users think the page hung.
-    const [isCreatingProject, setIsCreatingProject] = useState(false);
 
     const [filesSortBy, setFilesSortBy] = useState<ProjectSort>('Last viewed');
     const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
@@ -817,62 +813,47 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
 
     if (projects.length === 0) {
         return (
-            <CreateManagerProvider>
-                <div className="mx-auto flex h-full w-full max-w-6xl flex-col items-center gap-12 px-6 py-16">
-                    {hasPendingLocalImport && (
-                        <div className="w-full">
-                            <PendingLocalImportBanner
-                                onChooseFolder={() => void handleImportLocalProject()}
-                                onDismiss={() => void clearPendingLocalImport()}
-                                isImporting={isImportingLocal}
-                            />
-                        </div>
-                    )}
-
-                    <div className="flex w-full flex-col items-center gap-3 text-center">
-                        <div className="text-foreground text-3xl font-normal tracking-tight">
-                            {t('startFirstHeading')}
-                        </div>
-                        <div className="text-foreground-tertiary max-w-md text-sm leading-relaxed">
-                            {t('startFirstBody')}
-                        </div>
-                    </div>
-
+            <div className="mx-auto flex h-full w-full max-w-6xl flex-col items-center gap-12 px-6 py-16">
+                {SHOW_CLOUD_PROJECT_ACTIONS && hasPendingLocalImport && (
                     <div className="w-full">
-                        <Create
-                            cardKey={0}
-                            isCreatingProject={isCreatingProject}
-                            setIsCreatingProject={setIsCreatingProject}
-                            user={user ?? null}
-                            suggestions={PROJECT_SUGGESTIONS}
+                        <PendingLocalImportBanner
+                            onChooseFolder={() => void handleImportLocalProject()}
+                            onDismiss={() => void clearPendingLocalImport()}
+                            isImporting={isImportingLocal}
                         />
                     </div>
+                )}
 
-                    <ProjectChooserCards />
-
-                    {shouldShowTemplate && (
-                        <div className="w-full">
-                            <Templates
-                                templateProjects={templateProjects}
-                                searchQuery={debouncedSearchQuery}
-                                onTemplateClick={handleTemplateClick}
-                                onToggleStar={handleToggleStar}
-                                starredTemplates={starredTemplates}
-                            />
-                        </div>
-                    )}
-
-                    {availableStaticTemplateIds.size > 0 && (
-                        <div className="w-full">
-                            <StaticTemplates
-                                onUseTemplate={handleStaticTemplateClick}
-                                isCreating={false}
-                                availableTemplateIds={availableStaticTemplateIds}
-                            />
-                        </div>
-                    )}
+                <div className="flex w-full flex-col items-center gap-3 text-center">
+                    <div className="text-foreground text-3xl font-normal tracking-tight">
+                        {t('startFirstHeading')}
+                    </div>
                 </div>
-            </CreateManagerProvider>
+
+                <ProjectChooserCards />
+
+                {SHOW_CLOUD_PROJECT_ACTIONS && shouldShowTemplate && (
+                    <div className="w-full">
+                        <Templates
+                            templateProjects={templateProjects}
+                            searchQuery={debouncedSearchQuery}
+                            onTemplateClick={handleTemplateClick}
+                            onToggleStar={handleToggleStar}
+                            starredTemplates={starredTemplates}
+                        />
+                    </div>
+                )}
+
+                {SHOW_CLOUD_PROJECT_ACTIONS && availableStaticTemplateIds.size > 0 && (
+                    <div className="w-full">
+                        <StaticTemplates
+                            onUseTemplate={handleStaticTemplateClick}
+                            isCreating={false}
+                            availableTemplateIds={availableStaticTemplateIds}
+                        />
+                    </div>
+                )}
+            </div>
         );
     }
 
@@ -887,7 +868,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
             }}
         >
             <div className="mx-auto w-full max-w-6xl">
-                {hasPendingLocalImport && (
+                {SHOW_CLOUD_PROJECT_ACTIONS && hasPendingLocalImport && (
                     <PendingLocalImportBanner
                         onChooseFolder={() => void handleImportLocalProject()}
                         onDismiss={() => void clearPendingLocalImport()}
@@ -1209,7 +1190,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                     )}
                 </div>
 
-                {shouldShowTemplate && (
+                {SHOW_CLOUD_PROJECT_ACTIONS && shouldShowTemplate && (
                     <div className="mt-16">
                         <Templates
                             templateProjects={templateProjects}
@@ -1221,7 +1202,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                     </div>
                 )}
 
-                {availableStaticTemplateIds.size > 0 && (
+                {SHOW_CLOUD_PROJECT_ACTIONS && availableStaticTemplateIds.size > 0 && (
                     <StaticTemplates
                         onUseTemplate={handleStaticTemplateClick}
                         isCreating={false}
@@ -1269,7 +1250,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                 </AlertDialogContent>
             </AlertDialog>
 
-            {selectedTemplate && shouldShowTemplate && (
+            {SHOW_CLOUD_PROJECT_ACTIONS && selectedTemplate && shouldShowTemplate && (
                 <TemplateModal
                     isOpen={isTemplateModalOpen}
                     onClose={handleCloseTemplateModal}

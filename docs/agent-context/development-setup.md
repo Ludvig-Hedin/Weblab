@@ -3,7 +3,7 @@
 ## Runtime
 
 - Package manager/runtime: Bun only.
-- Root package manager version: `bun@1.3.1`.
+- Root package manager version: `bun@1.3.10`.
 - Node requirement from docs: `v20.16.0` minimum or newer.
 - Convex CLI: `bunx convex dev` for local backend (no Docker / Supabase
   needed for the active backend; legacy Supabase tooling is archived).

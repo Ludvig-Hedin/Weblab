@@ -18,6 +18,26 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-09-23 — Dependency setup stays inside the private copy
+
+Decision: An explicit native action installs from one frozen Bun lockfile in the registered private Git copy, with lifecycle scripts disabled, an isolated persistent cache, and dependency link checks before install and preview.
+Context: `node_modules` is excluded from copied client projects so the original dependency tree stays untouched, but Next.js preview needs local dependencies.
+Alternatives considered: automatically installing on open; sharing the original `node_modules`; installing in the original Git root. Those paths would change or execute against client state before review.
+Rationale: the designer chooses when to install, and the original tree remains independent. Bun runtime bundling, foreign lockfiles, and packaged desktop proof remain release blockers.
+Status: Active in source; unverified in packaged desktop.
+
+---
+
+## 2026-09-23 — Existing Git projects edit in a private copy
+
+Decision: Weblab copies a selected Git root into an app-owned working directory, writes there, and exports reviewed Weblab edits as a Git patch for explicit application to the original.
+Context: Node's path-based hash check and rename cannot exclude a concurrent external save to the original working tree. The first paid release requires existing client Git projects and local handoff.
+Alternatives considered: direct guarded writes to the original; linked Git worktrees; a native descriptor-relative helper. Direct writes cannot provide a true cross-process hash compare-and-swap, and linked worktrees can touch the original Git metadata.
+Rationale: an independent copy keeps Weblab's file mutations away from the original HEAD, index, and working tree. A persisted source snapshot, guarded write journal, reviewed patch token, and fresh copy after source drift make handoff explicit and recoverable.
+Status: Active in source; paid release still requires type/lint, preload build, and live desktop proof. See `docs/superpowers/plans/2026-09-23-paid-local-editing.md`.
+
+---
+
 ## 2026-06-12 — Component system: code is the source of truth, no new EditorMode
 Decision: Component definitions (props/slots/variants/bindings) are pure derivations of project source, indexed client-side alongside the oid index; master editing is a sub-state of DESIGN mode, not a new EditorMode; Convex stores only display metadata (deferred).
 Context: Webflow-style master/instance components must work both for Weblab-created projects and imported local Next.js/HTML code, and survive external git edits.

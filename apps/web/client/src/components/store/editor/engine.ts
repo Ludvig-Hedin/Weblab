@@ -42,6 +42,7 @@ import { ThemeManager } from './theme';
 import { TokensManager } from './tokens';
 
 export class EditorEngine {
+    private clearPromise: Promise<void> | null = null;
     readonly projectId: string;
     readonly posthog: PostHog;
     /**
@@ -104,7 +105,7 @@ export class EditorEngine {
         this.projectId = projectId;
         this.posthog = posthog;
         this.framework = framework;
-        makeAutoObservable(this);
+        makeAutoObservable<this, 'clearPromise'>(this, { clearPromise: false });
     }
 
     async init() {
@@ -131,39 +132,54 @@ export class EditorEngine {
     // prunes server-deleted frames. Real-time push (tRPC subscriptions on
     // the existing Fastify+ws server) is a future improvement.
 
-    clear() {
-        this.elements.clear();
-        this.frames.clear();
-        this.action.clear();
-        this.overlay.clear();
-        this.ast.clear();
-        this.text.clean();
-        this.insert.clear();
-        this.move.clear();
-        this.style.clear();
-        this.stylePreferences.clear();
-        this.propertiesClipboard.clear();
-        this.copy.clear();
-        this.group.clear();
-        this.canvas.clear();
-        this.breakpoints.clear();
-        this.image.clear();
-        this.theme.clear();
-        this.tokens.clear();
-        this.font.clear();
-        this.pages.clear();
-        this.chat.clear();
-        this.interactions.clear();
-        this.code.clear();
-        this.components.clear();
-        this.branches.clear();
-        this.frameEvent.clear();
-        this.screenshot.clear();
-        this.comment.clear();
-        this.presence.clear();
-        this.screenshot.clear();
-        this.state.clear();
-        this.snap.hideSnapLines();
+    clear(): Promise<void> {
+        if (!this.clearPromise) {
+            this.clearPromise = this.clearAsync();
+        }
+        return this.clearPromise;
+    }
+
+    private async clearAsync(): Promise<void> {
+        // Rebases read responsive style state and write through the active
+        // branch. Finish them before either state or branch is disposed.
+        await this.action.flushAndWaitForPendingRebases();
+        try {
+            // History disposal persists pending edits and waits for code writes.
+            // Keep the beforeunload guard attached until both have finished.
+            await this.branches.clear();
+        } finally {
+            this.elements.clear();
+            this.frames.clear();
+            this.action.clear();
+            this.overlay.clear();
+            this.ast.clear();
+            this.text.clean();
+            this.insert.clear();
+            this.move.clear();
+            this.style.clear();
+            this.stylePreferences.clear();
+            this.propertiesClipboard.clear();
+            this.copy.clear();
+            this.group.clear();
+            this.canvas.clear();
+            this.breakpoints.clear();
+            this.image.clear();
+            this.theme.clear();
+            this.tokens.clear();
+            this.font.clear();
+            this.pages.clear();
+            this.chat.clear();
+            this.interactions.clear();
+            this.code.clear();
+            this.components.clear();
+            this.frameEvent.clear();
+            this.screenshot.clear();
+            this.comment.clear();
+            this.presence.clear();
+            this.screenshot.clear();
+            this.state.clear();
+            this.snap.hideSnapLines();
+        }
     }
 
     clearUI() {

@@ -1,6 +1,7 @@
-import { makeAutoObservable, reaction, runInAction } from 'mobx';
+import { makeAutoObservable, observable, reaction, runInAction } from 'mobx';
 
 import type { Provider } from '@weblab/code-provider';
+import { NodeFsProvider } from '@weblab/code-provider';
 import type { CodeFileSystem } from '@weblab/file-system';
 import type { Branch, RouterConfig } from '@weblab/models';
 import { EXCLUDED_SYNC_PATHS } from '@weblab/constants';
@@ -22,8 +23,12 @@ import {
     copyPreloadScriptToPublic,
     copyPreloadScriptToStaticHtml,
     getLayoutPath as detectLayoutPath,
+    planLocalProjectPreparation,
+    type LocalPreparationFile,
+    type LocalPreparationPlan,
 } from './preload-script';
 import { SessionManager } from './session';
+import { LocalMirror } from './local-mirror';
 
 export enum PreloadScriptState {
     NOT_INJECTED = 'not-injected',
@@ -31,11 +36,26 @@ export enum PreloadScriptState {
     INJECTED = 'injected',
 }
 
+export class LocalPreparationApplyError extends Error {
+    constructor(
+        message: string,
+        readonly remainingPaths: string[],
+        readonly rollbackIssues: string[],
+    ) {
+        super(message);
+        this.name = 'LocalPreparationApplyError';
+    }
+}
+
 export class SandboxManager {
     readonly session: SessionManager;
     readonly gitManager: GitManager;
     private providerReactionDisposer?: () => void;
     private sync: CodeProviderSync | null = null;
+    private localMirror: LocalMirror | null = null;
+    private localPreparationPlan: LocalPreparationPlan | null = null;
+    private localPreparationProvider: NodeFsProvider | null = null;
+    private localPreparationApplying = false;
     /**
      * Latched by `clear()`. `init()` is invoked from `BranchManager.init`'s
      * `Promise.all` AFTER an `await codeEditor.initialize()`, so a `clear()`
@@ -81,7 +101,12 @@ export class SandboxManager {
     ) {
         this.session = new SessionManager(this.branch, this.errorManager);
         this.gitManager = new GitManager(this);
-        makeAutoObservable(this);
+        // The exact reviewed plan object is the apply token. Keep its identity
+        // instead of letting MobX deep-convert it into a different object.
+        makeAutoObservable<this, 'localPreparationPlan' | 'localPreparationProvider'>(this, {
+            localPreparationPlan: observable.ref,
+            localPreparationProvider: observable.ref,
+        });
     }
 
     async init() {
@@ -90,6 +115,28 @@ export class SandboxManager {
         // initialize). Continuing would start a session and register the
         // provider reaction / sync engine on a disposed manager.
         if (this.disposed) return;
+        if (this.branch.runtime.type === 'local') {
+            // Local source is loaded from disk before BranchManager considers
+            // this branch ready. The cloud reaction below must never pull or
+            // push a local folder on open.
+            await this.session.start(this.branch.sandbox?.id ?? `local-${this.branch.id}`);
+            const provider = this.session.provider;
+            if (!(provider instanceof NodeFsProvider)) {
+                throw new Error('Local project did not create a desktop file provider');
+            }
+            const mirror = new LocalMirror(provider, this.fs, (path) =>
+                this.editorEngine.branches?.invalidateStyleWriterForSourceChange(this.branch.id, path));
+            this.localMirror = mirror;
+            await mirror.start();
+            if (this.disposed) {
+                await mirror.stop();
+                return;
+            }
+            void this.gitManager.init().catch((error) => {
+                console.error('[SandboxManager] local Git probe failed:', error);
+            });
+            return;
+        }
         // Defensive: a branch with no real sandbox id (test fixtures, synthetic
         // projects created directly via Convex mutation without forking a
         // CodeSandbox / Vercel Sandbox) used to throw
@@ -230,6 +277,202 @@ export class SandboxManager {
         return this.routerConfig;
     }
 
+    /** Preview exact on-disk changes. This method never writes to the folder. */
+    async planLocalPreparation(): Promise<LocalPreparationPlan> {
+        const provider = this.session.provider;
+        if (this.disposed || this.branch.runtime.type !== 'local' || !(provider instanceof NodeFsProvider)) {
+            throw new Error('A local project must finish loading before it can be prepared.');
+        }
+        if (this.localPreparationApplying) throw new Error('Local preparation is already applying.');
+        this.localPreparationPlan = null;
+        this.localPreparationProvider = null;
+        const framework = this.editorEngine.framework;
+        if (framework !== 'nextjs' && framework !== 'static-html') {
+            throw new Error('Visual preparation currently supports Next.js and static HTML projects.');
+        }
+        const entries = await this.fs.listAll();
+        const routerConfig = framework === 'nextjs' ? await this.getRouterConfig() : null;
+        const plan = await planLocalProjectPreparation(
+            provider,
+            framework,
+            entries.filter((entry) => entry.type === 'file').map((entry) => entry.path),
+            routerConfig,
+        );
+        for (const file of plan.files) Object.freeze(file);
+        Object.freeze(plan.files);
+        if (plan.createDirectories) Object.freeze(plan.createDirectories);
+        Object.freeze(plan);
+        this.localPreparationPlan = plan;
+        this.localPreparationProvider = provider;
+        return plan;
+    }
+
+    getLocalSourceVersion(): string | null {
+        return this.localMirror?.sourceVersion() ?? null;
+    }
+
+    getLocalExternalRevision(): string | null {
+        return this.localMirror?.externalRevision() ?? null;
+    }
+
+    getLocalOwnRevision(): string | null {
+        return this.localMirror?.ownRevision() ?? null;
+    }
+
+    /** Apply only the plan the user reviewed, using disk-hash guarded writes. */
+    async applyLocalPreparation(plan: LocalPreparationPlan): Promise<void> {
+        const provider = this.session.provider;
+        if (this.disposed || this.branch.runtime.type !== 'local' || !(provider instanceof NodeFsProvider)) {
+            throw new Error('The local project is no longer available.');
+        }
+        if (plan !== this.localPreparationPlan || provider !== this.localPreparationProvider) {
+            throw new Error('Review the current source changes before applying.');
+        }
+        if (this.localPreparationApplying) throw new Error('Local preparation is already applying.');
+        this.localPreparationPlan = null;
+        this.localPreparationProvider = null;
+        this.localPreparationApplying = true;
+        const written: Array<{ file: LocalPreparationFile; writtenHash: string }> = [];
+        const createdDirectories: string[] = [];
+        const rollbackIssues: string[] = [];
+        let failure: unknown = null;
+        let mirrorStopped = false;
+
+        try {
+            if (plan.files.length > 0 && !this.localMirror) {
+                throw new Error('Local source mirror is not ready. Reopen the project and retry.');
+            }
+            for (const directory of plan.createDirectories ?? []) {
+                if (directory !== 'public') throw new Error('Unsupported local preparation directory.');
+                const root = await provider.listFiles({ args: { path: '' } });
+                if (root.files.some((entry) => entry.name === directory)) {
+                    throw new Error(`${directory}/ appeared since review. Prepare a fresh diff.`);
+                }
+            }
+            // Check every reviewed version before the first write. The native
+            // compare-and-swap repeats this check for each individual file.
+            for (const file of plan.files) {
+                if (file.expectedSha256) {
+                    const current = await provider.readFileWithHash(file.path);
+                    if (current.sha256 !== file.expectedSha256) {
+                        throw new Error(`${file.path} changed since review. Prepare a fresh diff.`);
+                    }
+                } else {
+                    const parent = file.path.split('/').slice(0, -1).join('/');
+                    const name = file.path.split('/').at(-1);
+                    if (plan.createDirectories?.includes(parent)) continue;
+                    const listing = await provider.listFiles({ args: { path: parent } });
+                    if (listing.files.some((entry) => entry.name === name)) {
+                        throw new Error(`${file.path} was created since review. Prepare a fresh diff.`);
+                    }
+                }
+            }
+            if (plan.files.length > 0 && this.localMirror) {
+                await this.localMirror.stop();
+                this.localMirror = null;
+                mirrorStopped = true;
+            }
+            for (const directory of plan.createDirectories ?? []) {
+                if (this.disposed || this.session.provider !== provider) {
+                    throw new Error('The local project changed during preparation.');
+                }
+                await provider.createPreparationPublicDirectory();
+                createdDirectories.push(directory);
+            }
+            for (const file of plan.files) {
+                if (this.disposed || this.session.provider !== provider) {
+                    throw new Error('The local project changed during preparation.');
+                }
+                const result = await provider.writeFileIfUnchanged(
+                    file.path,
+                    file.updated,
+                    file.expectedSha256,
+                );
+                written.push({ file, writtenHash: result.sha256 });
+            }
+        } catch (error) {
+            failure = error;
+            // Roll back only our own versions. An external edit must win the
+            // hash check and remain untouched; the native bridge also retains
+            // a private byte-exact backup of each overwritten original.
+            for (const { file, writtenHash } of written.toReversed()) {
+                try {
+                    if (file.original === null) {
+                        await provider.deleteFileIfUnchanged(file.path, writtenHash);
+                    } else {
+                        await provider.writeFileIfUnchanged(file.path, file.original, writtenHash);
+                    }
+                } catch (rollbackError) {
+                    console.error(`[SandboxManager] Could not restore ${file.path}:`, rollbackError);
+                    const detail = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+                    const recoveryPath =
+                        rollbackError instanceof Error &&
+                        'recoveryPath' in rollbackError &&
+                        typeof rollbackError.recoveryPath === 'string'
+                            ? rollbackError.recoveryPath
+                            : undefined;
+                    rollbackIssues.push(
+                        `${file.path}: ${detail}${recoveryPath ? ` Backup: ${recoveryPath}` : ''}`,
+                    );
+                }
+            }
+            for (const directory of createdDirectories.toReversed()) {
+                try {
+                    await provider.deletePreparationPublicDirectory();
+                } catch (rollbackError) {
+                    console.error(`[SandboxManager] Could not remove ${directory}/:`, rollbackError);
+                    rollbackIssues.push(`${directory}/: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
+                }
+            }
+        }
+
+        try {
+            if (mirrorStopped && !this.disposed && this.session.provider === provider) {
+                const mirror = new LocalMirror(provider, this.fs, (path) =>
+                    this.editorEngine.branches?.invalidateStyleWriterForSourceChange(this.branch.id, path));
+                await mirror.start();
+                this.localMirror = mirror;
+                await this.editorEngine.branches?.refreshStyleWriter(this.branch.id);
+            }
+        } catch (error) {
+            failure ??= error;
+        } finally {
+            this.localPreparationApplying = false;
+        }
+
+        if (failure) {
+            const remainingPaths: string[] = [];
+            for (const directory of createdDirectories) {
+                try {
+                    const root = await provider.listFiles({ args: { path: '' } });
+                    if (root.files.some((entry) => entry.name === directory)) remainingPaths.push(`${directory}/`);
+                } catch {
+                    remainingPaths.push(`${directory}/`);
+                }
+            }
+            for (const { file } of written) {
+                try {
+                    if (file.original === null) {
+                        const parent = file.path.split('/').slice(0, -1).join('/');
+                        const name = file.path.split('/').at(-1);
+                        const listing = await provider.listFiles({ args: { path: parent } });
+                        if (listing.files.some((entry) => entry.name === name)) remainingPaths.push(file.path);
+                    } else if ((await provider.readFileWithHash(file.path)).sha256 !== file.expectedSha256) {
+                        remainingPaths.push(file.path);
+                    }
+                } catch {
+                    remainingPaths.push(file.path);
+                }
+            }
+            throw new LocalPreparationApplyError(
+                `Preparation stopped: ${failure instanceof Error ? failure.message : String(failure)}`,
+                remainingPaths,
+                rollbackIssues,
+            );
+        }
+        runInAction(() => { this.preloadScriptState = PreloadScriptState.INJECTED; });
+    }
+
     /**
      * Block the provider-reaction sync engine init. Call BEFORE swapping the
      * offline shim for the cloud provider, drain the durable write queue,
@@ -266,7 +509,6 @@ export class SandboxManager {
         }
         if (this.session.isOffline) return;
         if (this.branch.runtime.type === 'local') {
-            await this.fs.rebuildIndex();
             return;
         }
         this.stopOfflineWatcher();
@@ -572,6 +814,10 @@ export class SandboxManager {
         this.providerReactionDisposer = undefined;
         this.sync?.release();
         this.sync = null;
+        void this.localMirror?.stop();
+        this.localMirror = null;
+        this.localPreparationPlan = null;
+        this.localPreparationProvider = null;
         this.stopOfflineWatcher();
         if (this.preloadRetryTimeout) {
             clearTimeout(this.preloadRetryTimeout);

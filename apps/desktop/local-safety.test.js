@@ -3,9 +3,9 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
-import { beginPrivateWriteIntent, createPreparationPublicDirectory, createPrivateWorkingCopy, deleteFileIfUnchanged, deletePreparationPublicDirectory, exportPrivateHandoff, grantLocalRoot, planPrivateHandoff, projectDevEnvironment, pruneSuccessfulBackups, readTextFile, reconcilePrivateWriteIntent, recordPrivateWrite, rejectSymlinkPath, requireGrantedRoot, requirePrivateWorkingRoot, startDevServer, stopDevServer, writeIfUnchanged } from './weblab-local.js';
+import { beginPrivateWriteIntent, createPreparationPublicDirectory, createPrivateWorkingCopy, deleteFileIfUnchanged, deletePreparationPublicDirectory, exportPrivateHandoff, grantLocalRoot, installDependencies, planPrivateHandoff, privateDependencyInstallIsCurrent, projectDevEnvironment, pruneSuccessfulBackups, readTextFile, reconcilePrivateWriteIntent, recordPrivateWrite, rejectSymlinkPath, requireGrantedRoot, requirePrivateWorkingRoot, startDevServer, stopDevServer, verifyDependencyLinks, writeIfUnchanged } from './weblab-local.js';
 
 const root = await mkdtemp(join(tmpdir(), 'weblab-local-safety-'));
 const backups = [];
@@ -44,6 +44,81 @@ test('native folder grant accepts only the selected real path', async () => {
         await symlink(root, alias);
         await expect(requireGrantedRoot(alias)).rejects.toThrow('ungranted_root');
     } finally {
+        await rm(outside, { recursive: true, force: true });
+    }
+});
+
+test('dependency install is confined to a private copy with one Bun lockfile', async () => {
+    const project = await mkdtemp(join(tmpdir(), 'weblab-install-source-'));
+    const privateBase = await mkdtemp(join(tmpdir(), 'weblab-install-copy-'));
+    const git = (...args) => execFileSync('git', args, { cwd: project, encoding: 'utf8' });
+    try {
+        git('init', '-q');
+        const manifest = JSON.stringify({
+            name: 'install-test', version: '1.0.0',
+            dependencies: { fixture: 'file:./fixture' },
+            scripts: { postinstall: 'node -e "require(\'fs\').writeFileSync(\'script-ran\', \'unsafe\')"' },
+        }) + '\n';
+        await writeFile(join(project, 'package.json'), manifest);
+        await mkdir(join(project, 'fixture'));
+        await writeFile(join(project, 'fixture', 'package.json'),
+            JSON.stringify({ name: 'fixture', version: '1.0.0' }) + '\n');
+        execFileSync(process.execPath, ['install', '--lockfile-only', '--ignore-scripts'], {
+            cwd: project, stdio: 'pipe', timeout: 15000,
+        });
+        const lock = await readFile(join(project, 'bun.lock'), 'utf8');
+        git('add', 'package.json', 'bun.lock');
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Initial');
+        const source = await grantLocalRoot(project);
+        const copy = await createPrivateWorkingCopy(source, await realpath(privateBase));
+        expect((await installDependencies(source, await realpath(privateBase))).error)
+            .toBe('original_git_root_is_read_only');
+        const outside = await mkdtemp(join(tmpdir(), 'weblab-install-outside-'));
+        try {
+            await symlink(outside, join(copy.rootPath, 'node_modules'), 'dir');
+            expect((await installDependencies(copy.rootPath, await realpath(privateBase))).error)
+                .toContain('link outside');
+            expect(await readdir(outside)).toEqual([]);
+        } finally {
+            await rm(join(copy.rootPath, 'node_modules'), { force: true });
+            await rm(outside, { recursive: true, force: true });
+        }
+        const result = await installDependencies(copy.rootPath, await realpath(privateBase));
+        expect(result).toEqual({ success: true });
+        const container = join(privateBase, copy.copyId);
+        expect(await privateDependencyInstallIsCurrent(copy.rootPath, container, copy.copyId)).toBe(true);
+        expect(await readFile(join(copy.rootPath, 'package.json'), 'utf8')).toBe(manifest);
+        expect(await readFile(join(copy.rootPath, 'bun.lock'), 'utf8')).toBe(lock);
+        expect(await readFile(join(project, 'package.json'), 'utf8')).toBe(manifest);
+        await expect(stat(join(copy.rootPath, 'script-ran'))).rejects.toMatchObject({ code: 'ENOENT' });
+        await writeFile(join(copy.rootPath, 'yarn.lock'), 'ambiguous');
+        expect((await installDependencies(copy.rootPath, await realpath(privateBase))).error)
+            .toContain('Ambiguous lockfiles');
+        expect(await privateDependencyInstallIsCurrent(copy.rootPath, container, copy.copyId)).toBe(false);
+    } finally {
+        await rm(project, { recursive: true, force: true });
+        await rm(privateBase, { recursive: true, force: true });
+    }
+});
+
+test('dependency links stay inside the private copy or its persistent cache', async () => {
+    const project = await mkdtemp(join(tmpdir(), 'weblab-link-project-'));
+    const cache = await mkdtemp(join(tmpdir(), 'weblab-link-cache-'));
+    const outside = await mkdtemp(join(tmpdir(), 'weblab-link-outside-'));
+    try {
+        await mkdir(join(project, 'node_modules'));
+        await mkdir(join(project, 'workspace'));
+        await symlink(join(project, 'workspace'), join(project, 'node_modules', 'workspace'), 'dir');
+        await symlink(cache, join(project, 'node_modules', 'bun-store'), 'dir');
+        await expect(verifyDependencyLinks(project, cache)).resolves.toBeUndefined();
+        await symlink(outside, join(project, 'node_modules', 'external'), 'dir');
+        await expect(verifyDependencyLinks(project, cache)).rejects.toThrow('link outside');
+        await rm(join(project, 'node_modules', 'external'));
+        await symlink(outside, join(project, 'workspace', 'nested-external'), 'dir');
+        await expect(verifyDependencyLinks(project, cache)).rejects.toThrow('link outside');
+    } finally {
+        await rm(project, { recursive: true, force: true });
+        await rm(cache, { recursive: true, force: true });
         await rm(outside, { recursive: true, force: true });
     }
 });
@@ -134,6 +209,147 @@ test('private Git copy rejects source symlinks without changing the original', a
         await rm(privateBase, { recursive: true, force: true });
     }
 });
+
+test('linked worktree gets an independent private Git copy and a guarded patch handoff', async () => {
+    const fixture = await mkdtemp(join(tmpdir(), 'weblab-linked-worktree-'));
+    const main = join(fixture, 'main');
+    const worktree = join(fixture, 'client');
+    const privateBase = join(fixture, 'private');
+    const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+    try {
+        await mkdir(main);
+        await mkdir(privateBase);
+        git(main, 'init', '-q');
+        await writeFile(join(main, 'page.html'), '<h1>committed</h1>\n');
+        git(main, 'add', 'page.html');
+        git(main, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+            'commit', '-qm', 'Initial');
+        git(main, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+            'commit', '--allow-empty', '-qm', 'History');
+        git(main, 'worktree', 'add', '-qb', 'client', worktree);
+        await writeFile(join(worktree, 'page.html'), '<h1>staged</h1>\n');
+        git(worktree, 'add', 'page.html');
+        await writeFile(join(worktree, 'page.html'), '<h1>dirty</h1>\n');
+        await writeFile(join(worktree, 'note.txt'), 'untracked note\n');
+        const sourceHead = git(worktree, 'rev-parse', 'HEAD');
+        const indexPath = resolve(worktree, git(worktree, 'rev-parse', '--git-path', 'index'));
+        const sourceIndex = await readFile(indexPath);
+        const sourcePointer = await readFile(join(worktree, '.git'));
+        const sourceRoot = await grantLocalRoot(worktree);
+        const base = await realpath(privateBase);
+        const copy = await createPrivateWorkingCopy(sourceRoot, base);
+        expect(copy.reused).toBe(false);
+        expect(await readFile(join(copy.rootPath, 'page.html'), 'utf8')).toBe('<h1>dirty</h1>\n');
+        expect(await readFile(join(copy.rootPath, 'note.txt'), 'utf8')).toBe('untracked note\n');
+        expect(git(copy.rootPath, 'rev-parse', 'HEAD')).toBe(sourceHead);
+        expect(git(worktree, 'rev-list', '--count', 'HEAD')).toBe('2');
+        expect(git(copy.rootPath, 'rev-list', '--count', 'HEAD')).toBe('1');
+        expect(git(copy.rootPath, 'branch', '--show-current')).toBe('client');
+        expect(git(copy.rootPath, 'remote')).toBe('');
+        expect(resolve(copy.rootPath, git(copy.rootPath, 'rev-parse', '--git-common-dir')))
+            .toBe(join(copy.rootPath, '.git'));
+        expect((await stat(join(copy.rootPath, '.git'))).isDirectory()).toBe(true);
+        await expect(stat(join(copy.rootPath, '.git', 'objects', 'info', 'alternates')))
+            .rejects.toMatchObject({ code: 'ENOENT' });
+        await expect(stat(join(copy.rootPath, '.git', 'worktrees')))
+            .rejects.toMatchObject({ code: 'ENOENT' });
+        expect(await readFile(join(copy.rootPath, '.git', 'config'), 'utf8'))
+            .not.toContain(sourceRoot);
+        expect(await readFile(indexPath)).toEqual(sourceIndex);
+        expect(await readFile(join(worktree, '.git'))).toEqual(sourcePointer);
+        expect(git(worktree, 'rev-parse', 'HEAD')).toBe(sourceHead);
+
+        const saved = await writeIfUnchanged(copy.rootPath, 'page.html',
+            '<h1>Weblab edit</h1>\n', hash('<h1>dirty</h1>\n'));
+        expect(saved.success).toBe(true);
+        backups.push(saved.recoveryPath);
+        await recordPrivateWrite(copy.rootPath, 'page.html', saved.hash, base);
+        const plan = await planPrivateHandoff(copy.rootPath, base);
+        expect(plan.sourceChanged).toBe(false);
+        expect(plan.changedFiles).toContainEqual({
+            path: 'page.html', original: '<h1>dirty</h1>\n', updated: '<h1>Weblab edit</h1>\n',
+        });
+        const exported = await exportPrivateHandoff(copy.rootPath, plan.planToken, base);
+        expect(await readFile(exported.patchPath, 'utf8')).toContain('+<h1>Weblab edit</h1>');
+        const disposable = join(fixture, 'apply');
+        git(main, 'worktree', 'add', '-qb', 'apply', disposable);
+        await writeFile(join(disposable, 'page.html'), '<h1>dirty</h1>\n');
+        git(disposable, 'apply', '--check', exported.patchPath);
+        git(disposable, 'apply', exported.patchPath);
+        expect(await readFile(join(disposable, 'page.html'), 'utf8'))
+            .toBe('<h1>Weblab edit</h1>\n');
+        expect(await readFile(indexPath)).toEqual(sourceIndex);
+        expect(await readFile(join(worktree, '.git'))).toEqual(sourcePointer);
+
+        await writeFile(join(worktree, 'note.txt'), 'changed source note\n');
+        await expect(exportPrivateHandoff(copy.rootPath, plan.planToken, base))
+            .rejects.toThrow('Project files changed since handoff review');
+        await writeFile(join(worktree, 'note.txt'), 'untracked note\n');
+        const reviewedAgain = await planPrivateHandoff(copy.rootPath, base);
+        await writeFile(join(worktree, '.git'), Buffer.concat([sourcePointer, Buffer.from('\n')]));
+        await expect(exportPrivateHandoff(copy.rootPath, reviewedAgain.planToken, base))
+            .rejects.toThrow();
+        await writeFile(join(worktree, '.git'), sourcePointer);
+    } finally {
+        await rm(fixture, { recursive: true, force: true });
+    }
+}, 30000);
+
+test('linked worktree refuses changed index, branch, split index, sparse index and submodules', async () => {
+    const fixture = await mkdtemp(join(tmpdir(), 'weblab-linked-reject-'));
+    const main = join(fixture, 'main');
+    const worktree = join(fixture, 'client');
+    const privateBase = join(fixture, 'private');
+    const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+    try {
+        await mkdir(main);
+        await mkdir(privateBase);
+        git(main, 'init', '-q');
+        await writeFile(join(main, 'page.html'), 'committed\n');
+        git(main, 'add', 'page.html');
+        git(main, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+            'commit', '-qm', 'Initial');
+        git(main, 'worktree', 'add', '-qb', 'client', worktree);
+        const sourceRoot = await grantLocalRoot(worktree);
+        const base = await realpath(privateBase);
+        const copy = await createPrivateWorkingCopy(sourceRoot, base);
+        const saved = await writeIfUnchanged(copy.rootPath, 'new.html', 'new\n', null);
+        expect(saved.success).toBe(true);
+        await recordPrivateWrite(copy.rootPath, 'new.html', saved.hash, base);
+        const plan = await planPrivateHandoff(copy.rootPath, base);
+        await writeFile(join(worktree, 'page.html'), 'staged source change\n');
+        git(worktree, 'add', 'page.html');
+        await expect(exportPrivateHandoff(copy.rootPath, plan.planToken, base))
+            .rejects.toThrow('Project files changed since handoff review');
+        expect((await planPrivateHandoff(copy.rootPath, base)).sourceChanged).toBe(true);
+        await expect(createPrivateWorkingCopy(sourceRoot, base)).resolves.toMatchObject({ reused: false });
+
+        git(worktree, 'checkout', '--detach', 'HEAD');
+        const detached = await createPrivateWorkingCopy(sourceRoot, base);
+        expect(detached.reused).toBe(false);
+        git(worktree, 'update-index', '--split-index');
+        await expect(createPrivateWorkingCopy(sourceRoot, base))
+            .rejects.toThrow('Split or sparse Git indexes');
+        git(worktree, 'update-index', '--no-split-index');
+        git(worktree, 'config', 'core.sparseCheckout', 'true');
+        await expect(createPrivateWorkingCopy(sourceRoot, base))
+            .rejects.toThrow('Split or sparse Git indexes');
+        git(worktree, 'config', '--unset', 'core.sparseCheckout');
+        await writeFile(join(worktree, '.gitmodules'), '[submodule "other"]\n');
+        await expect(createPrivateWorkingCopy(sourceRoot, base))
+            .rejects.toThrow('Unsupported Git layout');
+        await rm(join(worktree, '.gitmodules'));
+        git(worktree, 'config', 'uploadpack.packObjectsHook', 'echo unsafe');
+        await expect(createPrivateWorkingCopy(sourceRoot, base))
+            .rejects.toThrow('Git upload-pack hooks are not supported');
+        git(worktree, 'config', '--unset', 'uploadpack.packObjectsHook');
+        await writeFile(join(main, '.git', 'objects', 'info', 'alternates'), '/tmp/external-objects\n');
+        await expect(createPrivateWorkingCopy(sourceRoot, base))
+            .rejects.toThrow('Unsupported Git layout');
+    } finally {
+        await rm(fixture, { recursive: true, force: true });
+    }
+}, 30000);
 
 test('private copy recovers a dead owner lock but keeps live and unknown locks', async () => {
     const project = await mkdtemp(join(tmpdir(), 'weblab-lock-source-'));

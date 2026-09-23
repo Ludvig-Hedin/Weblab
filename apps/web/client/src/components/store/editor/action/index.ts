@@ -15,26 +15,91 @@ import {
     type UpdateStyleAction,
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
+import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
+import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
 
 export class ActionManager {
     constructor(private editorEngine: EditorEngine) {}
 
-    async run(action: Action) {
-        const pushed = await this.editorEngine.history.push(action);
-        if (!pushed) {
-            // The code write failed (push already dropped the action from the
-            // undo stack and surfaced the error). Skip dispatch so the iframe
-            // doesn't show a ghost edit that was never saved.
-            return;
+    private queuedStyleDispatches = new Set<Promise<void>>();
+
+    async waitForQueuedStyleDispatches(): Promise<void> {
+        while (this.queuedStyleDispatches.size > 0) {
+            await Promise.allSettled(Array.from(this.queuedStyleDispatches));
         }
-        await this.dispatch(action);
+    }
+
+    private styleWriteBlocked(action: UpdateStyleAction): boolean {
+        if (this.editorEngine.framework === 'static-html') {
+            toast.error('Visual style editing is unavailable for static HTML', {
+                id: 'static-html-style-unavailable',
+                description: 'The current source writer requires Tailwind. Your project files were not changed.',
+            });
+            return true;
+        }
+        const branches = this.editorEngine.branches;
+        const branchIds = new Set(action.targets.map((target) => target.branchId));
+        if (branchIds.size === 0 && branches?.hasActiveBranch) {
+            branchIds.add(branches.activeBranch.id);
+        }
+        if ([...branchIds].some((id) => branches?.getStyleWriterForBranch(id) === 'none')) {
+            toast.error('Visual style editing is unavailable for this local project', {
+                id: 'local-style-unavailable',
+                description: 'A wired Tailwind v4 App Router stylesheet is required. Text and code editing remain available.',
+            });
+            return true;
+        }
+        if (hasUnsupportedResponsiveStyleValue(action.targets, this.editorEngine.frames?.getAll() ?? [])) {
+            toast.error('This responsive value cannot be saved safely', {
+                id: 'responsive-style-unavailable',
+                description: 'Change the font on the smallest frame. Breakpoint font stacks are not supported yet.',
+            });
+            return true;
+        }
+        return false;
+    }
+
+    async run(action: Action, onApplied?: () => void): Promise<boolean> {
+        if (action.type === 'update-style' && this.styleWriteBlocked(action)) return false;
+        // A released slider or drag may still be committing. A new transaction
+        // queues into its own commit; a direct edit waits so undo order and
+        // source writes stay in sequence instead of being dropped.
+        if (
+            action.type === 'update-style' &&
+            !this.editorEngine.history.isInTransaction &&
+            this.editorEngine.history.isCommitPending
+        ) {
+            await this.editorEngine.history.waitForCommit();
+        }
+        const queuedStyle = action.type === 'update-style' && this.editorEngine.history.isInTransaction;
+        let finishQueued: (() => void) | undefined;
+        const queuedCompletion = queuedStyle ? new Promise<void>((resolve) => {
+            finishQueued = () => resolve(undefined);
+        }) : null;
+        if (queuedCompletion) this.queuedStyleDispatches.add(queuedCompletion);
+        try {
+            const pushed = await this.editorEngine.history.push(action);
+            if (!pushed) {
+                // The code write failed (push already dropped the action from
+                // undo history). No preview edit should be dispatched.
+                return false;
+            }
+            await this.dispatch(action, { scheduleRebase: !queuedStyle, skipWriteGuard: true });
+            onApplied?.();
+            return true;
+        } finally {
+            finishQueued?.();
+            if (queuedCompletion) this.queuedStyleDispatches.delete(queuedCompletion);
+        }
     }
 
     async undo() {
+        this.cancelPendingRebases();
+        await Promise.allSettled(Array.from(this.inFlightRebases));
         const result = await this.editorEngine.history.undo();
 
         if (result == null) {
@@ -49,6 +114,7 @@ export class ActionManager {
             this.editorEngine.history.rollbackUndo(result.redoEntry);
             return;
         }
+        await this.editorEngine.history.confirmSourceReplay(result.externalRevision);
         // Also apply the inverse to the live frames: the preload's injected
         // stylesheet and the style panel mirror don't watch the file system,
         // so without this the undone value keeps winning the cascade in the
@@ -58,6 +124,8 @@ export class ActionManager {
     }
 
     async redo() {
+        this.cancelPendingRebases();
+        await Promise.allSettled(Array.from(this.inFlightRebases));
         const result = await this.editorEngine.history.redo();
         if (result == null) {
             return;
@@ -69,6 +137,7 @@ export class ActionManager {
             this.editorEngine.history.rollbackRedo(result.forward, result.redoEntry);
             return;
         }
+        await this.editorEngine.history.confirmSourceReplay(result.externalRevision);
         // Mirror of the undo path: re-apply the forward action to the frames.
         await this.dispatchHistoryAction(result.forward);
         this.editorEngine.posthog.capture('redo');
@@ -103,10 +172,38 @@ export class ActionManager {
                 );
             }
         }
-        await this.dispatch(action, { scheduleRebase: false });
+        await this.dispatch(action, { scheduleRebase: false, skipWriteGuard: true });
     }
 
-    private async dispatch(action: Action, options?: { scheduleRebase?: boolean }) {
+    async finishQueuedStyleAction(action: UpdateStyleAction, saved: boolean): Promise<void> {
+        if (saved) {
+            this.scheduleRebasesForTargets(action.targets);
+            return;
+        }
+        for (const target of action.targets) {
+            if (!target.oid) continue;
+            for (const property of Object.keys(target.change.updated)) {
+                const key = `${target.oid}::${property}`;
+                const timer = this.rebaseTimers.get(key);
+                if (timer) clearTimeout(timer);
+                this.rebaseTimers.delete(key);
+            }
+        }
+        await Promise.allSettled(Array.from(this.inFlightRebases));
+        const inverse: UpdateStyleAction = {
+            type: 'update-style',
+            targets: action.targets.map((target) => ({
+                ...target,
+                change: {
+                    original: target.change.updated,
+                    updated: target.change.original,
+                },
+            })),
+        };
+        await this.dispatchHistoryAction(inverse);
+    }
+
+    private async dispatch(action: Action, options?: { scheduleRebase?: boolean; skipWriteGuard?: boolean }) {
         switch (action.type) {
             case 'update-style':
                 await this.updateStyle(action, options);
@@ -151,7 +248,8 @@ export class ActionManager {
         }
     }
 
-    async updateStyle({ targets }: UpdateStyleAction, options?: { scheduleRebase?: boolean }) {
+    async updateStyle({ targets }: UpdateStyleAction, options?: { scheduleRebase?: boolean; skipWriteGuard?: boolean }) {
+        if (!options?.skipWriteGuard && this.styleWriteBlocked({ type: 'update-style', targets })) return;
         // Snapshot the selection BEFORE applying the edit. The action fans each
         // selected element out to its sibling responsive frames so the style
         // lands everywhere, but those sibling frames reuse the same
@@ -245,6 +343,11 @@ export class ActionManager {
         // After all iframe injections settle, schedule a debounced source-write
         // for each unique (oid, property) the action touched. Source-write is
         // the durable path; the iframe injection is the optimistic preview.
+        if (this.editorEngine.history.isInTransaction) return;
+        this.scheduleRebasesForTargets(targets);
+    }
+
+    private scheduleRebasesForTargets(targets: UpdateStyleAction['targets']) {
         const seen = new Set<string>();
         for (const target of targets) {
             if (!target.oid) continue;
@@ -258,6 +361,30 @@ export class ActionManager {
     }
 
     private rebaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private inFlightRebases = new Set<Promise<void>>();
+
+    get hasPendingRebases(): boolean {
+        return this.rebaseTimers.size > 0 || this.inFlightRebases.size > 0;
+    }
+
+    private cancelPendingRebases() {
+        for (const timer of this.rebaseTimers.values()) clearTimeout(timer);
+        this.rebaseTimers.clear();
+    }
+
+    requestSourceRebase(oid: string, property: string): void {
+        this.scheduleSourceRebase(oid, property);
+    }
+
+    private startSourceRebase(oid: string, property: string): void {
+        const task = this.runSourceRebase(oid, property);
+        this.inFlightRebases.add(task);
+        void task.catch((error: unknown) => {
+            console.error('Source rebase failed', { oid, property, error });
+        }).finally(() => {
+            this.inFlightRebases.delete(task);
+        });
+    }
 
     private scheduleSourceRebase(oid: string, property: string) {
         const key = `${oid}::${property}`;
@@ -265,24 +392,22 @@ export class ActionManager {
         if (existing) clearTimeout(existing);
         const timer = setTimeout(() => {
             this.rebaseTimers.delete(key);
-            void this.runSourceRebase(oid, property).catch((error: unknown) => {
-                console.error('Source rebase failed', { oid, property, error });
-            });
+            this.startSourceRebase(oid, property);
         }, 600);
         this.rebaseTimers.set(key, timer);
     }
 
     private async runSourceRebase(oid: string, property: string) {
         const map = this.editorEngine.style.breakpointMapFor(oid, property);
-        if (!map || Object.keys(map).length === 0) return;
-        // Immediate variant: this call is already debounced per key by
-        // scheduleSourceRebase, and flushPendingRebases needs the write to
-        // enqueue NOW (routing through the debounced `writeResponsiveStyle`
-        // re-armed a 600ms timer that never fired on unload).
+        const removed = this.editorEngine.style.removedBreakpointMapFor(oid, property);
+        if (Object.keys(map).length === 0 && Object.keys(removed).length === 0) return;
+        // The action manager has already debounced this key. Enqueue the
+        // source write now so undo and beforeunload can order it correctly.
         await this.editorEngine.code.writeResponsiveStyleNow({
             oid,
             property,
             valuesByBreakpoint: map,
+            removedByBreakpoint: removed,
         });
     }
 
@@ -475,20 +600,21 @@ export class ActionManager {
             clearTimeout(timer);
             const [oid, property] = key.split('::');
             if (!oid || !property) continue;
-            void this.runSourceRebase(oid, property).catch((error: unknown) => {
-                console.error('Source rebase failed', { oid, property, error });
-            });
+            this.startSourceRebase(oid, property);
         }
         this.rebaseTimers.clear();
     }
 
-    clear() {
-        // Cancel any pending source-rebase timers so they don't fire after
-        // the manager is torn down (e.g. on engine clear / route change).
-        for (const timer of this.rebaseTimers.values()) {
-            clearTimeout(timer);
+    async flushAndWaitForPendingRebases(): Promise<void> {
+        this.flushPendingRebases();
+        while (this.inFlightRebases.size > 0) {
+            await Promise.allSettled(Array.from(this.inFlightRebases));
         }
-        this.rebaseTimers.clear();
+    }
+
+    clear() {
+        // Engine teardown flushes and waits for source rebases first.
+        this.cancelPendingRebases();
         // Drop the trailing re-click: without this, the 100ms trailing edge
         // fires after teardown and re-selects elements on a cleared engine.
         this.refreshDomElement.cancel();

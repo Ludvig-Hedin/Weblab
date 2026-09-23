@@ -7,8 +7,11 @@ import { useTranslations } from 'next-intl';
 import type { Frame } from '@weblab/models';
 import { APP_NAME } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { Button } from '@weblab/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
 import { Icons } from '@weblab/ui/icons';
+import { ScrollArea } from '@weblab/ui/scroll-area';
 import { toast } from '@weblab/ui/sonner';
 import { colors } from '@weblab/ui/tokens';
 import { cn } from '@weblab/ui/utils';
@@ -17,10 +20,13 @@ import type { SandboxLivenessState } from './use-sandbox-liveness';
 import type { IFrameView } from './view';
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { PreloadScriptState } from '@/components/store/editor/sandbox';
+import { LocalPreparationApplyError, PreloadScriptState } from '@/components/store/editor/sandbox';
+import type { LocalPreparationPlan } from '@/components/store/editor/sandbox/preload-script';
 import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { RightClickMenu } from '../../right-click-menu';
 import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
+import { CodeDiff } from '../../right-panel/chat-tab/code-display/code-diff';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
 import { isFrameBridgeReady, shouldUnlockCodeSandboxPreview } from './frame-connection';
 import { GestureScreen } from './gesture';
@@ -39,6 +45,26 @@ import { FrameComponent } from './view';
 // realistically have come up. 410 stays definitive — CSB only returns
 // it for sandboxes that have actually been reaped.
 const NOTFOUND_GRACE_MS = 90_000;
+
+type LocalInstallResult = { success?: boolean; error?: string; details?: string };
+
+function getLocalDependencyInstaller(): ((root: string) => Promise<LocalInstallResult>) | null {
+    if (typeof window === 'undefined') return null;
+    return (window as unknown as {
+        weblabNative?: {
+            localdev?: { installDependencies?: (root: string) => Promise<LocalInstallResult> };
+        };
+    }).weblabNative?.localdev?.installDependencies ?? null;
+}
+
+function getLocalDependencyCanceller(): ((root: string) => Promise<LocalInstallResult>) | null {
+    if (typeof window === 'undefined') return null;
+    return (window as unknown as {
+        weblabNative?: {
+            localdev?: { cancelInstallDependencies?: (root: string) => Promise<LocalInstallResult> };
+        };
+    }).weblabNative?.localdev?.cancelInstallDependencies ?? null;
+}
 
 // Tips shown during very long cold-boots (>60s). Keeps the loader
 // useful instead of just repeating "still booting" forever. Cycles
@@ -159,7 +185,10 @@ function HighlightedError({ content }: { content: string }) {
 export const FrameView = observer(
     ({ frame, isInDragSelection = false }: { frame: Frame; isInDragSelection?: boolean }) => {
         const editorEngine = useEditorEngine();
-        const t = useTranslations('editor.canvas.frame.loading');
+        const t = useTranslations('editor.canvas.frame.loading') as (
+            key: string,
+            values?: Record<string, string | number>,
+        ) => string;
         const iFrameRef = useRef<IFrameView>(null);
         const [isResizing, setIsResizing] = useState(false);
         // Tip cycler — only kicks in after the soft-hint mark
@@ -200,6 +229,26 @@ export const FrameView = observer(
             bootElapsedMs,
         } = useFrameReload();
         const [isRestarting, setIsRestarting] = useState(false);
+        const [isInstallingDependencies, setIsInstallingDependencies] = useState(false);
+        const [installLocalDependencies, setInstallLocalDependencies] = useState<
+            ((root: string) => Promise<LocalInstallResult>) | null
+        >(null);
+        const [cancelLocalDependencyInstall, setCancelLocalDependencyInstall] = useState<
+            ((root: string) => Promise<LocalInstallResult>) | null
+        >(null);
+        useEffect(() => {
+            setInstallLocalDependencies(() => getLocalDependencyInstaller());
+            setCancelLocalDependencyInstall(() => getLocalDependencyCanceller());
+        }, []);
+        const [localPlan, setLocalPlan] = useState<LocalPreparationPlan | null>(null);
+        const [localReviewOpen, setLocalReviewOpen] = useState(false);
+        const [isPlanningLocal, setIsPlanningLocal] = useState(false);
+        const [isApplyingLocal, setIsApplyingLocal] = useState(false);
+        const [localPreparationError, setLocalPreparationError] = useState<{
+            message: string;
+            remainingPaths: string[];
+            rollbackIssues: string[];
+        } | null>(null);
         // Track the post-restart reload timer so we can clear it if the
         // FrameView unmounts (e.g. user navigates away) before the
         // 5s window elapses. Without this, the queued setState would
@@ -226,6 +275,23 @@ export const FrameView = observer(
         const branchErrors = editorEngine.branches.getErrorsForBranch(frame.branchId);
         const hasBuildErrors = branchErrors.length > 0;
         const branchData = editorEngine.branches.getBranchDataById(frame.branchId);
+        const localPreviewStarted = branchData?.sandbox?.session.isLocalPreviewStarted ?? false;
+        // A static site can still ship a package.json with a dev server. The
+        // native start requires an install record for it, so the Install
+        // button must show whenever a manifest exists, not by framework.
+        const [localHasManifest, setLocalHasManifest] = useState(false);
+        const localCodeEditor =
+            branchData?.branch.runtime.type === 'local' ? branchData.codeEditor : null;
+        useEffect(() => {
+            if (!localCodeEditor) return;
+            let cancelled = false;
+            void localCodeEditor.fileExists('package.json').then(
+                (exists) => { if (!cancelled) setLocalHasManifest(exists); },
+                () => { if (!cancelled) setLocalHasManifest(false); },
+            );
+            return () => { cancelled = true; };
+        }, [localCodeEditor]);
+        const showLocalInstall = editorEngine.framework !== 'static-html' || localHasManifest;
         const restoreSandbox = useAction(api.projectActions.restoreSandbox);
         const preloadScriptReady =
             branchData?.sandbox?.preloadScriptState === PreloadScriptState.INJECTED;
@@ -308,7 +374,9 @@ export const FrameView = observer(
             // what routes into the restore/auto-restore flow.
             sandboxReclaimed ||
             (!isFrameReady &&
-                (isLocalFrame || bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1));
+                (isLocalFrame
+                    ? localPreviewStarted
+                    : bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1));
         const livenessState = useSandboxLiveness(
             frame.branchId as Id<'branches'>,
             frame.url,
@@ -319,7 +387,8 @@ export const FrameView = observer(
         // while the preload + penpal bridge finishes connecting in the
         // background. Build errors still own the overlay (otherwise the raw
         // Next.js error page would show through instead of our richer panel).
-        const localPreviewReady = isLocalFrame && livenessState === 'alive' && !hasBuildErrors;
+        const localPreviewReady =
+            isLocalFrame && localPreviewStarted && livenessState === 'alive' && !hasBuildErrors;
 
         const showSoftHint =
             !isFrameReady &&
@@ -348,8 +417,9 @@ export const FrameView = observer(
         // port 3000. Only treat 404 as "gone" once the boot grace
         // period has elapsed; before that, keep waiting.
         const sandboxIsGone =
-            livenessState === 'gone' ||
-            (livenessState === 'notFound' && bootElapsedMs >= NOTFOUND_GRACE_MS);
+            !isLocalFrame &&
+            (livenessState === 'gone' ||
+                (livenessState === 'notFound' && bootElapsedMs >= NOTFOUND_GRACE_MS));
         const [isRestorePending, setIsRestorePending] = useState(false);
         const restoreMutation = { isPending: isRestorePending };
         const restoreInFlightRef = useRef(false);
@@ -383,18 +453,19 @@ export const FrameView = observer(
         };
 
         const handleRestartSandbox = async () => {
-            if (isRestarting) return;
+            if (isRestarting || isInstallingDependencies) return;
             // Target the FRAME's own branch, not `branches.activeBranch` —
             // this handler fires from per-frame UI and the per-frame
             // auto-restart effect, so when this frame belongs to a non-active
             // branch the old code restarted the wrong branch's sandbox.
             // `branchData` is already resolved from `frame.branchId` above.
             const sandbox = branchData?.sandbox;
-            if (!sandbox?.session) {
+            if (!branchData || !sandbox?.session) {
                 toast.error('Sandbox session not available');
                 return;
             }
-            const sandboxId = branchData?.branch.sandbox?.id;
+            const sandboxId = branchData.branch.sandbox?.id ??
+                (isLocalFrame ? `local-${branchData.branch.id}` : null);
             if (!sandboxId) {
                 toast.error('Sandbox session not available');
                 return;
@@ -459,13 +530,14 @@ export const FrameView = observer(
         // 'gone' fired N concurrent Sandbox.create calls — leaking N-1 orphaned
         // VMs and racing the branch-sandbox DB write (last-writer-wins).
         useEffect(() => {
+            if (isLocalFrame) return;
             if (!isPrimaryFrameInBranch) return;
             if (livenessState !== 'gone') return;
             if (autoRestoreFiredRef.current) return;
             autoRestoreFiredRef.current = true;
             void handleRestoreSandbox({ silent: true });
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [livenessState, isPrimaryFrameInBranch]);
+        }, [livenessState, isPrimaryFrameInBranch, isLocalFrame]);
 
         // Auto-recovery on cold-boot transition: when the URL flips from
         // 404/error to alive, the iframe is still pointing at the old
@@ -497,6 +569,7 @@ export const FrameView = observer(
         // Restart panel. Catches the case where CSB has the proxy up
         // but the dev server crashed silently on cold boot.
         useEffect(() => {
+            if (isLocalFrame) return;
             if (isPenpalConnected) {
                 autoRestartFiredRef.current = false;
                 return;
@@ -507,7 +580,7 @@ export const FrameView = observer(
             autoRestartFiredRef.current = true;
             void handleRestartSandbox();
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [livenessState, bootElapsedMs, isPenpalConnected]);
+        }, [livenessState, bootElapsedMs, isPenpalConnected, isLocalFrame]);
 
         // `isPrimaryFrameInBranch` (declared above, near the auto-restore
         // effect) also gates the rich loading panel + iframe lazy-mount so
@@ -519,9 +592,11 @@ export const FrameView = observer(
         // concurrent compiles and triples the perceived load time. Let
         // the primary frame cold-compile alone, then sibling iframes
         // mount after its penpal handshake confirms the dev server is
-        // serving — they get warm cached responses.
+        // serving — they get warm cached responses. Local projects may
+        // intentionally have no bridge yet, so URL liveness can unlock them.
         const primaryFrameAlive = branchData?.sandbox?.primaryFrameAlive ?? false;
-        const shouldMountIframe = isPrimaryFrameInBranch || primaryFrameAlive;
+        const shouldMountIframe =
+            (isPrimaryFrameInBranch || primaryFrameAlive) && (!isLocalFrame || localPreviewStarted);
 
         // Promote the primary frame's penpal-connect signal into the
         // shared SandboxManager so siblings can react. Set once-and-stay
@@ -529,11 +604,18 @@ export const FrameView = observer(
         // mid-edit, and the dev server stays warm regardless.
         useEffect(() => {
             if (!isPrimaryFrameInBranch) return;
-            if (!isPenpalConnected) return;
+            if (!isPenpalConnected && !(isLocalFrame && localPreviewStarted && livenessState === 'alive')) return;
             if (!branchData?.sandbox) return;
             if (branchData.sandbox.primaryFrameAlive) return;
             branchData.sandbox.setPrimaryFrameAlive(true);
-        }, [isPrimaryFrameInBranch, isPenpalConnected, branchData?.sandbox]);
+        }, [
+            isPrimaryFrameInBranch,
+            isPenpalConnected,
+            isLocalFrame,
+            localPreviewStarted,
+            livenessState,
+            branchData?.sandbox,
+        ]);
 
         const [errorCopied, setErrorCopied] = useState(false);
 
@@ -553,6 +635,79 @@ export const FrameView = observer(
                 setTimeout(() => setErrorCopied(false), 1500);
             } catch {
                 // clipboard unavailable
+            }
+        };
+
+        const handlePlanLocalPreparation = async () => {
+            if (!branchData?.sandbox || isPlanningLocal) return;
+            setIsPlanningLocal(true);
+            setLocalPreparationError(null);
+            try {
+                const plan = await branchData.sandbox.planLocalPreparation();
+                setLocalPlan(plan);
+                setLocalReviewOpen(true);
+            } catch (error) {
+                toast.error(t('localPreparationPlanFailed'), {
+                    description: error instanceof Error ? error.message : String(error),
+                });
+            } finally {
+                setIsPlanningLocal(false);
+            }
+        };
+
+        const handleApplyLocalPreparation = async () => {
+            if (!branchData?.sandbox || !localPlan || isApplyingLocal) return;
+            setIsApplyingLocal(true);
+            setLocalPreparationError(null);
+            try {
+                await branchData.sandbox.applyLocalPreparation(localPlan);
+                setLocalReviewOpen(false);
+                setLocalPlan(null);
+                toast.success(t('localPreparationSuccess'));
+                if (branchData.sandbox.session.isLocalPreviewStarted) immediateReload();
+            } catch (error) {
+                setLocalPreparationError({
+                    message: error instanceof Error ? error.message : String(error),
+                    remainingPaths:
+                        error instanceof LocalPreparationApplyError ? error.remainingPaths : [],
+                    rollbackIssues:
+                        error instanceof LocalPreparationApplyError ? error.rollbackIssues : [],
+                });
+            } finally {
+                setIsApplyingLocal(false);
+            }
+        };
+
+        const handleInstallLocalDependencies = async () => {
+            const root = branchData?.branch.runtime.local?.rootPath;
+            if (!root || !installLocalDependencies || isInstallingDependencies || isRestarting) return;
+            setIsInstallingDependencies(true);
+            try {
+                const result = await installLocalDependencies(root);
+                if (!result.success) {
+                    const detail = result.details?.trim().slice(-600);
+                    throw new Error([result.error ?? t('localInstallFailed'), detail].filter(Boolean).join('\n'));
+                }
+                toast.success(t('localInstallSuccess'));
+            } catch (error) {
+                toast.error(t('localInstallFailed'), {
+                    description: error instanceof Error ? error.message : String(error),
+                });
+            } finally {
+                setIsInstallingDependencies(false);
+            }
+        };
+
+        const handleCancelLocalDependencyInstall = async () => {
+            const root = branchData?.branch.runtime.local?.rootPath;
+            if (!root || !cancelLocalDependencyInstall) return;
+            try {
+                const result = await cancelLocalDependencyInstall(root);
+                if (result.error) toast.error(result.error);
+            } catch (error) {
+                toast.error(t('localInstallFailed'), {
+                    description: error instanceof Error ? error.message : String(error),
+                });
             }
         };
 
@@ -592,6 +747,59 @@ export const FrameView = observer(
                         />
                     )}
                     <GestureScreen frame={frame} isResizing={isResizing} />
+
+                    {isLocalFrame && isPrimaryFrameInBranch && (!preloadScriptReady || !localPreviewReady) && (
+                        <div className="border-border bg-background absolute top-3 left-3 z-[60] max-w-[calc(100%-1.5rem)] rounded-md border p-2 shadow-md">
+                            {!preloadScriptReady && (
+                                <p className="text-foreground-secondary mb-2 text-xs">
+                                    {t('localPreparationIntro')}
+                                </p>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                                {!preloadScriptReady && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => void handlePlanLocalPreparation()}
+                                        disabled={isPlanningLocal || isApplyingLocal || !branchData?.sandbox?.session.provider}
+                                    >
+                                        {isPlanningLocal ? t('localPreparationPlanning') : t('localPreparationReview')}
+                                    </Button>
+                                )}
+                                {!localPreviewReady && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => void handleRestartSandbox()}
+                                        disabled={isRestarting || isInstallingDependencies || !branchData?.sandbox?.session.provider}
+                                    >
+                                        {isRestarting ? t('localStartingPreview') : t('localStartPreview')}
+                                    </Button>
+                                )}
+                                {!localPreviewReady && showLocalInstall && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => void (isInstallingDependencies
+                                            ? handleCancelLocalDependencyInstall()
+                                            : handleInstallLocalDependencies())}
+                                        disabled={isRestarting || !branchData?.branch.runtime.local?.rootPath || (isInstallingDependencies ? !cancelLocalDependencyInstall : !installLocalDependencies)}
+                                    >
+                                        {isInstallingDependencies ? t('localCancelInstall') : t('localInstallDependencies')}
+                                    </Button>
+                                )}
+                            </div>
+                            {!localPreviewReady && (
+                                <p className="text-foreground-secondary mt-2 text-xs">
+                                    {t('localPreviewScriptWarning')}
+                                </p>
+                            )}
+                            {!localPreviewReady && showLocalInstall && (
+                                <p className="text-foreground-secondary mt-1 text-xs">
+                                    {isInstallingDependencies ? t('localInstallingDependencies') : t('localInstallDescription')}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {(!isFrameReady || sandboxReclaimed || !frame.url) &&
                         !localPreviewReady &&
@@ -705,7 +913,7 @@ export const FrameView = observer(
                                                     Retry
                                                 </Button>
                                                 <div className="flex-1" />
-                                                <Button
+                                                {EDITOR_SCOPE.aiChat && <Button
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={handleFixErrorsWithAI}
@@ -713,7 +921,7 @@ export const FrameView = observer(
                                                 >
                                                     <Icons.MagicWand className="h-3 w-3" />
                                                     Fix with AI
-                                                </Button>
+                                                </Button>}
                                             </div>
                                         </div>
                                     ) : (
@@ -755,7 +963,7 @@ export const FrameView = observer(
                                                                         onClick={() =>
                                                                             void handleRestartSandbox()
                                                                         }
-                                                                        disabled={isRestarting}
+                                                                        disabled={isRestarting || isInstallingDependencies}
                                                                         className="text-foreground hover:text-foreground underline underline-offset-2 disabled:opacity-60"
                                                                     >
                                                                         {isRestarting
@@ -817,7 +1025,7 @@ export const FrameView = observer(
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={immediateReload}
-                                                            disabled={isRestarting}
+                                                            disabled={isRestarting || isInstallingDependencies}
                                                         >
                                                             <Icons.Reload className="h-3.5 w-3.5" />
                                                             Retry preview
@@ -827,7 +1035,7 @@ export const FrameView = observer(
                                                             onClick={() =>
                                                                 void handleRestartSandbox()
                                                             }
-                                                            disabled={isRestarting}
+                                                            disabled={isRestarting || isInstallingDependencies}
                                                         >
                                                             {isRestarting ? (
                                                                 <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
@@ -865,6 +1073,80 @@ export const FrameView = observer(
                         </div>
                     )}
                 </div>
+                <Dialog open={localReviewOpen} onOpenChange={(open) => {
+                    if (isApplyingLocal) return;
+                    setLocalReviewOpen(open);
+                }}>
+                    <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+                        <DialogHeader className="border-border border-b px-6 py-5">
+                            <DialogTitle>{t('localPreparationTitle')}</DialogTitle>
+                            <DialogDescription>
+                                {t('localPreparationDescription')}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="min-h-0 flex-1">
+                            {localPlan?.files.length === 0 && !localPlan?.createDirectories?.length ? (
+                                <p className="text-foreground-secondary px-6 py-8 text-sm">
+                                    {t('localPreparationEmpty')}
+                                </p>
+                            ) : (
+                                <div>
+                                    {localPlan?.createDirectories?.map((path) => (
+                                        <p key={path} className="border-border border-b px-6 py-3 font-mono text-xs">
+                                            {t('localPreparationNew')} {path}/
+                                        </p>
+                                    ))}
+                                    <Accordion type="multiple" className="w-full">
+                                        {localPlan?.files.map((file) => (
+                                            <AccordionItem key={file.path} value={file.path}>
+                                                <AccordionTrigger className="px-6 font-mono text-xs">
+                                                    {file.original === null
+                                                        ? t('localPreparationNew')
+                                                        : t('localPreparationEdit')}{' '}{file.path}
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <CodeDiff
+                                                        originalCode={file.original ?? ''}
+                                                        modifiedCode={file.updated}
+                                                    />
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </div>
+                            )}
+                        </ScrollArea>
+                        {localPreparationError && (
+                            <div role="alert" className="border-destructive/30 bg-destructive/10 border-t px-6 py-3 text-xs">
+                                <p>{localPreparationError.message}</p>
+                                {localPreparationError.remainingPaths.length > 0 && (
+                                    <p className="mt-1 font-mono">
+                                        {t('localPreparationStillChanged', {
+                                            paths: localPreparationError.remainingPaths.join(', '),
+                                        })}
+                                    </p>
+                                )}
+                                {localPreparationError.remainingPaths.length === 0 && (
+                                    <p className="mt-1">{t('localPreparationRestored')}</p>
+                                )}
+                                {localPreparationError.rollbackIssues.map((issue) => (
+                                    <p key={issue} className="mt-1 break-all font-mono">{issue}</p>
+                                ))}
+                            </div>
+                        )}
+                        <div className="border-border flex justify-end gap-2 border-t px-6 py-4">
+                            <Button variant="outline" onClick={() => setLocalReviewOpen(false)} disabled={isApplyingLocal}>
+                                {t('localPreparationClose')}
+                            </Button>
+                            <Button
+                                onClick={() => void handleApplyLocalPreparation()}
+                                disabled={!localPlan || isApplyingLocal || !!localPreparationError}
+                            >
+                                {isApplyingLocal ? t('localPreparationApplying') : t('localPreparationApply')}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         );
     },

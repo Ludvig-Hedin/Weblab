@@ -7,11 +7,17 @@ import { StyleChangeType } from '@weblab/models/style';
 import { rebaseToMobileFirst, removeUtilityClasses, tailwindPrefixForWidth } from '@weblab/parser';
 import { CssToTailwindTranslator, propertyMap } from '@weblab/utility';
 
+/**
+ * `prefix` scopes the classes to a breakpoint (e.g. `lg:`). The preview
+ * applies a breakpoint edit with `@media (min-width)`, so source must too;
+ * an unprefixed write at Desktop would leak into Phone after reload.
+ */
 export function addTailwindToRequest(
     request: CodeDiffRequest,
     styles: Record<string, StyleChange>,
+    prefix = '',
 ): void {
-    const newClasses = getTailwindClasses(request.oid, styles);
+    const newClasses = getTailwindClasses(request.oid, styles).map((cls) => `${prefix}${cls}`);
     request.attributes.className = twMerge(request.attributes.className || '', newClasses);
 }
 
@@ -75,9 +81,18 @@ export function addResponsiveTailwindToRequest(
     request: CodeDiffRequest,
     property: string,
     breakpointEntries: BreakpointEntry[],
+    removedEntries: BreakpointEntry[] = [],
 ): void {
     const rebased = rebaseToMobileFirst(breakpointEntries);
-    if (rebased.length === 0) return;
+    const removedTokens = new Set<string>();
+    for (const entry of removedEntries) {
+        if (entry.value === undefined) continue;
+        const classes = getTailwindClasses(request.oid, {
+            [property]: { type: StyleChangeType.Value, value: entry.value },
+        });
+        const prefix = entry.id === 'phone' ? '' : tailwindPrefixForWidth(entry.minWidth);
+        for (const cls of classes) removedTokens.add(`${prefix}${cls}`);
+    }
 
     const additions: string[] = [];
     for (const entry of rebased) {
@@ -89,13 +104,17 @@ export function addResponsiveTailwindToRequest(
             additions.push(entry.tailwindPrefix ? `${entry.tailwindPrefix}${cls}` : cls);
         }
     }
-    if (additions.length === 0) return;
+    if (additions.length === 0 && removedTokens.size === 0) return;
 
     // Strip any stale responsive variants for this property family before merging.
     // We don't have a reliable Tailwind utility prefix for every CSS property
     // (translator output varies), so we use twMerge's existing conflict-resolution
     // semantics — the additions go last so they win.
-    request.attributes.className = twMerge(request.attributes.className || '', additions.join(' '));
+    const existing = (request.attributes.className || '')
+        .split(/\s+/)
+        .filter((token: string) => token && !removedTokens.has(token))
+        .join(' ');
+    request.attributes.className = twMerge(existing, additions.join(' '));
 }
 
 export { tailwindPrefixForWidth };

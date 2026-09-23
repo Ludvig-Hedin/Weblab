@@ -76,6 +76,14 @@ function getVercelCredentials(): VercelCredentials {
     return { teamId, projectId, token };
 }
 
+function requireCloudSandboxRelease(): void {
+    throw new ConvexError('Cloud sandbox projects are unavailable in the local release.');
+}
+
+function cloudSandboxReleaseEnabled(): boolean {
+    return false;
+}
+
 function resolveSandboxPort(input: unknown): number {
     return typeof input === 'number' && Number.isInteger(input) && input > 0 && input <= 65_535
         ? input
@@ -318,6 +326,13 @@ export const _provisionSandbox = internalAction({
             }
         };
 
+        // A scheduled job from an earlier release may still be waiting when
+        // cloud creation is disabled. Fail its optimistic project visibly.
+        if (!cloudSandboxReleaseEnabled()) {
+            await markFailed('Cloud sandbox projects are unavailable in the local release.');
+            return;
+        }
+
         if (!process.env.VERCEL_TOKEN) {
             console.error('[_provisionSandbox] VERCEL_TOKEN not configured — cannot provision sandbox');
             await markFailed(
@@ -414,6 +429,7 @@ export const createBlank = action({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args): Promise<{ projectId: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
@@ -526,6 +542,7 @@ export const createFromGit = action({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args): Promise<{ projectId: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
@@ -659,6 +676,7 @@ export const createFromPrompt = action({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args): Promise<{ projectId: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
@@ -822,6 +840,7 @@ export const createFromWebsiteClone = action({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args): Promise<{ projectId: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
@@ -1013,6 +1032,7 @@ export const createFromFigma = action({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args): Promise<{ projectId: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
@@ -1145,6 +1165,7 @@ export const createEmptySandbox = action({
         ctx,
         args,
     ): Promise<{ sandboxId: string; previewUrl: string; port: number; runtime: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
@@ -1238,6 +1259,7 @@ export const restoreSandbox = action({
         ctx,
         args,
     ): Promise<{ sandboxId: string; previewUrl: string; snapshotId: string; port: number }> => {
+        requireCloudSandboxRelease();
         await ctx.runQuery(internal.projects._requireProjectUpdateCap, {
             projectId: args.projectId,
         });
@@ -1386,6 +1408,7 @@ export const fork = action({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args): Promise<{ projectId: string }> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 

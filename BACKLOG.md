@@ -38,6 +38,123 @@ later without re-discovering the context.
 
 ## Open
 
+### Windows preview descendants need crash-path proof
+
+- **Discovered:** 2026-09-23 (packaged runtime review)
+- **Where:** `apps/desktop/weblab-local.js` (`startDevServer`, `stopDevServer`)
+- **Symptom:** explicit stop and app shutdown now target the owned Windows process tree, but a Bun parent that crashes before Weblab can stop it may leave a child dev server. Bun 1.3.10 predates its documented no-orphans option.
+- **Next step:** exercise abrupt Bun termination in a packaged Windows app. If descendants survive, use a Windows job object for the owned preview tree; keep the existing PID-scoped stop path for normal shutdown. Bun's 1.3.14 announcement says its no-orphans flag is a no-op on Windows.
+- **Risk if ignored:** a crash could leave a preview process holding the port and continuing to run project code.
+- **Tags:** `#desktop` `#preview` `#test-gap`
+
+### Private Next.js copies need a supported dependency setup flow
+
+- **Discovered:** 2026-09-23 (private-copy readiness pass)
+- **Where:** `apps/desktop/weblab-local.js` (`createPrivateWorkingCopy`, `startDevServer`)
+- **Symptom:** private copies exclude `node_modules` to avoid sharing mutable dependencies with the original. Source stages pinned Bun 1.3.10 and offers an explicit frozen install from a Bun lock or isolated migration of one npm v2/v3, Yarn v1, or pnpm v9 lock. Focused native tests pass for these locks, but no packaged install or real Next.js preview has run. Workspaces, local dependencies, private registry setup, and lock entries without integrity remain unsupported. An interrupted installer blocks in-place retry while its process may still run. Quitting Weblab and reopening an unchanged source with no private edits makes a fresh copy; journaled edits can be exported as a Git patch before reopening. The old copy is retained and its path is shown.
+- **Next step:** build and inspect each packaged desktop app, then exercise install and preview on a real existing Next.js project for every supported lock type. Verify failure, cancellation, crash, fresh-copy recovery, patch handoff, lockfile rejection, and packaged dev-script behavior on macOS and Windows. Add a safe Windows descendant supervisor before automatic retry in the same copy after a hard crash.
+- **Risk if ignored:** most existing Next.js projects open but cannot reach a usable canvas without manual developer setup.
+- **Tags:** `#release-blocker` `#desktop` `#preview` `#workflow`
+
+### Linked worktree source support needs desktop proof; submodules remain unsupported
+
+- **Discovered:** 2026-09-23 (private copy review)
+- **Where:** `apps/desktop/weblab-local.js` (`createPrivateWorkingCopy`)
+- **Symptom:** source now materializes standard linked worktrees into an independent shallow private Git repository. Focused native tests passed, including a patch applied to a disposable worktree and source pointer/index checks, but the packaged desktop flow has not run. The private index starts at HEAD; source staged changes appear unstaged inside the private copy. Submodules, split/sparse indexes, alternates, partial/shallow repositories, and nonstandard links are refused.
+- **Next step:** complete a real desktop worktree copy, edit, preview, and patch export. Check source Git metadata byte-for-byte in that session and decide whether staged-state parity inside the private copy is required before release.
+- **Risk if ignored:** worktree editing may fail at runtime, or designers may misunderstand staged status in the private copy. Submodule projects remain unsupported.
+- **Tags:** `#desktop` `#git` `#workflow` `#test-gap`
+
+### Plain static HTML Git preview needs desktop proof
+
+- **Discovered:** 2026-09-23 (existing project preparation review)
+- **Where:** `apps/web/client/src/hooks/use-open-local-project.ts`, `apps/desktop/weblab-local.js` (`startDevServer`)
+- **Symptom:** a restricted loopback static server is now implemented and its native file-denial test passes, but a real multi-page desktop session has not been exercised.
+- **Next step:** use an existing static HTML Git fixture to verify multi-page navigation, preparation, editing, reload, and Git patch export in the desktop app.
+- **Risk if ignored:** the advertised static HTML path is incomplete for common existing sites.
+- **Tags:** `#deferred` `#desktop` `#editor` `#preview`
+
+### Next.js Git folders without public need desktop proof
+
+- **Discovered:** 2026-09-23 (existing project preparation review)
+- **Where:** `apps/web/client/src/components/store/editor/sandbox/preload-script.ts` (`planLocalProjectPreparation`)
+- **Symptom:** guarded `public/` creation and rollback are implemented in the private copy and pass native tests, but no real Next.js desktop preparation has run.
+- **Next step:** verify exact review, creation, bridge load, failed apply rollback, and patch export on an existing Next.js Git project without `public/`.
+- **Risk if ignored:** ordinary existing Next.js Git projects can be opened but not visually edited without manual project changes.
+- **Tags:** `#release-blocker` `#desktop` `#editor`
+
+### Local desktop projects still require Clerk and Convex
+
+- **Discovered:** 2026-09-23 (local release UI review)
+- **Where:** `apps/web/client/src/app/projects/new/layout.tsx`, `apps/web/client/src/app/projects/_components/select/index.tsx`, `apps/web/client/convex/projects.ts` (`createLocal`)
+- **Symptom:** the desktop app stores project metadata in Convex and routes through Clerk sign-in even when the source lives on disk. A disconnected user cannot open an existing folder through the normal project flow.
+- **Next step:** implement offline project metadata and auth-free opening as a later capability. Online sign-in is acceptable for the first paid release.
+- **Risk if ignored:** local source is safe on disk, but an auth or network outage can block work on it.
+- **Tags:** `#desktop` `#offline` `#workflow` `#deferred`
+
+### Cloud sandbox authorization and publishing remain disabled
+
+- **Discovered:** 2026-09-23 (local release security review)
+- **Where:** `apps/web/server/src/router/routes/sandbox.ts`, `apps/web/client/convex/{projects,branches,projectActions,branchActions,wireframeEmit,deployments,publishActions}.ts`
+- **Symptom:** cloud file and command RPCs previously checked sign-in but not project ownership; public create mutations accepted caller-provided sandbox IDs. Clone, restore, wireframe emit, and publish also have incomplete recovery or transaction paths. Their server entrypoints are gated for the local release.
+- **Next step:** map every sandbox ID to a project and enforce the caller's capability at every read/write/command boundary; provision IDs only in trusted actions; add abuse and failed-provision tests; then reopen one cloud workflow at a time with live proof.
+- **Risk if ignored:** re-enabling cloud calls could expose another customer's sandbox or incur paid work with misleading deployment state.
+- **Tags:** `#release-blocker` `#security` `#cloud` `#publish`
+
+### Local paid-work release is blocked on end-to-end proof
+
+- **Discovered:** 2026-09-23 (existing Git project readiness pass)
+- **Where:** `apps/web/client/src/components/store/editor/sandbox/`, `apps/desktop/weblab-local.js`, `apps/web/preload/script/`
+- **Symptom:** source-level fixes have not been exercised in a real desktop session on an existing Git project. The generated preload bundle still predates the stale DOM-ID source fix. The editor cannot be called reliable for paid client work yet.
+- **Next step:** when the machine guard admits it, run the registered Bun install, rebuild the preload artifact, run focused type/lint/tests, then complete the desktop open, prepare, visual edit, responsive edit, reload, undo, external change, conflict, and Git patch matrix on three existing wired Tailwind v4 Next.js projects, including one without `public/` and a linked worktree. Verify static HTML and other CSS systems reject visual edits while allowing code/text work.
+- **Risk if ignored:** a passing source review could hide a broken canvas, missing preview bridge, or lost edits.
+- **Tags:** `#release-blocker` `#desktop` `#editor` `#test-gap`
+
+### Static HTML visual style edits have no durable CSS writer
+
+- **Discovered:** 2026-09-23 (local editor source audit)
+- **Where:** `apps/web/client/src/components/store/editor/code/requests.ts`, `code/index.ts`, `style/index.ts`, and `packages/parser/src/pipelines/html/index.ts`
+- **Symptom:** ordinary and responsive style edits generate Tailwind class tokens even for plain HTML. The static preview path injects the editor bridge but no Tailwind stylesheet, so these edits can vanish after reload. The editor now rejects static HTML visual style edits before changing its optimistic style map, preview, or source. Opacity and layer visibility now use the history/source path rather than calling preview injection directly. Text and structural edits remain available.
+- **Next step:** add a same-file CSS source writer for plain HTML that preserves existing authored declarations, emits exact media rules, and supports clear plus undo/redo. Test edit, reload, and Git patch output on an existing static HTML repo before enabling its style controls.
+- **Risk if ignored:** a designer could see a style in the canvas, hand off a patch, and deliver a site without that style.
+- **Tags:** `#deferred` `#desktop` `#editor` `#static-html` `#data-integrity`
+
+### Existing Next.js projects without Tailwind can accept ineffective style classes
+
+- **Discovered:** 2026-09-23 (local editor source audit)
+- **Where:** `apps/web/client/src/components/store/editor/code/requests.ts` and `code/tailwind.ts`; `apps/web/client/src/hooks/use-open-local-project.ts`
+- **Symptom:** the Next.js visual style writer emits Tailwind classes. Local projects with another CSS system must remain open for code/text work without accepting ineffective visual styles. A source-level guard now checks each private branch for the wired Tailwind v4 App Router path, rejects unsupported actions before history/preview and direct source writes, and invalidates that capability if its setup files change.
+- **Next step:** run focused web checks after dependency installation, then prove edit, reload, undo/redo, setup-file change, and patch handoff on an existing Tailwind v4 Next.js Git repo in desktop. Add other Tailwind layouts only after verified source detection and round-trip proof.
+- **Risk if ignored:** a saved patch can contain visually ineffective styles.
+- **Tags:** `#release-blocker` `#desktop` `#editor` `#data-integrity`
+
+### Responsive font stacks and named tokens lack a safe source writer
+
+- **Discovered:** 2026-09-23 (independent local style review)
+- **Where:** `apps/web/client/src/components/store/editor/style/index.ts`, `action/index.ts`, `code/requests.ts`
+- **Symptom:** the current responsive rebase skips font stacks and custom tokens, while the ordinary source writer emits an unprefixed class. Such edits above the base breakpoint could change every width. They now reject before history, preview, or source writes.
+- **Next step:** preserve font/token identity and breakpoint scope through the responsive source writer; prove exact source classes, reload, undo/redo, and Git patch on a real Tailwind Next.js project.
+- **Risk if ignored:** a breakpoint-scoped client edit could alter the whole site.
+- **Tags:** `#deferred` `#editor` `#responsive` `#data-integrity`
+
+### Local preview scripts retain OS file permissions
+
+- **Discovered:** 2026-09-23 (independent security review)
+- **Where:** `apps/desktop/weblab-local.js` (`startDevServer`)
+- **Symptom:** Weblab now edits only an app-owned private copy, avoiding direct writes to the original Git folder. Starting that project's own dev script still runs code with the user's OS file permissions. The script could target an absolute original path.
+- **Next step:** keep an explicit preview warning, restrict inherited environment variables, and consider OS-level process isolation before claiming that preview cannot affect any file outside the copy.
+- **Risk if ignored:** an untrusted project script could read secrets or modify files outside its working directory.
+- **Tags:** `#release-blocker` `#desktop` `#data-integrity` `#security`
+
+### External file refresh needs a rebase or accept flow
+
+- **Discovered:** 2026-09-23 (local mirror review)
+- **Where:** `apps/web/client/src/components/store/editor/sandbox/local-mirror.ts`
+- **Symptom:** after an external IDE save, the current session rejects later Weblab saves to that file, even when the cache has refreshed. This preserves the external edit but forces a project reopen to establish a new baseline.
+- **Next step:** carry a per-buffer source version through each edit and offer a visible reload/rebase or conflict resolution action.
+- **Risk if ignored:** confusing blocked saves during normal Git and IDE handoff.
+- **Tags:** `#desktop` `#editor` `#workflow`
+
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.

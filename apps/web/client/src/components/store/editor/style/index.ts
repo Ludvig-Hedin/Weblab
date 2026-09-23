@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { makeAutoObservable, reaction } from 'mobx';
+import { makeAutoObservable, reaction, runInAction } from 'mobx';
 
 import type { BreakpointId, DomElement, DomElementStyles, Font } from '@weblab/models';
 import type { StyleChange } from '@weblab/models/style';
@@ -10,6 +10,7 @@ import {
     type UpdateStyleAction,
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
+import { toast } from '@weblab/ui/sonner';
 import { convertFontString } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
@@ -28,14 +29,25 @@ export enum StyleMode {
 /**
  * Per-element responsive override snapshot maintained client-side.
  *
- *   oid → property → breakpointId → value
+ *   oid → property → breakpointId → authored/computed entry
  *
  * The store updates this whenever a `update*` call commits a value, and the
  * style panel reads it to render the override-affordance (subtle blue
  * background + alt-click to clear). Source-write keeps these in sync over
  * iframe reloads.
  */
-type OverrideMap = Map<string, Map<string, Map<BreakpointId, string>>>;
+interface OverrideEntry {
+    value: string;
+    type: StyleChangeType;
+    provenance: 'authored' | 'computed';
+}
+
+type OverrideMap = Map<string, Map<string, Map<BreakpointId, OverrideEntry>>>;
+
+function normalizeProperty(property: string): string {
+    if (property.startsWith('--')) return property;
+    return property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
 
 export class StyleManager {
     selectedStyle: SelectedStyle | null = null;
@@ -54,43 +66,64 @@ export class StyleManager {
             () => this.editorEngine.elements.selected,
             (selectedElements) => this.onSelectedElementsChanged(selectedElements),
         );
-        // Source-write entry point — the action manager owns the actual write
-        // pipeline; we just forward `(oid, property)` so it can re-emit.
         this.requestSourceRebase = (oid, property) => {
-            const map = this.breakpointMapFor(oid, property);
-            void this.editorEngine.code.writeResponsiveStyle?.({
-                oid,
-                property,
-                valuesByBreakpoint: map,
-            });
+            this.editorEngine.action.requestSourceRebase(oid, property);
         };
     }
 
+    private canWriteVisualStyle(): boolean {
+        if (this.editorEngine.framework === 'static-html') {
+            toast.error('Visual style editing is unavailable for static HTML', {
+                id: 'static-html-style-unavailable',
+                description: 'The current source writer requires Tailwind. Your project files were not changed.',
+            });
+            return false;
+        }
+        const branches = this.editorEngine.branches;
+        if (
+            branches?.hasActiveBranch &&
+            branches.getStyleWriterForBranch(branches.activeBranch.id) === 'none'
+        ) {
+            toast.error('Visual style editing is unavailable for this local project', {
+                id: 'local-style-unavailable',
+                description: 'A wired Tailwind v4 App Router stylesheet is required. Reopen after changing style setup; text and code editing remain available.',
+            });
+            return false;
+        }
+        return true;
+    }
+
     updateCustom(style: string, value: string, domIds: string[] = []) {
+        if (!this.canWriteVisualStyle()) return;
         const styleObj = { [style]: value };
         const action = this.getUpdateStyleAction(styleObj, domIds, StyleChangeType.Custom);
-        this.editorEngine.action.run(action);
-        // Scope the optimistic mirror + override recording to the same domId
-        // subset as the action targets. Without the filter, editing one
-        // element mirrored the value onto the WHOLE selection and recorded
-        // phantom override-map entries for elements that were never edited —
-        // entries a later source rebase would flush into their JSX.
-        this.updateStyleNoAction(styleObj, domIds);
-        this.recordOverrides(styleObj, domIds);
+        void this.editorEngine.action.run(action, () => {
+            // Scope the mirror + override recording to the same domId subset
+            // as the source action, after its write has succeeded.
+            runInAction(() => {
+                this.updateStyleNoAction(styleObj, domIds);
+                this.recordOverrides(styleObj, domIds, StyleChangeType.Custom);
+            });
+        });
     }
 
     update(style: string, value: string) {
-        this.updateMultiple({ [style]: value });
+        return this.updateMultiple({ [style]: value });
     }
 
-    updateMultiple(styles: Record<string, string>) {
+    updateMultiple(styles: Record<string, string>): Promise<boolean> {
+        if (!this.canWriteVisualStyle()) return Promise.resolve(false);
         const action = this.getUpdateStyleAction(styles);
-        this.editorEngine.action.run(action);
-        this.updateStyleNoAction(styles);
-        this.recordOverrides(styles);
+        return this.editorEngine.action.run(action, () => {
+            runInAction(() => {
+                this.updateStyleNoAction(styles);
+                this.recordOverrides(styles);
+            });
+        });
     }
 
     updateFontFamily(style: string, value: Font) {
+        if (!this.canWriteVisualStyle()) return;
         const styleObj = { [style]: value.id };
         const action = this.getUpdateStyleAction(styleObj);
         const formattedAction = {
@@ -119,13 +152,15 @@ export class StyleManager {
                 },
             })),
         };
-        this.editorEngine.action.run(formattedAction);
-        // updateStyleNoAction mirrors `selectedStyle.styles` — that map holds
-        // resolved CSS values (e.g. "Inter, sans-serif"), not the internal
-        // Font id, so callers reading it for display don't get a slug.
-        // recordOverrides keeps the id because overrides are keyed by font id.
-        this.updateStyleNoAction({ [style]: convertFontString(value.id) });
-        this.recordOverrides({ [style]: value.id });
+        void this.editorEngine.action.run(formattedAction, () => {
+            // The style mirror holds resolved CSS, while the override UI
+            // tracks the font id. Responsive rebase skips font-family until
+            // it can round-trip that identifier.
+            runInAction(() => {
+                this.updateStyleNoAction({ [style]: convertFontString(value.id) });
+                this.recordOverrides({ [style]: value.id });
+            });
+        });
     }
 
     getUpdateStyleAction(
@@ -228,7 +263,11 @@ export class StyleManager {
         return { id, name, minWidth: width };
     }
 
-    private recordOverrides(styles: Record<string, unknown>, domIds: string[] = []) {
+    private recordOverrides(
+        styles: Record<string, unknown>,
+        domIds: string[] = [],
+        type: StyleChangeType = StyleChangeType.Value,
+    ) {
         // Same filter semantics as getUpdateStyleAction: an empty list means
         // the whole selection, a non-empty list restricts to those domIds.
         const filter = domIds.length > 0 ? new Set(domIds) : null;
@@ -239,9 +278,14 @@ export class StyleManager {
             if (!oid) continue;
             const propMap = this.overrides.get(oid) ?? new Map();
             for (const [property, value] of Object.entries(styles)) {
-                const bpMap = propMap.get(property) ?? new Map();
-                bpMap.set(breakpointId, String(value ?? ''));
-                propMap.set(property, bpMap);
+                const key = normalizeProperty(property);
+                const bpMap = propMap.get(key) ?? new Map<BreakpointId, OverrideEntry>();
+                bpMap.set(breakpointId, {
+                    value: String(value ?? ''),
+                    type,
+                    provenance: 'authored',
+                });
+                propMap.set(key, bpMap);
             }
             this.overrides.set(oid, propMap);
         }
@@ -260,17 +304,20 @@ export class StyleManager {
      * `seedOverridesFromSiblings`) — not just from edits made this session.
      */
     isOverriddenAt(oid: string, property: string, breakpointId: BreakpointId): boolean {
-        const bpMap = this.overrides.get(oid)?.get(property);
+        const bpMap = this.overrides.get(oid)?.get(normalizeProperty(property));
         if (!bpMap?.has(breakpointId)) return false;
 
-        const myValue = bpMap.get(breakpointId);
+        const current = bpMap.get(breakpointId);
+        if (current?.type === StyleChangeType.Remove) return false;
+        const myValue = current?.value;
         const myWidth = this.widthForBreakpoint(breakpointId);
 
         // Find the next-larger breakpoint that has a recorded value.
         let nextLarger: BreakpointId | null = null;
         let nextLargerWidth = Number.POSITIVE_INFINITY;
-        for (const id of bpMap.keys()) {
+        for (const [id, entry] of bpMap) {
             if (id === breakpointId) continue;
+            if (entry.type === StyleChangeType.Remove) continue;
             const w = this.widthForBreakpoint(id);
             if (w > myWidth && w < nextLargerWidth) {
                 nextLarger = id;
@@ -283,7 +330,7 @@ export class StyleManager {
         // origin in our desktop-first UI.)
         if (!nextLarger) return false;
 
-        return myValue !== bpMap.get(nextLarger);
+        return myValue !== bpMap.get(nextLarger)?.value;
     }
 
     private widthForBreakpoint(id: BreakpointId): number {
@@ -312,16 +359,21 @@ export class StyleManager {
         const siblings = this.editorEngine.frames.getByGroupId(primary.frame.groupId);
         if (siblings.length === 0) return;
 
-        // Always seed from the primary's known styles first — guaranteed
-        // available because the user just selected this element.
-        const propMap = this.overrides.get(oid) ?? new Map<string, Map<BreakpointId, string>>();
+        // Gather observations first, then merge into the CURRENT map after
+        // the sibling RPCs settle. An edit may be authored during an RPC;
+        // computed values must never replace that newer intent.
+        const observed = new Map<string, Map<BreakpointId, string>>();
+        const observe = (property: string, breakpointId: BreakpointId, value: string) => {
+            const key = normalizeProperty(property);
+            const bp = observed.get(key) ?? new Map<BreakpointId, string>();
+            bp.set(breakpointId, value);
+            observed.set(key, bp);
+        };
         const primaryBp = primary.frame.breakpoint?.id;
         if (primaryBp && selectedEl.styles?.computed) {
             for (const [property, value] of Object.entries(selectedEl.styles.computed)) {
                 if (typeof value !== 'string' || !value) continue;
-                const bp = propMap.get(property) ?? new Map<BreakpointId, string>();
-                bp.set(primaryBp, value);
-                propMap.set(property, bp);
+                observe(property, primaryBp, value);
             }
         }
 
@@ -336,9 +388,7 @@ export class StyleManager {
                     if (!bpId) return;
                     for (const [property, value] of Object.entries(sibEl.styles.computed)) {
                         if (typeof value !== 'string' || !value) continue;
-                        const bp = propMap.get(property) ?? new Map<BreakpointId, string>();
-                        bp.set(bpId, value);
-                        propMap.set(property, bp);
+                        observe(property, bpId, value);
                     }
                 } catch {
                     // Sibling not ready or oid missing — fine.
@@ -346,6 +396,20 @@ export class StyleManager {
             });
         await Promise.allSettled(fetches);
 
+        const propMap =
+            this.overrides.get(oid) ?? new Map<string, Map<BreakpointId, OverrideEntry>>();
+        for (const [property, values] of observed) {
+            const bpMap = propMap.get(property) ?? new Map<BreakpointId, OverrideEntry>();
+            for (const [breakpointId, value] of values) {
+                if (bpMap.get(breakpointId)?.provenance === 'authored') continue;
+                bpMap.set(breakpointId, {
+                    value,
+                    type: StyleChangeType.Value,
+                    provenance: 'computed',
+                });
+            }
+            propMap.set(property, bpMap);
+        }
         this.overrides.set(oid, propMap);
         // New Map reference so MobX observers re-evaluate.
         this.overrides = new Map(this.overrides);
@@ -360,12 +424,22 @@ export class StyleManager {
      * same `(oid, property)` flushes whatever the map holds; a stale entry
      * would silently re-apply the undone value to source.
      */
-    recordOverrideForOid(oid: string, breakpointId: BreakpointId, styles: Record<string, string>) {
-        const propMap = this.overrides.get(oid) ?? new Map<string, Map<BreakpointId, string>>();
-        for (const [property, value] of Object.entries(styles)) {
-            const bpMap = propMap.get(property) ?? new Map<BreakpointId, string>();
-            bpMap.set(breakpointId, value);
-            propMap.set(property, bpMap);
+    recordOverrideForOid(
+        oid: string,
+        breakpointId: BreakpointId,
+        styles: Record<string, string | StyleChange>,
+    ) {
+        const propMap =
+            this.overrides.get(oid) ?? new Map<string, Map<BreakpointId, OverrideEntry>>();
+        for (const [property, change] of Object.entries(styles)) {
+            const key = normalizeProperty(property);
+            const bpMap = propMap.get(key) ?? new Map<BreakpointId, OverrideEntry>();
+            bpMap.set(breakpointId, {
+                value: typeof change === 'string' ? change : change.value,
+                type: typeof change === 'string' ? StyleChangeType.Value : change.type,
+                provenance: 'authored',
+            });
+            propMap.set(key, bpMap);
         }
         this.overrides.set(oid, propMap);
         // New Map reference so MobX observers re-evaluate.
@@ -376,19 +450,47 @@ export class StyleManager {
      * Get the recorded value for an `(oid, property, breakpoint)` triple, if any.
      */
     getOverrideValue(oid: string, property: string, breakpointId: BreakpointId): string | null {
-        return this.overrides.get(oid)?.get(property)?.get(breakpointId) ?? null;
+        const entry = this.overrides.get(oid)?.get(normalizeProperty(property))?.get(breakpointId);
+        return entry && entry.type !== StyleChangeType.Remove ? entry.value : null;
     }
 
     /**
      * Build the full BreakpointMap for an `(oid, property)` pair across all
      * known breakpoints — useful for source-write rebase logic.
      */
-    breakpointMapFor(oid: string, property: string): Record<BreakpointId, string> {
+    breakpointMapFor(oid: string, property: string): Partial<Record<BreakpointId, string>> {
         const out: Record<string, string> = {};
-        const bpMap = this.overrides.get(oid)?.get(property);
+        const key = normalizeProperty(property);
+        // The current responsive translator cannot round-trip a CSS font
+        // stack; it emits an invalid `font-Inter, sans-serif` class.
+        if (key === 'font-family') return out;
+        const bpMap = this.overrides.get(oid)?.get(key);
         if (!bpMap) return out;
-        for (const [id, value] of bpMap.entries()) {
-            out[id] = value;
+        // The current writer accepts plain values and forces `Value` when it
+        // rebases. Until it accepts StyleChangeType, a named token must not be
+        // rewritten as a computed RGB or an invalid arbitrary class.
+        if (
+            [...bpMap.values()].some(
+                (entry) =>
+                    entry.provenance === 'authored' && entry.type === StyleChangeType.Custom,
+            )
+        ) return out;
+        for (const [id, entry] of bpMap) {
+            if (entry.provenance === 'authored' && entry.type === StyleChangeType.Value) {
+                out[id] = entry.value;
+            }
+        }
+        return out;
+    }
+
+    removedBreakpointMapFor(oid: string, property: string): Partial<Record<BreakpointId, string>> {
+        const out: Record<string, string> = {};
+        const bpMap = this.overrides.get(oid)?.get(normalizeProperty(property));
+        if (!bpMap) return out;
+        for (const [id, entry] of bpMap) {
+            if (entry.provenance === 'authored' && entry.type === StyleChangeType.Remove) {
+                out[id] = entry.value;
+            }
         }
         return out;
     }
@@ -400,20 +502,23 @@ export class StyleManager {
      * rebase pipeline so the JSX class / overrides.css drops the prefix.
      */
     clearBreakpointOverride(oid: string, property: string, breakpointId: BreakpointId) {
+        if (!this.canWriteVisualStyle()) return;
         const propMap = this.overrides.get(oid);
-        const bpMap = propMap?.get(property);
+        const key = normalizeProperty(property);
+        const bpMap = propMap?.get(key);
         if (!bpMap?.has(breakpointId)) return;
-        bpMap.delete(breakpointId);
-        if (bpMap.size === 0) {
-            propMap?.delete(property);
-        }
-        if (propMap?.size === 0) {
-            this.overrides.delete(oid);
-        }
+        // Keep a tombstone so an in-flight sibling RPC cannot re-seed the
+        // just-cleared value from its stale computed snapshot.
+        bpMap.set(breakpointId, {
+            value: bpMap.get(breakpointId)?.value ?? '',
+            type: StyleChangeType.Remove,
+            provenance: 'authored',
+        });
+        propMap?.set(key, bpMap);
         this.overrides = new Map(this.overrides);
         // Re-emit the now-truncated map so the iframe injection / source-write
         // drops this breakpoint's rule.
-        this.editorEngine.style.requestSourceRebase?.(oid, property);
+        this.requestSourceRebase?.(oid, property);
     }
 
     /**

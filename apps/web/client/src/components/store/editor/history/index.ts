@@ -25,6 +25,21 @@ interface NotInTransaction {
 type TransactionState = InTransaction | NotInTransaction;
 
 export class HistoryManager {
+    get isCommitPending(): boolean {
+        return this.commitPromise !== null;
+    }
+
+    /** Resolves once every committed transaction has landed on the undo stack. */
+    waitForCommit = async (): Promise<void> => {
+        while (this.commitPromise) {
+            await this.commitPromise.catch(() => undefined);
+        }
+    };
+
+    get isTransactionOpen(): boolean {
+        return this.inTransaction.type === TransactionType.IN_TRANSACTION || this.isCommitPending;
+    }
+
     constructor(
         private editorEngine: EditorEngine,
         private branchId: string,
@@ -34,14 +49,90 @@ export class HistoryManager {
             type: TransactionType.NOT_IN_TRANSACTION,
         },
     ) {
-        makeAutoObservable<this, 'persistDebounced' | 'commitPromise' | 'pendingWrites'>(this, {
+        makeAutoObservable<this, 'persistDebounced' | 'commitPromise' | 'pendingWrites' | 'pendingPushes' | 'sourceVersion' | 'externalRevision' | 'ownRevision' | 'lastExternalRevision' | 'lastOwnRevision' | 'storageChain'>(this, {
             persistDebounced: false,
             // Async plumbing, not UI state: `commitPromise` is reassigned
             // after `await`s (outside any action) and `pendingWrites` must
             // stay a plain Map, so both are excluded from observability.
             commitPromise: false,
             pendingWrites: false,
+            pendingPushes: false,
+            sourceVersion: false,
+            externalRevision: false,
+            ownRevision: false,
+            lastExternalRevision: false,
+            lastOwnRevision: false,
+            storageChain: false,
         });
+    }
+
+    private sourceVersion: (() => string | null) | null = null;
+    private externalRevision: (() => string | null) | null = null;
+    private ownRevision: (() => string | null) | null = null;
+    private lastExternalRevision: string | null = null;
+    private lastOwnRevision: string | null = null;
+    private storageChain: Promise<void> = Promise.resolve();
+
+    private enqueueStorage(task: () => Promise<void>): Promise<void> {
+        const run = this.storageChain.then(task);
+        this.storageChain = run.catch(() => undefined);
+        return run;
+    }
+
+    /** Persistent local history is checked against disk; live history tracks external edits. */
+    setSourceVersion(
+        readVersion: () => string | null,
+        readExternalRevision: () => string | null,
+        readOwnRevision: () => string | null,
+    ): void {
+        this.sourceVersion = readVersion;
+        this.externalRevision = readExternalRevision;
+        this.ownRevision = readOwnRevision;
+        this.lastExternalRevision = readExternalRevision();
+        this.lastOwnRevision = readOwnRevision();
+    }
+
+    private sourceIsCurrent(): boolean {
+        if (!this.externalRevision || !this.ownRevision) return true;
+        const current = this.externalRevision();
+        const own = this.ownRevision();
+        if (current !== null && own !== null &&
+            current === this.lastExternalRevision && own === this.lastOwnRevision) return true;
+        this.persistDebounced.cancel();
+        runInAction(() => {
+            this.undoStack = [];
+            this.redoStack = [];
+        });
+        this.lastExternalRevision = current;
+        this.lastOwnRevision = own;
+        void this.enqueueStorage(() => clearHistory(this.branchId)).catch((err) => {
+            console.warn('[HistoryManager] Failed to clear stale local history:', err);
+        });
+        return false;
+    }
+
+    /** Called after an undo or redo has actually reached local source. */
+    async confirmSourceReplay(expectedExternalRevision: string | null): Promise<void> {
+        if (!this.externalRevision) return;
+        if (this.externalRevision() !== expectedExternalRevision) {
+            this.sourceIsCurrent();
+            return;
+        }
+        this.lastOwnRevision = this.ownRevision?.() ?? null;
+        this.persistDebounced.cancel();
+        await this.persist();
+    }
+
+    /** A source rebase can finish after the action write; save its final disk version. */
+    async noteOwnSourceWrite(): Promise<void> {
+        if (!this.sourceVersion) return;
+        if (this.externalRevision?.() !== this.lastExternalRevision) {
+            this.sourceIsCurrent();
+            return;
+        }
+        this.lastOwnRevision = this.ownRevision?.() ?? null;
+        this.persistDebounced.cancel();
+        await this.persist();
     }
 
     /**
@@ -59,6 +150,18 @@ export class HistoryManager {
      * it instead of emitting the inverse of an edit that never landed.
      */
     private pendingWrites = new Map<Action, Promise<boolean>>();
+    /**
+     * Direct pushes that have not landed yet. A push waits for earlier writes
+     * before it reaches the undo stack, so undo/redo must wait for it too or
+     * they pop the previous action and the late push clears the redo stack.
+     */
+    private pendingPushes = new Set<Promise<boolean>>();
+
+    private waitForPendingPushes = async (): Promise<void> => {
+        while (this.pendingPushes.size > 0) {
+            await Promise.allSettled(Array.from(this.pendingPushes));
+        }
+    };
 
     /** B13: set once so a repeated hydrate can't re-prepend persisted entries. */
     private hasHydrated = false;
@@ -90,6 +193,14 @@ export class HistoryManager {
         try {
             const saved = await loadHistory(this.branchId);
             if (saved) {
+                const currentVersion = this.sourceVersion?.();
+                if (this.sourceVersion && (
+                    currentVersion === null ||
+                    saved.sourceVersion !== currentVersion
+                )) {
+                    await this.enqueueStorage(() => clearHistory(this.branchId));
+                    return;
+                }
                 // Post-`await` writes run outside makeAutoObservable's implicit
                 // action — wrap so MobX strict-mode accepts them.
                 runInAction(() => {
@@ -107,7 +218,20 @@ export class HistoryManager {
 
     private persist = async (): Promise<void> => {
         try {
-            await saveHistory(this.branchId, this.undoStack, this.redoStack);
+            if (this.pendingWrites.size > 0 || this.editorEngine.code.hasPendingWrites) {
+                this.persistDebounced();
+                return;
+            }
+            if (!this.sourceIsCurrent()) return;
+            const undoStack = [...this.undoStack];
+            const redoStack = [...this.redoStack];
+            const sourceVersion = this.sourceVersion?.() ?? undefined;
+            await this.enqueueStorage(() => saveHistory(
+                this.branchId,
+                undoStack,
+                redoStack,
+                sourceVersion,
+            ));
         } catch (err) {
             console.warn(
                 '[HistoryManager] Failed to persist history:',
@@ -154,12 +278,21 @@ export class HistoryManager {
             if (previous) {
                 await previous.catch(() => undefined);
             }
+            if (actionsToCommit.some((action) => action.type === 'update-style')) {
+                await this.editorEngine.action.waitForQueuedStyleDispatches();
+                // StyleManager's completion callback records the override map
+                // after the queued iframe dispatch resolves.
+                await Promise.resolve();
+            }
             for (const action of actionsToCommit) {
                 // pushDirect, NOT push: a startTransaction() racing this loop
                 // must not re-capture these pending pushes into its NEW
                 // transaction — they'd be silently lost if that gesture never
                 // commits (e.g. image swap: remove persists, insert swallowed).
-                await this.pushDirect(action);
+                const saved = await this.pushDirect(action);
+                if (action.type === 'update-style') {
+                    await this.editorEngine.action.finishQueuedStyleAction(action, saved);
+                }
             }
         })();
         this.commitPromise = commit;
@@ -195,7 +328,17 @@ export class HistoryManager {
      * `commitTransaction` can land its actions on the stacks even when a NEW
      * transaction was opened while the commit's writes were still in flight.
      */
-    private pushDirect = async (action: Action): Promise<boolean> => {
+    private pushDirect = (action: Action): Promise<boolean> => {
+        const push = this.pushDirectNow(action);
+        this.pendingPushes.add(push);
+        void push.finally(() => this.pendingPushes.delete(push)).catch(() => undefined);
+        return push;
+    };
+
+    private pushDirectNow = async (action: Action): Promise<boolean> => {
+        await Promise.allSettled(Array.from(this.pendingWrites.values()));
+        this.sourceIsCurrent();
+        const expectedExternalRevision = this.externalRevision?.() ?? null;
         if (this.redoStack.length > 0) {
             this.redoStack = [];
         }
@@ -241,6 +384,12 @@ export class HistoryManager {
             return false;
         }
 
+        if (this.externalRevision && this.externalRevision() !== expectedExternalRevision) {
+            this.sourceIsCurrent();
+            return true;
+        }
+        if (this.ownRevision) this.lastOwnRevision = this.ownRevision();
+
         switch (action.type) {
             case 'update-style':
                 this.editorEngine.posthog.capture('style_action', {
@@ -262,11 +411,16 @@ export class HistoryManager {
                 this.editorEngine.posthog.capture('edit_text_action');
         }
 
-        this.persistDebounced();
+        if (this.sourceVersion) {
+            this.persistDebounced.cancel();
+            await this.persist();
+        } else {
+            this.persistDebounced();
+        }
         return true;
     };
 
-    undo = async (): Promise<{ inverse: Action; redoEntry: Action } | null> => {
+    undo = async (): Promise<{ inverse: Action; redoEntry: Action; externalRevision: string | null } | null> => {
         // A7: an undo right after a slider release must not run while the
         // release's commit is still pushing — it would pop the PREVIOUS action
         // instead of the one the user just committed.
@@ -276,6 +430,7 @@ export class HistoryManager {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             await this.commitTransaction();
         }
+        await this.waitForPendingPushes();
 
         // B2: if the top action's code write is still in flight, wait for it
         // to settle before popping. On failure the action was already rolled
@@ -303,6 +458,8 @@ export class HistoryManager {
             });
         }
 
+        if (!this.sourceIsCurrent()) return null;
+
         // May run after the `await commitTransaction()` above — mutate the
         // stacks inside an explicit action for MobX strict-mode.
         const moved = runInAction(() => {
@@ -317,12 +474,12 @@ export class HistoryManager {
             return null;
         }
         const inverse = undoAction(moved);
-        this.persistDebounced();
+        if (!this.sourceVersion) this.persistDebounced();
 
         // `redoEntry` is the action moved onto the redo stack; the caller hands
         // it back to `rollbackUndo` if applying `inverse` fails, so the stacks
         // stay in sync with the actual file contents.
-        return { inverse, redoEntry: moved };
+        return { inverse, redoEntry: moved, externalRevision: this.externalRevision?.() ?? null };
     };
 
     /**
@@ -338,10 +495,10 @@ export class HistoryManager {
         }
         this.redoStack.splice(idx, 1);
         this.undoStack.push(redoEntry);
-        this.persistDebounced();
+        if (!this.sourceVersion) this.persistDebounced();
     };
 
-    redo = async (): Promise<{ forward: Action; redoEntry: Action } | null> => {
+    redo = async (): Promise<{ forward: Action; redoEntry: Action; externalRevision: string | null } | null> => {
         // A7: same guard as undo() — don't race an in-flight commit's pushes.
         if (this.commitPromise) {
             await this.commitPromise.catch(() => undefined);
@@ -349,6 +506,9 @@ export class HistoryManager {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             await this.commitTransaction();
         }
+        await this.waitForPendingPushes();
+        await Promise.allSettled(Array.from(this.pendingWrites.values()));
+        if (!this.sourceIsCurrent()) return null;
 
         // Same post-`await` concern as undo() — explicit action required.
         const moved = runInAction(() => {
@@ -364,12 +524,12 @@ export class HistoryManager {
             return null;
         }
         const { forward, top } = moved;
-        this.persistDebounced();
+        if (!this.sourceVersion) this.persistDebounced();
 
         // `forward` is what was pushed onto the undo stack; `redoEntry` (`top`)
         // is what we popped off the redo stack. The caller hands both back to
         // `rollbackRedo` if applying `forward` fails.
-        return { forward, redoEntry: top };
+        return { forward, redoEntry: top, externalRevision: this.externalRevision?.() ?? null };
     };
 
     /**
@@ -384,21 +544,30 @@ export class HistoryManager {
         }
         this.undoStack.splice(idx, 1);
         this.redoStack.push(redoEntry);
-        this.persistDebounced();
+        if (!this.sourceVersion) this.persistDebounced();
     };
 
     /**
      * Teardown for engine disposal (route change, project switch, re-init).
-     * Flushes any pending persist so the LAST state is saved, then drops the
-     * in-memory stacks. Does NOT touch persisted history — `hydrate()` on the
-     * next open restores undo/redo. (A previous version routed teardown
-     * through `clear()`, which wiped IndexedDB on every in-app navigation and
-     * silently defeated cross-session undo persistence.)
+     * Finishes source writes and persists the last state before the branch
+     * releases its local mirror, then drops the in-memory stacks. Does NOT
+     * delete persisted history: `hydrate()` on the next open restores it.
      */
-    dispose = () => {
-        this.persistDebounced.flush();
-        this.undoStack = [];
-        this.redoStack = [];
+    dispose = async (): Promise<void> => {
+        if (this.commitPromise) await this.commitPromise.catch(() => undefined);
+        await this.waitForPendingPushes();
+        await Promise.allSettled(Array.from(this.pendingWrites.values()));
+        await this.editorEngine.code.waitForPendingWrites();
+        this.persistDebounced.cancel();
+        await this.persist();
+        // persist() re-arms the debounce when writes are still pending. Nothing
+        // may persist after teardown, so cancel again before dropping stacks.
+        this.persistDebounced.cancel();
+        await this.storageChain;
+        runInAction(() => {
+            this.undoStack = [];
+            this.redoStack = [];
+        });
     };
 
     /**
@@ -410,7 +579,7 @@ export class HistoryManager {
         this.persistDebounced.cancel();
         this.undoStack = [];
         this.redoStack = [];
-        void clearHistory(this.branchId).catch((err) => {
+        void this.enqueueStorage(() => clearHistory(this.branchId)).catch((err) => {
             console.warn('[HistoryManager] Failed to clear persisted history:', err);
         });
     };

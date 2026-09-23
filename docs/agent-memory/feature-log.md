@@ -16,6 +16,46 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-09-23 — Local Tailwind style capability
+Author: Codex
+Area: `apps/web/client` local editor
+Summary: Visual styling now checks the active private branch for wired Tailwind v4 App Router source and rejects other local CSS systems before preview, history, or source changes. Setup-file changes invalidate the check; unsupported responsive font stacks and named tokens also reject until the writer can preserve them.
+Validation: `git diff --check` passed. A focused web test was attempted but could not load the missing workspace tsconfig package. Desktop QA and type/lint remain open.
+Files: `apps/web/client/src/components/store/editor/{style,branch,action,code,sandbox}/`
+Links: `docs/superpowers/plans/2026-09-23-paid-local-editing.md`
+
+---
+
+## 2026-09-23 — Static HTML style safety and source-backed controls
+Author: Codex
+Area: `apps/web/client` editor style, action, and history
+Summary: Plain static HTML style changes now reject before preview, history, or source changes because the current writer requires Tailwind. Opacity and layer visibility use the source-backed action path. Queued style edits wait for preview completion before commit, rebase after successful commit, and restore preview after failed commit; overlapping style input is refused while a prior commit is pending.
+Validation: source review found no remaining concrete P0/P1 in this scoped change; `git diff --check` passed. Web tests, type/lint, and live desktop proof have not run because dependencies are absent and the machine guard blocks install.
+Files: `apps/web/client/src/components/store/editor/{style,action,history,code}/`, `apps/web/client/src/app/project/[id]/_components/{editor-bar,left-panel}/`
+Links: `BACKLOG.md`, `docs/superpowers/plans/2026-09-23-paid-local-editing.md`
+
+---
+
+## 2026-09-23 — Linked Git worktrees and foreign-lock dependency setup
+Author: Codex
+Area: `apps/desktop`
+Summary: Standard linked worktrees now become independent shallow private Git copies with source pointer, index, HEAD, and size checks. Private dependency setup accepts a single Bun lock or integrity-checked migration from npm v2/v3, Yarn v1, or pnpm v9, keeps original locks unchanged, and lets a reviewed patch exclude only an identity-matched temporary Bun lock after an interrupted install. Online sign-in is accepted for this first local release.
+Validation: 33 focused desktop native tests passed. Packaged desktop, preload build, type/lint, and live editor proof remain open.
+Files: `apps/desktop/weblab-local.js`, `apps/desktop/local-safety.test.js`, `apps/desktop/foreign-lock-migration.test.js`
+Links: `docs/superpowers/plans/2026-09-23-paid-local-editing.md`
+
+---
+
+## 2026-09-23 — Private working copy and native Git patch handoff
+Author: Codex
+Area: `apps/desktop`
+Summary: Existing Git roots are copied into an independent private working tree before Weblab writes. Native IPC guards Git metadata, journals exact text writes with crash recovery, refreshes copies after original source drift, restricts preview environment variables, and exports reviewed Weblab-only patches without changing the original Git state. Source and UI integration remain under validation.
+Validation: 40 focused native/provider tests passed, including a disposable dirty Git clone that accepted the exported patch. Web type/lint, preload rebuild, and live desktop editing remain blocked or unrun.
+Files: `apps/desktop/weblab-local.js`, `apps/desktop/preload.js`, `apps/desktop/local-safety.test.js`
+Links: commit `69dda2e2a`; `docs/superpowers/plans/2026-09-23-paid-local-editing.md`
+
+---
+
 ## 2026-07-09 — Editor quality audit: ~50 fixes across undo pipeline, text safety, recovery, panels
 Author: Claude (Fable 5)
 Area: apps/web/client editor (stores, canvas, style panel v4, editor bar, left panel)

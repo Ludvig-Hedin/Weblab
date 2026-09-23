@@ -12,6 +12,10 @@ import { SelectedProviderContext } from './dropdown/selected-provider';
 import { HostingIntegrationsDialog } from './hosting-integrations-dialog';
 import { TriggerButton } from './trigger-button';
 
+function hostedPublishingEnabled(): boolean {
+    return false;
+}
+
 export const PublishButton = observer(() => {
     const editorEngine = useEditorEngine();
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -23,7 +27,7 @@ export const PublishButton = observer(() => {
     // Hide the publish dropdown entirely when the caller lacks publish cap.
     // While caps load we hide too — server is the trust boundary so flashing
     // a button only to refuse on click is worse than waiting.
-    if (capsLoading || !canPublish) {
+    if (!hostedPublishingEnabled() || capsLoading || !canPublish) {
         return null;
     }
 

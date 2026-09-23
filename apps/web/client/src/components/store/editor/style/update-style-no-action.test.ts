@@ -23,6 +23,33 @@ const makeSelectedStyle = (
 });
 
 describe('StyleManager.updateStyleNoAction', () => {
+    it('does not retain a style whose source write failed', async () => {
+        const mgr = new StyleManager({
+            framework: 'nextjs',
+            action: { run: async () => false },
+            elements: { selected: [] },
+        } as unknown as EditorEngine);
+        mgr.selectedStyle = makeSelectedStyle({ opacity: '1' }, { opacity: '1' });
+
+        expect(await mgr.update('opacity', '0.5')).toBe(false);
+
+        expect(mgr.selectedStyle.styles.defined.opacity).toBe('1');
+    });
+
+    it('does not show a ghost visual style edit for static HTML', () => {
+        let writes = 0;
+        const mgr = new StyleManager({
+            framework: 'static-html',
+            action: { run: () => { writes += 1; } },
+        } as unknown as EditorEngine);
+        mgr.selectedStyle = makeSelectedStyle({ color: 'red' }, { color: 'red' });
+
+        mgr.update('color', 'blue');
+
+        expect(writes).toBe(0);
+        expect(mgr.selectedStyle.styles.defined.color).toBe('red');
+    });
+
     it('merges the value into both defined and computed of selectedStyle', () => {
         const mgr = new StyleManager({} as unknown as EditorEngine);
         mgr.selectedStyle = makeSelectedStyle(

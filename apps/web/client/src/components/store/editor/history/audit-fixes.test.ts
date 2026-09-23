@@ -66,6 +66,25 @@ beforeEach(() => {
 });
 
 describe('A7: commitTransaction vs racing startTransaction/undo', () => {
+    it('reports a failed queued style write so the preview can roll back', async () => {
+        const finishes: boolean[] = [];
+        const engine = {
+            code: { write: async () => false },
+            action: { finishQueuedStyleAction: async (_action: Action, saved: boolean) => {
+                finishes.push(saved);
+            }, waitForQueuedStyleDispatches: async () => undefined },
+            posthog: { capture: () => undefined },
+        } as unknown as Engine;
+        const mgr = new HistoryManager(engine, 'branch-style-failure');
+
+        void mgr.startTransaction();
+        await mgr.push({ type: 'update-style', targets: [] });
+        await mgr.commitTransaction();
+
+        expect(finishes).toEqual([false]);
+        expect(mgr.length).toBe(0);
+    });
+
     it('a startTransaction during an in-flight commit does not capture the commit pushes', async () => {
         const gate = deferred<boolean>();
         const mgr = new HistoryManager(

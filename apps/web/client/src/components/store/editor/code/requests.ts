@@ -64,7 +64,10 @@ export async function processGroupedRequests(groupedRequests: FileToRequests): P
     return diffs;
 }
 
-export async function getStyleRequests({ targets }: UpdateStyleAction): Promise<CodeDiffRequest[]> {
+export async function getStyleRequests(
+    { targets }: UpdateStyleAction,
+    prefixForTarget: (target: UpdateStyleAction['targets'][number]) => string = () => '',
+): Promise<CodeDiffRequest[]> {
     const oidToCodeChange = new Map<string, CodeDiffRequest>();
 
     for (const target of targets) {
@@ -77,7 +80,7 @@ export async function getStyleRequests({ targets }: UpdateStyleAction): Promise<
             target.branchId,
             oidToCodeChange,
         );
-        addTailwindToRequest(request, target.change.updated);
+        addTailwindToRequest(request, target.change.updated, prefixForTarget(target));
     }
 
     return Array.from(oidToCodeChange.values());

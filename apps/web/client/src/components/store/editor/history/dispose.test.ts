@@ -18,7 +18,9 @@ void mock.module('./storage', () => ({
     },
 }));
 
-const stubEngine = {} as unknown as ConstructorParameters<typeof HistoryManager>[0];
+const stubEngine = {
+    code: { hasPendingWrites: false, waitForPendingWrites: async () => undefined },
+} as unknown as ConstructorParameters<typeof HistoryManager>[0];
 const sampleAction = (): Action => ({ type: 'update-style', targets: [] });
 
 describe('HistoryManager teardown: dispose() vs clear()', () => {
@@ -27,11 +29,11 @@ describe('HistoryManager teardown: dispose() vs clear()', () => {
         saveHistoryCalls.length = 0;
     });
 
-    it('dispose() empties in-memory stacks WITHOUT deleting persisted history', () => {
+    it('dispose() empties in-memory stacks WITHOUT deleting persisted history', async () => {
         const mgr = new HistoryManager(stubEngine, 'branch-1', [sampleAction()], [sampleAction()]);
         expect(mgr.canUndo).toBe(true);
 
-        mgr.dispose();
+        await mgr.dispose();
 
         // Persisted history is preserved so re-opening the project can hydrate it.
         expect(clearHistoryCalls).toEqual([]);
@@ -40,10 +42,12 @@ describe('HistoryManager teardown: dispose() vs clear()', () => {
         expect(mgr.canRedo).toBe(false);
     });
 
-    it('clear() empties in-memory stacks AND deletes persisted history for the branch', () => {
+    it('clear() empties in-memory stacks AND deletes persisted history for the branch', async () => {
         const mgr = new HistoryManager(stubEngine, 'branch-2', [sampleAction()], [sampleAction()]);
 
         mgr.clear();
+        // Storage writes are serialized on a promise chain.
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(clearHistoryCalls).toEqual(['branch-2']);
         expect(mgr.canUndo).toBe(false);

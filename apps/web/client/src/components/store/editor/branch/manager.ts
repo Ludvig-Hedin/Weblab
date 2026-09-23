@@ -14,6 +14,7 @@ import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { ErrorManager } from '../error';
 import { HistoryManager } from '../history';
 import { SandboxManager } from '../sandbox';
+import { affectsLocalTailwindStyleWriter, hasLocalTailwindStyleWriter } from '../style/local-style-writer';
 
 // Shape returned by `api.branchActions.fork` / `api.branchActions.createBlank`
 // after they run the internal `_insertBranchWithFrames` mutation. Both fields
@@ -42,6 +43,7 @@ export interface BranchData {
     history: HistoryManager;
     error: ErrorManager;
     codeEditor: CodeFileSystem;
+    localStyleWriter: 'tailwind' | 'none' | null;
 }
 
 export class BranchManager {
@@ -60,10 +62,10 @@ export class BranchManager {
         this.reactionDisposer?.();
         this.reactionDisposer = null;
         for (const { sandbox, history, error, codeEditor } of this.branchMap.values()) {
-            sandbox.clear();
             // dispose(), not clear(): the branch still exists — wiping its
             // persisted undo history here would defeat hydrate() on re-init.
-            history.dispose();
+            await history.dispose();
+            sandbox.clear();
             error.clear();
             void codeEditor.cleanup();
         }
@@ -89,6 +91,14 @@ export class BranchManager {
             Array.from(this.branchMap.values()).map(async (branchData) => {
                 await branchData.codeEditor.initialize();
                 await branchData.sandbox.init();
+                if (branchData.branch.runtime.type === 'local') {
+                    await this.refreshStyleWriter(branchData.branch.id);
+                    branchData.history.setSourceVersion(() =>
+                        branchData.sandbox.getLocalSourceVersion(),
+                        () => branchData.sandbox.getLocalExternalRevision(),
+                        () => branchData.sandbox.getLocalOwnRevision(),
+                    );
+                }
                 await branchData.history.hydrate();
             }),
         );
@@ -180,6 +190,40 @@ export class BranchManager {
         return this.branchMap.get(branchId) ?? null;
     }
 
+    /** Setup-file changes invalidate this capability through the local mirror. */
+    getStyleWriterForBranch(branchId: string): 'tailwind' | 'none' | null {
+        const data = this.branchMap.get(branchId);
+        if (!data) return 'none';
+        if (data.branch.runtime.type !== 'local') return null;
+        return data.localStyleWriter;
+    }
+
+    async refreshStyleWriter(branchId: string): Promise<void> {
+        const data = this.branchMap.get(branchId);
+        if (!data || data.branch.runtime.type !== 'local') return;
+        data.localStyleWriter = 'none';
+        const revision = data.sandbox.getLocalExternalRevision();
+        const ownRevision = data.sandbox.getLocalOwnRevision();
+        const supported = this.editorEngine.framework === 'nextjs' &&
+            await hasLocalTailwindStyleWriter((path) => data.codeEditor.readFile(path));
+        if (supported && revision !== null && revision === data.sandbox.getLocalExternalRevision() &&
+            ownRevision === data.sandbox.getLocalOwnRevision()) {
+            data.localStyleWriter = 'tailwind';
+        }
+    }
+
+    invalidateStyleWriterForSourceChange(branchId: string, path: string): void {
+        if (!affectsLocalTailwindStyleWriter(path)) return;
+        const data = this.branchMap.get(branchId);
+        if (data?.branch.runtime.type !== 'local') return;
+        // Weblab's own text/style saves to app/layout.tsx land here too. Re-check
+        // the setup instead of leaving visual styling off for the session.
+        data.localStyleWriter = 'none';
+        void this.refreshStyleWriter(branchId).catch((error: unknown) => {
+            console.error('[BranchManager] Could not re-check local style support:', error);
+        });
+    }
+
     getBranchById(branchId: string): Branch | null {
         return this.getBranchDataById(branchId)?.branch ?? null;
     }
@@ -191,6 +235,7 @@ export class BranchManager {
     private createBranchData(branch: Branch, routerType?: RouterType): BranchData {
         const codeEditorApi = new CodeFileSystem(this.editorEngine.projectId, branch.id, {
             routerType,
+            localProject: branch.runtime.type === 'local',
         });
         const errorManager = new ErrorManager(branch);
         const sandboxManager = new SandboxManager(
@@ -207,6 +252,7 @@ export class BranchManager {
             history: historyManager,
             error: errorManager,
             codeEditor: codeEditorApi,
+            localStyleWriter: branch.runtime.type === 'local' ? 'none' : null,
         };
 
         this.branchMap.set(branch.id, branchData);
@@ -436,11 +482,11 @@ export class BranchManager {
         this.reactionDisposer?.();
         this.reactionDisposer = null;
         for (const branchData of this.branchMap.values()) {
-            branchData.sandbox.clear();
             // dispose(), not clear(): engine teardown (route change / project
             // switch) must keep persisted undo history so reopening the
             // project restores it. clear() is reserved for branch deletion.
-            branchData.history.dispose();
+            await branchData.history.dispose();
+            branchData.sandbox.clear();
             branchData.error.clear();
             await branchData.codeEditor.cleanup();
         }

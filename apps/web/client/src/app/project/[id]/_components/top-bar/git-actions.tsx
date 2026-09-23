@@ -30,6 +30,7 @@ import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { LocalGitHandoff } from './local-git-handoff';
 
 type CommitAction = 'commit' | 'commit-push' | 'commit-pr';
 
@@ -393,6 +394,15 @@ export const GitActionsButton = observer(() => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalAction, setModalAction] = useState<CommitAction>('commit');
+
+    const activeRuntime = editorEngine.branches.activeBranch?.runtime;
+    if (activeRuntime?.type === 'local') {
+        return (
+            activeRuntime.local?.rootPath
+                ? <LocalGitHandoff key={activeRuntime.local.rootPath} rootPath={activeRuntime.local.rootPath} />
+                : <span className="text-foreground-secondary text-mini">{t('localGitHandoff')}</span>
+        );
+    }
 
     function openModal(a: CommitAction) {
         setDropdownOpen(false);

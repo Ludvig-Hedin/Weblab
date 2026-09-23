@@ -134,7 +134,7 @@ export class OverlayManager {
             const frameData = this.editorEngine.frames.get(targetElement.frameId);
             if (frameData?.view) {
                 try {
-                    const el: DomElement = await frameData.view.getElementByDomId(
+                    const el: DomElement | null = await frameData.view.getElementByDomId(
                         targetElement.domId,
                         true,
                     );

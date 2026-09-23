@@ -12,9 +12,9 @@
  *  1. Cascade undefined values **down** from the next-larger defined one
  *     (matches the desktop-first user mental model — "I drew this at Desktop;
  *     it should look right everywhere by default").
- *  2. Walk smallest → largest. Emit base for the smallest breakpoint. For
- *     each next breakpoint, only emit a prefix when its value differs from
- *     the previously emitted value.
+ *  2. Walk smallest → largest. Emit base for Phone (or width zero). A sparse
+ *     Tablet/Desktop edit keeps its min-width prefix instead of leaking into
+ *     smaller widths. Skip values unchanged from the previous emit.
  *  3. Map breakpoint widths to Tailwind prefixes using the project's config
  *     (or Tailwind 3 defaults if config is unavailable).
  *
@@ -134,11 +134,15 @@ export function rebaseToMobileFirst(
     const out: RebasedEntry[] = [];
     let lastEmitted: string | undefined;
     const prefixes = options.tailwindPrefixes ?? DEFAULT_TAILWIND_PREFIXES;
-    let isFirst = true;
     for (const e of ascending) {
         if (e.value === undefined) continue;
-        if (e.value === lastEmitted && !isFirst) continue;
-        const tailwindPrefix = isFirst ? '' : tailwindPrefixForWidth(e.minWidth, prefixes);
+        if (e.value === lastEmitted) continue;
+        // A sparse edit may begin at Tablet or Desktop. Treating its first
+        // entry as the base class leaks that value into smaller widths.
+        const tailwindPrefix =
+            e.id === 'phone' || e.minWidth <= 0
+                ? ''
+                : tailwindPrefixForWidth(e.minWidth, prefixes);
         const prior = out[out.length - 1];
         if (prior && tailwindPrefix !== '' && prior.tailwindPrefix === tailwindPrefix) {
             // Same band as the previous emit — the larger minWidth wins.
@@ -155,7 +159,6 @@ export function rebaseToMobileFirst(
             tailwindPrefix,
         });
         lastEmitted = e.value;
-        isFirst = false;
     }
     return out;
 }

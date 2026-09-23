@@ -9,7 +9,6 @@ import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
 import { type EditorEngine } from '@/components/store/editor/engine';
-import { keyedDebounce } from '@/utils/keyed-debounce';
 import { getOrCreateCodeDiffRequest } from './helpers';
 import {
     getEditTextRequests,
@@ -24,15 +23,12 @@ import {
     getWriteCodeRequests,
     processGroupedRequests,
 } from './requests';
-import { addResponsiveTailwindToRequest } from './tailwind';
+import { addResponsiveTailwindToRequest, tailwindPrefixForWidth } from './tailwind';
+import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
 
 export class CodeManager {
     constructor(private editorEngine: EditorEngine) {
-        // Exclude `writeResponsiveStyle`: it's a function-valued field holding a
-        // keyed debounce with a `.cancel` helper. makeAutoObservable would wrap
-        // it as an action and strip `.cancel` (the same trap as `saveCanvas`),
-        // making `clear()`'s teardown-cancel a silent no-op.
-        makeAutoObservable(this, { writeResponsiveStyle: false });
+        makeAutoObservable(this);
         this.attachBeforeUnload();
     }
 
@@ -49,6 +45,10 @@ export class CodeManager {
         return this.pendingWrites > 0;
     }
 
+    async waitForPendingWrites(): Promise<void> {
+        await this.writeChain;
+    }
+
     private beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
 
     private attachBeforeUnload() {
@@ -58,7 +58,7 @@ export class CodeManager {
             // Fire any debounced source rebases NOW so they at least enqueue
             // before the page goes away (best effort — unload won't await).
             this.editorEngine.action.flushPendingRebases();
-            if (!this.hasPendingWrites) return;
+            if (!this.hasPendingWrites && !this.editorEngine.action.hasPendingRebases) return;
             // In-flight source write: ask the browser to confirm leaving.
             // An aborted write can persist a truncated, unparseable file.
             e.preventDefault();
@@ -84,10 +84,27 @@ export class CodeManager {
      */
     async write(action: Action): Promise<boolean> {
         try {
+            if (action.type === 'update-style' && this.editorEngine.framework === 'static-html') {
+                throw new Error('Visual style editing of static HTML requires a CSS source writer. No project file was changed.');
+            }
+            if (action.type === 'update-style' && action.targets.some((target) =>
+                this.editorEngine.branches.getStyleWriterForBranch(target.branchId) === 'none')) {
+                throw new Error('Visual style editing requires a wired Tailwind v4 App Router stylesheet. No project file was changed.');
+            }
+            if (action.type === 'update-style' && hasUnsupportedResponsiveStyleValue(
+                action.targets, this.editorEngine.frames?.getAll() ?? [])) {
+                throw new Error('Breakpoint font stacks are not supported yet. No project file was changed.');
+            }
             // TODO: This is a hack to write code, we should refactor this
             if (action.type === 'write-code') {
                 if (action.diffs.length === 0) {
                     throw new Error('write-code action has no diffs');
+                }
+                if (
+                    this.editorEngine.branches.activeBranch.runtime.type === 'local' &&
+                    action.diffs.length > 1
+                ) {
+                    throw new Error('Multi-file local edits need a transaction and are unavailable');
                 }
                 // Write-code actions don't have branch context, use active
                 // editor. Apply EVERY diff — reverseWriteCodeAction reverses all
@@ -121,14 +138,18 @@ export class CodeManager {
             return true;
         } catch (error) {
             console.error('Error writing requests:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
             // Stable id: rapid repeat failures (e.g. arrow-key nudges while the
             // sandbox is broken) update one toast instead of stacking dozens.
             toast.error("Couldn't save this edit", {
                 id: 'code-write-error',
-                description: error instanceof Error ? error.message : 'Unknown error',
+                description: message,
+                action: message.includes('File changed on disk:') && typeof window !== 'undefined'
+                    ? { label: 'Reload from disk', onClick: () => window.location.reload() }
+                    : undefined,
             });
             this.editorEngine.branches.activeError.addCodeApplicationError(
-                error instanceof Error ? error.message : 'Unknown error',
+                message,
                 action,
             );
             return false;
@@ -228,6 +249,16 @@ export class CodeManager {
             });
         }
 
+        if (
+            validated.length > 1 &&
+            requests.some(
+                (request) =>
+                    this.editorEngine.branches.getBranchById(request.branchId)?.runtime.type ===
+                    'local',
+            )
+        ) {
+            throw new Error('Multi-file local edits need a transaction and are unavailable');
+        }
         for (const { codeEditor, path, generated } of validated) {
             await codeEditor.writeFile(path, generated);
         }
@@ -236,7 +267,8 @@ export class CodeManager {
     private async collectRequests(action: Action): Promise<CodeDiffRequest[]> {
         switch (action.type) {
             case 'update-style':
-                return await getStyleRequests(action);
+                return await getStyleRequests(action, (target) =>
+                    this.responsivePrefixFor(target.branchId, target.breakpoint?.minWidth));
             case 'insert-element':
                 return await getInsertRequests(action);
             case 'move-element':
@@ -300,41 +332,20 @@ export class CodeManager {
      * first, and let the existing tailwind/CodeDiffRequest pipeline write the
      * resulting className tokens (`p-4 md:p-2 lg:p-6`) into the JSX source.
      *
-     * For non-Tailwind projects we currently fall back to the iframe-only
-     * injection layer (no source write) — extending the writer to a
-     * project-level overrides.css is a follow-up the parser modules already
-     * have the rebase math for.
+     * Static HTML has no Tailwind build step, so reject that path until a
+     * CSS source writer can persist its breakpoint rules.
      *
-     * Debounced per `(oid, property)` (600ms). A previous version used a single
-     * shared `lodash.debounce`, so two different keys firing within the window
-     * cancelled each other — editing two properties quickly on a non-default
-     * breakpoint silently dropped the first property's responsive write. Keying
-     * the debounce makes each `(oid, property)` independent. (The action
-     * pipeline also debounces per key upstream in `scheduleSourceRebase`; that
-     * stays — double-debouncing the same key is harmless, just delayed.)
-     */
-    writeResponsiveStyle = keyedDebounce(
-        (args: {
-            oid: string;
-            property: string;
-            valuesByBreakpoint: Record<BreakpointId, string>;
-        }) => void this.undebouncedWriteResponsiveStyle(args),
-        600,
-        (args) => `${args.oid}::${args.property}`,
-    );
-
-    /**
-     * Immediate (non-debounced) variant for callers that already debounced
-     * upstream — the ActionManager's per-key `scheduleSourceRebase` — and for
-     * the beforeunload flush path. `flushPendingRebases` previously routed
-     * through the debounced field above, which re-armed a fresh 600ms timer
-     * that never fired once the page unloaded, silently dropping the write.
+     * The ActionManager owns one cancellable debounce per `(oid, property)`.
      */
     writeResponsiveStyleNow(args: {
         oid: string;
         property: string;
-        valuesByBreakpoint: Record<BreakpointId, string>;
+        valuesByBreakpoint: Partial<Record<BreakpointId, string>>;
+        removedByBreakpoint?: Partial<Record<BreakpointId, string>>;
     }): Promise<void> {
+        if (this.editorEngine.framework === 'static-html') {
+            return Promise.reject(new Error('Responsive style editing of static HTML requires a CSS source writer.'));
+        }
         return this.undebouncedWriteResponsiveStyle(args);
     }
 
@@ -342,10 +353,12 @@ export class CodeManager {
         oid,
         property,
         valuesByBreakpoint,
+        removedByBreakpoint = {},
     }: {
         oid: string;
         property: string;
-        valuesByBreakpoint: Record<BreakpointId, string>;
+        valuesByBreakpoint: Partial<Record<BreakpointId, string>>;
+        removedByBreakpoint?: Partial<Record<BreakpointId, string>>;
     }): Promise<void> {
         // Resolve breakpoint widths (and active branch) from the canvas.
         const allFrames = this.editorEngine.frames.getAll();
@@ -360,35 +373,67 @@ export class CodeManager {
             if (!branchIdForOid && f.selected) branchIdForOid = f.frame.branchId;
         }
         branchIdForOid ??= allFrames[0]!.frame.branchId;
+        if (this.editorEngine.branches.getStyleWriterForBranch(branchIdForOid) === 'none') {
+            throw new Error('Responsive style editing requires a wired Tailwind v4 App Router stylesheet.');
+        }
 
+        // The smallest frame is the unprefixed base, matching the main style
+        // write (see responsivePrefixFor). Its width maps to 0 for the rebase.
+        const base = this.baseFrameWidth(branchIdForOid);
+        const rebaseWidth = (width: number) => (base !== null && width <= base ? 0 : width);
         const entries: BreakpointEntry[] = [];
         for (const [id, value] of Object.entries(valuesByBreakpoint)) {
+            if (value === undefined) continue;
             // Skip ids that don't map to a frame breakpoint, but keep
             // ids whose width is legitimately 0 (mobile-first base).
             const minWidth = widthById.get(id);
             if (minWidth === undefined) continue;
-            entries.push({ id, minWidth, value });
+            entries.push({ id, minWidth: rebaseWidth(minWidth), value });
         }
-        if (entries.length === 0) return;
+        const removals: BreakpointEntry[] = [];
+        for (const [id, value] of Object.entries(removedByBreakpoint)) {
+            if (value === undefined) continue;
+            const minWidth = widthById.get(id);
+            if (minWidth === undefined) continue;
+            removals.push({ id, minWidth: rebaseWidth(minWidth), value });
+        }
+        if (entries.length === 0 && removals.length === 0) return;
 
         const requests = new Map<string, CodeDiffRequest>();
         const request = await getOrCreateCodeDiffRequest(oid, branchIdForOid, requests);
-        addResponsiveTailwindToRequest(request, property, entries);
+        addResponsiveTailwindToRequest(request, property, entries, removals);
 
         try {
             await this.writeRequest(Array.from(requests.values()));
+            await this.editorEngine.branches.getBranchDataById(branchIdForOid)?.history.noteOwnSourceWrite();
         } catch (error) {
             console.error('writeResponsiveStyle failed', { oid, property, error });
+            toast.error("Couldn't save the responsive style", {
+                id: 'code-write-error',
+                description: error instanceof Error ? error.message : 'Unknown error',
+            });
+            throw error;
         }
     }
 
+    /** Smallest frame width in the branch; edits there are the unprefixed base. */
+    private baseFrameWidth(branchId: string): number | null {
+        const widths = (this.editorEngine.frames?.getAll() ?? [])
+            .filter((f) => f.frame.branchId === branchId)
+            .map((f) => f.frame.breakpoint?.width)
+            .filter((width): width is number => width !== undefined);
+        return widths.length > 0 ? Math.min(...widths) : null;
+    }
+
+    /** Tailwind prefix matching the preview's `@media (min-width)` scope. */
+    private responsivePrefixFor(branchId: string, minWidth: number | undefined): string {
+        if (minWidth === undefined) return '';
+        const base = this.baseFrameWidth(branchId);
+        if (base === null || minWidth <= base) return '';
+        return tailwindPrefixForWidth(minWidth);
+    }
+
     clear() {
-        // Guard `.cancel()` because the debounced field can be reassigned or
-        // shadowed by a subclass / hot-reload boundary, which strips the
-        // lodash wrapper and turns this into `undefined.cancel()`.
-        if (typeof this.writeResponsiveStyle?.cancel === 'function') {
-            this.writeResponsiveStyle.cancel();
-        }
         this.detachBeforeUnload();
     }
 
