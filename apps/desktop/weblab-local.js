@@ -19,18 +19,22 @@
 
 let ipcMain;
 let dialog;
+let app;
 try {
-    ({ ipcMain, dialog } = require('electron'));
+    ({ ipcMain, dialog, app } = require('electron'));
 } catch {
     // Non-Electron context (e.g. a headless node integration test). The core
     // fs / dev-server / watch functions need no electron; registerLocalIpc()
     // (the only consumer of ipcMain/dialog) simply won't be called there.
 }
-const { spawn, execFileSync } = require('child_process');
+const { spawn, execFile, execFileSync } = require('child_process');
+const { createHash, randomUUID } = require('crypto');
+const { constants: fsConstants } = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const http = require('http');
 const net = require('net');
+const os = require('os');
 
 // chokidar is an optional dep until `bun install` runs in apps/desktop. Load it
 // lazily so the desktop app still boots (with watch disabled) if it's missing.
@@ -53,6 +57,60 @@ function isFromAllowedOrigin(event, allowedOrigins) {
     }
 }
 
+const grantedRoots = new Set();
+let grantsLoaded;
+let grantSave = Promise.resolve();
+function grantsFile() {
+    return app?.getPath
+        ? path.join(app.getPath('userData'), 'local-folder-grants.json')
+        : path.join(os.tmpdir(), `weblab-local-grants-${process.pid}.json`);
+}
+async function loadGrants() {
+    if (!grantsLoaded) grantsLoaded = (async () => {
+        try {
+            const file = grantsFile();
+            const st = await fsp.lstat(file);
+            if (!st.isFile() || st.isSymbolicLink() || (st.mode & 0o077)) return;
+            const roots = JSON.parse(await fsp.readFile(file, 'utf8'));
+            if (Array.isArray(roots)) {
+                for (const root of roots) if (typeof root === 'string') grantedRoots.add(root);
+            }
+        } catch (err) {
+            if (err.code !== 'ENOENT') throw err;
+        }
+    })();
+    await grantsLoaded;
+}
+async function grantLocalRoot(folderPath) {
+    if (typeof folderPath !== 'string' || !path.isAbsolute(folderPath)) throw new Error('invalid_root');
+    await loadGrants();
+    const root = await fsp.realpath(folderPath);
+    if (!(await fsp.stat(root)).isDirectory()) throw new Error('not_directory');
+    grantSave = grantSave.catch(() => {}).then(async () => {
+        if (grantedRoots.has(root)) return;
+        const file = grantsFile();
+        await fsp.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
+        const temporary = `${file}.${randomUUID()}.tmp`;
+        try {
+            await fsp.writeFile(temporary, JSON.stringify([...grantedRoots, root]), { mode: 0o600, flag: 'wx' });
+            await fsp.rename(temporary, file);
+            grantedRoots.add(root);
+        } finally {
+            await fsp.rm(temporary, { force: true });
+        }
+    });
+    await grantSave;
+    return root;
+}
+async function requireGrantedRoot(root) {
+    if (typeof root !== 'string' || !path.isAbsolute(root)) throw new Error('invalid_root');
+    await loadGrants();
+    const canonical = await fsp.realpath(root);
+    if (path.resolve(root) !== canonical || !grantedRoots.has(canonical)) throw new Error('ungranted_root');
+    if (!(await fsp.stat(canonical)).isDirectory()) throw new Error('invalid_root');
+    return canonical;
+}
+
 /**
  * Resolve `relPath` inside `root`, rejecting absolute paths and `..` traversal
  * that would escape the project root. Returns the absolute on-disk path.
@@ -67,6 +125,410 @@ function resolveWithin(root, relPath) {
         throw new Error('path_escape');
     }
     return abs;
+}
+
+function rejectGitMetadataMutation(root, abs) {
+    const relative = path.relative(path.resolve(root), abs);
+    if (relative.split(path.sep).some((part) => part.toLowerCase() === '.git')) {
+        throw new Error('git_metadata_read_only');
+    }
+}
+
+// A lexical root check alone does not stop `root/link/file` from traversing a
+// symlink outside the folder. Reject symlink components for native file reads
+// and writes, including the selected root itself.
+async function rejectSymlinkPath(root, abs) {
+    const normalizedRoot = path.resolve(root);
+    const relative = path.relative(normalizedRoot, abs);
+    const parts = [normalizedRoot, ...relative.split(path.sep).filter(Boolean)];
+    let current = parts[0];
+    for (let i = 0; i < parts.length; i++) {
+        if (i > 0) current = path.join(current, parts[i]);
+        try {
+            const st = await fsp.lstat(current);
+            if (st.isSymbolicLink()) throw new Error('symlink_path');
+        } catch (err) {
+            if (err.code === 'ENOENT') return;
+            throw err;
+        }
+    }
+}
+
+function sha256(bytes) {
+    return createHash('sha256').update(bytes).digest('hex');
+}
+
+function toBytes(content) {
+    return content instanceof Uint8Array ? Buffer.from(content) : Buffer.from(String(content ?? ''));
+}
+
+const writeQueues = new Map();
+const createdFiles = new Map(); // absolute path -> exact native-created file version
+const createdDirectories = new Map(); // absolute path -> exact native-created directory
+const CREATED_FILE_ROLLBACK_MS = 30 * 60 * 1000;
+async function withWriteLock(abs, operation) {
+    const previous = writeQueues.get(abs) ?? Promise.resolve();
+    let release;
+    const current = new Promise((resolve) => { release = resolve; });
+    writeQueues.set(abs, current);
+    await previous;
+    try {
+        return await operation();
+    } finally {
+        release();
+        if (writeQueues.get(abs) === current) writeQueues.delete(abs);
+    }
+}
+
+async function currentFile(abs) {
+    let handle;
+    try {
+        handle = await fsp.open(abs, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+        const before = await handle.stat({ bigint: true });
+        if (!before.isFile()) throw new Error('not_regular_file');
+        const bytes = await handle.readFile();
+        const after = await handle.stat({ bigint: true });
+        if (!sameFileVersion(before, after)) throw new Error('file_changed_during_read');
+        return { bytes, hash: sha256(bytes), mode: Number(after.mode & 0o777n), stat: after };
+    } catch (err) {
+        if (err.code === 'ENOENT') return { bytes: null, hash: null, mode: null, stat: null };
+        if (err.code === 'ELOOP') throw new Error('symlink_path');
+        throw err;
+    } finally {
+        if (handle) await handle.close();
+    }
+}
+
+function sameFileVersion(a, b) {
+    if (!a || !b) return a === b;
+    return a.dev === b.dev && a.ino === b.ino && a.size === b.size &&
+        a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
+}
+
+function sameMovedFile(a, b) {
+    return !!a && !!b && a.dev === b.dev && a.ino === b.ino &&
+        a.size === b.size && a.mtimeNs === b.mtimeNs && a.mode === b.mode;
+}
+
+async function verifyExistingParent(root, abs) {
+    await rejectSymlinkPath(root, abs);
+    const actualRoot = await fsp.realpath(root);
+    const actualParent = await fsp.realpath(path.dirname(abs));
+    const expectedRelative = path.relative(path.resolve(root), path.dirname(abs));
+    if (path.relative(actualRoot, actualParent) !== expectedRelative) throw new Error('symlink_path');
+}
+
+async function readTextFile(root, rel) {
+    const abs = resolveWithin(root, rel);
+    await verifyExistingParent(root, abs);
+    const file = await currentFile(abs);
+    if (file.bytes === null) throw Object.assign(new Error('not_found'), { code: 'ENOENT' });
+    const bytes = file.bytes;
+    if (bytes.includes(0)) return { error: 'binary_file' };
+    try {
+        return {
+            content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes),
+            sha256: file.hash,
+        };
+    } catch {
+        return { error: 'invalid_utf8' };
+    }
+}
+
+function backupDirectory() {
+    const base = app?.getPath ? app.getPath('userData') : os.tmpdir();
+    return path.join(base, 'weblab-local-write-backups');
+}
+
+const MAX_SUCCESS_BACKUPS = 100;
+const MAX_SUCCESS_BACKUP_BYTES = 1024 * 1024 * 1024;
+const MAX_UNRESOLVED_BACKUP_BYTES = 1024 * 1024 * 1024;
+let backupWriteQueue = Promise.resolve();
+
+async function privateBackupDir(dir) {
+    await fsp.mkdir(dir, { recursive: true, mode: 0o700 });
+    const st = await fsp.lstat(dir);
+    if (!st.isDirectory() || st.isSymbolicLink()) throw new Error('unsafe_backup_directory');
+    await fsp.chmod(dir, 0o700);
+}
+
+async function writeUnresolvedBackup(bytes) {
+    const operation = backupWriteQueue.catch(() => {}).then(async () => {
+        const dir = path.join(backupDirectory(), 'unresolved');
+        await privateBackupDir(dir);
+        let used = 0;
+        for (const entry of await fsp.readdir(dir, { withFileTypes: true })) {
+            if (!entry.isFile()) continue;
+            try { used += (await fsp.lstat(path.join(dir, entry.name))).size; }
+            catch (err) { if (err.code !== 'ENOENT') throw err; }
+        }
+        // Keep all existing conflict/error copies. Refuse the new write if
+        // another snapshot would exhaust the private recovery budget.
+        if (used + bytes.length > MAX_UNRESOLVED_BACKUP_BYTES) {
+            throw new Error('recovery_backup_quota_exceeded');
+        }
+        const recoveryPath = path.join(dir, `${Date.now()}-${randomUUID()}.backup`);
+        try { await fsp.writeFile(recoveryPath, bytes, { flag: 'wx', mode: 0o600 }); }
+        catch (err) {
+            await fsp.rm(recoveryPath, { force: true }).catch(() => {});
+            throw err;
+        }
+        return recoveryPath;
+    });
+    backupWriteQueue = operation;
+    return operation;
+}
+
+// Only completed writes are pruned. A conflict or failed write keeps its
+// original snapshot in unresolved/ until the user recovers it manually.
+async function pruneSuccessfulBackups(dir, protectedPath) {
+    const entries = await fsp.readdir(dir, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+        if (!entry.isFile() || !entry.name.endsWith('.backup')) continue;
+        const abs = path.join(dir, entry.name);
+        const stat = await fsp.lstat(abs);
+        if (stat.isFile()) files.push({ abs, size: stat.size, mtimeMs: stat.mtimeMs });
+    }
+    files.sort((a, b) => {
+        if (a.abs === b.abs) return 0;
+        if (a.abs === protectedPath) return -1;
+        if (b.abs === protectedPath) return 1;
+        return b.mtimeMs - a.mtimeMs;
+    });
+    let bytes = 0;
+    for (let i = 0; i < files.length; i++) {
+        bytes += files[i].size;
+        if (i >= MAX_SUCCESS_BACKUPS || bytes > MAX_SUCCESS_BACKUP_BYTES) {
+            await fsp.rm(files[i].abs, { force: true });
+        }
+    }
+}
+
+async function markBackupSuccessful(recoveryPath) {
+    if (!recoveryPath) return undefined;
+    const dir = path.join(backupDirectory(), 'successful');
+    await privateBackupDir(dir);
+    const retainedPath = path.join(dir, path.basename(recoveryPath));
+    await fsp.rename(recoveryPath, retainedPath);
+    await pruneSuccessfulBackups(dir, retainedPath).catch(() => {});
+    return retainedPath;
+}
+
+/**
+ * Optimistic native write. The temporary file is renamed atomically after a
+ * second hash/inode check. Another process can still write in the tiny
+ * check/rename gap; Node does not expose cross-process compare-and-swap rename
+ * or openat/renameat to pin parent directories. The checks and private exact
+ * backup reduce this risk but cannot make concurrent external writes safe.
+ */
+async function writeIfUnchanged(root, rel, content, expectedSha256) {
+    let abs;
+    try {
+        abs = resolveWithin(root, rel);
+        rejectGitMetadataMutation(root, abs);
+    } catch (err) {
+        return { error: err.message };
+    }
+    if (expectedSha256 !== null && !/^[a-f0-9]{64}$/.test(expectedSha256)) {
+        return { error: 'invalid_expected_sha256' };
+    }
+    return withWriteLock(abs, async () => {
+        let temporaryPath;
+        let recoveryPath;
+        let createdIdentity;
+        let creationLinked = false;
+        try {
+            await rejectSymlinkPath(root, abs);
+            try { await verifyExistingParent(root, abs); }
+            catch (err) { if (err.code !== 'ENOENT') throw err; }
+            const before = await currentFile(abs);
+            if (before.bytes !== null && before.bytes.length > MAX_SUCCESS_BACKUP_BYTES) {
+                throw new Error('file_too_large_for_safe_backup');
+            }
+            // Back up the actual pre-write bytes, including when the caller's
+            // hash is stale. Keep the backup outside the project and private.
+            if (before.bytes !== null) {
+                recoveryPath = await writeUnresolvedBackup(before.bytes);
+            }
+            if (before.hash !== expectedSha256) {
+                return { conflict: true, hash: before.hash, recoveryPath };
+            }
+            await fsp.mkdir(path.dirname(abs), { recursive: true });
+            await verifyExistingParent(root, abs);
+            temporaryPath = path.join(path.dirname(abs), `.weblab-${randomUUID()}.tmp`);
+            const bytes = toBytes(content);
+            const handle = await fsp.open(temporaryPath, 'wx', 0o600);
+            try {
+                await handle.writeFile(bytes);
+                if (before.mode !== null) await handle.chmod(before.mode);
+                await handle.sync();
+                createdIdentity = await handle.stat({ bigint: true });
+            } finally {
+                await handle.close();
+            }
+            await verifyExistingParent(root, abs);
+            const latest = await currentFile(abs);
+            if (latest.hash !== expectedSha256 || !sameFileVersion(before.stat, latest.stat)) {
+                return { conflict: true, hash: latest.hash, recoveryPath };
+            }
+            // Recheck immediately before the final path operation. This is
+            // best-effort only; an external process can still swap a parent or
+            // target after this check and before link()/rename().
+            await verifyExistingParent(root, abs);
+            if (expectedSha256 === null) {
+                // link() is no-replace: an external creator wins atomically.
+                try {
+                    await fsp.link(temporaryPath, abs);
+                    creationLinked = true;
+                } catch (err) {
+                    if (err.code === 'EEXIST') return { conflict: true, hash: (await currentFile(abs)).hash, recoveryPath };
+                    throw err;
+                }
+            } else {
+                await fsp.rename(temporaryPath, abs);
+                createdFiles.delete(abs);
+            }
+            if (recoveryPath) {
+                try { recoveryPath = await markBackupSuccessful(recoveryPath); }
+                catch { /* keep the original unresolved snapshot */ }
+            }
+            return { success: true, hash: sha256(bytes), recoveryPath };
+        } catch (err) {
+            return { error: err.message, recoveryPath };
+        } finally {
+            if (temporaryPath) await fsp.rm(temporaryPath, { force: true }).catch(() => {});
+            if (creationLinked && createdIdentity) {
+                try {
+                    const created = await currentFile(abs);
+                    if (created.hash === sha256(toBytes(content)) &&
+                        created.stat?.dev === createdIdentity.dev &&
+                        created.stat?.ino === createdIdentity.ino &&
+                        created.stat?.size === createdIdentity.size &&
+                        created.stat?.mtimeNs === createdIdentity.mtimeNs) {
+                        createdFiles.set(abs, {
+                            hash: created.hash,
+                            stat: created.stat,
+                            expiresAt: Date.now() + CREATED_FILE_ROLLBACK_MS,
+                        });
+                    }
+                } catch { /* creation failed or was changed before provenance capture */ }
+            }
+        }
+    });
+}
+
+/** Undo only a recent file created by this process through guarded write. */
+async function deleteFileIfUnchanged(root, rel, expectedSha256) {
+    let abs;
+    try {
+        abs = resolveWithin(root, rel);
+        rejectGitMetadataMutation(root, abs);
+    }
+    catch (err) { return { error: err.message }; }
+    if (!/^[a-f0-9]{64}$/.test(expectedSha256)) return { error: 'invalid_expected_sha256' };
+    return withWriteLock(abs, async () => {
+        const created = createdFiles.get(abs);
+        if (!created || created.expiresAt < Date.now() || created.hash !== expectedSha256) {
+            createdFiles.delete(abs);
+            return { error: 'file_not_recently_created_by_weblab' };
+        }
+        let recoveryPath;
+        let quarantinePath;
+        try {
+            await verifyExistingParent(root, abs);
+            const before = await currentFile(abs);
+            if (before.hash !== expectedSha256 || !sameFileVersion(before.stat, created.stat)) {
+                createdFiles.delete(abs);
+                return { conflict: true, hash: before.hash };
+            }
+            recoveryPath = await writeUnresolvedBackup(before.bytes);
+            await verifyExistingParent(root, abs);
+            const latest = await currentFile(abs);
+            if (latest.hash !== expectedSha256 || !sameFileVersion(latest.stat, created.stat)) {
+                createdFiles.delete(abs);
+                return { conflict: true, hash: latest.hash, recoveryPath };
+            }
+            // Moving into a random sibling lets us inspect what was actually
+            // removed from the original path before finally unlinking it.
+            // Node still cannot atomically compare an inode and rename it.
+            quarantinePath = path.join(path.dirname(abs), `.weblab-delete-${randomUUID()}.tmp`);
+            await fsp.rename(abs, quarantinePath);
+            const moved = await currentFile(quarantinePath);
+            if (moved.hash !== expectedSha256 || !sameMovedFile(moved.stat, created.stat)) {
+                try {
+                    await fsp.link(quarantinePath, abs); // no replace if another file appeared
+                    await fsp.unlink(quarantinePath);
+                    quarantinePath = undefined;
+                } catch { /* leave the moved file recoverable in the project */ }
+                return { conflict: true, hash: moved.hash, recoveryPath, error: quarantinePath
+                    ? `File changed during delete; moved file is at ${quarantinePath}`
+                    : undefined };
+            }
+            await fsp.unlink(quarantinePath);
+            quarantinePath = undefined;
+            createdFiles.delete(abs);
+            try { recoveryPath = await markBackupSuccessful(recoveryPath); }
+            catch { /* keep the original unresolved snapshot */ }
+            return { success: true, recoveryPath };
+        } catch (err) {
+            if (quarantinePath) {
+                try {
+                    await fsp.link(quarantinePath, abs);
+                    await fsp.unlink(quarantinePath);
+                    quarantinePath = undefined;
+                } catch { /* preserve moved file at quarantinePath */ }
+            }
+            return { error: err.message, recoveryPath, quarantinePath };
+        }
+    });
+}
+
+// Local preparation needs one fixed folder for Next.js public assets. Keep
+// this narrower than the general-purpose mkdir IPC, which remains disabled.
+async function createPreparationPublicDirectory(root) {
+    const abs = resolveWithin(root, 'public');
+    return withWriteLock(abs, async () => {
+        try {
+            await rejectSymlinkPath(root, abs);
+            await fsp.mkdir(abs, { mode: 0o755 }); // no recursive creation or replacement
+            const stat = await fsp.lstat(abs, { bigint: true });
+            if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('unsafe_public_directory');
+            createdDirectories.set(abs, {
+                dev: stat.dev,
+                ino: stat.ino,
+                expiresAt: Date.now() + CREATED_FILE_ROLLBACK_MS,
+            });
+            return { success: true };
+        } catch (err) {
+            return { error: err.code === 'EEXIST' ? 'public_directory_already_exists' : err.message };
+        }
+    });
+}
+
+async function deletePreparationPublicDirectory(root) {
+    const abs = resolveWithin(root, 'public');
+    return withWriteLock(abs, async () => {
+        const created = createdDirectories.get(abs);
+        if (!created || created.expiresAt < Date.now()) {
+            createdDirectories.delete(abs);
+            return { error: 'directory_not_recently_created_by_weblab' };
+        }
+        try {
+            await rejectSymlinkPath(root, abs);
+            const stat = await fsp.lstat(abs, { bigint: true });
+            if (!stat.isDirectory() || stat.isSymbolicLink() ||
+                stat.dev !== created.dev || stat.ino !== created.ino) {
+                return { conflict: true, error: 'public_directory_changed' };
+            }
+            // rmdir is no-replace and fails if an external process added files.
+            await fsp.rmdir(abs);
+            createdDirectories.delete(abs);
+            return { success: true };
+        } catch (err) {
+            return { error: err.code === 'ENOTEMPTY' ? 'public_directory_not_empty' : err.message };
+        }
+    });
 }
 
 // --- Shell environment (PATH) -------------------------------------------------
@@ -96,6 +558,25 @@ function syncedEnv() {
     }
     cachedEnv = { ...process.env, PATH: envPath };
     return cachedEnv;
+}
+
+// A project script is user code. Give it a usable toolchain and temporary
+// directory without forwarding the editor's service credentials to the child.
+function projectDevEnvironment(root, port) {
+    const source = syncedEnv();
+    const allowed = [
+        'HOME', 'TMPDIR', 'TMP', 'TEMP', 'USER', 'LOGNAME', 'SHELL',
+        'LANG', 'LC_ALL', 'LC_CTYPE', 'LC_MESSAGES', 'BUN_INSTALL',
+        'SystemRoot', 'WINDIR', 'ComSpec', 'PATHEXT', 'APPDATA',
+        'LOCALAPPDATA', 'USERPROFILE',
+    ];
+    const env = {};
+    for (const key of allowed) {
+        if (typeof source[key] === 'string') env[key] = source[key];
+    }
+    env.PATH = `${path.join(root, 'node_modules', '.bin')}${path.delimiter}${source.PATH || ''}`;
+    env.PORT = String(port);
+    return env;
 }
 
 // --- Dev server ---------------------------------------------------------------
@@ -185,16 +666,6 @@ async function findFreePort(preferred) {
     return pref ?? WEBLAB_LOCAL_BASE_PORT;
 }
 
-async function readDevScript(root) {
-    try {
-        const raw = await fsp.readFile(path.join(root, 'package.json'), 'utf8');
-        const pkg = JSON.parse(raw);
-        return (pkg.scripts && typeof pkg.scripts.dev === 'string' && pkg.scripts.dev) || '';
-    } catch {
-        return '';
-    }
-}
-
 function probePort(port) {
     return new Promise((resolve) => {
         const req = http.get(`http://127.0.0.1:${port}`, (res) => {
@@ -209,87 +680,174 @@ function probePort(port) {
     });
 }
 
-const devServers = new Map(); // root -> { child, port, url, output: string[] }
+const devServers = new Map(); // root -> { child|server, port, url, output: string[] }
 
-// Install deps if node_modules is absent. Package-manager-aware (the user's own
-// lockfile decides). Runs WITH lifecycle scripts — unlike the cloud importer
-// (which uses --ignore-scripts for untrusted repos), this is the user's own
-// machine + project, so postinstall codegen (e.g. prisma generate) must run.
-async function ensureInstalled(root, getWebContents) {
-    try {
-        await fsp.stat(path.join(root, 'node_modules'));
-        return; // already installed
-    } catch {
-        // node_modules missing → install below
+const STATIC_MIME_TYPES = new Map([
+    ['.html', 'text/html; charset=utf-8'], ['.htm', 'text/html; charset=utf-8'],
+    ['.css', 'text/css; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
+    ['.mjs', 'text/javascript; charset=utf-8'], ['.json', 'application/json; charset=utf-8'],
+    ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.jpg', 'image/jpeg'],
+    ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'], ['.avif', 'image/avif'],
+    ['.gif', 'image/gif'], ['.ico', 'image/x-icon'], ['.woff', 'font/woff'],
+    ['.woff2', 'font/woff2'], ['.ttf', 'font/ttf'], ['.otf', 'font/otf'],
+    ['.wasm', 'application/wasm'], ['.txt', 'text/plain; charset=utf-8'],
+]);
+const STATIC_PRIVATE_SEGMENTS = new Set([
+    '.git', '.weblab', 'node_modules', '.next', 'dist', 'build', 'coverage',
+]);
+const STATIC_MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+async function serveStaticProjectFile(root, port, request, response) {
+    response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    if (request.headers.host !== `localhost:${port}` &&
+        request.headers.host !== `127.0.0.1:${port}`) {
+        response.writeHead(403).end();
+        return;
     }
-    const installCmd = [
-        'if [ -f pnpm-lock.yaml ]; then corepack enable >/dev/null 2>&1 || true; pnpm install;',
-        'elif [ -f yarn.lock ]; then corepack enable >/dev/null 2>&1 || true; yarn install;',
-        'elif [ -f bun.lockb ] || [ -f bun.lock ]; then bun install;',
-        'else npm install; fi',
-    ].join(' ');
-    await new Promise((resolve) => {
-        let child;
-        try {
-            child = spawn(installCmd, {
-                cwd: root,
-                env: syncedEnv(),
-                shell: true,
-                stdio: ['ignore', 'pipe', 'pipe'],
-            });
-        } catch {
-            return resolve();
-        }
-        const onData = (b) => {
-            const wc = getWebContents();
-            if (wc) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        response.writeHead(405, { Allow: 'GET, HEAD' }).end();
+        return;
+    }
+    try {
+        const pathname = new URL(request.url, `http://localhost:${port}`).pathname;
+        const relative = decodeURIComponent(pathname).replace(/^\/+/, '');
+        const candidates = !relative || relative.endsWith('/')
+            ? [`${relative}index.html`]
+            : path.extname(relative) ? [relative] : [`${relative}.html`, `${relative}/index.html`];
+        for (const candidate of candidates) {
+            const segments = candidate.split('/');
+            if (segments.some((part) => !part || part === '..' || part.startsWith('.') ||
+                STATIC_PRIVATE_SEGMENTS.has(part) || part.includes('\\') || part.includes('\0')) ||
+                path.basename(candidate) === 'package.json' ||
+                !STATIC_MIME_TYPES.has(path.extname(candidate).toLowerCase())) continue;
+            const abs = resolveWithin(root, candidate);
+            try {
+                await verifyExistingParent(root, abs);
+                const handle = await fsp.open(abs, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+                let body;
+                let size;
                 try {
-                    wc.send('weblab:localdev:output', { root, data: b.toString() });
-                } catch {
-                    // window closed
+                    const stat = await handle.stat();
+                    if (!stat.isFile() || stat.size > STATIC_MAX_FILE_BYTES) continue;
+                    size = stat.size;
+                    body = request.method === 'HEAD' ? null : await handle.readFile();
+                } finally {
+                    await handle.close();
                 }
+                response.writeHead(200, {
+                    'Content-Type': STATIC_MIME_TYPES.get(path.extname(candidate).toLowerCase()),
+                    'Content-Length': body?.length ?? size,
+                });
+                response.end(body);
+                return;
+            } catch (err) {
+                if (err.code !== 'ENOENT' && err.code !== 'ENOTDIR') throw err;
             }
-        };
-        child.stdout.on('data', onData);
-        child.stderr.on('data', onData);
-        child.on('exit', () => resolve());
-        child.on('error', () => resolve());
+        }
+        response.writeHead(404).end();
+    } catch {
+        response.writeHead(404).end();
+    }
+}
+
+async function startStaticPreview(root, requestedPort) {
+    const requested = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535
+        ? requestedPort : null;
+    const port = requested ?? await findFreePort(null);
+    if (!(await canBindPort(port))) {
+        return { error: `Local preview port ${port} is occupied. Free it, then retry.` };
+    }
+    const server = http.createServer((request, response) => {
+        void serveStaticProjectFile(root, port, request, response).catch(() => response.destroy());
     });
+    try {
+        await new Promise((resolve, reject) => {
+            server.once('error', reject);
+            server.listen(port, '127.0.0.1', () => {
+                server.off('error', reject);
+                resolve();
+            });
+        });
+    } catch (err) {
+        return { error: err.message || 'static_preview_start_failed' };
+    }
+    const rec = { server, port, url: `http://localhost:${port}`, output: [] };
+    devServers.set(root, rec);
+    server.once('close', () => { if (devServers.get(root) === rec) devServers.delete(root); });
+    return { port, url: rec.url };
+}
+
+function isDevServerRunning(rec) {
+    return !!(rec && (rec.server?.listening ||
+        (rec.child && rec.child.exitCode === null && rec.child.signalCode === null)));
 }
 
 async function startDevServer(root, command, requestedPort, getWebContents) {
     const existing = devServers.get(root);
-    if (existing && existing.child && existing.child.exitCode === null) {
+    if (isDevServerRunning(existing)) {
         return { port: existing.port, url: existing.url };
     }
-    // Deps must exist before the dev server can boot. The editor never calls
-    // provider.setup(); the dev task's open()/run() is the only trigger, so
-    // install-if-needed lives here to guarantee a fresh folder is usable.
-    await ensureInstalled(root, getWebContents);
-    const devScript = await readDevScript(root);
+    // Opening a folder must never run a package manager or its lifecycle
+    // scripts. The renderer offers an explicit start action; if dependencies
+    // are missing, tell the user to install them themselves and retry.
+    let pkg = null;
+    try {
+        await rejectSymlinkPath(root, path.join(root, 'package.json'));
+        pkg = JSON.parse(await fsp.readFile(path.join(root, 'package.json'), 'utf8'));
+        if (!pkg || typeof pkg !== 'object') throw new Error('invalid_package_json');
+    } catch (err) {
+        if (err.code !== 'ENOENT') {
+            return { error: 'A readable package.json is required to start this local preview.' };
+        }
+    }
+    const devScript = pkg && typeof pkg.scripts?.dev === 'string' ? pkg.scripts.dev : '';
+    if (!devScript) {
+        try {
+            await verifyExistingParent(root, path.join(root, 'index.html'));
+            const index = await fsp.lstat(path.join(root, 'index.html'));
+            if (!index.isFile() || index.isSymbolicLink()) throw new Error('invalid_index_html');
+        } catch {
+            return { error: 'A package.json dev script or a root index.html is required to start this local preview.' };
+        }
+        return startStaticPreview(root, requestedPort);
+    }
+    const needsInstall = ['dependencies', 'devDependencies', 'optionalDependencies']
+        .some((key) => pkg[key] && typeof pkg[key] === 'object' && Object.keys(pkg[key]).length > 0);
+    if (needsInstall) {
+        try {
+            await fsp.stat(path.join(root, 'node_modules'));
+        } catch {
+            return { error: 'Dependencies are missing. Install them in this project folder, then start the preview again.' };
+        }
+    }
+    const pinnedPort = inferPortFromDevScript(devScript);
     const requested =
         Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535
             ? requestedPort
             : null;
-    // Pick a FREE port — preferring the one the editor's frame URL was built
-    // from, then the dev script's explicit port, then an uncommon base — and
-    // scan to the next free one instead of crashing on EADDRINUSE. PORT is
-    // passed below so PORT-honoring frameworks (Next.js) bind exactly this.
-    // TODO(local-port-propagation): a script with a hardcoded port (static
-    //   `serve -l 8080`) ignores PORT, so an occupied explicit port still
-    //   collides; and if we increment away from `requested` at runtime the
-    //   editor's frame.url won't follow until reload. See BACKLOG.
-    const port = await findFreePort(requested ?? inferPortFromDevScript(devScript));
-    const cmd = command && String(command).trim().length > 0 ? String(command) : 'npm run dev';
+    if (pinnedPort && requested && pinnedPort !== requested) {
+        return {
+            error: `The project's dev script now uses port ${pinnedPort}, but its saved preview uses ${requested}. Reopen the folder to update its preview port.`,
+        };
+    }
+    // The renderer has already saved frame URLs using the requested port.
+    // Fail visibly on collision instead of reporting a different port that
+    // those frames will never load. A pinned CLI flag takes precedence over
+    // PORT; the renderer will reconcile its URL after a successful start.
+    const port = pinnedPort ?? requested ?? await findFreePort(null);
+    if (!(await canBindPort(port))) {
+        return { error: `Local preview port ${port} is occupied. Free it or change the project's dev-server port, then retry.` };
+    }
     let child;
     try {
-        child = spawn(cmd, {
+        child = spawn(devScript, {
             cwd: root,
             // Pass PORT so frameworks that honor it (Next.js) bind the port the
             // editor's frame URL was built from. Scripts with an explicit flag
             // (the static-HTML scaffold's `serve -l <port>`) override it. Keeps
             // localhost:<port> on the canvas matching the actual dev server.
-            env: { ...syncedEnv(), PORT: String(port) },
+            env: projectDevEnvironment(root, port),
             shell: true, // user's own project script — runs through the shell
             // New process group (POSIX) so stopDevServer can kill the shell AND
             // the dev server it spawns. Without this, shell:true leaves the real
@@ -317,8 +875,8 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
     };
     child.stdout.on('data', onData);
     child.stderr.on('data', onData);
-    child.on('exit', () => devServers.delete(root));
-    child.on('error', () => devServers.delete(root));
+    child.on('exit', () => { if (devServers.get(root) === rec) devServers.delete(root); });
+    child.on('error', () => { if (devServers.get(root) === rec) devServers.delete(root); });
 
     // Wait until the dev server actually binds the port (cold compile 30-90s).
     const deadline = Date.now() + 90000;
@@ -331,21 +889,52 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
         }
         await new Promise((r) => setTimeout(r, 1000));
     }
-    if (!listening && devServers.get(root) !== rec) {
-        return { error: `Dev server exited before binding port ${port}.` };
+    if (!listening) {
+        if (devServers.get(root) === rec) await stopDevServer(root);
+        return { error: `Dev server did not bind port ${port}. Check its dev script and try again.` };
     }
     return { port, url: rec.url };
 }
 
-// TODO(bug-hunt): restart race. This sends SIGTERM and deletes the record
-// synchronously without awaiting the child's 'exit', so the port may not be
-// released yet. NodeFsTask.restart() does `stop()` then immediately `start()`,
-// so findFreePort can see the dying server still holding the port and pick a
-// DIFFERENT one → frame.url mismatch (or, pre-fix, EADDRINUSE). Fix: make this
-// await the child 'exit' (with a ~3s timeout fallback) and have the IPC `stop`
-// handler + restart() await it. See BACKLOG.
-function stopDevServer(root) {
+// Wait for the child to exit before a restart can re-use its port. A stuck
+// process returns a failure rather than silently selecting a new port.
+async function stopDevServer(root) {
     const rec = devServers.get(root);
+    if (!rec) return { success: true };
+    if (rec.server) {
+        if (!rec.server.listening) {
+            if (devServers.get(root) === rec) devServers.delete(root);
+            return { success: true };
+        }
+        const closed = new Promise((resolve) => {
+            const timer = setTimeout(() => resolve(false), 3000);
+            rec.server.close((err) => {
+                clearTimeout(timer);
+                resolve(!err);
+            });
+            rec.server.closeAllConnections?.();
+        });
+        const didClose = await closed;
+        if (didClose && devServers.get(root) === rec) devServers.delete(root);
+        return didClose ? { success: true } : { error: 'Static preview did not stop within 3 seconds.' };
+    }
+    const child = rec.child;
+    if (!child || child.exitCode !== null || child.signalCode !== null) {
+        if (devServers.get(root) === rec) devServers.delete(root);
+        return { success: true };
+    }
+    const exited = new Promise((resolve) => {
+        const done = (value) => {
+            clearTimeout(timer);
+            child.off('exit', onExit);
+            child.off('error', onExit);
+            resolve(value);
+        };
+        const onExit = () => done(true);
+        const timer = setTimeout(() => done(false), 3000);
+        child.once('exit', onExit);
+        child.once('error', onExit);
+    });
     if (rec && rec.child && rec.child.pid) {
         try {
             if (process.platform === 'win32') {
@@ -363,39 +952,977 @@ function stopDevServer(root) {
             }
         }
     }
-    devServers.delete(root);
+    const didExit = await exited;
+    if (didExit && devServers.get(root) === rec) devServers.delete(root);
+    return didExit ? { success: true } : { error: 'Dev server did not stop within 3 seconds. Wait for it to exit before restarting.' };
 }
 
-async function runCommand(root, command) {
-    return new Promise((resolve) => {
-        let child;
-        try {
-            child = spawn(String(command), {
-                cwd: root,
-                env: syncedEnv(),
-                shell: true,
-                stdio: ['ignore', 'pipe', 'pipe'],
+function git(args, root) {
+    return new Promise((resolve, reject) => {
+        const env = { ...syncedEnv() };
+        for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+        execFile('git', args, { cwd: root, env, encoding: 'buffer', maxBuffer: 10 * 1024 * 1024 },
+            (err, stdout) => {
+                if (err) return reject(err);
+                try { resolve(new TextDecoder('utf-8', { fatal: true }).decode(stdout)); }
+                catch { reject(new Error('git_path_invalid_utf8')); }
             });
-        } catch (err) {
-            return resolve({ output: '', exitCode: -1, error: (err && err.message) || 'spawn_failed' });
-        }
-        let out = '';
-        child.stdout.on('data', (b) => (out += b.toString()));
-        child.stderr.on('data', (b) => (out += b.toString()));
-        child.on('error', (err) => resolve({ output: out, exitCode: -1, error: err.message }));
-        child.on('exit', (code) => resolve({ output: out, exitCode: code ?? -1 }));
     });
 }
 
+async function gitInfo(root) {
+    try {
+        const top = (await git(['rev-parse', '--show-toplevel'], root)).trim();
+        if (await fsp.realpath(top) !== root) return { isRepositoryRoot: false };
+        const branch = (await git(['branch', '--show-current'], root)).trim();
+        return { isRepositoryRoot: true, branch: branch || undefined };
+    } catch (err) {
+        if (err.code === 128) return { isRepositoryRoot: false };
+        return { isRepositoryRoot: false, error: err.message };
+    }
+}
+
+async function gitStatus(root) {
+    try {
+        if (!(await gitInfo(root)).isRepositoryRoot) return { changedFiles: [], error: 'not_repository_root' };
+        const output = await git(['--no-optional-locks', '-c', 'core.fsmonitor=false', 'status', '--porcelain=v1', '-z', '--untracked-files=all'], root);
+        const records = output.split('\0');
+        const changedFiles = [];
+        for (let i = 0; i < records.length; i++) {
+            const record = records[i];
+            if (!record) continue;
+            changedFiles.push(record.slice(3));
+            if ('RC'.includes(record[0]) || 'RC'.includes(record[1])) i++;
+        }
+        return { changedFiles };
+    } catch (err) {
+        return { changedFiles: [], error: err.message };
+    }
+}
+
+async function gitHead(root) {
+    try { return (await git(['-c', 'core.fsmonitor=false', 'rev-parse', '--verify', 'HEAD'], root)).trim(); }
+    catch (err) {
+        if (err.code === 128) return null; // unborn repository
+        throw err;
+    }
+}
+
+// An original Git project is never a renderer mutation target. The editor
+// works in one persistent, private copy per source root; handoff can later
+// compare its immutable baseline with both trees.
+const PRIVATE_COPY_MAX_FILES = 50000;
+const PRIVATE_COPY_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+const PRIVATE_COPY_MAX_BASELINE_BYTES = 100 * 1024 * 1024;
+const PRIVATE_COPY_MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
+const PRIVATE_COPY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BASELINE_TEXT_EXTENSIONS = new Set([
+    '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.json', '.css', '.scss',
+    '.sass', '.html', '.htm', '.md', '.mdx', '.txt', '.svg', '.yaml',
+    '.yml', '.toml', '.xml',
+]);
+const BASELINE_TEXT_FILENAMES = new Set([
+    'README', 'LICENSE', '.gitignore', '.prettierrc', '.eslintrc',
+]);
+const privateWorkingRoots = new Set();
+const privateWorkingCopyRecords = new Map(); // root -> { sourceRootPath, record, container }
+let privateCopyQueue = Promise.resolve();
+
+function privateWorkingCopyBase() {
+    const parent = app?.getPath ? app.getPath('userData') : os.tmpdir();
+    return path.join(parent, 'weblab-private-working-copies');
+}
+
+function isBaselineTextPath(rel) {
+    return BASELINE_TEXT_EXTENSIONS.has(path.extname(rel).toLowerCase()) ||
+        BASELINE_TEXT_FILENAMES.has(path.basename(rel));
+}
+
+function sameSnapshotStat(left, right) {
+    return left.dev === right.dev && left.ino === right.ino &&
+        left.mode === right.mode && left.size === right.size &&
+        left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
+}
+
+async function preparePrivateCopyBase(base) {
+    await fsp.mkdir(base, { recursive: true, mode: 0o700 });
+    const st = await fsp.lstat(base);
+    if (!st.isDirectory() || st.isSymbolicLink() || await fsp.realpath(base) !== path.resolve(base)) {
+        throw new Error('unsafe_private_copy_directory');
+    }
+    await fsp.chmod(base, 0o700);
+}
+
+async function readPrivateCopyIndex(base) {
+    const indexPath = path.join(base, 'index.json');
+    try {
+        const stat = await fsp.lstat(indexPath);
+        if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077)) {
+            throw new Error('unsafe_private_copy_index');
+        }
+        const parsed = JSON.parse(await fsp.readFile(indexPath, 'utf8'));
+        if (parsed.version !== 1 || !parsed.copies || typeof parsed.copies !== 'object' ||
+            Array.isArray(parsed.copies)) throw new Error('invalid_private_copy_index');
+        if (parsed.retired === undefined) parsed.retired = {};
+        if (!parsed.retired || typeof parsed.retired !== 'object' || Array.isArray(parsed.retired)) {
+            throw new Error('invalid_private_copy_index');
+        }
+        for (const [source, record] of Object.entries(parsed.copies)) {
+            if (!path.isAbsolute(source) || !record || !PRIVATE_COPY_ID.test(record.copyId) ||
+                !/^[a-f0-9]{64}$/.test(record.manifestSha256)) {
+                throw new Error('invalid_private_copy_index');
+            }
+        }
+        for (const [id, record] of Object.entries(parsed.retired)) {
+            if (!PRIVATE_COPY_ID.test(id) || !record || record.copyId !== id ||
+                !path.isAbsolute(record.sourceRootPath) ||
+                !/^[a-f0-9]{64}$/.test(record.manifestSha256)) {
+                throw new Error('invalid_private_copy_index');
+            }
+        }
+        return parsed;
+    } catch (err) {
+        if (err.code === 'ENOENT') return { version: 1, copies: {}, retired: {} };
+        throw err;
+    }
+}
+
+async function writePrivateCopyIndex(base, index) {
+    const target = path.join(base, 'index.json');
+    const temporary = path.join(base, `${randomUUID()}.index.tmp`);
+    try {
+        const handle = await fsp.open(temporary, 'wx', 0o600);
+        try {
+            await handle.writeFile(JSON.stringify(index));
+            await handle.sync();
+        } finally {
+            await handle.close();
+        }
+        await fsp.rename(temporary, target);
+        const dir = await fsp.open(base, fsConstants.O_RDONLY);
+        try { await dir.sync(); }
+        finally { await dir.close(); }
+    } finally {
+        await fsp.rm(temporary, { force: true });
+    }
+}
+
+async function writePrivateJsonFile(directory, name, value, mode = 0o600) {
+    const target = path.join(directory, name);
+    const temporary = path.join(directory, `${randomUUID()}.${name}.tmp`);
+    try {
+        const handle = await fsp.open(temporary, 'wx', mode);
+        try {
+            await handle.writeFile(JSON.stringify(value));
+            await handle.sync();
+        } finally {
+            await handle.close();
+        }
+        await fsp.rename(temporary, target);
+        const dir = await fsp.open(directory, fsConstants.O_RDONLY);
+        try { await dir.sync(); }
+        finally { await dir.close(); }
+    } finally {
+        await fsp.rm(temporary, { force: true });
+    }
+}
+
+async function readPrivateJournal(container, copyId) {
+    const journalPath = path.join(container, 'write-journal.json');
+    const stat = await fsp.lstat(journalPath);
+    if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077)) {
+        throw new Error('Private working copy write journal is unsafe.');
+    }
+    const bytes = await fsp.readFile(journalPath);
+    const journal = JSON.parse(bytes.toString('utf8'));
+    if (journal.version !== 1 || journal.copyId !== copyId || !Array.isArray(journal.writes)) {
+        throw new Error('Private working copy write journal is invalid.');
+    }
+    const seen = new Set();
+    for (const entry of journal.writes) {
+        if (typeof entry.path !== 'string' || !entry.path || entry.path.startsWith('/') ||
+            entry.path.split('/').some((part) => !part || part === '.' || part === '..') ||
+            (entry.sha256 !== null && !/^[a-f0-9]{64}$/.test(entry.sha256)) ||
+            seen.has(entry.path)) throw new Error('Private working copy write journal is invalid.');
+        seen.add(entry.path);
+    }
+    if (journal.intent !== undefined && journal.intent !== null) {
+        const intent = journal.intent;
+        if (typeof intent.path !== 'string' || !intent.path || intent.path.startsWith('/') ||
+            intent.path.split('/').some((part) => !part || part === '.' || part === '..') ||
+            (intent.beforeSha256 !== null && !/^[a-f0-9]{64}$/.test(intent.beforeSha256)) ||
+            (intent.desiredSha256 !== null && !/^[a-f0-9]{64}$/.test(intent.desiredSha256))) {
+            throw new Error('Private working copy write intent is invalid.');
+        }
+    }
+    return { journal, hash: sha256(bytes) };
+}
+
+async function privateCopyRecordForRoot(root, base = privateWorkingCopyBase()) {
+    const index = await readPrivateCopyIndex(base);
+    const found = [
+        ...Object.entries(index.copies),
+        ...Object.values(index.retired).map((item) => [item.sourceRootPath, item]),
+    ].find(([, item]) => path.join(base, item.copyId, 'project') === root);
+    if (!found) throw new Error('original_git_root_is_read_only');
+    const [sourceRootPath, record] = found;
+    const manifest = await readPrivateCopyManifest(base, sourceRootPath, record);
+    const container = path.join(base, record.copyId);
+    privateWorkingCopyRecords.set(root, { sourceRootPath, record, container });
+    return { sourceRootPath, record, manifest, container };
+}
+
+async function recordPrivateWrite(root, rel, hash, base = privateWorkingCopyBase()) {
+    const normalized = path.relative(root, resolveWithin(root, rel)).split(path.sep).join('/');
+    if (!normalized || normalized.startsWith('.git/') || normalized === '.git') {
+        throw new Error('Cannot journal a Git metadata write.');
+    }
+    const { record, container } = privateWorkingCopyRecords.get(root) ??
+        await privateCopyRecordForRoot(root, base);
+    const lockPath = path.join(container, 'write-journal.lock');
+    let lock;
+    try { lock = await fsp.open(lockPath, 'wx', 0o600); }
+    catch (err) {
+        if (err.code === 'EEXIST') throw new Error('Private write journal is locked; handoff is unavailable.');
+        throw err;
+    }
+    try {
+        const { journal } = await readPrivateJournal(container, record.copyId);
+        if (journal.intent) throw new Error('A private write intent needs reconciliation.');
+        const next = journal.writes.filter((item) => item.path !== normalized);
+        next.push({ path: normalized, sha256: hash });
+        next.sort((a, b) => a.path.localeCompare(b.path));
+        await writePrivateJsonFile(container, 'write-journal.json', {
+            version: 1, copyId: record.copyId, writes: next,
+        });
+    } finally {
+        await lock.close();
+        await fsp.rm(lockPath, { force: true });
+    }
+}
+
+async function privatePathHash(root, rel) {
+    const abs = resolveWithin(root, rel);
+    rejectGitMetadataMutation(root, abs);
+    await rejectSymlinkPath(root, abs);
+    try { await verifyExistingParent(root, abs); }
+    catch (err) { if (err.code !== 'ENOENT') throw err; }
+    return (await currentFile(abs)).hash;
+}
+
+async function reconcilePrivateWriteIntent(root, base = privateWorkingCopyBase()) {
+    const { record, container } = privateWorkingCopyRecords.get(root) ??
+        await privateCopyRecordForRoot(root, base);
+    const { journal } = await readPrivateJournal(container, record.copyId);
+    const intent = journal.intent;
+    if (!intent) return;
+    const actual = await privatePathHash(root, intent.path);
+    if (actual !== intent.beforeSha256 && actual !== intent.desiredSha256) {
+        throw new Error(`Private write intent is ambiguous for ${intent.path}. Recover the file before handoff.`);
+    }
+    const writes = journal.writes.filter((item) => item.path !== intent.path);
+    if (actual === intent.desiredSha256) {
+        writes.push({ path: intent.path, sha256: intent.desiredSha256 });
+    } else {
+        const prior = journal.writes.find((item) => item.path === intent.path);
+        if (prior) writes.push(prior);
+    }
+    writes.sort((a, b) => a.path.localeCompare(b.path));
+    await writePrivateJsonFile(container, 'write-journal.json', {
+        version: 1, copyId: record.copyId, writes, intent: null,
+    });
+}
+
+async function beginPrivateWriteIntent(root, rel, beforeSha256, desiredSha256, base = privateWorkingCopyBase()) {
+    await reconcilePrivateWriteIntent(root, base);
+    const actual = await privatePathHash(root, rel);
+    if (actual !== beforeSha256) return { conflict: true, hash: actual };
+    const { record, container } = privateWorkingCopyRecords.get(root) ??
+        await privateCopyRecordForRoot(root, base);
+    const { journal } = await readPrivateJournal(container, record.copyId);
+    if (journal.intent) throw new Error('A private write intent needs reconciliation.');
+    const normalized = path.relative(root, resolveWithin(root, rel)).split(path.sep).join('/');
+    await writePrivateJsonFile(container, 'write-journal.json', {
+        version: 1, copyId: record.copyId, writes: journal.writes,
+        intent: { path: normalized, beforeSha256, desiredSha256 },
+    });
+    return { success: true };
+}
+
+async function validateIndependentGitRoot(root) {
+    const gitDirectory = path.join(root, '.git');
+    const stat = await fsp.lstat(gitDirectory);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+        throw new Error('Git worktrees and linked repositories are not supported for private editing.');
+    }
+    const gitRoot = (await git(['-c', 'core.fsmonitor=false', 'rev-parse', '--show-toplevel'], root)).trim();
+    const gitDir = (await git(['-c', 'core.fsmonitor=false', 'rev-parse', '--absolute-git-dir'], root)).trim();
+    const commonDir = (await git(['-c', 'core.fsmonitor=false', 'rev-parse', '--git-common-dir'], root)).trim();
+    if (await fsp.realpath(gitRoot) !== root || await fsp.realpath(gitDir) !== gitDirectory ||
+        await fsp.realpath(path.resolve(root, commonDir)) !== gitDirectory) {
+        throw new Error('This Git repository uses an external working tree or object directory.');
+    }
+    for (const rel of ['.gitmodules', '.git/objects/info/alternates', '.git/modules', '.git/index.lock']) {
+        try {
+            await fsp.lstat(path.join(root, rel));
+            throw new Error(`Unsupported Git layout: ${rel}`);
+        } catch (err) {
+            if (err.code !== 'ENOENT') throw err;
+        }
+    }
+    const staged = await git(['-c', 'core.fsmonitor=false', 'ls-files', '--stage', '-z'], root);
+    if (staged.split('\0').some((line) => line.startsWith('160000 '))) {
+        throw new Error('Git submodules are not supported for private editing.');
+    }
+}
+
+async function inventoryPrivateCopySource(root) {
+    const rootStat = await fsp.lstat(root, { bigint: true });
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error('Source root changed.');
+    const entries = [];
+    const excludedPaths = [];
+    let totalBytes = 0;
+    const visit = async (relative) => {
+        const dir = relative ? path.join(root, relative) : root;
+        await rejectSymlinkPath(root, dir);
+        for (const name of (await fsp.readdir(dir)).sort()) {
+            const rel = relative ? path.join(relative, name) : name;
+            const abs = path.join(root, rel);
+            const stat = await fsp.lstat(abs, { bigint: true });
+            if (name === 'node_modules' && relative !== '.git' &&
+                !relative.startsWith(`.git${path.sep}`)) {
+                excludedPaths.push(rel.split(path.sep).join('/'));
+                if (excludedPaths.length > 200) throw new Error('Too many excluded node_modules folders to review.');
+                continue;
+            }
+            if (stat.isSymbolicLink()) throw new Error(`Symlink cannot be copied safely: ${rel}`);
+            if (name === '.git' && relative) throw new Error(`Nested Git repository cannot be copied: ${rel}`);
+            if (!stat.isDirectory() && !stat.isFile()) {
+                throw new Error(`Special file cannot be copied safely: ${rel}`);
+            }
+            entries.push({ rel, type: stat.isDirectory() ? 'directory' : 'file', stat });
+            if (entries.length > PRIVATE_COPY_MAX_FILES) throw new Error('Private copy exceeds the 50,000 file limit.');
+            if (stat.isFile()) {
+                totalBytes += Number(stat.size);
+                if (totalBytes > PRIVATE_COPY_MAX_BYTES) {
+                    throw new Error('Private copy exceeds the 2 GB size limit.');
+                }
+            } else {
+                await visit(rel);
+            }
+        }
+    };
+    await visit('');
+    return { rootStat, entries, excludedPaths };
+}
+
+async function copySnapshotFile(source, destination, expectedStat) {
+    const reader = await fsp.open(source, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    let writer;
+    try {
+        if (!sameSnapshotStat(await reader.stat({ bigint: true }), expectedStat)) {
+            throw new Error('Source changed during private copy. Try again.');
+        }
+        writer = await fsp.open(destination, 'wx', 0o600);
+        const digest = createHash('sha256');
+        const buffer = Buffer.allocUnsafe(256 * 1024);
+        let position = 0;
+        while (true) {
+            const { bytesRead } = await reader.read(buffer, 0, buffer.length, position);
+            if (!bytesRead) break;
+            let written = 0;
+            while (written < bytesRead) {
+                const result = await writer.write(buffer, written, bytesRead - written);
+                if (!result.bytesWritten) throw new Error('Private copy write stalled.');
+                written += result.bytesWritten;
+            }
+            digest.update(buffer.subarray(0, bytesRead));
+            position += bytesRead;
+        }
+        if (!sameSnapshotStat(await reader.stat({ bigint: true }), expectedStat)) {
+            throw new Error('Source changed during private copy. Try again.');
+        }
+        await writer.chmod(Number(expectedStat.mode & 0o777n));
+        await writer.sync();
+        return digest.digest('hex');
+    } finally {
+        await writer?.close();
+        await reader.close();
+    }
+}
+
+async function hashSnapshotFile(abs, expectedStat) {
+    const handle = await fsp.open(abs, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    try {
+        if (!sameSnapshotStat(await handle.stat({ bigint: true }), expectedStat)) {
+            throw new Error('Source changed during private copy. Try again.');
+        }
+        const digest = createHash('sha256');
+        const buffer = Buffer.allocUnsafe(256 * 1024);
+        let position = 0;
+        while (true) {
+            const { bytesRead } = await handle.read(buffer, 0, buffer.length, position);
+            if (!bytesRead) break;
+            digest.update(buffer.subarray(0, bytesRead));
+            position += bytesRead;
+        }
+        if (!sameSnapshotStat(await handle.stat({ bigint: true }), expectedStat)) {
+            throw new Error('Source changed during private copy. Try again.');
+        }
+        return digest.digest('hex');
+    } finally {
+        await handle.close();
+    }
+}
+
+async function verifyPrivateCopySnapshot(sourceRoot, copyRoot, initial, hashes) {
+    const current = await inventoryPrivateCopySource(sourceRoot);
+    if (!sameSnapshotStat(current.rootStat, initial.rootStat) ||
+        current.entries.length !== initial.entries.length ||
+        current.excludedPaths.join('\0') !== initial.excludedPaths.join('\0')) {
+        throw new Error('Source tree changed during private copy. Try again.');
+    }
+    for (let i = 0; i < initial.entries.length; i++) {
+        const before = initial.entries[i];
+        const after = current.entries[i];
+        if (before.rel !== after.rel || before.type !== after.type ||
+            !sameSnapshotStat(before.stat, after.stat)) {
+            throw new Error('Source tree changed during private copy. Try again.');
+        }
+        if (before.type !== 'file') continue;
+        const sourceHash = await hashSnapshotFile(path.join(sourceRoot, before.rel), before.stat);
+        const copyStat = await fsp.lstat(path.join(copyRoot, before.rel), { bigint: true });
+        const copyHash = await hashSnapshotFile(path.join(copyRoot, before.rel), copyStat);
+        if (sourceHash !== hashes.get(before.rel) || copyHash !== sourceHash) {
+            throw new Error('File changed during private copy. Try again.');
+        }
+    }
+}
+
+async function readPrivateCopyManifest(base, sourceRoot, record) {
+    const copyId = record.copyId;
+    const container = path.join(base, copyId);
+    const rootPath = path.join(container, 'project');
+    const manifestPath = path.join(container, 'baseline.json');
+    const containerStat = await fsp.lstat(container);
+    const rootStat = await fsp.lstat(rootPath);
+    const manifestStat = await fsp.lstat(manifestPath);
+    if (!containerStat.isDirectory() || containerStat.isSymbolicLink() ||
+        !rootStat.isDirectory() || rootStat.isSymbolicLink() ||
+        !manifestStat.isFile() || manifestStat.isSymbolicLink() || (manifestStat.mode & 0o077) ||
+        await fsp.realpath(rootPath) !== rootPath) {
+        throw new Error('Private working copy metadata or files are inconsistent.');
+    }
+    const bytes = await fsp.readFile(manifestPath);
+    if (sha256(bytes) !== record.manifestSha256) {
+        throw new Error('Private working copy baseline changed. Refusing to open it.');
+    }
+    const manifest = JSON.parse(bytes.toString('utf8'));
+    if (manifest.version !== 1 || manifest.copyId !== copyId ||
+        manifest.sourceRootPath !== sourceRoot || manifest.rootPath !== rootPath ||
+        !Array.isArray(manifest.baseline) || !Array.isArray(manifest.snapshot) ||
+        !Array.isArray(manifest.excludedPaths) ||
+        (manifest.sourceGitHead !== null && typeof manifest.sourceGitHead !== 'string') ||
+        (manifest.sourceIndexSha256 !== null && !/^[a-f0-9]{64}$/.test(manifest.sourceIndexSha256))) {
+        throw new Error('Private working copy metadata or files are inconsistent.');
+    }
+    await readPrivateJournal(container, copyId);
+    await validateIndependentGitRoot(rootPath);
+    return manifest;
+}
+
+async function readPrivateCopyIndexLock(lockPath) {
+    const handle = await fsp.open(lockPath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    try {
+        const stat = await handle.stat({ bigint: true });
+        if (!stat.isFile() || stat.size > 512n || (stat.mode & 0o077n)) {
+            throw new Error('Private copy lock needs manual recovery.');
+        }
+        let owner;
+        try { owner = JSON.parse(await handle.readFile('utf8')); }
+        catch { throw new Error('Private copy lock needs manual recovery.'); }
+        if (!owner || !Number.isSafeInteger(owner.pid) || owner.pid <= 0 ||
+            typeof owner.nonce !== 'string' || !PRIVATE_COPY_ID.test(owner.nonce)) {
+            throw new Error('Private copy lock needs manual recovery.');
+        }
+        return { stat, owner };
+    } finally {
+        await handle.close();
+    }
+}
+
+async function removeDeadPrivateCopyIndexLock(lockPath) {
+    const { stat, owner } = await readPrivateCopyIndexLock(lockPath);
+    try {
+        process.kill(owner.pid, 0);
+        throw new Error('Another private copy is in progress.');
+    } catch (err) {
+        if (err.code !== 'ESRCH') throw err;
+    }
+    const latest = await fsp.lstat(lockPath, { bigint: true });
+    if (latest.dev !== stat.dev || latest.ino !== stat.ino ||
+        latest.size !== stat.size || latest.mtimeNs !== stat.mtimeNs) {
+        throw new Error('Private copy lock changed. Try again.');
+    }
+    await fsp.unlink(lockPath);
+}
+
+async function acquirePrivateCopyIndexLock(base) {
+    const lockPath = path.join(base, 'index.lock');
+    const owner = { pid: process.pid, nonce: randomUUID() };
+    const temporary = path.join(base, `${owner.nonce}.index-lock.tmp`);
+    try {
+        const handle = await fsp.open(temporary, 'wx', 0o600);
+        try {
+            await handle.writeFile(JSON.stringify(owner));
+            await handle.sync();
+        } finally {
+            await handle.close();
+        }
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                await fsp.link(temporary, lockPath);
+                return async () => {
+                    const current = await readPrivateCopyIndexLock(lockPath);
+                    if (current.owner.pid !== owner.pid || current.owner.nonce !== owner.nonce) {
+                        throw new Error('Private copy lock ownership changed.');
+                    }
+                    await fsp.unlink(lockPath);
+                };
+            } catch (err) {
+                if (err.code !== 'EEXIST') throw err;
+                if (attempt) throw new Error('Another private copy is in progress.');
+                await removeDeadPrivateCopyIndexLock(lockPath);
+            }
+        }
+        throw new Error('Another private copy is in progress.');
+    } finally {
+        await fsp.rm(temporary, { force: true }).catch(() => {});
+    }
+}
+
+async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBase()) {
+    const operation = privateCopyQueue.catch(() => {}).then(async () => {
+        sourceRoot = await requireGrantedRoot(sourceRoot);
+        await preparePrivateCopyBase(base);
+        if (base === sourceRoot || base.startsWith(`${sourceRoot}${path.sep}`)) {
+            throw new Error('The private copy directory cannot be inside the selected Git project.');
+        }
+        const releaseLock = await acquirePrivateCopyIndexLock(base);
+        try {
+            const index = await readPrivateCopyIndex(base);
+            const existing = index.copies[sourceRoot];
+            let priorCopyId;
+            if (existing) {
+                try {
+                    await validateIndependentGitRoot(sourceRoot);
+                    const manifest = await readPrivateCopyManifest(base, sourceRoot, existing);
+                    if (await originalMatchesPrivateBaseline(sourceRoot, manifest)) {
+                        await grantLocalRoot(manifest.rootPath);
+                        privateWorkingRoots.add(manifest.rootPath);
+                        privateWorkingCopyRecords.set(manifest.rootPath, {
+                            sourceRootPath: sourceRoot, record: existing,
+                            container: path.join(base, existing.copyId),
+                        });
+                        return {
+                            rootPath: manifest.rootPath, sourceRootPath: sourceRoot,
+                            copyId: existing.copyId, reused: true,
+                            previewNeedsInstall: manifest.previewNeedsInstall,
+                            excludedPaths: manifest.excludedPaths,
+                        };
+                    }
+                    priorCopyId = existing.copyId;
+                } catch (err) {
+                    throw new Error(`Existing private working copy is inconsistent: ${err.message}`);
+                }
+            }
+            await validateIndependentGitRoot(sourceRoot);
+            const inventory = await inventoryPrivateCopySource(sourceRoot);
+            const copyId = randomUUID();
+            const container = path.join(base, copyId);
+            const rootPath = path.join(container, 'project');
+            await fsp.mkdir(container, { mode: 0o700 });
+            try {
+                await fsp.mkdir(rootPath, { mode: 0o700 });
+                const hashes = new Map();
+                const baseline = [];
+                let baselineBytes = 0;
+                for (const entry of inventory.entries) {
+                    const destination = path.join(rootPath, entry.rel);
+                    if (entry.type === 'directory') {
+                        await fsp.mkdir(destination, { mode: 0o700 });
+                        continue;
+                    }
+                    const digest = await copySnapshotFile(
+                        path.join(sourceRoot, entry.rel), destination, entry.stat,
+                    );
+                    hashes.set(entry.rel, digest);
+                    if (entry.rel === '.git' || entry.rel.startsWith(`.git${path.sep}`) ||
+                        !isBaselineTextPath(entry.rel)) continue;
+                    if (entry.stat.size > BigInt(PRIVATE_COPY_MAX_TEXT_FILE_BYTES)) {
+                        throw new Error(`Text source exceeds the 2 MB baseline limit: ${entry.rel}`);
+                    }
+                    const bytes = await fsp.readFile(destination);
+                    if (bytes.includes(0)) throw new Error(`Binary content in text source: ${entry.rel}`);
+                    let content;
+                    try { content = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
+                    catch { throw new Error(`Invalid UTF-8 text source: ${entry.rel}`); }
+                    baselineBytes += bytes.length;
+                    if (baselineBytes > PRIVATE_COPY_MAX_BASELINE_BYTES) {
+                        throw new Error('Text source baseline exceeds the 100 MB limit.');
+                    }
+                    baseline.push({ path: entry.rel.split(path.sep).join('/'), sha256: digest, content });
+                }
+                await verifyPrivateCopySnapshot(sourceRoot, rootPath, inventory, hashes);
+                await validateIndependentGitRoot(rootPath);
+                const sourceGitHead = await gitHead(sourceRoot);
+                if (sourceGitHead !== await gitHead(rootPath)) {
+                    throw new Error('Git HEAD changed during private copy. Try again.');
+                }
+                const manifest = {
+                    version: 1, copyId, sourceRootPath: sourceRoot, rootPath,
+                    createdAt: new Date().toISOString(), baseline,
+                    sourceGitHead,
+                    sourceIndexSha256: hashes.get(path.join('.git', 'index')) ?? null,
+                    snapshot: inventory.entries
+                        .filter((entry) => entry.type === 'file' &&
+                            entry.rel !== '.git' && !entry.rel.startsWith(`.git${path.sep}`))
+                        .map((entry) => ({
+                            path: entry.rel.split(path.sep).join('/'),
+                            sha256: hashes.get(entry.rel),
+                        })),
+                    excludedPaths: inventory.excludedPaths,
+                    previewNeedsInstall: inventory.excludedPaths.length > 0,
+                };
+                const manifestBytes = Buffer.from(JSON.stringify(manifest));
+                const manifestPath = path.join(container, 'baseline.json');
+                const manifestHandle = await fsp.open(manifestPath, 'wx', 0o400);
+                try {
+                    await manifestHandle.writeFile(manifestBytes);
+                    await manifestHandle.sync();
+                } finally {
+                    await manifestHandle.close();
+                }
+                await fsp.chmod(manifestPath, 0o400);
+                await writePrivateJsonFile(container, 'write-journal.json', {
+                    version: 1, copyId, writes: [], intent: null,
+                });
+                await grantLocalRoot(rootPath);
+                if (priorCopyId) {
+                    index.retired[priorCopyId] = {
+                        ...existing, sourceRootPath: sourceRoot,
+                    };
+                }
+                index.copies[sourceRoot] = { copyId, manifestSha256: sha256(manifestBytes) };
+                await writePrivateCopyIndex(base, index);
+                privateWorkingRoots.add(rootPath);
+                privateWorkingCopyRecords.set(rootPath, {
+                    sourceRootPath: sourceRoot, record: index.copies[sourceRoot], container,
+                });
+                return {
+                    rootPath, sourceRootPath: sourceRoot, copyId, reused: false,
+                    ...(priorCopyId ? { priorCopyId } : {}),
+                    previewNeedsInstall: manifest.previewNeedsInstall,
+                    excludedPaths: manifest.excludedPaths,
+                };
+            } catch (err) {
+                await fsp.rm(container, { recursive: true, force: true });
+                throw err;
+            }
+        } finally {
+            await releaseLock();
+        }
+    });
+    privateCopyQueue = operation;
+    return operation;
+}
+
+async function requirePrivateWorkingRoot(root, base = privateWorkingCopyBase()) {
+    const canonical = await requireGrantedRoot(root);
+    if (privateWorkingRoots.has(canonical)) return canonical;
+    await preparePrivateCopyBase(base);
+    const index = await readPrivateCopyIndex(base);
+    const record = [
+        ...Object.entries(index.copies),
+        ...Object.values(index.retired).map((item) => [item.sourceRootPath, item]),
+    ].find(([, item]) => path.join(base, item.copyId, 'project') === canonical);
+    if (!record) throw new Error('original_git_root_is_read_only');
+    await readPrivateCopyManifest(base, record[0], record[1]);
+    privateWorkingRoots.add(canonical);
+    privateWorkingCopyRecords.set(canonical, {
+        sourceRootPath: record[0], record: record[1],
+        container: path.join(base, record[1].copyId),
+    });
+    return canonical;
+}
+
+const HANDOFF_MAX_CHANGED_FILES = 100;
+const HANDOFF_MAX_DIFF_BYTES = 10 * 1024 * 1024;
+const HANDOFF_IGNORED_DIRECTORIES = new Set(['.git', 'node_modules', '.next']);
+const reviewedHandoffPlans = new Map(); // copyId -> token
+
+async function collectHandoffState(root) {
+    const collect = async () => {
+        const entries = [];
+        let totalBytes = 0n;
+        const rootStat = await fsp.lstat(root, { bigint: true });
+        if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error('Project root changed.');
+        const visit = async (directory) => {
+            const abs = directory ? path.join(root, directory) : root;
+            for (const name of (await fsp.readdir(abs)).sort()) {
+                if (HANDOFF_IGNORED_DIRECTORIES.has(name)) continue;
+                const rel = directory ? path.join(directory, name) : name;
+                const stat = await fsp.lstat(path.join(root, rel), { bigint: true });
+                if (stat.isSymbolicLink()) throw new Error(`Symlink in handoff source: ${rel}`);
+                if (!stat.isDirectory() && !stat.isFile()) {
+                    throw new Error(`Special file in handoff source: ${rel}`);
+                }
+                entries.push({ rel, type: stat.isDirectory() ? 'directory' : 'file', stat });
+                if (entries.length > PRIVATE_COPY_MAX_FILES) throw new Error('Handoff source exceeds the file limit.');
+                if (stat.isDirectory()) await visit(rel);
+                else {
+                    totalBytes += stat.size;
+                    if (totalBytes > BigInt(PRIVATE_COPY_MAX_BYTES)) {
+                        throw new Error('Handoff source exceeds the 2 GB size limit.');
+                    }
+                }
+            }
+        };
+        await visit('');
+        return { rootStat, entries };
+    };
+    const first = await collect();
+    const files = new Map();
+    for (const entry of first.entries) {
+        if (entry.type !== 'file') continue;
+        const relative = entry.rel.split(path.sep).join('/');
+        files.set(relative, await hashSnapshotFile(path.join(root, entry.rel), entry.stat));
+    }
+    const second = await collect();
+    if (!sameSnapshotStat(first.rootStat, second.rootStat) ||
+        first.entries.length !== second.entries.length ||
+        first.entries.some((entry, index) => entry.rel !== second.entries[index].rel ||
+            entry.type !== second.entries[index].type ||
+            !sameSnapshotStat(entry.stat, second.entries[index].stat))) {
+        throw new Error('Files changed while preparing the handoff. Review again.');
+    }
+    return files;
+}
+
+function sameHandoffFiles(snapshot, current) {
+    if (snapshot.size !== current.size) return false;
+    for (const [path, hash] of snapshot) if (current.get(path) !== hash) return false;
+    return true;
+}
+
+async function originalMatchesPrivateBaseline(sourceRoot, manifest) {
+    const baseline = new Map(manifest.snapshot
+        .filter((entry) => !entry.path.split('/').includes('.next'))
+        .map((entry) => [entry.path, entry.sha256]));
+    const current = await collectHandoffState(sourceRoot);
+    if (!sameHandoffFiles(baseline, current)) return false;
+    const index = await currentFile(path.join(sourceRoot, '.git', 'index'));
+    return index.hash === manifest.sourceIndexSha256 &&
+        await gitHead(sourceRoot) === manifest.sourceGitHead;
+}
+
+async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase()) {
+    copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
+    const { sourceRootPath, record, manifest, container } =
+        await privateCopyRecordForRoot(copyRoot, base);
+    try {
+        await fsp.lstat(path.join(container, 'write-journal.lock'));
+        throw new Error('A private write is in progress, or its journal lock needs recovery.');
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+    }
+    await reconcilePrivateWriteIntent(copyRoot, base);
+    const journalBefore = await readPrivateJournal(container, record.copyId);
+    const copied = await collectHandoffState(copyRoot);
+    await validateIndependentGitRoot(sourceRootPath);
+    const original = await collectHandoffState(sourceRootPath);
+    const journalAfter = await readPrivateJournal(container, record.copyId);
+    if (journalBefore.hash !== journalAfter.hash) {
+        throw new Error('Weblab wrote a file while the handoff was being reviewed. Review again.');
+    }
+    const snapshot = new Map(manifest.snapshot
+        .filter((entry) => !entry.path.split('/').includes('.next'))
+        .map((entry) => [entry.path, entry.sha256]));
+    const baseline = new Map(manifest.baseline.map((entry) => [entry.path, entry]));
+    const writes = new Map(journalBefore.journal.writes.map((entry) => [entry.path, entry.sha256]));
+    const unsupportedChanges = new Set();
+    const changedFiles = [];
+    let diffBytes = 0;
+
+    for (const [filePath, expected] of writes) {
+        const current = copied.get(filePath) ?? null;
+        if (filePath.split('/').includes('.next') || current !== expected) {
+            unsupportedChanges.add(filePath);
+        }
+    }
+    for (const filePath of new Set([...snapshot.keys(), ...copied.keys()])) {
+        const beforeHash = snapshot.get(filePath) ?? null;
+        const afterHash = copied.get(filePath) ?? null;
+        if (beforeHash === afterHash) continue;
+        if (!writes.has(filePath) || writes.get(filePath) !== afterHash) {
+            unsupportedChanges.add(filePath);
+            continue;
+        }
+        const prior = baseline.get(filePath);
+        if (beforeHash !== null && (!prior || prior.sha256 !== beforeHash)) {
+            unsupportedChanges.add(filePath); // binary or unsupported source
+            continue;
+        }
+        let updated = null;
+        if (afterHash !== null) {
+            const file = await readTextFile(copyRoot, filePath);
+            if (file.error || file.sha256 !== afterHash) {
+                unsupportedChanges.add(filePath);
+                continue;
+            }
+            updated = file.content;
+        }
+        const oldContent = prior?.content ?? null;
+        diffBytes += Buffer.byteLength(oldContent ?? '') + Buffer.byteLength(updated ?? '');
+        if (changedFiles.length >= HANDOFF_MAX_CHANGED_FILES || diffBytes > HANDOFF_MAX_DIFF_BYTES) {
+            throw new Error('Handoff diff exceeds 100 files or 10 MB.');
+        }
+        changedFiles.push({ path: filePath, original: oldContent, updated });
+    }
+    changedFiles.sort((a, b) => a.path.localeCompare(b.path));
+    const sourceChanged = !sameHandoffFiles(snapshot, original);
+    const sourceIndex = await currentFile(path.join(sourceRootPath, '.git', 'index'));
+    const sourceGitChanged = await gitHead(sourceRootPath) !== manifest.sourceGitHead ||
+        sourceIndex.hash !== manifest.sourceIndexSha256;
+    const issues = [...unsupportedChanges].sort();
+    const planToken = issues.length || sourceChanged || sourceGitChanged || !changedFiles.length ? null : sha256(Buffer.from(JSON.stringify({
+        copyId: record.copyId,
+        manifestSha256: record.manifestSha256,
+        journalSha256: journalBefore.hash,
+        copied: [...copied].sort(),
+        original: [...original].sort(),
+        changedFiles,
+    })));
+    return {
+        copyId: record.copyId, sourceRootPath, changedFiles,
+        unsupportedChanges: issues, sourceChanged: sourceChanged || sourceGitChanged, planToken,
+    };
+}
+
+async function planPrivateHandoff(copyRoot, base = privateWorkingCopyBase()) {
+    const plan = await computePrivateHandoffPlan(copyRoot, base);
+    if (plan.planToken) reviewedHandoffPlans.set(plan.copyId, plan.planToken);
+    else reviewedHandoffPlans.delete(plan.copyId);
+    return plan;
+}
+
+function isolatedGit(args, cwd, templateDirectory) {
+    return new Promise((resolve, reject) => {
+        const env = { ...syncedEnv() };
+        for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+        env.GIT_CONFIG_NOSYSTEM = '1';
+        env.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : '/dev/null';
+        env.GIT_TEMPLATE_DIR = templateDirectory;
+        execFile('git', [
+            '-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false',
+            '-c', 'core.fsmonitor=false',
+            '-c', `core.hooksPath=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+            ...args,
+        ], { cwd, env, encoding: 'buffer', maxBuffer: 20 * 1024 * 1024 },
+        (err, stdout, stderr) => {
+            if (err) return reject(new Error(`Isolated Git patch failed: ${stderr.toString('utf8').trim() || err.message}`));
+            resolve(stdout);
+        });
+    });
+}
+
+async function buildIsolatedHandoffPatch(container, changedFiles) {
+    const temporary = path.join(container, `handoff-tmp-${randomUUID()}`);
+    const repository = path.join(temporary, 'repo');
+    const template = path.join(temporary, 'empty-template');
+    await fsp.mkdir(temporary, { mode: 0o700 });
+    try {
+        await fsp.mkdir(repository, { mode: 0o700 });
+        await fsp.mkdir(template, { mode: 0o700 });
+        await isolatedGit(['init', '-q', `--template=${template}`], repository, template);
+        // Git's info/attributes outranks any changed .gitattributes file.
+        // Disable text conversion and filters so patch bytes match the
+        // reviewed UTF-8 content exactly, including CRLF and BOM.
+        await fsp.mkdir(path.join(repository, '.git', 'info'), { recursive: true, mode: 0o700 });
+        await fsp.writeFile(path.join(repository, '.git', 'info', 'attributes'), '* -text -filter\n', {
+            flag: 'wx', mode: 0o600,
+        });
+        for (const file of changedFiles) {
+            if (file.original === null) continue;
+            const target = resolveWithin(repository, file.path);
+            await fsp.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
+            await fsp.writeFile(target, file.original, { flag: 'wx', mode: 0o600 });
+            await isolatedGit(['add', '-f', '--', file.path], repository, template);
+        }
+        for (const file of changedFiles) {
+            const target = resolveWithin(repository, file.path);
+            if (file.updated === null) {
+                await fsp.rm(target);
+            } else if (file.original === null) {
+                await fsp.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
+                await fsp.writeFile(target, file.updated, { flag: 'wx', mode: 0o600 });
+                await isolatedGit(['add', '-N', '-f', '--', file.path], repository, template);
+            } else {
+                await fsp.writeFile(target, file.updated);
+            }
+        }
+        const patch = await isolatedGit([
+            'diff', '--binary', '--no-ext-diff', '--no-textconv', '--no-renames', '--',
+        ], repository, template);
+        if (!patch.length || !patch.toString('utf8').includes('diff --git')) {
+            throw new Error('Isolated Git produced no handoff patch.');
+        }
+        return patch;
+    } finally {
+        await fsp.rm(temporary, { recursive: true, force: true });
+    }
+}
+
+async function exportPrivateHandoff(copyRoot, planToken, base = privateWorkingCopyBase()) {
+    if (typeof planToken !== 'string' || !/^[a-f0-9]{64}$/.test(planToken)) {
+        throw new Error('Review a current handoff plan before exporting.');
+    }
+    const first = await computePrivateHandoffPlan(copyRoot, base);
+    if (reviewedHandoffPlans.get(first.copyId) !== planToken || first.planToken !== planToken ||
+        first.unsupportedChanges.length || first.sourceChanged || !first.changedFiles.length) {
+        throw new Error('Project files changed since handoff review. Review again.');
+    }
+    const container = path.join(base, first.copyId);
+    const patch = await buildIsolatedHandoffPatch(container, first.changedFiles);
+    const second = await computePrivateHandoffPlan(copyRoot, base);
+    if (second.planToken !== planToken) {
+        throw new Error('Project files changed while exporting. Review again.');
+    }
+    const exportDirectory = path.join(container, 'exports');
+    await fsp.mkdir(exportDirectory, { recursive: true, mode: 0o700 });
+    const patchPath = path.join(exportDirectory, `${Date.now()}-${randomUUID()}.patch`);
+    const handle = await fsp.open(patchPath, 'wx', 0o600);
+    try {
+        await handle.writeFile(patch);
+        await handle.sync();
+    } catch (err) {
+        await fsp.rm(patchPath, { force: true });
+        throw err;
+    } finally {
+        await handle.close();
+    }
+    reviewedHandoffPlans.delete(first.copyId);
+    return { patchPath, changedFiles: first.changedFiles.map((file) => file.path) };
+}
+
 // --- Watch --------------------------------------------------------------------
-const watchers = new Map(); // watchId -> watcher
+const watchers = new Map(); // watchId -> { watcher, root }
 let watchSeq = 0;
 
 async function startWatch(root, excludes, getWebContents) {
     if (!chokidar) return { error: 'chokidar_unavailable' };
     const id = `w${++watchSeq}`;
     const ignored = [
-        /(^|[/\\])\../, // dotfiles/dirs
         '**/node_modules/**',
         '**/.git/**',
         '**/.next/**',
@@ -404,7 +1931,7 @@ async function startWatch(root, excludes, getWebContents) {
     ];
     let watcher;
     try {
-        watcher = chokidar.watch(root, { ignored, ignoreInitial: true, persistent: true });
+        watcher = chokidar.watch(root, { ignored, ignoreInitial: true, persistent: true, followSymlinks: false });
     } catch (err) {
         return { error: (err && err.message) || 'watch_failed' };
     }
@@ -423,7 +1950,7 @@ async function startWatch(root, excludes, getWebContents) {
     watcher.on('add', (p) => emit('add', p));
     watcher.on('change', (p) => emit('change', p));
     watcher.on('unlink', (p) => emit('remove', p));
-    watchers.set(id, watcher);
+    watchers.set(id, { watcher, root });
     // Wait for chokidar's initial scan to finish before resolving, so edits
     // made right after watchStart aren't dropped during startup. Fallback after
     // 3s so a watcher that never emits 'ready' can't hang the caller.
@@ -441,10 +1968,10 @@ async function startWatch(root, excludes, getWebContents) {
 }
 
 function stopWatch(watchId) {
-    const w = watchers.get(watchId);
-    if (w) {
+    const rec = watchers.get(watchId);
+    if (rec) {
         try {
-            w.close();
+            rec.watcher.close();
         } catch {
             // ignore
         }
@@ -454,7 +1981,12 @@ function stopWatch(watchId) {
 
 // --- Registration -------------------------------------------------------------
 function registerLocalIpc({ allowedOrigins, getWebContents }) {
-    const guard = (event) => isFromAllowedOrigin(event, allowedOrigins);
+    const guard = (event) => event.sender === getWebContents() &&
+        event.senderFrame === event.sender.mainFrame && isFromAllowedOrigin(event, allowedOrigins);
+    const granted = async (event, root) => {
+        if (!guard(event)) throw new Error('origin_mismatch');
+        return requireGrantedRoot(root);
+    };
 
     ipcMain.handle('weblab:localfs:pickFolder', async (event) => {
         if (!guard(event)) return null;
@@ -462,37 +1994,106 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
             properties: ['openDirectory', 'createDirectory'],
         });
         if (result.canceled || result.filePaths.length === 0) return null;
-        return { rootPath: result.filePaths[0] };
+        try { return { rootPath: await grantLocalRoot(result.filePaths[0]) }; }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:grantDroppedFolder', async (event, folderPath) => {
+        if (!guard(event)) return null;
+        try { return await grantLocalRoot(folderPath); }
+        catch { return null; }
+    });
+
+    ipcMain.handle('weblab:localfs:createPrivateWorkingCopy', async (event, { sourceRoot } = {}) => {
+        try { return await createPrivateWorkingCopy(await granted(event, sourceRoot)); }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:planPrivateHandoff', async (event, { root } = {}) => {
+        try { return await planPrivateHandoff(await requirePrivateWorkingRoot(await granted(event, root))); }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:exportPrivateHandoff', async (event, { root, planToken } = {}) => {
+        try {
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            return await withWriteLock(`journal:${root}`, () => exportPrivateHandoff(root, planToken));
+        } catch (err) { return { error: err.message }; }
     });
 
     ipcMain.handle('weblab:localfs:read', async (event, { root, path: rel } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
         try {
-            const abs = resolveWithin(root, rel);
-            const content = await fsp.readFile(abs, 'utf8');
-            return { content };
+            return await readTextFile(await granted(event, root), rel);
         } catch (err) {
             return { error: err.code === 'ENOENT' ? 'not_found' : err.message, notFound: err.code === 'ENOENT' };
         }
     });
 
-    ipcMain.handle('weblab:localfs:write', async (event, { root, path: rel, content } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
+    for (const operation of ['write', 'mkdir', 'remove', 'rename', 'copy']) {
+        ipcMain.handle(`weblab:localfs:${operation}`, async () => ({ error: 'unsupported_mutation' }));
+    }
+
+    ipcMain.handle('weblab:localfs:writeIfUnchanged', async (event, {
+        root, path: rel, content, expectedSha256,
+    } = {}) => {
         try {
-            const abs = resolveWithin(root, rel);
-            await fsp.mkdir(path.dirname(abs), { recursive: true });
-            const data = content instanceof Uint8Array ? Buffer.from(content) : String(content ?? '');
-            await fsp.writeFile(abs, data);
-            return { success: true };
-        } catch (err) {
-            return { error: err.message };
+            if (expectedSha256 !== null && !/^[a-f0-9]{64}$/.test(expectedSha256)) {
+                return { error: 'invalid_expected_sha256' };
+            }
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            return await withWriteLock(`journal:${root}`, async () => {
+                const intent = await beginPrivateWriteIntent(
+                    root, rel, expectedSha256, sha256(toBytes(content)),
+                );
+                if (intent.conflict) return intent;
+                const result = await writeIfUnchanged(root, rel, content, expectedSha256);
+                try { await reconcilePrivateWriteIntent(root); }
+                catch (err) {
+                    return { error: `Private write needs recovery before handoff: ${err.message}`,
+                        hash: result.hash, recoveryPath: result.recoveryPath };
+                }
+                return result;
+            });
         }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:deleteFileIfUnchanged', async (event, {
+        root, path: rel, expectedSha256,
+    } = {}) => {
+        try {
+            if (!/^[a-f0-9]{64}$/.test(expectedSha256)) return { error: 'invalid_expected_sha256' };
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            return await withWriteLock(`journal:${root}`, async () => {
+                const intent = await beginPrivateWriteIntent(root, rel, expectedSha256, null);
+                if (intent.conflict) return intent;
+                const result = await deleteFileIfUnchanged(root, rel, expectedSha256);
+                try { await reconcilePrivateWriteIntent(root); }
+                catch (err) {
+                    return { error: `Private delete needs recovery before handoff: ${err.message}`,
+                        recoveryPath: result.recoveryPath };
+                }
+                return result;
+            });
+        }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:createPreparationPublicDirectory', async (event, { root } = {}) => {
+        try { return await createPreparationPublicDirectory(await requirePrivateWorkingRoot(await granted(event, root))); }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:deletePreparationPublicDirectory', async (event, { root } = {}) => {
+        try { return await deletePreparationPublicDirectory(await requirePrivateWorkingRoot(await granted(event, root))); }
+        catch (err) { return { error: err.message }; }
     });
 
     ipcMain.handle('weblab:localfs:list', async (event, { root, path: rel } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
         try {
+            root = await granted(event, root);
             const abs = resolveWithin(root, rel);
+            await rejectSymlinkPath(root, abs);
             const entries = await fsp.readdir(abs, { withFileTypes: true });
             return {
                 files: entries.map((e) => ({
@@ -507,9 +2108,10 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
     });
 
     ipcMain.handle('weblab:localfs:stat', async (event, { root, path: rel } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
         try {
+            root = await granted(event, root);
             const abs = resolveWithin(root, rel);
+            await rejectSymlinkPath(root, abs);
             const st = await fsp.lstat(abs);
             return {
                 type: st.isDirectory() ? 'directory' : 'file',
@@ -523,55 +2125,10 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
         }
     });
 
-    ipcMain.handle('weblab:localfs:mkdir', async (event, { root, path: rel } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
-        try {
-            await fsp.mkdir(resolveWithin(root, rel), { recursive: true });
-            return { success: true };
-        } catch (err) {
-            return { error: err.message };
-        }
-    });
-
-    ipcMain.handle('weblab:localfs:remove', async (event, { root, path: rel, recursive } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
-        try {
-            await fsp.rm(resolveWithin(root, rel), { recursive: recursive !== false, force: true });
-            return { success: true };
-        } catch (err) {
-            return { error: err.message };
-        }
-    });
-
-    ipcMain.handle('weblab:localfs:rename', async (event, { root, oldPath, newPath } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
-        try {
-            const from = resolveWithin(root, oldPath);
-            const to = resolveWithin(root, newPath);
-            await fsp.mkdir(path.dirname(to), { recursive: true });
-            await fsp.rename(from, to);
-            return { success: true };
-        } catch (err) {
-            return { error: err.message };
-        }
-    });
-
-    ipcMain.handle('weblab:localfs:copy', async (event, { root, sourcePath, targetPath, recursive } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
-        try {
-            const from = resolveWithin(root, sourcePath);
-            const to = resolveWithin(root, targetPath);
-            await fsp.cp(from, to, { recursive: recursive !== false });
-            return { success: true };
-        } catch (err) {
-            return { error: err.message };
-        }
-    });
-
     ipcMain.handle('weblab:localfs:watchStart', async (event, { root, excludes } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
         try {
-            resolveWithin(root, '.'); // validate root
+            root = await granted(event, root);
+            await rejectSymlinkPath(root, root);
             return startWatch(root, excludes, getWebContents);
         } catch (err) {
             return { error: err.message };
@@ -580,23 +2137,26 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
 
     ipcMain.handle('weblab:localfs:watchStop', async (event, { watchId } = {}) => {
         if (!guard(event)) return { error: 'origin_mismatch' };
+        const rec = watchers.get(watchId);
+        if (!rec) return { error: 'unknown_watch' };
+        try { await granted(event, rec.root); }
+        catch (err) { return { error: err.message }; }
         stopWatch(watchId);
         return { success: true };
     });
 
-    ipcMain.handle('weblab:localdev:start', async (event, { root, command, port } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
+    ipcMain.handle('weblab:localdev:start', async (event, { root, port } = {}) => {
         try {
-            resolveWithin(root, '.');
-            return await startDevServer(root, command, port, getWebContents);
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            return await startDevServer(root, null, port, getWebContents);
         } catch (err) {
             return { error: err.message };
         }
     });
 
-    ipcMain.handle('weblab:localdev:pickPort', async (event, { preferredPort } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
+    ipcMain.handle('weblab:localdev:pickPort', async (event, { root, preferredPort } = {}) => {
         try {
+            await granted(event, root);
             return { port: await findFreePort(preferredPort) };
         } catch (err) {
             return { error: (err && err.message) || 'pick_port_failed' };
@@ -604,47 +2164,66 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
     });
 
     ipcMain.handle('weblab:localdev:stop', async (event, { root } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
-        stopDevServer(root);
-        return { success: true };
+        try { return await stopDevServer(await granted(event, root)); }
+        catch (err) { return { error: err.message }; }
     });
 
     ipcMain.handle('weblab:localdev:status', async (event, { root } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
+        try { root = await granted(event, root); }
+        catch (err) { return { error: err.message }; }
         const rec = devServers.get(root);
-        const running = !!(rec && rec.child && rec.child.exitCode === null);
+        const running = isDevServerRunning(rec);
         return { running, port: rec ? rec.port : undefined, url: rec ? rec.url : undefined };
     });
 
-    ipcMain.handle('weblab:localdev:run', async (event, { root, command } = {}) => {
-        if (!guard(event)) return { error: 'origin_mismatch' };
-        try {
-            resolveWithin(root, '.');
-            return await runCommand(root, command);
-        } catch (err) {
-            return { error: err.message, output: '', exitCode: -1 };
-        }
+    ipcMain.handle('weblab:localdev:gitInfo', async (event, { root } = {}) => {
+        try { return await gitInfo(await granted(event, root)); }
+        catch (err) { return { isRepositoryRoot: false, error: err.message }; }
+    });
+    ipcMain.handle('weblab:localdev:gitStatus', async (event, { root } = {}) => {
+        try { return await gitStatus(await granted(event, root)); }
+        catch (err) { return { changedFiles: [], error: err.message }; }
+    });
+    ipcMain.handle('weblab:localdev:run', async () => {
+        return { error: 'unsupported_command', output: '', exitCode: -1 };
     });
 }
 
 // Kill any spawned dev servers + watchers on app shutdown.
 function disposeLocal() {
-    for (const root of [...devServers.keys()]) stopDevServer(root);
+    for (const root of [...devServers.keys()]) void stopDevServer(root);
     for (const id of [...watchers.keys()]) stopWatch(id);
 }
 
 module.exports = {
     registerLocalIpc,
+    grantLocalRoot,
+    requireGrantedRoot,
     disposeLocal,
     resolveWithin,
+    rejectSymlinkPath,
+    readTextFile,
     inferPortFromDevScript,
     findFreePort,
     canBindPort,
     // Exported for the headless integration test (real dev-server + watch).
-    ensureInstalled,
+    writeIfUnchanged,
+    deleteFileIfUnchanged,
+    createPreparationPublicDirectory,
+    deletePreparationPublicDirectory,
     startDevServer,
+    projectDevEnvironment,
     stopDevServer,
-    runCommand,
+    gitInfo,
+    gitStatus,
+    pruneSuccessfulBackups,
     startWatch,
     stopWatch,
+    createPrivateWorkingCopy,
+    requirePrivateWorkingRoot,
+    planPrivateHandoff,
+    exportPrivateHandoff,
+    recordPrivateWrite,
+    beginPrivateWriteIntent,
+    reconcilePrivateWriteIntent,
 };
