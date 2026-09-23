@@ -235,7 +235,7 @@ export const ChatTabContent = ({
     };
 
     return (
-        <div className="flex h-full flex-col justify-end gap-2 pt-2">
+        <div className="flex h-full flex-col justify-end">
             <ChatMessages
                 messages={messages}
                 isStreaming={isStreaming}
