@@ -21,6 +21,7 @@ import { Hotkey } from '@/components/hotkey';
 import { IDE } from '@/components/ide';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 
 interface RightClickMenuProps {
     children: React.ReactNode;
@@ -258,7 +259,11 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
 
     const getMenuItems = (): MenuItem[][] => {
         if (!editorEngine.elements.selected.length) {
-            return [WINDOW_ITEMS, FIGMA_FRAME_ITEMS, COMMENT_ITEMS];
+            return [
+                WINDOW_ITEMS,
+                FIGMA_FRAME_ITEMS,
+                EDITOR_SCOPE.comments ? COMMENT_ITEMS : [],
+            ].filter((group) => group.length > 0);
         }
 
         const element: DomElement | undefined = editorEngine.elements.selected[0];
@@ -281,18 +286,18 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
                     <Icons.ExternalLink className="mr-2 h-4 w-4" />
                 ),
             },
-            ...TOOL_ITEMS,
+            ...(EDITOR_SCOPE.aiChat ? TOOL_ITEMS : []),
         ].filter((item): item is MenuItem => item !== false);
 
         return [
             updatedToolItems,
-            buildComponentItems(element),
+            EDITOR_SCOPE.components ? buildComponentItems(element) : [],
             GROUP_ITEMS,
             EDITING_ITEMS,
             FIGMA_ELEMENT_ITEMS,
-            buildCmsItems(root),
-            COMMENT_ITEMS,
-        ];
+            EDITOR_SCOPE.cms ? buildCmsItems(root) : [],
+            EDITOR_SCOPE.comments ? COMMENT_ITEMS : [],
+        ].filter((group) => group.length > 0);
     };
 
     const menuItems: MenuItem[][] = getMenuItems();

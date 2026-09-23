@@ -15,6 +15,7 @@ import { useStateManager } from '@/components/store/state';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { Members } from '../members';
 import { BranchDisplay } from './branch';
 import { ComponentEditCrumb } from './component-edit-crumb';
@@ -53,9 +54,13 @@ export const TopBar = observer(() => {
             {/* Left: breadcrumb + branch. ConnectionChip hidden on mobile — too wide. */}
             <div className="flex flex-grow basis-0 flex-row items-center justify-start gap-1 overflow-hidden">
                 <ProjectBreadcrumb />
-                <span className="text-foreground-secondary/50 text-small">/</span>
-                <BranchDisplay />
-                <ComponentEditCrumb />
+                {EDITOR_SCOPE.branches && (
+                    <>
+                        <span className="text-foreground-secondary/50 text-small">/</span>
+                        <BranchDisplay />
+                    </>
+                )}
+                {EDITOR_SCOPE.components && <ComponentEditCrumb />}
                 <span className="ml-2 hidden md:block">
                     <ConnectionChip />
                 </span>
@@ -96,6 +101,7 @@ export const TopBar = observer(() => {
 
                 {/* md+ only: history, diff, git actions, members */}
                 <div className="hidden md:contents">
+                    {EDITOR_SCOPE.versionHistory && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -115,9 +121,10 @@ export const TopBar = observer(() => {
                             <HotkeyLabel hotkey={Hotkey.OPEN_VERSION_HISTORY} />
                         </TooltipContent>
                     </Tooltip>
-                    <DiffButton />
+                    )}
+                    {EDITOR_SCOPE.versionHistory && <DiffButton />}
                     <GitActionsButton />
-                    <Members />
+                    {EDITOR_SCOPE.members && <Members />}
                 </div>
 
                 {/* Always visible: avatar + publish */}

@@ -10,6 +10,7 @@ import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
     ColorPickerInline,
     ColorRow,
@@ -448,15 +449,17 @@ export const TextSection = observer(function TextSection() {
                 </GroupShell>
 
                 {/* ── 7. Text shadow ───────────────────────────────────── */}
-                <GroupShell label={t('text.textShadow')}>
-                    <LabeledTextInput
-                        value={textShadow.value}
-                        onCommit={textShadowSetter.set}
-                        placeholder="0 1px 2px rgba(0,0,0,0.2)"
-                        aria-label={t('text.textShadow')}
-                        mixed={textShadow.mixed}
-                    />
-                </GroupShell>
+                {EDITOR_SCOPE.advancedCss && (
+                    <GroupShell label={t('text.textShadow')}>
+                        <LabeledTextInput
+                            value={textShadow.value}
+                            onCommit={textShadowSetter.set}
+                            placeholder="0 1px 2px rgba(0,0,0,0.2)"
+                            aria-label={t('text.textShadow')}
+                            mixed={textShadow.mixed}
+                        />
+                    </GroupShell>
+                )}
             </div>
         </Section>
     );

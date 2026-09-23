@@ -22,6 +22,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { openPreviewWindow } from '../canvas/frame/preview-url';
 
 // All four editor views surfaced inline as the primary mode switcher.
@@ -37,7 +38,7 @@ const MODE_TOGGLE_ITEMS: {
     { mode: EditorMode.CODE, hotkey: Hotkey.CODE },
     { mode: EditorMode.PREVIEW, hotkey: Hotkey.PREVIEW },
     { mode: EditorMode.CMS, hotkey: Hotkey.MODE_CMS },
-];
+].filter((item) => item.mode !== EditorMode.CMS || EDITOR_SCOPE.cms);
 
 // Preview is promoted out of the inline tab strip into a dedicated play button
 // (it's an action — "run the site" — not an edit surface). The desktop tabs

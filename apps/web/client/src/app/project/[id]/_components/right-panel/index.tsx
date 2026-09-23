@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
@@ -20,6 +20,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { OPEN_CHAT_PANEL_EVENT, OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
 import { ChatTab } from './chat-tab';
 import { ChatControls } from './chat-tab/controls';
@@ -53,6 +54,13 @@ const InteractionsTab = dynamic(() => import('./interactions-tab').then((m) => m
 });
 
 type RightPanelTab = 'style' | 'interactions' | 'chat';
+
+/** Tabs outside the local release scope fall back to Style. */
+const isTabEnabled = (tab: RightPanelTab): boolean =>
+    tab === 'style' ||
+    (tab === 'chat' && EDITOR_SCOPE.aiChat) ||
+    (tab === 'interactions' && EDITOR_SCOPE.interactions);
+const enabledTab = (tab: RightPanelTab): RightPanelTab => (isTabEnabled(tab) ? tab : 'style');
 
 const DEFAULT_PANEL_WIDTH = 352;
 // While the project is being scaffolded from a prompt the chat is the primary
@@ -154,7 +162,11 @@ export const RightPanel = observer(() => {
     const [panelWidth, setPanelWidth] = useState(
         isFirstCreation ? FIRST_CREATION_PANEL_WIDTH : DEFAULT_PANEL_WIDTH,
     );
-    const [activeTab, setActiveTab] = useState<RightPanelTab>('chat');
+    const [activeTab, setActiveTabState] = useState<RightPanelTab>(enabledTab('chat'));
+    const setActiveTab = useCallback(
+        (tab: RightPanelTab) => setActiveTabState(enabledTab(tab)),
+        [],
+    );
     // `ResizablePanel` only reads `defaultWidth` at mount; to apply a restored
     // width after hydration we push it through `forceWidth` once. Left
     // undefined until the restore effect runs so SSR/first-paint stays at the
@@ -470,7 +482,7 @@ export const RightPanel = observer(() => {
                                                 </Tooltip>
                                             );
                                         })()}
-                                        {(() => {
+                                        {EDITOR_SCOPE.interactions && (() => {
                                             const showInteractionsLabel =
                                                 !isNarrow || activeTab === 'interactions';
                                             const interactionsTrigger = (
@@ -511,6 +523,8 @@ export const RightPanel = observer(() => {
                                                 </Tooltip>
                                             );
                                         })()}
+                                        {EDITOR_SCOPE.aiChat && (
+                                        <>
                                         <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                         <TabsTrigger
                                             value="chat"
@@ -530,6 +544,8 @@ export const RightPanel = observer(() => {
                                             <Icons.Sparkles className="h-3 w-3 shrink-0" />
                                             {(!isNarrow || activeTab === 'chat') && chatLabel}
                                         </TabsTrigger>
+                                        </>
+                                        )}
                                     </TabsList>
                                     <div className="ml-auto flex shrink-0 items-center gap-0.5">
                                         {activeTab === 'chat' && (

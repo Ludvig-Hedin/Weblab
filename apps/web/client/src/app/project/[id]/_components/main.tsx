@@ -14,6 +14,7 @@ import type { EditorBootstrapData } from '../_hooks/use-start-project';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { ProjectCapabilitiesProvider } from '@/hooks/use-project-capabilities-context';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
 import { useLockedCanvasLayout } from '../_hooks/use-locked-canvas-layout';
 import { usePanelMeasurements } from '../_hooks/use-panel-measure';
@@ -273,7 +274,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                 {/* First-run tour. Suppressed during the prompt-driven creation
                 flow — the user is busy watching the AI scaffold their site,
                 not in a normal editor session yet. */}
-                <OnboardingTour suppressed={hasPendingCreation} />
+                {EDITOR_SCOPE.onboardingTour && (
+                    <OnboardingTour suppressed={hasPendingCreation} />
+                )}
                 <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
                     <CanvasErrorBoundary label="Canvas">
                         <Canvas />
@@ -383,7 +386,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
 
                     {/* CMS workspace — sits below the top bar (top-14) and replaces
                     the canvas/side panels while in CMS mode. */}
-                    {isCms && <CmsWorkspace />}
+                    {EDITOR_SCOPE.cms && isCms && <CmsWorkspace />}
                 </div>
                 <SettingsModalWithProjects />
                 <SubscriptionModal />
@@ -392,9 +395,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                 <CommandPalette />
                 <FileFinder />
                 <ProjectSearch />
-                <CmsBindDialog />
-                <CreateComponentDialog />
-                <CmsDataPusher />
+                {EDITOR_SCOPE.cms && <CmsBindDialog />}
+                {EDITOR_SCOPE.components && <CreateComponentDialog />}
+                {EDITOR_SCOPE.cms && <CmsDataPusher />}
             </TooltipProvider>
         </ProjectCapabilitiesProvider>
     );

@@ -14,6 +14,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { ErrorsConsole } from './errors-console';
 import { PreviewThemeToggle } from './preview-theme-toggle';
 import { TerminalArea } from './terminal-area';
@@ -39,13 +40,17 @@ const TOOLBAR_ITEMS = ({ t }: { t: ReturnType<typeof useTranslations> }) => [
         label: t(transKeys.editor.toolbar.tools.pan.name),
         tooltip: t(transKeys.editor.toolbar.tools.pan.tooltip),
     },
-    {
-        mode: EditorMode.COMMENT,
-        icon: Icons.ChatBubble,
-        hotkey: Hotkey.COMMENT,
-        label: t(transKeys.editor.toolbar.tools.comment.name),
-        tooltip: t(transKeys.editor.toolbar.tools.comment.tooltip),
-    },
+    ...(EDITOR_SCOPE.comments
+        ? [
+              {
+                  mode: EditorMode.COMMENT,
+                  icon: Icons.ChatBubble,
+                  hotkey: Hotkey.COMMENT,
+                  label: t(transKeys.editor.toolbar.tools.comment.name),
+                  tooltip: t(transKeys.editor.toolbar.tools.comment.tooltip),
+              },
+          ]
+        : []),
 ];
 
 export const BottomBar = observer(() => {

@@ -7,6 +7,7 @@ import { cn } from '@weblab/ui/utils';
 
 import type { ClickRectState } from '@/components/store/editor/overlay/state';
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { CommentPins } from './comment-pins';
 import { CommentPopover } from './comment-popover';
 import { ComponentEditBanner } from './component-edit-banner';
@@ -78,14 +79,14 @@ export const Overlay = observer(() => {
                 />
             )}
             {overlayState.clickRects.length > 0 && <OverlayButtons />}
-            {overlayState.clickRects.length > 0 && <OverlayAiMenu />}
-            {overlayState.clickRects.length > 0 && <CmsPill />}
-            {overlayState.clickRects.length > 0 && <ComponentChip />}
-            <ComponentEditBanner />
+            {EDITOR_SCOPE.aiChat && overlayState.clickRects.length > 0 && <OverlayAiMenu />}
+            {EDITOR_SCOPE.cms && overlayState.clickRects.length > 0 && <CmsPill />}
+            {EDITOR_SCOPE.components && overlayState.clickRects.length > 0 && <ComponentChip />}
+            {EDITOR_SCOPE.components && <ComponentEditBanner />}
             <SnapGuidelines />
-            <CommentPins />
-            <CommentPopover />
-            <RemoteCursors />
+            {EDITOR_SCOPE.comments && <CommentPins />}
+            {EDITOR_SCOPE.comments && <CommentPopover />}
+            {EDITOR_SCOPE.presence && <RemoteCursors />}
         </div>
     );
 });

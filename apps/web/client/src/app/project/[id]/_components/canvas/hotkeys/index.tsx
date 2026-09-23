@@ -13,6 +13,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { useStateManager } from '@/components/store/state';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 
 /**
  * True when keyboard focus is in a text-entry surface (style-panel input,
@@ -200,7 +201,9 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     );
     useHotkeys(
         getKey('COMMENT'),
-        () => editorEngine.state.setEditorMode(EditorMode.COMMENT),
+        () => {
+            if (EDITOR_SCOPE.comments) editorEngine.state.setEditorMode(EditorMode.COMMENT);
+        },
         undefined,
         [getKey('COMMENT')],
     );
@@ -366,7 +369,9 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     );
     useHotkeys(
         getKey('MODE_CMS'),
-        () => editorEngine.state.setEditorMode(EditorMode.CMS),
+        () => {
+            if (EDITOR_SCOPE.cms) editorEngine.state.setEditorMode(EditorMode.CMS);
+        },
         {
             preventDefault: true,
             enableOnFormTags: true,
@@ -573,6 +578,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('CREATE_COMPONENT'),
         () => {
+            if (!EDITOR_SCOPE.components) return;
             const selected = editorEngine.elements.selected[0];
             if (!selected?.oid || selected.instanceId) {
                 toast.error('Select an element (not a component instance) to create a component.');
@@ -586,6 +592,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('EDIT_COMPONENT'),
         () => {
+            if (!EDITOR_SCOPE.components) return;
             const selected = editorEngine.elements.selected[0];
             if (!selected?.instanceId) return;
             void editorEngine.components.enterEditMode(selected).then((entered) => {
@@ -743,6 +750,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('ADD_AI_CHAT'),
         () => {
+            if (!EDITOR_SCOPE.aiChat) return;
             if (editorEngine.state.editorMode === EditorMode.PREVIEW) {
                 editorEngine.state.setEditorMode(EditorMode.DESIGN);
             }
@@ -754,6 +762,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('NEW_AI_CHAT'),
         () => {
+            if (!EDITOR_SCOPE.aiChat) return;
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             editorEngine.chat.conversation.startNewConversation();
         },

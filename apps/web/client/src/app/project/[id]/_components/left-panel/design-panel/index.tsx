@@ -16,6 +16,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 // HelpButton hidden per request — the "?" feedback button did nothing useful.
 // Import kept commented so it can be restored without re-wiring.
 // import { HelpButton } from './help-button';
@@ -45,7 +46,23 @@ const PANEL_DEFAULT_WIDTH = 300;
 const PANEL_MIN_WIDTH = 240;
 const PANEL_MAX_WIDTH = 560;
 
-const tabs: {
+/** Tabs outside the local release scope are not shown or rendered. */
+const isLeftTabEnabled = (tab: LeftPanelTabValue): boolean => {
+    switch (tab) {
+        case LeftPanelTabValue.COMPONENTS:
+            return EDITOR_SCOPE.components;
+        case LeftPanelTabValue.BRAND:
+            return EDITOR_SCOPE.brand;
+        case LeftPanelTabValue.IMAGES:
+            return EDITOR_SCOPE.imageUpload;
+        case LeftPanelTabValue.BRANCHES:
+            return EDITOR_SCOPE.branches;
+        default:
+            return true;
+    }
+};
+
+const allTabs: {
     value: LeftPanelTabValue;
     icon: ReactNode;
     hotkey: Hotkey;
@@ -92,12 +109,16 @@ const tabs: {
         hotkey: Hotkey.SIDEBAR_BRANCHES,
     },
 ];
+const tabs = allTabs.filter((tab) => isLeftTabEnabled(tab.value));
 
 export const DesignPanel = observer(() => {
     const editorEngine = useEditorEngine();
     const t = useTranslations();
     const isLocked = editorEngine.state.leftPanelLocked;
-    const selectedTab = editorEngine.state.leftPanelTab;
+    const storedTab = editorEngine.state.leftPanelTab;
+    // A persisted or hotkey-selected tab may be out of scope; show Layers.
+    const selectedTab =
+        storedTab && !isLeftTabEnabled(storedTab) ? LeftPanelTabValue.LAYERS : storedTab;
     const [isCollapsed, setIsCollapsed] = useState(false);
     const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

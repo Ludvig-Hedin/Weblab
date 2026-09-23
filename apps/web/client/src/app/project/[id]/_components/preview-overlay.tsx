@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { openPreviewWindow, toPreviewableUrl } from './canvas/frame/preview-url';
 import { FIX_ERRORS_EVENT } from './right-panel/chat-tab/error';
 import { PublishButton } from './top-bar/publish';
@@ -215,7 +216,7 @@ function BuildErrorPanel({
                         Retry
                     </Button>
                     <div className="flex-1" />
-                    <Button
+                    {EDITOR_SCOPE.aiChat && <Button
                         size="sm"
                         variant="ghost"
                         onClick={onFixWithAI}
@@ -223,7 +224,7 @@ function BuildErrorPanel({
                     >
                         <Icons.MagicWand className="h-3 w-3" />
                         Fix with AI
-                    </Button>
+                    </Button>}
                 </div>
             </div>
         </div>
