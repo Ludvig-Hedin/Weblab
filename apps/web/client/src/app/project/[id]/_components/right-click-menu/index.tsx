@@ -163,14 +163,6 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
             hotkey: Hotkey.DUPLICATE,
             disabled: !editorEngine.frames.canDuplicate(),
         },
-        {
-            label: 'Delete',
-            action: () => editorEngine.frames.deleteSelected(),
-            icon: <Icons.Trash className="mr-2 h-4 w-4" />,
-            hotkey: Hotkey.DELETE,
-            destructive: true,
-            disabled: !editorEngine.frames.canDelete(),
-        },
     ];
 
     const FIGMA_ELEMENT_ITEMS: MenuItem[] = [

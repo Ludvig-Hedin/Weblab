@@ -20,6 +20,7 @@ import { Members } from '../members';
 import { BranchDisplay } from './branch';
 import { ComponentEditCrumb } from './component-edit-crumb';
 import { ConnectionChip } from './connection-chip';
+import { CurrentPageSelector } from './current-page-selector';
 import { DiffButton } from './diff';
 import { GitActionsButton } from './git-actions';
 import { ModeToggle } from './mode-toggle';
@@ -61,6 +62,7 @@ export const TopBar = observer(() => {
                         <BranchDisplay />
                     </>
                 )}
+                <CurrentPageSelector />
                 {EDITOR_SCOPE.components && <ComponentEditCrumb />}
                 <span className="ml-2 hidden md:block">
                     <ConnectionChip />
