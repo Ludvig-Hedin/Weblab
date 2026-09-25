@@ -411,11 +411,38 @@ class CanvasStage implements Stage {
       this.frames.add({ presetId: "iphone-16" });
     }
     if (!hadViewport) {
-      this.canvas.zoomToFit();
+      this.fitOnceSized();
     }
     this.frames.setEditing(this.editing);
     this.chrome.setEditing(this.editing);
     this.relayout();
+  }
+
+  /**
+   * The first-run fit needs a real, visible window. A host that loads the
+   * editor hidden (the Weblab app does, to avoid a blank flash) reports a
+   * hidden document with no layout yet, and a fit taken then lands at the
+   * minimum zoom in a corner — and is saved as this project's viewport.
+   */
+  private fitOnceSized(): void {
+    const sized = (): boolean =>
+      document.visibilityState === "visible" &&
+      window.innerWidth > 200 &&
+      window.innerHeight > 200;
+    if (sized()) {
+      this.canvas.zoomToFit();
+      return;
+    }
+    const retry = (): void => {
+      if (!sized()) {
+        return;
+      }
+      window.removeEventListener("resize", retry);
+      document.removeEventListener("visibilitychange", retry);
+      requestAnimationFrame(() => this.canvas.zoomToFit());
+    };
+    window.addEventListener("resize", retry);
+    document.addEventListener("visibilitychange", retry);
   }
 
   bindSelection(get: () => Selection | null): void {

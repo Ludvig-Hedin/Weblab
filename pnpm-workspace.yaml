@@ -13,6 +13,8 @@ allowBuilds:
   workerd: true
   # The desktop app's Electron binary is fetched by its install step.
   electron: true
+  # Pulled in by electron-builder for Windows installers; Weblab is Mac-only.
+  electron-winstaller: false
 minimumReleaseAgeExclude:
   # esbuild ships its binary as ~25 per-platform packages listed as OPTIONAL
   # dependencies, published minutes apart from the parent. When the parent is
