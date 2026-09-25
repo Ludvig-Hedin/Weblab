@@ -207,9 +207,9 @@ later without re-discovering the context.
 
 - **Discovered:** 2026-07-04 (editor stability audit)
 - **Where / Symptom / Next step:**
-  - `apps/web/preload/script/api/events/dom.ts:27` — per-mutated-node full-subtree `buildLayerTree` (O(N²) getComputedStyle) whose payload the parent discards. Build once per MutationObserver batch; the parent ignores the payload so send an empty notification (or consume it incrementally and skip the full `refreshLayers`).
+  - ~~`apps/web/preload/script/api/events/dom.ts:27` — per-mutated-node full-subtree `buildLayerTree`~~ — FIXED 2026-09-25: the observer now sends one empty notification per batch.
   - `apps/web/client/src/app/project/[id]/_components/canvas/frame/gesture.tsx:432` — `handleDragOver` fires an unthrottled `getElementAtLoc` penpal RPC per dragover. Route through the existing 16ms throttle + in-flight/sequence guard.
-  - `apps/web/client/src/app/project/[id]/_components/canvas/frame/resize-handles.tsx:34` (+ `overlay/locked-resize-handles.tsx`) — unthrottled window mousemove → async `undebouncedRefresh` (penpal RPCs) + observable frame-map writes per raw event. rAF-coalesce; use the debounced refresh or a reentrancy guard.
+  - ~~`canvas/frame/resize-handles.tsx` (+ `overlay/locked-resize-handles.tsx`) — unthrottled window mousemove~~ — FIXED 2026-09-25: both rAF-coalesce the width; the frame handle also gained unmount cleanup and a released-outside-window stop.
   - `apps/web/client/src/components/store/editor/code/index.ts:97` — write-code / interactions ix-id / component createProp / restampHtmlMaster / font layout writes bypass `writeChain`. Expose `CodeManager.runExclusive(fn)` and route them through it.
   - `apps/web/client/src/components/store/editor/code/index.ts:234` — `groupRequestByFile` keys by path only; cross-branch requests sharing a path merge into one group written to the first branch. Key by `${branchId}::${path}` (touches the `FileToRequests` contract + parser).
   - `apps/web/client/src/components/store/editor/history/index.ts:104` — `commitTransaction` isn't atomic (image-swap can partially apply) and splits one gesture into multiple undo entries. Check `push`'s boolean; push a composite/batch undo entry.
@@ -217,6 +217,7 @@ later without re-discovering the context.
   - `apps/web/client/src/components/store/editor/frame-events/index.ts:34` — one mutation triggers all-frames `processDom` + uncached Babel re-parse in `getTemplateNodeChild`. Scope `onWindowMutated` to the originating frame; memoize the parse.
 - **Risk if ignored:** editing gets progressively laggier as frame/tree count grows; rare cross-branch/undo-after-external-change corruption.
 - **Tags:** `#perf` `#editor` `#tech-debt`
+- **Also fixed 2026-09-25 (editor lag pass):** direct style edits paint before the source write (`ActionManager.runStyleOptimistically`, reverts on a failed save); local saves and watcher events re-index one file instead of the whole project (`CodeFileSystem.reindexLocalFile`); canvas hover runs one `getElementAtLoc` lookup at a time.
 
 ### QA loop — WIND DOWN (2026-06-21 iter-21, /loop dynamic) — quick-win queue dry, both title→tooltip candidates refuted
 

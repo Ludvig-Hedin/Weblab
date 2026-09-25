@@ -1,63 +1,35 @@
 import { EditorAttributes } from '@weblab/constants';
 
 import { penpalParent } from '../..';
-import { buildLayerTree } from '../dom';
 
 export function listenForDomMutation() {
     const targetNode = document.body;
     const config = { childList: true, subtree: true };
 
     const observer = new MutationObserver((mutationsList) => {
-        let added = new Map();
-        let removed = new Map();
+        // The editor only needs to know that editable nodes changed; it then
+        // refreshes layers itself. Building a layer tree per mutated node was
+        // O(N^2) getComputedStyle work whose payload the editor discarded.
+        let changed = false;
 
         for (const mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                const parent = mutation.target as HTMLElement;
-                // Handle added nodes
-                mutation.addedNodes.forEach((node) => {
-                    const el = node as HTMLElement;
-                    if (
-                        node.nodeType === Node.ELEMENT_NODE &&
-                        el.hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
-                        !shouldIgnoreMutatedNode(el)
-                    ) {
-                        dedupNewElement(el);
-                        if (parent) {
-                            const layerMap = buildLayerTree(parent);
-                            if (layerMap) {
-                                added = new Map([...added, ...layerMap]);
-                            }
-                        }
-                    }
-                });
-
-                // Handle removed nodes
+            if (mutation.type !== 'childList') continue;
+            mutation.addedNodes.forEach((node) => {
+                if (!isEditableElement(node)) return;
+                dedupNewElement(node);
+                changed = true;
+            });
+            if (!changed) {
                 mutation.removedNodes.forEach((node) => {
-                    const el = node as HTMLElement;
-                    if (
-                        node.nodeType === Node.ELEMENT_NODE &&
-                        el.hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
-                        !shouldIgnoreMutatedNode(el)
-                    ) {
-                        if (parent) {
-                            const layerMap = buildLayerTree(parent);
-                            if (layerMap) {
-                                removed = new Map([...removed, ...layerMap]);
-                            }
-                        }
-                    }
+                    if (isEditableElement(node)) changed = true;
                 });
             }
         }
 
-        if (added.size > 0 || removed.size > 0) {
+        if (changed) {
             if (penpalParent) {
                 penpalParent
-                    .onWindowMutated({
-                        added: Object.fromEntries(added),
-                        removed: Object.fromEntries(removed),
-                    })
+                    .onWindowMutated({ added: {}, removed: {} })
                     .catch((error: Error) => {
                         console.error('Failed to send window mutation event:', error);
                     });
@@ -68,6 +40,14 @@ export function listenForDomMutation() {
     });
 
     observer.observe(targetNode, config);
+}
+
+function isEditableElement(node: Node): node is HTMLElement {
+    return (
+        node.nodeType === Node.ELEMENT_NODE &&
+        (node as HTMLElement).hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
+        !shouldIgnoreMutatedNode(node as HTMLElement)
+    );
 }
 
 export function listenForResize() {

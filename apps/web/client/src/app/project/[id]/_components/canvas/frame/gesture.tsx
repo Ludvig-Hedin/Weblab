@@ -222,6 +222,9 @@ export const GestureScreen = observer(
             [getRelativeMousePosition, editorEngine, isResizing, frame],
         );
 
+        const hoverBusyRef = useRef(false);
+        const hoverNextRef = useRef<React.MouseEvent<HTMLDivElement> | null>(null);
+
         const throttledMouseMove = useMemo(
             () =>
                 throttle(async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -246,7 +249,24 @@ export const GestureScreen = observer(
                             editorEngine.state.insertMode === InsertMode.INSERT_IMAGE) &&
                             !editorEngine.insert.isDrawing)
                     ) {
-                        await handleMouseEvent(e, MouseAction.MOVE);
+                        // One hover lookup at a time. On a slow frame the
+                        // throttle alone let lookups pile up, and a late
+                        // answer could repaint an old hover target.
+                        if (hoverBusyRef.current) {
+                            hoverNextRef.current = e;
+                            return;
+                        }
+                        hoverBusyRef.current = true;
+                        try {
+                            let next: React.MouseEvent<HTMLDivElement> | null = e;
+                            while (next) {
+                                hoverNextRef.current = null;
+                                await handleMouseEvent(next, MouseAction.MOVE);
+                                next = hoverNextRef.current;
+                            }
+                        } finally {
+                            hoverBusyRef.current = false;
+                        }
                     } else if (editorEngine.insert.isDrawing) {
                         editorEngine.insert.draw(e);
                     }
@@ -264,6 +284,7 @@ export const GestureScreen = observer(
         useEffect(() => {
             return () => {
                 throttledMouseMove.cancel();
+                hoverNextRef.current = null;
             };
         }, [throttledMouseMove]);
 
@@ -572,6 +593,10 @@ export const GestureScreen = observer(
             if (editorEngine.move.isPreparing) {
                 editorEngine.move.cancelDragPreparation();
             }
+            // Drop a queued hover so it cannot bring the outline back after
+            // the pointer left the frame.
+            throttledMouseMove.cancel();
+            hoverNextRef.current = null;
             editorEngine.elements.clearHoveredElement();
             editorEngine.overlay.state.removeHoverRect();
         };

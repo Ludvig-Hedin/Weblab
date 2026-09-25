@@ -56,6 +56,10 @@ export const LockedResizeHandles = observer(() => {
         const startWidth = frame.breakpoint?.width ?? frame.dimension.width;
         const minWidth = parseInt(DefaultSettings.MIN_DIMENSIONS.width);
 
+        // Apply at most one width per frame. Raw mousemove fires far more
+        // often and each apply refreshes the overlay over RPC.
+        let latestX = startX;
+        let rafId: number | null = null;
         const resize = (ev: globalThis.MouseEvent) => {
             // Button released outside the window: mouseup never fired, so on
             // re-entry the width would chase the cursor with nothing held.
@@ -63,10 +67,18 @@ export const LockedResizeHandles = observer(() => {
                 stopResize(ev);
                 return;
             }
+            latestX = ev.clientX;
+            rafId ??= requestAnimationFrame(() => {
+                rafId = null;
+                applyWidth(latestX);
+            });
+        };
+
+        const applyWidth = (clientX: number) => {
             // Read scale fresh each tick — the layout re-fits as the width grows,
             // so the canvas scale shifts mid-drag.
             const currentScale = editorEngine.canvas.scale;
-            const deltaWorld = (ev.clientX - startX) / currentScale;
+            const deltaWorld = (clientX - startX) / currentScale;
             // Right handle widens when dragged right; left handle when dragged left.
             const signed = side === 'right' ? deltaWorld : -deltaWorld;
             const newWidth = Math.max(minWidth, Math.round(startWidth + signed));
@@ -83,11 +95,15 @@ export const LockedResizeHandles = observer(() => {
         const stopResize = (ev: globalThis.MouseEvent) => {
             ev.preventDefault();
             ev.stopPropagation();
+            const pending = rafId !== null;
             removeListeners();
+            if (pending) applyWidth(latestX);
             editorEngine.frames.repackGroup(frame.groupId);
         };
 
         const removeListeners = () => {
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            rafId = null;
             window.removeEventListener('mousemove', resize);
             window.removeEventListener('mouseup', stopResize);
             activeResizeCleanupRef.current = null;
@@ -102,7 +118,9 @@ export const LockedResizeHandles = observer(() => {
         <div
             key={side}
             className="group pointer-events-auto absolute top-14 bottom-0 flex w-4 cursor-ew-resize items-center justify-center"
-            style={{ left: edge - 8 }}
+            // Handles sit just inside the frame edge: the frame now fills the
+            // gap edge to edge, so a centered handle would hide under the panels.
+            style={{ left: side === 'left' ? edge : edge - 16 }}
             onMouseDown={(e) => startResize(e, side)}
             title="Drag to change the responsive width"
         >

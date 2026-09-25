@@ -104,7 +104,7 @@ export class CodeFileSystem extends FileSystem {
         if (!this.options.localProject) throw new Error('Not a local project');
         return this.withWriteLock(async () => {
             await super.writeFile(path, content);
-            await this.performRebuildIndex();
+            await this.reindexLocalFile(path, content);
         });
     }
 
@@ -112,8 +112,43 @@ export class CodeFileSystem extends FileSystem {
         if (!this.options.localProject) throw new Error('Not a local project');
         return this.withWriteLock(async () => {
             if (await this.fileExists(path)) await super.deleteFile(path);
-            await this.performRebuildIndex();
+            await this.dropFileFromIndexes(path);
         });
+    }
+
+    /**
+     * Local saves and watcher events touch one file. Re-index only that file:
+     * a full rebuild re-parses every source file on the main thread under the
+     * write lock, which made each style edit in a local project feel laggy.
+     */
+    private async reindexLocalFile(path: string, content: string): Promise<void> {
+        if (this.isJsxFile(path)) {
+            await this.updateMetadataForFile(path, content);
+        } else if (this.isHtmlFile(path)) {
+            await this.updateHtmlMetadataForFile(path, content);
+        }
+    }
+
+    /** Copy-on-write removal of one file's entries from both indexes. */
+    private async dropFileFromIndexes(path: string): Promise<void> {
+        if (!this.isJsxFile(path) && !this.isHtmlFile(path)) return;
+        const index = await this.loadIndex();
+        const nextIndex: Record<string, JsxElementMetadata> = {};
+        let indexChanged = false;
+        for (const [oid, metadata] of Object.entries(index)) {
+            if (pathsEqual(metadata.path, path)) indexChanged = true;
+            else nextIndex[oid] = metadata;
+        }
+        if (indexChanged) await this.saveIndex(nextIndex);
+
+        const componentIndex = await this.loadComponentIndex();
+        const nextComponentIndex: Record<string, ComponentDef> = {};
+        let componentsChanged = false;
+        for (const [key, def] of Object.entries(componentIndex)) {
+            if (pathsEqual(def.filePath, path)) componentsChanged = true;
+            else nextComponentIndex[key] = def;
+        }
+        if (componentsChanged) await this.saveComponentIndex(nextComponentIndex);
     }
 
     setLocalWriteHandler(write: (path: string, content: string) => Promise<void>): void {
@@ -168,7 +203,7 @@ export class CodeFileSystem extends FileSystem {
                     );
                 }
                 await super.writeFile(path, content);
-                await this.performRebuildIndex();
+                await this.reindexLocalFile(path, content as string);
                 return;
             }
             let processedContent: string | Uint8Array = content;
@@ -292,7 +327,10 @@ export class CodeFileSystem extends FileSystem {
         // Re-parse the serialized output: injectOids mutates the tree, so the
         // original parse's source positions are stale.
         const ast = htmlPipeline.parse(content);
-        if (!ast) return;
+        if (!ast) {
+            await this.dropFileFromIndexes(path);
+            return;
+        }
 
         const templateNodeMap = htmlPipeline.buildTemplateNodeMap({
             ast,
@@ -386,7 +424,12 @@ export class CodeFileSystem extends FileSystem {
         }
 
         const ast = getAstFromContent(content);
-        if (!ast) return;
+        if (!ast) {
+            // Match a full rebuild: an unparsable file has no entries.
+            // Keeping the old ones would point edits at stale source ranges.
+            await this.dropFileFromIndexes(path);
+            return;
+        }
 
         const templateNodeMap = createTemplateNodeMap({
             ast,

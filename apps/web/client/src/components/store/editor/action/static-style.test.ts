@@ -87,9 +87,10 @@ describe('queued style dispatch', () => {
                 isCommitPending: true,
                 isInTransaction: false,
                 waitForCommit: async () => { events.push('commit'); },
-                // Returning false stops before preview dispatch.
                 push: async () => { events.push('push'); return false; },
             },
+            // A direct edit previews at once; an empty action touches no frame.
+            elements: { selected: [] },
         } as unknown as EditorEngine);
 
         expect(await manager.run({ type: 'update-style', targets: [] })).toBe(false);

@@ -22,10 +22,53 @@ import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
 import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
 
+type StyleTarget = UpdateStyleAction['targets'][number];
+
+function styleKey(target: StyleTarget, property: string): string {
+    return `${target.frameId}:${target.domId}::${property}`;
+}
+
+function styleKeys(action: UpdateStyleAction): string[] {
+    return action.targets.flatMap((target) =>
+        Object.keys(target.change.updated).map((property) => styleKey(target, property)),
+    );
+}
+
+function invertStyle(action: UpdateStyleAction): UpdateStyleAction {
+    return {
+        ...action,
+        targets: action.targets.map((target) => ({
+            ...target,
+            change: { original: target.change.updated, updated: target.change.original },
+        })),
+    };
+}
+
+/** The action without the excluded properties, or null when none remain. */
+function withoutKeys(action: UpdateStyleAction, excluded: Set<string>): UpdateStyleAction | null {
+    if (excluded.size === 0) return action;
+    const targets: StyleTarget[] = [];
+    for (const target of action.targets) {
+        const keep = (property: string) => !excluded.has(styleKey(target, property));
+        const updated = Object.fromEntries(
+            Object.entries(target.change.updated).filter(([property]) => keep(property)),
+        );
+        if (Object.keys(updated).length === 0) continue;
+        const original = Object.fromEntries(
+            Object.entries(target.change.original).filter(([property]) => keep(property)),
+        );
+        targets.push({ ...target, change: { original, updated } });
+    }
+    return targets.length > 0 ? { ...action, targets } : null;
+}
+
 export class ActionManager {
     constructor(private editorEngine: EditorEngine) {}
 
     private queuedStyleDispatches = new Set<Promise<void>>();
+    /** Newest optimistic style edit per `${frameId}:${domId}::${property}`. */
+    private latestStyleEdit = new Map<string, UpdateStyleAction>();
+    private optimisticStyleRuns = new Set<Promise<boolean>>();
 
     async waitForQueuedStyleDispatches(): Promise<void> {
         while (this.queuedStyleDispatches.size > 0) {
@@ -81,6 +124,9 @@ export class ActionManager {
             finishQueued = () => resolve(undefined);
         }) : null;
         if (queuedCompletion) this.queuedStyleDispatches.add(queuedCompletion);
+        if (action.type === 'update-style' && !queuedStyle) {
+            return this.runStyleOptimistically(action, onApplied);
+        }
         try {
             const pushed = await this.editorEngine.history.push(action);
             if (!pushed) {
@@ -97,7 +143,65 @@ export class ActionManager {
         }
     }
 
+    /**
+     * A direct style edit paints the frames at once and saves in the
+     * background, like a slider transaction does. Waiting for the source
+     * write first made every edit lag behind the whole write queue.
+     * `onApplied` (override map + panel mirror) still runs only after the
+     * save lands, so a source rebase never writes a value that failed to
+     * save. If the save fails, the frames get the original values back.
+     */
+    private runStyleOptimistically(
+        action: UpdateStyleAction,
+        onApplied?: () => void,
+    ): Promise<boolean> {
+        const run = this.saveStyleInBackground(action, onApplied);
+        this.optimisticStyleRuns.add(run);
+        void run.finally(() => this.optimisticStyleRuns.delete(run)).catch(() => undefined);
+        return run;
+    }
+
+    private async saveStyleInBackground(
+        action: UpdateStyleAction,
+        onApplied?: () => void,
+    ): Promise<boolean> {
+        const keys = styleKeys(action);
+        for (const key of keys) this.latestStyleEdit.set(key, action);
+        const pushed = this.editorEngine.history.push(action);
+        const preview = this.dispatch(action, { scheduleRebase: false, skipWriteGuard: true });
+        const [saved] = await Promise.all([pushed, preview.catch((error: unknown) => {
+            console.error('Style preview failed', error);
+        })]);
+        // Only the newest edit of a property may revert it. An older failed
+        // save must not wipe a newer preview that is still saving.
+        const newest = keys.filter((key) => this.latestStyleEdit.get(key) === action);
+        for (const key of newest) this.latestStyleEdit.delete(key);
+        if (!saved) {
+            const stale = withoutKeys(action, new Set(keys.filter((key) => !newest.includes(key))));
+            if (stale) {
+                // Preview-only revert. The override map never saw this edit.
+                await this.dispatch(invertStyle(stale), { scheduleRebase: false, skipWriteGuard: true });
+            }
+            return false;
+        }
+        onApplied?.();
+        // Same debounced responsive rebase the old write-then-dispatch path
+        // scheduled once the write had landed.
+        if (!this.editorEngine.history.isInTransaction) {
+            this.scheduleRebasesForTargets(action.targets);
+        }
+        return true;
+    }
+
+    /** Undo and redo must see every in-flight optimistic edit settle first. */
+    private async waitForOptimisticStyleRuns(): Promise<void> {
+        while (this.optimisticStyleRuns.size > 0) {
+            await Promise.allSettled(Array.from(this.optimisticStyleRuns));
+        }
+    }
+
     async undo() {
+        await this.waitForOptimisticStyleRuns();
         this.cancelPendingRebases();
         await Promise.allSettled(Array.from(this.inFlightRebases));
         const result = await this.editorEngine.history.undo();
@@ -124,6 +228,7 @@ export class ActionManager {
     }
 
     async redo() {
+        await this.waitForOptimisticStyleRuns();
         this.cancelPendingRebases();
         await Promise.allSettled(Array.from(this.inFlightRebases));
         const result = await this.editorEngine.history.redo();
@@ -615,6 +720,7 @@ export class ActionManager {
     clear() {
         // Engine teardown flushes and waits for source rebases first.
         this.cancelPendingRebases();
+        this.latestStyleEdit.clear();
         // Drop the trailing re-click: without this, the 100ms trailing edge
         // fires after teardown and re-selects elements on a cleared engine.
         this.refreshDomElement.cancel();
