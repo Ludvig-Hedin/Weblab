@@ -97,7 +97,7 @@ html[data-${PREFIX}-drag] .${PREFIX}-frame-plane { cursor: inherit; }
    \`pointer-events\` is inherited from \`.fc-label\`, which is the drag handle. */
 .${PREFIX}-fc-size {
   padding: 0 4px;
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption);
+  font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; font-size: var(--ap-font-size-caption);
   color: var(--ap-text-placeholder);
 }
 /* Inline rename field — sized and styled to sit exactly where the title was. */
@@ -193,10 +193,10 @@ html[data-${PREFIX}-drag] .${PREFIX}-frame-plane { cursor: inherit; }
 }
 .${PREFIX}-fc-menu-item:hover { background: var(--ap-surface-active); }
 .${PREFIX}-fc-menu-on { color: var(--ap-primary); }
-.${PREFIX}-fc-menu-dim { font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption); opacity: .5; }
+.${PREFIX}-fc-menu-dim { font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; font-size: var(--ap-font-size-caption); opacity: .5; }
 .${PREFIX}-fc-menu-head {
-  padding: 4px 8px 6px; font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-caption); letter-spacing: .6px; opacity: .5;
+  padding: 4px 8px 6px; font-family: var(--ap-font-sans); font-weight: 600;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-secondary);
 }
 /* Device groups — Phone / Tablet / Desktop, one open at a time.
 
@@ -256,7 +256,7 @@ html[data-${PREFIX}-drag] .${PREFIX}-frame-plane { cursor: inherit; }
   width: 62px; padding: 3px 6px; border-radius: var(--ap-radius-xs);
   background: var(--ap-surface-active); color: var(--ap-text-primary);
   border: 1px solid var(--ap-border-default);
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body);
+  font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; font-size: var(--ap-font-size-body);
 }
 .${PREFIX}-fc-menu-go {
   margin-left: auto; padding: 3px 8px; border: 0; cursor: pointer;
@@ -288,7 +288,7 @@ html[data-${PREFIX}-drag] .${PREFIX}-frame-plane { cursor: inherit; }
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   height: var(--ap-control-icon-box); border: 0; cursor: pointer;
   border-radius: var(--ap-radius-xs); background: transparent;
-  color: var(--ap-text-primary); font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body);
+  color: var(--ap-text-primary); font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; font-size: var(--ap-font-size-body);
 }
 .${PREFIX}-fbar-btn { width: var(--ap-control-icon-box); padding: 0; }
 .${PREFIX}-fbar-zoom { min-width: var(--ap-control-icon-box); padding: 0 6px; }

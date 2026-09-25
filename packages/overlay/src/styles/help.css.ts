@@ -179,8 +179,7 @@ export const css = `
 .${PREFIX}-sc-head {
   margin: 0 0 var(--ap-space-xxs);
   color: var(--ap-text-tertiary);
-  font-size: var(--ap-font-size-caption); font-weight: 500;
-  text-transform: uppercase; letter-spacing: .06em;
+  font-size: var(--ap-font-size-body); font-weight: 600;
 }
 
 /* A grid, not \`justify-content: space-between\`.

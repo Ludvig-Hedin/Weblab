@@ -14,7 +14,7 @@
  * covers every case.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { canonicalPath, type HeadRead } from "@airship/git";
 import type { FileDiff } from "@airship/protocol";
 import { createPatch } from "diff";
@@ -96,6 +96,8 @@ export class DiffCapture {
    */
   private readonly unavailable = new Set<string>();
   private readonly touched = new Set<string>();
+  /** Files snapshotted up front; see `watch`. Diffed only if they changed. */
+  private readonly watched = new Set<string>();
   /** Keys are canonical, so the root they are made relative to must be too. */
   private readonly root: string;
 
@@ -134,6 +136,34 @@ export class DiffCapture {
       if (!this.before.has(abs)) {
         this.before.set(abs, readSafe(abs));
       }
+    }
+  }
+
+  /**
+   * Snapshot files the request points at, so a change made to them outside
+   * the Edit/Write tools still gets a diff and an undo.
+   *
+   * The PreToolUse hook only sees Edit, Write and NotebookEdit. An agent that
+   * changes the file with `sed -i` through Bash left no before-state at all,
+   * and in a folder with no git that meant no diff and no Undo. Only existing
+   * files inside the project are watched, so an undo can never write outside
+   * it or delete something the agent did not create.
+   */
+  watch(paths: Iterable<string>): void {
+    for (const path of paths) {
+      const abs = canonical(this.cwd, path);
+      const rel = relative(this.root, abs);
+      if (rel.startsWith("..") || isAbsolute(rel)) {
+        continue;
+      }
+      const content = readSafe(abs);
+      if (content === null) {
+        continue;
+      }
+      if (!this.before.has(abs)) {
+        this.before.set(abs, content);
+      }
+      this.watched.add(abs);
     }
   }
 
@@ -177,7 +207,7 @@ export class DiffCapture {
   /** Net before→after diff for every file the agent touched. */
   finalize(): FileDiff[] {
     const diffs: FileDiff[] = [];
-    for (const abs of this.touched) {
+    for (const abs of new Set([...this.touched, ...this.watched])) {
       const before = this.before.get(abs) ?? null;
       const after = readSafe(abs);
       if (forDiff(before) === forDiff(after)) {

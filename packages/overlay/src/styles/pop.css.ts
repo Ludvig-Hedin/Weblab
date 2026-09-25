@@ -70,7 +70,7 @@ export const css = `
    JetBrains Mono up with Inter at the same size, which \`center\` never did. */
 .${PREFIX}-tip-key {
   flex: 0 0 auto; white-space: nowrap;
-  font-family: var(--ap-font-mono); color: var(--ap-text-tertiary);
+  font-family: var(--ap-font-sans); color: var(--ap-text-tertiary);
 }
 /* The shell is the scroller, because the shell is what carries the cap.
 
@@ -122,8 +122,8 @@ export const css = `
 .${PREFIX}-pop-bar:active { cursor: grabbing; }
 .${PREFIX}-pop-bar-title {
   flex: 1 1 auto; min-width: 0;
-  font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-caption); letter-spacing: .6px; opacity: .6;
+  font-family: var(--ap-font-sans); font-weight: 600;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-primary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -285,14 +285,14 @@ export const css = `
    that are *wrong* rather than merely short when they break. */
 .${PREFIX}-pop-item-hint {
   flex: 0 0 auto;
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption); opacity: .5;
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-caption); opacity: .5;
 }
 .${PREFIX}-pop-sep { height: 1px; margin: 4px 2px; background: var(--ap-border-default); }
 /* Group heading. Same mono eyebrow as the inspector's section headers, so a
    grouped menu reads as part of the same system. */
 .${PREFIX}-pop-head {
-  padding: 6px 8px 2px; font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-micro); letter-spacing: .6px; color: var(--ap-text-tertiary);
+  padding: 6px 8px 2px; font-family: var(--ap-font-sans); font-weight: 600;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-tertiary);
 }
 /* ---- Collapsible group -------------------------------------------------- */
 
@@ -565,7 +565,7 @@ export const css = `
   height: var(--ap-control-height); padding: 0 2px 0 4px;
   border: 0; cursor: pointer; background: transparent; color: var(--ap-text-secondary);
   border-radius: var(--ap-radius-xs);
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption);
+  font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; font-size: var(--ap-font-size-caption);
   transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
 .${PREFIX}-pop-mode:hover { background: var(--ap-surface-hover); color: var(--ap-text-primary); }
@@ -584,8 +584,8 @@ export const css = `
 .${PREFIX}-pop-recents:empty { display: none; }
 .${PREFIX}-pop-recents-label {
   flex: 0 0 100%;
-  font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-caption); letter-spacing: .6px; opacity: .5;
+  font-family: var(--ap-font-sans); font-weight: 600;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-tertiary);
 }
 .${PREFIX}-pop-recent {
   width: 18px; height: 18px; flex: 0 0 auto; padding: 0; cursor: pointer;

@@ -123,6 +123,66 @@ export function layerName(node: Element, displayName?: string | null): string {
     // way to find the one you mean.
     return text.length > 28 ? `${text.slice(0, 27)}…` : text;
   }
-  const classes = Array.from(node.classList).slice(0, 2);
-  return classes.length ? `${tag}.${classes.join(".")}` : tag;
+  return TAG_NAMES[tag] ?? KIND_NAMES[nodeKind(node, displayName)];
 }
+
+/*
+ * A design tool never shows a class list as a layer name. Tags with an obvious
+ * everyday word get it; everything else is named for what it looks like, the
+ * way the tree's icon already is.
+ */
+const TAG_NAMES: Record<string, string> = {
+  a: "Link",
+  article: "Article",
+  aside: "Sidebar",
+  button: "Button",
+  footer: "Footer",
+  form: "Form",
+  h1: "Heading",
+  h2: "Heading",
+  h3: "Heading",
+  h4: "Heading",
+  h5: "Heading",
+  h6: "Heading",
+  header: "Header",
+  label: "Label",
+  li: "List item",
+  main: "Main",
+  nav: "Navigation",
+  ol: "List",
+  p: "Paragraph",
+  section: "Section",
+  ul: "List",
+};
+
+/**
+ * A plain word for an element when only its tag is known — the composer's
+ * chips, which are drawn from a context captured at record time and may
+ * outlive the node. "Heading", not the component the heading sits in.
+ */
+export function tagWord(tagName: string): string {
+  const tag = tagName.toLowerCase();
+  return TAG_NAMES[tag] ?? TAG_ONLY_NAMES[tag] ?? "Frame";
+}
+
+const TAG_ONLY_NAMES: Record<string, string> = {
+  img: "Image",
+  input: "Input",
+  picture: "Image",
+  select: "Input",
+  span: "Text",
+  svg: "Icon",
+  textarea: "Input",
+  video: "Video",
+};
+
+const KIND_NAMES: Record<NodeKind, string> = {
+  component: "Component",
+  frame: "Frame",
+  group: "Group",
+  image: "Image",
+  input: "Input",
+  section: "Section",
+  text: "Text",
+  vector: "Icon",
+};

@@ -25,7 +25,7 @@ export const css = `
 }
 .${PREFIX}-fp-count {
   font-size: var(--ap-font-size-label); color: var(--ap-text-tertiary);
-  letter-spacing: .02em;
+
 }
 .${PREFIX}-fp-add {
   display: inline-flex; align-items: center; justify-content: center;
@@ -125,7 +125,7 @@ export const css = `
   border-radius: 2px; cursor: text;
 }
 .${PREFIX}-fp-dims {
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-label);
+  font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; font-size: var(--ap-font-size-label);
   color: var(--ap-text-tertiary); white-space: nowrap;
 }
 

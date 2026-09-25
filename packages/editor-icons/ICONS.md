@@ -610,8 +610,11 @@ actual reference is 12.8, so the brand mark, both panel toggles and all three
 agent logos rendered about 25% oversized, and there were two competing
 conventions with nothing reconciling them.
 
-- **`logo`** — Airship's mark: an `A` cut from two slabs. It has been a
-  four-point spark and then a flying saucer. The spark was the house style of
+- **`logo`** — Weblab's symbol: three stepped bars, taken from the Weblab
+  brand `symbol.svg` and pre-scaled into the 24 box so the generator's refit
+  lands exactly on 12.8 (at its native 76 units the rounded transform missed by
+  0.03). Before the rebrand it was Airship's `A` cut from two slabs, and before
+  that a four-point spark and then a flying saucer. The spark was the house style of
   every AI feature shipped since 2023, so the one mark meant to say *Airship*
   was the one saying the least; the saucer said the name, but a pictogram in a
   dock head is a small illustration wherever you put it, and it kept reading as

@@ -47,7 +47,11 @@ export function timelineView(): TimelineView {
     }
     const row = timelineRow(item);
     rows.set(item.id, { item, row });
-    root.append(row.root);
+    // Tracked but never drawn: the SDK's own structured-output call is how
+    // the reply is delivered, not a step the agent took on the site.
+    if (!(item.kind === "tool" && item.name === "StructuredOutput")) {
+      root.append(row.root);
+    }
   };
 
   const patch = (id: string, p: TimelineItemPatch): void => {

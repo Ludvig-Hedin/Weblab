@@ -428,7 +428,7 @@ async function openSession(
     agent: input.opencode?.agent,
     directory,
     permission: permissionRuleset(input.safe ?? false),
-    title: "Airship edit",
+    title: "Weblab edit",
   });
   const id = created.data?.id;
   if (!id) {
@@ -469,8 +469,8 @@ function formatRejectedError(
   retried: boolean
 ): string {
   const outcome = retried
-    ? "Airship retried the turn without that request and the provider rejected it again."
-    : "Airship could not retry this turn automatically because work had already started.";
+    ? "Weblab retried the turn without that request and the provider rejected it again."
+    : "Weblab could not retry this turn automatically because work had already started.";
   return (
     "The model's provider rejected the structured-output request opencode sends — it is implemented as a forced tool call, which models with thinking/reasoning enabled refuse (opencode issue #15226, closed upstream). " +
     `${outcome} Pick a model without thinking enabled, or disable thinking for your provider via --opencode-config.` +

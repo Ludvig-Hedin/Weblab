@@ -50,25 +50,48 @@ export function userBubble(text: string): HTMLElement {
   ]);
 }
 
+const WORKING = "Working on it…";
+
+/** Each turn's result slot → its "Show details" body. See `assistantTurn`. */
+const DETAILS = new WeakMap<HTMLElement, HTMLElement>();
+
 /** An assistant bubble: activity timeline, live status, then the result. */
 export function assistantTurn(): AssistantTurn {
   const timeline = timelineView();
   const status = el("div", { class: cls("turn-status") }, [
     el("span", { class: cls("dot") }),
-    el("span", { text: "Starting…" }),
+    el("span", { text: WORKING }),
   ]);
   const result = el("div", { class: cls("turn-result") });
-  const root = el("div", { class: `${cls("msg")} ${cls("msg-assistant")}` }, [
+  // Tool calls, file paths and diffs are for whoever wants them. They sit
+  // behind one quiet disclosure per turn, so the chat reads as a
+  // conversation: a progress line while it works, then what changed.
+  const details = el("div", { class: cls("turn-details-body") }, [
     timeline.root,
+  ]);
+  // Remembered here because the disclosure only mounts its body when opened,
+  // so `fillAssistant` cannot find it by querying the bubble.
+  DETAILS.set(result, details);
+  const root = el("div", { class: `${cls("msg")} ${cls("msg-assistant")}` }, [
     status,
     result,
+    collapsible("Show details", details, cls("turn-details")),
   ]);
   return { result, root, status, timeline };
 }
 
+/**
+ * The live progress line. Deliberately one plain sentence whatever step the
+ * agent reports — "Reading src/app/page.tsx" is detail, and the detail is in
+ * "Show details". The text is kept as the tooltip for anyone curious.
+ */
 export function setTurnStatus(status: HTMLElement, text: string): void {
   clear(status);
-  status.append(el("span", { class: cls("dot") }), el("span", { text }));
+  status.title = text;
+  status.append(
+    el("span", { class: cls("dot") }),
+    el("span", { text: WORKING })
+  );
 }
 
 /**
@@ -109,30 +132,23 @@ export function fillAssistant(
   // reports tokens but no cost, as does Claude under subscription auth, and
   // gating the whole line on a dollar figure silently dropped the file and
   // ±line counts along with it.
-  const cost = bundle.usage?.costUsd;
-  if (bundle.filesChanged || typeof cost === "number") {
+  // Plain words, and no "0 file(s)" when the count is unknown. Line counts,
+  // the price and the diffs themselves go in "Show details".
+  const files = bundle.filesChanged;
+  if (files) {
     target.append(
       el("div", {
         class: cls("meta"),
-        text:
-          `${bundle.filesChanged} file(s) · +${bundle.additions} −${bundle.deletions}` +
-          (typeof cost === "number" ? ` · $${cost.toFixed(4)}` : ""),
+        text: `Changed ${files} file${files === 1 ? "" : "s"}`,
       })
     );
   }
-
-  if (bundle.diffs?.length) {
-    const diffs = el("div", { class: cls("diffs") });
-    for (const d of bundle.diffs) {
-      diffs.append(fileDiff(d, bundle, actions));
-    }
-    target.append(diffs);
-  }
+  const details = DETAILS.get(target);
+  details?.querySelector(`.${cls("turn-extra")}`)?.remove();
+  (details ?? target).append(turnExtra(bundle, actions));
 
   if (hasTurnActions(actions)) {
-    target.append(
-      el("div", { class: cls("actions") }, [turnMenuButton(bundle, actions)])
-    );
+    target.append(actionsRow(bundle, actions));
   }
 
   const { onFollowUp } = actions;
@@ -155,6 +171,59 @@ export function fillAssistant(
       )
     );
   }
+}
+
+/** What "Show details" adds once a turn is done: line counts, price, diffs. */
+function turnExtra(
+  bundle: JobDiffBundle,
+  actions: AssistantActions
+): HTMLElement {
+  const extra = el("div", { class: cls("turn-extra") });
+  const cost = bundle.usage?.costUsd;
+  const stats = [
+    bundle.filesChanged ? `+${bundle.additions} −${bundle.deletions}` : "",
+    typeof cost === "number" ? `$${cost.toFixed(2)}` : "",
+  ].filter(Boolean);
+  if (stats.length) {
+    extra.append(el("div", { class: cls("meta"), text: stats.join(" · ") }));
+  }
+  if (bundle.diffs?.length) {
+    const diffs = el("div", { class: cls("diffs") });
+    for (const d of bundle.diffs) {
+      diffs.append(fileDiff(d, bundle, actions));
+    }
+    extra.append(diffs);
+  }
+  return extra;
+}
+
+/**
+ * Undo in plain sight, then the kebab. Undo used to be only a "Revert this
+ * change" row inside the kebab, which is not where anyone looks for it.
+ */
+function actionsRow(
+  bundle: JobDiffBundle,
+  actions: AssistantActions
+): HTMLElement {
+  const row: HTMLElement[] = [];
+  const { onUndo } = actions;
+  const unrestorable = bundle.diffs?.some((d) => d.noBaseline) ?? false;
+  if (onUndo && !unrestorable) {
+    row.push(
+      el(
+        "button",
+        {
+          "aria-label": "Undo this change",
+          class: cls("action"),
+          onClick: onUndo,
+          type: "button",
+        },
+        [icon("rotate-ccw", "sm"), el("span", { text: "Undo" })]
+      )
+    );
+  }
+  row.push(turnMenuButton(bundle, actions));
+  return el("div", { class: cls("actions") }, row);
 }
 
 /**

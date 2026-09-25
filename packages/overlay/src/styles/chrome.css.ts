@@ -119,10 +119,12 @@ export const css = `
   position: absolute; z-index: ${Z}; transform: translateY(-100%);
   max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   padding: 1px 6px; pointer-events: none;
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption); line-height: 1.7;
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-body); font-weight: 500;
+  line-height: 18px; font-variant-numeric: tabular-nums;
   color: var(--ap-text-primary); background: var(--ap-primary);
   border-radius: var(--ap-radius-xs) var(--ap-radius-xs) var(--ap-radius-xs) 0;
 }
+.${PREFIX}-box-label-size { margin-left: 6px; opacity: .75; }
 .${PREFIX}-box-label[data-flip] {
   transform: none;
   border-radius: 0 var(--ap-radius-xs) var(--ap-radius-xs) var(--ap-radius-xs);

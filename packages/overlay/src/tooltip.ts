@@ -33,6 +33,10 @@ export class Tooltips {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private lastShown = 0;
   private current: HTMLElement | null = null;
+  /** The control last pressed. Its tip stays down until the pointer leaves it,
+   * or a click would hide the tip and the next wiggle over the same control
+   * would bring it straight back and leave it hanging over what just opened. */
+  private pressed: HTMLElement | null = null;
 
   /**
    * `host` is the popover host — the overlay root's last child. It is not the
@@ -44,7 +48,7 @@ export class Tooltips {
     this.node = el("div", { class: `${cls("tip")} ${cls("hidden")}` });
     host.append(this.node);
     document.addEventListener("pointerover", this.onOver, true);
-    document.addEventListener("pointerdown", this.hide, true);
+    document.addEventListener("pointerdown", this.onDown, true);
     document.addEventListener("pointerout", this.onOut, true);
     // Capture, because scrolls inside `.insp-body` do not bubble to `window` —
     // the same reason `popover-host`'s reflow listener is registered this way.
@@ -56,7 +60,7 @@ export class Tooltips {
 
   destroy(): void {
     document.removeEventListener("pointerover", this.onOver, true);
-    document.removeEventListener("pointerdown", this.hide, true);
+    document.removeEventListener("pointerdown", this.onDown, true);
     document.removeEventListener("pointerout", this.onOut, true);
     window.removeEventListener("scroll", this.onScroll, true);
     window.removeEventListener("blur", this.hide);
@@ -77,8 +81,19 @@ export class Tooltips {
     this.node.classList.add(cls("hidden"));
   };
 
+  private readonly onDown = (e: Event): void => {
+    const target = (e.target as Element | null)?.closest?.("[data-tip]");
+    this.pressed = target instanceof HTMLElement ? target : null;
+    this.hide();
+  };
+
   private readonly onOver = (e: Event): void => {
     const target = (e.target as Element | null)?.closest?.("[data-tip]");
+    if (target !== this.pressed) {
+      this.pressed = null;
+    } else if (target) {
+      return;
+    }
     if (!(target instanceof HTMLElement)) {
       if (this.current) {
         this.hide();

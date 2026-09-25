@@ -7,7 +7,8 @@ export const css = `
    the canvas: add a frame, fit, zoom). Compact and understated: small radius,
    hairline border + subtle ring, no pill. */
 .${PREFIX}-bar {
-  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+  position: fixed; bottom: 16px; transform: translateX(-50%);
+  left: calc(50% + (var(--${PREFIX}-inset-l, 0px) - var(--${PREFIX}-inset-r, 0px)) / 2);
   pointer-events: auto; display: inline-flex; align-items: center; gap: 2px;
   padding: 4px; border-radius: var(--ap-radius-md);
   background: var(--ap-surface-panel); border: 1px solid var(--ap-border-default);
@@ -62,6 +63,23 @@ export const css = `
 }
 .${PREFIX}-bar-job:hover { background: var(--ap-surface-selected); color: var(--ap-text-primary); }
 
+/* Save — the one primary button in the bar. Edits are previews until the
+   agent writes them into the code, so this says what it does and how many. */
+.${PREFIX}-bar-save {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: var(--ap-control-icon-box); padding: 0 10px; margin-left: 2px;
+  border: none; border-radius: var(--ap-radius-sm); cursor: pointer;
+  background: var(--ap-primary); color: var(--ap-text-primary);
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-body); font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease);
+}
+.${PREFIX}-bar-save:hover:not(:disabled) { background: var(--ap-primary-hover); }
+.${PREFIX}-bar-save:focus-visible { outline: 2px solid var(--ap-primary-hover); outline-offset: 2px; }
+.${PREFIX}-bar-save > .${PREFIX}-dot { display: none; background: var(--ap-text-primary); }
+.${PREFIX}-bar-save-busy { cursor: default; background: var(--ap-primary-active); }
+.${PREFIX}-bar-save-busy > .${PREFIX}-dot { display: inline-block; }
+
 /* Edit/View mode segmented toggle — compact, restrained, border over shadow. */
 .${PREFIX}-seg-group {
   display: inline-flex; align-items: center; gap: 2px; padding: 2px;
@@ -81,21 +99,25 @@ export const css = `
   box-shadow: var(--ap-elevation-card);
 }
 
-/* Floating panels — rounded cards inset from the viewport edges.
-   Small radius + hairline border + subtle ring (no heavy drop shadow). */
+/* Docked panels — Figma's arrangement: flush to the window edge, full height,
+   one hairline on the side facing the canvas and nothing else. Only a panel
+   torn off into a floating card (\`.dock-float\`) gets a radius and a shadow. */
 .${PREFIX}-dock {
-  position: fixed; top: var(--ap-space-md); bottom: var(--ap-space-md);
+  position: fixed; top: 0; bottom: 0;
   pointer-events: auto; z-index: ${Z};
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--ap-surface-panel);
-  border: 1px solid var(--ap-border-default);
-  border-radius: var(--ap-radius-md);
-  box-shadow: var(--ap-elevation-card);
 }
 /* Widths are set as custom properties on the root by app.ts and persisted to
    localStorage; the literals here are the same defaults, for the first paint. */
-.${PREFIX}-dock-left { left: var(--ap-space-md); width: var(--${PREFIX}-left-w, 340px); }
-.${PREFIX}-dock-right { right: var(--ap-space-md); width: var(--${PREFIX}-right-w, 360px); }
+.${PREFIX}-dock-left {
+  left: 0; width: var(--${PREFIX}-left-w, 320px);
+  border-right: 1px solid var(--ap-border-default);
+}
+.${PREFIX}-dock-right {
+  right: 0; width: var(--${PREFIX}-right-w, 300px);
+  border-left: 1px solid var(--ap-border-default);
+}
 
 /* A docked panel with a pinned height.
 
@@ -143,7 +165,11 @@ export const css = `
    \`right\`/\`bottom\` are cleared because \`.dock\` and \`.dock-right\` set them and a
    box with all four is over-constrained. Two classes, so these beat the
    single-class edge anchors above without needing \`!important\`. */
-.${PREFIX}-dock.${PREFIX}-dock-float { right: auto; bottom: auto; }
+.${PREFIX}-dock.${PREFIX}-dock-float {
+  right: auto; bottom: auto;
+  border: 1px solid var(--ap-border-default); border-radius: var(--ap-radius-md);
+  box-shadow: var(--ap-elevation-floating);
+}
 .${PREFIX}-dock-left.${PREFIX}-dock-float {
   top: var(--${PREFIX}-left-y, 20px);
   left: var(--${PREFIX}-left-x, 20px);
@@ -192,7 +218,7 @@ export const css = `
    \`top\`/\`left\`/\`right\`: expanding grows a panel downwards from here rather than
    moving anything, which is what makes the two read as one control. */
 .${PREFIX}-pill {
-  position: fixed; top: var(--ap-space-md);
+  position: fixed; top: var(--ap-space-xs);
   pointer-events: auto; z-index: ${Z};
   display: inline-flex; align-items: center; gap: 6px;
   /* Same 4px card padding as the bottom bar, plus a little on the label side —
@@ -203,8 +229,8 @@ export const css = `
   border-radius: var(--ap-radius-md);
   box-shadow: var(--ap-elevation-card);
 }
-.${PREFIX}-pill-left { left: var(--ap-space-md); }
-.${PREFIX}-pill-right { right: var(--ap-space-md); }
+.${PREFIX}-pill-left { left: var(--ap-space-xs); }
+.${PREFIX}-pill-right { right: var(--ap-space-xs); }
 /* …and the same when the panel it stands for is floating: the pill goes where
    the header was, not back to the corner. \`height\` is deliberately absent — a
    pill is content-sized, and the panel's floating height is not its height.
@@ -234,7 +260,7 @@ html[data-${PREFIX}-drag] .${PREFIX}-head { cursor: inherit; }
    stays \`space-lg\` so the brand lines up with the transcript below it. */
 .${PREFIX}-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: var(--ap-space-sm) var(--ap-space-lg);
+  height: 40px; padding: 0 var(--ap-space-xs) 0 var(--ap-space-base);
   border-bottom: 1px solid var(--ap-border-default); flex: 0 0 auto;
   cursor: grab; user-select: none;
 }
@@ -243,7 +269,7 @@ html[data-${PREFIX}-drag] .${PREFIX}-head { cursor: inherit; }
    expanding a panel must not resize the brand — it should only drop the body in
    underneath. 12px/500 is the bottom bar's label size (\`.seg\`); the extra weight
    is what keeps it reading as a mark rather than a button. */
-.${PREFIX}-brand-name { font-weight: 560; font-size: var(--ap-font-size-label); letter-spacing: -0.1px; }
+.${PREFIX}-brand-name { font-weight: 600; font-size: var(--ap-font-size-body); }
 .${PREFIX}-head-actions { display: inline-flex; gap: 2px; }
 /* Same ghost-button recipe as \`.fbar-btn\` on the bottom bar: no fill, no border,
    the card around it carries the surface. */
@@ -251,9 +277,9 @@ html[data-${PREFIX}-drag] .${PREFIX}-head { cursor: inherit; }
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--ap-control-icon-box); height: var(--ap-control-icon-box); padding: 0; cursor: pointer;
   color: var(--ap-text-primary); background: transparent; border: 0;
-  border-radius: var(--ap-radius-xs); transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease);
+  border-radius: var(--ap-radius-sm); transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
-.${PREFIX}-iconbtn:hover { background: var(--ap-surface-active); }
+.${PREFIX}-iconbtn:hover { background: var(--ap-surface-hover); }
 
 /* Tools. Icon-only, one control tall, grouped by what they are for — what a
    click does, then how you read the page, then the mode. */

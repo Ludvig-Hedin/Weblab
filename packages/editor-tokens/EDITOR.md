@@ -1,7 +1,7 @@
 ---
-name: Airship Editor
+name: Weblab Editor
 description: >-
-  Airship's visual-editor token system — a dark editor palette:
+  Weblab's visual-editor token system — a dark editor palette:
   dense neutral surfaces, hairline borders, a single Blue #0D99FF selection
   voltage, and a restrained 3–5% luminance surface progression. This front-matter
   is the canonical token source for the editor chrome (`@airship/editor-tokens`,
@@ -13,24 +13,24 @@ tokens:
   surface:
     canvas: "#1E1E1E"
     base: "#242424"
-    sidebar: "#2B2B2B"
-    panel: "#313131"
+    sidebar: "#2C2C2C"
+    panel: "#2C2C2C"
     hover: "#383838"
     active: "#3F3F3F"
     selected: "#454545"
     overlay: "#202020F2"
   border:
     subtle: "rgba(255,255,255,0.06)"
-    default: "rgba(255,255,255,0.08)"
-    strong: "rgba(255,255,255,0.12)"
+    default: "#444444"
+    strong: "#555555"
     focus: "#0D99FF"
     disabled: "rgba(255,255,255,0.04)"
   text:
     primary: "#FFFFFF"
-    secondary: "#C6C6C6"
-    tertiary: "#9D9D9D"
-    disabled: "#777777"
-    placeholder: "#6A6A6A"
+    secondary: "#B3B3B3"
+    tertiary: "#7A7A7A"
+    disabled: "#666666"
+    placeholder: "#7A7A7A"
     inverse: "#111111"
   icon:
     primary: "#F3F3F3"
@@ -85,8 +85,8 @@ tokens:
     thumb-hover: "rgba(255,255,255,0.20)"
     thumb-active: "rgba(255,255,255,0.30)"
   divider:
-    horizontal: "rgba(255,255,255,0.06)"
-    vertical: "rgba(255,255,255,0.08)"
+    horizontal: "#444444"
+    vertical: "#444444"
     heavy: "rgba(255,255,255,0.12)"
   shadow:
     xs: "0 1px 2px rgba(0,0,0,0.16)"
@@ -116,10 +116,10 @@ tokens:
     "900": "#2B2B2B"
     "950": "#1E1E1E"
   input:
-    bg: "#2B2B2B"
-    hover: "#313131"
-    focus: "#313131"
-    border: "rgba(255,255,255,0.08)"
+    bg: "#383838"
+    hover: "#3E3E3E"
+    focus: "#383838"
+    border: "transparent"
     focus-border: "#0D99FF"
     disabled: "#252525"
   button:
@@ -127,8 +127,8 @@ tokens:
     primary-hover: "#33AEFF"
     primary-pressed: "#007BE5"
     primary-disabled: "#3E5D73"
-    secondary: "#313131"
-    secondary-hover: "#383838"
+    secondary: "#383838"
+    secondary-hover: "#3E3E3E"
     secondary-pressed: "#404040"
     secondary-disabled: "#292929"
     ghost-hover: "rgba(255,255,255,0.05)"
@@ -141,7 +141,7 @@ tokens:
     micro: 9
     caption: 10
     body: 11
-    label: 12
+    label: 11
     title: 13
     heading: 14
   iconSize:
@@ -154,7 +154,7 @@ tokens:
     icon-box: 28
     gutter: 8
     field-gap: 2
-    row-gap: 6
+    row-gap: 8
     group-gap: 12
   spacing:
     hair: 1
@@ -194,7 +194,7 @@ tokens:
     dur-slow: "200ms"
 ---
 
-# Airship Editor Tokens
+# Weblab Editor Tokens
 
 The visual editor's design system — a **dark editor palette**. The
 `@airship/editor-tokens` package generates its TypeScript token objects and CSS
@@ -210,7 +210,8 @@ workspace.
 
 ## Character
 
-- Neutral grays, not warm — surfaces step `#1E1E1E → #454545` in ~3–5% luminance
+- Neutral grays, not warm — the canvas is `#1E1E1E`, panels `#2C2C2C`, inputs are
+  filled `#383838` with no border, and dividers are a solid `#444` hairline. Surfaces step `#1E1E1E → #454545` in ~3–5% luminance
   increments (`{surface.canvas}` → `{surface.selected}`). This progression is the
   core of the editor's feel: calm, dense, cohesive.
 - **Hairline borders**, no heavy shadows. Panels separate with `{border.*}`
@@ -231,8 +232,8 @@ workspace.
   segmented control. An icon that matches the text colour reads as loud as a
   label, which is what makes a dense panel feel busy.
 - Type is a six-step ramp, `{fontSize.micro}` 9px → `{fontSize.heading}` 14px.
-  The editor is deliberately denser than the marketing site: `label` (12px) is
-  the workhorse for controls, `body` (11px) for monospace metadata, and
+  The editor follows Figma UI3: `label` and `body` are both 11px Inter for
+  panel UI (numbers use tabular figures, never mono), `title` (13px) is the chat, and
   `heading` (14px) is as large as chrome ever gets.
 - Icons render at `{iconSize.*}` — 16/20/24/28. The imported glyph set insets its
   artwork inside a 24 box (the mark spans roughly 4..20), so **24px is the
@@ -254,7 +255,7 @@ workspace.
   | Token | | Separates |
   | --- | --- | --- |
   | `{control.field-gap}` | 2px | parts of **one** control — the four padding sides, a swatch and its hex, the cells of a segmented group |
-  | `{control.row-gap}` | 6px | **rows** within a group |
+  | `{control.row-gap}` | 8px | **rows** within a group |
   | `{control.group-gap}` | 12px | **groups** within a section |
   | `{control.gutter}` | 8px | columns on one row |
 

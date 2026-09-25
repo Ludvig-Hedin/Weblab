@@ -34,7 +34,7 @@ export const css = `
 .${PREFIX}-toast-error { background: var(--ap-semantic-error); }
 /* The repeat counter. Dimmed so a burst of undos reads as one message with a
    tally rather than as a message that keeps changing. */
-.${PREFIX}-toast-count { font-family: var(--ap-font-mono); opacity: .65; }
+.${PREFIX}-toast-count { font-family: var(--ap-font-sans); font-variant-numeric: tabular-nums; opacity: .65; }
 
 /* The affordance — the one part of a toast that takes a pointer.
 

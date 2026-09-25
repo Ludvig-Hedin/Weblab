@@ -5,8 +5,8 @@ export const design = {
   "surface": {
     "canvas": "#1E1E1E",
     "base": "#242424",
-    "sidebar": "#2B2B2B",
-    "panel": "#313131",
+    "sidebar": "#2C2C2C",
+    "panel": "#2C2C2C",
     "hover": "#383838",
     "active": "#3F3F3F",
     "selected": "#454545",
@@ -14,17 +14,17 @@ export const design = {
   },
   "border": {
     "subtle": "rgba(255,255,255,0.06)",
-    "default": "rgba(255,255,255,0.08)",
-    "strong": "rgba(255,255,255,0.12)",
+    "default": "#444444",
+    "strong": "#555555",
     "focus": "#0D99FF",
     "disabled": "rgba(255,255,255,0.04)"
   },
   "text": {
     "primary": "#FFFFFF",
-    "secondary": "#C6C6C6",
-    "tertiary": "#9D9D9D",
-    "disabled": "#777777",
-    "placeholder": "#6A6A6A",
+    "secondary": "#B3B3B3",
+    "tertiary": "#7A7A7A",
+    "disabled": "#666666",
+    "placeholder": "#7A7A7A",
     "inverse": "#111111"
   },
   "icon": {
@@ -87,8 +87,8 @@ export const design = {
     "thumb-active": "rgba(255,255,255,0.30)"
   },
   "divider": {
-    "horizontal": "rgba(255,255,255,0.06)",
-    "vertical": "rgba(255,255,255,0.08)",
+    "horizontal": "#444444",
+    "vertical": "#444444",
     "heavy": "rgba(255,255,255,0.12)"
   },
   "shadow": {
@@ -122,10 +122,10 @@ export const design = {
     "950": "#1E1E1E"
   },
   "input": {
-    "bg": "#2B2B2B",
-    "hover": "#313131",
-    "focus": "#313131",
-    "border": "rgba(255,255,255,0.08)",
+    "bg": "#383838",
+    "hover": "#3E3E3E",
+    "focus": "#383838",
+    "border": "transparent",
     "focus-border": "#0D99FF",
     "disabled": "#252525"
   },
@@ -134,8 +134,8 @@ export const design = {
     "primary-hover": "#33AEFF",
     "primary-pressed": "#007BE5",
     "primary-disabled": "#3E5D73",
-    "secondary": "#313131",
-    "secondary-hover": "#383838",
+    "secondary": "#383838",
+    "secondary-hover": "#3E3E3E",
     "secondary-pressed": "#404040",
     "secondary-disabled": "#292929",
     "ghost-hover": "rgba(255,255,255,0.05)",
@@ -151,7 +151,7 @@ export const design = {
     "micro": 9,
     "caption": 10,
     "body": 11,
-    "label": 12,
+    "label": 11,
     "title": 13,
     "heading": 14
   },
@@ -166,7 +166,7 @@ export const design = {
     "icon-box": 28,
     "gutter": 8,
     "field-gap": 2,
-    "row-gap": 6,
+    "row-gap": 8,
     "group-gap": 12
   },
   "spacing": {

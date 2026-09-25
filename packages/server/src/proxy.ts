@@ -400,7 +400,7 @@ function handleHttp(
   proxyReq.on("error", (err) => {
     res.writeHead(502, { "content-type": "text/plain" });
     res.end(
-      `airship: could not reach your dev server at ${deps.targetHost}:${deps.targetPort}\n${err.message}`
+      `Weblab could not reach your site's dev server at ${deps.targetHost}:${deps.targetPort}\n${err.message}`
     );
   });
 

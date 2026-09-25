@@ -11,6 +11,8 @@ allowBuilds:
   # wrangler's runtime. apps/web deploys to Cloudflare Workers, and both
   # `make web:preview` and the deploy lane need it to have run its install step.
   workerd: true
+  # The desktop app's Electron binary is fetched by its install step.
+  electron: true
 minimumReleaseAgeExclude:
   # esbuild ships its binary as ~25 per-platform packages listed as OPTIONAL
   # dependencies, published minutes apart from the parent. When the parent is

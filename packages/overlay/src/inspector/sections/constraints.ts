@@ -38,7 +38,7 @@ export function renderConstraints(
     }
   );
   ctx.register(position);
-  body.append(labelled("Position", position.element));
+  body.append(labelled("Placement", position.element));
 
   if (isPositioned(node)) {
     // A persistent host, so picking an anchor repaints five bars instead of

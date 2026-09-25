@@ -60,7 +60,7 @@ export function buildAirshipMcpServer(ctx: McpContext) {
       ),
       tool(
         "get_design_tokens",
-        "Return the project's design tokens — the CSS custom properties and utility classes Airship found by scanning the project's stylesheets, each with its category, resolved value, and the file and line it is declared on. Use this to write the project's own token instead of a literal value, or to find and edit the scale itself.",
+        "Return the project's design tokens — the CSS custom properties and utility classes Weblab found by scanning the project's stylesheets, each with its category, resolved value, and the file and line it is declared on. Use this to write the project's own token instead of a literal value, or to find and edit the scale itself.",
         {},
         () =>
           Promise.resolve({

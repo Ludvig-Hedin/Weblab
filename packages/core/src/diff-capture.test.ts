@@ -236,3 +236,30 @@ describe("DiffCapture with CRLF line endings", () => {
     expect(dc.pairFor("crlf.txt")).toBeNull();
   });
 });
+
+describe("DiffCapture.watch", () => {
+  it("diffs a watched file changed outside the edit tools", () => {
+    write("page.tsx", "<h1>Hello</h1>\n");
+    const watcher = new DiffCapture(repo);
+    watcher.watch(["page.tsx"]);
+    // What `sed -i` through Bash does: no PreToolUse hook ever fires.
+    write("page.tsx", "<h1>Hello there</h1>\n");
+    const [diff] = watcher.finalize();
+    expect(diff?.file).toBe("page.tsx");
+    expect(diff?.before).toBe("<h1>Hello</h1>\n");
+    expect(diff?.isNew).toBe(false);
+  });
+
+  it("leaves an unchanged watched file out of the diff", () => {
+    write("page.tsx", "<h1>Hello</h1>\n");
+    const watcher = new DiffCapture(repo);
+    watcher.watch(["page.tsx"]);
+    expect(watcher.finalize()).toEqual([]);
+  });
+
+  it("ignores missing files and paths outside the project", () => {
+    const watcher = new DiffCapture(repo);
+    watcher.watch(["missing.tsx", "../outside.tsx", "/etc/hosts"]);
+    expect(watcher.finalize()).toEqual([]);
+  });
+});

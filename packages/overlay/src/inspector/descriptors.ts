@@ -502,11 +502,12 @@ export const POSITION_MODE: Descriptor = {
   cssProperty: "position",
   defaultValue: "static",
   enumValues: [
-    { label: "Static", value: "static" },
-    { label: "Relative", value: "relative" },
-    { label: "Absolute", value: "absolute" },
-    { label: "Fixed", value: "fixed" },
-    { label: "Sticky", value: "sticky" },
+    // Plain words first; the CSS name is what the Code view is for.
+    { label: "Normal", value: "static" },
+    { label: "Nudged", value: "relative" },
+    { label: "Free (absolute)", value: "absolute" },
+    { label: "Fixed to screen", value: "fixed" },
+    { label: "Sticky on scroll", value: "sticky" },
   ],
   group: "position",
   key: "position",

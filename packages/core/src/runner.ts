@@ -152,6 +152,10 @@ export async function runEdit(
   if (adapter.needsGitBaseline) {
     diffCapture.prime(canPrime ? dirtyFiles(input.cwd) : new Set<string>());
   }
+  // The files the request points at, snapshotted so an edit made through
+  // Bash (which no hook sees) still has a diff and an Undo. Without git this
+  // is the only before-state there is.
+  diffCapture.watch(referencedFiles(input));
 
   // One recorder owns both the persisted array and the live sink, so the
   // streamed timeline and `RunEditResult.timeline` can never drift apart.
@@ -236,4 +240,40 @@ export async function checkAuth(
 ): Promise<{ ok: boolean; reason?: string }> {
   const adapter = await getAdapter(agent);
   return adapter.checkAuth();
+}
+
+/**
+ * Every `file` a request names: the selection's source and each change
+ * target's. Walked generically rather than field by field, so a new change
+ * kind cannot silently lose its undo.
+ */
+function referencedFiles(input: unknown): Set<string> {
+  const files = new Set<string>();
+  const seen = new Set<unknown>();
+  const walk = (value: unknown, depth: number): void => {
+    if (depth > 6 || value === null || typeof value !== "object") {
+      return;
+    }
+    if (seen.has(value)) {
+      return;
+    }
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        walk(item, depth + 1);
+      }
+      return;
+    }
+    const record = value as Record<string, unknown>;
+    if (typeof record.file === "string" && record.file) {
+      files.add(record.file);
+    }
+    for (const [key, child] of Object.entries(record)) {
+      if (key !== "abortController") {
+        walk(child, depth + 1);
+      }
+    }
+  };
+  walk(input, 0);
+  return files;
 }

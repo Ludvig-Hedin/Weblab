@@ -1,5 +1,5 @@
 import { PREFIX } from "../dom";
-import { LABEL_RAIL_W, Z } from "./const";
+import { LABEL_RAIL_W, ROOT, Z } from "./const";
 
 /** Right dock: tabs, the DOM tree, sections, the field grid, the CSS tab. */
 export const css = `
@@ -28,7 +28,7 @@ export const css = `
    bottom rule, so anything here would double them. Hidden with no selection. */
 .${PREFIX}-insp-head { flex: 0 0 auto; }
 .${PREFIX}-insp-multi {
-  padding: var(--ap-space-xs) var(--ap-space-lg);
+  padding: var(--ap-space-xs) var(--ap-space-base);
   font-size: var(--ap-font-size-caption); opacity: .5;
 }
 /* Basename plus line, riding in the Source section's header. \`text-transform\`
@@ -67,15 +67,32 @@ export const css = `
   font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption);
   color: var(--ap-text-secondary); word-break: break-all; line-height: 1.5;
 }
-.${PREFIX}-insp-tabs { display: flex; border-bottom: 1px solid var(--ap-border-default); }
-.${PREFIX}-insp-tab {
-  flex: 1; display: inline-flex; align-items: center; justify-content: center;
-  gap: var(--ap-control-row-gap);
-  padding: var(--ap-space-xs); cursor: pointer; background: transparent; border: none;
-  color: var(--ap-text-primary); opacity: .55; font-family: var(--ap-font-sans); font-size: var(--ap-font-size-title);
-  border-bottom: 2px solid transparent;
+/* Figma's tab row: plain words, left-aligned, the active one simply brighter.
+   Code is a small icon toggle at the far end — it is there for whoever wants
+   it, and out of the way for everyone who does not. */
+.${PREFIX}-insp-tabs {
+  display: flex; align-items: center; gap: 2px;
+  flex: 0 0 auto; order: -1; height: 40px; padding: 0 var(--ap-space-xs);
+  border-bottom: 1px solid var(--ap-border-default);
 }
-.${PREFIX}-insp-tab-on { opacity: 1; border-bottom-color: var(--ap-primary); }
+.${PREFIX}-insp-tab {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 24px; padding: 0 var(--ap-space-xs); cursor: pointer;
+  background: transparent; border: none; border-radius: var(--ap-radius-sm);
+  color: var(--ap-text-tertiary); font-family: var(--ap-font-sans);
+  font-size: var(--ap-font-size-body); font-weight: 600;
+  transition: color var(--ap-motion-dur-micro) var(--ap-motion-ease), background var(--ap-motion-dur-micro) var(--ap-motion-ease);
+}
+.${PREFIX}-insp-tab:hover { color: var(--ap-text-secondary); }
+${ROOT} .${PREFIX}-insp-tab .${PREFIX}-ic { display: none; }
+.${PREFIX}-insp-tab-on { color: var(--ap-text-primary); background: var(--ap-surface-hover); }
+.${PREFIX}-insp-tab[data-tab="css"] { margin-left: auto; width: 24px; padding: 0; color: var(--ap-icon-muted); }
+.${PREFIX}-insp-tab[data-tab="css"] > span { display: none; }
+${ROOT} .${PREFIX}-insp-tab[data-tab="css"] .${PREFIX}-ic { display: inline-flex; }
+${ROOT} .${PREFIX}-insp-tab[data-tab="css"].${PREFIX}-insp-tab-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-primary); }
+/* Where the element lives in the source is a developer fact, so it shows with
+   the code and nowhere else. */
+.${PREFIX}-insp:not([data-tab="css"]) .${PREFIX}-insp-src-sect { display: none; }
 
 /* DOM tab — expandable tree + drag-to-reparent. */
 .${PREFIX}-tree { padding: 4px 0 var(--ap-space-md); }
@@ -156,7 +173,7 @@ export const css = `
   flex: 1 1 auto;
   display: flex; flex-direction: column;
 }
-.${PREFIX}-insp-hint { font-size: var(--ap-font-size-label); opacity: .5; padding: var(--ap-space-md) var(--ap-space-lg); }
+.${PREFIX}-insp-hint { font-size: var(--ap-font-size-label); opacity: .5; padding: var(--ap-space-md) var(--ap-space-base); }
 .${PREFIX}-sect { border-bottom: 1px solid var(--ap-border-default); }
 /* A sub-section does not pay the inset twice.
    \`section()\` builds one shape, and four callers nest it inside a body that has
@@ -182,13 +199,16 @@ export const css = `
 .${PREFIX}-sect-head {
   display: flex; align-items: center; justify-content: space-between; cursor: pointer;
   gap: var(--ap-control-row-gap);
-  padding: var(--ap-space-xs) var(--ap-space-lg);
-  font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-caption); letter-spacing: .6px; opacity: .6;
+  min-height: 32px; padding: var(--ap-space-xxs) var(--ap-space-sm) var(--ap-space-xxs) var(--ap-space-base);
+  font-family: var(--ap-font-sans); font-weight: 600;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-primary);
 }
-.${PREFIX}-sect-head:hover { opacity: .9; }
+.${PREFIX}-sect-chev { color: var(--ap-icon-muted); opacity: 0; transition: opacity var(--ap-motion-dur-micro) var(--ap-motion-ease); }
+.${PREFIX}-sect-head:hover .${PREFIX}-sect-chev,
+.${PREFIX}-sect-head[aria-expanded="false"] .${PREFIX}-sect-chev { opacity: 1; }
 .${PREFIX}-sect-title { flex: 1 1 auto; }
 .${PREFIX}-sect-chev { display: inline-flex; align-items: center; flex: 0 0 auto; }
+.${PREFIX}-sect-head[aria-expanded="false"] { color: var(--ap-text-secondary); }
 .${PREFIX}-sect-actions {
   display: inline-flex; align-items: center; flex: 0 0 auto;
   gap: var(--ap-control-field-gap);
@@ -221,7 +241,7 @@ export const css = `
 .${PREFIX}-sect-body {
   display: flex; flex-direction: column;
   gap: var(--ap-control-row-gap);
-  padding: var(--ap-control-group-gap) var(--ap-space-lg);
+  padding: 0 var(--ap-space-base) var(--ap-space-base);
 }
 /* The body owns the separation now. Rows outside one — \`.pop-form\`'s, and the
    source kv list — keep the margin below, because those containers have no gap
@@ -350,7 +370,7 @@ export const css = `
    Three groups of three, mirroring the design-tool layout exactly. */
 .${PREFIX}-align-row {
   display: flex; justify-content: space-between; gap: var(--ap-space-xs);
-  padding: var(--ap-space-sm) var(--ap-space-lg);
+  padding: var(--ap-space-xs) var(--ap-space-base);
   border-bottom: 1px solid var(--ap-border-default);
 }
 .${PREFIX}-align-grp { display: inline-flex; gap: 1px; }
@@ -392,9 +412,9 @@ export const css = `
    pushed out past everything above and below it. */
 .${PREFIX}-css-head {
   font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body); opacity: .5;
-  padding: var(--ap-space-sm) var(--ap-space-lg) 0;
+  padding: var(--ap-space-sm) var(--ap-space-base) 0;
 }
-.${PREFIX}-css-list { padding: 4px var(--ap-space-lg) var(--ap-space-md); }
+.${PREFIX}-css-list { padding: 4px var(--ap-space-base) var(--ap-space-md); }
 .${PREFIX}-css-decl { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
 .${PREFIX}-css-decl.${PREFIX}-css-off { opacity: .4; }
 .${PREFIX}-css-cb {
@@ -437,7 +457,7 @@ export const css = `
    second put two lines 4px apart with nothing between them. */
 .${PREFIX}-css-sub-head {
   display: flex; align-items: center; gap: 8px;
-  padding: var(--ap-space-sm) var(--ap-space-lg) 4px;
+  padding: var(--ap-space-sm) var(--ap-space-base) 4px;
 }
 /* A control, not a declaration: sans on the input scale, on the same bg,
    border, height and radius as \`select\` and the number fields. It was mono at

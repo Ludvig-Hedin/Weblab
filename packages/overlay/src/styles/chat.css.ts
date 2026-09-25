@@ -7,12 +7,12 @@ export const css = `
    way the chip rails take theirs from \`.scroll-x\`. */
 .${PREFIX}-transcript {
   flex: 1 1 auto; display: flex; flex-direction: column;
-  gap: var(--ap-space-md); padding: var(--ap-space-md) var(--ap-space-lg);
+  gap: var(--ap-space-md); padding: var(--ap-space-md) var(--ap-space-base);
 }
 /* The transcript's empty state is a \`.empty-md\` block (empty.css). This class
    carries no styling of its own any more — it is the handle \`pushBubble\` uses
    to find and drop the block when the first bubble lands. */
-.${PREFIX}-msg { font-size: var(--ap-font-size-heading); line-height: 1.5; }
+.${PREFIX}-msg { font-size: var(--ap-font-size-title); line-height: 1.5; }
 .${PREFIX}-msg-user {
   align-self: flex-end; max-width: 88%; padding: 8px 12px; word-break: break-word;
   background: var(--ap-surface-selected); color: var(--ap-text-primary);
@@ -20,7 +20,7 @@ export const css = `
 }
 .${PREFIX}-msg-assistant {
   align-self: flex-start; max-width: 96%; padding: 10px 12px; word-break: break-word;
-  background: var(--ap-surface-active); border: 1px solid var(--ap-border-default);
+  background: transparent; border: 1px solid transparent; padding-left: 0; padding-right: 0;
   border-radius: var(--ap-radius-md) var(--ap-radius-md) var(--ap-radius-md) var(--ap-radius-xs);
 }
 /* A failed turn. The bubble's body *is* the error string (\`fillAssistant\` puts
@@ -28,7 +28,7 @@ export const css = `
    a tinted box around a sentence that says "Edit failed" is the same message a
    second time, in the loudest register the panel has. A stronger border is
    enough to mark it as the odd bubble in the column. */
-.${PREFIX}-msg-assistant.${PREFIX}-msg-err { border-color: var(--ap-border-strong); }
+.${PREFIX}-msg-assistant.${PREFIX}-msg-err { border-color: var(--ap-border-strong); padding: 10px 12px; }
 .${PREFIX}-msg-body > *:first-child { margin-top: 0; }
 .${PREFIX}-msg-body > *:last-child { margin-bottom: 0; }
 .${PREFIX}-msg-body p { margin: 6px 0; }
@@ -91,7 +91,7 @@ export const css = `
 /* In a nowrap row a chip would otherwise shrink to fit rather than scroll. */
 .${PREFIX}-sel-chips > * { flex: 0 0 auto; }
 .${PREFIX}-sel-chip {
-  display: inline-flex; align-items: center; gap: 6px; font-size: var(--ap-font-size-label); font-family: var(--ap-font-mono);
+  display: inline-flex; align-items: center; gap: 6px; font-size: var(--ap-font-size-label); font-family: var(--ap-font-sans);
   color: var(--ap-text-primary); background: var(--ap-surface-active);
   border: 1px solid var(--ap-border-default); border-radius: var(--ap-radius-sm); padding: 3px 6px 3px 8px;
 }
@@ -140,7 +140,7 @@ export const css = `
 }
 .${PREFIX}-chip-detail { white-space: nowrap; color: var(--ap-text-secondary); }
 .${PREFIX}-chip-value {
-  white-space: nowrap; color: var(--ap-text-tertiary); font-family: var(--ap-font-mono);
+  white-space: nowrap; color: var(--ap-text-tertiary);
 }
 .${PREFIX}-chip-detail + .${PREFIX}-chip-value::before {
   content: "·"; margin-right: 4px; opacity: .55;
@@ -162,7 +162,7 @@ export const css = `
 /* Overflow from \`.scroll-y\`, as above. */
 .${PREFIX}-drawer {
   position: absolute; inset: 0; z-index: 2;
-  padding: var(--ap-space-md) var(--ap-space-lg); background: var(--ap-surface-panel);
+  padding: var(--ap-space-md) var(--ap-space-base); background: var(--ap-surface-panel);
   display: flex; flex-direction: column;
 }
 .${PREFIX}-drawer-head {
@@ -181,7 +181,7 @@ export const css = `
 /* Overflow from \`.scroll-y\`, as above. */
 .${PREFIX}-pane {
   flex: 1 1 auto; min-height: 0;
-  padding: var(--ap-space-md) var(--ap-space-lg); background: var(--ap-surface-panel);
+  padding: var(--ap-space-md) var(--ap-space-base); background: var(--ap-surface-panel);
   display: flex; flex-direction: column;
 }
 /* A column, so the empty state has the pane's height to centre in — same
@@ -210,16 +210,16 @@ export const css = `
 .${PREFIX}-thread-item .${PREFIX}-ic { margin-top: 2px; opacity: .6; }
 .${PREFIX}-thread-main { min-width: 0; flex: 1 1 auto; }
 .${PREFIX}-thread-title { font-size: var(--ap-font-size-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.${PREFIX}-thread-meta { font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption); opacity: .5; margin-top: 2px; }
+.${PREFIX}-thread-meta { font-family: var(--ap-font-sans); font-size: var(--ap-font-size-caption); opacity: .5; margin-top: 2px; }
 
 .${PREFIX}-eyebrow {
-  font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-body); letter-spacing: .6px; color: var(--ap-text-primary); opacity: .55;
+  font-family: var(--ap-font-sans); font-weight: 600;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-secondary);
   margin-bottom: var(--ap-space-xs);
 }
 .${PREFIX}-meta {
-  margin-top: 4px; font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body);
-  color: var(--ap-text-primary); opacity: .5; word-break: break-word;
+  margin-top: 4px; font-family: var(--ap-font-sans); font-size: var(--ap-font-size-body);
+  font-variant-numeric: tabular-nums; color: var(--ap-text-tertiary); word-break: break-word;
 }
 
 /* Chat input. The box, border and background now belong to \`.field\`; this is
@@ -513,6 +513,14 @@ ${ROOT} .${PREFIX}-tl-res .${PREFIX}-ic { flex: 0 0 auto; --${PREFIX}-ic-tone: v
 .${PREFIX}-disc-head:hover { color: var(--ap-text-primary); background: var(--ap-surface-hover); }
 .${PREFIX}-disc-body { padding-top: var(--ap-space-xs); }
 .${PREFIX}-follow-disc { margin-top: var(--ap-space-xs); }
+/* "Show details": quiet, left-aligned with the text, below the result. */
+.${PREFIX}-turn-details { margin-top: var(--ap-space-xs); }
+.${PREFIX}-turn-details > .${PREFIX}-disc-head {
+  width: auto; padding: 4px 0; color: var(--ap-text-tertiary);
+  font-size: var(--ap-font-size-body);
+}
+.${PREFIX}-turn-details > .${PREFIX}-disc-head:hover { background: transparent; color: var(--ap-text-secondary); }
+.${PREFIX}-turn-extra .${PREFIX}-meta { margin-top: var(--ap-space-xs); }
 
 /* Diffs. */
 .${PREFIX}-diffs { margin-top: var(--ap-space-md); }

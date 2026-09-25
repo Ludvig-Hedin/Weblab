@@ -11,12 +11,13 @@ import {
   FEEDBACK,
   manager,
 } from "./dnd/manager";
-import { cls, el, elementLabel, PREFIX } from "./dom";
+import { cls, el, PREFIX } from "./dom";
 import { EditGuard, isOwn } from "./edit-guard";
 import { type Guide, GuideOverlay, marksFor } from "./guide-overlay";
 import { constrain, shouldConstrain } from "./inspector/aspect";
 import { ContextOutlines } from "./inspector/context-outlines";
 import { MeasureOverlay } from "./inspector/measure-overlay";
+import { layerName } from "./inspector/node-kind";
 import {
   type EdgeShift,
   type OriginStart,
@@ -264,7 +265,6 @@ export class SelectionController {
 
   private editing = false;
   private selected: Element | null = null;
-  private selectedName: string | null = null;
   private surface: Surface | null = null;
   /**
    * The resolved context for `selected`, so re-selecting the same node can
@@ -608,14 +608,12 @@ export class SelectionController {
     const gen = this.selectGen;
     this.selected = node;
     this.surface = target;
-    this.selectedName = elementLabel(node);
     this.drawOutline();
     target.extract(node).then((info) => {
       if (gen !== this.selectGen) {
         return;
       }
       this.selectedInfo = info;
-      this.selectedName = info.context.displayName || elementLabel(node);
       this.drawOutline();
       this.emitSelect(node, target, info);
     });
@@ -639,7 +637,6 @@ export class SelectionController {
 
   clearSelection(): void {
     this.selected = null;
-    this.selectedName = null;
     this.surface = null;
     this.selectedInfo = null;
     // Invalidates any `extract` still in flight, so a resolution that lands
@@ -726,10 +723,20 @@ export class SelectionController {
     const local = localRect(this.selected);
     const box = surface.toScreen(local);
     place(this.outline, box, clipToSurface(surface, box));
-    const name = this.selectedName ?? elementLabel(this.selected);
+    // Named the way the layers tree names it, and re-read on every draw so a
+    // text edit renames the label as you type. Not the owning component's
+    // name: that is the page or section the element sits in, so a heading
+    // inside `Home` would be labelled "Home".
+    const name = layerName(this.selected);
     // The label reports the element's own size, not its on-screen size: the CSS
     // width you are about to edit is 200px whether you are at 25% or 300%.
-    this.selLabel.textContent = `${name} · ${Math.round(local.width)}×${Math.round(local.height)}`;
+    this.selLabel.replaceChildren(
+      name,
+      el("span", {
+        class: cls("box-label-size"),
+        text: `${Math.round(local.width)} × ${Math.round(local.height)}`,
+      })
+    );
     placeLabel(this.selLabel, box, surface.bounds()?.top ?? 0);
     this.drawContext();
   }
@@ -1096,7 +1103,7 @@ export class SelectionController {
     // Re-measure on every move even when the node is unchanged: on the canvas
     // the pointer can sit still while the element under it moves — a pan, a
     // zoom, or the app re-rendering — and the highlight has to follow it.
-    this.hoverLabel.textContent = elementLabel(found.node);
+    this.hoverLabel.textContent = layerName(found.node);
     const box = found.surface.toScreen(localRect(found.node));
     place(this.hoverBox, box, clipToSurface(found.surface, box));
     placeLabel(this.hoverLabel, box, found.surface.bounds()?.top ?? 0);

@@ -106,11 +106,11 @@ ${[
   display: flex; align-items: center; gap: var(--ap-control-field-gap); min-width: 0;
   height: var(--ap-control-height); padding-left: var(--ap-control-field-gap);
   border: 1px solid transparent; border-radius: var(--ap-radius-sm);
-  background: transparent; transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease), border-color var(--ap-motion-dur-micro) var(--ap-motion-ease);
+  background: var(--ap-input-bg); transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease), border-color var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
-.${PREFIX}-ctl-num:hover { background: var(--ap-surface-hover); }
+.${PREFIX}-ctl-num:hover { border-color: var(--ap-border-strong); }
 .${PREFIX}-ctl-num:focus-within {
-  background: var(--ap-surface-active); border-color: var(--ap-primary);
+  background: var(--ap-input-focus); border-color: var(--ap-primary);
 }
 /* Either a span (the scrub handle) or a real button (the gradient opener), so
    it resets the button chrome rather than assuming it is never one. */
@@ -130,19 +130,19 @@ ${[
 .${PREFIX}-ctl-glyph .${PREFIX}-ic { color: inherit; }
 .${PREFIX}-ctl-glyph-static { cursor: default; }
 .${PREFIX}-ctl-glyph-txt {
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body);
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-body);
   line-height: 1; opacity: .85;
 }
 .${PREFIX}-ctl-input {
   flex: 1 1 auto; width: 100%; min-width: 0;
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-label);
-  color: var(--ap-text-primary);
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-label);
+  font-variant-numeric: tabular-nums; color: var(--ap-text-primary);
   background: transparent; border: 0; padding: 0 var(--ap-control-field-gap);
 }
 .${PREFIX}-ctl-input:focus { outline: none; }
 .${PREFIX}-ctl-suffix {
   flex: 0 0 auto; padding-right: var(--ap-control-field-gap);
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body);
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-body);
   color: var(--ap-text-tertiary);
 }
 /* A unit belongs to the number it follows, so the suffix goes to meet it.
@@ -806,7 +806,7 @@ ${ROOT} .${PREFIX}-select[aria-expanded="true"] .${PREFIX}-ic { --${PREFIX}-ic-t
    setting both is what made these rows sit 16px apart. */
 .${PREFIX}-scope-row {
   display: grid;
-  padding: var(--ap-space-sm) var(--ap-space-lg);
+  padding: var(--ap-space-sm) var(--ap-space-base);
   border-bottom: 1px solid var(--ap-border-subtle);
 }
 .${PREFIX}-scope-row[data-scoped] {
@@ -825,9 +825,8 @@ ${ROOT} .${PREFIX}-select[aria-expanded="true"] .${PREFIX}-ic { --${PREFIX}-ic-t
    in from the rows it heads. */
 .${PREFIX}-sect-sub-head {
   padding: var(--ap-control-row-gap) 0 var(--ap-control-field-gap);
-  font-family: var(--ap-font-mono); text-transform: uppercase;
-  font-size: var(--ap-font-size-micro); letter-spacing: .6px;
-  color: var(--ap-text-tertiary);
+  font-family: var(--ap-font-sans); font-weight: 500;
+  font-size: var(--ap-font-size-body); color: var(--ap-text-secondary);
 }
 .${PREFIX}-sect-sub-head:first-child { padding-top: 0; }
 

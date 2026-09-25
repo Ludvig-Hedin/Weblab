@@ -19,7 +19,7 @@ export const css = `
 /* ---- Box model ---------------------------------------------------------- */
 .${PREFIX}-css-bm {
   display: flex; justify-content: center;
-  padding: var(--ap-space-md) var(--ap-space-lg) var(--ap-space-sm);
+  padding: var(--ap-space-md) var(--ap-space-base) var(--ap-space-sm);
   border-bottom: 1px solid var(--ap-border-default);
   font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption);
 }
@@ -39,7 +39,6 @@ export const css = `
 }
 .${PREFIX}-css-bm-label {
   position: absolute; top: 2px; left: 5px;
-  text-transform: uppercase; letter-spacing: .5px;
   font-size: var(--ap-font-size-micro); color: var(--ap-text-tertiary);
 }
 .${PREFIX}-css-bm-size { color: var(--ap-text-primary); }
@@ -68,7 +67,7 @@ export const css = `
 
 /* ---- Matched rules ------------------------------------------------------ */
 .${PREFIX}-css-rules { padding: 0 0 var(--ap-space-xs); }
-.${PREFIX}-css-rule { padding: var(--ap-space-xs) var(--ap-space-lg) 0; }
+.${PREFIX}-css-rule { padding: var(--ap-space-xs) var(--ap-space-base) 0; }
 .${PREFIX}-css-rule + .${PREFIX}-css-rule { border-top: 1px solid var(--ap-border-subtle); }
 .${PREFIX}-css-rule-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: var(--ap-space-xs);
@@ -100,7 +99,7 @@ export const css = `
 }
 .${PREFIX}-css-scan {
   display: flex; align-items: center; justify-content: space-between; gap: var(--ap-space-xs);
-  padding: 2px var(--ap-space-lg) var(--ap-space-xs);
+  padding: 2px var(--ap-space-base) var(--ap-space-xs);
   font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption);
   color: var(--ap-text-tertiary);
 }
@@ -112,7 +111,7 @@ export const css = `
 }
 .${PREFIX}-css-rescan:hover { color: var(--ap-text-primary); background: var(--ap-surface-active); }
 .${PREFIX}-css-scan-note {
-  padding: var(--ap-space-xs) var(--ap-space-lg) 0;
+  padding: var(--ap-space-xs) var(--ap-space-base) 0;
   font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary); opacity: .8;
 }
 

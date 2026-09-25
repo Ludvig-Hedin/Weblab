@@ -930,6 +930,9 @@ export class DesignPanel {
       to,
     });
     this.deps.controller.drawOutline();
+    // The Content field reads the node's text; without this it went on
+    // showing the old words until something else happened to refresh it.
+    this.reseed();
     this.notifyChanged();
   }
 
@@ -2037,10 +2040,17 @@ export class DesignPanel {
    */
   private renderSourceSection(): HTMLElement {
     const source = this.selection?.source ?? null;
-    return this.section("source", "Source", this.sourceBody(source), {
-      meta: sourceChip(source),
-      startCollapsed: true,
-    });
+    const sect = this.section(
+      "source",
+      "Source file",
+      this.sourceBody(source),
+      {
+        meta: sourceChip(source),
+        startCollapsed: true,
+      }
+    );
+    sect.classList.add(cls("insp-src-sect"));
+    return sect;
   }
 
   /**
@@ -2169,7 +2179,7 @@ export class DesignPanel {
     this.bodyEl.append(
       el("div", {
         class: cls("insp-hint"),
-        text: "Drag a node to reparent · click to select",
+        text: "Click a layer to select it. Drag to move it.",
       }),
       tree
     );
@@ -2619,14 +2629,19 @@ export class DesignPanel {
       // which names vector point editing — something a DOM editor cannot do and
       // this tab does not offer). A tab is named by its surface, not by a tool
       // inside it.
-      mk("edit", "Edit", "design", "Visual properties"),
-      mk("css", "CSS", "code", "Every declaration, as CSS"),
-      mk("dom", "DOM", "layer-group", "The element tree")
+      // Plain words for designers: "Style" and "Layers", the words a design
+      // tool uses. The CSS view is still here, as a small code toggle at the
+      // end of the row (see `inspector.css.ts`), for whoever wants it.
+      mk("edit", "Style", "design", "Colours, size, spacing and type"),
+      mk("dom", "Layers", "layer-group", "Everything on the page, as layers"),
+      mk("css", "Code", "code", "Show the code (CSS)")
     );
     this.syncTabs();
   }
 
   private syncTabs(): void {
+    // The source row and the code view share a switch; see `inspector.css.ts`.
+    this.element.dataset.tab = this.tab;
     for (const btn of Array.from(this.tabsEl.children)) {
       btn.classList.toggle(
         cls("insp-tab-on"),
@@ -2703,8 +2718,8 @@ export class DesignPanel {
     if (!this.selection) {
       this.bodyEl.append(
         emptyState({
-          body: "Hover the page to see what is selectable.",
-          title: "Pick an element to start tweaking",
+          body: "Its colours, size and spacing show up here.",
+          title: "Select something on the page",
         })
       );
       return;
@@ -3189,8 +3204,8 @@ export class DesignPanel {
     ]);
     const header = el("div", {
       "aria-expanded": String(open),
+      "aria-label": label,
       class: cls("sect-head"),
-      "data-tip": `${open ? "Collapse" : "Expand"} ${label.toLowerCase()}`,
       onClick: () => {
         open = !open;
         if (open) {
@@ -3201,7 +3216,6 @@ export class DesignPanel {
         body.classList.toggle(cls("hidden"), !open);
         chevron.replaceChildren(icon(open ? "chev-up" : "chev-down", "xs"));
         header.setAttribute("aria-expanded", String(open));
-        header.dataset.tip = `${open ? "Collapse" : "Expand"} ${label.toLowerCase()}`;
         opts.onToggle?.(open);
       },
       role: "button",

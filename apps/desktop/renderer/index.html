@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'"
+      http-equiv="Content-Security-Policy"
+    >
+    <title>Weblab</title>
+    <link href="styles.css" rel="stylesheet">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="back" hidden id="back" type="button">
+          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
+            <path
+              d="M10 3.5 5.5 8l4.5 4.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.3"
+            />
+          </svg>
+          All sites
+        </button>
+      </div>
+      <div class="topbar-title" id="title">Weblab</div>
+      <div class="topbar-right"><span class="status" id="status"></span></div>
+    </header>
+
+    <main>
+      <!-- Checking Claude -->
+      <section class="screen center" data-screen="boot"></section>
+
+      <!-- Connect Claude -->
+      <section class="screen center" data-screen="connect" hidden>
+        <div class="stack narrow">
+          <img
+            alt=""
+            class="mark"
+            height="36"
+            src="../assets/symbol.svg"
+            width="36"
+          >
+          <h1>Connect Claude</h1>
+          <p class="muted">Weblab uses Claude to make changes to your sites.</p>
+
+          <div class="stack-tight" data-connect="start">
+            <button class="btn primary wide" id="signin" type="button">
+              Sign in with Claude
+            </button>
+            <button class="link" id="use-key" type="button">
+              Use an API key instead
+            </button>
+          </div>
+
+          <div class="stack-tight" data-connect="waiting" hidden>
+            <p class="body">Finish signing in in your browser.</p>
+            <div class="progress"><span></span></div>
+            <button class="link" id="show-code" type="button">
+              Got a code instead?
+            </button>
+            <form class="field-row" hidden id="code-form">
+              <input
+                autocomplete="off"
+                id="code-input"
+                placeholder="Paste the code"
+                spellcheck="false"
+                type="text"
+              >
+              <button class="btn primary" type="submit">Continue</button>
+            </form>
+            <button class="link" hidden id="reopen" type="button">
+              Open the sign-in page again
+            </button>
+            <button class="link" id="cancel-signin" type="button">
+              Cancel
+            </button>
+          </div>
+
+          <form class="stack-tight" data-connect="key" hidden id="key-form">
+            <input
+              autocomplete="off"
+              id="key-input"
+              placeholder="sk-ant-…"
+              spellcheck="false"
+              type="password"
+            >
+            <button class="btn primary wide" type="submit">Save key</button>
+            <button class="link" id="key-back" type="button">
+              Sign in with Claude instead
+            </button>
+          </form>
+
+          <p class="error" hidden id="connect-error"></p>
+        </div>
+      </section>
+
+      <!-- Dashboard -->
+      <section class="screen" data-screen="dashboard" hidden>
+        <div class="dash">
+          <div class="dash-head">
+            <h1>Sites</h1>
+            <div class="actions">
+              <button class="btn" data-action="open-folder" type="button">
+                Open folder
+              </button>
+              <button class="btn primary" data-action="new" type="button">
+                New website
+              </button>
+            </div>
+          </div>
+          <ul class="sites" id="sites"></ul>
+          <p class="error" hidden id="dash-error"></p>
+        </div>
+        <div class="empty center" hidden id="empty">
+          <div class="stack">
+            <img
+              alt=""
+              class="mark"
+              height="36"
+              src="../assets/symbol.svg"
+              width="36"
+            >
+            <h1>Your sites will show up here</h1>
+            <div class="actions">
+              <button class="btn" data-action="open-folder" type="button">
+                Open folder
+              </button>
+              <button class="btn primary" data-action="new" type="button">
+                New website
+              </button>
+            </div>
+            <p class="error" hidden id="empty-error"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Opening a site -->
+      <section class="screen center" data-screen="loading" hidden>
+        <div class="stack narrow">
+          <h1>Getting your site ready…</h1>
+          <div class="progress"><span></span></div>
+          <p class="muted" id="loading-step"></p>
+        </div>
+      </section>
+
+      <!-- Editor sits in a native view below the top bar -->
+      <section class="screen" data-screen="editor" hidden></section>
+
+      <!-- Something failed -->
+      <section class="screen center" data-screen="error" hidden>
+        <div class="stack narrow">
+          <h1>Your site didn’t start</h1>
+          <p class="muted" id="error-message"></p>
+          <div class="actions">
+            <button class="btn" id="error-back" type="button">All sites</button>
+            <button class="btn primary" id="retry" type="button">
+              Try again
+            </button>
+          </div>
+          <details class="details">
+            <summary>Show details</summary>
+            <pre id="error-details"></pre>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <!-- New website -->
+    <div class="scrim" hidden id="new-dialog">
+      <form class="dialog" id="new-form">
+        <h2>New website</h2>
+        <label class="label" for="new-name">Name</label>
+        <input
+          autocomplete="off"
+          id="new-name"
+          maxlength="80"
+          placeholder="My website"
+          spellcheck="false"
+          type="text"
+        >
+        <p class="error" hidden id="new-error"></p>
+        <div class="actions end">
+          <button class="btn" id="new-cancel" type="button">Cancel</button>
+          <button class="btn primary" type="submit">Create</button>
+        </div>
+      </form>
+    </div>
+
+    <script defer src="app.js"></script>
+  </body>
+</html>

@@ -57,6 +57,7 @@ import { emptyState } from "./empty";
 import { History } from "./history";
 import { createOpApplier } from "./history-ops";
 import { type IconName, icon } from "./icons";
+import { tagWord } from "./inspector/node-kind";
 import { DesignPanel } from "./inspector/panel";
 import { applyPreview, clearPreview } from "./inspector/style-model";
 import { isEditableText, textTargetIn } from "./inspector/text-edit";
@@ -112,8 +113,8 @@ const NUDGE_AXIS: Readonly<Record<string, readonly [number, number]>> = {
 };
 
 /** Default floating-panel widths. Live widths are CSS vars on the overlay root. */
-const LEFT_W = 340;
-const RIGHT_W = 360;
+const LEFT_W = 320;
+const RIGHT_W = 300;
 /** Resize bounds: narrow enough to be useful, never more than half the viewport.
  *  `MIN_DOCK_W` and `MIN_DOCK_H` live in `styles/const.ts` — the stories and the
  *  stylesheet need them too. */
@@ -522,16 +523,18 @@ export class AirshipApp {
   /** The bar's Apply/Discard pair; hidden while nothing is pending. */
   private applyGroup!: HTMLElement;
   private applyBtn!: HTMLButtonElement;
+  private applyLabel!: HTMLElement;
   private discardBtn!: HTMLButtonElement;
 
   // Right (design) dock
   private rightDock!: HTMLElement;
   private rightPill!: HTMLElement;
 
-  private leftOpen = false;
+  // Both panels start open, docked to the window edges — Figma's default.
+  private leftOpen = true;
   /** High-water mark for `pendingCount()`; the composer reveals on an increase. */
   private pendingSeen = 0;
-  private rightOpen = false;
+  private rightOpen = true;
 
   /** Live dock sizes, persisted across reloads and reset from the splitters. */
   private readonly size: Record<Side, DockSize> = {
@@ -969,6 +972,13 @@ export class AirshipApp {
    * past, changes nothing you can see, and nothing else in the UI confirms it.
    */
   private undoEdit(): void {
+    // Mid-save the agent is writing exactly these edits, so taking one back
+    // now would leave the page and the code disagreeing. Undo the saved
+    // change from the chat once it lands instead.
+    if (this.awaiting && this.applyingVisual) {
+      toast("Wait for the save to finish", { icon: "rotate-ccw" });
+      return;
+    }
     // Neutral tone on both branches — an empty stack is a state, not an error.
     toast(this.history.undo() ? "Undo" : "Nothing to undo", {
       icon: "rotate-ccw",
@@ -1010,6 +1020,15 @@ export class AirshipApp {
       this.root.append(this.minimapHost);
       this.stage.mountMinimap(this.minimapHost);
     }
+    // The first zoom-to-fit runs inside `stage.mount`, so it has to know about
+    // the docked panels already or the frames start out hidden under them.
+    // Edit mode is where the editor lands (see the end of `mount`), and that is
+    // the mode both panels are shown in.
+    const cover = (side: Side): number =>
+      this.isOpen(side) && this.placement[side].mode === "docked"
+        ? clampWidth(this.size[side].w) + 8
+        : 0;
+    this.stage.setSafeInset?.({ left: cover("left"), right: cover("right") });
     this.stage.mount(this.barTools);
     // Inline fills nothing in, and the bar collapses to just the mode toggle.
     this.bar.classList.toggle(
@@ -1630,6 +1649,10 @@ export class AirshipApp {
       left: covers("left"),
       right: covers("right"),
     });
+    // The bottom bar centres on the canvas between the docked panels, not on
+    // the window, the way Figma's toolbar does.
+    root.style.setProperty(`--${PREFIX}-inset-l`, `${covers("left")}px`);
+    root.style.setProperty(`--${PREFIX}-inset-r`, `${covers("right")}px`);
     this.stage.relayout?.();
   }
 
@@ -2054,23 +2077,26 @@ export class AirshipApp {
    * so it goes through the same confirm.
    */
   private buildApplyGroup(): HTMLElement {
+    this.applyLabel = el("span", { text: "Save changes" });
+    // A labelled primary button, not a bare check glyph. Edits in the design
+    // panel are previews until the agent writes them into the code, and this is
+    // the one control that does that — so it says so, with a count.
     this.applyBtn = el(
       "button",
       {
-        "aria-label": "Apply pending changes",
-        class: cls("tool"),
-        "data-tip": "Apply",
+        class: cls("bar-save"),
+        "data-tip": "Weblab writes these into your site's code",
         onClick: () => this.submit(),
         type: "button",
       },
-      [icon("check", "sm")]
+      [el("span", { class: cls("dot") }), this.applyLabel]
     ) as HTMLButtonElement;
     this.discardBtn = el(
       "button",
       {
-        "aria-label": "Discard pending changes",
+        "aria-label": "Discard changes",
         class: cls("tool"),
-        "data-tip": "Discard",
+        "data-tip": "Discard changes",
         onClick: () =>
           this.confirmPending(
             this.discardBtn,
@@ -2087,8 +2113,8 @@ export class AirshipApp {
       { class: `${cls("bar-apply-group")} ${cls("hidden")}` },
       [
         el("div", { class: cls("tool-group") }, [
-          this.applyBtn,
           this.discardBtn,
+          this.applyBtn,
         ]),
         el("div", { class: cls("bar-sep") }),
       ]
@@ -2107,14 +2133,27 @@ export class AirshipApp {
       return;
     }
     const pending = this.pendingCount();
-    this.applyGroup.classList.toggle(cls("hidden"), pending === 0);
-    if (pending === 0) {
+    // Shown while the agent works even with nothing pending, so a typed
+    // prompt gets the same progress in the bar as a Save does.
+    this.applyGroup.classList.toggle(
+      cls("hidden"),
+      pending === 0 && !this.awaiting
+    );
+    if (pending === 0 && !this.awaiting) {
       return;
     }
     const s = pending === 1 ? "" : "s";
-    this.applyBtn.dataset.tip = `Apply ${pending} change${s}`;
-    this.discardBtn.dataset.tip = `Discard ${pending} pending change${s}`;
+    // While the agent is writing, the button is the progress: it keeps its
+    // place and says what is happening, rather than vanishing mid-save.
+    const busy = pending ? "Saving…" : "Working on it…";
+    const label = this.awaiting ? busy : `Save ${pending} change${s}`;
+    this.applyLabel.textContent = label;
+    this.applyBtn.setAttribute("aria-label", label);
+    this.applyBtn.classList.toggle(cls("bar-save-busy"), this.awaiting);
+    this.discardBtn.dataset.tip = `Discard ${pending} change${s}`;
     this.applyBtn.disabled = this.awaiting;
+    this.discardBtn.disabled = this.awaiting;
+    this.discardBtn.classList.toggle(cls("hidden"), pending === 0);
   }
 
   /**
@@ -2710,15 +2749,12 @@ export class AirshipApp {
       [
         el("div", { class: cls("brand") }, [
           icon("logo", "sm"),
-          el("span", { class: cls("brand-name"), text: "Airship" }),
+          el("span", { class: cls("brand-name"), text: "Weblab" }),
         ]),
         el("div", { class: cls("head-actions") }, [
           this.buildAgentButton(),
           this.buildNewChatButton(),
           this.iconButton("history", "Past chats", () => this.toggleHistory()),
-          this.iconButton("rotate-ccw", "Reset size", () =>
-            this.resetSize("left")
-          ),
           this.panelToggle("left", "chat", false),
         ]),
       ]
@@ -2782,7 +2818,7 @@ export class AirshipApp {
     );
     this.leftBrand = el("span", {
       class: cls("brand-name"),
-      text: "Airship",
+      text: "Weblab",
     });
     this.leftPill = this.buildPill("left", "chat", [
       el("div", { class: cls("brand") }, [icon("logo", "sm"), this.leftBrand]),
@@ -2830,9 +2866,6 @@ export class AirshipApp {
           el("span", { class: cls("brand-name"), text: "Frames" }),
         ]),
         el("div", { class: cls("head-actions") }, [
-          this.iconButton("rotate-ccw", "Reset size", () =>
-            this.resetSize("left")
-          ),
           this.panelToggle("left", "frames", false),
         ]),
       ]
@@ -2874,8 +2907,8 @@ export class AirshipApp {
     // across a 320px dock. Split: the title is the invitation, the body is the
     // tip, and the ship above them carries the weight the em-dash was.
     const empty = emptyState({
-      body: "Pick an element first to scope it.",
-      title: "Ask airship to change anything",
+      body: "Click something on the page first to change just that.",
+      title: "Ask Weblab to change anything",
     });
     empty.classList.add(cls("chat-empty"));
     this.transcriptEl.append(empty);
@@ -3013,9 +3046,6 @@ export class AirshipApp {
           el("span", { class: cls("brand-name"), text: "Design" }),
         ]),
         el("div", { class: cls("head-actions") }, [
-          this.iconButton("rotate-ccw", "Reset size", () =>
-            this.resetSize("right")
-          ),
           this.panelToggle("right", "design", false),
         ]),
       ]
@@ -3124,7 +3154,7 @@ export class AirshipApp {
     this.chatBody.classList.toggle(cls("hidden"), frames);
     this.framesHead?.classList.toggle(cls("hidden"), !frames);
     this.framesBody.classList.toggle(cls("hidden"), !frames);
-    this.leftBrand.textContent = frames ? "Frames" : "Airship";
+    this.leftBrand.textContent = frames ? "Frames" : "Weblab";
     this.leftPill.dataset.tip = frames ? "Show frames" : "Show chat";
   }
 
@@ -3388,7 +3418,7 @@ export class AirshipApp {
     clear(this.selChipsEl);
     const s = this.selected;
     if (s) {
-      const label = s.element.displayName || `<${s.element.tagName}>`;
+      const label = chipLabel(s.element);
       this.selChipsEl.append(
         // `data-chip` puts it in the rail's roving order alongside the pending
         // edits: it is the first thing on the strip, so arrowing from it is
@@ -4124,7 +4154,9 @@ export class AirshipApp {
         // Two calls rather than one with a ternary on both arguments: the tone
         // is the difference between these, and a nested ternary hid it.
         if (ev.ok) {
-          toast("Reverted", { icon: "rotate-ccw" });
+          toast("Undone. The page is back to how it was", {
+            icon: "rotate-ccw",
+          });
         } else {
           toast(`Undo failed: ${ev.error ?? ""}`, { tone: "error" });
         }
@@ -4219,11 +4251,12 @@ export class AirshipApp {
     if (pending === 0) {
       return;
     }
-    const what = status === "cancelled" ? "Cancelled" : "Edit failed";
+    const what = status === "cancelled" ? "Save cancelled" : "Couldn't save";
     toast(
-      `${what}. Your ${pending === 1 ? "change is" : "changes are"} still pending`,
+      `${what}. Your ${pending === 1 ? "change is" : "changes are"} still here, so you can try again`,
       {
         icon: "rotate-ccw",
+        ...(status === "cancelled" ? {} : { tone: "error" as const }),
       }
     );
   }
@@ -4288,7 +4321,7 @@ export class AirshipApp {
     this.clearSelectionScope();
     this.stage.afterApply?.();
     if (bundle.status === "done") {
-      toast("Applied. Reload if it doesn't update", { icon: "check" });
+      toast("Saved to your site's code", { icon: "check" });
     }
   }
 
@@ -4572,7 +4605,7 @@ export class AirshipApp {
     }
     clear(this.transcriptEl);
     for (const b of entries) {
-      const prompt = b.prompt?.trim() ? b.prompt : "Applied visual changes";
+      const prompt = b.prompt?.trim() ? b.prompt : "Save visual changes";
       this.transcriptEl.append(userBubble(prompt));
       // Same construction as a live turn, so a replayed thread and a just-run
       // one are the same thing. Bundles predating the timeline hydrate to an
@@ -4671,11 +4704,14 @@ export function dockVisible(opts: {
   return opts.side === "left" || opts.editing;
 }
 
+/**
+ * No tooltip on the header. It covered the whole row, so it popped up over the
+ * panel whenever the pointer crossed it and hung there after a click. Drag to
+ * float and double-click to dock still work; they are what a design tool's
+ * panel header already does.
+ */
 function dockHeadAttrs(name: string): Record<string, string> {
-  return {
-    "aria-label": name,
-    "data-tip": "Drag to move, double-click to dock",
-  };
+  return { "aria-label": name };
 }
 
 /**
@@ -4744,8 +4780,9 @@ function readPx(node: HTMLElement, name: string, fallback: number): number {
 }
 
 /** A chip's label for an element: its component name, else its tag. */
+/** The element itself ("Heading"), not the component it sits in ("Home"). */
 function chipLabel(e: ElementContext): string {
-  return e.displayName || `<${e.tagName}>`;
+  return tagWord(e.tagName);
 }
 
 function changeSummary(
@@ -4792,6 +4829,7 @@ function applyLabel(
   note: string,
   attrCount = 0
 ): string {
-  const base = `Applied ${changeSummary(styleCount, moveCount, structureCount, attrCount)}`;
+  // The user's side of the turn: what they asked for, in their words.
+  const base = `Save ${changeSummary(styleCount, moveCount, structureCount, attrCount)}`;
   return note ? `${base}. ${note}` : base;
 }
