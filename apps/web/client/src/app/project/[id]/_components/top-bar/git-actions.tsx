@@ -426,7 +426,7 @@ export const GitActionsButton = observer(() => {
 
     return (
         <>
-            <div className="border-input flex h-8 items-center overflow-hidden rounded-md border">
+            <div className="border-input flex h-9 items-center overflow-hidden rounded-md border">
                 <Button
                     variant="ghost"
                     size="sm"
@@ -445,13 +445,11 @@ export const GitActionsButton = observer(() => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            // Widen the caret target to 32px (w-8) and bump
-                            // padding so the caret has ~6px from the divider
-                            // on the left, matching the label's breathing
-                            // room on the right.
-                            className="h-full w-8 rounded-none px-2 hover:rounded-none"
+                            // Caret target is a full 36px square (w-9) so it
+                            // is as easy to hit as the other header buttons.
+                            className="h-full w-9 rounded-none px-2 hover:rounded-none"
                         >
-                            <Icons.ChevronDown className="h-3 w-3" />
+                            <Icons.ChevronDown className="h-3.5 w-3.5" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">

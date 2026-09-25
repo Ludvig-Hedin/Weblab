@@ -192,7 +192,7 @@ export const ModeToggle = observer(() => {
                         // border-0 + rounded-none strip the ToggleGroup primitive's
                         // default border/radius so the mode tabs read as a flat
                         // header control, not a boxed segmented control.
-                        className="h-7 rounded-none border-0 font-normal"
+                        className="h-8 rounded-none border-0 font-normal"
                         type="single"
                         value={mode}
                         onValueChange={(value) => {
@@ -239,7 +239,7 @@ export const ModeToggle = observer(() => {
                             data-tour="preview-button"
                             aria-label={Hotkey.PREVIEW.description}
                             onClick={() => editorEngine.state.setEditorMode(EditorMode.PREVIEW)}
-                            className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-7 w-7 rounded-md"
+                            className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-8 w-8 rounded-md"
                         >
                             <Icons.Play className="h-4 w-4" />
                         </Button>
@@ -260,7 +260,7 @@ export const ModeToggle = observer(() => {
                                     size="icon"
                                     aria-label="Open preview window"
                                     disabled={!previewUrl}
-                                    className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-7 w-7 rounded-md"
+                                    className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-8 w-8 rounded-md"
                                 >
                                     <Icons.ExternalLink className="h-4 w-4" />
                                 </Button>

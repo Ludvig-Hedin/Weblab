@@ -36,18 +36,19 @@ export const TopBar = observer(() => {
             click: () => editorEngine.action.undo(),
             isDisabled: !editorEngine.history.canUndo || editorEngine.chat.isStreaming,
             hotkey: Hotkey.UNDO,
-            icon: <Icons.Reset className="mr-1 h-4 w-4" />,
+            icon: <Icons.Reset className="h-4 w-4" />,
         },
         {
             click: () => editorEngine.action.redo(),
             isDisabled: !editorEngine.history.canRedo || editorEngine.chat.isStreaming,
             hotkey: Hotkey.REDO,
-            icon: <Icons.Reset className="mr-1 h-4 w-4 scale-x-[-1]" />,
+            icon: <Icons.Reset className="h-4 w-4 scale-x-[-1]" />,
         },
     ];
 
+    // 36px square (Button size="icon") — the old 32px targets were easy to miss.
     const headerIconBtnClass =
-        'text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary/60 h-8 w-8 rounded-md';
+        'text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary/60 rounded-md';
 
     return (
         <div className="bg-background-chrome border-border desktop-drag-region flex h-14 flex-row items-center justify-center border-b pr-3 pl-1.5">
@@ -87,6 +88,7 @@ export const TopBar = observer(() => {
                                         className={headerIconBtnClass}
                                         onClick={click}
                                         disabled={isDisabled}
+                                        aria-label={hotkey.description}
                                     >
                                         {icon}
                                     </Button>
@@ -131,7 +133,7 @@ export const TopBar = observer(() => {
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div className="flex items-center">
-                            <CurrentUserAvatar className="hover:border-foreground-primary size-8 cursor-pointer" />
+                            <CurrentUserAvatar className="hover:border-foreground-primary size-9 cursor-pointer" />
                         </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="mt-1" hideArrow>

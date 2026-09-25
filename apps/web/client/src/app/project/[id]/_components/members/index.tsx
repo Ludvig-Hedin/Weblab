@@ -36,7 +36,8 @@ export const Members = ({ onPopoverOpenChange }: MembersProps) => {
                         <Button
                             variant="outline"
                             size="icon"
-                            className="hover:border-border bg-background-secondary hover:bg-background-secondary/80 text-foreground-secondary hover:text-foreground-primary size-8 rounded-full"
+                            aria-label="Invite team members"
+                            className="hover:border-border bg-background-secondary hover:bg-background-secondary/80 text-foreground-secondary hover:text-foreground-primary size-9 rounded-full"
                         >
                             <Icons.Plus className="size-4" />
                         </Button>

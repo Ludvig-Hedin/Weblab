@@ -189,9 +189,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 /* Global (not scoped to drag containers): interactive elements anywhere must
    punch holes in the OS drag region — portaled menus, overlays, and headers
    that aren't inside .top-bar would otherwise have their clicks eaten by a
-   drag surface painted near them. no-drag is a no-op outside drag regions. */
-[data-desktop='true'] :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox'], input, select, textarea, [contenteditable='true'], [contenteditable='']),
-[data-desktop='true'] .desktop-no-drag {
+   drag surface painted near them. no-drag is a no-op outside drag regions.
+   Descendants (icons, labels) are carved out too, with a :root prefix so this
+   beats the drag rule's specificity. Otherwise an svg/span inside a header
+   button re-adds drag and the click only lands on the padding around it. */
+:root[data-desktop='true'] :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox'], input, select, textarea, [contenteditable='true'], [contenteditable='']),
+:root[data-desktop='true'] :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox']) *,
+:root[data-desktop='true'] .desktop-no-drag,
+:root[data-desktop='true'] .desktop-no-drag * {
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
