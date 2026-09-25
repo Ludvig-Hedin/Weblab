@@ -393,7 +393,9 @@ export const CodeEditor = observer(
                                     key={`${file.path}::${isDarkTheme ? 'dark' : 'light'}`}
                                     value={file.content}
                                     height="100%"
-                                    theme={isDarkTheme ? 'dark' : 'light'}
+                                    // Our own theme + highlight style live in getBasicSetup;
+                                    // 'none' stops @uiw from layering One Dark on top.
+                                    theme="none"
                                     extensions={[
                                         ...getBasicSetup(onSaveFile, isDarkTheme),
                                         ...getExtensions(getLanguageFromFileName(file.path)),

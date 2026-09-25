@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { useTranslations } from 'next-intl';
 
 import type { CodeNavigationTarget } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 import { pathsEqual } from '@weblab/utility';
 
 import type { EditorFile } from '../shared/types';
@@ -48,11 +49,12 @@ export const CodeEditorArea = ({
     const t = useTranslations();
 
     return (
-        <div className="relative flex-1 overflow-hidden">
+        <div className="bg-background-canvas relative flex-1 overflow-hidden">
             <div className="h-full">
                 {openedFiles.length === 0 || !activeFile ? (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="text-muted-foreground text-regular text-center">
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+                        <Icons.Code className="text-foreground-quadranary h-6 w-6" />
+                        <div className="text-foreground-tertiary text-small max-w-64 text-center">
                             {t(transKeys.editor.panels.code.emptyState)}
                         </div>
                     </div>

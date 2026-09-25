@@ -22,6 +22,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { hashContent } from '@/services/sync-engine/sync-engine';
 import { CodeEditorArea } from './file-content';
 import { scrollToFirstMatch } from './file-content/code-mirror-config';
+import { FileBreadcrumb } from './file-breadcrumb';
 import { FileTabs } from './file-tabs';
 import { CodeControls } from './header-controls';
 import { useCodeNavigation } from './hooks/use-code-navigation';
@@ -891,6 +892,7 @@ export const CodeTab = memo(
                             onCloseFile={closeLocalFile}
                             onCloseAllFiles={closeAllLocalFiles}
                         />
+                        <FileBreadcrumb activeFile={activeEditorFile} />
                         <CodeEditorArea
                             editorViewsRef={editorViewsRef}
                             openedFiles={openedEditorFiles}
