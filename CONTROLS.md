@@ -86,6 +86,10 @@ the editor also answers to a plain `+` and `-`.
 | Previous result | ↑ | ↑ | in the command palette | Move up the results. |
 | Run result | ↩ | Enter | in the command palette | Run the result you are on. |
 | Close the palette | Esc | Esc | in the command palette | Clear the search, then close. |
+| Next model | ↓ | ↓ | in the model picker | Move down the models. |
+| Previous model | ↑ | ↑ | in the model picker | Move up the models. |
+| Use model | ↩ | Enter | in the model picker | Use the model you are on. |
+| Close the model picker | Esc | Esc | in the model picker | Clear the search, then close. |
 
 ## Mouse and trackpad
 

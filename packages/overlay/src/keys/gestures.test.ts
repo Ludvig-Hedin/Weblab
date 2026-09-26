@@ -62,7 +62,7 @@ const NOT_GESTURES: Readonly<Record<string, string>> = {
   "canvas/device-menu.ts":
     "stops a press in the size field from reading as picking the row it sits in",
   "chat/model-menu.ts":
-    "same as device-menu: stops a press in the model field from reading as picking the row it sits in",
+    "moves the picker's keyboard cursor to the row under the pointer, the way the palette does",
   "chat/transcript.ts":
     "latches the text selection before the button collapses it",
   "chrome-layer.ts": "hosts chrome; the listeners are its children's",

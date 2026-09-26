@@ -30,7 +30,11 @@ import {
   shortValue,
 } from "./chat/change-chips";
 import { openCommentPopover } from "./chat/comment-popover";
-import { customModelRow, modelGroups, modelLabel } from "./chat/model-menu";
+import {
+  type ModelPickerHandle,
+  modelLabel,
+  openModelPicker,
+} from "./chat/model-menu";
 import { restoreModelPick, saveModelPick } from "./chat/model-store";
 import { renderThreads } from "./chat/threads";
 import {
@@ -73,12 +77,7 @@ import {
   SelectionController,
   type SelectMode,
 } from "./picker";
-import {
-  closeOpenPopover,
-  createMenu,
-  type MenuHandle,
-  mountPopoverHost,
-} from "./popover-host";
+import { closeOpenPopover, createMenu, mountPopoverHost } from "./popover-host";
 import { StructureSet } from "./structure-set";
 import { injectStyles } from "./styles";
 import { MIN_DOCK_H, MIN_DOCK_W } from "./styles/const";
@@ -686,7 +685,7 @@ export class AirshipApp {
   /** Whether this session has already asked. The menu asks on first open. */
   private modelsRequested = false;
   /** The open picker, so a late `models:result` can repaint it in place. */
-  private agentMenu: MenuHandle | null = null;
+  private agentMenu: ModelPickerHandle | null = null;
   /** Whether a stored pick was found, which is what outranks `hello`. */
   private modelRestored = false;
   private agentBtn!: HTMLElement;
@@ -3781,11 +3780,11 @@ export class AirshipApp {
    *
    * The glyph is the state readout — there is no room for a label in the header
    * and no need for one, since the logo is the more legible of the two anyway.
-   * Same `iconButton` shape and same `createMenu` as the transcript's kebab, so
-   * it reads as one of the header's controls rather than a widget dropped in.
+   * Same `iconButton` shape as the transcript's kebab, so it reads as one of
+   * the header's controls rather than a widget dropped in.
    *
-   * It now picks the model too, which is why the menu is grouped rather than
-   * flat: a model id only means something against a backend, so the two are
+   * It now picks the model too, in `chat/model-menu.ts`'s rail-and-search
+   * picker: a model id only means something against a backend, so the two are
    * chosen in one gesture. The button stays a single glyph — the model goes in
    * the tooltip, where there is room for it.
    */
@@ -3807,19 +3806,14 @@ export class AirshipApp {
   /**
    * Open the picker, and ask the daemon what each backend offers.
    *
-   * The menu is built from whatever is in hand — the seed on first open — and
-   * rebuilt when `models:result` lands. It is never blocked on the answer:
-   * probing starts an `opencode serve` and can take seconds, and a picker that
-   * hangs on that is worse than one that fills in a moment later.
+   * The picker is built from whatever is in hand — the seed on first open —
+   * and repainted in place when `models:result` lands. It is never blocked on
+   * the answer: probing starts an `opencode serve` and can take seconds, and a
+   * picker that hangs on that is worse than one that fills in a moment later.
+   * The repaint goes through `update`, never back through here, so a result
+   * carrying a `note` cannot trigger another probe.
    */
-  /**
-   * @param probe Whether this open may ask the daemon. True when the user
-   * clicked; **false** when `models:result` is repainting the menu it just
-   * answered. Without that distinction the two feed each other: a result
-   * carrying a `note` would repaint, the repaint would re-probe, and the next
-   * result would repaint again, forever.
-   */
-  private openAgentMenu(probe = true): void {
+  private openAgentMenu(): void {
     // A group with a `note` is one that could not be reached — usually a
     // backend the user is not signed into. That is the one state worth asking
     // about again, because the fix for it happens outside this window: sign in
@@ -3832,37 +3826,27 @@ export class AirshipApp {
     // anyway pinned the picker to the seed for the life of the page: the only
     // re-probe condition is a group carrying a `note`, and `SEED_CATALOGUE` sets
     // none, so `incomplete` was false forever and the live list never arrived.
-    if (
-      probe &&
-      this.socket.isOpen() &&
-      (!this.modelsRequested || incomplete)
-    ) {
+    if (this.socket.isOpen() && (!this.modelsRequested || incomplete)) {
       this.socket.send({ refresh: this.modelsRequested, type: "models" });
       this.modelsRequested = true;
     }
-    this.agentMenu = createMenu([
-      ...modelGroups({
-        agent: this.agent,
-        catalogue: this.catalogue,
-        models: this.models,
-        pick: ({ agent, model }) => this.setAgentModel(agent, model),
-      }),
-      { separator: true },
-      {
-        node: customModelRow(
-          this.agent,
-          (model) => this.setAgentModel(this.agent, model),
-          () => this.agentMenu?.close()
-        ),
-      },
-    ]);
-    this.agentBtn.setAttribute("aria-expanded", "true");
-    this.agentMenu.open(this.agentBtn, "below", {
-      onClose: () => {
-        this.agentMenu = null;
-        this.agentBtn.setAttribute("aria-expanded", "false");
-      },
+    this.agentMenu = openModelPicker(this.agentBtn, this.modelDeps(), () => {
+      this.agentMenu = null;
+      this.agentBtn.setAttribute("aria-expanded", "false");
     });
+    if (this.agentMenu) {
+      this.agentBtn.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  private modelDeps() {
+    return {
+      agent: this.agent,
+      catalogue: this.catalogue,
+      models: this.models,
+      pick: ({ agent, model }: { agent: AgentKind; model: string }) =>
+        this.setAgentModel(agent, model),
+    };
   }
 
   /**
@@ -4116,15 +4100,9 @@ export class AirshipApp {
         // The tooltip carries the model's *label*, which until now could only
         // be the raw id — the seed does not know every model a backend offers.
         this.syncAgentButton();
-        // Repaint an open menu in place. Rebuilding rather than patching keeps
-        // one construction path, and reopening on the same anchor is a toggle
-        // as far as the host is concerned, so the old handle is dropped first.
-        if (this.agentMenu) {
-          this.agentMenu.close();
-          this.agentMenu = null;
-          // `false`: this repaint must not ask again. See `openAgentMenu`.
-          this.openAgentMenu(false);
-        }
+        // Repaint an open picker in place, keeping what was typed and which
+        // backend the rail is on. It never asks the daemon again from here.
+        this.agentMenu?.update(this.modelDeps());
         break;
       // No correlation token: the socket preserves order and the daemon answers
       // this one synchronously, so replies land in request order and the last

@@ -467,33 +467,101 @@ export const css = `
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
 }
 
-/* ---- A typed value at the end of a list --------------------------------- */
-/* The escape hatch a menu of presets needs: the list can only offer what was
-   known when it was built, and a model shipped this morning is not on it.
+/* ---- Model picker ------------------------------------------------------- */
+/* Laid out after T3 Code's: a rail of backend marks, and a search over that
+   backend's models beside it.
 
-   Its own classes rather than the canvas's \`.fc-menu-custom\` trio, which is
-   the same idea one shape away — that row holds two 62px number fields for a
-   width and a height, and an identifier wants the whole width. Sharing them
-   would mean one of the two callers overriding most of what it inherited. */
-.${PREFIX}-pop-custom {
-  display: flex; align-items: center; gap: 4px; padding: 4px 8px 6px;
+   A fixed box rather than shrink-to-fit. Switching the rail swaps the whole
+   list, and a box sized by its rows would change width under the pointer on
+   every click — the same jump \`.pop-group-body[inert]\` exists to stop.
+   \`overflow: hidden\` overrides the shell's scroller for the palette's reason:
+   the list scrolls, not the shell, or the search field scrolls away. */
+.${PREFIX}-pop-model {
+  display: flex; overflow: hidden;
+  width: min(340px, calc(100vw - 2 * var(--ap-space-base)));
+  height: min(340px, 70vh);
 }
-.${PREFIX}-pop-custom-input {
-  flex: 1 1 auto; min-width: 0; padding: 3px 6px;
-  border-radius: var(--ap-radius-xs);
-  background: var(--ap-input-bg); color: var(--ap-text-primary);
-  border: 1px solid var(--ap-input-border);
+.${PREFIX}-model-picker { display: flex; flex: 1 1 auto; min-width: 0; min-height: 0; }
+
+/* The rail. Square buttons, and the pressed one gets a bar on its inside edge
+   rather than a fill — the fill is what hover already means. */
+.${PREFIX}-model-rail {
+  flex: 0 0 44px; display: flex; flex-direction: column; gap: 4px; padding: 4px;
+  border-right: 1px solid var(--ap-border-default);
+  background: var(--ap-surface-base);
+}
+.${PREFIX}-model-rail-btn {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 1; padding: 0; border: 0; cursor: pointer;
+  border-radius: var(--ap-radius-xs); background: transparent;
+  --${PREFIX}-ic-tone: var(--ap-icon-secondary);
+}
+.${PREFIX}-model-rail-btn:hover { background: var(--ap-surface-hover); }
+.${PREFIX}-model-rail-btn[aria-pressed="true"] {
+  --${PREFIX}-ic-tone: var(--ap-text-primary);
+}
+.${PREFIX}-model-rail-btn[aria-pressed="true"]::after {
+  content: ""; position: absolute; right: -4px; top: 50%;
+  width: 3px; height: 20px; transform: translateY(-50%);
+  border-radius: 2px 0 0 2px; background: var(--ap-primary);
+}
+.${PREFIX}-model-rail-btn:focus-visible {
+  outline: 1px solid var(--ap-border-focus); outline-offset: -1px;
+}
+
+.${PREFIX}-model-pane { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.${PREFIX}-model-head {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ap-border-default);
+  --${PREFIX}-ic-tone: var(--ap-text-tertiary);
+}
+.${PREFIX}-model-field {
+  flex: 1 1 auto; min-width: 0; padding: 0;
+  background: transparent; border: 0; outline: none;
+  color: var(--ap-text-primary); font-family: var(--ap-font-sans);
+  font-size: var(--ap-font-size-label); line-height: 16px;
+}
+.${PREFIX}-model-field::placeholder { color: var(--ap-text-placeholder); }
+.${PREFIX}-model-list {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 1px; padding: 4px;
+}
+
+/* A row is one line unsearched and two while searching, when the second says
+   which backend it belongs to. The check is the selected value; the fill is the
+   keyboard cursor, moved by the pointer too, so there is only ever one. */
+.${PREFIX}-model-row {
+  display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  padding: 6px 8px; border-radius: var(--ap-radius-xs); cursor: pointer;
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-label);
+  line-height: 16px; color: var(--ap-text-primary);
+  --${PREFIX}-ic-tone: var(--ap-text-primary);
+}
+.${PREFIX}-model-row-active { background: var(--ap-surface-hover); }
+.${PREFIX}-model-row[aria-disabled="true"] {
+  cursor: default; color: var(--ap-text-tertiary); background: transparent;
+}
+.${PREFIX}-model-row-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.${PREFIX}-model-row-main { display: flex; align-items: baseline; gap: 6px; min-width: 0; white-space: nowrap; }
+.${PREFIX}-model-row-label { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.${PREFIX}-model-row-hint {
+  flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary);
+}
+.${PREFIX}-model-row-id {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
   font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption);
 }
-.${PREFIX}-pop-custom-input:focus {
-  outline: none; border-color: var(--ap-input-focus-border);
+.${PREFIX}-model-row-sub {
+  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary);
+  --${PREFIX}-ic-tone: var(--ap-text-tertiary);
 }
-.${PREFIX}-pop-custom-go {
-  flex: 0 0 auto; padding: 3px 8px; border: 0; cursor: pointer;
-  border-radius: var(--ap-radius-xs);
-  background: var(--ap-primary); color: var(--ap-text-primary);
-  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-caption);
-}
+/* 12px, which the icon scale has no name for. Sized on the svg rather than
+   scaled, so the glyph's box shrinks with it and the name sits beside it. */
+.${PREFIX}-model-row-sub .${PREFIX}-ic svg { width: 12px; height: 12px; }
+.${PREFIX}-model-row > .${PREFIX}-ic { flex: 0 0 auto; }
 
 /* ---- Colour picker ------------------------------------------------------ */
 
