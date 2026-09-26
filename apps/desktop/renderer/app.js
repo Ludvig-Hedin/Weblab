@@ -10,7 +10,7 @@ function show(name) {
   for (const screen of $$(".screen")) {
     screen.hidden = screen.dataset.screen !== name;
   }
-  const inSite = ["loading", "editor", "error"].includes(name);
+  const inSite = ["loading", "editor", "error", "settings"].includes(name);
   $("#back").hidden = !inSite;
   const title = $("#title");
   title.textContent = inSite && currentSite ? currentSite.name : "Weblab";
@@ -18,6 +18,9 @@ function show(name) {
   if (!inSite) {
     setStatus("");
   }
+  const canEditSettings = Boolean(currentSite?.hasSettings);
+  $("#topbar-settings").hidden = !(name === "editor" && canEditSettings);
+  $("#error-settings").hidden = !(name === "error" && canEditSettings);
 }
 
 function setStatus(text, state) {
@@ -183,6 +186,10 @@ async function renderSites() {
       if (result === "open") {
         openSite(site);
       }
+      if (result === "settings") {
+        currentSite = { ...site, hasSettings: true };
+        showSettings("edit");
+      }
       if (result === "removed") {
         renderSites();
       }
@@ -229,6 +236,9 @@ $("#new-dialog").addEventListener("mousedown", (event) => {
   }
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("#clone-dialog").hidden) {
+    $("#clone-cancel").click();
+  }
   if (event.key === "Escape" && !$("#new-dialog").hidden) {
     closeNewDialog();
   }
@@ -265,6 +275,9 @@ async function openFolder() {
 for (const button of $$('[data-action="new"]')) {
   button.addEventListener("click", openNewDialog);
 }
+for (const button of $$('[data-action="clone"]')) {
+  button.addEventListener("click", openCloneDialog);
+}
 for (const button of $$('[data-action="open-folder"]')) {
   button.addEventListener("click", openFolder);
 }
@@ -278,12 +291,203 @@ async function openSite(site) {
     );
     return;
   }
-  currentSite = site;
+  const fields = await api.settings.get(site.id);
+  currentSite = { ...site, hasSettings: fields.length > 0 };
+  if (await api.settings.needed(site.id)) {
+    showSettings("before-open");
+    return;
+  }
+  startSite();
+}
+
+async function startSite(options) {
   $("#loading-step").textContent = "";
   show("loading");
   setStatus("Starting…");
-  await api.site.open(site.id);
+  await api.site.open(currentSite.id, options);
 }
+
+// Clone from GitHub
+
+let nameEdited = false;
+let cloning = false;
+
+function openCloneDialog() {
+  if ($('[data-screen="dashboard"]').hidden) {
+    return;
+  }
+  nameEdited = false;
+  $("#clone-link").value = "";
+  $("#clone-name").value = "";
+  cloneState({});
+  $("#clone-dialog").hidden = false;
+  $("#clone-link").focus();
+}
+
+function cloneState({ busy = false, step = "", error = "" }) {
+  cloning = busy;
+  $("#clone-link").disabled = busy;
+  $("#clone-name").disabled = busy;
+  $("#clone-submit").disabled = busy;
+  $("#clone-progress").hidden = !busy;
+  $("#clone-step").textContent = step;
+  $("#clone-error").textContent = error;
+  $("#clone-error").hidden = !error;
+}
+
+$("#clone-link").addEventListener("input", async () => {
+  if (nameEdited) {
+    return;
+  }
+  const parsed = await api.clone.parse($("#clone-link").value);
+  $("#clone-name").value = parsed ? parsed.repo : "";
+});
+$("#clone-name").addEventListener("input", () => {
+  nameEdited = true;
+});
+
+$("#clone-cancel").addEventListener("click", () => {
+  if (cloning) {
+    api.clone.cancel();
+  }
+  $("#clone-dialog").hidden = true;
+});
+
+api.clone.onProgress((text) => {
+  if (cloning) {
+    $("#clone-step").textContent = text;
+  }
+});
+
+$("#clone-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const link = $("#clone-link").value;
+  if (!(await api.clone.parse(link))) {
+    cloneState({ error: "Paste a GitHub link, like github.com/owner/name." });
+    return;
+  }
+  cloneState({ busy: true, step: "Connecting to GitHub…" });
+  const result = await api.clone.start(link, $("#clone-name").value);
+  if (!result.ok) {
+    cloneState({
+      error: result.message === "Cancelled." ? "" : result.message,
+    });
+    return;
+  }
+  cloneState({});
+  $("#clone-dialog").hidden = true;
+  openSite(result.site);
+});
+
+// Site settings
+
+let settingsMode = "edit";
+const URL_IN_TEXT = /(https?:\/\/[^\s)"']+)/g;
+
+/** Plain text with any links made clickable (they open in the browser). */
+function linkify(el, text) {
+  el.textContent = "";
+  for (const part of text.split(URL_IN_TEXT)) {
+    if (URL_IN_TEXT.test(part)) {
+      const a = document.createElement("a");
+      a.textContent = part;
+      a.addEventListener("click", () => api.auth.openLink(part));
+      el.append(a);
+    } else if (part) {
+      el.append(part);
+    }
+    URL_IN_TEXT.lastIndex = 0;
+  }
+}
+
+async function showSettings(mode) {
+  settingsMode = mode;
+  const all = await api.settings.get(currentSite.id);
+  const fields = mode === "before-open" ? all.filter((f) => f.missing) : all;
+  const first = mode === "before-open";
+  $("#settings-title").textContent = first
+    ? "This site needs a few settings"
+    : "Site settings";
+  $("#settings-skip").textContent = first ? "Skip for now" : "Cancel";
+  $("#settings-error").hidden = true;
+  const box = $("#settings-fields");
+  box.textContent = "";
+  for (const field of fields) {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const label = document.createElement("label");
+    label.className = "field-key";
+    label.textContent = field.key;
+    label.htmlFor = `setting-${field.key}`;
+    const input = document.createElement("input");
+    input.id = `setting-${field.key}`;
+    input.name = field.key;
+    input.type = field.secret ? "password" : "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.value = field.value || (field.secret ? "" : field.placeholder);
+    input.placeholder = field.placeholder || "";
+    wrap.append(label);
+    if (field.hint) {
+      const hint = document.createElement("p");
+      hint.className = "field-hint";
+      linkify(hint, field.hint);
+      wrap.append(hint);
+    }
+    wrap.append(input);
+    box.append(wrap);
+  }
+  show("settings");
+  box.querySelector("input")?.focus();
+}
+
+function leaveSettings(saved) {
+  if (settingsMode === "before-open") {
+    startSite();
+  } else if (settingsMode === "from-editor") {
+    show("editor");
+    setStatus("");
+    api.editor.setVisible(true);
+  } else if (settingsMode === "from-error") {
+    if (saved) {
+      startSite();
+    } else {
+      show("error");
+    }
+  } else {
+    goDashboard();
+  }
+}
+
+$("#settings-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const answers = {};
+  for (const input of $$("#settings-fields input")) {
+    answers[input.name] = input.value;
+  }
+  const result = await api.settings.save(currentSite.id, answers);
+  if (!result.ok) {
+    $("#settings-error").textContent = result.message || "";
+    $("#settings-error").hidden = false;
+    return;
+  }
+  leaveSettings(true);
+});
+
+$("#settings-skip").addEventListener("click", async () => {
+  if (settingsMode === "before-open") {
+    await api.settings.skip(currentSite.id);
+  }
+  leaveSettings(false);
+});
+
+$("#topbar-settings").addEventListener("click", () => {
+  api.editor.setVisible(false);
+  showSettings("from-editor");
+});
+$("#error-settings").addEventListener("click", () =>
+  showSettings("from-error")
+);
 
 api.site.onEvent((event) => {
   if (!currentSite) {
@@ -294,7 +498,7 @@ api.site.onEvent((event) => {
   }
   if (event.type === "ready") {
     show("editor");
-    setStatus("Running", "ready");
+    setStatus("");
   }
   if (event.type === "error") {
     $("#error-message").textContent = event.message;
@@ -314,7 +518,7 @@ $("#back").addEventListener("click", leaveSite);
 $("#error-back").addEventListener("click", leaveSite);
 $("#retry").addEventListener(
   "click",
-  () => currentSite && openSite(currentSite)
+  () => currentSite && startSite({ fresh: true })
 );
 
 api.nav.onDashboard(() => goDashboard());

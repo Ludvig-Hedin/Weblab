@@ -16,15 +16,30 @@ contextBridge.exposeInMainWorld("weblab", {
     state: () => ipcRenderer.invoke("auth:state"),
     submitCode: (code) => ipcRenderer.invoke("auth:code", code),
   },
+  clone: {
+    cancel: () => ipcRenderer.invoke("clone:cancel"),
+    onProgress: on("clone:progress"),
+    parse: (link) => ipcRenderer.invoke("clone:parse", link),
+    start: (link, name) => ipcRenderer.invoke("clone:start", link, name),
+  },
+  editor: {
+    setVisible: (visible) => ipcRenderer.invoke("editor:visible", visible),
+  },
   nav: {
     onDashboard: on("nav:dashboard"),
     onNew: on("nav:new"),
     onOpen: on("nav:open"),
   },
+  settings: {
+    get: (id) => ipcRenderer.invoke("settings:get", id),
+    needed: (id) => ipcRenderer.invoke("settings:needed", id),
+    save: (id, answers) => ipcRenderer.invoke("settings:save", id, answers),
+    skip: (id) => ipcRenderer.invoke("settings:skip", id),
+  },
   site: {
     close: () => ipcRenderer.invoke("site:close"),
     onEvent: on("site:event"),
-    open: (id) => ipcRenderer.invoke("site:open", id),
+    open: (id, options) => ipcRenderer.invoke("site:open", id, options),
   },
   sites: {
     create: (name) => ipcRenderer.invoke("sites:create", name),

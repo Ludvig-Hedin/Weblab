@@ -7,7 +7,7 @@ const fs = require("node:fs");
 const net = require("node:net");
 const { join } = require("node:path");
 const { cliEntry, bunBinary, childEnv } = require("./runtime");
-const { stopTree } = require("./procs");
+const { snapshotTree, stopGroups, stopTree } = require("./procs");
 const auth = require("./auth");
 
 const LOG_LIMIT = 400;
@@ -22,6 +22,10 @@ class SiteRunner {
   constructor(onEvent) {
     this.onEvent = onEvent;
     this.child = null;
+    // Process groups seen under the running site, so nothing it started
+    // (even a detached background job) outlives it.
+    this.groups = new Set();
+    this.watch = null;
     this.install = null;
     this.log = [];
     this.token = 0;
@@ -46,8 +50,12 @@ class SiteRunner {
     return Boolean(this.child || this.install);
   }
 
-  async open(site) {
+  /** `fresh` clears the site's build cache first, which a crashed start can leave broken. */
+  async open(site, { fresh = false } = {}) {
     await this.stop();
+    if (fresh) {
+      fs.rmSync(join(site.path, ".next"), { force: true, recursive: true });
+    }
     this.token += 1;
     const { token } = this;
     const current = () => token === this.token;
@@ -80,7 +88,9 @@ class SiteRunner {
       if (!current()) {
         return;
       }
-      this.appendLog(err?.stack ? err.stack : String(err));
+      if (!(err instanceof Friendly)) {
+        this.appendLog(err?.stack ? err.stack : String(err));
+      }
       await this.stop();
       this.onEvent({
         details: this.logTail(),
@@ -126,11 +136,7 @@ class SiteRunner {
         if (code === 0) {
           resolve();
         } else {
-          reject(
-            new Friendly(
-              "We couldn’t download what your site needs. Check your internet connection and try again."
-            )
-          );
+          reject(new Friendly("Weblab couldn’t install what your site needs."));
         }
       });
     });
@@ -167,6 +173,14 @@ class SiteRunner {
       stdio: ["ignore", "pipe", "pipe"],
     });
     this.child = child;
+    this.groups = new Set();
+    const remember = () => {
+      for (const group of snapshotTree(child.pid).groups) {
+        this.groups.add(group);
+      }
+    };
+    clearInterval(this.watch);
+    this.watch = setInterval(remember, 1000);
 
     return new Promise((resolve, reject) => {
       let stdout = "";
@@ -208,6 +222,8 @@ class SiteRunner {
             new Friendly("Something in the site stopped it from starting.")
           );
         } else if (current()) {
+          clearInterval(this.watch);
+          stopGroups(this.groups);
           this.onEvent({
             details: this.logTail(),
             message: "Your site stopped unexpectedly.",
@@ -220,10 +236,18 @@ class SiteRunner {
 
   async stop() {
     this.token += 1;
-    const { install, child } = this;
+    const { install, child, groups } = this;
+    clearInterval(this.watch);
+    if (child?.pid && child.exitCode === null) {
+      for (const group of snapshotTree(child.pid).groups) {
+        groups.add(group);
+      }
+    }
     this.install = null;
     this.child = null;
+    this.groups = new Set();
     await Promise.all([stopTree(install, 3000), stopTree(child, 6000)]);
+    await stopGroups(groups);
   }
 }
 

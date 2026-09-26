@@ -27,7 +27,12 @@
         </button>
       </div>
       <div class="topbar-title" id="title">Weblab</div>
-      <div class="topbar-right"><span class="status" id="status"></span></div>
+      <div class="topbar-right">
+        <button class="link" hidden id="topbar-settings" type="button">
+          Site settings
+        </button>
+        <span class="status" id="status"></span>
+      </div>
     </header>
 
     <main>
@@ -104,6 +109,9 @@
           <div class="dash-head">
             <h1>Sites</h1>
             <div class="actions">
+              <button class="btn" data-action="clone" type="button">
+                Clone from GitHub
+              </button>
               <button class="btn" data-action="open-folder" type="button">
                 Open folder
               </button>
@@ -126,6 +134,9 @@
             >
             <h1>Your sites will show up here</h1>
             <div class="actions">
+              <button class="btn" data-action="clone" type="button">
+                Clone from GitHub
+              </button>
               <button class="btn" data-action="open-folder" type="button">
                 Open folder
               </button>
@@ -150,6 +161,24 @@
       <!-- Editor sits in a native view below the top bar -->
       <section class="screen" data-screen="editor" hidden></section>
 
+      <!-- Settings the site asks for (API tokens and the like) -->
+      <section class="screen" data-screen="settings" hidden>
+        <form class="settings" id="settings-form">
+          <h1 id="settings-title">This site needs a few settings</h1>
+          <p class="muted" id="settings-intro">
+            They stay on this Mac, in the site’s folder.
+          </p>
+          <div class="fields" id="settings-fields"></div>
+          <p class="error" hidden id="settings-error"></p>
+          <div class="actions end">
+            <button class="btn" id="settings-skip" type="button">
+              Skip for now
+            </button>
+            <button class="btn primary" type="submit">Save</button>
+          </div>
+        </form>
+      </section>
+
       <!-- Something failed -->
       <section class="screen center" data-screen="error" hidden>
         <div class="stack narrow">
@@ -157,6 +186,9 @@
           <p class="muted" id="error-message"></p>
           <div class="actions">
             <button class="btn" id="error-back" type="button">All sites</button>
+            <button class="btn" hidden id="error-settings" type="button">
+              Site settings
+            </button>
             <button class="btn primary" id="retry" type="button">
               Try again
             </button>
@@ -186,6 +218,42 @@
         <div class="actions end">
           <button class="btn" id="new-cancel" type="button">Cancel</button>
           <button class="btn primary" type="submit">Create</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Clone from GitHub -->
+    <div class="scrim" hidden id="clone-dialog">
+      <form class="dialog" id="clone-form">
+        <h2>Clone from GitHub</h2>
+        <label class="label" for="clone-link">Link</label>
+        <input
+          autocomplete="off"
+          id="clone-link"
+          placeholder="github.com/owner/name"
+          spellcheck="false"
+          type="text"
+        >
+        <label class="label" for="clone-name">Name</label>
+        <input
+          autocomplete="off"
+          id="clone-name"
+          maxlength="80"
+          placeholder="My website"
+          spellcheck="false"
+          type="text"
+        >
+        <p class="hint">Public repositories only.</p>
+        <div class="clone-progress" hidden id="clone-progress">
+          <div class="progress"><span></span></div>
+          <p class="hint" id="clone-step"></p>
+        </div>
+        <p class="error" hidden id="clone-error"></p>
+        <div class="actions end">
+          <button class="btn" id="clone-cancel" type="button">Cancel</button>
+          <button class="btn primary" id="clone-submit" type="submit">
+            Clone
+          </button>
         </div>
       </form>
     </div>

@@ -105,7 +105,7 @@ function slug(name) {
   );
 }
 
-function initGit(dir) {
+function initGit(dir, message) {
   if (!canUseGit()) {
     return;
   }
@@ -133,13 +133,14 @@ function initGit(dir) {
     }
     git(["init", "-q", "-b", "main"]);
     git(["add", "-A"]);
-    git([...identity, "commit", "-q", "-m", "New website"]);
+    git([...identity, "commit", "-q", "-m", message]);
   } catch {
     // Version history is a bonus. The site works without it.
   }
 }
 
-function create(rawName) {
+/** A free folder under ~/Documents/Weblab for `rawName`, adding " 2", " 3"… if taken. */
+function reserveDir(rawName) {
   const name = cleanName(rawName);
   if (!name) {
     throw new Error("Give your website a name.");
@@ -150,16 +151,41 @@ function create(rawName) {
   for (let n = 2; fs.existsSync(join(root, folderName)); n += 1) {
     folderName = `${name} ${n}`;
   }
-  const dir = join(root, folderName);
+  return { dir: join(root, folderName), folderName };
+}
 
+function create(rawName) {
+  const { dir, folderName } = reserveDir(rawName);
   fs.cpSync(templateDir(), dir, { recursive: true });
   fs.renameSync(join(dir, "gitignore"), join(dir, ".gitignore"));
   const pkgPath = join(dir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
   pkg.name = slug(folderName);
   fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-  initGit(dir);
+  initGit(dir, "New website");
   return add(dir, folderName);
 }
 
-module.exports = { add, create, get, list, looksLikeSite, remove, touch };
+/** Remembers which settings the user chose to skip, so we ask only about new ones. */
+function setSkipped(id, keys) {
+  const sites = readAll();
+  const site = sites.find((entry) => entry.id === id);
+  if (!site) {
+    return;
+  }
+  site.skippedSettings = keys;
+  writeAll(sites);
+}
+
+module.exports = {
+  add,
+  create,
+  get,
+  initGit,
+  list,
+  looksLikeSite,
+  remove,
+  reserveDir,
+  setSkipped,
+  touch,
+};

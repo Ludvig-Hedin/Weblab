@@ -13,6 +13,8 @@ const { join } = require("node:path");
 const sites = require("./sites");
 const auth = require("./auth");
 const { SiteRunner } = require("./runner");
+const cloner = require("./clone");
+const envSettings = require("./env-settings");
 
 const TOP_BAR = 40;
 const WEB_LINK = /^https?:/;
@@ -262,6 +264,9 @@ function registerIpc() {
     return new Promise((resolve) => {
       const menu = Menu.buildFromTemplate([
         { click: () => resolve("open"), label: "Open" },
+        ...(envSettings.describe(site.path).length > 0
+          ? [{ click: () => resolve("settings"), label: "Site settings" }]
+          : []),
         {
           click: () => shell.showItemInFolder(site.path),
           label: "Show in Finder",
@@ -282,17 +287,68 @@ function registerIpc() {
     });
   });
 
-  ipcMain.handle("site:open", (_e, id) => {
+  ipcMain.handle("site:open", (_e, id, options) => {
     const site = sites.get(id);
     if (!site) {
       return { ok: false };
     }
     sites.touch(id);
     openSiteId = id;
-    runner.open(site);
+    runner.open(site, { fresh: Boolean(options?.fresh) });
     return { ok: true, site };
   });
   ipcMain.handle("site:close", () => closeSite());
+
+  ipcMain.handle("clone:parse", (_e, link) => cloner.parseRepo(link));
+  ipcMain.handle("clone:start", async (_e, link, name) => {
+    try {
+      const site = await cloner.clone(link, name, (text) =>
+        send("clone:progress", text)
+      );
+      return { ok: true, site };
+    } catch (err) {
+      return { message: err.message, ok: false };
+    }
+  });
+  ipcMain.handle("clone:cancel", () => cloner.cancel());
+
+  // Settings the site asks for in its example env file.
+  ipcMain.handle("settings:get", (_e, id) => {
+    const site = sites.get(id);
+    return site ? envSettings.describe(site.path) : [];
+  });
+  /** Missing settings the user has not already chosen to skip. */
+  ipcMain.handle("settings:needed", (_e, id) => {
+    const site = sites.get(id);
+    if (!site) {
+      return false;
+    }
+    const skipped = new Set(site.skippedSettings || []);
+    return envSettings.missingKeys(site.path).some((key) => !skipped.has(key));
+  });
+  ipcMain.handle("settings:save", (_e, id, answers) => {
+    const site = sites.get(id);
+    if (!site) {
+      return { ok: false };
+    }
+    try {
+      envSettings.save(site.path, answers);
+      return { ok: true };
+    } catch {
+      return { message: "Weblab couldn’t save the settings.", ok: false };
+    }
+  });
+  ipcMain.handle("settings:skip", (_e, id) => {
+    const site = sites.get(id);
+    if (site) {
+      sites.setSkipped(id, envSettings.missingKeys(site.path));
+    }
+  });
+  // The editor is a native view on top of the page; hide it while a screen
+  // such as Site settings is showing.
+  ipcMain.handle("editor:visible", (_e, visible) => {
+    editorView?.setVisible(Boolean(visible));
+  });
 }
 
 app.whenReady().then(() => {

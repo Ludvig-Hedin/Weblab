@@ -100,4 +100,26 @@ async function stopTree(child, graceMs = 6000) {
   }
 }
 
-module.exports = { stopTree };
+/**
+ * Stops process groups we saw under our own child earlier. A dev command like
+ * `a & b` can leave `a` orphaned once its parent is gone; its group id stays
+ * the same, so signalling the group still reaches it.
+ */
+async function stopGroups(groups, graceMs = 3000) {
+  const live = () => [...groups].filter((group) => alive(-group));
+  if (live().length === 0) {
+    return;
+  }
+  for (const group of live()) {
+    signal(-group, "SIGTERM");
+  }
+  for (let waited = 0; waited < graceMs && live().length > 0; waited += 200) {
+    // biome-ignore lint/performance/noAwaitInLoops: polling another process's exit is sequential by nature
+    await sleep(200);
+  }
+  for (const group of live()) {
+    signal(-group, "SIGKILL");
+  }
+}
+
+module.exports = { snapshotTree, stopGroups, stopTree };
