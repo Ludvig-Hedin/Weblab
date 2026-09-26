@@ -40,7 +40,7 @@
 import { cls, el } from "../dom";
 import { clamp } from "../num";
 import { MINIMAP_H, MINIMAP_PAD, MINIMAP_W } from "../styles/const";
-import type { FrameManager } from "./frames";
+import { type FrameManager, shownHeight } from "./frames";
 import {
   type Point,
   projectInto,
@@ -183,7 +183,7 @@ export class Minimap {
       place(
         chip,
         worldRectToScreen(map, BOX, {
-          height: frame.height,
+          height: shownHeight(frame),
           left: frame.x,
           top: frame.y,
           width: frame.width,
@@ -313,7 +313,7 @@ export class Minimap {
       return;
     }
     this.deps.viewport.fitToRect({
-      height: frame.height,
+      height: shownHeight(frame),
       left: frame.x,
       top: frame.y,
       width: frame.width,

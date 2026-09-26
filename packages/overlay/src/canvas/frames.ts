@@ -252,6 +252,12 @@ export interface Frame {
   /** True once `src` has been set (frames mount lazily). */
   mounted: boolean;
   name: string;
+  /**
+   * The page's full height, reported by the frame's agent — see
+   * `canvas/page-fit.ts`. Null until it has loaded. `height` stays the device's
+   * viewport height; the frame is drawn at `shownHeight`.
+   */
+  pageHeight: number | null;
   /** The transparent plane that receives pointer input in edit mode. */
   readonly plane: HTMLElement;
   presetId: string | null;
@@ -260,6 +266,17 @@ export interface Frame {
   readonly win: Window | null;
   x: number;
   y: number;
+}
+
+/**
+ * How tall a frame is drawn: the whole page, never less than one screen.
+ * `height` is the device's viewport; anything that sizes or places the frame
+ * on the canvas reads this instead.
+ */
+export function shownHeight(
+  frame: Pick<Frame, "height" | "pageHeight">
+): number {
+  return Math.max(frame.height, frame.pageHeight ?? 0);
 }
 
 /**
@@ -363,6 +380,7 @@ export class FrameManager {
       // their agents go too — a nested agent re-registers when it reboots.
       frame.agents.clear();
       frame.agent = agent;
+      this.fitPage(frame);
     }
     frame.agents.set(agent.window, agent);
     this.deps.onFrameReady?.(frame, agent);
@@ -465,7 +483,7 @@ export class FrameManager {
   /** World-space rects of every frame, for zoom-to-fit. */
   worldRects(): Rect[] {
     return this.frames.map((f) => ({
-      height: f.height,
+      height: shownHeight(f),
       left: f.x,
       top: f.y,
       width: f.width,
@@ -670,6 +688,7 @@ export class FrameManager {
     // falls back to bare dimensions. It only wakes up if the frame comes home.
     frame.presetId = framePreset(frame)?.id ?? frame.presetId;
     this.applyBox(frame);
+    this.fitPage(frame);
     this.deps.onChanged?.();
   }
 
@@ -693,6 +712,7 @@ export class FrameManager {
     frame.presetId = preset.id;
     frame.name = preset.label;
     this.applyBox(frame);
+    this.fitPage(frame);
     this.deps.onChanged?.();
   }
 
@@ -715,6 +735,7 @@ export class FrameManager {
     frame.width = height;
     frame.height = width;
     this.applyBox(frame);
+    this.fitPage(frame);
     this.deps.onChanged?.();
   }
 
@@ -980,6 +1001,7 @@ export class FrameManager {
       iframe,
       mounted: false,
       name: init.name,
+      pageHeight: null,
       plane,
       presetId: init.presetId,
       width: init.width,
@@ -1021,9 +1043,32 @@ export class FrameManager {
     }
   }
 
+  /**
+   * Ask the frame's page to lay out for the frame's device height and tell us
+   * how tall it really is. Idempotent; re-run whenever `height` changes.
+   */
+  private fitPage(frame: Frame): void {
+    const { agent } = frame;
+    if (!agent?.fitPage) {
+      return;
+    }
+    try {
+      agent.fitPage(frame.height, (height) => {
+        if (frame.agent !== agent || height === frame.pageHeight) {
+          return;
+        }
+        frame.pageHeight = height;
+        this.applyBox(frame);
+        this.deps.onChanged?.();
+      });
+    } catch {
+      // The realm died mid-call (a reload). Its successor will register.
+    }
+  }
+
   private applyBox(frame: Frame): void {
     Object.assign(frame.el.style, {
-      height: `${frame.height}px`,
+      height: `${shownHeight(frame)}px`,
       left: `${frame.x}px`,
       top: `${frame.y}px`,
       width: `${frame.width}px`,

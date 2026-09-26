@@ -40,6 +40,7 @@ import {
   type FrameManager,
   groupOfPreset,
   MAX_FRAMES,
+  shownHeight,
 } from "./frames";
 import type { CanvasViewport } from "./viewport";
 
@@ -443,7 +444,7 @@ export class FramesPanel {
     this.deps.frames.setActive(id);
     this.deps.viewport.centerOn({
       x: frame.x + frame.width / 2,
-      y: frame.y + frame.height / 2,
+      y: frame.y + shownHeight(frame) / 2,
     });
     this.deps.viewport.save();
   }
@@ -455,7 +456,7 @@ export class FramesPanel {
     }
     this.deps.frames.setActive(id);
     this.deps.viewport.fitToRect({
-      height: frame.height,
+      height: shownHeight(frame),
       left: frame.x,
       top: frame.y,
       width: frame.width,

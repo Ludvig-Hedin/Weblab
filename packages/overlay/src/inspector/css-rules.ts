@@ -12,6 +12,7 @@
  * a media query has to be asked of *that* window or a 375px frame inherits the
  * shell's 1440px answers.
  */
+import { authoredValue } from "../canvas/page-fit";
 import { PREFIX } from "../dom";
 import { computedStyle, ownerDocument, ownerWindow } from "../realm";
 
@@ -548,7 +549,7 @@ function readDecls(style: CSSStyleDeclaration): MatchedDecl[] {
       important: style.getPropertyPriority(property) === "important",
       overridden: false,
       property,
-      value: style.getPropertyValue(property).trim(),
+      value: authoredValue(style, property),
     });
   }
   return out;

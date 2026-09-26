@@ -2,6 +2,7 @@ import type { ElementContext, SourceLocation } from "@airship/protocol";
 import { AIRSHIP_FRAME_NAME } from "@airship/protocol";
 import type { TokenScanResult } from "@airship/protocol/tokens";
 import { extractElementInfo } from "@airship/source/browser";
+import { type PageFit, startPageFit } from "./canvas/page-fit";
 import { MAX_NEST_DEPTH } from "./canvas/space";
 import { PREFIX } from "./dom";
 import { SWALLOWED } from "./edit-guard";
@@ -39,6 +40,13 @@ export interface FrameAgent {
   extract: (
     node: Element
   ) => Promise<{ context: ElementContext; source: SourceLocation | null }>;
+  /**
+   * Lay the page out for a device `viewportHeight` tall and report its full
+   * height as it changes, so the shell can grow the frame to show all of it.
+   * Calling again changes the device height and takes over the callback.
+   * See `canvas/page-fit.ts`.
+   */
+  fitPage: (viewportHeight: number, onHeight: (height: number) => void) => void;
   /**
    * Fires when anything in the frame may have moved: scroll, resize, or a DOM
    * mutation (which after HMR is how the shell learns to re-anchor its
@@ -306,9 +314,22 @@ function createAgent(): FrameAgent {
     subtree: true,
   });
 
+  let pageFit: PageFit | null = null;
+  let onPageHeight: (height: number) => void = () => undefined;
+
   return {
     elementAt: (x, y) => document.elementFromPoint(x, y),
     extract: (node) => extractElementInfo(node),
+    fitPage(viewportHeight, onHeight) {
+      onPageHeight = onHeight;
+      if (pageFit) {
+        pageFit.setViewportHeight(viewportHeight);
+        return;
+      }
+      pageFit = startPageFit(window, viewportHeight, (height) =>
+        onPageHeight(height)
+      );
+    },
     onLayoutChange(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
