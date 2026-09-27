@@ -17,7 +17,13 @@ import {
   type ServerEvent,
 } from "@airship/protocol";
 import { SEED_MODELS } from "@airship/protocol/models";
+import { isImageFile } from "./assets/client";
 import { AttrSet } from "./attr-set";
+import {
+  bindImageDrop,
+  type ImageSource,
+  isSwappableImage,
+} from "./canvas/image-drop";
 import type { Point } from "./canvas/space";
 import type { SafeInset } from "./canvas/viewport";
 import { ChangeSet } from "./change-set";
@@ -61,13 +67,18 @@ import { emptyState } from "./empty";
 import { History } from "./history";
 import { createOpApplier } from "./history-ops";
 import { type IconName, icon } from "./icons";
+import {
+  applyImageUrl,
+  openActiveImageEditor,
+  replaceImageFromFile,
+} from "./inspector/image-editor";
 import { tagWord } from "./inspector/node-kind";
 import { DesignPanel } from "./inspector/panel";
 import { applyPreview, clearPreview } from "./inspector/style-model";
 import { isEditableText, textTargetIn } from "./inspector/text-edit";
 import { type CommandId, commandSpec } from "./keys/catalog";
 import { openPalette } from "./keys/palette";
-import { keys, tip } from "./keys/registry";
+import { isTypingTarget, keys, tip } from "./keys/registry";
 import { openShortcuts } from "./keys/shortcuts-panel";
 import { MoveSet } from "./move-set";
 import {
@@ -699,6 +710,14 @@ export class AirshipApp {
    * `enterTextEdit` — this is what keeps entry from racing `extract`.
    */
   private pendingTextEdit: { caret: Point | null; node: Element } | null = null;
+  /**
+   * Something to do to an image once it is the selection: open its editor, or
+   * swap its picture. Armed and consumed the way `pendingTextEdit` is, because
+   * the Media row it goes through is only built when the selection lands.
+   */
+  private pendingImageAction: { node: Element; run: () => void } | null = null;
+  /** An image upload is in flight; a second drop or paste waits for it. */
+  private imageBusy = false;
 
   private readonly stage: Stage;
   /** Which surface this document is, for the bar's switcher. */
@@ -1071,6 +1090,7 @@ export class AirshipApp {
     this.tooltips = new Tooltips(popHost);
     // Land in edit mode: hover-to-auto-select is live from the start.
     this.setEditing(true);
+    this.bindImageInput();
     this.socket.on((ev) => this.onEvent(ev));
     this.socket.connect();
   }
@@ -1093,7 +1113,19 @@ export class AirshipApp {
     spot.style.top = `${at.y}px`;
     this.root.append(spot);
 
+    const imageNode = this.selected?.node;
     const menu = createMenu([
+      // Only on an image, and apart from the structure verbs below it.
+      ...(imageNode && isSwappableImage(imageNode)
+        ? [
+            {
+              icon: "image" as const,
+              label: "Replace image…",
+              run: () => this.editImage(imageNode),
+            },
+            { separator: true as const },
+          ]
+        : []),
       {
         command: "element.editText",
         icon: "layer-text",
@@ -3199,6 +3231,12 @@ export class AirshipApp {
     if (pending && pending.node === sel.node) {
       this.panel.beginTextEdit(sel.node, pending.caret);
     }
+    const imageAction = this.pendingImageAction;
+    this.pendingImageAction = null;
+    if (imageAction && imageAction.node === sel.node) {
+      this.showImageRow();
+      imageAction.run();
+    }
     this.renderComposerChips();
   }
 
@@ -3269,7 +3307,146 @@ export class AirshipApp {
     const target = textTargetIn(hit.node);
     if (target) {
       this.enterTextEdit(target, hit.surface, at);
+      return;
     }
+    // No text to edit: on an image, a double-click opens its picker instead.
+    if (isSwappableImage(hit.node)) {
+      this.editImage(hit.node, hit.surface);
+    }
+  }
+
+  // -- Images on the canvas ---------------------------------------------------
+
+  /**
+   * Put the selected image's row on screen: an open dock.
+   * The canvas's image actions go through that row (`image-editor.ts`).
+   */
+  private showImageRow(): void {
+    if (!this.rightOpen) {
+      this.setRight(true);
+    }
+  }
+
+  /**
+   * Run `run` with `node` selected and its Media row built. Straight away when
+   * it already is the only selection; after the selection lands otherwise.
+   */
+  private withImageSelected(
+    node: Element,
+    run: () => void,
+    surface?: Surface
+  ): void {
+    if (this.selected?.node === node) {
+      this.showImageRow();
+      run();
+      return;
+    }
+    this.pendingImageAction = { node, run };
+    this.controller.select(node, surface, "replace");
+  }
+
+  /** Double-click and "Replace image…": open the image picker. */
+  private editImage(node: Element, surface?: Surface): void {
+    this.withImageSelected(
+      node,
+      () => {
+        // The row lives on the Design tab; on another tab there is none.
+        if (!openActiveImageEditor()) {
+          toast("Open the Design tab to edit this image");
+        }
+      },
+      surface
+    );
+  }
+
+  /** A file or an Assets thumbnail dropped on an image, or an image pasted. */
+  private replaceImage(
+    node: Element,
+    source: ImageSource,
+    surface?: Surface
+  ): void {
+    if ("url" in source) {
+      this.withImageSelected(node, () => applyImageUrl(source.url), surface);
+      return;
+    }
+    // One upload at a time: a second drop while the first is still on its
+    // way would land both, in whichever order the server answered.
+    if (this.imageBusy) {
+      toast("Wait for the current image to finish uploading");
+      return;
+    }
+    this.imageBusy = true;
+    let started = false;
+    this.withImageSelected(
+      node,
+      () => {
+        started = true;
+        replaceImageFromFile(source.file)
+          .then((done) => {
+            if (!done) {
+              toast("Select an image to replace it", { tone: "error" });
+            }
+          })
+          .catch((error: unknown) => {
+            toast(
+              error instanceof Error
+                ? error.message
+                : "The upload did not go through.",
+              { tone: "error" }
+            );
+          })
+          .finally(() => {
+            this.imageBusy = false;
+          });
+      },
+      surface
+    );
+    // The selection may never land (the node went away, or another click
+    // won). Do not stay busy for an upload that never started.
+    setTimeout(() => {
+      if (!started) {
+        this.imageBusy = false;
+      }
+    }, 5000);
+  }
+
+  /**
+   * ⌘V with an image on the clipboard and an image selected: replace it.
+   * Anything else is left for whoever else wants the paste.
+   */
+  private onImagePaste(e: ClipboardEvent): void {
+    const node = this.selected?.node;
+    if (
+      !(this.editing && node && isSwappableImage(node)) ||
+      isTypingTarget(e.target) ||
+      isTypingTarget(document.activeElement)
+    ) {
+      return;
+    }
+    const file = Array.from(e.clipboardData?.files ?? []).find(isImageFile);
+    if (!file) {
+      return;
+    }
+    e.preventDefault();
+    this.replaceImage(node, { file }, this.selected?.surface);
+  }
+
+  /** File drops on the page, and image paste. Released by `destroy()`. */
+  private bindImageInput(): void {
+    this.disposers.push(
+      bindImageDrop({
+        enabled: () => this.editing,
+        hitTest: (point) => this.controller.hitTest(point),
+        layer: this.stage.layer,
+        onDrop: (node, surface, source) =>
+          this.replaceImage(node, source, surface),
+        onRefuse: (message) => toast(message, { tone: "error" }),
+        win: window,
+      })
+    );
+    const onPaste = (e: ClipboardEvent): void => this.onImagePaste(e);
+    document.addEventListener("paste", onPaste);
+    this.disposers.push(() => document.removeEventListener("paste", onPaste));
   }
 
   /**
