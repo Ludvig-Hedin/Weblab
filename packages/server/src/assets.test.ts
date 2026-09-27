@@ -311,6 +311,46 @@ describe("POST assets", () => {
     expect(existsSync(join(project, "public/images/photo.png"))).toBe(false);
   });
 
+  it("rejects an SVG that can run code, wherever it hides", async () => {
+    const pad = " ".repeat(4096);
+    const cases = [
+      '<svg xmlns="http://www.w3.org/2000/svg"><SCRIPT>alert(1)</SCRIPT></svg>',
+      `<svg xmlns="http://www.w3.org/2000/svg">${pad}<foreignObject/></svg>`,
+      '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect ONCLICK = "x()"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><a href="JavaScript:x()"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><iframe/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><embed/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><object/></svg>',
+    ];
+    const replies = await Promise.all(
+      cases.map((svg, i) =>
+        upload(`bad-${i}.svg`, Buffer.from(svg), {
+          "content-type": "image/svg+xml",
+        })
+      )
+    );
+    for (const [i, res] of replies.entries()) {
+      expect(res.status).toBe(415);
+      expect(res.json.error).toBe(
+        "This SVG contains scripts, so it can't be added."
+      );
+      expect(existsSync(join(project, `public/images/bad-${i}.svg`))).toBe(
+        false
+      );
+    }
+  });
+
+  it("still accepts a plain SVG whose words merely contain 'on'", async () => {
+    const svg = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg"><text font-weight="bold">icon one</text><polygon points="0,0 1,1"/></svg>'
+    );
+    const res = await upload("fine.svg", svg, {
+      "content-type": "image/svg+xml",
+    });
+    expect(res.status).toBe(201);
+  });
+
   it("rejects a non-image content type with 415", async () => {
     const res = await upload("a.png", PNG, { "content-type": "text/html" });
     expect(res.status).toBe(415);

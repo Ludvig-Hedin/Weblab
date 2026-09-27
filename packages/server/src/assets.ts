@@ -82,6 +82,15 @@ const XML_DECL = /^<\?xml[\s\S]*?\?>/;
 const XML_COMMENT = /^<!--[\s\S]*?-->/;
 const DOCTYPE = /^<!doctype[^>]*>/i;
 const SVG_OPEN = /^<svg[\s>]/;
+/**
+ * Anything in an SVG that can run code or pull in another document.
+ *
+ * The file is served from the user's own origin, and an SVG opened directly
+ * is a document, so a script in it runs with that origin's cookies. Checked
+ * over the whole file, case-insensitively — not just the sniffed prefix.
+ */
+const SVG_ACTIVE =
+  /<script|<foreignobject|<iframe|<embed|<object|javascript:|[\s/"']on[a-z]+\s*=/i;
 
 const ERR = {
   empty: "The file is empty.",
@@ -90,6 +99,7 @@ const ERR = {
   method: "This action is not supported.",
   name: "The file needs a name ending in .png, .jpg, .gif, .webp, .avif, .svg or .ico.",
   notImage: "Only image files can be added.",
+  svgScript: "This SVG contains scripts, so it can't be added.",
   symlink:
     "The images folder points outside your project, so Weblab will not use it.",
 } as const;
@@ -466,6 +476,9 @@ async function uploadAsset(
       415,
       `This file is not really a .${name.ext} image. Try exporting it again.`
     );
+  }
+  if (name.kind === "svg" && SVG_ACTIVE.test(body.toString("utf8"))) {
+    throw new AssetError(415, ERR.svgScript);
   }
   const rootReal = realpathSync(options.projectRoot);
   const dir = ensureUploadDir(rootReal);
