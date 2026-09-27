@@ -6,8 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
-    ColorPickerInline,
-    ColorRow,
+    BoundColorRow,
     FlowSegment,
     GroupShell,
     IconBgGradient,
@@ -193,15 +192,11 @@ export const BackgroundSection = observer(function BackgroundSection() {
                 {/* Solid — color row */}
                 {type === 'solid' && (
                     <GroupShell label={t('background.color')}>
-                        <ColorRow
+                        <BoundColorRow
+                            property="background-color"
                             value={bgColor.value}
                             onCommit={handleColorCommit}
-                            pickerContent={
-                                <ColorPickerInline
-                                    value={bgColor.value}
-                                    onCommit={handleColorCommit}
-                                />
-                            }
+                            mixed={bgColor.mixed}
                         />
                     </GroupShell>
                 )}

@@ -20,6 +20,8 @@ export const EDITOR_SCOPE = {
     components: false,
     /** Brand tab (theme token manager). */
     brand: false,
+    /** Variables tab: design tokens in globals.css, plus bind/detach in the style panel. */
+    variables: true,
     /** Branch tab and branch chips. */
     branches: false,
     /** Image upload tab and background-image picker. Local writes are text-only. */

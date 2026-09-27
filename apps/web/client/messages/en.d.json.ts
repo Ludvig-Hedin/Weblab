@@ -1791,7 +1791,8 @@ declare const messages: {
           "brand": "Brand",
           "branches": "Branches",
           "apps": "Apps",
-          "search": "Search"
+          "search": "Search",
+          "variables": "Variables"
         },
         "rail": {
           "openLeftPanel": "Open left panel",
@@ -2627,6 +2628,24 @@ declare const messages: {
         "deleteFileExtra": "This action cannot be undone.",
         "deleteFileOrFolder": "Delete {kind}",
         "areYouSureDelete": "Are you sure you want to delete \"{name}\"?"
+      },
+      "variables": {
+        "collections": "Collections",
+        "all": "All",
+        "search": "Search variables",
+        "name": "Name",
+        "value": "Value",
+        "empty": "No variables in this collection yet.",
+        "noMatch": "No variables match “{query}”.",
+        "createVariable": "Create variable",
+        "edit": "Edit",
+        "collectionNames": {
+          "colors": "Colors",
+          "sizes": "Sizes & spacing",
+          "radius": "Radius",
+          "text-styles": "Text styles",
+          "other": "Other"
+        }
       }
     },
     "stylePanel": {
@@ -3125,7 +3144,14 @@ declare const messages: {
           "alignBottom": "Align bottom"
         },
         "colorRow": {
-          "mixed": "Mixed"
+          "mixed": "Mixed",
+          "editVariable": "Edit variable",
+          "detachVariable": "Detach variable",
+          "connectVariable": "Use a variable",
+          "searchVariables": "Search variables",
+          "noColorVariables": "No color variables yet.",
+          "createVariable": "Create variable",
+          "noMatch": "No match"
         },
         "fontHeroRow": {
           "changeFont": "Change font",
@@ -3200,7 +3226,8 @@ declare const messages: {
           "noKindsYet": "No {kind}s yet",
           "createKind": "Create {kind}",
           "detach": "Detach",
-          "detachKind": "Detach {kind}"
+          "detachKind": "Detach {kind}",
+          "edit": "Edit {kind}"
         },
         "trblGrid": {
           "allSidesLabel": "Edit all sides together",

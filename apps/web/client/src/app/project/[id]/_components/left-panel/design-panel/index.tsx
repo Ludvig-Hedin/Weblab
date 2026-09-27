@@ -34,6 +34,9 @@ const SearchTab = dynamic(() => import('./search-tab').then((m) => m.SearchTab),
 const BrandTab = dynamic(() => import('./brand-tab').then((m) => m.BrandTab), {
     ssr: false,
 });
+const VariablesTab = dynamic(() => import('./variables-tab').then((m) => m.VariablesTab), {
+    ssr: false,
+});
 const PagesTab = dynamic(() => import('./page-tab').then((m) => m.PagesTab), {
     ssr: false,
 });
@@ -53,6 +56,8 @@ const isLeftTabEnabled = (tab: LeftPanelTabValue): boolean => {
             return EDITOR_SCOPE.components;
         case LeftPanelTabValue.BRAND:
             return EDITOR_SCOPE.brand;
+        case LeftPanelTabValue.VARIABLES:
+            return EDITOR_SCOPE.variables;
         case LeftPanelTabValue.IMAGES:
             return EDITOR_SCOPE.imageUpload;
         case LeftPanelTabValue.BRANCHES:
@@ -65,7 +70,7 @@ const isLeftTabEnabled = (tab: LeftPanelTabValue): boolean => {
 const allTabs: {
     value: LeftPanelTabValue;
     icon: ReactNode;
-    hotkey: Hotkey;
+    hotkey?: Hotkey;
     disabled?: boolean;
 }[] = [
     {
@@ -92,6 +97,10 @@ const allTabs: {
         value: LeftPanelTabValue.BRAND,
         icon: <Icons.Brand className="h-5 w-5" />,
         hotkey: Hotkey.SIDEBAR_BRAND,
+    },
+    {
+        value: LeftPanelTabValue.VARIABLES,
+        icon: <Icons.Tokens className="h-5 w-5" />,
     },
     {
         value: LeftPanelTabValue.PAGES,
@@ -183,6 +192,8 @@ export const DesignPanel = observer(() => {
                 return t(transKeys.editor.panels.layers.tabs.search);
             case LeftPanelTabValue.BRAND:
                 return t(transKeys.editor.panels.layers.tabs.brand);
+            case LeftPanelTabValue.VARIABLES:
+                return t(transKeys.editor.panels.layers.tabs.variables);
             case LeftPanelTabValue.PAGES:
                 return t(transKeys.editor.panels.layers.tabs.pages);
             case LeftPanelTabValue.IMAGES:
@@ -275,6 +286,7 @@ export const DesignPanel = observer(() => {
                 {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}
                 {selectedTab === LeftPanelTabValue.SEARCH && <SearchTab />}
                 {selectedTab === LeftPanelTabValue.BRAND && <BrandTab />}
+                {selectedTab === LeftPanelTabValue.VARIABLES && <VariablesTab />}
                 {selectedTab === LeftPanelTabValue.PAGES && <PagesTab />}
                 {selectedTab === LeftPanelTabValue.IMAGES && <AssetsTab />}
                 {selectedTab === LeftPanelTabValue.BRANCHES && <BranchesTab />}
@@ -342,13 +354,17 @@ export const DesignPanel = observer(() => {
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="right" hideArrow>
-                                <HotkeyLabel
-                                    hotkey={{
-                                        command: tab.hotkey.command,
-                                        description: label,
-                                        readableCommand: tab.hotkey.readableCommand,
-                                    }}
-                                />
+                                {tab.hotkey ? (
+                                    <HotkeyLabel
+                                        hotkey={{
+                                            command: tab.hotkey.command,
+                                            description: label,
+                                            readableCommand: tab.hotkey.readableCommand,
+                                        }}
+                                    />
+                                ) : (
+                                    label
+                                )}
                             </TooltipContent>
                         </Tooltip>
                     );

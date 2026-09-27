@@ -210,6 +210,8 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-222 | F-224, F-649 | E | Drag into canvas | Element inserts at drop | `[ ]` |
 | T-223 | F-225, F-655, F-553 | E | Upload + bulk delete | Asset persists / removes via Convex storage | `[ ]` |
 | T-224 | F-226, F-640, F-639 | E | Edit color token; pick font | CSS vars update; font loads | `[ ]` |
+| T-839 | F-800 | U | Color class binding (`tokens/color-binding.test.ts`) | Finds `bg-brand` / `text-(--x)` / palette bindings, ignores variants and sizes, swaps color classes without touching others | `[x]` |
+| T-840 | F-800 | E (auth + local project) | Open Variables tab, create a color, bind it to a fill with the connect button, edit it from the hover pencil, then detach | Chip shows the variable; edit updates globals.css and canvas; detach leaves the same color as a literal class | `[ ]` manual |
 | T-225 | F-227, F-666 | E | Create / delete / rename pages | Persists; routes update | `[ ]` |
 | T-226 | F-229 | E | Switch branch | Editor reloads (T-201 ref) | `[ ]` |
 | T-227 | F-230 | E | Search | Filters across layers + assets | `[ ]` |

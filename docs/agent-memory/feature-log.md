@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-09-28 — Variables tab and color variable binding
+Author: Claude
+Area: `apps/web/client` left panel, style panel v4, `TokensManager`
+Summary: New left-panel Variables tab (`LeftPanelTabValue.VARIABLES`, `EDITOR_SCOPE.variables`) shows globals.css tokens as collections with a Name/Value list, reusing the Brand tab rows, groups, inline editors and add form. Token rows get a hover edit button. In the style panel, fill, text and border color rows detect a Tailwind class bound to a variable (`bg-brand`, `bg-(--x)`, palette `bg-red-500`), show its name, and offer hover edit (popover with the same editor), detach (writes `bg-[#hex]` from the rendered color) and connect (pick a color variable). Binding and detach rewrite the className directly because `var()` values have no Tailwind translation. The text style chip gets hover edit + detach.
+Files: `left-panel/design-panel/variables-tab/index.tsx`, `right-panel/style-tab-v4/controls/{bound-color-row,variable-controls,color-row,style-chip-picker}.tsx`, `right-panel/style-tab-v4/hooks/use-color-variable.ts`, `components/store/editor/tokens/{color-binding,index}.ts`
+Links: F-800, T-839, T-840. Gaps in BACKLOG: rename does not rewrite classes; class edits flatten dynamic classNames.
+
+---
+
 ## 2026-09-23 — Local Tailwind style capability
 Author: Codex
 Area: `apps/web/client` local editor

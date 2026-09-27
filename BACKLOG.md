@@ -38,6 +38,25 @@ later without re-discovering the context.
 
 ## Open
 
+### Renaming a color variable breaks the classes that use it
+
+- **Discovered:** 2026-09-28 (Variables tab work, F-800)
+- **Where:** `apps/web/client/src/components/store/editor/tokens/util.ts` `renameThemeVariable`; reached from the Variables tab editor and the style panel's hover edit popover
+- **Symptom:** Rename `color-brand` to `color-primary` and every element with `bg-brand` loses its color. The CSS `var()` references are rewritten, the JSX classes are not.
+- **Root cause:** Rename only rewrites globals.css. Tailwind utilities named after the variable live in source files.
+- **Next step:** After a rename, rewrite `<prefix>-<old>` → `<prefix>-<new>` (and `(--old)` forms) across source files, or warn with a usage count before renaming.
+- **Risk if ignored:** Silent visual regressions after a rename.
+- **Tags:** `#bug`
+
+### Class edits from the style panel flatten dynamic classNames
+
+- **Discovered:** 2026-09-28 (Variables tab work, F-800)
+- **Where:** `TokensManager.setColorClassOnSelected`, `applyTextStyleToSelected`, and `sections/element.tsx` `commitClassName`
+- **Symptom:** Binding or detaching a variable writes the element's full rendered className back with `overrideClasses: true`. A `className={cn(...)}` expression becomes a plain string of today's classes.
+- **Next step:** Edit only the static class tokens in the AST, or refuse on non-literal classNames.
+- **Risk if ignored:** Conditional styling in user code can be lost after one click.
+- **Tags:** `#bug` `#tech-debt`
+
 ### Windows preview descendants need crash-path proof
 
 - **Discovered:** 2026-09-23 (packaged runtime review)

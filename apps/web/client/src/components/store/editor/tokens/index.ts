@@ -10,6 +10,8 @@ import type {
 } from '@weblab/models/style';
 
 import type { EditorEngine } from '../engine';
+import type { ColorClassBinding } from './color-binding';
+import { findColorClassBinding, replaceColorClass } from './color-binding';
 import { DEFAULT_GLOBALS_TOKENS_SCAFFOLD } from './scaffold';
 import {
     parseTokensFromGlobalsCss,
@@ -521,6 +523,49 @@ export class TokensManager {
             textStyles: wantsTypography ? this.textStyles : [],
             variables: this.variables.filter((v) => wantedGroup(v.group)),
         };
+    }
+
+    /** Names of every color token in globals.css: plain colors and aliases. */
+    get colorVariableNames(): Set<string> {
+        return new Set([
+            ...this.variables.filter((v) => v.group === 'color').map((v) => v.name),
+            ...this.colorStyles.map((s) => s.name),
+        ]);
+    }
+
+    /** The color variable a Tailwind class binds `property` to, if any. */
+    detectColorClassBinding(property: string, className: string): ColorClassBinding | null {
+        return findColorClassBinding(property, className, this.colorVariableNames);
+    }
+
+    /**
+     * Swap the base color class for `property` on every selected element.
+     * `nextClass` null just removes it. Used to bind a variable (`bg-brand`)
+     * and to detach one (`bg-[#FF0000]`).
+     */
+    async setColorClassOnSelected(property: string, nextClass: string | null): Promise<void> {
+        const names = this.colorVariableNames;
+        const selected = this.editorEngine.elements.selected.filter((el) => !!el.oid);
+        await Promise.all(
+            selected.map(async (el) => {
+                const nextClassName = replaceColorClass(
+                    property,
+                    el.className ?? '',
+                    nextClass,
+                    names,
+                ).trim();
+                await this.editorEngine.code.updateElementMetadata({
+                    oid: el.oid!,
+                    branchId: el.branchId,
+                    attributes: { className: nextClassName },
+                    overrideClasses: true,
+                });
+                // Keep the panel in step until the canvas re-reports the element.
+                runInAction(() => {
+                    el.className = nextClassName;
+                });
+            }),
+        );
     }
 
     /**

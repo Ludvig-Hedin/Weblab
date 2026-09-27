@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-9-variables-tab',
+        version: '4.9',
+        title: 'Variables tab',
+        description:
+            'A new Variables tab lists your colors, sizes, radius and text styles by collection, and you can create and edit them in place. In the style panel, a color that uses a variable shows its name, with edit and detach buttons on hover and a button to pick a variable.',
+        date: '2026-09-28',
+        tags: ['Editor', 'Design tokens'],
+    },
+    {
         slug: 'v4-6-desktop-startup-fix',
         version: '4.6',
         title: 'Desktop app startup fix',

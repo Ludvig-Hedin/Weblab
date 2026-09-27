@@ -1787,7 +1787,8 @@
           "brand": "Varumärke",
           "branches": "Branches",
           "apps": "Appar",
-          "search": "Sök"
+          "search": "Sök",
+          "variables": "Variabler"
         },
         "rail": {
           "openLeftPanel": "Öppna vänsterpanelen",
@@ -2623,6 +2624,24 @@
         "deleteFileExtra": "Åtgärden kan inte ångras.",
         "deleteFileOrFolder": "Ta bort {kind}",
         "areYouSureDelete": "Är du säker på att du vill ta bort \"{name}\"?"
+      },
+      "variables": {
+        "collections": "Samlingar",
+        "all": "Alla",
+        "search": "Sök variabler",
+        "name": "Namn",
+        "value": "Värde",
+        "empty": "Inga variabler i den här samlingen än.",
+        "noMatch": "Inga variabler matchar ”{query}”.",
+        "createVariable": "Skapa variabel",
+        "edit": "Redigera",
+        "collectionNames": {
+          "colors": "Färger",
+          "sizes": "Storlekar och avstånd",
+          "radius": "Hörnradie",
+          "text-styles": "Textstilar",
+          "other": "Övrigt"
+        }
       }
     },
     "stylePanel": {
@@ -3121,7 +3140,14 @@
           "alignBottom": "Bottenjustera"
         },
         "colorRow": {
-          "mixed": "Blandad"
+          "mixed": "Blandad",
+          "editVariable": "Redigera variabel",
+          "detachVariable": "Koppla loss variabel",
+          "connectVariable": "Använd en variabel",
+          "searchVariables": "Sök variabler",
+          "noColorVariables": "Inga färgvariabler än.",
+          "createVariable": "Skapa variabel",
+          "noMatch": "Ingen träff"
         },
         "fontHeroRow": {
           "changeFont": "Byt teckensnitt",
@@ -3196,7 +3222,8 @@
           "noKindsYet": "Inga {kind}ar ännu",
           "createKind": "Skapa {kind}",
           "detach": "Koppla bort",
-          "detachKind": "Koppla bort {kind}"
+          "detachKind": "Koppla bort {kind}",
+          "edit": "Redigera {kind}"
         },
         "trblGrid": {
           "allSidesLabel": "Redigera alla sidor tillsammans",
