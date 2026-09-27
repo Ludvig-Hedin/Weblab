@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta
-      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'"
       http-equiv="Content-Security-Policy"
     >
     <title>Weblab</title>
@@ -225,7 +225,24 @@
     <!-- Clone from GitHub -->
     <div class="scrim" hidden id="clone-dialog">
       <form class="dialog" id="clone-form">
-        <h2>Clone from GitHub</h2>
+        <div class="dialog-head">
+          <h2>Clone from GitHub</h2>
+          <div class="gh-account" hidden id="gh-account">
+            <img alt="" height="16" id="gh-avatar" width="16">
+            <span id="gh-login"></span>
+            <button class="link" id="gh-signout" type="button">Sign out</button>
+          </div>
+        </div>
+        <div class="repo-picker" hidden id="repo-picker">
+          <input
+            autocomplete="off"
+            id="repo-search"
+            placeholder="Search your repositories"
+            spellcheck="false"
+            type="text"
+          >
+          <ul class="repos" id="repos"></ul>
+        </div>
         <label class="label" for="clone-link">Link</label>
         <input
           autocomplete="off"
@@ -243,7 +260,12 @@
           spellcheck="false"
           type="text"
         >
-        <p class="hint">Public repositories only.</p>
+        <p class="hint" hidden id="clone-public-note">
+          Public repositories only.
+          <button class="link inline" id="gh-signin" type="button">
+            Sign in with GitHub to see private sites
+          </button>
+        </p>
         <div class="clone-progress" hidden id="clone-progress">
           <div class="progress"><span></span></div>
           <p class="hint" id="clone-step"></p>
@@ -256,6 +278,38 @@
           </button>
         </div>
       </form>
+    </div>
+
+    <!-- Sign in with GitHub (device flow) -->
+    <div class="scrim" hidden id="gh-dialog">
+      <div class="dialog gh-dialog">
+        <h2>Sign in with GitHub</h2>
+        <div id="gh-waiting-code">
+          <p class="muted">Getting a code from GitHub…</p>
+          <div class="progress"><span></span></div>
+        </div>
+        <div hidden id="gh-code-step">
+          <p class="muted">Enter this code on GitHub. It’s already copied.</p>
+          <button
+            class="gh-code"
+            id="gh-code"
+            title="Copy"
+            type="button"
+          ></button>
+          <div class="progress"><span></span></div>
+          <p class="hint">Waiting for you to approve on GitHub…</p>
+        </div>
+        <p class="error" hidden id="gh-error"></p>
+        <div class="actions end">
+          <button class="btn" id="gh-cancel" type="button">Cancel</button>
+          <button class="btn primary" hidden id="gh-open" type="button">
+            Open GitHub
+          </button>
+          <button class="btn primary" hidden id="gh-retry" type="button">
+            Try again
+          </button>
+        </div>
+      </div>
     </div>
 
     <script defer src="app.js"></script>

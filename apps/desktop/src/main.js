@@ -2,6 +2,7 @@
 const {
   app,
   BrowserWindow,
+  clipboard,
   WebContentsView,
   ipcMain,
   dialog,
@@ -15,6 +16,7 @@ const auth = require("./auth");
 const { SiteRunner } = require("./runner");
 const cloner = require("./clone");
 const envSettings = require("./env-settings");
+const github = require("./github");
 
 const TOP_BAR = 40;
 const WEB_LINK = /^https?:/;
@@ -167,6 +169,16 @@ function buildMenu() {
       submenu: [
         { label: "About Weblab", role: "about" },
         { type: "separator" },
+        {
+          click: () => {
+            github.signOut();
+            buildMenu();
+            send("github:changed");
+          },
+          enabled: Boolean(github.account()),
+          label: "Sign out of GitHub",
+        },
+        { type: "separator" },
         { role: "hide" },
         { role: "hideOthers" },
         { role: "unhide" },
@@ -311,6 +323,31 @@ function registerIpc() {
     }
   });
   ipcMain.handle("clone:cancel", () => cloner.cancel());
+
+  ipcMain.handle("github:account", () => github.account());
+  ipcMain.handle("github:repos", () => github.listRepos());
+  ipcMain.handle("github:signIn", () => {
+    github.startSignIn((event) => {
+      if (event.type === "code") {
+        // Copy the code so the user can paste it on GitHub's page.
+        clipboard.writeText(event.userCode);
+      }
+      if (event.type === "done" && event.ok) {
+        buildMenu();
+      }
+      send("github:event", event);
+    });
+  });
+  ipcMain.handle("github:cancel", () => github.cancelSignIn());
+  ipcMain.handle("github:signOut", () => {
+    github.signOut();
+    buildMenu();
+  });
+  ipcMain.handle("github:copy", (_e, text) => {
+    if (typeof text === "string" && text.length < 64) {
+      clipboard.writeText(text);
+    }
+  });
 
   // Settings the site asks for in its example env file.
   ipcMain.handle("settings:get", (_e, id) => {

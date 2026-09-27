@@ -236,6 +236,10 @@ $("#new-dialog").addEventListener("mousedown", (event) => {
   }
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("#gh-dialog").hidden) {
+    $("#gh-cancel").click();
+    return;
+  }
   if (event.key === "Escape" && !$("#clone-dialog").hidden) {
     $("#clone-cancel").click();
   }
@@ -322,7 +326,148 @@ function openCloneDialog() {
   cloneState({});
   $("#clone-dialog").hidden = false;
   $("#clone-link").focus();
+  refreshGitHub();
 }
+
+// GitHub account and repositories
+
+let repoList = [];
+let ghUrl = null;
+
+const LOCK_ICON =
+  '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="5.5" width="7" height="5" rx="1" fill="none" stroke="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor"/></svg>';
+
+async function refreshGitHub() {
+  const account = await api.github.account();
+  $("#gh-account").hidden = !account;
+  $("#repo-picker").hidden = !account;
+  $("#clone-public-note").hidden = Boolean(account);
+  if (!account) {
+    repoList = [];
+    return;
+  }
+  $("#gh-login").textContent = account.login;
+  $("#gh-avatar").hidden = !account.avatarUrl;
+  if (account.avatarUrl) {
+    $("#gh-avatar").src = `${account.avatarUrl}&s=32`;
+  }
+  $("#repo-search").value = "";
+  renderRepoMessage("Loading your repositories…");
+  const result = await api.github.repos();
+  if (!result.signedIn) {
+    refreshGitHub();
+    return;
+  }
+  repoList = result.repos;
+  if (result.message) {
+    renderRepoMessage(result.message);
+  } else {
+    renderRepos();
+  }
+}
+
+function renderRepoMessage(text) {
+  const ul = $("#repos");
+  ul.textContent = "";
+  const li = document.createElement("li");
+  li.className = "empty-row";
+  li.textContent = text;
+  ul.append(li);
+}
+
+function renderRepos() {
+  const query = $("#repo-search").value.trim().toLowerCase();
+  const matches = repoList.filter((repo) =>
+    repo.fullName.toLowerCase().includes(query)
+  );
+  if (matches.length === 0) {
+    renderRepoMessage(
+      query ? "No matching repositories" : "No repositories yet"
+    );
+    return;
+  }
+  const ul = $("#repos");
+  ul.textContent = "";
+  for (const repo of matches) {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.className = "repo-name";
+    name.textContent = repo.fullName;
+    li.append(name);
+    if (repo.private) {
+      li.insertAdjacentHTML("beforeend", LOCK_ICON);
+      li.title = "Private";
+    }
+    li.addEventListener("click", () => {
+      for (const other of ul.children) {
+        other.classList.remove("selected");
+      }
+      li.classList.add("selected");
+      $("#clone-link").value = `https://github.com/${repo.fullName}`;
+      if (!nameEdited) {
+        $("#clone-name").value = repo.name;
+      }
+      cloneState({});
+    });
+    ul.append(li);
+  }
+}
+
+$("#repo-search").addEventListener("input", renderRepos);
+$("#gh-signout").addEventListener("click", async () => {
+  await api.github.signOut();
+  refreshGitHub();
+});
+api.github.onChanged(() => refreshGitHub());
+
+function ghStep({ code = null, error = "" }) {
+  $("#gh-waiting-code").hidden = Boolean(code || error);
+  $("#gh-code-step").hidden = !code || Boolean(error);
+  $("#gh-code").textContent = code || "";
+  $("#gh-open").hidden = !code || Boolean(error);
+  $("#gh-retry").hidden = !error;
+  $("#gh-error").textContent = error;
+  $("#gh-error").hidden = !error;
+}
+
+function startGitHubSignIn() {
+  ghUrl = null;
+  ghStep({});
+  $("#gh-dialog").hidden = false;
+  api.github.signIn();
+}
+
+api.github.onEvent((event) => {
+  if ($("#gh-dialog").hidden) {
+    return;
+  }
+  if (event.type === "code") {
+    ghUrl = event.verificationUri;
+    ghStep({ code: event.userCode });
+  }
+  if (event.type === "done") {
+    if (event.ok) {
+      $("#gh-dialog").hidden = true;
+      refreshGitHub();
+    } else {
+      ghStep({ error: event.message });
+    }
+  }
+});
+
+$("#gh-signin").addEventListener("click", startGitHubSignIn);
+$("#gh-retry").addEventListener("click", startGitHubSignIn);
+$("#gh-open").addEventListener(
+  "click",
+  () => ghUrl && api.auth.openLink(ghUrl)
+);
+$("#gh-code").addEventListener("click", () =>
+  api.github.copy($("#gh-code").textContent)
+);
+$("#gh-cancel").addEventListener("click", () => {
+  api.github.cancel();
+  $("#gh-dialog").hidden = true;
+});
 
 function cloneState({ busy = false, step = "", error = "" }) {
   cloning = busy;
@@ -359,8 +504,23 @@ api.clone.onProgress((text) => {
   }
 });
 
+// A double Enter or click must not start two clones: the link check below
+// awaits before the form is disabled, so guard synchronously.
+let cloneRunning = false;
 $("#clone-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (cloneRunning) {
+    return;
+  }
+  cloneRunning = true;
+  try {
+    await submitClone();
+  } finally {
+    cloneRunning = false;
+  }
+});
+
+async function submitClone() {
   const link = $("#clone-link").value;
   if (!(await api.clone.parse(link))) {
     cloneState({ error: "Paste a GitHub link, like github.com/owner/name." });
@@ -377,7 +537,7 @@ $("#clone-form").addEventListener("submit", async (event) => {
   cloneState({});
   $("#clone-dialog").hidden = true;
   openSite(result.site);
-});
+}
 
 // Site settings
 

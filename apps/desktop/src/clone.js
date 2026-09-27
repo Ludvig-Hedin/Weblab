@@ -1,4 +1,5 @@
-// Cloning a public GitHub repository into ~/Documents/Weblab. Uses git when it
+// Cloning a GitHub repository into ~/Documents/Weblab (private ones too, once
+// the user has signed in with GitHub). Uses git when it
 // runs without Apple's developer tools prompt; otherwise downloads the tarball
 // from codeload.github.com and unpacks it with the system tar.
 
@@ -9,6 +10,7 @@ const { Readable } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
 const { app } = require("electron");
 const { canUseGit, childEnv } = require("./runtime");
+const github = require("./github");
 const sites = require("./sites");
 
 const NAME_PART = /^[A-Za-z0-9_.-]+$/;
@@ -22,6 +24,9 @@ const NOT_FOUND =
   /not found|could not read username|authentication failed|terminal prompts disabled/i;
 
 class CloneError extends Error {}
+/** GitHub refused the saved token (revoked or expired). */
+class BadTokenError extends Error {}
+const BAD_TOKEN = /invalid username or token|authentication failed/i;
 
 /** `https://github.com/o/r(.git)(/)`, `github.com/o/r`, or `o/r` → { owner, repo }. */
 function parseRepo(input) {
@@ -60,10 +65,22 @@ async function clone(link, name, onProgress) {
   active = controller;
   try {
     const useGit = process.env.WEBLAB_FORCE_TARBALL !== "1" && canUseGit();
-    if (useGit) {
-      await gitClone(parsed, dir, controller.signal, onProgress);
-    } else {
-      await downloadTarball(parsed, dir, controller.signal, onProgress);
+    const fetchSite = (auth) =>
+      useGit
+        ? gitClone(parsed, dir, auth, controller.signal, onProgress)
+        : downloadTarball(parsed, dir, auth, controller.signal, onProgress);
+    const token = github.readToken();
+    try {
+      await fetchSite(token);
+    } catch (err) {
+      // A stale token must not block public sites: try once without it.
+      if (!(err instanceof BadTokenError)) {
+        throw err;
+      }
+      fs.rmSync(dir, { force: true, recursive: true });
+      await fetchSite(null);
+    }
+    if (!useGit) {
       onProgress("Finishing up…");
       sites.initGit(
         dir,
@@ -94,29 +111,61 @@ async function clone(link, name, onProgress) {
   }
 }
 
-function gitClone({ owner, repo }, dir, signal, onProgress) {
+const notFoundMessage = (token) =>
+  token
+    ? "We couldn’t find that repository, or your GitHub account can’t see it."
+    : "We couldn’t find that repository. Is it public?";
+
+/**
+ * The git command for a clone. The remote is the plain https URL; the token
+ * (if any) travels only in environment variables, never in args or .git/config.
+ */
+function gitCloneCommand({ owner, repo }, dir, token) {
+  return {
+    args: [
+      "clone",
+      "--depth",
+      "1",
+      "--progress",
+      `https://github.com/${owner}/${repo}.git`,
+      dir,
+    ],
+    env: {
+      // Never prompt for a password: a private or missing repo must fail fast.
+      GIT_ASKPASS: "/usr/bin/false",
+      GIT_TERMINAL_PROMPT: "0",
+      ...github.gitAuthEnv(token),
+    },
+  };
+}
+
+/** Where to download a repository snapshot from, and with which headers. */
+function tarballRequest({ owner, repo }, token) {
+  if (!token) {
+    return {
+      headers: {},
+      url: `https://codeload.github.com/${owner}/${repo}/tar.gz/HEAD`,
+    };
+  }
+  // The API answers with a redirect to a short-lived codeload link.
+  return {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+    },
+    url: `https://api.github.com/repos/${owner}/${repo}/tarball`,
+  };
+}
+
+function gitClone(parsed, dir, token, signal, onProgress) {
   onProgress("Connecting to GitHub…");
+  const command = gitCloneCommand(parsed, dir, token);
   return new Promise((resolve, reject) => {
-    const child = spawn(
-      "/usr/bin/git",
-      [
-        "clone",
-        "--depth",
-        "1",
-        "--progress",
-        `https://github.com/${owner}/${repo}.git`,
-        dir,
-      ],
-      {
-        // Never prompt for a password: a private or missing repo must fail fast.
-        env: childEnv({
-          GIT_ASKPASS: "/usr/bin/false",
-          GIT_TERMINAL_PROMPT: "0",
-        }),
-        signal,
-        stdio: ["ignore", "ignore", "pipe"],
-      }
-    );
+    const child = spawn("/usr/bin/git", command.args, {
+      env: childEnv(command.env),
+      signal,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
     let stderr = "";
     child.stderr.on("data", (chunk) => {
       const text = chunk.toString();
@@ -135,10 +184,10 @@ function gitClone({ owner, repo }, dir, signal, onProgress) {
     child.on("exit", (code) => {
       if (code === 0) {
         resolve();
+      } else if (token && BAD_TOKEN.test(stderr)) {
+        reject(new BadTokenError("GitHub refused the saved sign-in"));
       } else if (NOT_FOUND.test(stderr)) {
-        reject(
-          new CloneError("We couldn’t find that repository. Is it public?")
-        );
+        reject(new CloneError(notFoundMessage(token)));
       } else {
         reject(new Error("git clone failed"));
       }
@@ -146,12 +195,15 @@ function gitClone({ owner, repo }, dir, signal, onProgress) {
   });
 }
 
-async function downloadTarball({ owner, repo }, dir, signal, onProgress) {
+async function downloadTarball(parsed, dir, token, signal, onProgress) {
   onProgress("Connecting to GitHub…");
-  const url = `https://codeload.github.com/${owner}/${repo}/tar.gz/HEAD`;
-  const response = await fetch(url, { redirect: "follow", signal });
+  const { url, headers } = tarballRequest(parsed, token);
+  const response = await fetch(url, { headers, redirect: "follow", signal });
+  if (token && response.status === 401) {
+    throw new BadTokenError("GitHub refused the saved sign-in");
+  }
   if (response.status === 404) {
-    throw new CloneError("We couldn’t find that repository. Is it public?");
+    throw new CloneError(notFoundMessage(token));
   }
   if (!(response.ok && response.body)) {
     throw new Error(`GitHub answered ${response.status}`);
@@ -190,4 +242,10 @@ async function downloadTarball({ owner, repo }, dir, signal, onProgress) {
   }
 }
 
-module.exports = { cancel, clone, parseRepo };
+module.exports = {
+  cancel,
+  clone,
+  gitCloneCommand,
+  parseRepo,
+  tarballRequest,
+};

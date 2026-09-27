@@ -25,6 +25,16 @@ contextBridge.exposeInMainWorld("weblab", {
   editor: {
     setVisible: (visible) => ipcRenderer.invoke("editor:visible", visible),
   },
+  github: {
+    account: () => ipcRenderer.invoke("github:account"),
+    cancel: () => ipcRenderer.invoke("github:cancel"),
+    copy: (text) => ipcRenderer.invoke("github:copy", text),
+    onChanged: on("github:changed"),
+    onEvent: on("github:event"),
+    repos: () => ipcRenderer.invoke("github:repos"),
+    signIn: () => ipcRenderer.invoke("github:signIn"),
+    signOut: () => ipcRenderer.invoke("github:signOut"),
+  },
   nav: {
     onDashboard: on("nav:dashboard"),
     onNew: on("nav:new"),
