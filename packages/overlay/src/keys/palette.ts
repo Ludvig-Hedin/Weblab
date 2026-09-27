@@ -47,12 +47,63 @@
 import { cls, el } from "../dom";
 import { icon } from "../icons";
 import { openPopover, type PopoverHandle } from "../popover-host";
-import type { Command, CommandGroup } from "./catalog";
+
 import { chordChips } from "./chips";
 import { keys, type LiveCommand } from "./registry";
 
 /** Only one can be open, and ⌘K while it is up should close it. */
 let open: PopoverHandle | null = null;
+
+/**
+ * A row that is not a catalog command — "Add Button", "Wrap in <section>".
+ *
+ * These are the editor's *content* rather than its commands: there is one per
+ * element in the library and one per tag you can type, so they cannot each be
+ * a bound chord in the catalog. The app supplies them through a source; the
+ * palette ranks and renders them exactly like a command.
+ */
+export interface PaletteRow {
+  doc: string;
+  group: string;
+  /** Extra words to match on that the row does not print. */
+  keywords?: string;
+  run: () => void;
+  title: string;
+}
+
+/**
+ * Supplies extra rows for a query. `only` is true when the palette was opened
+ * for them alone (⌘E, the Add button), which is also when an empty query should
+ * list everything rather than nothing.
+ */
+export type PaletteSource = (query: string, only: boolean) => PaletteRow[];
+
+let source: PaletteSource | null = null;
+
+/** Register the app's extra rows. Returns the unregister. */
+export function setPaletteSource(next: PaletteSource): () => void {
+  source = next;
+  return () => {
+    if (source === next) {
+      source = null;
+    }
+  };
+}
+
+export interface PaletteOptions {
+  /** Show only the source's rows, not the commands. */
+  only?: boolean;
+  placeholder?: string;
+  /** Rows for this opening only, in place of the registered source. */
+  source?: PaletteSource;
+}
+
+interface Rankable {
+  doc: string;
+  group: string;
+  keywords?: string;
+  title: string;
+}
 
 /**
  * Rank a command against a query, or `null` if it does not match.
@@ -62,8 +113,9 @@ let open: PopoverHandle | null = null;
  * dependency: the corpus is forty rows, and a scoring function nobody can
  * explain is worse than one that occasionally ranks a row second.
  */
-function score(spec: Command, query: string): number | null {
-  const haystack = `${spec.title} ${spec.group} ${spec.doc}`.toLowerCase();
+function score(spec: Rankable, query: string): number | null {
+  const haystack =
+    `${spec.title} ${spec.group} ${spec.doc} ${spec.keywords ?? ""}`.toLowerCase();
   const title = spec.title.toLowerCase();
   if (!query) {
     return 0;
@@ -88,17 +140,43 @@ function score(spec: Command, query: string): number | null {
   return 2;
 }
 
-function matches(query: string): LiveCommand[] {
+type Chord = ReturnType<typeof keys.chordParts>[number];
+
+/** One rendered row: a live command or a source row, ranked the same way. */
+interface Entry {
+  chord: Chord | undefined;
+  row: Rankable;
+  run: () => void;
+}
+
+function commandEntry(c: LiveCommand): Entry {
+  // The first chord only. A palette row is a thing to *run*, so it wants the
+  // one key you would teach someone; the sheet is the reference that shows
+  // every chord a command answers to.
+  const [chord] = keys.chordParts(c.spec.id);
+  return { chord, row: c.spec, run: () => c.run() };
+}
+
+function matches(
+  query: string,
+  only: boolean,
+  from: PaletteSource | null
+): Entry[] {
   const q = query.trim().toLowerCase();
+  const extra: Entry[] = (from?.(query, only) ?? []).map((r) => ({
+    chord: undefined,
+    row: r,
+    run: r.run,
+  }));
+  const commands = only ? [] : keys.available().map(commandEntry);
   return (
-    keys
-      .available()
-      .map((c) => ({ c, rank: score(c.spec, q) }))
-      .filter((r): r is { c: LiveCommand; rank: number } => r.rank !== null)
+    [...commands, ...extra]
+      .map((e) => ({ e, rank: score(e.row, q) }))
+      .filter((r): r is { e: Entry; rank: number } => r.rank !== null)
       // Stable within a rank, so an empty query keeps catalog order and the
       // groups below stay contiguous.
       .sort((a, b) => a.rank - b.rank)
-      .map((r) => r.c)
+      .map((r) => r.e)
   );
 }
 
@@ -111,18 +189,20 @@ export function paletteIsOpen(): boolean {
   return open !== null;
 }
 
-export function openPalette(): void {
+export function openPalette(options: PaletteOptions = {}): void {
   if (open) {
     closePalette();
     return;
   }
+  const only = Boolean(options.only);
+  const from = options.source ?? source;
 
   const field = el("input", {
     "aria-autocomplete": "list",
     "aria-controls": `${cls("palette-list")}`,
     "aria-expanded": "true",
     class: cls("palette-field"),
-    placeholder: "Search commands…",
+    placeholder: options.placeholder ?? "Search commands…",
     role: "combobox",
     type: "text",
   }) as HTMLInputElement;
@@ -172,7 +252,7 @@ export function openPalette(): void {
   };
 
   const render = (): void => {
-    const found = matches(field.value);
+    const found = matches(field.value, only, from);
     list.replaceChildren();
     rows = [];
     if (!found.length) {
@@ -184,17 +264,13 @@ export function openPalette(): void {
     // already reordered everything and a group heading would sit above rows
     // that are no longer grouped.
     const grouped = !field.value.trim();
-    let seen: CommandGroup | null = null;
-    found.forEach((cmd, i) => {
-      const { spec } = cmd;
+    let seen: string | null = null;
+    found.forEach((entry, i) => {
+      const { chord, row: spec } = entry;
       if (grouped && spec.group !== seen) {
         seen = spec.group;
         list.append(el("div", { class: cls("pop-head"), text: spec.group }));
       }
-      // The first chord only. A palette row is a thing to *run*, so it wants the
-      // one key you would teach someone; the sheet is the reference that shows
-      // every chord a command answers to.
-      const [chord] = keys.chordParts(spec.id);
       const row = el(
         "div",
         {
@@ -213,7 +289,7 @@ export function openPalette(): void {
       );
       const invoke = (): void => {
         closePalette();
-        cmd.run();
+        entry.run();
       };
       // `pointerdown`, not `click`: the host's outside-press listener is also
       // on `pointerdown`, and a row that waited for `click` would be gone by

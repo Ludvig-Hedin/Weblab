@@ -5,6 +5,7 @@ import {
 } from "@airship/protocol";
 import { describe, expect, it } from "vitest";
 import {
+  buildEditPrompt,
   renderChange,
   structuredOutputInstruction,
   systemPrompt,
@@ -139,5 +140,45 @@ describe("structured output contract", () => {
     );
     expect(parsed.success).toBe(true);
     expect(parsed.data).toEqual(payload);
+  });
+});
+
+describe("structural changes", () => {
+  const element = {
+    classes: [],
+    displayName: null,
+    tagName: "section",
+    textPreview: "",
+  };
+
+  it("tells the agent where an insert goes and what it is", () => {
+    const prompt = buildEditPrompt({
+      prompt: "",
+      structuralChanges: [
+        {
+          element,
+          html: '<button type="button">Buy</button>',
+          op: "insert",
+          position: "inside",
+          source: null,
+        },
+      ],
+    });
+    expect(prompt).toContain("Insert a new <button> as the last child of");
+    expect(prompt).toContain('<button type="button">Buy</button>');
+    expect(prompt).toContain("For an insert:");
+    expect(prompt).not.toContain("For a delete:");
+  });
+
+  it("names both tags of a tag change and the wrapper of a wrap", () => {
+    const prompt = buildEditPrompt({
+      prompt: "",
+      structuralChanges: [
+        { element, fromTag: "div", op: "retag", source: null, toTag: "nav" },
+        { element, html: '<a href="#">', op: "wrap", source: null },
+      ],
+    });
+    expect(prompt).toContain("Change the tag from <div> to <nav>");
+    expect(prompt).toContain('New wrapper: <a href="#">');
   });
 });

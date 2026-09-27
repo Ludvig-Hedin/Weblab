@@ -108,7 +108,7 @@ function applyStructure(
   direction: Direction
 ): void {
   if (direction === "undo") {
-    deps.structureSet.remove(op.record.node);
+    deps.structureSet.remove(op.record);
     return;
   }
   deps.structureSet.reapply(op.record);

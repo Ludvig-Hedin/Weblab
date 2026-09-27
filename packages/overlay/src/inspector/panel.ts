@@ -1911,12 +1911,14 @@ export class DesignPanel {
     this.afterDiscardOne(node);
   }
 
-  /** Undo one delete or duplicate. */
-  discardOneStructure(node: Element): void {
-    const record = this.deps.structureSet
-      .entries()
-      .find((e) => e.node === node);
-    this.deps.structureSet.remove(node);
+  /**
+   * Undo one structure change. Pass the chip's own record: one node can carry
+   * several changes, and the node alone names only its first.
+   */
+  discardOneStructure(node: Element, chosen?: StructureRecord): void {
+    const record =
+      chosen ?? this.deps.structureSet.entries().find((e) => e.node === node);
+    this.deps.structureSet.remove(record ?? node);
     if (record) {
       this.deps.history.push({ kind: "structure", record });
     }

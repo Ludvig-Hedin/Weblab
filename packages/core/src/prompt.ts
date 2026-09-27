@@ -536,32 +536,40 @@ function appendMoveTargets(lines: string[], moves: MoveEdit[]): void {
 }
 
 /**
- * Deletes and duplicates.
+ * Deletes, duplicates, inserts, wraps, unwraps and tag changes.
  *
  * The overlay has already applied these to the live DOM, so the wording is
  * deliberately "the user removed", not "remove" — the agent is catching the
  * source up to a page the user is already looking at, and knowing that is what
  * stops it from asking for confirmation or hedging.
+ *
+ * Only the rules for the ops actually present are printed, so a turn that only
+ * deletes reads exactly as it did before inserts existed.
  */
 function appendStructuralTargets(
   lines: string[],
   edits: StructuralEdit[]
 ): void {
+  const ops = new Set(edits.map((e) => e.op));
   lines.push(
-    "Structural changes — the user removed or duplicated these elements in the live page; update the source to match:"
+    "Structural changes — the user changed the element tree in the live page; update the source to match:"
   );
-  lines.push(
-    "- For a delete: remove that element's JSX and anything that existed only to support it (an unused import, a now-dead handler)."
-  );
-  lines.push(
-    "- For a duplicate: insert an identical sibling immediately after the original. If the two would differ only by content, prefer extracting a list/map over pasting a second copy."
-  );
+  for (const op of STRUCTURAL_OP_ORDER) {
+    if (ops.has(op)) {
+      lines.push(STRUCTURAL_RULES[op]);
+    }
+  }
+  if (ops.has("insert") || ops.has("wrap") || ops.has("retag")) {
+    lines.push(
+      "- The user chose each change on purpose, even one that nests elements in an unusual way. Apply it; do not refuse or swap in a different structure."
+    );
+  }
   lines.push("- Do not restyle or reformat the surrounding code.");
   lines.push("");
 
   edits.forEach((e, i) => {
     lines.push(
-      `${i + 1}. ${e.op === "delete" ? "Delete" : "Duplicate"} — ${describeElement(e.element, e.source)}`
+      `${i + 1}. ${structuralHeading(e)} — ${describeElement(e.element, e.source)}`
     );
     if (e.element.classes.length) {
       lines.push(`  Classes: ${e.element.classes.join(" ")}`);
@@ -569,9 +577,76 @@ function appendStructuralTargets(
     if (e.element.textPreview) {
       lines.push(`  Text: ${JSON.stringify(e.element.textPreview)}`);
     }
+    if (e.html && e.op === "wrap") {
+      lines.push(`  New wrapper: ${e.html}`);
+    } else if (e.html) {
+      lines.push("  New element:", "  ```html", ...indent(e.html), "  ```");
+    }
     appendContext(lines, "Source context:", e.source);
     lines.push("");
   });
+}
+
+const STRUCTURAL_OP_ORDER = [
+  "delete",
+  "duplicate",
+  "insert",
+  "wrap",
+  "unwrap",
+  "retag",
+] as const satisfies readonly StructuralEdit["op"][];
+
+const STRUCTURAL_RULES: Record<StructuralEdit["op"], string> = {
+  delete:
+    "- For a delete: remove that element's JSX and anything that existed only to support it (an unused import, a now-dead handler).",
+  duplicate:
+    "- For a duplicate: insert an identical sibling immediately after the original. If the two would differ only by content, prefer extracting a list/map over pasting a second copy.",
+  insert:
+    "- For an insert: add the new element at the stated place. The markup is what the page shows now; write it in the project's own idiom (JSX attribute names, the styling system the file already uses, the project's own Button/Link/Image components where it has them). Keep its tag, text and attributes.",
+  retag:
+    '- For a tag change: change only that element\'s tag (the opening and closing tag), keeping every prop, class and child. Add what the new tag needs to work — an `href` for a link, `type="button"` for a button — and drop props the new tag cannot take.',
+  unwrap:
+    "- For an unwrap: remove that element's own tag but keep all of its children, in order, where it stood. Move a key or a condition it carried onto what remains when the code needs it.",
+  wrap: "- For a wrap: put a new wrapper element around that element, exactly where it stands, with the tag and attributes given. The element itself stays unchanged inside it.",
+};
+
+function structuralHeading(e: StructuralEdit): string {
+  switch (e.op) {
+    case "delete":
+      return "Delete";
+    case "duplicate":
+      return "Duplicate";
+    case "insert":
+      return `Insert a new <${newTagOf(e.html)}> ${insertWhere(e.position)}`;
+    case "wrap":
+      return "Wrap in a new element";
+    case "unwrap":
+      return "Unwrap, keeping the children";
+    case "retag":
+      return `Change the tag from <${e.fromTag ?? e.element.tagName}> to <${e.toTag ?? "?"}>`;
+    default:
+      return e.op;
+  }
+}
+
+function insertWhere(position: StructuralEdit["position"]): string {
+  if (position === "before") {
+    return "immediately before";
+  }
+  if (position === "after") {
+    return "immediately after";
+  }
+  return "as the last child of";
+}
+
+const LEADING_TAG = /^\s*<([a-zA-Z][\w-]*)/;
+
+function newTagOf(html: string | undefined): string {
+  return html?.match(LEADING_TAG)?.[1]?.toLowerCase() ?? "element";
+}
+
+function indent(text: string): string[] {
+  return text.split("\n").map((line) => `  ${line}`);
 }
 
 /**

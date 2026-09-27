@@ -248,20 +248,48 @@ export const MoveEditSchema = z.object({
 export type MoveEdit = z.infer<typeof MoveEditSchema>;
 
 // ---------------------------------------------------------------------------
-// Structural add/remove — deleting an element or duplicating it in place. Like
-// a move this carries no CSS: it tells the agent to remove or clone the JSX. The
-// overlay has already applied the change optimistically, so the agent is
-// catching the source up to a DOM the user is already looking at.
+// Structural edits — deleting, duplicating, adding, wrapping, unwrapping or
+// retagging an element. Like a move this carries no CSS delta: it tells the
+// agent to change the JSX tree. The overlay has already applied the change
+// optimistically, so the agent is catching the source up to a DOM the user is
+// already looking at.
 // ---------------------------------------------------------------------------
 
-export const STRUCTURAL_OPS = ["delete", "duplicate"] as const;
+export const STRUCTURAL_OPS = [
+  "delete",
+  "duplicate",
+  "insert",
+  "wrap",
+  "unwrap",
+  "retag",
+] as const;
 export const StructuralOpSchema = z.enum(STRUCTURAL_OPS);
 export type StructuralOp = z.infer<typeof StructuralOpSchema>;
 
+/** Where an inserted element sits relative to the edit's `element`. */
+export const INSERT_POSITIONS = ["inside", "before", "after"] as const;
+export const InsertPositionSchema = z.enum(INSERT_POSITIONS);
+export type InsertPosition = z.infer<typeof InsertPositionSchema>;
+
 export const StructuralEditSchema = z.object({
+  /**
+   * The element the edit is about. For an `insert` this is the anchor the new
+   * element was placed against, since the new element has no source yet.
+   */
   element: ElementContextSchema,
+  /** `retag` only: the tag it had before. */
+  fromTag: z.string().optional(),
+  /**
+   * `insert`: the new element's markup, as the user sees it in the page.
+   * `wrap`: the new wrapper's opening tag, with its attributes.
+   */
+  html: z.string().optional(),
   op: StructuralOpSchema,
+  /** `insert` only: where the new element sits relative to `element`. */
+  position: InsertPositionSchema.optional(),
   source: SourceLocationSchema.nullable().default(null),
+  /** `retag` only: the tag it should have now. */
+  toTag: z.string().optional(),
 });
 export type StructuralEdit = z.infer<typeof StructuralEditSchema>;
 

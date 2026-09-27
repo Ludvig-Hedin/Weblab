@@ -124,6 +124,10 @@ catalog, so it cannot drift from what the keys actually do:
 | undo | ⌘Z | Ctrl+Z |
 | delete element | ⌫ or Del | Backspace or Del |
 | duplicate | ⌘D | Ctrl+D |
+| add element | A or ⌘E | A or Ctrl+E |
+| wrap in div | ⌘⌥G | Ctrl+Alt+G |
+| unwrap | ⌘⇧G | Ctrl+Shift+G |
+| change tag… | ⌘⇧E | Ctrl+Shift+E |
 | edit text | ↩ or T | Enter or T |
 | move | V | V |
 | inspect | I | I |

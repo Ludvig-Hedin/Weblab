@@ -19,6 +19,12 @@ the editor also answers to a plain `+` and `-`.
 | Redo | ⌘⇧Z or ⌘Y | Ctrl+Shift+Z or Ctrl+Y | edit mode | Step forward again through edits you have undone. |
 | Delete element | ⌫ or Del | Backspace or Del | edit mode | Remove the selected element. |
 | Duplicate | ⌘D | Ctrl+D | edit mode | Copy the selected element in place. |
+| Add element | A or ⌘E | A or Ctrl+E | edit mode | Open the element library and add one inside or after the selection. |
+| Wrap in div | ⌘⌥G | Ctrl+Alt+G | edit mode | Put the selected element inside a new div. |
+| Wrap in flex | ⇧A or ⌘G | Shift+A or Ctrl+G | edit mode | Put the selected element inside a new flex container. |
+| Wrap in… | W | W | edit mode | Put the selected element inside a new element of any tag. |
+| Unwrap | ⌘⇧G | Ctrl+Shift+G | edit mode | Remove the selected element's own tag and keep what is inside it. |
+| Change tag… | ⌘⇧E | Ctrl+Shift+E | edit mode | Turn the selected element into any other tag, keeping what is inside it. |
 | Edit text | ↩ or T | Enter or T | edit mode | Edit the selected element's text in place. |
 | Nudge | ← → ↑ ↓ | ← → ↑ ↓ | edit mode | Move the selected element one pixel. |
 | Nudge by ten | ⇧ ← → ↑ ↓ | ⇧ ← → ↑ ↓ | edit mode | Move the selected element ten pixels. |

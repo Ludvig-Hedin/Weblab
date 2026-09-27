@@ -66,8 +66,8 @@ import { DesignPanel } from "./inspector/panel";
 import { applyPreview, clearPreview } from "./inspector/style-model";
 import { isEditableText, textTargetIn } from "./inspector/text-edit";
 import { type CommandId, commandSpec } from "./keys/catalog";
-import { openPalette } from "./keys/palette";
-import { keys, tip } from "./keys/registry";
+import { openPalette, setPaletteSource } from "./keys/palette";
+import { isTypingTarget, keys, tip } from "./keys/registry";
 import { openShortcuts } from "./keys/shortcuts-panel";
 import { MoveSet } from "./move-set";
 import {
@@ -78,7 +78,14 @@ import {
   type SelectMode,
 } from "./picker";
 import { closeOpenPopover, createMenu, mountPopoverHost } from "./popover-host";
-import { StructureSet } from "./structure-set";
+import { FLEX_WRAPPER_STYLE, StructureEditor } from "./structure-ops";
+import {
+  addPaletteRows,
+  retagPaletteRows,
+  structureRows,
+  wrapPaletteRows,
+} from "./structure-palette";
+import { type StructureRecord, StructureSet } from "./structure-set";
 import { injectStyles } from "./styles";
 import { MIN_DOCK_H, MIN_DOCK_W } from "./styles/const";
 import { InlineResolver, type Surface, type SurfaceResolver } from "./surface";
@@ -503,6 +510,8 @@ export class AirshipApp {
   private readonly scannedDocs = new WeakSet<Document>();
   private readonly history: History;
   private readonly panel: DesignPanel;
+  /** Add, wrap, unwrap and retag — the Webflow verbs. */
+  private readonly structure: StructureEditor;
 
   private root!: HTMLElement;
   private bar!: HTMLElement;
@@ -800,8 +809,73 @@ export class AirshipApp {
       resolver: stage.resolver,
       structureSet: this.structureSet,
     });
+    this.structure = new StructureEditor({
+      controller: this.controller,
+      history: this.history,
+      onChanged: () => this.onVisualChanged(),
+      selection: () => (this.editing ? this.selected : null),
+      structureSet: this.structureSet,
+    });
+    this.disposers.push(setPaletteSource(structureRows(this.structure)));
+    const onPaste = (e: ClipboardEvent): void => this.pasteMarkup(e);
+    document.addEventListener("paste", onPaste, true);
+    this.disposers.push(() =>
+      document.removeEventListener("paste", onPaste, true)
+    );
     this.tools.on((tool) => this.onToolChange(tool));
     this.bindEditorKeys();
+  }
+
+  /**
+   * ⌘V with HTML or JSX on the clipboard adds it as real elements at the
+   * selection. Only plain text that starts with a tag counts — copied code —
+   * so pasting a sentence, an image or anything into a field is untouched.
+   */
+  private pasteMarkup(e: ClipboardEvent): void {
+    // `composedPath`, so a field inside a web component still counts as one.
+    const typing =
+      isTypingTarget(e.composedPath()[0] ?? e.target) ||
+      isTypingTarget(document.activeElement);
+    if (!this.editing || typing || !this.selected) {
+      return;
+    }
+    const data = e.clipboardData;
+    if (!data || data.files.length > 0) {
+      return;
+    }
+    const text = data.getData("text/plain");
+    if (!text.trim().startsWith("<")) {
+      return;
+    }
+    if (this.structure.insertHtml(text)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  /** ⌘E, `A` and the Add button: the element library, Webflow's Add panel. */
+  private openAddPalette(): void {
+    openPalette({
+      only: true,
+      placeholder: "Add an element, or type any tag…",
+      source: addPaletteRows(this.structure),
+    });
+  }
+
+  private openWrapPalette(): void {
+    openPalette({
+      only: true,
+      placeholder: "Wrap in… (type any tag)",
+      source: wrapPaletteRows(this.structure),
+    });
+  }
+
+  private openRetagPalette(): void {
+    openPalette({
+      only: true,
+      placeholder: "Change to… (type any tag)",
+      source: retagPaletteRows(this.structure),
+    });
   }
 
   /**
@@ -850,6 +924,38 @@ export class AirshipApp {
         {
           id: "element.duplicate",
           run: () => this.panel.duplicateSelection(),
+          when: live,
+        },
+        // Add needs no selection to open: the library says where things go, and
+        // refuses with a toast if there is still nowhere to put one.
+        {
+          id: "element.add",
+          run: () => this.openAddPalette(),
+          when: () => this.editing,
+        },
+        {
+          id: "element.wrapDiv",
+          run: () => this.structure.wrap("div"),
+          when: live,
+        },
+        {
+          id: "element.wrapFlex",
+          run: () => this.structure.wrap("div", FLEX_WRAPPER_STYLE),
+          when: live,
+        },
+        {
+          id: "element.wrapIn",
+          run: () => this.openWrapPalette(),
+          when: live,
+        },
+        {
+          id: "element.unwrap",
+          run: () => this.structure.unwrap(),
+          when: live,
+        },
+        {
+          id: "element.changeTag",
+          run: () => this.openRetagPalette(),
           when: live,
         },
         // Both spellings of the same command, now that Text is no longer a tool
@@ -1111,6 +1217,37 @@ export class AirshipApp {
         icon: "minus",
         label: "Delete",
         run: () => this.panel.removeSelection(),
+      },
+      { separator: true },
+      {
+        command: "element.add",
+        icon: "plus",
+        label: "Add element…",
+        run: () => this.openAddPalette(),
+      },
+      {
+        command: "element.wrapDiv",
+        icon: "layer-frame",
+        label: "Wrap in div",
+        run: () => this.structure.wrap("div"),
+      },
+      {
+        command: "element.wrapIn",
+        icon: "layer-group",
+        label: "Wrap in…",
+        run: () => this.openWrapPalette(),
+      },
+      {
+        command: "element.unwrap",
+        icon: "minimize",
+        label: "Unwrap",
+        run: () => this.structure.unwrap(),
+      },
+      {
+        command: "element.changeTag",
+        icon: "proto-change-to",
+        label: "Change tag…",
+        run: () => this.openRetagPalette(),
       },
       { separator: true },
       // Absent rather than disabled on the inline surface, where there is no
@@ -1977,6 +2114,7 @@ export class AirshipApp {
       undoGroup,
       sep(),
       toolGroup,
+      this.buildAddGroup(),
       sep(),
       inspectGroup,
       sep(),
@@ -2327,6 +2465,27 @@ export class AirshipApp {
       this.leftOpen &&
       !(this.previewOpen || this.chatBody.classList.contains(cls("hidden")))
     );
+  }
+
+  /**
+   * The Add button — Webflow's `A`. Beside Move rather than in its own zone:
+   * both answer "what am I about to put on the page", and a designer looks for
+   * the plus next to the pointer.
+   */
+  private buildAddGroup(): HTMLElement {
+    return el("div", { class: cls("tool-group") }, [
+      el(
+        "button",
+        {
+          "aria-label": "Add element",
+          class: cls("tool"),
+          ...tip("Add element", "element.add"),
+          onClick: () => this.openAddPalette(),
+          type: "button",
+        },
+        [icon("plus", "sm")]
+      ),
+    ]);
   }
 
   private buildHandGroup(): HTMLElement {
@@ -3534,11 +3693,11 @@ export class AirshipApp {
       });
     }
     for (const entry of this.structureSet.entries()) {
-      const verb = entry.op === "delete" ? "deleted" : "duplicated";
+      const verb = structureVerb(entry);
       chips.push({
         detail: verb,
         icon: entry.op === "delete" ? "minus" : "plus",
-        onRemove: () => this.panel.discardOneStructure(entry.node),
+        onRemove: () => this.panel.discardOneStructure(entry.node, entry),
         subject: chipLabel(entry.element),
         tip: `${chipLabel(entry.element)} · ${verb}`,
       });
@@ -4761,6 +4920,26 @@ function readPx(node: HTMLElement, name: string, fallback: number): number {
 /** The element itself ("Heading"), not the component it sits in ("Home"). */
 function chipLabel(e: ElementContext): string {
   return tagWord(e.tagName);
+}
+
+/** What a structure chip says happened. An insert names what was added. */
+function structureVerb(entry: StructureRecord): string {
+  switch (entry.op) {
+    case "delete":
+      return "deleted";
+    case "duplicate":
+      return "duplicated";
+    case "insert":
+      return `added ${tagWord(entry.node.tagName)}`;
+    case "wrap":
+      return `wrapped in ${entry.node.tagName.toLowerCase()}`;
+    case "unwrap":
+      return "unwrapped";
+    case "retag":
+      return `now ${entry.toTag ?? "a new tag"}`;
+    default:
+      return entry.op;
+  }
 }
 
 function changeSummary(
