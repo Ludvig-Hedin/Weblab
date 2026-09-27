@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
@@ -48,16 +50,20 @@ export const AuthButton = () => {
     const isSignedIn = mounted ? resolvedSignedIn : null;
     const t = useTranslations('nav.user');
     const tLocal = useTranslations('localApp.nav');
+    // Local-app mode: only show Projects + avatar for an allowlisted account.
+    // `users.me` is null for blocked accounts, so their avatar menu (which
+    // runs owner-only queries) never mounts.
+    const localUser = useQuery(api.users.me, IS_LOCAL_APP_MODE && isSignedIn ? {} : 'skip');
     if (IS_LOCAL_APP_MODE) {
         // Local-app mode: no sign-in or sign-up entry. The allowlisted owner
         // still gets Projects + avatar once signed in via /sign-in directly.
         return (
             <div className="mt-0 flex items-center gap-3">
-                {isSignedIn && (
+                {isSignedIn && localUser && (
                     <>
                         <AnimatedButton
                             href={Routes.PROJECTS}
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
                             className="hidden rounded-full lg:inline-flex"
                         >

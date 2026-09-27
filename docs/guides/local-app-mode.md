@@ -84,7 +84,10 @@ Three layers, from strongest to friendliest:
 3. **Next.js:** `getCurrentUser()` returns `null` for emails not on the list,
    so protected pages send them to `/sign-in`. There, a signed-in but blocked
    account sees an invite-only panel with Download and Sign out. The email code
-   form refuses to create new accounts in local mode.
+   form refuses to create new accounts, and the Google / GitHub / Vercel
+   buttons are hidden (OAuth could create accounts). The owner signs in with
+   an email code. The top bar shows Projects + avatar only for an allowlisted
+   account.
 
 Helpers: `convex/lib/signInAllowlist.ts` (tested in `signInAllowlist.test.ts`).
 
