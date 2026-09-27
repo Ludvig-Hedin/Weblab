@@ -10,6 +10,7 @@ import { Icons } from '@weblab/ui/icons';
 import { AnimatedButton, StaggerText } from '@/app/_components/landing-page/animated';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { isClerkMode, useSafeClerkAuth } from '@/utils/auth/safe-clerk';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { Routes } from '@/utils/constants';
@@ -46,6 +47,37 @@ export const AuthButton = () => {
         : hasAuthCookie;
     const isSignedIn = mounted ? resolvedSignedIn : null;
     const t = useTranslations('nav.user');
+    const tLocal = useTranslations('localApp.nav');
+    if (IS_LOCAL_APP_MODE) {
+        // Local-app mode: no sign-in or sign-up entry. The allowlisted owner
+        // still gets Projects + avatar once signed in via /sign-in directly.
+        return (
+            <div className="mt-0 flex items-center gap-3">
+                {isSignedIn && (
+                    <>
+                        <AnimatedButton
+                            href={Routes.PROJECTS}
+                            variant="ghost"
+                            size="sm"
+                            className="hidden rounded-full lg:inline-flex"
+                        >
+                            {t('projects')}
+                        </AnimatedButton>
+                        <CurrentUserAvatar className="cursor-pointer hover:opacity-80" />
+                    </>
+                )}
+                <AnimatedButton
+                    href={LOCAL_APP_DOWNLOAD_URL}
+                    variant="default"
+                    size="sm"
+                    className="rounded-full"
+                    leadingIcon={<Icons.Download className="h-3.5 w-3.5" />}
+                >
+                    {tLocal('download')}
+                </AnimatedButton>
+            </div>
+        );
+    }
     return (
         <div className="mt-0 flex items-center gap-3">
             <Button

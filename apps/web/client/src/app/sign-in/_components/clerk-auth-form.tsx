@@ -18,6 +18,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { LocalForageKeys } from '@/utils/constants';
 
 // Per-tab key used to hand the email off to /sign-in/verify without putting
@@ -486,6 +487,10 @@ export function ClerkAuthForm({
                 // email" error. Anything else (network, rate limit, identifier
                 // invalid) we propagate so the outer catch shows it.
                 if (code !== 'form_identifier_not_found') throw flowError;
+                // Local-app mode is invite-only: never create new accounts.
+                if (IS_LOCAL_APP_MODE) {
+                    throw { errors: [{ message: t('localApp.signIn.inviteOnly') }] };
+                }
                 await signUpResource.create({ emailAddress: normalizedEmail });
                 await signUpResource.prepareEmailAddressVerification({
                     strategy: 'email_code',

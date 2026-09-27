@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 
 import { BrandSymbol, BrandWordmark } from '@weblab/ui/brand';
 
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { StaggerText } from './animated';
 import { ContactLink } from './contact-link';
@@ -39,6 +40,7 @@ function FooterLink({
 
 export function Footer() {
     const t = useTranslations('landing.footer');
+    const tLocal = useTranslations('localApp.nav');
 
     return (
         <footer className="text-foreground-primary border-foreground-primary/10 mt-24 w-full border-t">
@@ -127,44 +129,56 @@ export function Footer() {
                                         {t('resources.changelog.label')}
                                     </FooterLink>
                                 </li>
-                                <li>
-                                    <FooterLink
-                                        href={Routes.COMPARE}
-                                        title={t('resources.compare.title')}
-                                    >
-                                        {t('resources.compare.label')}
-                                    </FooterLink>
-                                </li>
+                                {!IS_LOCAL_APP_MODE && (
+                                    <li>
+                                        <FooterLink
+                                            href={Routes.COMPARE}
+                                            title={t('resources.compare.title')}
+                                        >
+                                            {t('resources.compare.label')}
+                                        </FooterLink>
+                                    </li>
+                                )}
                             </ul>
                         </div>
 
                         <div>
                             <h3 className={headingClass}>{t('product.title')}</h3>
                             <ul className={columnClass}>
+                                {!IS_LOCAL_APP_MODE && (
+                                    <li>
+                                        <FooterLink
+                                            href={Routes.PRICING}
+                                            title={t('product.pricing.title')}
+                                        >
+                                            {t('product.pricing.label')}
+                                        </FooterLink>
+                                    </li>
+                                )}
                                 <li>
-                                    <FooterLink
-                                        href={Routes.PRICING}
-                                        title={t('product.pricing.title')}
-                                    >
-                                        {t('product.pricing.label')}
-                                    </FooterLink>
+                                    {IS_LOCAL_APP_MODE ? (
+                                        <FooterLink href={LOCAL_APP_DOWNLOAD_URL}>
+                                            {tLocal('download')}
+                                        </FooterLink>
+                                    ) : (
+                                        <FooterLink
+                                            href={Routes.DOWNLOAD}
+                                            title={t('product.download.title')}
+                                        >
+                                            {t('product.download.label')}
+                                        </FooterLink>
+                                    )}
                                 </li>
-                                <li>
-                                    <FooterLink
-                                        href={Routes.DOWNLOAD}
-                                        title={t('product.download.title')}
-                                    >
-                                        {t('product.download.label')}
-                                    </FooterLink>
-                                </li>
-                                <li>
-                                    <FooterLink
-                                        href={Routes.PROJECTS}
-                                        title={t('product.myProjects.title')}
-                                    >
-                                        {t('product.myProjects.label')}
-                                    </FooterLink>
-                                </li>
+                                {!IS_LOCAL_APP_MODE && (
+                                    <li>
+                                        <FooterLink
+                                            href={Routes.PROJECTS}
+                                            title={t('product.myProjects.title')}
+                                        >
+                                            {t('product.myProjects.label')}
+                                        </FooterLink>
+                                    </li>
+                                )}
                             </ul>
                         </div>
 

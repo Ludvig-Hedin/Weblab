@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { FEATURE_BACKDROP_SRCS, FeatureBackdrop } from './feature-backdrop';
 import { ClaudeIcon, DeepSeekIcon, GeminiIcon, KimiIcon, OpenAIIcon } from './provider-icons';
 
@@ -144,13 +145,18 @@ const TERMINAL_RUNS = [
     },
 ];
 
+// Local-app mode drops the `weblab deploy` run: there is no Weblab hosting.
+const VISIBLE_TERMINAL_RUNS = IS_LOCAL_APP_MODE
+    ? TERMINAL_RUNS.filter((run) => !run.cmd.startsWith('weblab deploy'))
+    : TERMINAL_RUNS;
+
 function TerminalVisual() {
     const [runIdx, setRunIdx] = useState(0);
     const [charCount, setCharCount] = useState(0);
     const [visibleLines, setVisibleLines] = useState(0);
     const [paused, setPaused] = useState(false);
 
-    const run = TERMINAL_RUNS[runIdx]!;
+    const run = VISIBLE_TERMINAL_RUNS[runIdx]!;
 
     useEffect(() => {
         if (paused) return;
@@ -168,7 +174,7 @@ function TerminalVisual() {
         const id = setTimeout(() => {
             setCharCount(0);
             setVisibleLines(0);
-            setRunIdx((i) => (i + 1) % TERMINAL_RUNS.length);
+            setRunIdx((i) => (i + 1) % VISIBLE_TERMINAL_RUNS.length);
         }, 2400);
         return () => clearTimeout(id);
     }, [charCount, visibleLines, paused, run.cmd.length, run.lines]);

@@ -118,6 +118,10 @@ export const env = createEnv({
         // Firecrawl
         FIRECRAWL_API_KEY: z.string().optional(),
 
+        // Comma-separated emails allowed to sign in while NEXT_PUBLIC_SITE_MODE
+        // is 'local'. Ignored in cloud mode.
+        WEBLAB_SIGN_IN_ALLOWLIST: z.string().default('ludvighedin15@gmail.com'),
+
         // Exa
         EXA_API_KEY: z.string().optional(),
 
@@ -213,6 +217,19 @@ export const env = createEnv({
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
         NEXT_PUBLIC_APP_DOMAIN: z.string().default('weblab.build'),
+        // Site mode. 'cloud' (default) = the full hosted Weblab web app.
+        // 'local' = the marketing site only promotes the Mac app (weblab-local):
+        // no sign-up, no pricing, no cloud-only claims, and sign-in is limited
+        // to WEBLAB_SIGN_IN_ALLOWLIST. Build-time (inlined into the bundle), so
+        // flipping it needs a redeploy. See docs/guides/local-app-mode.md.
+        NEXT_PUBLIC_SITE_MODE: z.enum(['cloud', 'local']).default('cloud'),
+        // Direct .dmg link used by every Download button in local mode.
+        NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL: z
+            .string()
+            .url()
+            .default(
+                'https://github.com/Ludvig-Hedin/airship/releases/latest/download/Weblab-mac-arm64.dmg',
+            ),
         // Tri-state SW opt-in. Empty = production-only (default). 'true'
         // forces registration even in dev (for QAing offline locally).
         // 'false' disables SW entirely.
@@ -301,6 +318,9 @@ export const env = createEnv({
         // Brand
         NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
         NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN,
+        NEXT_PUBLIC_SITE_MODE: process.env.NEXT_PUBLIC_SITE_MODE,
+        NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL: process.env.NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL,
+        WEBLAB_SIGN_IN_ALLOWLIST: process.env.WEBLAB_SIGN_IN_ALLOWLIST,
         NEXT_PUBLIC_ENABLE_SW: process.env.NEXT_PUBLIC_ENABLE_SW,
 
         // Hosting

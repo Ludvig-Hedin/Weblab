@@ -1,5 +1,7 @@
 import { type NextRequest } from 'next/server';
 
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
+
 /**
  * First-party desktop-app download endpoint.
  *
@@ -28,6 +30,13 @@ export async function GET(
     { params }: { params: Promise<{ platform: string }> },
 ) {
     const { platform } = await params;
+    // Local-app mode: the only build is the Apple Silicon Mac app.
+    if (IS_LOCAL_APP_MODE) {
+        if (platform === 'mac') return Response.redirect(LOCAL_APP_DOWNLOAD_URL, 302);
+        return new Response('Not available yet. Weblab runs on Apple Silicon Macs for now.', {
+            status: 404,
+        });
+    }
     const asset = PLATFORM_ASSETS[platform];
     if (!asset) {
         return new Response('Unknown platform', { status: 404 });

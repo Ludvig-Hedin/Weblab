@@ -12,9 +12,11 @@ import { useAuthContext } from '@/app/auth/auth-context';
 import { PROJECT_SUGGESTIONS } from '@/app/projects/_components/select';
 import { SplitText } from '@/components/motion/split-text';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { Routes } from '@/utils/constants';
 import { Create } from './hero/create';
 import { HighDemand } from './hero/high-demand';
+import { LocalAppHeroIntro } from './hero/local-app-hero-intro';
 import { AnimatedButton } from './landing-page/animated';
 import { WeblabInterfaceMockup } from './landing-page/weblab-interface-mockup';
 
@@ -28,7 +30,10 @@ export function HeroV2() {
     // Skip the user fetch on anonymous landing visits. The CTA falls back
     // to opening the auth modal when there's no user, so we don't need to
     // pre-fetch identity until the visitor signs in.
-    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
+    const user = useQuery(
+        api.users.me,
+        hasAuthCookie === true && !IS_LOCAL_APP_MODE ? {} : 'skip',
+    );
     const { redirectToSignIn } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
@@ -49,6 +54,9 @@ export function HeroV2() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
         >
+            {IS_LOCAL_APP_MODE ? (
+                <LocalAppHeroIntro />
+            ) : (
             <section className="grid w-full max-w-6xl grid-cols-1 items-start gap-10 px-4 sm:px-6 md:grid-cols-2 md:px-8 lg:gap-12">
                 <div className="flex w-full max-w-[545px] flex-col items-start gap-3 lg:justify-self-start">
                     <SplitText
@@ -138,6 +146,7 @@ export function HeroV2() {
                     <HighDemand />
                 </div>
             </section>
+            )}
 
             {/* Editor demo: contained backdrop band, max-w-[1400px] centered.
                 44px top + side padding, no bottom so card sits flush.

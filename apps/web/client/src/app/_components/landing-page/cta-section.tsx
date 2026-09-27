@@ -8,6 +8,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { Reveal } from '@/components/motion/reveal';
 import { SplitText } from '@/components/motion/split-text';
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { AnimatedButton } from './animated';
 
 interface CTASectionProps {
@@ -20,14 +21,20 @@ interface CTASectionProps {
 export function CTASection({ href, onClick, ctaText, buttonText }: CTASectionProps = {}) {
     const router = useRouter();
     const t = useTranslations('landing.cta');
+    const tLocal = useTranslations('localApp.nav');
 
     const headingLines = ctaText
         ? ctaText.split('\n')
         : [t('defaultHeadingLine1'), t('defaultHeadingLine2')];
-    const resolvedButton = buttonText ?? t('defaultButton');
+    const resolvedButton = IS_LOCAL_APP_MODE
+        ? tLocal('download')
+        : (buttonText ?? t('defaultButton'));
 
     const handleGetStartedClick = () => {
-        if (onClick) {
+        // Local-app mode: every CTA downloads the Mac app instead of sign-up.
+        if (IS_LOCAL_APP_MODE) {
+            window.location.href = LOCAL_APP_DOWNLOAD_URL;
+        } else if (onClick) {
             onClick();
         } else if (href) {
             if (href.startsWith('http')) {
@@ -67,7 +74,11 @@ export function CTASection({ href, onClick, ctaText, buttonText }: CTASectionPro
                     <AnimatedButton
                         variant="default"
                         className="rounded-full px-4"
-                        onClick={href === '/' ? handleHomepageNavigation : handleGetStartedClick}
+                        onClick={
+                            href === '/' && !IS_LOCAL_APP_MODE
+                                ? handleHomepageNavigation
+                                : handleGetStartedClick
+                        }
                         icon={<Icons.ArrowRight className="h-4 w-4" />}
                     >
                         {resolvedButton}

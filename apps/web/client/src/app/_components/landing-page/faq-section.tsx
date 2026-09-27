@@ -5,6 +5,7 @@ import { APP_NAME } from '@weblab/constants';
 import { Icons } from '@weblab/ui/icons';
 
 import { Reveal } from '@/components/motion/reveal';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { Routes } from '@/utils/constants';
 import { ButtonLink } from '../button-link';
 import { FAQDropdown } from './faq-dropdown';
@@ -21,6 +22,19 @@ interface FAQSectionProps {
     buttonHref?: string;
     className?: string;
 }
+
+// Local-app mode: answers that are true for the Mac app (no cloud, no
+// collaboration, no hosting). Copy lives under `localApp.faq.items`.
+const LOCAL_APP_FAQ_KEYS = [
+    'what',
+    'agents',
+    'stack',
+    'code',
+    'mac',
+    'privacy',
+    'free',
+    'ownership',
+] as const;
 
 const FAQ_KEYS = [
     'what',
@@ -48,12 +62,22 @@ export function FAQSection({
         values?: Record<string, string>,
     ) => string;
 
+    const tLocal = useTranslations('localApp.faq') as (
+        key: string,
+        values?: Record<string, string>,
+    ) => string;
+
     const resolvedFaqs: FAQ[] =
         faqs ??
-        FAQ_KEYS.map((key) => ({
-            question: t(`items.${key}.question`, { appName: APP_NAME }),
-            answer: t(`items.${key}.answer`, { appName: APP_NAME }),
-        }));
+        (IS_LOCAL_APP_MODE
+            ? LOCAL_APP_FAQ_KEYS.map((key) => ({
+                  question: tLocal(`items.${key}.question`, { appName: APP_NAME }),
+                  answer: tLocal(`items.${key}.answer`, { appName: APP_NAME }),
+              }))
+            : FAQ_KEYS.map((key) => ({
+                  question: t(`items.${key}.question`, { appName: APP_NAME }),
+                  answer: t(`items.${key}.answer`, { appName: APP_NAME }),
+              })));
 
     const resolvedTitle = title ?? `${t('titleLine1')}\n${t('titleLine2')}`;
     const resolvedButton = buttonText ?? t('readMore');
@@ -76,6 +100,9 @@ export function FAQSection({
                             </React.Fragment>
                         ))}
                     </Reveal>
+                    {/* The full /faq page describes the cloud app, so local-app
+                        mode redirects it home and hides this link. */}
+                    {!IS_LOCAL_APP_MODE && (
                     <Reveal delay={0.15}>
                         <ButtonLink
                             href={buttonHref}
@@ -84,6 +111,7 @@ export function FAQSection({
                             {resolvedButton}
                         </ButtonLink>
                     </Reveal>
+                    )}
                 </div>
                 <Reveal delay={0.1} className="flex flex-1 flex-col gap-6">
                     <FAQDropdown faqs={resolvedFaqs} />

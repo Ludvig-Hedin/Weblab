@@ -590,6 +590,7 @@ Per package (F-680 … F-705) at least one smoke test.
 | T-823 | F-792 | U | Order/slug helpers (`convex/lib/wireframeOrder.test.ts`) | `slugify` (never empty), `dedupeSlug`, `nextOrder`, `moveInArray` (immutable + clamped), `reindex` dense 0..n | `[x]` |
 | T-824 | F-791, F-790 | U | Style-guide helpers (`packages/wireframe-blocks/src/style-guide.test.ts`) | `asStyleGuideTokens` narrows JSON; `styleGuideToCssVars` emits set tokens + body font only; `styleGuideToGlobalsAppend` produces `:root` override + font rules, empty for `{}` | `[x]` |
 | T-825 | F-790, F-791, F-793 | E (auth + project) | brief → Generate sitemap (<30s) → edit → Generate wireframes (every section a real block) → edit copy → refresh (stable) → Style Guide generate + apply → Design styled → Create code → editor opens bootable project | All steps succeed; copy editable; persisted across refresh; emitted project boots | `[ ]` manual |
+| T-850 | F-810 | U + E | `convex/lib/signInAllowlist.test.ts`; build with `NEXT_PUBLIC_SITE_MODE=local` → visit `/`, `/pricing`, `/download`, `/sign-in` signed out, signed in as a non-listed account, signed in as owner | Unit: allowlist parsing + env gate. E2E: hero shows Download for Mac only; `/pricing` → `/`; download is one Mac button; new email on OTP form shows invite-only error; non-listed account sees invite-only panel; owner reaches `/projects` | `[ ]` manual (unit `[x]`) |
 
 ---
 
