@@ -29,6 +29,15 @@ describe("placePopover beside", () => {
     expect(menu.style.top).toBe("200px");
   });
 
+  it("keeps the user's scroll position when it re-places", () => {
+    const menu = menuOf(280, 300);
+    menu.scrollTop = 120;
+    placePopover(menu, new DOMRect(1000, 200, 200, 24), "below", {
+      beside: 960,
+    });
+    expect(menu.scrollTop).toBe(120);
+  });
+
   it("falls back to below when there is no room on the left", () => {
     const menu = menuOf(280, 100);
     placePopover(menu, new DOMRect(100, 200, 200, 24), "below", {

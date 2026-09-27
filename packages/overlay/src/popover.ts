@@ -56,6 +56,9 @@ export function placePopover(
   opts: PlaceOptions = {}
 ): void {
   const { align = "start", minWidth, scroll = true } = opts;
+  // Clearing the cap below stops the shell overflowing, which resets its
+  // scroll; a re-place while the user is scrolled down must not jump them up.
+  const keepScroll = menu.scrollTop;
 
   if (minWidth) {
     menu.style.minWidth = `${minWidth}px`;
@@ -95,6 +98,7 @@ export function placePopover(
 
   if (opts.beside !== undefined && opts.beside - GAP - width >= MARGIN) {
     placeBeside(menu, anchor, opts.beside - GAP - width, height, scroll);
+    menu.scrollTop = keepScroll;
     return;
   }
 
@@ -129,6 +133,7 @@ export function placePopover(
   const clampedTop = clamp(top, MARGIN, window.innerHeight - MARGIN - shown);
   menu.style.left = `${Math.round(left - originX)}px`;
   menu.style.top = `${Math.round(clampedTop - originY)}px`;
+  menu.scrollTop = keepScroll;
 }
 
 /** The `beside` placement: left of a dock, top level with the anchor. */

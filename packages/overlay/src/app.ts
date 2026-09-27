@@ -715,7 +715,11 @@ export class AirshipApp {
    * swap its picture. Armed and consumed the way `pendingTextEdit` is, because
    * the Media row it goes through is only built when the selection lands.
    */
-  private pendingImageAction: { node: Element; run: () => void } | null = null;
+  private pendingImageAction: {
+    cancel?: () => void;
+    node: Element;
+    run: () => void;
+  } | null = null;
   /** An image upload is in flight; a second drop or paste waits for it. */
   private imageBusy = false;
 
@@ -2622,6 +2626,7 @@ export class AirshipApp {
     // picker already detached.
     this.panel.endTextEdit();
     this.pendingTextEdit = null;
+    this.dropPendingImageAction();
     this.editing = on;
     this.editBtn?.classList.toggle(cls("seg-on"), on);
     this.viewBtn?.classList.toggle(cls("seg-on"), !on);
@@ -3236,6 +3241,8 @@ export class AirshipApp {
     if (imageAction && imageAction.node === sel.node) {
       this.showImageRow();
       imageAction.run();
+    } else {
+      imageAction?.cancel?.();
     }
     this.renderComposerChips();
   }
@@ -3334,15 +3341,28 @@ export class AirshipApp {
   private withImageSelected(
     node: Element,
     run: () => void,
-    surface?: Surface
+    surface?: Surface,
+    cancel?: () => void
   ): void {
     if (this.selected?.node === node) {
       this.showImageRow();
       run();
       return;
     }
-    this.pendingImageAction = { node, run };
+    this.dropPendingImageAction();
+    this.pendingImageAction = { cancel, node, run };
     this.controller.select(node, surface, "replace");
+  }
+
+  /**
+   * Forget an armed image action. Wherever a pending text edit is dropped this
+   * is too, for the same reason: a selection that never lands would otherwise
+   * leave it armed, and a much later click on that image would run it.
+   */
+  private dropPendingImageAction(): void {
+    const pending = this.pendingImageAction;
+    this.pendingImageAction = null;
+    pending?.cancel?.();
   }
 
   /** Double-click and "Replace image…": open the image picker. */
@@ -3366,7 +3386,15 @@ export class AirshipApp {
     surface?: Surface
   ): void {
     if ("url" in source) {
-      this.withImageSelected(node, () => applyImageUrl(source.url), surface);
+      this.withImageSelected(
+        node,
+        () => {
+          if (!applyImageUrl(source.url)) {
+            toast("This image can't be replaced here", { tone: "error" });
+          }
+        },
+        surface
+      );
       return;
     }
     // One upload at a time: a second drop while the first is still on its
@@ -3376,37 +3404,41 @@ export class AirshipApp {
       return;
     }
     this.imageBusy = true;
-    let started = false;
-    this.withImageSelected(
-      node,
-      () => {
-        started = true;
-        replaceImageFromFile(source.file)
-          .then((done) => {
-            if (!done) {
-              toast("Select an image to replace it", { tone: "error" });
-            }
-          })
-          .catch((error: unknown) => {
-            toast(
-              error instanceof Error
-                ? error.message
-                : "The upload did not go through.",
-              { tone: "error" }
-            );
-          })
-          .finally(() => {
-            this.imageBusy = false;
-          });
-      },
-      surface
-    );
-    // The selection may never land (the node went away, or another click
-    // won). Do not stay busy for an upload that never started.
-    setTimeout(() => {
-      if (!started) {
+    let settled = false;
+    const release = (): void => {
+      if (!settled) {
+        settled = true;
         this.imageBusy = false;
       }
+    };
+    const run = (): void => {
+      settled = true;
+      replaceImageFromFile(source.file)
+        .then((done) => {
+          if (!done) {
+            toast("This image can't be replaced here", { tone: "error" });
+          }
+        })
+        .catch((error: unknown) => {
+          toast(
+            error instanceof Error
+              ? error.message
+              : "The upload did not go through.",
+            { tone: "error" }
+          );
+        })
+        .finally(() => {
+          this.imageBusy = false;
+        });
+    };
+    this.withImageSelected(node, run, surface, release);
+    // The selection may never land (the node went away). Do not stay busy, or
+    // armed, for an upload that never started.
+    setTimeout(() => {
+      if (this.pendingImageAction?.run === run) {
+        this.dropPendingImageAction();
+      }
+      release();
     }, 5000);
   }
 
@@ -3783,6 +3815,7 @@ export class AirshipApp {
     // `extract` that resolves after a deselect is exactly the case the
     // generation guard in `select` drops — so nothing would ever consume it.
     this.pendingTextEdit = null;
+    this.dropPendingImageAction();
     this.controller.clearSelection();
     this.panel.setSelection(null);
     this.renderComposerChips();

@@ -7,6 +7,7 @@ import {
   dragKind,
   droppedImage,
   imageTargetOf,
+  isSwappableImage,
 } from "./image-drop";
 
 /** A stand-in for the browser's DataTransfer, which happy-dom lacks. */
@@ -52,6 +53,13 @@ describe("imageTargetOf", () => {
     const section = document.querySelector("section");
     expect(imageTargetOf(section)).toBe(section);
     expect(imageTargetOf(document.querySelector("h1"))).toBe(section);
+  });
+
+  it("skips an <img> whose <picture> sources decide what it shows", () => {
+    document.body.innerHTML = `<picture><source srcset="/a.avif"><img src="/a.png"></picture>`;
+    const img = document.querySelector("img");
+    expect(imageTargetOf(img)).toBeNull();
+    expect(img && isSwappableImage(img)).toBe(false);
   });
 
   it("rejects plain text", () => {

@@ -46,7 +46,23 @@ export interface ImageDropDeps {
 
 /** An element whose picture the image editor can swap. */
 export function isSwappableImage(node: Element): boolean {
-  return isRasterImage(node) || hasBackgroundImage(node);
+  if (isRasterImage(node)) {
+    // `<source srcset>` siblings decide what a `<picture>` paints, so a new
+    // `src` would change nothing on screen; the Media section says so instead.
+    return !hasResponsiveSources(node);
+  }
+  return hasBackgroundImage(node);
+}
+
+function hasResponsiveSources(img: Element): boolean {
+  const parent = img.parentElement;
+  return (
+    parent?.tagName.toUpperCase() === "PICTURE" &&
+    Array.from(parent.children).some(
+      (child) =>
+        child.tagName.toUpperCase() === "SOURCE" && child.hasAttribute("srcset")
+    )
+  );
 }
 
 /**
@@ -62,7 +78,7 @@ export function imageTargetOf(node: Element | null): Element | null {
     return null;
   }
   if (isRasterImage(node)) {
-    return node;
+    return isSwappableImage(node) ? node : null;
   }
   const body = node.ownerDocument?.body;
   for (let at: Element | null = node; at && at !== body; ) {
