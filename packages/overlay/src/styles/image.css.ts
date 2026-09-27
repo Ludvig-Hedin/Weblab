@@ -89,8 +89,31 @@ export const css = `
 }
 
 /* ---- The popover ------------------------------------------------------- */
-/* 236px, the width every settings popover in the panel shares. */
-.${PREFIX}-pop-img { width: 236px; }
+/* Wider than the 236px settings popovers: it carries a preview and a picker,
+   and at 236 the Type row's four words ran out of room. The canvas surface
+   behind it, one step darker than the dock it hangs beside, so the fields and
+   thumbnails read against it. */
+.${PREFIX}-pop.${PREFIX}-pop-img {
+  width: 280px;
+  background: var(--ap-surface-canvas);
+  border-color: var(--ap-border-strong);
+}
+.${PREFIX}-pop-img > .${PREFIX}-pop-bar {
+  margin-bottom: 0;
+  padding-inline: var(--ap-space-base);
+  background: var(--ap-surface-canvas);
+}
+.${PREFIX}-pop-img .${PREFIX}-pop-form {
+  gap: var(--ap-control-group-gap);
+  padding: var(--ap-space-base);
+}
+/* Type fills its row in equal cells, so no word is ever clipped. */
+.${PREFIX}-pop-img .${PREFIX}-row > .${PREFIX}-ctl-seg {
+  flex: 1 1 auto; min-width: 0; flex-wrap: nowrap;
+}
+.${PREFIX}-pop-img .${PREFIX}-ctl-seg > .${PREFIX}-ctl-seg-btn {
+  flex: 1 1 0; min-width: 0; padding-inline: var(--ap-space-xxs);
+}
 .${PREFIX}-img-file { display: none; }
 
 .${PREFIX}-img-preview {
@@ -180,14 +203,15 @@ export const css = `
 
 /* Project images. */
 .${PREFIX}-img-lib-head {
-  padding-top: var(--ap-control-row-gap);
+  margin-top: var(--ap-space-xxs);
+  padding-top: var(--ap-control-group-gap);
   border-top: 1px solid var(--ap-border-default);
   font-family: var(--ap-font-sans); font-weight: 500;
   font-size: var(--ap-font-size-body); color: var(--ap-text-secondary);
 }
 .${PREFIX}-img-grid {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--ap-control-field-gap);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ap-space-xs);
 }
 .${PREFIX}-img-tile {
   position: relative; aspect-ratio: 1; min-width: 0; padding: 0; overflow: hidden;

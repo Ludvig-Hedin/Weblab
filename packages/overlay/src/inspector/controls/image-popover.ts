@@ -632,6 +632,13 @@ export function openImagePopover(
     );
 
   function renderGrid(): void {
+    // The grid is the popover's height; re-place once it has laid out so a
+    // list that arrives late cannot push the bottom off screen.
+    queueMicrotask(() => {
+      if (!closed) {
+        handle.reposition();
+      }
+    });
     gridNote.replaceChildren();
     searchField.element.hidden = !(images && images.length > SEARCH_THRESHOLD);
     if (listError) {
@@ -906,8 +913,17 @@ export function openImagePopover(
   // Opened from the keyboard (or a click, which focuses the anchor too), the
   // next key should act inside the popover rather than back in the panel.
   const openedFromAnchor = document.activeElement === anchor;
+  // Beside the dock, like Figma's and Framer's fill popovers, when the dock is
+  // on the right. A left dock has the canvas on its other side, so it keeps
+  // the ordinary placement.
+  const dock = anchor.closest<HTMLElement>(`.${cls("dock")}`);
+  const besideOf =
+    dock && dock.getBoundingClientRect().left > window.innerWidth / 2
+      ? dock
+      : undefined;
   const handle = openPopover({
     anchor,
+    besideOf,
     className: "pop-img",
     content,
     onClose: (reason) => {

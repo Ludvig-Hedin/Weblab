@@ -13,6 +13,14 @@ export interface PlaceOptions {
    * straight off the side of a 360px dock.
    */
   align?: "end" | "start";
+  /**
+   * Open to the left of this x instead of above or below the anchor, top edge
+   * level with the anchor's. For settings a dock control opens: Figma and
+   * Framer hang them beside the panel, so the panel stays readable and the
+   * popover sits next to the canvas it edits. Falls back to `prefer` when the
+   * room to the left is too narrow.
+   */
+  beside?: number;
   /** Floor for the popover's width, so a menu is never narrower than readable. */
   minWidth?: number;
   /**
@@ -85,6 +93,11 @@ export function placePopover(
   const height = menu.scrollHeight + chrome;
   const width = menu.offsetWidth;
 
+  if (opts.beside !== undefined && opts.beside - GAP - width >= MARGIN) {
+    placeBeside(menu, anchor, opts.beside - GAP - width, height, scroll);
+    return;
+  }
+
   const roomAbove = anchor.top - GAP - MARGIN;
   const roomBelow = window.innerHeight - anchor.bottom - GAP - MARGIN;
   // Flip only when the preferred side cannot hold it and the other side is
@@ -116,6 +129,25 @@ export function placePopover(
   const clampedTop = clamp(top, MARGIN, window.innerHeight - MARGIN - shown);
   menu.style.left = `${Math.round(left - originX)}px`;
   menu.style.top = `${Math.round(clampedTop - originY)}px`;
+}
+
+/** The `beside` placement: left of a dock, top level with the anchor. */
+function placeBeside(
+  menu: HTMLElement,
+  anchor: DOMRect,
+  left: number,
+  height: number,
+  scroll: boolean
+): void {
+  const room = window.innerHeight - 2 * MARGIN;
+  const shown = scroll ? Math.min(height, room) : height;
+  menu.style.maxHeight = scroll ? `${shown}px` : "";
+  const parent = (
+    menu.offsetParent ?? menu.parentElement
+  )?.getBoundingClientRect();
+  const top = clamp(anchor.top, MARGIN, window.innerHeight - MARGIN - shown);
+  menu.style.left = `${Math.round(left - (parent?.left ?? 0))}px`;
+  menu.style.top = `${Math.round(top - (parent?.top ?? 0))}px`;
 }
 
 /*
