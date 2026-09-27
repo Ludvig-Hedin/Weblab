@@ -29,6 +29,7 @@ import {
   originMatchesHost,
   parseHostHeader,
 } from "./access";
+import { handleAssetsRequest, isAssetsRequest } from "./assets";
 import { escapeForScript, shellHtml } from "./shell";
 
 /** The only shape of font filename this server will read off disk. */
@@ -251,6 +252,11 @@ export interface ProxyDeps {
     socket: Duplex,
     head: Buffer
   ) => void;
+  /**
+   * The user's project root. Enables the image library API
+   * (`/__airship/api/assets`); without it that route answers 404.
+   */
+  projectRoot?: string;
   targetHost: string;
   targetPort: number;
   wsPath: string;
@@ -297,6 +303,11 @@ function handleHttp(
       "x-content-type-options": "nosniff",
     });
     res.end("Forbidden host\n");
+    return;
+  }
+
+  if (isAssetsRequest(req.url)) {
+    serveAssetsApi(req, res, deps.projectRoot);
     return;
   }
 
@@ -515,6 +526,24 @@ function serveCompressible(
   }
   res.writeHead(200, headers);
   res.end(out.body);
+}
+
+/** The image library API. Never proxied: it reads and writes the user's disk. */
+function serveAssetsApi(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  projectRoot: string | undefined
+): void {
+  if (!projectRoot) {
+    res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
+    res.end(
+      JSON.stringify({ error: "The image library is not available here." })
+    );
+    return;
+  }
+  handleAssetsRequest(req, res, { projectRoot }).catch(() => {
+    // handleAssetsRequest answers every failure itself.
+  });
 }
 
 function serveAirshipAsset(

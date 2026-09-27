@@ -908,3 +908,31 @@ export interface AirshipWindowConfig {
   pathname?: string;
   wsPath: string;
 }
+
+/** Path of the editor's image library API (GET lists, POST `?name=` adds). */
+export const AIRSHIP_ASSETS_PATH = "/__airship/api/assets";
+
+/** One image in the project's static folder, as the assets API reports it. */
+export interface AssetImage {
+  bytes: number;
+  /** Last modified, epoch milliseconds. */
+  modified: number;
+  /** File name alone: `hero.png`. */
+  name: string;
+  /** Project-relative, forward slashes: `public/images/hero.png`. */
+  path: string;
+  /** Where the dev server serves it: `/images/hero.png`, segments encoded. */
+  url: string;
+}
+
+/** `GET /__airship/api/assets`. Newest first. */
+export interface AssetListResponse {
+  images: AssetImage[];
+  /** The static folder, project-relative: `public` or `static`. */
+  root: string;
+}
+
+/** Any non-2xx answer from the assets API. */
+export interface AssetErrorResponse {
+  error: string;
+}

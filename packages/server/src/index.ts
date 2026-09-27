@@ -643,6 +643,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         wss.emit("connection", ws, req);
       });
     },
+    projectRoot: cwd,
     targetHost,
     targetPort: opts.targetPort,
     wsPath: WS_PATH,
