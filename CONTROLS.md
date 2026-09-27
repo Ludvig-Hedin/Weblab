@@ -28,6 +28,7 @@ the editor also answers to a plain `+` and `-`.
 | Edit text | ↩ or T | Enter or T | edit mode | Edit the selected element's text in place. |
 | Nudge | ← → ↑ ↓ | ← → ↑ ↓ | edit mode | Move the selected element one pixel. |
 | Nudge by ten | ⇧ ← → ↑ ↓ | ⇧ ← → ↑ ↓ | edit mode | Move the selected element ten pixels. |
+| Frame tool | F | F | edit mode | Drag on the page to draw a new box where you want it, as in Figma. |
 
 ## Selection
 
@@ -53,7 +54,7 @@ the editor also answers to a plain `+` and `-`.
 
 | Command | macOS | Windows / Linux | Where | |
 | --- | --- | --- | --- | --- |
-| Add a frame | F | F | canvas only | Open the device picker and place a new frame on the canvas. |
+| Add a frame | ⇧F | Shift+F | canvas only | Open the device picker and place a new frame on the canvas. |
 | Delete frame | ⌫ or Del | Backspace or Del | view mode, canvas only | Remove the active frame from the canvas. |
 | Bring frame forward | ↑ | ↑ | on a frame's handle | Move the frame up the stack, so it covers the ones it overlaps. |
 | Send frame backward | ↓ | ↓ | on a frame's handle | Move the frame down the stack, behind the ones it overlaps. |
@@ -108,6 +109,7 @@ the editor also answers to a plain `+` and `-`.
 | Scroll a frame | Wheel over the selected frame | Wheel over the selected frame | view mode, canvas only | A selected frame keeps the wheel to its own ends, so the canvas never lurches sideways. |
 | Select an element | Click | Click | edit mode | Hover highlights, click selects. |
 | Marquee-select | Drag from empty space | Drag from empty space | edit mode | Drag from empty space to band-select several elements. |
+| Draw a box | F, then drag on the page | F, then drag on the page | edit mode | With the Frame tool on, drag where the box should go. A click draws a 100 × 100 box. |
 | Edit text in place | Double-click | Double-click | edit mode | Opens the caret in the element itself, not in a field beside it. |
 | Open the element menu | Right-click | Right-click | edit mode | Verbs for the element you clicked, which it selects first. |
 | Measure spacing | ⌥-hover | Alt-hover | edit mode | Hold Alt and hover to read the distance to the element under the pointer. |

@@ -78,6 +78,18 @@ describe("tree disclosure", () => {
     expect(shows(panel, "KIDTEXT")).toBe(true);
   });
 
+  it("keeps the branches it opened open when the selection moves on", () => {
+    const kid = mount("span", { text: "KIDTEXT" });
+    mount("div", { children: [kid] });
+    const other = mount("div");
+    const panel = domTab(kid);
+
+    // An undo moves or drops the selection; the structure the user was
+    // working in must still be showing, not folded back to the root.
+    panel.setSelection(selectionOf(other));
+    expect(shows(panel, "KIDTEXT")).toBe(true);
+  });
+
   it("re-opens on selecting the node afresh after visiting another", () => {
     const kid = mount("span", { text: "KIDTEXT" });
     const parent = mount("div", { children: [kid] });

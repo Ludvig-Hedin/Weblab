@@ -12,13 +12,18 @@
  * same record is the undo step. `StructureSet` owns what each op means on the
  * DOM in both directions; this file only builds the nodes and the records.
  */
-import type { InsertPosition } from "@airship/protocol";
+import type {
+  ElementContext,
+  InsertPosition,
+  SourceLocation,
+} from "@airship/protocol";
 import { elementLabel } from "./dom";
 import { isEditorNode } from "./edit-guard";
 import type { History } from "./history";
 import type { IconName } from "./icons";
 import type { Selection, SelectionController } from "./picker";
 import type { StructureRecord, StructureSet } from "./structure-set";
+import type { Surface } from "./surface";
 import { toast } from "./toast";
 
 // ---------------------------------------------------------------------------
@@ -381,6 +386,11 @@ const LEAF_TAGS = new Set([
   "video",
 ]);
 
+/** A text, control or media element: a new one goes after it, not in it. */
+export function isLeafTag(tag: string): boolean {
+  return LEAF_TAGS.has(tag);
+}
+
 /** Elements that must not sit inside a `<p>` — the parser would split it. */
 const BLOCK_TAGS = new Set([
   "address",
@@ -701,6 +711,38 @@ export class StructureEditor {
     this.report(first, `Added ${what}`);
     this.deps.controller.select(first, sel.surface);
     return true;
+  }
+
+  /**
+   * Put a drawn box into the page. The agent is told where by its neighbour:
+   * "before this child" when there is one, else "last child of the parent" —
+   * both are elements with a source, unlike the box itself.
+   */
+  placeDrawn(opts: {
+    anchor: { context: ElementContext; source: SourceLocation | null };
+    before: Element | null;
+    node: Element;
+    parent: Element;
+    surface: Surface;
+  }): void {
+    const { anchor, before, node, parent, surface } = opts;
+    if (before && before.parentElement !== parent) {
+      return;
+    }
+    parent.insertBefore(node, before);
+    this.commit({
+      element: anchor.context,
+      html: markupOf(node),
+      inner: [node],
+      node,
+      op: "insert",
+      origNext: before,
+      origParent: parent,
+      position: before ? "before" : "inside",
+      source: anchor.source,
+    });
+    this.report(node, "Drew a box");
+    this.deps.controller.select(node, surface);
   }
 
   /** Wrap the selection in a new element of any tag. */

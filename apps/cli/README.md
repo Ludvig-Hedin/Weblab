@@ -136,7 +136,8 @@ catalog, so it cannot drift from what the keys actually do:
 | zoom to 100% | ⌘0 or ⇧0 | Ctrl+0 or Shift+0 |
 | zoom to fit | ⇧1 | Shift+1 |
 | hand tool | H | H |
-| add a frame | F | F |
+| frame tool | F | F |
+| add a frame | ⇧F | Shift+F |
 | send | ⌘↩ | Ctrl+Enter |
 | keyboard shortcuts | ? | ? |
 | command palette | ⌘K | Ctrl+K |

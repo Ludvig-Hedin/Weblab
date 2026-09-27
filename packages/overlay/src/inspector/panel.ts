@@ -2175,6 +2175,10 @@ export class DesignPanel {
     let cur: Element | null = sel.node.parentElement;
     while (cur) {
       path.add(cur);
+      // And keep them open after: an undo that takes the selection away (or
+      // moves it) used to fold every branch it had opened, so the structure
+      // you were working in vanished and had to be dug out again.
+      this.expanded.add(cur);
       cur = cur.parentElement;
     }
     this.renderTreeNode(tree, root, 0, path);

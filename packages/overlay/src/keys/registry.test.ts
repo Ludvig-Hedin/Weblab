@@ -421,7 +421,7 @@ describe("a keystroke from inside a live frame", () => {
     // `f`, `h`, `v` and the nudge set would be theft: in view mode the page in
     // a frame is the user's and they may well be typing into it.
     const run = vi.fn();
-    bind({ id: "frame.add", run });
+    bind({ id: "tool.frame", run });
     const { doc } = frameDoc();
     const button = doc.createElement("button");
     doc.body.append(button);
@@ -433,7 +433,7 @@ describe("a keystroke from inside a live frame", () => {
 
   it("leaves those commands working in the shell", () => {
     const run = vi.fn();
-    bind({ id: "frame.add", run });
+    bind({ id: "tool.frame", run });
     frameDoc();
 
     press(plain(), "f", { code: "KeyF" });
@@ -611,7 +611,7 @@ describe("what the surfaces read", () => {
 describe("the off-platform modifier", () => {
   it("does not fire a bare-key command", () => {
     const run = vi.fn();
-    bind({ id: "frame.add", run });
+    bind({ id: "tool.frame", run });
 
     press(document.body, "f", { [OFF_PLATFORM]: true });
 

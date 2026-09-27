@@ -57,6 +57,7 @@ import {
   manager,
 } from "./dnd/manager";
 import { basename, clear, cls, el, elementLabel, PREFIX } from "./dom";
+import { type DrawnBox, DrawTool } from "./draw-tool";
 import { emptyState } from "./empty";
 import { History } from "./history";
 import { createOpApplier } from "./history-ops";
@@ -512,6 +513,9 @@ export class AirshipApp {
   private readonly panel: DesignPanel;
   /** Add, wrap, unwrap and retag — the Webflow verbs. */
   private readonly structure: StructureEditor;
+  /** F: drag on the page to draw a box, as in Figma. */
+  private readonly drawTool: DrawTool;
+  private frameBtn: HTMLElement | null = null;
 
   private root!: HTMLElement;
   private bar!: HTMLElement;
@@ -790,6 +794,11 @@ export class AirshipApp {
         // not the inline styles standing in for `:hover`; re-enter to reconcile
         // them before the panel re-seeds from what the DOM now says.
         this.panel.resyncState();
+        // An undone insert or wrap can take the selected node off the page.
+        // Holding on to it would outline nothing and root the layers nowhere.
+        if (this.selected && !this.selected.node.isConnected) {
+          this.controller.deselect();
+        }
         this.controller.drawOutline();
         this.panel.refresh();
         this.onVisualChanged();
@@ -817,6 +826,17 @@ export class AirshipApp {
       structureSet: this.structureSet,
     });
     this.disposers.push(setPaletteSource(structureRows(this.structure)));
+    this.drawTool = new DrawTool({
+      hitTest: (point) => this.controller.hitTest(point),
+      isChrome: (target) =>
+        target instanceof Node && Boolean(this.root?.contains(target)),
+      onChange: (armed) => {
+        this.frameBtn?.classList.toggle(cls("tool-on"), armed);
+        this.frameBtn?.setAttribute("aria-pressed", String(armed));
+      },
+      onDraw: (box) => this.placeDrawn(box),
+    });
+    this.disposers.push(() => this.drawTool.disarm());
     const onPaste = (e: ClipboardEvent): void => this.pasteMarkup(e);
     document.addEventListener("paste", onPaste, true);
     this.disposers.push(() =>
@@ -851,6 +871,25 @@ export class AirshipApp {
       e.preventDefault();
       e.stopPropagation();
     }
+  }
+
+  /**
+   * A box drawn with the Frame tool. Light grey, like Figma's first fill, so a
+   * box on a white page can be seen before it is styled.
+   */
+  private placeDrawn(box: DrawnBox): void {
+    const { before, parent, surface } = box;
+    const node = surface.doc.createElement("div");
+    node.setAttribute(
+      "style",
+      `width: ${box.width}px; height: ${box.height}px; background-color: #d9d9d9;`
+    );
+    surface
+      .extract(before ?? parent)
+      .then((anchor) =>
+        this.structure.placeDrawn({ anchor, before, node, parent, surface })
+      )
+      .catch(() => toast("Could not place the box here", { tone: "error" }));
   }
 
   /** ⌘E, `A` and the Add button: the element library, Webflow's Add panel. */
@@ -931,6 +970,11 @@ export class AirshipApp {
         {
           id: "element.add",
           run: () => this.openAddPalette(),
+          when: () => this.editing,
+        },
+        {
+          id: "tool.frame",
+          run: () => this.drawTool.toggle(),
           when: () => this.editing,
         },
         {
@@ -2473,7 +2517,20 @@ export class AirshipApp {
    * the plus next to the pointer.
    */
   private buildAddGroup(): HTMLElement {
+    this.frameBtn = el(
+      "button",
+      {
+        "aria-label": "Frame tool",
+        "aria-pressed": "false",
+        class: cls("tool"),
+        ...tip("Frame tool", "tool.frame"),
+        onClick: () => this.drawTool.toggle(),
+        type: "button",
+      },
+      [icon("tool-frame", "sm")]
+    );
     return el("div", { class: cls("tool-group") }, [
+      this.frameBtn,
       el(
         "button",
         {
@@ -2748,6 +2805,7 @@ export class AirshipApp {
     // editor's marker attribute on the page permanently, with the guard and the
     // picker already detached.
     this.panel.endTextEdit();
+    this.drawTool.disarm();
     this.pendingTextEdit = null;
     this.editing = on;
     this.editBtn?.classList.toggle(cls("seg-on"), on);
