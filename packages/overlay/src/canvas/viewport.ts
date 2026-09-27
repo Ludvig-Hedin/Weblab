@@ -185,6 +185,12 @@ export class CanvasViewport {
   private panning: { origin: Point; start: Point } | null = null;
   private gestureTimer = 0;
   private frameRequest = 0;
+  /** Set while a command runs inside `glide`: `set` animates instead of jumping. */
+  private gliding = false;
+  /** The glide in flight, if any. `to` is where the camera is headed. */
+  private glideState: { from: Viewport; start: number; to: Viewport } | null =
+    null;
+  private glideRequest = 0;
   private readonly unbind: (() => void)[] = [];
 
   private readonly deps: CanvasViewportDeps;
@@ -194,12 +200,6 @@ export class CanvasViewport {
     this.world = el("div", { class: cls("canvas-world") });
     this.element = el("div", { class: cls("canvas-viewport") }, [this.world]);
     this.bind();
-  /** Set while a command runs inside `glide`: `set` animates instead of jumping. */
-  private gliding = false;
-  /** The glide in flight, if any. `to` is where the camera is headed. */
-  private glideState: { from: Viewport; start: number; to: Viewport } | null =
-    null;
-  private glideRequest = 0;
   }
 
   get viewport(): Viewport {
@@ -324,15 +324,6 @@ export class CanvasViewport {
     this.apply();
   }
 
-  // -- Zoom commands ---------------------------------------------------------
-
-  /**
-   * The centre of the visible canvas, in the rect-relative coordinates `zoomAt`
-   * expects. Keyboard zoom holds this point still, so with a dock open it holds
-   * the middle of what you can see rather than the middle of what is covered.
-   */
-  private get safeAnchor(): Point {
-    const r = this.rect;
   /**
    * Run a zoom command as a short camera move instead of a cut.
    *
@@ -399,6 +390,15 @@ export class CanvasViewport {
     }
   }
 
+  // -- Zoom commands ---------------------------------------------------------
+
+  /**
+   * The centre of the visible canvas, in the rect-relative coordinates `zoomAt`
+   * expects. Keyboard zoom holds this point still, so with a dock open it holds
+   * the middle of what you can see rather than the middle of what is covered.
+   */
+  private get safeAnchor(): Point {
+    const r = this.rect;
     const safe = this.safeRect;
     return {
       x: safe.left - r.left + safe.width / 2,
@@ -571,6 +571,7 @@ export class CanvasViewport {
       clearTimeout(this.gestureTimer);
       this.gestureTimer = 0;
     }
+    this.stopGlide();
     this.setHandTool(false);
   }
 
@@ -580,7 +581,6 @@ export class CanvasViewport {
     const on = <K extends keyof WindowEventMap>(
       target: EventTarget,
       type: K,
-    this.stopGlide();
       handler: (e: WindowEventMap[K]) => void,
       options?: AddEventListenerOptions
     ): void => {
@@ -859,6 +859,20 @@ export class CanvasViewport {
     });
   }
 
+  /** Write the transform and notify in one go, for a caller already in a frame. */
+  private applyNow(): void {
+    this.writeTransform();
+    if (this.frameRequest) {
+      cancelAnimationFrame(this.frameRequest);
+      this.frameRequest = 0;
+    }
+    this.deps.onChange(this.vp);
+  }
+
+  private writeTransform(): void {
+    this.world.style.transform = `translate(${this.vp.x}px, ${this.vp.y}px) scale(${this.vp.scale})`;
+  }
+
   /**
    * Mark a wheel gesture as in flight and disarm shortly after the last event.
    * While it is set, the world stops hit-testing — without that, every frame of
@@ -883,17 +897,3 @@ export class CanvasViewport {
     return screenToWorld(this.vp, this.rect, point);
   }
 }
-  /** Write the transform and notify in one go, for a caller already in a frame. */
-  private applyNow(): void {
-    this.writeTransform();
-    if (this.frameRequest) {
-      cancelAnimationFrame(this.frameRequest);
-      this.frameRequest = 0;
-    }
-    this.deps.onChange(this.vp);
-  }
-
-  private writeTransform(): void {
-    this.world.style.transform = `translate(${this.vp.x}px, ${this.vp.y}px) scale(${this.vp.scale})`;
-  }
-
