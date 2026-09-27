@@ -442,10 +442,12 @@ export class FramesPanel {
       return;
     }
     this.deps.frames.setActive(id);
-    this.deps.viewport.centerOn({
-      x: frame.x + frame.width / 2,
-      y: frame.y + shownHeight(frame) / 2,
-    });
+    this.deps.viewport.glide(() =>
+      this.deps.viewport.centerOn({
+        x: frame.x + frame.width / 2,
+        y: frame.y + shownHeight(frame) / 2,
+      })
+    );
     this.deps.viewport.save();
   }
 
@@ -455,12 +457,14 @@ export class FramesPanel {
       return;
     }
     this.deps.frames.setActive(id);
-    this.deps.viewport.fitToRect({
-      height: shownHeight(frame),
-      left: frame.x,
-      top: frame.y,
-      width: frame.width,
-    });
+    this.deps.viewport.glide(() =>
+      this.deps.viewport.fitToRect({
+        height: shownHeight(frame),
+        left: frame.x,
+        top: frame.y,
+        width: frame.width,
+      })
+    );
     this.deps.viewport.save();
   }
 

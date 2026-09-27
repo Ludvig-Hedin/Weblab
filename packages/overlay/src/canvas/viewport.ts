@@ -13,6 +13,7 @@ import {
   screenToWorld,
   unionRects,
   type Viewport,
+  viewportBetween,
   zoomAt,
 } from "./space";
 import { axes, pixelDelta, SCROLLABLE_OVERFLOW, type WheelLike } from "./wheel";
@@ -45,6 +46,29 @@ const WHEEL_ZOOM_SENSITIVITY = 0.01;
  * more than 3× in one tick.
  */
 const MAX_ZOOM_DELTA = 25;
+
+/**
+ * A wheel delta this large in one event is a mouse notch, not a pinch.
+ *
+ * A pinch arrives as a stream of small fractional deltas and has to track the
+ * fingers exactly, so it is applied as it comes. A notch is one discrete jump,
+ * and applied as it comes it snaps the whole canvas a quarter bigger in a single
+ * frame. Notches glide instead — see `glide`.
+ */
+const WHEEL_NOTCH = 50;
+
+/**
+ * How long a zoom command takes to land. `--ap-motion-dur-slow`: long enough to
+ * read as a camera move rather than a cut, short enough that a held ⌘+ never
+ * feels like it is queuing.
+ */
+const GLIDE_MS = 200;
+
+/** An ease-out close to `--ap-motion-ease-out`: most of the move up front. */
+const easeOut = (t: number): number => 1 - (1 - t) ** 3;
+
+const reducedMotion = (): boolean =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 /**
  * The narrowest strip of canvas a fit is allowed to aim at.
@@ -170,6 +194,12 @@ export class CanvasViewport {
     this.world = el("div", { class: cls("canvas-world") });
     this.element = el("div", { class: cls("canvas-viewport") }, [this.world]);
     this.bind();
+  /** Set while a command runs inside `glide`: `set` animates instead of jumping. */
+  private gliding = false;
+  /** The glide in flight, if any. `to` is where the camera is headed. */
+  private glideState: { from: Viewport; start: number; to: Viewport } | null =
+    null;
+  private glideRequest = 0;
   }
 
   get viewport(): Viewport {
@@ -282,7 +312,15 @@ export class CanvasViewport {
   }
 
   set(vp: Viewport): void {
-    this.vp = { ...vp, scale: clampScale(vp.scale) };
+    const next = { ...vp, scale: clampScale(vp.scale) };
+    if (this.gliding && !reducedMotion()) {
+      this.glideTo(next);
+      return;
+    }
+    // Direct input — a pan, a pinch, a drag on the minimap — outranks a glide
+    // still landing, and continues from wherever the camera is now.
+    this.stopGlide();
+    this.vp = next;
     this.apply();
   }
 
@@ -295,6 +333,72 @@ export class CanvasViewport {
    */
   private get safeAnchor(): Point {
     const r = this.rect;
+  /**
+   * Run a zoom command as a short camera move instead of a cut.
+   *
+   * For the discrete commands — the zoom shortcuts and menu, fit, a mouse
+   * notch, flying to a frame — where the canvas otherwise jumps from one scale
+   * to the next in a single frame and you lose track of what you were looking
+   * at. Continuous input (a pinch, a pan) never goes through here: it already
+   * moves a little every frame, and smoothing it would only make it lag.
+   *
+   * A command issued mid-glide builds on where the camera is *headed*, not where
+   * it happens to be — see `goal` — so three quick presses of ⌘+ land three
+   * steps in, rather than one and a bit.
+   */
+  glide(command: () => void): void {
+    this.gliding = true;
+    try {
+      command();
+    } finally {
+      this.gliding = false;
+    }
+  }
+
+  /** Where the camera is headed: a glide's destination, else where it is. */
+  private get goal(): Viewport {
+    return this.glideState?.to ?? this.vp;
+  }
+
+  private glideTo(to: Viewport): void {
+    this.glideState = { from: this.vp, start: performance.now(), to };
+    if (!this.glideRequest) {
+      this.glideRequest = requestAnimationFrame(this.glideFrame);
+    }
+  }
+
+  private readonly glideFrame = (now: number): void => {
+    this.glideRequest = 0;
+    const glide = this.glideState;
+    if (!glide) {
+      return;
+    }
+    const t = Math.min(1, Math.max(0, (now - glide.start) / GLIDE_MS));
+    this.vp =
+      t < 1 ? viewportBetween(glide.from, glide.to, easeOut(t)) : glide.to;
+    if (t < 1) {
+      this.glideRequest = requestAnimationFrame(this.glideFrame);
+    } else {
+      this.glideState = null;
+    }
+    // Already inside a frame callback, so the chrome is re-anchored in this same
+    // frame rather than the next: going through `apply` here would leave every
+    // frame's title a frame behind its frame for the whole glide.
+    this.applyNow();
+    // Hover hit-testing into a moving frame strobes, the same as during a wheel
+    // gesture, so a glide counts as one — and the gesture's trailing edge is
+    // what saves the landed viewport and re-picks what is under the cursor.
+    this.markGesture();
+  };
+
+  private stopGlide(): void {
+    this.glideState = null;
+    if (this.glideRequest) {
+      cancelAnimationFrame(this.glideRequest);
+      this.glideRequest = 0;
+    }
+  }
+
     const safe = this.safeRect;
     return {
       x: safe.left - r.left + safe.width / 2,
@@ -304,22 +408,24 @@ export class CanvasViewport {
 
   /** Zoom about the viewport's centre — the right anchor for keyboard zoom. */
   zoomBy(factor: number): void {
-    this.set(zoomAt(this.vp, this.safeAnchor, this.vp.scale * factor));
+    const { goal } = this;
+    this.set(zoomAt(goal, this.safeAnchor, goal.scale * factor));
   }
 
   /** Step to the next notch, so repeated presses land on round numbers. */
   zoomStep(direction: 1 | -1): void {
-    const current = this.vp.scale;
+    const { goal } = this;
+    const current = goal.scale;
     const next =
       direction > 0
         ? (ZOOM_STEPS.find((s) => s > current + 0.001) ?? MAX_SCALE)
         : ([...ZOOM_STEPS].reverse().find((s) => s < current - 0.001) ??
           MIN_SCALE);
-    this.set(zoomAt(this.vp, this.safeAnchor, next));
+    this.set(zoomAt(goal, this.safeAnchor, next));
   }
 
   zoomTo100(): void {
-    this.set(zoomAt(this.vp, this.safeAnchor, 1));
+    this.set(zoomAt(this.goal, this.safeAnchor, 1));
   }
 
   zoomToFit(): void {
@@ -373,7 +479,7 @@ export class CanvasViewport {
         centerAt(
           point,
           { height: safe.height, width: safe.width },
-          this.vp.scale
+          this.goal.scale
         )
       )
     );
@@ -421,7 +527,9 @@ export class CanvasViewport {
 
   save(): void {
     try {
-      localStorage.setItem(this.deps.storageKey, JSON.stringify(this.vp));
+      // Mid-glide, the landing spot: a zoom persisted halfway would come back
+      // after a reload at a scale nobody chose.
+      localStorage.setItem(this.deps.storageKey, JSON.stringify(this.goal));
     } catch {
       // Quota or private mode — a lost pan position is not worth a crash.
     }
@@ -472,6 +580,7 @@ export class CanvasViewport {
     const on = <K extends keyof WindowEventMap>(
       target: EventTarget,
       type: K,
+    this.stopGlide();
       handler: (e: WindowEventMap[K]) => void,
       options?: AddEventListenerOptions
     ): void => {
@@ -565,8 +674,16 @@ export class CanvasViewport {
         -MAX_ZOOM_DELTA,
         Math.min(MAX_ZOOM_DELTA, delta.y)
       );
-      const next = this.vp.scale * Math.exp(-clamped * WHEEL_ZOOM_SENSITIVITY);
-      this.set(zoomAt(this.vp, anchor, next));
+      const factor = Math.exp(-clamped * WHEEL_ZOOM_SENSITIVITY);
+      if (Math.abs(delta.y) >= WHEEL_NOTCH) {
+        // A mouse notch: glide, and stack quick notches on the landing spot.
+        this.glide(() => {
+          const { goal } = this;
+          this.set(zoomAt(goal, anchor, goal.scale * factor));
+        });
+      } else {
+        this.set(zoomAt(this.vp, anchor, this.vp.scale * factor));
+      }
       this.markGesture();
       return true;
     }
@@ -683,7 +800,7 @@ export class CanvasViewport {
   /** The zoom set, declared once. `physicalKey` handles the ⇧1 → "!" problem. */
   private bindShortcuts(): () => void {
     const zoom = (fn: () => void) => () => {
-      fn();
+      this.glide(fn);
       this.save();
     };
     return keys.bindAll([
@@ -730,7 +847,7 @@ export class CanvasViewport {
   // -- Transform -------------------------------------------------------------
 
   private apply(): void {
-    this.world.style.transform = `translate(${this.vp.x}px, ${this.vp.y}px) scale(${this.vp.scale})`;
+    this.writeTransform();
     // Coalesce to one notification per frame: a wheel can fire many times per
     // frame and every listener downstream re-measures rects.
     if (this.frameRequest) {
@@ -766,3 +883,17 @@ export class CanvasViewport {
     return screenToWorld(this.vp, this.rect, point);
   }
 }
+  /** Write the transform and notify in one go, for a caller already in a frame. */
+  private applyNow(): void {
+    this.writeTransform();
+    if (this.frameRequest) {
+      cancelAnimationFrame(this.frameRequest);
+      this.frameRequest = 0;
+    }
+    this.deps.onChange(this.vp);
+  }
+
+  private writeTransform(): void {
+    this.world.style.transform = `translate(${this.vp.x}px, ${this.vp.y}px) scale(${this.vp.scale})`;
+  }
+

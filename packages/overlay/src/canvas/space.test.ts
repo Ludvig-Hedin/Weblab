@@ -29,8 +29,10 @@ import {
   screenToFrame,
   screenToWorld,
   type Viewport,
+  viewportBetween,
   visibleWorldRect,
   worldToScreen,
+  zoomAt,
 } from "./space";
 
 const ORIGIN: Rect = { height: 800, left: 0, top: 0, width: 1200 };
@@ -307,5 +309,44 @@ describe("frame⇄screen with a nested offset", () => {
     expect(frameToScreen(frameEl, rect, 2)).toEqual(
       frameToScreen(frameEl, rect, 2, { x: 0, y: 0 })
     );
+  });
+});
+
+describe("viewportBetween", () => {
+  const from: Viewport = { scale: 0.5, x: 100, y: -40 };
+
+  it("starts and ends exactly on its two viewports", () => {
+    const to = zoomAt(from, { x: 300, y: 200 }, 2);
+    expect(viewportBetween(from, to, 0)).toEqual(from);
+    const end = viewportBetween(from, to, 1);
+    expect(end.scale).toBeCloseTo(to.scale);
+    expect(end.x).toBeCloseTo(to.x);
+    expect(end.y).toBeCloseTo(to.y);
+  });
+
+  it("holds a zoom's anchor still the whole way through", () => {
+    const anchor = { x: 300, y: 200 };
+    const to = zoomAt(from, anchor, 2);
+    const world = screenToWorld(from, ORIGIN, anchor);
+    for (const t of [0.25, 0.5, 0.75]) {
+      const mid = viewportBetween(from, to, t);
+      const seen = worldToScreen(mid, ORIGIN, world);
+      expect(seen.x).toBeCloseTo(anchor.x);
+      expect(seen.y).toBeCloseTo(anchor.y);
+    }
+  });
+
+  it("moves scale by equal ratios, not equal steps", () => {
+    const to: Viewport = { scale: 2, x: 0, y: 0 };
+    expect(viewportBetween(from, to, 0.5).scale).toBeCloseTo(1);
+  });
+
+  it("pans in a straight line when the scale does not change", () => {
+    const to: Viewport = { scale: 0.5, x: 300, y: 60 };
+    expect(viewportBetween(from, to, 0.5)).toEqual({
+      scale: 0.5,
+      x: 200,
+      y: 10,
+    });
   });
 });

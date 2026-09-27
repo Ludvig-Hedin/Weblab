@@ -185,10 +185,9 @@ export class FrameChrome {
       // tip, and `Tooltips.show` resolves the chord by matching that string
       // against a binding's `label` — so spelling the chord into the text both
       // duplicated it and stopped the real chip from ever being found.
-      this.barButton("fit", "Zoom to fit", () => {
-        this.deps.viewport.zoomToFit();
-        this.deps.viewport.save();
-      }),
+      this.barButton("fit", "Zoom to fit", () =>
+        this.runZoom(() => this.deps.viewport.zoomToFit())
+      ),
       this.zoomLabel,
       this.addMenu,
     ]);
@@ -428,13 +427,12 @@ export class FrameChrome {
   }
 
   private runZoom(fn: () => void): void {
-    fn();
+    this.deps.viewport.glide(fn);
     this.deps.viewport.save();
   }
 
   private zoomBy(step: 1 | -1): void {
-    this.deps.viewport.zoomStep(step);
-    this.deps.viewport.save();
+    this.runZoom(() => this.deps.viewport.zoomStep(step));
   }
 
   // -- Building --------------------------------------------------------------
@@ -818,24 +816,24 @@ export class FrameChrome {
   // -- Positioning -----------------------------------------------------------
 
   private position(): void {
-    for (const frame of this.deps.frames.all) {
-      const box = this.boxes.get(frame.id);
+    // Every rect is read before anything is written. This runs on every frame
+    // of a pan or zoom, and a read after a write forces the browser to lay the
+    // whole page out again first — once per frame on the canvas, per frame.
+    const placed = this.deps.frames.all.map((frame) => ({
+      box: this.boxes.get(frame.id),
+      frame,
+      rect: frameScreenRect(frame.el),
+    }));
+    for (const { box, frame, rect } of placed) {
       if (!box) {
         continue;
       }
-      const r = frameScreenRect(frame.el);
-      place(box, r);
+      place(box, rect);
       // The chrome box is not clipped to the canvas the way selection chrome is:
       // its own contents are what get clipped, by the layer, so a frame panned
       // half off-screen keeps a correctly-truncated title instead of vanishing.
-      const name = box.querySelector(`.${cls("fc-name")}`);
-      const size = box.querySelector(`.${cls("fc-size")}`);
-      if (name) {
-        name.textContent = frame.name;
-      }
-      if (size) {
-        size.textContent = sizeLabel(frame);
-      }
+      setText(box.querySelector(`.${cls("fc-name")}`), frame.name);
+      setText(box.querySelector(`.${cls("fc-size")}`), sizeLabel(frame));
       box.classList.toggle(
         cls("fc-active"),
         this.deps.frames.active?.id === frame.id
@@ -843,7 +841,7 @@ export class FrameChrome {
       const busy = this.move?.id === frame.id || this.resize?.id === frame.id;
       box.classList.toggle(cls("fc-busy"), busy);
     }
-    this.zoomLabel.textContent = `${Math.round(this.deps.viewport.scale * 100)}%`;
+    setText(this.zoomLabel, `${Math.round(this.deps.viewport.scale * 100)}%`);
     // Each frame is a whole app instance, so the count is capped. Say so on the
     // button instead of letting a click quietly do nothing.
     const full = this.deps.frames.all.length >= MAX_FRAMES;
@@ -1295,4 +1293,15 @@ function sizeLabel(frame: Frame): string {
   return preset && preset.label !== frame.name
     ? `${preset.label} · ${dims}`
     : dims;
+}
+
+/**
+ * Write text only when it differs. Assigning `textContent` replaces the text
+ * node even when the string is the same, and that is a layout change the
+ * browser has to redo — on every frame of a zoom, for every frame's title.
+ */
+function setText(node: Element | null, text: string): void {
+  if (node && node.textContent !== text) {
+    node.textContent = text;
+  }
 }

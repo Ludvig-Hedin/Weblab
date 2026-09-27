@@ -354,6 +354,27 @@ export function zoomAt(
 }
 
 /**
+ * The viewport `t` of the way from `a` to `b`, for a camera glide.
+ *
+ * Scale moves geometrically, so each frame of a zoom is the same *ratio* apart
+ * and the motion reads as even rather than rushing through the small scales.
+ * Position does not move on its own track: any two viewports at different
+ * scales share one screen point that shows the same world point in both, and
+ * holding that point still is what keeps a zoom about the cursor about the
+ * cursor all the way through. Interpolating `x` and `y` linearly instead makes
+ * the anchor swing out and back. Along that family `x` is linear in scale, so
+ * the progress along it is simply how far the scale has got.
+ */
+export function viewportBetween(a: Viewport, b: Viewport, t: number): Viewport {
+  const scale = a.scale * (b.scale / a.scale) ** t;
+  const k =
+    Math.abs(b.scale - a.scale) < 1e-9
+      ? t
+      : (scale - a.scale) / (b.scale - a.scale);
+  return { scale, x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+}
+
+/**
  * The viewport that fits `bounds` (world space) into `size` (screen px) with
  * `padding` px of margin, centred. Used by zoom-to-fit and zoom-to-selection.
  */
