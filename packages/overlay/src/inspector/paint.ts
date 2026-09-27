@@ -262,11 +262,24 @@ export function createShadowList(
  * additive, so a gradient it declines to model still round-trips through the
  * text exactly as before.
  */
+/**
+ * How an image layer's thumbnail opens the image popover.
+ *
+ * `layer` reads and writes *this row's* `url()` value through the row list,
+ * so the list's own copy stays in step without a re-render (which would tear
+ * the thumbnail, and the popover anchored to it, out of the document).
+ */
+export type OpenLayerImage = (
+  anchor: HTMLElement,
+  layer: { read: () => string; write: (css: string) => void }
+) => void;
+
 export function fillLayerRow(
   row: Fill,
   onEdit: (next: Fill) => void,
   gestures?: Gestures,
-  node?: Element | null
+  node?: Element | null,
+  onOpenImage?: OpenLayerImage
 ): HTMLElement {
   const input = el("input", {
     "aria-label": "Fill layer",
@@ -279,10 +292,25 @@ export function fillLayerRow(
 
   // Actually a button when the gradient is editable, rather than a span with a
   // click listener bolted on: it opens the visual editor, and as a span it was
-  // unreachable by keyboard and announced as nothing. A span for an image fill,
-  // where the glyph is identity rather than an affordance and there is nothing
-  // to open.
+  // unreachable by keyboard and announced as nothing. An image fill gets a
+  // thumbnail button that opens the image popover, when the section offers one.
   let glyph: HTMLElement | null = null;
+  /** The image layer's thumbnail, repainted in place when the popover writes. */
+  let thumb: HTMLElement | null = null;
+  const paintThumb = (): void => {
+    thumb?.style.setProperty(
+      "background-image",
+      `${input.value}, var(--${cls("checker")})`
+    );
+  };
+  const layer = {
+    read: () => input.value,
+    write: (css: string): void => {
+      input.value = css;
+      onEdit({ ...row, kind: "image", value: css });
+      paintThumb();
+    },
+  };
 
   const openEditor = (): void => {
     if (!(glyph && canEditGradient(input.value))) {
@@ -313,15 +341,37 @@ export function fillLayerRow(
     const image = kind === "image";
     const editable = !image && canEditGradient(input.value);
     const base = `${cls("ctl-glyph")} ${cls("ctl-glyph-static")}`;
-    const next = editable
-      ? el("button", {
-          "aria-label": "Edit gradient",
-          class: `${base} ${cls("ctl-glyph-action")}`,
-          onClick: openEditor,
+    let next: HTMLElement;
+    thumb = null;
+    if (image && onOpenImage) {
+      thumb = el("span", { class: cls("fill-thumb-img") });
+      next = el(
+        "button",
+        {
+          "aria-label": "Edit image",
+          class: `${base} ${cls("ctl-glyph-action")} ${cls("fill-thumb")}`,
+          onClick: () => {
+            if (next.isConnected) {
+              onOpenImage(next, layer);
+            }
+          },
           type: "button",
-        })
-      : el("span", { class: base });
-    next.append(icon(image ? "fill-image" : "fill-gradient", "sm"));
+        },
+        [thumb]
+      );
+      paintThumb();
+    } else if (editable) {
+      next = el("button", {
+        "aria-label": "Edit gradient",
+        class: `${base} ${cls("ctl-glyph-action")}`,
+        onClick: openEditor,
+        type: "button",
+      });
+      next.append(icon("fill-gradient", "sm"));
+    } else {
+      next = el("span", { class: base });
+      next.append(icon(image ? "fill-image" : "fill-gradient", "sm"));
+    }
     if (glyph) {
       glyph.replaceWith(next);
     } else {
@@ -329,7 +379,9 @@ export function fillLayerRow(
     }
     glyph = next;
     if (image) {
-      wrap.dataset.tip = "Image fill, from a CSS url()";
+      wrap.dataset.tip = onOpenImage
+        ? "Image fill. Click the thumbnail to change it"
+        : "Image fill, from a CSS url()";
     } else {
       wrap.dataset.tip = editable
         ? "Gradient fill. Click the swatch to edit"

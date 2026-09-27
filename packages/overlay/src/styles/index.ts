@@ -1,5 +1,6 @@
 import { buildCss } from "@airship/editor-tokens";
 import { PREFIX } from "../dom";
+import { css as assetsPanel } from "./assets-panel.css";
 import { css as base } from "./base.css";
 import { css as canvas } from "./canvas.css";
 import { css as chat } from "./chat.css";
@@ -11,6 +12,7 @@ import { css as docks } from "./docks.css";
 import { css as empty } from "./empty.css";
 import { css as framesPanel } from "./frames-panel.css";
 import { css as help } from "./help.css";
+import { css as image } from "./image.css";
 import { css as inspector } from "./inspector.css";
 import { css as minimap } from "./minimap.css";
 import { css as motion } from "./motion.css";
@@ -105,6 +107,7 @@ const CSS = [
   // thing — the contents of a panel, not the panel — and the two are never on
   // screen together, so the order between them is documentation, not cascade.
   framesPanel,
+  assetsPanel,
   inspector,
   cssPane,
   // Empty states are surface-agnostic — the same block renders in the chat
@@ -113,6 +116,9 @@ const CSS = [
   empty,
   controls,
   pop,
+  // After `pop`: the image popover fills a shell, and the image row sits
+  // among the section's controls.
+  image,
   // After `pop`, because both discovery surfaces are `.pop` shells and this is
   // what fills them — the shell's recipe has to land first for these to be
   // overrides of it rather than a parallel definition.
