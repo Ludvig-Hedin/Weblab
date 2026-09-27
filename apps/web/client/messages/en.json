@@ -4830,5 +4830,65 @@
       "toastSaveFailedDesc": "Please try again.",
       "toastOgImageFailed": "Failed to upload social preview image."
     }
+  },
+  "localApp": {
+    "nav": {
+      "download": "Download for Mac"
+    },
+    "hero": {
+      "title": "AI-native visual website builder",
+      "subtitle": "Design on your real website, right on your Mac. Free, open source and local-first. Works with Claude Code, Codex and OpenCode.",
+      "download": "Download for Mac",
+      "requirements": "For Macs with Apple Silicon. No account needed."
+    },
+    "signIn": {
+      "description": "Weblab is invite only right now. To try it, download the free Mac app.",
+      "inviteOnly": "Sign-ups are closed. Weblab is invite only right now, but the free Mac app needs no account.",
+      "blocked": "This account doesn't have access. Weblab is invite only right now. The free Mac app needs no account.",
+      "download": "Download for Mac",
+      "signOut": "Sign out"
+    },
+    "downloadPage": {
+      "title": "Weblab for Mac",
+      "description": "Edit your website visually, right on your Mac. Free, open source and local-first.",
+      "button": "Download for Mac",
+      "requirements": "Requires a Mac with Apple Silicon (M1 or newer)."
+    },
+    "faq": {
+      "items": {
+        "what": {
+          "question": "What is {appName}?",
+          "answer": "{appName} is a free Mac app that puts a visual design canvas on top of your website while it runs on your computer. Click an element, change it visually or describe the change, and your coding agent edits the real source files."
+        },
+        "agents": {
+          "question": "Which AI does {appName} use?",
+          "answer": "Your own coding agent: Claude Code, Codex or OpenCode. {appName} runs it on your Mac with your own account. There are no {appName} credits or plans."
+        },
+        "stack": {
+          "question": "Which websites does it work with?",
+          "answer": "Any site you can run on your computer with a dev server, like Next.js, Vite, Remix, Astro, Rails or plain HTML. You can also clone a site from GitHub right in the app."
+        },
+        "code": {
+          "question": "Do I need to know how to code?",
+          "answer": "No. You design on the canvas and describe changes in plain words. Real code runs underneath, so you only touch it if you want to."
+        },
+        "mac": {
+          "question": "Which computers does it run on?",
+          "answer": "Macs with Apple Silicon (M1 or newer) for now. Windows and Linux are not available yet."
+        },
+        "privacy": {
+          "question": "Does my code leave my computer?",
+          "answer": "{appName} runs on your Mac and has no account or cloud of its own. Your project stays in your own folder. Your coding agent sends what it needs to its own AI provider, as it always does."
+        },
+        "free": {
+          "question": "Is {appName} free?",
+          "answer": "Yes. {appName} is free and open source. You only pay for your coding agent's own plan, if it has one."
+        },
+        "ownership": {
+          "question": "Who owns the code?",
+          "answer": "You do. {appName} edits the files in your own project, so nothing is locked in. Commit, push and deploy it however you like."
+        }
+      }
+    }
   }
 }

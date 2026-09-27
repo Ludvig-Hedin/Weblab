@@ -30,6 +30,10 @@ ARG NEXT_PUBLIC_CONVEX_URL
 # and the client would fall back to wss://<host>:8080/trpc (unexposed) and 502
 # every preview. See docs/notes/2026-06-16-sandbox-server-deploy.md.
 ARG NEXT_PUBLIC_SANDBOX_SERVER_URL
+# Site mode switch (docs/guides/local-app-mode.md). 'local' turns weblab.build
+# into a download page for the Mac app. Build-time: flipping it needs a rebuild.
+ARG NEXT_PUBLIC_SITE_MODE
+ARG NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL
 
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
@@ -41,6 +45,8 @@ ENV NEXT_PUBLIC_SHOW_DEV_LOGIN=${NEXT_PUBLIC_SHOW_DEV_LOGIN}
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
 ENV NEXT_PUBLIC_SANDBOX_SERVER_URL=${NEXT_PUBLIC_SANDBOX_SERVER_URL}
+ENV NEXT_PUBLIC_SITE_MODE=${NEXT_PUBLIC_SITE_MODE}
+ENV NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL=${NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL}
 
 # Skip server-env Zod validation during build; server-only vars are read at
 # runtime from process.env. See apps/web/client/src/env.ts.

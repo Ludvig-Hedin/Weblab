@@ -1181,3 +1181,13 @@ Notable in-flight work as of this log's creation (see
   guards (rename project, offline-pin toggle); busy state threaded into the
   cancel-subscription modal; "Deleting…" label on project delete.
 - **Validation:** bun typecheck clean; changed-file ESLint 0 errors.
+
+## 2026-09-28 — Local-app mode (F-810)
+
+- `NEXT_PUBLIC_SITE_MODE=local` turns weblab.build into a download page for the
+  new Mac app (weblab-local, repo `Ludvig-Hedin/airship`). Cloud app paused,
+  not removed. Default `cloud` changes nothing.
+- Invite-only sign-in via `WEBLAB_SIGN_IN_ALLOWLIST` (Railway + Convex env),
+  Clerk prod sign-up set to Restricted. Guide: `docs/guides/local-app-mode.md`.
+- Follow-ups: backlog 178 (move weblab-local into `apps/desktop-local`),
+  179 (SEO metadata still cloud-flavoured).

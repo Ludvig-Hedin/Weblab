@@ -7,6 +7,7 @@ import { NodeIcon } from '@weblab/ui/node-icon';
 import { cn } from '@weblab/ui/utils';
 
 import { WatermelonSite } from '@/components/watermelon-ui/watermelon-site';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 
 type TabId =
     | 'insert'
@@ -782,8 +783,13 @@ function PreviewModePanel({ onExit }: { onExit: () => void }) {
                     </div>
                 )}
 
-                {/* Right: Publish */}
-                <div className="flex flex-1 items-center justify-end">
+                {/* Right: Publish (hidden in local-app mode: no hosting) */}
+                <div
+                    className={cn(
+                        'flex flex-1 items-center justify-end',
+                        IS_LOCAL_APP_MODE && 'invisible',
+                    )}
+                >
                     <button
                         type="button"
                         className="bg-foreground text-background flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium"
@@ -2375,7 +2381,8 @@ export function WeblabInterfaceMockup() {
                     })}
                     {/* Live collaborator cursors — fake presence. Each gently
                         drifts between nearby waypoints in the visible region. */}
-                    {presence.map((p) => {
+                    {!IS_LOCAL_APP_MODE &&
+                        presence.map((p) => {
                         return (
                             <div
                                 key={p.id}
@@ -2522,8 +2529,9 @@ export function WeblabInterfaceMockup() {
                         <Icons.Play className="h-3 w-3" />
                         Preview
                     </button>
-                    {/* Members avatar stack — matches presence cursor colors */}
-                    <div className="mr-1 flex -space-x-1.5">
+                    {/* Members avatar stack — matches presence cursor colors.
+                        Hidden in local-app mode (no collaboration). */}
+                    <div className={cn('mr-1 flex -space-x-1.5', IS_LOCAL_APP_MODE && 'hidden')}>
                         <div className="ring-background-chrome flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[10px] leading-none font-semibold text-white ring-2 select-none">
                             M
                         </div>
@@ -2545,6 +2553,7 @@ export function WeblabInterfaceMockup() {
                         onClick={handlePublish}
                         type="button"
                         className={cn(
+                            IS_LOCAL_APP_MODE && 'hidden',
                             'ml-1.5 flex flex-row items-center gap-1.5 rounded-md border-[1px] px-2.5 py-1 text-xs transition-colors',
                             publishState === 'publishing' &&
                                 'border-amber-300/60 bg-amber-300/10 text-amber-200',

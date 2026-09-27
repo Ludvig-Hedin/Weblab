@@ -2,6 +2,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import type { Capability, PermissionResource } from './auth';
 import { can, CAPABILITIES } from './auth';
+import { isAllowedByConvexAllowlist } from './signInAllowlist';
 
 // Convex-side authorization layer. Same semantics as
 // apps/web/client/src/server/api/permissions/requireCap.ts but expressed
@@ -10,7 +11,11 @@ import { can, CAPABILITIES } from './auth';
 export async function getOptionalUser(ctx: QueryCtx | MutationCtx): Promise<Doc<'users'> | null> {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    return getUserByClerkIdSafe(ctx, identity.subject);
+    const user = await getUserByClerkIdSafe(ctx, identity.subject);
+    // Invite-only gate (local-app mode). No-op unless the Convex env var
+    // WEBLAB_SIGN_IN_ALLOWLIST is set.
+    if (user && !isAllowedByConvexAllowlist(user.email ?? identity.email)) return null;
+    return user;
 }
 
 /**
@@ -63,6 +68,12 @@ export async function requireUserJIT(ctx: MutationCtx): Promise<Doc<'users'>> {
         .query('users')
         .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', identity.subject))
         .collect();
+    // Invite-only gate (local-app mode). No-op unless the Convex env var
+    // WEBLAB_SIGN_IN_ALLOWLIST is set. Checked before any insert so a blocked
+    // identity never gets a users row.
+    if (!isAllowedByConvexAllowlist(matches[0]?.email ?? identity.email)) {
+        throw new Error('UNAUTHORIZED');
+    }
     if (matches.length === 1) return matches[0]!;
     if (matches.length > 1) {
         // Keep the earliest row (most likely to be the one downstream tables

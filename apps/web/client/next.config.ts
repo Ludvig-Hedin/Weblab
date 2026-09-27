@@ -26,7 +26,27 @@ const nextConfig: NextConfig = {
     },
     ...(process.env.STANDALONE_BUILD === 'true' && { output: 'standalone' }),
     async redirects() {
+        // Local-app mode (docs/guides/local-app-mode.md): pages that only
+        // describe the cloud app send visitors home. Build-time, like the flag.
+        const localAppModeRedirects =
+            process.env.NEXT_PUBLIC_SITE_MODE === 'local'
+                ? [
+                      { source: '/pricing', destination: '/', permanent: false },
+                      { source: '/faq', destination: '/#faq', permanent: false },
+                      { source: '/features', destination: '/', permanent: false },
+                      { source: '/features/:path*', destination: '/', permanent: false },
+                      { source: '/workflows', destination: '/', permanent: false },
+                      { source: '/workflows/:path*', destination: '/', permanent: false },
+                      { source: '/website-builder', destination: '/', permanent: false },
+                      { source: '/visual-site-builder', destination: '/', permanent: false },
+                      { source: '/ai-website-builder', destination: '/', permanent: false },
+                      { source: '/compare', destination: '/', permanent: false },
+                      { source: '/compare/:path*', destination: '/', permanent: false },
+                      { source: '/see-a-demo', destination: '/', permanent: false },
+                  ]
+                : [];
         return [
+            ...localAppModeRedirects,
             // Some legacy Android Chrome versions and third-party PWA install
             // prompts still look up /manifest.json. Redirect to the canonical
             // /manifest.webmanifest instead of returning 404.

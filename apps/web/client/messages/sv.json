@@ -4829,5 +4829,65 @@
       "toastSaveFailedDesc": "Försök igen.",
       "toastOgImageFailed": "Det gick inte att ladda upp sociala förhandsgranskningsbilden."
     }
+  },
+  "localApp": {
+    "nav": {
+      "download": "Ladda ner för Mac"
+    },
+    "hero": {
+      "title": "AI-native visuell webbplatsbyggare",
+      "subtitle": "Designa på din riktiga webbplats, direkt på din Mac. Gratis, öppen källkod och lokal först. Fungerar med Claude Code, Codex och OpenCode.",
+      "download": "Ladda ner för Mac",
+      "requirements": "För Mac med Apple Silicon. Inget konto behövs."
+    },
+    "signIn": {
+      "description": "Weblab är bara för inbjudna just nu. Ladda ner den gratis Mac-appen för att testa.",
+      "inviteOnly": "Registreringen är stängd. Weblab är bara för inbjudna just nu, men den gratis Mac-appen behöver inget konto.",
+      "blocked": "Det här kontot har inte åtkomst. Weblab är bara för inbjudna just nu. Den gratis Mac-appen behöver inget konto.",
+      "download": "Ladda ner för Mac",
+      "signOut": "Logga ut"
+    },
+    "downloadPage": {
+      "title": "Weblab för Mac",
+      "description": "Redigera din webbplats visuellt, direkt på din Mac. Gratis, öppen källkod och lokal först.",
+      "button": "Ladda ner för Mac",
+      "requirements": "Kräver en Mac med Apple Silicon (M1 eller nyare)."
+    },
+    "faq": {
+      "items": {
+        "what": {
+          "question": "Vad är {appName}?",
+          "answer": "{appName} är en gratis Mac-app som lägger en visuell designyta ovanpå din webbplats medan den körs på din dator. Klicka på ett element, ändra det visuellt eller beskriv ändringen, så redigerar din kodagent de riktiga källfilerna."
+        },
+        "agents": {
+          "question": "Vilken AI använder {appName}?",
+          "answer": "Din egen kodagent: Claude Code, Codex eller OpenCode. {appName} kör den på din Mac med ditt eget konto. Det finns inga {appName}-krediter eller abonnemang."
+        },
+        "stack": {
+          "question": "Vilka webbplatser fungerar det med?",
+          "answer": "Alla sajter du kan köra på din dator med en utvecklingsserver, till exempel Next.js, Vite, Remix, Astro, Rails eller ren HTML. Du kan också klona en sajt från GitHub direkt i appen."
+        },
+        "code": {
+          "question": "Behöver jag kunna koda?",
+          "answer": "Nej. Du designar på ytan och beskriver ändringar med vanliga ord. Riktig kod körs under ytan, så du rör den bara om du vill."
+        },
+        "mac": {
+          "question": "Vilka datorer fungerar det på?",
+          "answer": "Mac med Apple Silicon (M1 eller nyare) just nu. Windows och Linux finns inte än."
+        },
+        "privacy": {
+          "question": "Lämnar min kod datorn?",
+          "answer": "{appName} körs på din Mac och har inget eget konto eller moln. Ditt projekt stannar i din egen mapp. Din kodagent skickar det den behöver till sin egen AI-leverantör, precis som vanligt."
+        },
+        "free": {
+          "question": "Är {appName} gratis?",
+          "answer": "Ja. {appName} är gratis och öppen källkod. Du betalar bara för din kodagents eget abonnemang, om den har ett."
+        },
+        "ownership": {
+          "question": "Vem äger koden?",
+          "answer": "Du. {appName} redigerar filerna i ditt eget projekt, så inget är inlåst. Committa, pusha och publicera som du vill."
+        }
+      }
+    }
   }
 }

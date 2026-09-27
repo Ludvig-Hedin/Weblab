@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { cn } from '@weblab/ui/utils';
 
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { NAVIGATION_CATEGORIES } from '@/utils/constants/navigation';
 
 interface MobileMenuProps {
@@ -126,11 +127,13 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                     transition={{ delay: 0.22, ease: 'easeOut', duration: 0.22 }}
                                 >
                                     <a
-                                        href="/projects"
+                                        href={IS_LOCAL_APP_MODE ? LOCAL_APP_DOWNLOAD_URL : '/projects'}
                                         onClick={() => onOpenChange(false)}
                                         className="bg-foreground-primary text-background block w-full rounded-full py-4 text-center text-base font-medium transition-all hover:opacity-90 active:scale-[0.97] active:opacity-80"
                                     >
-                                        {t('nav.mobileMenu.getStarted')}
+                                        {IS_LOCAL_APP_MODE
+                                            ? t('localApp.nav.download')
+                                            : t('nav.mobileMenu.getStarted')}
                                     </a>
                                 </motion.div>
                             </div>

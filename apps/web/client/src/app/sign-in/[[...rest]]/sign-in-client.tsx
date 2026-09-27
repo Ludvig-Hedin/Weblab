@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useClerk } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 
 import { BrandLogo } from '@weblab/ui/brand';
+import { Button } from '@weblab/ui/button';
 
 import { transKeys } from '@/i18n/keys';
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { Routes } from '@/utils/constants';
 import { ClerkAuthForm } from '../_components/clerk-auth-form';
 import pkg from '../../../../package.json';
@@ -19,6 +22,8 @@ interface WeblabDesktopBridge {
 interface SignInClientProps {
     returnUrl: string | null;
     initialEmail?: string | null;
+    /** Signed in with Clerk but not on the local-mode allowlist. */
+    blocked?: boolean;
 }
 
 /**
@@ -27,7 +32,11 @@ interface SignInClientProps {
  * driven by Clerk's `useSignIn` hook (see <ClerkAuthForm />); there is no
  * Clerk-branded UI on the page.
  */
-export function SignInClient({ returnUrl, initialEmail = null }: SignInClientProps) {
+export function SignInClient({
+    returnUrl,
+    initialEmail = null,
+    blocked = false,
+}: SignInClientProps) {
     const t = useTranslations();
 
     // Same desktop-bridge handling as /login so the in-app build hides the
@@ -68,10 +77,16 @@ export function SignInClient({ returnUrl, initialEmail = null }: SignInClientPro
                     <div className="space-y-2">
                         <h1 className="text-title1 leading-tight">{t(transKeys.welcome.title)}</h1>
                         <p className="text-foreground-weblab text-regular text-balance">
-                            {t(transKeys.welcome.description)}
+                            {IS_LOCAL_APP_MODE
+                                ? t('localApp.signIn.description')
+                                : t(transKeys.welcome.description)}
                         </p>
                     </div>
-                    <ClerkAuthForm returnUrl={returnUrl} initialEmail={initialEmail} />
+                    {blocked ? (
+                        <BlockedAccount />
+                    ) : (
+                        <ClerkAuthForm returnUrl={returnUrl} initialEmail={initialEmail} />
+                    )}
                 </div>
                 {/* Footer row: version label on the left, terms on the right,
                     both rendered in the same muted tertiary color so they
@@ -101,6 +116,31 @@ export function SignInClient({ returnUrl, initialEmail = null }: SignInClientPro
                     </p>
                 </div>
             </div>
+        </div>
+    );
+}
+
+/** Shown to a signed-in account that is not on the local-mode allowlist. */
+function BlockedAccount() {
+    const t = useTranslations('localApp.signIn');
+    const { signOut } = useClerk();
+    return (
+        <div className="flex w-full flex-col items-center gap-3">
+            <p className="text-foreground-secondary text-regular text-balance">
+                {t('blocked')}
+            </p>
+            <Button asChild size="pill" className="w-full">
+                <a href={LOCAL_APP_DOWNLOAD_URL}>{t('download')}</a>
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="pill"
+                className="w-full"
+                onClick={() => void signOut({ redirectUrl: Routes.HOME })}
+            >
+                {t('signOut')}
+            </Button>
         </div>
     );
 }
