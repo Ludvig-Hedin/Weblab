@@ -24,6 +24,7 @@ import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
 import { ViewTransitionNoiseSuppress } from './_components/view-transition-noise-suppress';
 import { AuthProvider } from './auth/auth-context';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { absoluteUrl, organizationSchema, softwareApplicationSchema, websiteSchema } from './seo';
 
 const isProduction = env.NODE_ENV === 'production';
@@ -57,7 +58,9 @@ const LOCALE_TAG: Record<string, string> = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-    const [locale, t] = await Promise.all([getLocale(), getTranslations('seo.root')]);
+    // Local-app mode (docs/guides/local-app-mode.md) describes the Mac app.
+    const seoNamespace = (IS_LOCAL_APP_MODE ? 'seo.rootLocalApp' : 'seo.root') as 'seo.root';
+    const [locale, t] = await Promise.all([getLocale(), getTranslations(seoNamespace)]);
     const title = t('title');
     const description = t('description');
     const ogAlt = t('ogImageAlt');

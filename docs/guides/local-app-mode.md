@@ -59,6 +59,10 @@ Everything below is gated on `IS_LOCAL_APP_MODE` from
   No collaboration, hosting or pricing answers. The "read more" link is hidden.
 - Footer: Pricing, My Projects and Compare are hidden. Download links to the `.dmg`.
 - `/download`: one Apple Silicon Mac button. No Windows, Linux or Intel.
+- Search metadata: site title, description, `/download` metadata and the
+  SoftwareApplication JSON-LD describe the free Mac app (`seo.rootLocalApp`,
+  `seo.downloadLocalApp`).
+- Mobile menu: the Product group is hidden (its pages redirect home).
 - `/api/download/mac` redirects to the local `.dmg`. Other platforms return 404.
 - Redirected home (`next.config.ts`): `/pricing`, `/faq` (to `/#faq`),
   `/features/*`, `/workflows/*`, `/website-builder`, `/visual-site-builder`,
@@ -114,5 +118,3 @@ The keychain profile `weblab` is created once with
 - Move `weblab-local` into this repo as `apps/desktop-local` and make it the
   desktop app. Mark the current `apps/desktop` as paused. Then point the site's
   GitHub links and releases at this repo. See backlog entry 178.
-- SEO metadata (`src/app/seo.ts`, `seo.*` in `messages/en.json`) still describes
-  the cloud app. See backlog entry 179.

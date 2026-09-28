@@ -3393,6 +3393,16 @@
     }
   },
   "seo": {
+    "rootLocalApp": {
+      "title": "Weblab for Mac - Free, open source visual website editor",
+      "description": "Design on your real website, right on your Mac. Weblab is free, open source and local-first, and works with Claude Code, Codex and OpenCode.",
+      "ogImageAlt": "Weblab for Mac: free, open source visual website editor"
+    },
+    "downloadLocalApp": {
+      "title": "Download Weblab for Mac",
+      "description": "Download the free Weblab app for Macs with Apple Silicon. Open source and local-first. No account needed.",
+      "ogImageAlt": "Download Weblab for Mac"
+    },
     "root": {
       "title": "Weblab - AI Visual Website Builder for React Teams",
       "description": "AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.",
