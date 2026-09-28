@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { buildPageMetadata } from '@/lib/seo-metadata';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -10,7 +11,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 
 export async function generateMetadata(): Promise<Metadata> {
     return buildPageMetadata({
-        pageKey: 'download',
+        pageKey: IS_LOCAL_APP_MODE ? 'downloadLocalApp' : 'download',
         path: '/download',
     });
 }

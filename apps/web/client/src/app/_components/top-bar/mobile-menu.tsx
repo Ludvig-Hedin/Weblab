@@ -72,7 +72,13 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                     collapsible
                                     className="border-foreground/10 w-full border-t"
                                 >
-                                    {NAVIGATION_CATEGORIES.map((category, i) => (
+                                    {NAVIGATION_CATEGORIES.filter(
+                                        // Local-app mode: Product links go to cloud pages
+                                        // that redirect home, so hide the group.
+                                        (c) =>
+                                            !IS_LOCAL_APP_MODE ||
+                                            c.labelKey !== 'nav.categories.product.label',
+                                    ).map((category, i) => (
                                         <motion.div
                                             key={category.labelKey}
                                             initial={{ opacity: 0, y: 10 }}

@@ -3392,6 +3392,16 @@
     }
   },
   "seo": {
+    "rootLocalApp": {
+      "title": "Weblab för Mac - Gratis visuell webbredigerare med öppen källkod",
+      "description": "Designa på din riktiga webbplats, direkt på din Mac. Weblab är gratis, öppen källkod och lokal först, och fungerar med Claude Code, Codex och OpenCode.",
+      "ogImageAlt": "Weblab för Mac: gratis visuell webbredigerare med öppen källkod"
+    },
+    "downloadLocalApp": {
+      "title": "Ladda ner Weblab för Mac",
+      "description": "Ladda ner den gratis Weblab-appen för Mac med Apple Silicon. Öppen källkod och lokal först. Inget konto behövs.",
+      "ogImageAlt": "Ladda ner Weblab för Mac"
+    },
     "root": {
       "title": "Weblab – Visuell AI-webbplatsbyggare för React-team",
       "description": "Visuell AI-webbplatsbyggare för React- och Next.js-team. Designa med riktiga komponenter, redigera kod visuellt och skicka pull requests istället för prototyper.",
