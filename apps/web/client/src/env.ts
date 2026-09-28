@@ -228,7 +228,7 @@ export const env = createEnv({
             .string()
             .url()
             .default(
-                'https://github.com/Ludvig-Hedin/airship/releases/latest/download/Weblab-mac-arm64.dmg',
+                'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-mac-arm64.dmg',
             ),
         // Tri-state SW opt-in. Empty = production-only (default). 'true'
         // forces registration even in dev (for QAing offline locally).

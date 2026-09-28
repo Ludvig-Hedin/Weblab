@@ -8,10 +8,11 @@ Nothing is deleted in either mode, so switching back restores the full cloud app
 | Mode | `NEXT_PUBLIC_SITE_MODE` | What visitors get |
 | --- | --- | --- |
 | Cloud (default) | unset or `cloud` | The full hosted Weblab web app: sign-up, projects, pricing, cloud editor, publish. |
-| Local | `local` | A marketing site that only sends people to download the Mac app (`weblab-local`). Sign-up is closed. Sign-in is invite only. |
+| Local | `local` | A marketing site that only sends people to download the Mac app (`apps/desktop-local`). Sign-up is closed. Sign-in is invite only. |
 
-Why: the new Mac app (`~/Programming/personal/AB/weblab-local`, GitHub
-`Ludvig-Hedin/airship`, product name "Weblab") has no login and runs fully on
+Why: the new Mac app ([`apps/desktop-local`](../../apps/desktop-local/),
+product name "Weblab", imported from `Ludvig-Hedin/airship` with its history
+on 2026-09-28) has no login and runs fully on
 the user's Mac. For now it is shared with friends only. The cloud app is paused,
 not removed.
 
@@ -24,7 +25,7 @@ Railway redeploys on its own when a variable changes.
 | Variable | Where | Value in local mode | Default |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SITE_MODE` | Railway (build arg) | `local` | `cloud` |
-| `NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL` | Railway (build arg), optional | direct `.dmg` URL | `https://github.com/Ludvig-Hedin/airship/releases/latest/download/Weblab-mac-arm64.dmg` |
+| `NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL` | Railway (build arg), optional | direct `.dmg` URL | `https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-mac-arm64.dmg` |
 | `WEBLAB_SIGN_IN_ALLOWLIST` | Railway (runtime) | comma-separated emails | `ludvighedin15@gmail.com` |
 | `WEBLAB_SIGN_IN_ALLOWLIST` | Convex prod env (`npx convex env set`) | same emails | unset = no restriction |
 
@@ -97,24 +98,34 @@ Helpers: `convex/lib/signInAllowlist.ts` (tested in `signInAllowlist.test.ts`).
 
 ## Shipping a new Mac build
 
-The download URL points at the **latest** release of `Ludvig-Hedin/airship`
-with a fixed asset name, so a new build needs no site change:
+The download URL points at the **latest** release of `Ludvig-Hedin/Weblab`
+with a fixed asset name, so a new build needs no site change. The app is its
+own pnpm workspace inside this repo (excluded from Bun workspaces, CI unit
+tests and the web Docker image).
 
 ```bash
-cd ~/Programming/personal/AB/weblab-local/apps/desktop
-pnpm build:mac          # signs; notarizes when Apple credentials are set
+cd apps/desktop-local
+pnpm install
+# bump apps/desktop/package.json "version" and add a CHANGELOG.md entry first
+cd apps/desktop
+CSC_NAME="LUDVIG KARL ERIK HEDIN (XDBG7P4V96)" CSC_IDENTITY_AUTO_DISCOVERY=true \
+APPLE_API_KEY=<path to AuthKey_XXXX.p8> APPLE_API_KEY_ID=<key id> APPLE_API_ISSUER=<issuer id> \
+pnpm build:mac          # builds, signs with Developer ID and notarizes the app
 xcrun notarytool submit dist/Weblab-<version>-arm64.dmg --keychain-profile weblab --wait
 xcrun stapler staple dist/Weblab-<version>-arm64.dmg
 cp dist/Weblab-<version>-arm64.dmg /tmp/Weblab-mac-arm64.dmg
-gh release create weblab-local-v<version> /tmp/Weblab-mac-arm64.dmg \
-  -R Ludvig-Hedin/airship --title "Weblab for Mac <version>" --latest
+gh release create desktop-local-v<version> /tmp/Weblab-mac-arm64.dmg \
+  -R Ludvig-Hedin/Weblab --title "Weblab for Mac <version>" --latest
 ```
+
+Only upload the `.dmg`. Never upload `latest-mac.yml`: the paused
+`apps/desktop` app auto-updates from the latest Weblab release and must not
+pick up this app. Tags use `desktop-local-v*` so the old `desktop-v*` release
+workflow never fires.
+
+**Switching back to the cloud app:** the cloud-mode `/api/download/*` route
+serves `Weblab.dmg` from the latest Weblab release. Mark the last
+`desktop-v*` release as latest again (`gh release edit desktop-v0.2.6 --latest`).
 
 The keychain profile `weblab` is created once with
 `xcrun notarytool store-credentials weblab --key <AuthKey.p8> --key-id <id> --issuer <issuer>`.
-
-## Later (not done yet)
-
-- Move `weblab-local` into this repo as `apps/desktop-local` and make it the
-  desktop app. Mark the current `apps/desktop` as paused. Then point the site's
-  GitHub links and releases at this repo. See backlog entry 178.
