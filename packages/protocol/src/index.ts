@@ -320,6 +320,102 @@ export const AttrEditTargetSchema = z.object({
 export type AttrEditTarget = z.infer<typeof AttrEditTargetSchema>;
 
 // ---------------------------------------------------------------------------
+// Component props — an edit to one *instance* of a shared component.
+//
+// Not an attribute edit and not a text edit: the value lives in the JSX where
+// the component is *used* (`<CtaBanner title="…" />` in a page), or in the data
+// object that call site spreads in, and never in the component's own file.
+// Writing it anywhere else would change every page that uses the component,
+// which is exactly what an instance edit promises not to do.
+// ---------------------------------------------------------------------------
+
+/** Where a prop's current value comes from, at the instance's call site. */
+export const PROP_ORIGIN_KINDS = [
+  "literal",
+  "expression",
+  "spread",
+  "default",
+  "cms",
+] as const;
+export const PropOriginKindSchema = z.enum(PROP_ORIGIN_KINDS);
+export type PropOriginKind = z.infer<typeof PropOriginKindSchema>;
+
+export const PropOriginSchema = z.object({
+  /** Spread only: the imported name, e.g. `aboutHero`. */
+  exportName: z.string().optional(),
+  /** Spread only: the project-relative file the object is defined in. */
+  file: z.string().optional(),
+  kind: PropOriginKindSchema,
+  /** The expression as written at the call site, when not a literal. */
+  text: z.string().optional(),
+});
+export type PropOrigin = z.infer<typeof PropOriginSchema>;
+
+/** How the editor shows a prop, and so how the agent should read the value. */
+export const PROP_CONTROLS = [
+  "text",
+  "enum",
+  "boolean",
+  "number",
+  "image",
+  "link",
+  "color",
+  "node",
+  "object",
+] as const;
+export const PropControlSchema = z.enum(PROP_CONTROLS);
+export type PropControl = z.infer<typeof PropControlSchema>;
+
+/** The component an instance edit or a component action is about. */
+export const ComponentRefSchema = z.object({
+  /** Where `<Name …>` is written, project-relative. */
+  callSite: SourceLocationSchema.nullable().default(null),
+  /** Where the component is defined, project-relative. */
+  definition: z.string().nullable().default(null),
+  name: z.string(),
+  /** Pages that render it, as routes (`/`, `/about`). */
+  pages: z.array(z.string()).default([]),
+});
+export type ComponentRef = z.infer<typeof ComponentRefSchema>;
+
+export const PropEditSchema = z.object({
+  component: ComponentRefSchema,
+  control: PropControlSchema,
+  /** The value before the first edit, as a string. `null` when unset. */
+  from: z.string().nullable().default(null),
+  origin: PropOriginSchema.optional(),
+  prop: z.string(),
+  /** The new value. Booleans and numbers are written as `true`/`42`. */
+  to: z.string(),
+});
+export type PropEdit = z.infer<typeof PropEditSchema>;
+
+/**
+ * One-shot component refactors from the context menu. Each is a small,
+ * clearly bounded rewrite the agent does; the editor cannot preview them.
+ */
+export const COMPONENT_ACTIONS = [
+  "make-property",
+  "create-component",
+  "detach",
+] as const;
+export const ComponentActionKindSchema = z.enum(COMPONENT_ACTIONS);
+export type ComponentActionKind = z.infer<typeof ComponentActionKindSchema>;
+
+export const ComponentActionSchema = z.object({
+  action: ComponentActionKindSchema,
+  /** `make-property` and `detach`: the component involved. */
+  component: ComponentRefSchema.optional(),
+  element: ElementContextSchema,
+  /** `create-component`: the name the user gave it. */
+  name: z.string().optional(),
+  source: SourceLocationSchema.nullable().default(null),
+  /** `make-property`: the element's current text or `src`, kept as default. */
+  value: z.string().optional(),
+});
+export type ComponentAction = z.infer<typeof ComponentActionSchema>;
+
+// ---------------------------------------------------------------------------
 // Text content — an in-place edit of a leaf text node. Deliberately the whole
 // `textContent` rather than a diff: the agent needs to find the string in the
 // source, and "the old text" is the only reliable way to locate it when the same
@@ -397,6 +493,8 @@ export const CreateJobRequestSchema = z
     /** Review feedback on the previous edit's diff. Like the delta arrays,
      * these make `prompt` optional — a comments-only turn is a valid turn. */
     comments: z.array(CommentSchema).optional(),
+    /** Context-menu component refactors: make property, create, detach. */
+    componentActions: z.array(ComponentActionSchema).optional(),
     element: ElementContextSchema.optional(),
     /** Fork instead of continue — "try a different approach". */
     fork: z.boolean().optional(),
@@ -413,6 +511,8 @@ export const CreateJobRequestSchema = z
     /** Free-text instruction. May be empty for a pure visual (deltas-only) edit,
      * or an optional "note" that rides along with `visualChanges`. */
     prompt: z.string().default(""),
+    /** Edits to one instance of a shared component's props. */
+    propChanges: z.array(PropEditSchema).optional(),
     source: SourceLocationSchema.nullable().optional(),
     /** Direct-manipulation deletes and duplicates. */
     structuralChanges: z.array(StructuralEditSchema).optional(),
@@ -430,10 +530,12 @@ export const CreateJobRequestSchema = z
       (r.structuralChanges?.length ?? 0) > 0 ||
       (r.textChanges?.length ?? 0) > 0 ||
       (r.attrChanges?.length ?? 0) > 0 ||
+      (r.propChanges?.length ?? 0) > 0 ||
+      (r.componentActions?.length ?? 0) > 0 ||
       (r.comments?.length ?? 0) > 0,
     {
       message:
-        "either prompt, visualChanges, moveChanges, structuralChanges, textChanges, attrChanges, or comments is required",
+        "either prompt, visualChanges, moveChanges, structuralChanges, textChanges, attrChanges, propChanges, componentActions, or comments is required",
     }
   );
 export type CreateJobRequest = z.infer<typeof CreateJobRequestSchema>;
@@ -963,4 +1065,81 @@ export interface AssetListResponse {
 /** Any non-2xx answer from the assets API. */
 export interface AssetErrorResponse {
   error: string;
+}
+
+// ---------------------------------------------------------------------------
+// Components API — which React components on the page are *shared*, and what
+// props an instance takes. Read-only; answered from the project's source.
+// ---------------------------------------------------------------------------
+
+/** `POST` resolves call sites to components; `POST …/detail` adds props. */
+export const AIRSHIP_COMPONENTS_PATH = "/__airship/api/components";
+export const AIRSHIP_COMPONENT_DETAIL_PATH = "/__airship/api/components/detail";
+
+/** One component instance's call site, as the browser saw it. */
+export interface ComponentFrameRef {
+  /**
+   * Candidate call-site frames, nearest first. A frame whose file is still a
+   * build artefact (`.next/…/chunk.js`) is mapped by the server; the first
+   * frame that lands in a project source file outside `node_modules` wins.
+   */
+  frames: SourceLocation[];
+  /** The browser's cache key for this call site; echoed back. */
+  key: string;
+  name: string;
+}
+
+export interface ComponentsRequest {
+  refs: ComponentFrameRef[];
+}
+
+export interface ComponentInfo {
+  /** Where `<Name …>` is written, project-relative with the line. */
+  callSite: SourceLocation | null;
+  /** Where the component is defined, project-relative. */
+  definition: { exportName: string; file: string } | null;
+  /** Imported from a package (`next/link`) — never treated as a component. */
+  external: boolean;
+  /** How many `<Name` usages the project has, across every file. */
+  instances: number;
+  /** A page or layout itself — the thing being edited, never an instance. */
+  isRoute: boolean;
+  key: string;
+  name: string;
+  /** Routes that render it (`/`, `/about`), sorted. */
+  pages: string[];
+  /** Used in two or more places: shown purple, edited per instance. */
+  shared: boolean;
+}
+
+export interface ComponentsResponse {
+  components: ComponentInfo[];
+}
+
+export interface PropSpec {
+  control: PropControl;
+  /** The default from the component's signature, as source text. */
+  defaultValue?: string;
+  name: string;
+  optional: boolean;
+  /** `enum` only: the literal options, in declaration order. */
+  options?: string[];
+  /** The declared type, as TypeScript prints it. */
+  typeText: string;
+}
+
+export interface ComponentDetailRequest {
+  ref: ComponentFrameRef;
+}
+
+export interface ComponentDetail extends ComponentInfo {
+  /** Where each prop's value comes from at this call site, by prop name. */
+  origins: Record<string, PropOrigin>;
+  /** Declared props, in declaration order. Empty when types are unreadable. */
+  props: PropSpec[];
+  /**
+   * For each spread data object at the call site, the other routes that import
+   * it — "Also used on" in the panel. Keyed by `exportName`.
+   */
+  sharedData: Record<string, string[]>;
 }

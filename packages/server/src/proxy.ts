@@ -30,6 +30,7 @@ import {
   parseHostHeader,
 } from "./access";
 import { handleAssetsRequest, isAssetsRequest } from "./assets";
+import { handleComponentsRequest, isComponentsRequest } from "./components-api";
 import { escapeForScript, shellHtml } from "./shell";
 
 /** The only shape of font filename this server will read off disk. */
@@ -254,7 +255,8 @@ export interface ProxyDeps {
   ) => void;
   /**
    * The user's project root. Enables the image library API
-   * (`/__airship/api/assets`); without it that route answers 404.
+   * (`/__airship/api/assets`) and the components API
+   * (`/__airship/api/components`); without it those routes answer 404.
    */
   projectRoot?: string;
   targetHost: string;
@@ -303,6 +305,11 @@ function handleHttp(
       "x-content-type-options": "nosniff",
     });
     res.end("Forbidden host\n");
+    return;
+  }
+
+  if (isComponentsRequest(req.url)) {
+    serveComponentsApi(req, res, deps.projectRoot);
     return;
   }
 
@@ -543,6 +550,24 @@ function serveAssetsApi(
   }
   handleAssetsRequest(req, res, { projectRoot }).catch(() => {
     // handleAssetsRequest answers every failure itself.
+  });
+}
+
+/** The components API. Never proxied: it answers from the user's source. */
+function serveComponentsApi(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  projectRoot: string | undefined
+): void {
+  if (!projectRoot) {
+    res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
+    res.end(
+      JSON.stringify({ error: "Component details are not available here." })
+    );
+    return;
+  }
+  handleComponentsRequest(req, res, { projectRoot }).catch(() => {
+    // handleComponentsRequest answers every failure itself.
   });
 }
 

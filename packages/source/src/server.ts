@@ -7,6 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import type { ElementContext, SourceLocation } from "@airship/protocol";
+import { mapBuildFrame } from "./components";
 import { readCapped, toPosix, walkFiles } from "./walk";
 
 export interface ResolveInput {
@@ -38,26 +39,50 @@ const VITE_FS_PREFIX = /^\/@fs\/(.*)$/;
 /** `C:` — a path already rooted at a Windows drive. */
 const WIN32_DRIVE = /^[a-zA-Z]:/;
 const WIN32 = process.platform === "win32";
+/**
+ * A location that is a URL or a compiled chunk rather than a source path:
+ * `file://`, React's `about://React/Server/`, Turbopack/webpack schemes, a
+ * `?id` suffix, or anything under `.next`.
+ */
+const NEEDS_MAPPING =
+  /^(?:file:|about:|turbopack:|webpack(?:-internal)?:|\[project\])|\?|[\\/]\.next[\\/]/;
 
 export function resolveServerSource(
   cwd: string,
   input: ResolveInput
 ): SourceLocation | null {
   if (input.source?.file && typeof input.source.line === "number") {
-    const abs = resolveExistingSource(cwd, input.source.file);
+    const source = mappedSource(cwd, input.source);
+    const abs = resolveExistingSource(cwd, source.file);
     // Normalize to a project-relative path so the agent gets a path it can
     // open; fall back to the reported path if we can't locate the file.
     // Forward slashes on the way out — this string is rendered into the prompt
     // and into the JSON the MCP tool returns, where a Windows separator arrives
     // doubled, and the overlay uses it as a display label.
-    const file = abs ? toPosix(relative(cwd, abs)) : input.source.file;
-    const context = abs ? readContext(abs, input.source.line) : undefined;
-    return { ...input.source, context: context ?? input.source.context, file };
+    const file = abs ? toPosix(relative(cwd, abs)) : source.file;
+    const line = source.line ?? input.source.line;
+    const context = abs ? readContext(abs, line) : undefined;
+    return { ...source, context: context ?? input.source.context, file, line };
   }
   if (input.element) {
     return searchByElement(cwd, input.element);
   }
   return null;
+}
+
+/**
+ * The source file behind a build-artefact location. Next.js server components
+ * report their frames in compiled `.next/…/chunk.js` files (often as `file://`
+ * or `about://React/Server/` URLs); handing that chunk to the agent as "the
+ * file to edit" is useless, so it is mapped through the chunk's source map
+ * first. Anything that cannot be mapped is left as reported.
+ */
+function mappedSource(cwd: string, source: SourceLocation): SourceLocation {
+  if (!NEEDS_MAPPING.test(source.file)) {
+    return source;
+  }
+  const mapped = mapBuildFrame(cwd, source);
+  return mapped ? { ...source, ...mapped } : source;
 }
 
 /**
