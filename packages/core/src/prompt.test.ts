@@ -182,3 +182,88 @@ describe("structural changes", () => {
     expect(prompt).toContain('New wrapper: <a href="#">');
   });
 });
+
+describe("component edits", () => {
+  const component = {
+    callSite: { file: "src/app/about/page.tsx", line: 34 },
+    definition: "src/components/sections/page-hero.tsx",
+    name: "PageHero",
+    pages: ["/about", "/security"],
+  };
+  const element = {
+    classes: [],
+    displayName: null,
+    tagName: "h1",
+    textPreview: "About",
+  };
+
+  it("sends a prop edit to the call site, never the component file", () => {
+    const prompt = buildEditPrompt({
+      prompt: "",
+      propChanges: [
+        {
+          component,
+          control: "enum",
+          from: "dark",
+          origin: { kind: "literal" },
+          prop: "tone",
+          to: "light",
+        },
+      ],
+    });
+    expect(prompt).toContain("<PageHero> used at src/app/about/page.tsx:34");
+    expect(prompt).toContain('tone (enum): "dark" → "light"');
+    expect(prompt).toContain("Never edit the component's own file");
+  });
+
+  it("routes a spread value to its data file and a default to a new attribute", () => {
+    const prompt = buildEditPrompt({
+      prompt: "",
+      propChanges: [
+        {
+          component,
+          control: "text",
+          from: "Our Mission",
+          origin: {
+            exportName: "aboutHero",
+            file: "src/content/about.ts",
+            kind: "spread",
+          },
+          prop: "eyebrowTail",
+          to: "Our Story",
+        },
+        {
+          component,
+          control: "boolean",
+          from: null,
+          origin: { kind: "default" },
+          prop: "dark",
+          to: "true",
+        },
+      ],
+    });
+    expect(prompt).toContain("`aboutHero` in src/content/about.ts");
+    expect(prompt).toContain("Add the prop to this call site only");
+  });
+
+  it("describes make-property, detach and create-component", () => {
+    const prompt = buildEditPrompt({
+      componentActions: [
+        {
+          action: "make-property",
+          component,
+          element,
+          source: null,
+          value: "About",
+        },
+        { action: "detach", component, element, source: null },
+        { action: "create-component", element, source: null },
+      ],
+      prompt: "",
+    });
+    expect(prompt).toContain("Make the current value the prop's default");
+    expect(prompt).toContain("It is used on 2 pages: /about, /security.");
+    expect(prompt).toContain("Replace only this call site");
+    expect(prompt).toContain("Create a component");
+  });
+});

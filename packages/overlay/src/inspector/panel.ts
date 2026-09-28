@@ -106,10 +106,30 @@ import {
 import { vectorShapeKey } from "./svg-paint";
 import { isEditableText, TextEditor } from "./text-edit";
 
+/**
+ * What the panel needs from the component layer. Optional: a page with no
+ * React components (or a test) runs the panel exactly as before.
+ */
+export interface ComponentPanelHooks {
+  /** Layer name and colour for a node that is a component instance. */
+  identify: (node: Element) => { component: boolean; name: string } | null;
+  /** Put back every pending instance edit — the panel's Discard. */
+  onDiscard: () => void;
+  /**
+   * The Component section for a selected instance, or null for any other node.
+   * `exclusive` hides the design sections: an instance's look belongs to its
+   * main component, and styling it here would restyle every page.
+   */
+  section: (
+    node: Element
+  ) => { element: HTMLElement; exclusive: boolean } | null;
+}
+
 export interface DesignPanelDeps {
   /** Accumulates HTML attribute edits (`alt`, `loading`, `autoplay`, …). */
   attrSet: AttrSet;
   changeSet: ChangeSet;
+  components?: ComponentPanelHooks;
   controller: SelectionController;
   /** Undo/redo journal. Every recorded change is pushed here. */
   history: History;
@@ -506,6 +526,8 @@ export class DesignPanel {
   private textCtx: {
     element: ElementContext;
     node: Element;
+    /** Set for a component property edited in place: the edit is a prop, not text. */
+    onProp?: (from: string, to: string) => void;
     source: SourceLocation | null;
   } | null = null;
 
@@ -559,6 +581,12 @@ export class DesignPanel {
         // something began an edit without going through `beginTextEdit`, and
         // recording it would be worse than dropping it.
         if (!(ctx && ctx.node === edit.node)) {
+          return;
+        }
+        if (ctx.onProp) {
+          if (edit.from !== edit.to) {
+            ctx.onProp(edit.from, edit.to);
+          }
           return;
         }
         // `writeDom: false` — the contenteditable has already written the
@@ -649,6 +677,16 @@ export class DesignPanel {
     this.renderHead();
     this.renderBody();
     this.notifyChanged();
+  }
+
+  /**
+   * Rebuild the head and body for the current selection, keeping everything
+   * else — for a change in what the panel *contains* rather than in a value:
+   * a component resolving as shared, a scope entered or left.
+   */
+  rebuild(): void {
+    this.renderHead();
+    this.renderBody();
   }
 
   /**
@@ -870,6 +908,35 @@ export class DesignPanel {
     // on the canvas is a frame's viewport at 1×.
     const began = this.textEditor.begin(target, {
       caret: caret ? sel.surface.toLocal(caret) : null,
+    });
+    if (!began) {
+      this.textCtx = null;
+    }
+    return began;
+  }
+
+  /**
+   * Edit a component property's text in place, on the canvas.
+   *
+   * The node is *inside* the selected instance rather than the selection
+   * itself, which is why this cannot go through `beginTextEdit` and its
+   * identity check. The commit goes to `onProp` and never to the structure
+   * set: the change is to this instance's prop, not to the component's text.
+   */
+  beginPropTextEdit(
+    node: Element,
+    caret: Point | null,
+    onProp: (from: string, to: string) => void
+  ): boolean {
+    const sel = this.selection;
+    const surface = this.deps.resolver.of(node);
+    if (!(sel && surface && sel.node.contains(node))) {
+      return false;
+    }
+    this.textEditor.commit();
+    this.textCtx = { element: sel.element, node, onProp, source: sel.source };
+    const began = this.textEditor.begin(node, {
+      caret: caret ? surface.toLocal(caret) : null,
     });
     if (!began) {
       this.textCtx = null;
@@ -1997,6 +2064,7 @@ export class DesignPanel {
     this.deps.structureSet.clear();
     this.deps.attrSet.restore();
     this.deps.attrSet.clear();
+    this.deps.components?.onDiscard();
     this.deps.history.clear();
     this.deps.controller.drawOutline();
     // Re-seed controls from the reverted computed values.
@@ -2232,8 +2300,9 @@ export class DesignPanel {
     // component instance. Which component renders the selection is worth
     // knowing; the header says it, once, where it cannot be mistaken for the
     // layer's own name. The full `tag.class.class` string stays as the tooltip.
-    const kind = nodeKind(node);
-    const label = layerName(node);
+    const who = this.deps.components?.identify(node) ?? null;
+    const kind = who?.component ? "component" : nodeKind(node);
+    const label = who?.component ? who.name : layerName(node);
     // Left-hand disclosure, unlike the sections: in a tree the arrow belongs to
     // the row's depth, so moving it to the right column detached it from the
     // indent that gives it its meaning. The spacer keeps childless rows lined
@@ -2349,7 +2418,8 @@ export class DesignPanel {
         lock,
       ]
     );
-    row.dataset.kind = kind;
+    // `instance` rather than the kind: it is what paints the row purple.
+    row.dataset.kind = who?.component ? "instance" : kind;
     row.classList.toggle(cls("tree-hidden"), hidden);
     row.classList.toggle(cls("tree-locked"), locked);
     // Depth rides on the panel's own text margin rather than a tighter one of
@@ -2741,6 +2811,14 @@ export class DesignPanel {
       return;
     }
     const { node } = this.selection;
+    const component = this.deps.components?.section(node) ?? null;
+    if (component) {
+      this.bodyEl.append(component.element);
+      if (component.exclusive) {
+        this.restoreView(scrollTop, focus);
+        return;
+      }
+    }
     // Scope and State govern every control below them, so they sit above
     // everything — including the alignment strip — and outside the collapsible
     // sections. Null when the element has neither shared classes nor

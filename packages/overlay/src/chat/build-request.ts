@@ -7,8 +7,10 @@
  */
 import type {
   AgentKind,
+  ComponentAction,
   CreateJobRequest,
   ImageInput,
+  PropEdit,
 } from "@airship/protocol";
 import type { AttrSet } from "../attr-set";
 import type { ChangeSet } from "../change-set";
@@ -23,6 +25,8 @@ export interface EditRequestParts {
   attrSet: AttrSet;
   changeSet: ChangeSet;
   commentSet: CommentSet;
+  /** Context-menu component refactors, sent the moment they are chosen. */
+  componentActions?: ComponentAction[];
   images: ImageInput[];
   /** Which model that backend runs on. Absent leaves it to the daemon. */
   model?: string;
@@ -30,6 +34,8 @@ export interface EditRequestParts {
   /** The turn this one continues, when refining rather than starting fresh. */
   parentJobId: string | null;
   prompt: string;
+  /** Pending edits to component instance props. */
+  propChanges?: PropEdit[];
   selected: Selection | null;
   structureSet: StructureSet;
 }
@@ -74,12 +80,18 @@ export function buildEditRequest(p: EditRequestParts): CreateJobRequest | null {
   const structuralChanges = p.structureSet.targets();
   const textChanges = p.structureSet.textTargets(deleted);
   const attrChanges = p.attrSet.targets(deleted);
+  const propChanges = p.propChanges?.length ? p.propChanges : undefined;
+  const componentActions = p.componentActions?.length
+    ? p.componentActions
+    : undefined;
   const hasVisual = Boolean(
     visualChanges ||
       moveChanges ||
       structuralChanges.length ||
       textChanges.length ||
-      attrChanges.length
+      attrChanges.length ||
+      propChanges ||
+      componentActions
   );
   const comments = p.commentSet.isEmpty() ? undefined : p.commentSet.targets();
   if (!(prompt || hasVisual || comments)) {
@@ -92,13 +104,16 @@ export function buildEditRequest(p: EditRequestParts): CreateJobRequest | null {
     moveChanges?.[0]?.element ??
     structuralChanges[0]?.element ??
     textChanges[0]?.element ??
-    attrChanges[0]?.element;
+    attrChanges[0]?.element ??
+    componentActions?.[0]?.element;
   const source =
     p.selected?.source ??
     moveChanges?.[0]?.source ??
     structuralChanges[0]?.source ??
     textChanges[0]?.source ??
     attrChanges[0]?.source ??
+    componentActions?.[0]?.source ??
+    propChanges?.[0]?.component.callSite ??
     null;
 
   return {
@@ -108,6 +123,7 @@ export function buildEditRequest(p: EditRequestParts): CreateJobRequest | null {
     // would pick a different prompt shape than sending nothing.
     attrChanges: attrChanges.length ? attrChanges : undefined,
     comments,
+    componentActions,
     element,
     images: p.images?.length ? p.images : undefined,
     // Absent rather than empty, like the arrays above but for a different
@@ -121,6 +137,7 @@ export function buildEditRequest(p: EditRequestParts): CreateJobRequest | null {
     // would re-derive it from scratch.
     parentJobId: p.parentJobId ?? p.commentSet.parentJobId() ?? undefined,
     prompt,
+    propChanges,
     source,
     structuralChanges: structuralChanges.length ? structuralChanges : undefined,
     textChanges: textChanges.length ? textChanges : undefined,
@@ -146,6 +163,7 @@ export function hasVisualDeltas(request: CreateJobRequest): boolean {
       request.moveChanges ||
       request.structuralChanges ||
       request.textChanges ||
-      request.attrChanges
+      request.attrChanges ||
+      request.propChanges
   );
 }

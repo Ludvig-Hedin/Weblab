@@ -10,12 +10,14 @@ import { dirtyFiles, fileAtHead, gitStatus } from "@airship/git";
 import type {
   AgentKind,
   AttrEditTarget,
+  ComponentAction,
   EditStructuredOutput,
   Effort,
   ElementContext,
   FileDiff,
   ImageInput,
   MoveEdit,
+  PropEdit,
   ReviewComment,
   SourceLocation,
   StructuralEdit,
@@ -44,6 +46,8 @@ export interface RunEditInput {
   codex?: CodexSettings;
   /** Review feedback on a previous turn's diff. */
   comments?: ReviewComment[];
+  /** Context-menu component refactors. */
+  componentActions?: ComponentAction[];
   cwd: string;
   effort?: Effort;
   element?: ElementContext;
@@ -60,6 +64,8 @@ export interface RunEditInput {
   /** OpenCode-only passthrough knobs (`--opencode-path`, `--opencode-url`, …). */
   opencode?: OpencodeSettings;
   prompt: string;
+  /** Edits to one instance of a shared component's props. */
+  propChanges?: PropEdit[];
   /** Resume this agent session (multi-turn refinement). */
   resumeSessionId?: string | null;
   /** Confine edits to the project directory and cut network access. Off by

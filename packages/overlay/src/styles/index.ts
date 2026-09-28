@@ -4,6 +4,7 @@ import { css as base } from "./base.css";
 import { css as canvas } from "./canvas.css";
 import { css as chat } from "./chat.css";
 import { css as chrome } from "./chrome.css";
+import { css as components } from "./components.css";
 import { ROOT } from "./const";
 import { css as controls } from "./controls.css";
 import { css as cssPane } from "./css-pane.css";
@@ -118,6 +119,8 @@ const CSS = [
   // overrides of it rather than a parallel definition.
   help,
   chrome,
+  // After `chrome`: it recolours chrome's boxes and labels for instances.
+  components,
   toast,
   // Last, and it has to be: it overrides the motion every module above declares,
   // and it does so by winning on order rather than on `!important` everywhere.

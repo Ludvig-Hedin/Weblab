@@ -1,9 +1,12 @@
 import {
   type AgentKind,
   type AttrEditTarget,
+  type ComponentAction,
+  type ComponentRef,
   EDIT_OUTPUT_JSON_SCHEMA,
   type ElementContext,
   type MoveEdit,
+  type PropEdit,
   type ReviewComment,
   type SourceLocation,
   type StructuralEdit,
@@ -114,10 +117,14 @@ export interface EditPromptInput {
   attrChanges?: AttrEditTarget[];
   /** Review feedback on the diff from a previous turn, when present. */
   comments?: ReviewComment[];
+  /** Context-menu component refactors, when present. */
+  componentActions?: ComponentAction[];
   element?: ElementContext;
   /** Direct-manipulation structural moves (drag-to-reposition), when present. */
   moveChanges?: MoveEdit[];
   prompt: string;
+  /** Edits to one instance of a shared component's props, when present. */
+  propChanges?: PropEdit[];
   source?: SourceLocation | null;
   /** Direct-manipulation deletes and duplicates, when present. */
   structuralChanges?: StructuralEdit[];
@@ -136,17 +143,24 @@ export function buildEditPrompt(input: EditPromptInput): string {
   const hasStructure = (input.structuralChanges?.length ?? 0) > 0;
   const hasText = (input.textChanges?.length ?? 0) > 0;
   const hasAttrs = (input.attrChanges?.length ?? 0) > 0;
+  const hasComponents =
+    (input.propChanges?.length ?? 0) > 0 ||
+    (input.componentActions?.length ?? 0) > 0;
   const hasComments = (input.comments?.length ?? 0) > 0;
+  const hasDeltas =
+    hasVisual ||
+    hasMoves ||
+    hasStructure ||
+    hasText ||
+    hasAttrs ||
+    hasComponents;
   // Comments are feedback on work already done, which is a different framing
   // from either a fresh instruction or a set of deltas to translate — so they
   // get their own prompt rather than a paragraph appended to one.
-  if (
-    hasComments &&
-    !(hasVisual || hasMoves || hasStructure || hasText || hasAttrs)
-  ) {
+  if (hasComments && !hasDeltas) {
     return buildReviewPrompt(input);
   }
-  if (hasVisual || hasMoves || hasStructure || hasText || hasAttrs) {
+  if (hasDeltas) {
     return buildDirectManipPrompt(input, hasVisual, hasMoves);
   }
   return buildTextPrompt(input);
@@ -280,6 +294,12 @@ function buildDirectManipPrompt(
   }
   if (input.attrChanges?.length) {
     appendAttrTargets(lines, input.attrChanges);
+  }
+  if (input.propChanges?.length) {
+    appendPropTargets(lines, input.propChanges);
+  }
+  if (input.componentActions?.length) {
+    appendComponentActions(lines, input.componentActions);
   }
 
   const note = input.prompt.trim();
@@ -486,6 +506,160 @@ function appendAttrTargets(lines: string[], targets: AttrEditTarget[]): void {
       lines.push(`  - ${change.attribute}: ${from} → ${to}`);
     }
     appendContext(lines, "Source context:", target.source);
+    lines.push("");
+  });
+}
+
+function componentLabel(component: ComponentRef): string {
+  const line = component.callSite?.line ? `:${component.callSite.line}` : "";
+  const at = component.callSite?.file
+    ? ` used at ${component.callSite.file}${line}`
+    : "";
+  const def = component.definition
+    ? ` (defined in ${component.definition})`
+    : "";
+  return `<${component.name}>${at}${def}`;
+}
+
+function pagesNote(component: ComponentRef): string | null {
+  const count = component.pages.length;
+  return count
+    ? `  It is used on ${count} page${count === 1 ? "" : "s"}: ${component.pages.join(", ")}.`
+    : null;
+}
+
+/** Where the new value has to be written, given where the old one came from. */
+function propDestination(edit: PropEdit): string {
+  const { origin } = edit;
+  switch (origin?.kind) {
+    case "spread":
+      return origin.file
+        ? `The value comes from the data object \`${origin.exportName ?? origin.text ?? "…"}\` in ${origin.file}, spread in at the call site. Change it there, in that data file.`
+        : `The value comes from \`${origin.text ?? "a spread object"}\`, spread in at the call site. Change it where that object is defined.`;
+    case "expression":
+      return `The value is the expression \`${origin.text ?? ""}\` at the call site. If it names a constant, change the constant; otherwise replace the expression with the new value at this call site only.`;
+    case "cms":
+      return "The value comes from the CMS. Do not hard-code it; tell the user it has to be changed in the CMS.";
+    case "default":
+      return "The prop is not passed at this call site, so the component's default shows. Add the prop to this call site only. Do not change the default.";
+    default:
+      return "Change the prop at this call site only.";
+  }
+}
+
+/**
+ * Props on one *instance* of a shared component.
+ *
+ * The whole point of an instance edit is that it does not touch the component's
+ * own file — every other page would change with it. So the destination is spelled
+ * out per edit from where the value really lives: the JSX attribute at the call
+ * site, the data object that call site spreads in, or a new attribute when the
+ * default was showing.
+ */
+function appendPropTargets(lines: string[], edits: PropEdit[]): void {
+  lines.push(
+    "Component property changes — the user edited the properties of one instance of a shared component:"
+  );
+  lines.push(
+    "- Change only this instance. Never edit the component's own file for these; other pages use it."
+  );
+  lines.push(
+    "- Write each value idiomatically for its type: a string attribute for text, a bare or omitted attribute for booleans, a number literal for numbers."
+  );
+  lines.push(
+    "- If the prop takes a React node, keep any markup it had and replace only the text."
+  );
+  lines.push("");
+  edits.forEach((edit, i) => {
+    lines.push(`${i + 1}. ${componentLabel(edit.component)}`);
+    const from = edit.from === null ? "(unset)" : JSON.stringify(edit.from);
+    lines.push(
+      `  - ${edit.prop} (${edit.control}): ${from} → ${JSON.stringify(edit.to)}`
+    );
+    lines.push(`  ${propDestination(edit)}`);
+    appendContext(lines, "Call site:", edit.component.callSite);
+    lines.push("");
+  });
+}
+
+function appendMakeProperty(
+  lines: string[],
+  n: number,
+  action: ComponentAction,
+  component: ComponentRef
+): void {
+  const where = describeElement(action.element, action.source);
+  lines.push(
+    `${n}. Make a property: turn ${where} inside ${componentLabel(component)} into a prop of that component.`
+  );
+  if (action.value !== undefined) {
+    lines.push(`  Its current value is ${JSON.stringify(action.value)}.`);
+  }
+  lines.push(
+    "  - Add a well-named prop to the component's props type, and render it where the fixed value was."
+  );
+  lines.push(
+    "  - Make the current value the prop's default, so every existing usage looks exactly as before."
+  );
+  lines.push("  - Do not change any call site.");
+  const pages = pagesNote(component);
+  if (pages) {
+    lines.push(pages);
+  }
+}
+
+function appendDetach(
+  lines: string[],
+  n: number,
+  component: ComponentRef
+): void {
+  lines.push(
+    `${n}. Detach: make the ${componentLabel(component)} instance independent of the shared component.`
+  );
+  lines.push(
+    "  - Copy the component into a new component used only by this page (name it after the page and the section), with this instance's props filled in."
+  );
+  lines.push(
+    "  - Replace only this call site with the new component. Every other usage keeps the shared one, unchanged."
+  );
+}
+
+function appendCreateComponent(
+  lines: string[],
+  n: number,
+  action: ComponentAction
+): void {
+  const where = describeElement(action.element, action.source);
+  const name = action.name?.trim() || "a well-named component";
+  lines.push(`${n}. Create a component: extract ${where} into ${name}.`);
+  lines.push(
+    "  - Put it in its own file next to the project's other components, following their naming and export style."
+  );
+  lines.push(
+    "  - Turn its visible texts, images and links into props, with the current values as defaults."
+  );
+  lines.push(
+    "  - Replace the original JSX with a usage of the new component, so the page looks exactly the same."
+  );
+}
+
+/** Context-menu refactors: small, bounded rewrites the editor cannot preview. */
+function appendComponentActions(
+  lines: string[],
+  actions: ComponentAction[]
+): void {
+  lines.push("Component changes — the user asked for these refactors:");
+  lines.push("");
+  actions.forEach((action, i) => {
+    const n = i + 1;
+    if (action.action === "make-property" && action.component) {
+      appendMakeProperty(lines, n, action, action.component);
+    } else if (action.action === "detach" && action.component) {
+      appendDetach(lines, n, action.component);
+    } else {
+      appendCreateComponent(lines, n, action);
+    }
+    appendContext(lines, "Source context:", action.source);
     lines.push("");
   });
 }

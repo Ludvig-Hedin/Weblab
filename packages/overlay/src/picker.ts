@@ -170,6 +170,13 @@ export type SelectMode = "replace" | "add" | "toggle";
 
 export interface SelectionDeps {
   /**
+   * The name to show for a node and whether it is a component instance.
+   *
+   * Absent means "name it from the DOM", which is all this editor did before
+   * components. An instance gets its component's name and the purple chrome.
+   */
+  identify?: (node: Element) => { component: boolean; name: string } | null;
+  /**
    * True while the canvas is being panned or zoomed. Hover highlighting is
    * suppressed for the duration — hit-testing into a frame that is sliding under
    * the cursor produces a strobe of highlights and a lot of wasted work.
@@ -187,6 +194,17 @@ export interface SelectionDeps {
   onContextMenu?: (at: Point, node: Element) => void;
   /** Resolves screen points and nodes to the surface they belong to. */
   resolver: SurfaceResolver;
+  /**
+   * What a click on `node` should select instead of `node`.
+   *
+   * A click inside a shared component's instance selects the whole instance,
+   * the way Framer and Webflow do; its inside is reached by entering the
+   * component. Hover, click and right-click go through this; double-click and
+   * the text-edit hit test deliberately do not, because deciding *which* text
+   * inside an instance was meant needs the node that was really under the
+   * pointer.
+   */
+  retarget?: (node: Element) => Element;
   /** See `EditGuardOptions.swallowPresses` — true inline, false on the canvas. */
   swallowPresses: boolean;
 }
@@ -727,7 +745,10 @@ export class SelectionController {
     // text edit renames the label as you type. Not the owning component's
     // name: that is the page or section the element sits in, so a heading
     // inside `Home` would be labelled "Home".
-    const name = layerName(this.selected);
+    const who = this.identity(this.selected);
+    const { name } = who;
+    this.outline.classList.toggle(cls("component"), who.component);
+    this.selLabel.classList.toggle(cls("component"), who.component);
     // The label reports the element's own size, not its on-screen size: the CSS
     // width you are about to edit is 200px whether you are at 25% or 300%.
     this.selLabel.replaceChildren(
@@ -857,6 +878,22 @@ export class SelectionController {
    * than as a selectable element — clicking the page background should clear the
    * selection, not select the page.
    */
+  /** `pick`, then `retarget`: what a hover or click actually lands on. */
+  private pickTarget(point: Point): { node: Element; surface: Surface } | null {
+    const hit = this.pick(point);
+    if (!(hit && this.deps.retarget)) {
+      return hit;
+    }
+    return { node: this.deps.retarget(hit.node), surface: hit.surface };
+  }
+
+  /** The label and chrome colour for a node. */
+  private identity(node: Element): { component: boolean; name: string } {
+    return (
+      this.deps.identify?.(node) ?? { component: false, name: layerName(node) }
+    );
+  }
+
   private pick(point: Point): { node: Element; surface: Surface } | null {
     const surface = this.deps.resolver.at(point);
     if (!surface?.isLive) {
@@ -1011,7 +1048,7 @@ export class SelectionController {
       this.clearHover();
       return;
     }
-    const found = this.pick(this.lastPointer);
+    const found = this.pickTarget(this.lastPointer);
     // Moving *out* to an ancestor is usually the pointer crossing the gap
     // between two siblings rather than an intention to hover the container, so
     // it has to hold still for a moment to be believed. `repick` re-hit-tests
@@ -1085,7 +1122,7 @@ export class SelectionController {
       this.clearHover();
       return;
     }
-    this.applyHover(this.pick(this.lastPointer));
+    this.applyHover(this.pickTarget(this.lastPointer));
   }
 
   /** Draw (or clear) the hover box for a resolved hit. */
@@ -1103,7 +1140,10 @@ export class SelectionController {
     // Re-measure on every move even when the node is unchanged: on the canvas
     // the pointer can sit still while the element under it moves — a pan, a
     // zoom, or the app re-rendering — and the highlight has to follow it.
-    this.hoverLabel.textContent = layerName(found.node);
+    const who = this.identity(found.node);
+    this.hoverLabel.textContent = who.name;
+    this.hoverBox.classList.toggle(cls("component"), who.component);
+    this.hoverLabel.classList.toggle(cls("component"), who.component);
     const box = found.surface.toScreen(localRect(found.node));
     place(this.hoverBox, box, clipToSurface(found.surface, box));
     placeLabel(this.hoverLabel, box, found.surface.bounds()?.top ?? 0);
@@ -1152,7 +1192,7 @@ export class SelectionController {
       return;
     }
     const at = { x: e.clientX, y: e.clientY };
-    const found = this.pick(at);
+    const found = this.textOwner ? this.pick(at) : this.pickTarget(at);
     if (this.textOwner) {
       this.routeTextClick(e, found, at);
       return;
@@ -1194,7 +1234,7 @@ export class SelectionController {
       return;
     }
     const at = { x: e.clientX, y: e.clientY };
-    const found = this.pick(at);
+    const found = this.pickTarget(at);
     if (!found) {
       return;
     }
