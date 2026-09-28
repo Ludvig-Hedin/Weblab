@@ -1,0 +1,688 @@
+/* Upload, Deploy and the branch chip in the top bar, and their panels.
+   Same 24px controls and 8px panels as the rest of the window. */
+
+:root {
+  --pub-ok: #14ae5c;
+  --pub-warn: #f5c84c;
+  --pub-warn-bg: rgba(245, 200, 76, 0.1);
+  --pub-danger-bg: rgba(255, 133, 119, 0.1);
+  --pub-accent-bg: rgba(13, 153, 255, 0.12);
+  --pub-line-strong: #3a3a3a;
+}
+
+.pub-center {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.pub-tools {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.pub-tools[hidden],
+.pub-chip[hidden] {
+  display: none;
+}
+.pub-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--pub-line-strong);
+}
+
+.pub-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-2);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.pub-btn:hover,
+.pub-btn[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--hover);
+}
+.pub-btn:focus-visible,
+.pub-chip:focus-visible,
+.pub-panel button:focus-visible,
+.pub-panel textarea:focus-visible,
+.pub-panel input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.pub-btn.solid {
+  color: var(--text);
+  background: var(--panel);
+}
+.pub-btn.solid:hover,
+.pub-btn.solid[aria-expanded="true"] {
+  background: var(--hover);
+}
+.pub-btn.primary {
+  color: #fff;
+  background: var(--accent);
+}
+.pub-btn.primary:hover,
+.pub-btn.primary[aria-expanded="true"] {
+  background: var(--accent-hover);
+}
+.pub-btn:disabled {
+  color: var(--text-3);
+  cursor: default;
+  background: var(--panel);
+}
+.pub-btn.icon {
+  justify-content: center;
+  width: 24px;
+  padding: 0;
+}
+.pub-btn svg,
+.pub-chip svg,
+.pub-panel svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.pub-panel svg.sm,
+.pub-chip svg.sm {
+  width: 12px;
+  height: 12px;
+}
+.pub-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--text);
+  text-align: center;
+  background: var(--hover);
+  border-radius: 8px;
+}
+.pub-btn:hover .pub-count,
+.pub-btn[aria-expanded="true"] .pub-count {
+  background: var(--pub-line-strong);
+}
+.pub-count[hidden],
+.pub-dot[hidden] {
+  display: none;
+}
+.pub-dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border-radius: 50%;
+}
+.pub-dot[data-state="busy"] {
+  animation: pub-pulse 1s ease-in-out infinite;
+}
+.pub-dot[data-state="ok"] {
+  background: #fff;
+}
+.pub-dot[data-state="fail"] {
+  background: var(--danger);
+}
+@keyframes pub-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.pub-chip {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  max-width: 220px;
+  height: 22px;
+  padding: 0 6px 0 4px;
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.pub-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pub-chip:hover,
+.pub-chip[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--hover);
+}
+
+/* The still picture of the editor while a panel is open, and the dim layer. */
+.pub-layer {
+  position: fixed;
+  inset: 40px 0 0 0;
+  z-index: 30;
+}
+.pub-layer[hidden] {
+  display: none;
+}
+.pub-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+.pub-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.pub-panel {
+  position: fixed;
+  top: 46px;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  max-height: calc(100vh - 60px);
+  overflow: auto;
+  color: var(--text);
+  user-select: text;
+  background: var(--panel);
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.pub-panel[hidden] {
+  display: none;
+}
+.pub-panel.narrow {
+  width: 300px;
+}
+.pub-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px 12px;
+}
+.pub-head h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pub-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 14px;
+}
+.pub-body.first {
+  padding-top: 14px;
+}
+.pub-foot {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--pub-line-strong);
+}
+.pub-foot .pub-faint:first-child {
+  margin-right: auto;
+}
+.pub-muted {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.pub-faint {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pub-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.pub-error {
+  font-size: 12px;
+  color: var(--danger);
+}
+.pub-details {
+  max-height: 120px;
+  overflow: auto;
+  font:
+    11px / 1.4 ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--text-3);
+  white-space: pre-wrap;
+}
+
+.pub-where {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+.pub-where b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pub-where .pub-faint:last-child {
+  margin-left: auto;
+}
+
+.pub-callout {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  background: var(--pub-warn-bg);
+  border-radius: 6px;
+}
+.pub-callout > svg {
+  color: var(--pub-warn);
+}
+.pub-callout.danger {
+  background: var(--pub-danger-bg);
+}
+.pub-callout.danger > svg {
+  color: var(--danger);
+}
+.pub-actions {
+  display: flex;
+  gap: 6px;
+}
+.pub-callout .pub-actions {
+  margin-top: 8px;
+}
+
+.pub-files {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -6px;
+}
+.pub-files-all,
+.pub-file {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 6px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.pub-file:hover,
+.pub-files-all:hover {
+  background: var(--hover);
+}
+.pub-file-name {
+  font-weight: 500;
+}
+.pub-file[aria-checked="false"] .pub-file-name {
+  color: var(--text-3);
+}
+.pub-file-dir {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.pub-tag {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.pub-box {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: #fff;
+  border: 1px solid var(--text-3);
+  border-radius: 3px;
+}
+.pub-box svg {
+  visibility: hidden;
+}
+[aria-checked="true"] > .pub-box,
+[aria-checked="mixed"] > .pub-box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+[aria-checked="true"] > .pub-box svg {
+  visibility: visible;
+}
+[aria-checked="mixed"] > .pub-box::after {
+  width: 8px;
+  height: 1.5px;
+  content: "";
+  background: #fff;
+}
+[aria-checked="mixed"] > .pub-box svg {
+  display: none;
+}
+
+.pub-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pub-note-box {
+  position: relative;
+}
+.pub-note textarea {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 32px 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 6px;
+}
+.pub-note .pub-btn.icon {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+.pub-shimmer {
+  position: absolute;
+  inset: 10px 40px auto 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.pub-shimmer i {
+  height: 10px;
+  background: var(--hover);
+  border-radius: 3px;
+  animation: pub-pulse 1.2s ease-in-out infinite;
+}
+.pub-shimmer i + i {
+  width: 60%;
+}
+.pub-shimmer[hidden] {
+  display: none;
+}
+
+.pub-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pub-choice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.pub-choice[aria-checked="true"] {
+  background: var(--pub-accent-bg);
+  border-color: var(--accent);
+}
+.pub-radio {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  border: 1px solid var(--text-3);
+  border-radius: 50%;
+}
+.pub-choice[aria-checked="true"] .pub-radio {
+  border: 4px solid var(--accent);
+}
+.pub-choice b {
+  display: block;
+  font-weight: 500;
+}
+.pub-choice .pub-muted {
+  display: block;
+}
+
+.pub-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+.pub-step {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pub-step.done {
+  color: var(--text-2);
+}
+.pub-step.now {
+  color: var(--text);
+}
+.pub-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 50%;
+}
+.pub-step.done .pub-mark {
+  color: var(--pub-ok);
+  border-color: var(--pub-ok);
+}
+.pub-step.now .pub-mark {
+  border-color: var(--accent);
+  border-right-color: transparent;
+  animation: pub-spin 0.9s linear infinite;
+}
+@keyframes pub-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-step.now .pub-mark,
+  .pub-dot[data-state="busy"],
+  .pub-shimmer i {
+    animation: none;
+  }
+}
+
+.pub-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.pub-okmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--pub-ok);
+  background: var(--bg);
+  border-radius: 50%;
+}
+.pub-result h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pub-url {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  font-size: 12px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+.pub-url span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pub-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  margin: 8px;
+  color: var(--text-3);
+  background: var(--bg);
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 6px;
+}
+.pub-search:focus-within {
+  border-color: var(--accent);
+}
+.pub-search input {
+  flex: 1;
+  height: 30px;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  background: none;
+  border: 0;
+}
+.pub-menu {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  padding: 0 8px 8px;
+  overflow: auto;
+}
+.pub-mi {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.pub-mi:hover,
+.pub-mi:focus-visible {
+  background: var(--hover);
+}
+.pub-mi:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.pub-mi-check {
+  flex: none;
+  width: 12px;
+}
+.pub-mi-main {
+  flex: 1;
+  min-width: 0;
+}
+.pub-mi-main b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pub-menusep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--pub-line-strong);
+}
+.pub-code {
+  font:
+    600 13px / 1 ui-monospace,
+    Menlo,
+    monospace;
+  letter-spacing: 0.08em;
+}
+
+/* Type scale, one place: 13/600 titles and names, 12/400 everything else,
+   11/500 small labels. Panels sized so lines do not wrap into columns. */
+.pub-panel {
+  width: 420px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.pub-panel.narrow {
+  width: 340px;
+}
+.pub-panel p {
+  margin: 0;
+}
+.pub-head h2,
+.pub-result h2,
+.pub-choice b {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.pub-foot .pub-faint:first-child,
+.pub-search input,
+.pub-where span {
+  white-space: nowrap;
+}
+.pub-search input {
+  min-width: 0;
+}
+
+/* One line per branch: name left, who and when right. */
+.pub-mi-main {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.pub-mi-main b {
+  flex: 1;
+  min-width: 0;
+}
+.pub-mi-main .pub-faint {
+  flex: none;
+  white-space: nowrap;
+}

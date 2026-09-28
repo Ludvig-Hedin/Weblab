@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'"
+      http-equiv="Content-Security-Policy"
+    >
+    <title>Weblab</title>
+    <link href="styles.css" rel="stylesheet">
+    <link href="publish.css" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Icons used more than once. Folder, plus, grid and list are the
+         editor's own glyphs (@airship/editor-icons). -->
+    <svg aria-hidden="true" class="sprite" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-github" viewBox="0 0 16 16">
+        <path
+          d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"
+          fill="currentColor"
+        />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <g transform="translate(-0.8 -0.267) scale(1.067)">
+          <path
+            clip-rule="evenodd"
+            d="M7 7H10.88L11.38 8H7V7ZM6 8V7C6 6.73 6.11 6.48 6.29 6.29C6.48 6.11 6.73 6 7 6H10.88C11.07 6 11.25 6.05 11.41 6.15C11.57 6.25 11.69 6.39 11.78 6.55L12.5 8H16.5C16.9 8 17.28 8.16 17.56 8.44C17.84 8.72 18 9.1 18 9.5V15.5C18 15.9 17.84 16.28 17.56 16.56C17.28 16.84 16.9 17 16.5 17H7.5C7.1 17 6.72 16.84 6.44 16.56C6.16 16.28 6 15.9 6 15.5V8ZM13 9H7V15.5C7 15.63 7.05 15.76 7.15 15.85C7.24 15.95 7.37 16 7.5 16H16.5C16.63 16 16.76 15.95 16.85 15.85C16.95 15.76 17 15.63 17 15.5V9.5C17 9.37 16.95 9.24 16.85 9.15C16.76 9.05 16.63 9 16.5 9H13Z"
+            fill="currentColor"
+            fill-rule="evenodd"
+          />
+        </g>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <g transform="translate(-0.995 -0.995) scale(1.13)">
+          <path
+            d="M11.5 6.5V16.5M6.5 11.5H16.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+          />
+        </g>
+      </symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24">
+        <g transform="translate(-0.8 -0.8) scale(1.067)">
+          <path
+            clip-rule="evenodd"
+            d="M10 7H7V10H10V7ZM6 6V11H11V6H6ZM17 7H14V10H17V7ZM13 6V11H18V6H13ZM10 14H7V17H10V14ZM6 13V18H11V13H6ZM17 14H14V17H17V14ZM13 13V18H18V13H13Z"
+            fill="currentColor"
+            fill-rule="evenodd"
+          />
+        </g>
+      </symbol>
+      <symbol id="i-list" viewBox="0 0 24 24">
+        <g transform="translate(-0.8 -0.267) scale(1.067)">
+          <path
+            d="M6 6H8V7H6V6ZM6 16H8V17H6V16ZM6 11H8V12H6V11ZM10 6H18V7H10V6ZM10 16H18V17H10V16ZM10 11H18V12H10V11Z"
+            fill="currentColor"
+          />
+        </g>
+      </symbol>
+    </svg>
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="back" hidden id="back" type="button">
+          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
+            <path
+              d="M10 3.5 5.5 8l4.5 4.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.3"
+            />
+          </svg>
+          All sites
+        </button>
+        <div class="topbar-tools" hidden id="topbar-tools">
+          <button
+            aria-label="Command palette"
+            class="icon"
+            data-command="palette"
+            title="Command palette (⌘K)"
+            type="button"
+          >
+            <!-- The editor's own "command" glyph (@airship/editor-icons). -->
+            <svg aria-hidden="true" height="16" viewBox="2 2 20 20" width="16">
+              <path
+                d="M17 4C18.66 4 20 5.34 20 7C20 8.66 18.66 10 17 10H15V14H17C18.66 14 20 15.34 20 17C20 18.66 18.66 20 17 20C15.34 20 14 18.66 14 17V15H10V17C10 18.66 8.66 20 7 20C5.34 20 4 18.66 4 17C4 15.34 5.34 14 7 14H9V10H7C5.34 10 4 8.66 4 7C4 5.34 5.34 4 7 4C8.66 4 10 5.34 10 7V9H14V7C14 5.34 15.34 4 17 4ZM7 15C5.9 15 5 15.9 5 17C5 18.1 5.9 19 7 19C8.1 19 9 18.1 9 17V15H7ZM15 17C15 18.1 15.9 19 17 19C18.1 19 19 18.1 19 17C19 15.9 18.1 15 17 15H15V17ZM10 14H14V10H10V14ZM7 5C5.9 5 5 5.9 5 7C5 8.1 5.9 9 7 9H9V7C9 5.9 8.1 5 7 5ZM17 5C15.9 5 15 5.9 15 7V9H17C18.1 9 19 8.1 19 7C19 5.9 18.1 5 17 5Z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+          <button
+            aria-label="Keyboard shortcuts"
+            class="icon"
+            data-command="shortcuts"
+            title="Keyboard shortcuts (?)"
+            type="button"
+          >
+            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
+              <circle
+                cx="8"
+                cy="8"
+                fill="none"
+                r="5.75"
+                stroke="currentColor"
+                stroke-width="1.3"
+              />
+              <path
+                d="M6.5 6.4a1.6 1.6 0 1 1 2.2 1.5c-.45.2-.7.55-.7 1.05v.25"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="1.3"
+              />
+              <circle cx="8" cy="11" fill="currentColor" r=".7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="topbar-title" id="title">Weblab</div>
+      <div class="topbar-right">
+        <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its own border, padding and min-width to this segmented control. -->
+        <div aria-label="Mode" class="mode" hidden id="mode" role="group">
+          <button aria-pressed="true" data-mode="edit" type="button">
+            Edit
+          </button>
+          <button aria-pressed="false" data-mode="view" type="button">
+            Preview
+          </button>
+        </div>
+        <button class="link" hidden id="topbar-settings" type="button">
+          Site settings
+        </button>
+        <span class="status" id="status"></span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Checking Claude -->
+      <section class="screen center" data-screen="boot">
+        <div class="stack narrow" role="status">
+          <h1>Opening Weblab…</h1>
+          <div class="progress"><span></span></div>
+        </div>
+      </section>
+
+      <!-- Connect Claude -->
+      <section class="screen center" data-screen="connect" hidden>
+        <div class="stack narrow">
+          <img
+            alt=""
+            class="mark"
+            height="36"
+            src="../assets/symbol.svg"
+            width="36"
+          >
+          <h1>Connect Claude</h1>
+          <p class="muted">Weblab uses Claude to make changes to your sites.</p>
+
+          <div class="stack-tight" data-connect="start">
+            <button class="btn primary wide" id="signin" type="button">
+              Sign in with Claude
+            </button>
+            <button class="link" id="use-key" type="button">
+              Use an API key instead
+            </button>
+          </div>
+
+          <div class="stack-tight" data-connect="waiting" hidden>
+            <p class="body">Finish signing in in your browser.</p>
+            <div class="progress"><span></span></div>
+            <button class="link" id="show-code" type="button">
+              Got a code instead?
+            </button>
+            <form class="field-row" hidden id="code-form">
+              <input
+                autocomplete="off"
+                id="code-input"
+                placeholder="Paste the code"
+                spellcheck="false"
+                type="text"
+              >
+              <button class="btn primary" type="submit">Continue</button>
+            </form>
+            <button class="link" hidden id="reopen" type="button">
+              Open the sign-in page again
+            </button>
+            <button class="link" id="cancel-signin" type="button">
+              Cancel
+            </button>
+          </div>
+
+          <form class="stack-tight" data-connect="key" hidden id="key-form">
+            <input
+              autocomplete="off"
+              id="key-input"
+              placeholder="sk-ant-…"
+              spellcheck="false"
+              type="password"
+            >
+            <button class="btn primary wide" type="submit">Save key</button>
+            <button class="link" id="key-back" type="button">
+              Sign in with Claude instead
+            </button>
+          </form>
+
+          <p class="error" hidden id="connect-error"></p>
+        </div>
+      </section>
+
+      <!-- Dashboard -->
+      <section class="screen" data-screen="dashboard" hidden>
+        <div class="dash">
+          <div class="dash-head">
+            <h1>Sites</h1>
+            <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its own border, padding and min-width to this segmented control. -->
+            <div
+              aria-label="Show sites as"
+              class="view-toggle"
+              id="view-toggle"
+              role="group"
+            >
+              <button
+                aria-label="Cards"
+                aria-pressed="true"
+                data-view="grid"
+                title="Cards"
+                type="button"
+              >
+                <svg aria-hidden="true"><use href="#i-grid" /></svg>
+              </button>
+              <button
+                aria-label="List"
+                aria-pressed="false"
+                data-view="list"
+                title="List"
+                type="button"
+              >
+                <svg aria-hidden="true"><use href="#i-list" /></svg>
+              </button>
+            </div>
+            <div class="actions">
+              <button class="btn" data-action="clone" type="button">
+                <svg aria-hidden="true" class="btn-icon gh">
+                  <use href="#i-github" />
+                </svg>
+                Clone from GitHub
+              </button>
+              <button class="btn" data-action="open-folder" type="button">
+                <svg aria-hidden="true" class="btn-icon folder">
+                  <use href="#i-folder" />
+                </svg>
+                Open file or folder
+              </button>
+              <button class="btn primary" data-action="new" type="button">
+                <svg aria-hidden="true" class="btn-icon">
+                  <use href="#i-plus" />
+                </svg>
+                New website
+              </button>
+            </div>
+          </div>
+          <ul class="sites" id="sites"></ul>
+          <p class="error" hidden id="dash-error"></p>
+        </div>
+        <div class="empty center" hidden id="empty">
+          <div class="stack">
+            <img
+              alt=""
+              class="mark"
+              height="36"
+              src="../assets/symbol.svg"
+              width="36"
+            >
+            <h1>Your sites will show up here</h1>
+            <div class="actions">
+              <button class="btn" data-action="clone" type="button">
+                <svg aria-hidden="true" class="btn-icon gh">
+                  <use href="#i-github" />
+                </svg>
+                Clone from GitHub
+              </button>
+              <button class="btn" data-action="open-folder" type="button">
+                <svg aria-hidden="true" class="btn-icon folder">
+                  <use href="#i-folder" />
+                </svg>
+                Open file or folder
+              </button>
+              <button class="btn primary" data-action="new" type="button">
+                <svg aria-hidden="true" class="btn-icon">
+                  <use href="#i-plus" />
+                </svg>
+                New website
+              </button>
+            </div>
+            <p class="error" hidden id="empty-error"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Opening a site -->
+      <section class="screen center" data-screen="loading" hidden>
+        <div class="stack narrow">
+          <h1>Getting your site ready…</h1>
+          <div class="progress"><span></span></div>
+          <p class="muted" id="loading-step"></p>
+        </div>
+      </section>
+
+      <!-- Editor sits in a native view below the top bar -->
+      <section class="screen" data-screen="editor" hidden></section>
+
+      <!-- Settings the site asks for (API tokens and the like) -->
+      <section class="screen" data-screen="settings" hidden>
+        <form class="settings" id="settings-form">
+          <h1 id="settings-title">This site needs a few settings</h1>
+          <p class="muted" id="settings-intro">
+            They stay on this Mac, in the site’s folder.
+          </p>
+          <div class="fields" id="settings-fields"></div>
+          <p class="error" hidden id="settings-error"></p>
+          <div class="actions end">
+            <button class="btn" id="settings-skip" type="button">
+              Skip for now
+            </button>
+            <button class="btn primary" type="submit">Save</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Something failed -->
+      <section class="screen center" data-screen="error" hidden>
+        <div class="stack narrow">
+          <h1>Your site didn’t start</h1>
+          <p class="muted" id="error-message"></p>
+          <div class="actions">
+            <button class="btn" id="error-back" type="button">All sites</button>
+            <button class="btn" hidden id="error-settings" type="button">
+              Site settings
+            </button>
+            <button class="btn primary" id="retry" type="button">
+              Try again
+            </button>
+          </div>
+          <details class="details">
+            <summary>Show details</summary>
+            <pre id="error-details"></pre>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <!-- New website -->
+    <div class="scrim" hidden id="new-dialog">
+      <form class="dialog" id="new-form">
+        <h2>New website</h2>
+        <label class="label" for="new-name">Name</label>
+        <input
+          autocomplete="off"
+          id="new-name"
+          maxlength="80"
+          placeholder="My website"
+          spellcheck="false"
+          type="text"
+        >
+        <p class="error" hidden id="new-error"></p>
+        <div class="actions end">
+          <button class="btn" id="new-cancel" type="button">Cancel</button>
+          <button class="btn primary" type="submit">Create</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Clone from GitHub -->
+    <div class="scrim" hidden id="clone-dialog">
+      <form class="dialog" id="clone-form">
+        <div class="dialog-head">
+          <h2>Clone from GitHub</h2>
+          <div class="gh-account" hidden id="gh-account">
+            <img alt="" height="16" id="gh-avatar" width="16">
+            <span id="gh-login"></span>
+            <button class="link" id="gh-signout" type="button">Sign out</button>
+          </div>
+        </div>
+        <div class="repo-picker" hidden id="repo-picker">
+          <input
+            autocomplete="off"
+            id="repo-search"
+            placeholder="Search your repositories"
+            spellcheck="false"
+            type="text"
+          >
+          <ul class="repos" id="repos"></ul>
+        </div>
+        <label class="label" for="clone-link">Link</label>
+        <input
+          autocomplete="off"
+          id="clone-link"
+          placeholder="github.com/owner/name"
+          spellcheck="false"
+          type="text"
+        >
+        <label class="label" for="clone-name">Name</label>
+        <input
+          autocomplete="off"
+          id="clone-name"
+          maxlength="80"
+          placeholder="My website"
+          spellcheck="false"
+          type="text"
+        >
+        <p class="hint" hidden id="clone-public-note">
+          Public repositories only.
+          <button class="link inline" id="gh-signin" type="button">
+            Sign in with GitHub to see private sites
+          </button>
+        </p>
+        <div class="clone-progress" hidden id="clone-progress">
+          <div class="progress"><span></span></div>
+          <p class="hint" id="clone-step"></p>
+        </div>
+        <p class="error" hidden id="clone-error"></p>
+        <div class="actions end">
+          <button class="btn" id="clone-cancel" type="button">Cancel</button>
+          <button class="btn primary" id="clone-submit" type="submit">
+            Clone
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sign in with GitHub (device flow) -->
+    <div class="scrim" hidden id="gh-dialog">
+      <div class="dialog gh-dialog">
+        <h2>Sign in with GitHub</h2>
+        <div id="gh-waiting-code">
+          <p class="muted">Getting a code from GitHub…</p>
+          <div class="progress"><span></span></div>
+        </div>
+        <div hidden id="gh-code-step">
+          <p class="muted">Enter this code on GitHub. It’s already copied.</p>
+          <button
+            class="gh-code"
+            id="gh-code"
+            title="Copy"
+            type="button"
+          ></button>
+          <div class="progress"><span></span></div>
+          <p class="hint">Waiting for you to approve on GitHub…</p>
+        </div>
+        <p class="error" hidden id="gh-error"></p>
+        <div class="actions end">
+          <button class="btn" id="gh-cancel" type="button">Cancel</button>
+          <button class="btn primary" hidden id="gh-open" type="button">
+            Open GitHub
+          </button>
+          <button class="btn primary" hidden id="gh-retry" type="button">
+            Try again
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script defer src="app.js"></script>
+    <script defer src="publish.js"></script>
+  </body>
+</html>
