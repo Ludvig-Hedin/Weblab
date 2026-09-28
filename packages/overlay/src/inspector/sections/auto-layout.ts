@@ -7,12 +7,11 @@ import { createNumberScrub } from "../controls/number-scrub";
 import { createSegmented } from "../controls/segmented";
 import {
   ALIGN_ITEMS_GRID,
-  FLEX_DIRECTION,
+  type Descriptor,
   GRID_AUTO_FLOW,
   GRID_GAP,
   JUSTIFY_ITEMS,
   LAYOUT_GAP,
-  LAYOUT_GROUP,
 } from "../descriptors";
 
 /** Singularises the track-kind label: "Columns" -> "column". */
@@ -27,67 +26,94 @@ import {
 import { declaredValue } from "../sizing";
 import { readValue } from "../style-model";
 import type { SectionContext } from "./context";
-import { labelled } from "./row";
+import { renderResizing } from "./size";
+
+/** Flow: the four ways a box lays out its children, as Figma's Flow row. */
+const FLOW: Descriptor = {
+  controlType: "segmented",
+  cssProperty: "display",
+  defaultValue: "block",
+  enumValues: [
+    { icon: "square", label: "No auto layout", value: "block" },
+    { icon: "al-vertical", label: "Vertical", value: "column" },
+    { icon: "al-horizontal", label: "Horizontal", value: "row" },
+    { icon: "grid", label: "Grid", value: "grid" },
+  ],
+  group: "layout",
+  key: "flow",
+  label: "Flow",
+  span: "full",
+};
+
+type Flow = "block" | "column" | "row" | "grid";
+
+/** Matches no Flow option, so a hidden element lights none of them. */
+const NO_FLOW = "-";
+
+function readFlow(node: Element): Flow | "" {
+  const style = computedStyle(node);
+  if (style.display === "flex" || style.display === "inline-flex") {
+    return style.flexDirection.startsWith("column") ? "column" : "row";
+  }
+  if (style.display === "grid" || style.display === "inline-grid") {
+    return "grid";
+  }
+  // Hidden and box-less elements light no Flow option: none of the four
+  // describes them, and lighting "No auto layout" would say something false.
+  return style.display === "none" || style.display === "contents"
+    ? ""
+    : "block";
+}
+
+/** A small label above its controls: "Flow", "Resizing", "Padding". */
+function stacked(label: string, ...controls: HTMLElement[]): HTMLElement {
+  return el("div", { class: `${cls("fgroup")} ${cls("group")}` }, [
+    el("span", { class: cls("flabel"), text: label }),
+    ...controls,
+  ]);
+}
 
 /**
- * Auto Layout, which is very nearly flexbox with better naming.
+ * Layout, in Figma's order: Flow, Resizing, Alignment and Gap, Padding,
+ * Margin, Clip content.
  *
- * The section changes shape with the element, which is a surprisingly large
- * part of why a design tool feels alive rather than like a property sheet: a node that
- * is not a flex container shows the Layout dropdown and nothing else, rather
- * than six controls that would all write into a `display: block` and do
- * nothing.
+ * Size and Spacing used to be sections of their own. Figma keeps all of it in
+ * one place because it is one decision — how this box sits and how it lays
+ * out what is inside it — and so does this panel now. Margin has no Figma
+ * equivalent; it sits under Padding, where a web designer looks for it.
+ *
+ * The section changes shape with the element: a box that is not an auto
+ * layout shows Flow, Resizing and spacing, and nothing that would write into
+ * a `display: block` and do nothing.
  */
 export function renderAutoLayout(
   ctx: SectionContext,
-  node: Element
+  node: Element,
+  sizeState: { showBounds: boolean },
+  opts: { resizingOnly?: boolean } = {}
 ): HTMLElement {
-  const { display } = computedStyle(node);
-  const isFlex = display === "flex" || display === "inline-flex";
-  const isGrid = display === "grid" || display === "inline-grid";
   const body = el("div", { class: cls("sect-body") });
-
-  // A design tool has no `display` — every frame is either an auto-layout or it is
-  // not. A DOM editor cannot hide it: block, flex and grid are three genuinely
-  // different layout systems, and grid is the one it has no word for. So
-  // the switch stays, at the top, and the rest of the section follows it.
-  //
-  // A dropdown, not five pills. Five word-labelled options in a 320px dock
-  // wrapped onto two rows, which is the shape `select.ts` was written to
-  // avoid — and it is built through `buildControl` so the descriptor decides
-  // the renderer rather than this call site deciding it a second time.
-  const displayDesc = LAYOUT_GROUP.descriptors.find((d) => d.key === "display");
-  if (displayDesc) {
-    const control = ctx.buildControl(displayDesc, node, () => ctx.rerender());
-    // `labelled()` rather than the same markup written out again, and the
-    // descriptor's own label rather than a literal: this row said "Layout"
-    // while its descriptor said something else, so a sweep driven off
-    // `descriptors.ts` could not see it. `group` because the switch is its own
-    // decision — everything below it describes the layout it just chose.
-    const row = labelled(displayDesc.label, control.element);
-    row.classList.add(cls("group"));
-    body.append(row);
+  if (opts.resizingOnly) {
+    body.append(...renderResizing(ctx, node, sizeState));
+    return ctx.section("auto-layout", "Layout", body);
   }
 
+  const flow = readFlow(node);
+  const isFlex = flow === "row" || flow === "column";
+  const isGrid = flow === "grid";
+  body.append(renderFlow(ctx, node, flow));
+  body.append(...renderResizing(ctx, node, sizeState));
+
+  if (isFlex) {
+    body.append(renderFlexAlignment(ctx, node));
+  }
   if (isGrid) {
-    body.append(renderGridTracks(ctx, node));
-    /*
-     * Grid's own alignment and flow.
-     *
-     * The section used to return here with only a track editor, because
-     * `createAlignPad` is flex-only — so a grid container had no way to align its items,
-     * no `grid-auto-flow`, and one `gap` field carrying a horizontal glyph for both of
-     * its independent axes.
-     */
-    const gaps = el("div", { class: `${cls("grid")} ${cls("group")}` });
+    body.append(stacked("Tracks", renderGridTracks(ctx, node)));
+    const gaps = el("div", { class: cls("lane") });
     for (const axis of ["row", "column"] as const) {
       gaps.append(ctx.fieldCell(GRID_GAP(axis), node));
     }
-    body.append(gaps);
-    // The three of them are one decision — how the items sit in the tracks —
-    // so they are grouped rather than appended loose. Before the section body
-    // owned its spacing these landed as bare siblings of the gap grid, which
-    // no adjacency rule named, and the two blocks touched.
+    body.append(stacked("Gap", gaps));
     const placement = el("div", { class: cls("group") });
     for (const descriptor of [
       JUSTIFY_ITEMS,
@@ -97,38 +123,123 @@ export function renderAutoLayout(
       placement.append(ctx.fieldCell(descriptor, node));
     }
     body.append(placement);
-    return ctx.section("auto-layout", "Layout grid", body);
   }
 
-  // No "Add auto layout" button. It wrote `display: flex` — which is exactly
-  // what picking Flex from the dropdown two lines up now does, so it was not
-  // merely redundant, it was the identical declaration behind a second
-  // affordance. Unlike the Position case there is no measurement that could
-  // have made the button worth keeping: `display: flex` genuinely re-lays-out
-  // the children and nothing can measure that away. It is previewed and
-  // undoable, which is the answer.
-  if (!isFlex) {
-    return ctx.section("auto-layout", "Auto layout", body);
+  for (const group of ["padding", "margin"] as const) {
+    const control = ctx.spacingControl(node, group);
+    ctx.register(control);
+    body.append(
+      stacked(group === "padding" ? "Padding" : "Margin", control.element)
+    );
   }
 
+  const clip = renderClip(ctx, node);
+  if (clip) {
+    body.append(clip);
+  }
+  return ctx.section(
+    "auto-layout",
+    isFlex || isGrid ? "Auto layout" : "Layout",
+    body
+  );
+}
+
+/**
+ * Flow, and the wrap switch in the action lane beside it.
+ *
+ * A pick that changes the layout system rebuilds the section, because what
+ * sits under Flow depends on it. `inline-flex` and `inline-grid` keep their
+ * inline-ness across a pick: the element's outside behaviour is not what the
+ * user asked about.
+ */
+function renderFlow(
+  ctx: SectionContext,
+  node: Element,
+  flow: Flow | ""
+): HTMLElement {
+  const seg = createSegmented(FLOW, flow || NO_FLOW, ctx.onChange, {
+    derive: () => readFlow(node) || NO_FLOW,
+    onSelect: (value) => {
+      writeFlow(ctx, node, value as Flow);
+      ctx.rerender();
+    },
+    properties: ["display", "flex-direction"],
+  });
+  ctx.register(seg);
+
+  const lane = el("div", { class: cls("lane") }, [seg.element]);
+  seg.element.classList.add(cls("span2"));
+  lane.dataset.act = "";
+  if (flow === "row" || flow === "column") {
+    const wrapped = (): boolean =>
+      (
+        declaredValue(node, "flex-wrap") || computedStyle(node).flexWrap
+      ).startsWith("wrap");
+    const wrapBtn = el(
+      "button",
+      {
+        "aria-label": "Wrap",
+        "aria-pressed": String(wrapped()),
+        class: cls("lane-act"),
+        "data-tip": "Wrap onto new lines",
+        onClick: () => {
+          const next = !wrapped();
+          ctx.onChange("flex-wrap", next ? "wrap" : "nowrap");
+          wrapBtn.setAttribute("aria-pressed", String(next));
+        },
+        type: "button",
+      },
+      [icon("al-wrap", "sm")]
+    );
+    ctx.register({
+      element: wrapBtn,
+      properties: ["flex-wrap"],
+      setValue: (_property, value) =>
+        wrapBtn.setAttribute("aria-pressed", String(value.startsWith("wrap"))),
+    });
+    lane.append(wrapBtn);
+  }
+  return stacked("Flow", lane);
+}
+
+/** The display this pick means, keeping `inline-` if the element had it. */
+function displayFor(node: Element, pick: Flow): string {
+  const { display } = computedStyle(node);
+  const inline = display.startsWith("inline");
+  if (pick === "block") {
+    return inline ? "inline-block" : "block";
+  }
+  if (pick === "grid") {
+    return inline ? "inline-grid" : "grid";
+  }
+  if (display === "flex" || display === "inline-flex") {
+    return display;
+  }
+  return inline ? "inline-flex" : "flex";
+}
+
+/**
+ * Writes a Flow pick. Reverse-ness is a property of the axis the user did not
+ * ask about, so a pick that keeps the axis keeps `row-reverse` as it was.
+ */
+function writeFlow(ctx: SectionContext, node: Element, pick: Flow): void {
+  ctx.onChange("display", displayFor(node, pick));
+  if (pick === "row" || pick === "column") {
+    const dir = declaredValue(node, "flex-direction") || "row";
+    const same = dir === pick || dir === `${pick}-reverse`;
+    ctx.onChange("flex-direction", same ? dir : pick);
+  }
+}
+
+/**
+ * Alignment and Gap, side by side, the way Figma lays them out: the 3×3 pad
+ * in the first lane, the gap field in the second, and Space between in the
+ * action lane beside the gap it replaces.
+ */
+function renderFlexAlignment(ctx: SectionContext, node: Element): HTMLElement {
   const style = computedStyle(node);
   const direction = (): "row" | "column" =>
     computedStyle(node).flexDirection.startsWith("column") ? "column" : "row";
-
-  /*
-   * Direction. Wrap is a third option here rather than its own control,
-   * because that is how design tools present it and how people think about it —
-   * which is also why it takes two declarations per click and so cannot use
-   * the plain one-property segmented group.
-   *
-   * It is a real `createSegmented` now rather than a third hand-rolled copy of
-   * the same markup. `onSelect` is the escape hatch for multi-declaration
-   * choices and `derive` folds `flex-direction` and `flex-wrap` back into one
-   * answer, so the group can repaint itself from `setValue` instead of the
-   * click handler rebuilding the panel.
-   */
-  // The 3×3 pad and the gap/padding fields sit side by side, the way a design tool
-  // lays them out — the pad is square and tall, the fields stack beside it.
   const pad = createAlignPad(
     direction,
     { align: style.alignItems, justify: style.justifyContent },
@@ -136,7 +247,6 @@ export function renderAutoLayout(
   );
   ctx.register(pad);
 
-  const fields = el("div", { class: cls("al-fields") });
   const gap = createNumberScrub(
     LAYOUT_GAP(direction() === "column"),
     readValue(node, "gap") || "0px",
@@ -144,114 +254,76 @@ export function renderAutoLayout(
     ctx.gestures
   );
   ctx.register(gap);
-  gap.element.classList.add(cls("cell"));
-  /*
-   * Flex gap gets the token affordance the grid gutter below already had.
-   *
-   * Wired here rather than through `ctx.fieldCell` because the glyph swaps with
-   * the axis (see `paintGapGlyph`), and that reaches into the field's own
-   * chrome — which a cell wrapper would put out of reach.
-   */
+  // The gap glyph names the axis it runs along, so it follows an undo or an
+  // agent edit that flips the direction, not only a Flow click.
+  ctx.register({
+    element: gap.element,
+    properties: ["flex-direction"],
+    setValue: () =>
+      gap.element
+        .querySelector(`.${cls("ctl-glyph")}`)
+        ?.replaceChildren(
+          icon(direction() === "column" ? "gap-v" : "gap-h", "sm")
+        ),
+  });
   const gapSlot = ctx.tokenSlot(node, ["gap"]);
   gap.setToken?.(gapSlot?.label ?? null);
   gap.onActivate?.(() => gapSlot?.open());
-  if (gapSlot) {
-    fields.append(
-      el("div", { class: `${cls("cell")} ${cls("token-cell")}` }, [
-        gap.element,
-        gapSlot.element,
-      ])
-    );
-  } else {
-    fields.append(gap.element);
-  }
-  /** The gap glyph names the axis it runs along, so it follows the direction. */
-  const paintGapGlyph = (): void => {
-    gap.element
-      .querySelector(`.${cls("ctl-glyph")}`)
-      ?.replaceChildren(
-        icon(direction() === "column" ? "gap-v" : "gap-h", "sm")
-      );
-  };
+  const gapField = gapSlot
+    ? el("div", { class: cls("token-cell") }, [gap.element, gapSlot.element])
+    : gap.element;
 
-  const padding = ctx.spacingControl(node, "padding");
-  ctx.register(padding);
-  fields.append(padding.element);
-
-  const dirRow = el("div", { class: cls("al-dir") });
-  /*
-   * The `-reverse` variants are preserved, not flattened away.
-   *
-   * This was a static table — `row: ["row", "nowrap"]` — and `readDirection` mapped
-   * `row-reverse` to `row` for display. So a `flex-direction: row-reverse` container
-   * showed **Row** as the active cell, and clicking that already-active cell wrote
-   * `row` and silently flipped the visual order of every child. `wrap-reverse` had it
-   * worse: it read as not-wrapped at all, so any pick un-wrapped the container.
-   *
-   * Reverse-ness is a property of the axis the user did not ask about, so a pick that
-   * keeps the axis keeps it, and only an actual axis change drops it.
-   */
-  const declaredDirection = (): string =>
-    declaredValue(node, "flex-direction") ||
-    computedStyle(node).flexDirection ||
-    "row";
-  const declaredWrap = (): string =>
-    declaredValue(node, "flex-wrap") ||
-    computedStyle(node).flexWrap ||
-    "nowrap";
-
-  const writesFor = (value: string): [string, string] => {
-    const dir = declaredDirection();
-    const wrapped = declaredWrap().startsWith("wrap") ? declaredWrap() : "wrap";
-    if (value === "wrap") {
-      // Turn wrapping on and leave the axis — including its reverse — alone.
-      return [dir, wrapped];
-    }
-    const sameAxis = dir === value || dir === `${value}-reverse`;
-    return [sameAxis ? dir : value, "nowrap"];
-  };
-
-  const readDirection = (): string =>
-    declaredWrap().startsWith("wrap") ? "wrap" : direction();
-  const dirSeg = createSegmented(
-    FLEX_DIRECTION,
-    readDirection(),
-    ctx.onChange,
-    {
-      derive: readDirection,
-      onSelect: (value) => {
-        const [dir, wrap] = writesFor(value);
-        ctx.onChange("flex-direction", dir);
-        ctx.onChange("flex-wrap", wrap);
-        // Everything downstream of the axis repaints in place. `createAlignPad`
-        // reads the direction through a getter for exactly this reason, and
-        // the gap glyph is one `replaceChildren` — neither needs the panel
-        // torn down and rebuilt around it.
-        paintGapGlyph();
-        pad.setValue("flex-direction", dir);
-        ctx.reseed();
-      },
-      properties: ["flex-direction", "flex-wrap"],
-    }
-  );
-  ctx.register(dirSeg);
-  dirRow.append(dirSeg.element);
-
-  // `group` on the pad cluster, not a margin under the direction row: the two
-  // are separate decisions, and saying so in the shared vocabulary lets the
-  // section body space them like every other pair.
-  body.append(
-    dirRow,
-    el("div", { class: `${cls("al-main")} ${cls("group")}` }, [
+  pad.spread.classList.add(cls("after-label"));
+  const lane = el("div", { class: `${cls("lane")} ${cls("group")}` }, [
+    el("div", { class: `${cls("fgroup")} ${cls("al-pad")}` }, [
+      el("span", { class: cls("flabel"), text: "Alignment" }),
       pad.element,
-      fields,
-    ])
-  );
+    ]),
+    el("div", { class: cls("fgroup") }, [
+      el("span", { class: cls("flabel"), text: "Gap" }),
+      gapField,
+    ]),
+    pad.spread,
+  ]);
+  lane.dataset.act = "";
+  return lane;
+}
 
-  // No "Remove auto layout" header action either — same reasoning as the
-  // "Add" button it mirrored. It wrote `display: block`, which is one option
-  // of the dropdown at the top of this very section.
-  return ctx.section("auto-layout", "Auto layout", body);
+/**
+ * Clip content, as Figma's checkbox. Only on a box with children, because
+ * clipping nothing is a switch that does nothing.
+ */
+function renderClip(ctx: SectionContext, node: Element): HTMLElement | null {
+  if (node.childElementCount === 0) {
+    return null;
+  }
+  const box = el("span", { class: cls("check-box") });
+  const button = el(
+    "button",
+    {
+      class: `${cls("check")} ${cls("group")}`,
+      "data-tip": "Clip anything outside this element",
+      onClick: () => {
+        const now = readValue(node, "overflow") === "hidden";
+        ctx.onChange("overflow", now ? "visible" : "hidden");
+        paint(!now);
+      },
+      role: "checkbox",
+      type: "button",
+    },
+    [box, el("span", { text: "Clip content" })]
+  );
+  const paint = (on: boolean): void => {
+    button.setAttribute("aria-checked", String(on));
+    box.replaceChildren(...(on ? [icon("check", "xs")] : []));
+  };
+  paint(readValue(node, "overflow") === "hidden");
+  ctx.register({
+    element: button,
+    properties: ["overflow"],
+    setValue: (_property, value) => paint(value === "hidden"),
+  });
+  return button;
 }
 
 /**
@@ -362,16 +434,8 @@ function renderGridTracks(ctx: SectionContext, node: Element): HTMLElement {
     wrap.append(row);
   }
 
-  // Margin, which is what a design tool calls padding. The gutter is not here:
-  // this runs for grid containers only, and the caller already gives them
-  // `row-gap` and `column-gap` as separate fields. A `gap` shorthand beside
-  // them is a third control writing the same declaration as the other two, so
-  // whichever was touched last silently overwrote the pair — and the shorthand
-  // is the one carrying a horizontal glyph for both of a grid's independent
-  // axes, which is the confusion the axis fields were added to end.
-  const padding = ctx.spacingControl(node, "padding");
-  ctx.register(padding);
-  wrap.append(padding.element);
-
+  // No `gap` shorthand here: the caller gives a grid `row-gap` and
+  // `column-gap` as separate fields, and a third control writing the same
+  // declaration would silently overwrite the pair.
   return wrap;
 }

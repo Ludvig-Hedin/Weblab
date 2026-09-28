@@ -3,8 +3,10 @@ import { PREFIX } from "../dom";
 import { TEXT_EDIT_MARK } from "../styles/portable.css";
 import {
   isEditableText,
+  isSplitTextGroup,
   type TextEdit,
   TextEditor,
+  textEditTarget,
   textTargetIn,
 } from "./text-edit";
 
@@ -187,6 +189,93 @@ describe("textTargetIn", () => {
     document.body.append(host);
     host.append(root);
     expect(textTargetIn(host)).toBeNull();
+  });
+});
+
+describe("split text", () => {
+  // What GSAP `SplitText` leaves behind on a heading with a <br>.
+  const SPLIT =
+    '<h2><span class="gsap-split-word1" style="display:inline-block">More</span> ' +
+    '<span class="gsap-split-word2" style="display:inline-block">than</span><br>' +
+    '<span class="gsap-split-word3" style="display:inline-block">search.</span></h2>';
+
+  const mount = (html: string): Element => {
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    return host.firstElementChild as Element;
+  };
+
+  it("treats a split heading as one editable text", () => {
+    const heading = mount(SPLIT);
+    expect(isSplitTextGroup(heading)).toBe(true);
+    expect(isEditableText(heading)).toBe(true);
+  });
+
+  it("resolves one word up to the whole heading", () => {
+    const heading = mount(SPLIT);
+    const word = heading.querySelector("span") as Element;
+    expect(textEditTarget(word)).toBe(heading);
+    expect(textTargetIn(word)).toBe(heading);
+  });
+
+  it("resolves through nested line and word spans", () => {
+    const heading = mount(
+      '<p><span class="line"><span aria-hidden="true">A</span> ' +
+        '<span aria-hidden="true">B</span></span></p>'
+    );
+    const word = heading.querySelector("[aria-hidden]") as Element;
+    expect(textEditTarget(word)).toBe(heading);
+  });
+
+  it("drills from a wrapper to the heading instead of calling it ambiguous", () => {
+    const heading = mount(SPLIT);
+    const wrapper = document.createElement("div");
+    heading.replaceWith(wrapper);
+    wrapper.append(heading);
+    expect(textTargetIn(wrapper)).toBe(heading);
+  });
+
+  it("leaves ordinary sibling spans separate", () => {
+    const row = mount("<div><span>A</span> <span>B</span></div>");
+    expect(isSplitTextGroup(row)).toBe(false);
+    const a = row.firstElementChild as Element;
+    expect(textEditTarget(a)).toBe(a);
+  });
+
+  it("rejects loose words between the spans", () => {
+    expect(
+      isSplitTextGroup(
+        mount('<p>Hi <span style="x">a</span><span style="x">b</span></p>')
+      )
+    ).toBe(false);
+  });
+
+  it("rejects a group holding another kind of element", () => {
+    expect(
+      isSplitTextGroup(
+        mount('<p><span style="x">a</span><b>x</b><span style="x">b</span></p>')
+      )
+    ).toBe(false);
+  });
+
+  it("edits and commits the whole heading", () => {
+    const heading = mount(SPLIT) as HTMLElement;
+    const commits: TextEdit[] = [];
+    const editor = new TextEditor({
+      onCommit: (edit) => commits.push(edit),
+      setTextOwner: () => undefined,
+    });
+    expect(editor.begin(heading)).toBe(true);
+    (heading.querySelector("span") as Element).textContent = "Much more";
+    editor.commit();
+    expect(commits).toEqual([
+      {
+        from: "More than\nsearch.",
+        node: heading,
+        to: "Much more than\nsearch.",
+      },
+    ]);
   });
 });
 
@@ -383,6 +472,32 @@ describe("TextEditor keys", () => {
     document.removeEventListener("keydown", app, true);
     expect(commits).toHaveLength(1);
     expect(app).not.toHaveBeenCalled();
+  });
+
+  it("types a space inside a button instead of activating it", () => {
+    // A button's default for Space is activation, not text — so the space never
+    // landed and keyup fired a click. The editor inserts it by hand.
+    const { editor, node } = harness("<button>Book a demo</button>");
+    editor.begin(node);
+    const exec = vi.fn(() => true);
+    Object.defineProperty(node.ownerDocument, "execCommand", {
+      configurable: true,
+      value: exec,
+    });
+    const space = press(node, { key: " " });
+    const enter = press(node, { key: "Enter" });
+    expect(space.defaultPrevented).toBe(true);
+    expect(enter.defaultPrevented).toBe(true);
+    expect(exec).toHaveBeenCalledTimes(1);
+    expect(exec).toHaveBeenCalledWith("insertText", false, " ");
+    expect(editor.active).toBe(true);
+    Reflect.deleteProperty(node.ownerDocument, "execCommand");
+  });
+
+  it("leaves Space to the browser in ordinary text", () => {
+    const { editor, node } = harness();
+    editor.begin(node);
+    expect(press(node, { key: " " }).defaultPrevented).toBe(false);
   });
 
   it("ignores keys aimed at anything outside the edited node", () => {

@@ -97,6 +97,19 @@ export const Media: StoryObj = {
 };
 
 /**
+ * A link: the Link section, above Scope. It writes attributes, not styles, so
+ * no scope or state changes where a link goes.
+ */
+export const Link: StoryObj = {
+  render: () =>
+    panelStory("link", {
+      caption: {
+        what: "An `<a>`: the Link section on top, with a kind per destination and only the fields that kind needs.",
+      },
+    }),
+};
+
+/**
  * A `<video>`, which is media without being an image.
  *
  * The comparison with `Media` above is the point: `isMedia` is true for both, so
@@ -229,15 +242,15 @@ export const CssTab: StoryObj = {
     }),
 };
 
-/** The DOM tab — the element tree, with drag-to-reparent. */
-export const DomTab: StoryObj = {
+/** The layers, as the left dock shows them: search, then the element tree. */
+export const Layers: StoryObj = {
   render: () =>
     panelStory("card", {
       caption: {
-        try: "drag a row onto another — the tree reparents, and the move is queued as a structural edit",
-        what: "The DOM tab: the element tree around the selection.",
+        try: "type in the search, or drag a row onto another — the tree reparents, and the move is queued as a structural edit",
+        what: "The left dock's layers: a search field over the element tree around the selection.",
       },
-      tab: "dom",
+      layers: true,
     }),
 };
 

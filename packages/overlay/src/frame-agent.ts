@@ -6,6 +6,7 @@ import { type PageFit, startPageFit } from "./canvas/page-fit";
 import { MAX_NEST_DEPTH } from "./canvas/space";
 import { PREFIX } from "./dom";
 import { SWALLOWED } from "./edit-guard";
+import { reveal } from "./reveal";
 import { css as portable, TEXT_EDIT_MARK } from "./styles/portable.css";
 import { scanRuntimeTokens } from "./tokens/scan";
 
@@ -54,6 +55,12 @@ export interface FrameAgent {
    */
   onLayoutChange: (cb: () => void) => () => void;
   /**
+   * Bring a node into view inside its page: scroll a strip, or press a
+   * carousel's dot or arrow until its slide shows. A no-op when it is already
+   * visible. See `reveal.ts`. Optional so an older bundle still registers.
+   */
+  reveal?: (node: Element) => void;
+  /**
    * The design tokens this frame's stylesheets declare.
    *
    * Realm-local for the same reason `extract` is: the shell's document has the
@@ -61,6 +68,15 @@ export interface FrameAgent {
    * scanning from up there would return the wrong design system entirely.
    */
   scanTokens: () => TokenScanResult;
+  /**
+   * Hold every video and audio element still, or let autoplay run again.
+   *
+   * Always on for canvas frames. A frame there is a picture of the page, and a
+   * hero video looping under your selection outlines is motion you did not ask
+   * for and cannot stop. Optional so a frame running an older
+   * bundle still registers.
+   */
+  setMediaPaused?: (on: boolean) => void;
   /**
    * Make this frame inert except for the node carrying `TEXT_EDIT_MARK`.
    *
@@ -334,7 +350,9 @@ function createAgent(): FrameAgent {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
+    reveal: (node) => reveal(node, window),
     scanTokens: () => scanRuntimeTokens(document, window),
+    setMediaPaused,
     setTextGuard,
     window,
   };
@@ -428,6 +446,43 @@ function setTextGuard(on: boolean): void {
       document.addEventListener(type, onGuardedKey, true);
     } else {
       document.removeEventListener(type, onGuardedKey, true);
+    }
+  }
+}
+
+let mediaPaused = false;
+
+/**
+ * Media events do not bubble, but a capture listener on the document still
+ * sees them, so this catches autoplay that starts after the pause was set and
+ * a video the app mounts later.
+ */
+function onMediaPlay(e: Event): void {
+  if (e.target instanceof HTMLMediaElement) {
+    e.target.pause();
+  }
+}
+
+function setMediaPaused(on: boolean): void {
+  if (on === mediaPaused) {
+    return;
+  }
+  mediaPaused = on;
+  if (on) {
+    document.addEventListener("play", onMediaPlay, true);
+  } else {
+    document.removeEventListener("play", onMediaPlay, true);
+  }
+  for (const media of document.querySelectorAll("video, audio")) {
+    if (!(media instanceof HTMLMediaElement)) {
+      continue;
+    }
+    if (on) {
+      media.pause();
+    } else if (media.autoplay) {
+      // Only what the page meant to play on its own. A rejected play (the
+      // browser's autoplay policy) just leaves it paused.
+      media.play().catch(() => undefined);
     }
   }
 }

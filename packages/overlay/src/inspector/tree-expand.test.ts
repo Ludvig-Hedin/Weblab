@@ -13,13 +13,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DesignPanel } from "./panel";
 import { harness, mount, resetDocument, selectionOf } from "./test-support";
 
-/** The panel with its DOM tab active, selected on `node`. Tab first: a plain
- * `refresh()` only re-seeds unless the shape changed, so the render that
- * paints the tree is the one `setSelection` performs. */
+/** The panel selected on `node`. The layer tree renders on every body
+ * render, into `layersElement`, whichever tab is showing. */
 function domTab(node: Element): DesignPanel {
   const h = harness();
   const panel = new DesignPanel(h.deps);
-  (panel as unknown as { tab: string }).tab = "dom";
   panel.setSelection(selectionOf(node));
   return panel;
 }
@@ -32,7 +30,7 @@ const collapse = (panel: DesignPanel, node: Element): void => {
 
 /** Whether a row for the marker element is currently rendered. */
 const shows = (panel: DesignPanel, marker: string): boolean =>
-  panel.element.textContent?.includes(marker) ?? false;
+  panel.layersElement.textContent?.includes(marker) ?? false;
 
 beforeEach(() => {
   resetDocument();
@@ -101,5 +99,37 @@ describe("tree disclosure", () => {
     panel.setSelection(selectionOf(parent));
     // A fresh selection is a fresh first sight.
     expect(shows(panel, "KIDTEXT")).toBe(true);
+  });
+});
+
+describe("layer search", () => {
+  const search = (panel: DesignPanel, text: string): void => {
+    const input = panel.layersElement.querySelector("input");
+    if (!input) {
+      throw new Error("no search field");
+    }
+    input.value = text;
+    input.dispatchEvent(new Event("input"));
+  };
+
+  it("keeps the matches and the layers that lead to them", () => {
+    const hit = mount("span", { text: "NEEDLE" });
+    const miss = mount("span", { text: "HAYSTACK" });
+    const parent = mount("div", { children: [hit, miss] });
+    const panel = domTab(parent);
+    collapse(panel, parent);
+
+    search(panel, "needle");
+    expect(shows(panel, "NEEDLE")).toBe(true);
+    expect(shows(panel, "HAYSTACK")).toBe(false);
+
+    search(panel, "");
+    expect(shows(panel, "HAYSTACK")).toBe(false);
+  });
+
+  it("says so when nothing matches", () => {
+    const panel = domTab(mount("div", { text: "ALONE" }));
+    search(panel, "zzz");
+    expect(shows(panel, "No layers match")).toBe(true);
   });
 });

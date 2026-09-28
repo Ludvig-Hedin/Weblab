@@ -28,11 +28,16 @@ const RUN_OF_WHITESPACE = /\s+/;
  * a font-family combobox, the style toggles, vertical alignment, and the
  * "more" popover for case, decoration and truncation.
  */
-function renderTextExtras(ctx: SectionContext, node: Element): HTMLElement {
-  const wrap = el("div", {
-    class: `${cls("text-extras")} ${cls("group")}`,
-  });
+/** The bespoke text controls, handed back for `renderText` to place. */
+interface TextExtras {
+  caseGroup: HTMLElement;
+  family: HTMLElement;
+  more: HTMLElement;
+  styles: HTMLElement;
+  vertical: HTMLElement | null;
+}
 
+function renderTextExtras(ctx: SectionContext, node: Element): TextExtras {
   /*
    * Font family: free text over the stack, with a picker beside it.
    *
@@ -229,7 +234,6 @@ function renderTextExtras(ctx: SectionContext, node: Element): HTMLElement {
   // reach it with — and ended up the one row in the panel with two pickers for
   // one property. The tokens are in the field's own menu now; the tint above is
   // what says a token is in force.
-  wrap.append(familyField);
 
   // Style toggles. Independent booleans, so a segmented group would be wrong
   // — these are four switches that can all be on at once.
@@ -351,7 +355,7 @@ function renderTextExtras(ctx: SectionContext, node: Element): HTMLElement {
   const parent = node.parentElement;
   const parentFlex =
     parent && ["flex", "inline-flex"].includes(computedStyle(parent).display);
-  wrap.append(labelled("Style", styles));
+  let verticalEl: HTMLElement | null = null;
   if (parentFlex) {
     /*
      * `align-self` on the node, not `align-items` on the parent.
@@ -391,7 +395,7 @@ function renderTextExtras(ctx: SectionContext, node: Element): HTMLElement {
      * a name is the thing that was missing. "Style" and "Vertical" cannot run
      * together the way two unlabelled strips of cells could.
      */
-    wrap.append(labelled(VERTICAL_ALIGN.label, vertical.element));
+    verticalEl = vertical.element;
   }
 
   // Case, on the same line as the overflow button. A design tool has this as a
@@ -449,13 +453,15 @@ function renderTextExtras(ctx: SectionContext, node: Element): HTMLElement {
     },
   ]);
   more.addEventListener("click", () => menu.open(more, "below"));
-  // The menu button rides the Case row rather than the section header: it is
-  // about the type, not about the section, and the row it sits on is the one
-  // whose group it narrows. A trailing affordance eating into its own row is
-  // what `fieldCell` already does with a token badge.
-  wrap.append(labelled(TEXT_CASE.label, caseGroup.element, more));
-
-  return wrap;
+  // The menu button sits in the action lane beside Alignment, where Figma
+  // keeps its type settings: it is about the type, not about the section.
+  return {
+    caseGroup: caseGroup.element,
+    family: familyField,
+    more,
+    styles,
+    vertical: verticalEl,
+  };
 }
 
 /**
@@ -527,37 +533,109 @@ export function renderText(
   group: Group
 ): HTMLElement {
   const body = el("div", { class: cls("sect-body") });
+  if (group.id !== "typography") {
+    const grid = el("div", { class: cls("grid") });
+    for (const descriptor of group.descriptors) {
+      if (!descriptor.visible || descriptor.visible(node)) {
+        grid.append(ctx.fieldCell(descriptor, node));
+      }
+    }
+    body.append(grid);
+    return ctx.section(group.id, group.label, body);
+  }
 
-  if (group.id === "typography" && isEditableText(node)) {
+  /*
+   * Figma's Typography order: the font, then weight beside size, line height
+   * beside letter spacing, alignment, and the colour. Content leads because
+   * it is the one thing here a design tool edits on the canvas instead.
+   */
+  const shown = (key: string): HTMLElement | null => {
+    const descriptor = group.descriptors.find((d) => d.key === key);
+    if (!descriptor || (descriptor.visible && !descriptor.visible(node))) {
+      return null;
+    }
+    return ctx.fieldCell(descriptor, node);
+  };
+  const control = (key: string): HTMLElement | null => {
+    const cell = shown(key);
+    // A word-labelled descriptor comes back as a labelled row; the lane wants
+    // the control alone, since the label is placed above it here.
+    if (cell?.classList.contains(cls("row"))) {
+      cell.querySelector(`.${cls("row-label")}`)?.remove();
+      cell.classList.remove(cls("span2"));
+    }
+    return cell;
+  };
+  const labelledCell = (text: string, cell: HTMLElement | null): HTMLElement =>
+    cell
+      ? el("div", { class: cls("fgroup") }, [
+          el("span", { class: cls("flabel"), text }),
+          cell,
+        ])
+      : el("div");
+
+  if (isEditableText(node)) {
     body.append(contentField(ctx, node));
   }
-
-  // Two-column grid. Glyph-fielded controls are cells with no label of their
-  // own; the few that genuinely need a word (Weight, Align) declare
-  // `span: "full"` and keep a labelled row.
-  const grid = el("div", { class: cls("grid") });
-  for (const descriptor of group.descriptors) {
-    if (descriptor.visible && !descriptor.visible(node)) {
-      continue;
-    }
-    grid.append(ctx.fieldCell(descriptor, node));
+  const extras = renderTextExtras(ctx, node);
+  const weight = control("fontWeight");
+  const size = shown("fontSize");
+  body.append(
+    el("div", { class: `${cls("fgroup")} ${cls("group")}` }, [
+      el("span", { class: cls("flabel"), text: "Font" }),
+      extras.family,
+      el(
+        "div",
+        { class: cls("lane") },
+        [weight, size].filter((n): n is HTMLElement => n !== null)
+      ),
+    ]),
+    el("div", { class: cls("lane") }, [
+      labelledCell("Line height", shown("lineHeight")),
+      labelledCell("Letter spacing", shown("letterSpacing")),
+    ])
+  );
+  const paragraph = shown("paragraphSpacing");
+  if (paragraph) {
+    body.append(
+      el("div", { class: cls("lane") }, [
+        labelledCell("Paragraph spacing", paragraph),
+      ])
+    );
   }
-  body.append(grid);
-  if (group.id === "typography") {
-    body.append(renderTextExtras(ctx, node));
+
+  const align = control("textAlign");
+  const alignLane = el("div", { class: cls("lane") }, [
+    ...(align ? [align] : []),
+    ...(extras.vertical ? [extras.vertical] : []),
+    extras.more,
+  ]);
+  alignLane.dataset.act = "";
+  extras.more.classList.add(cls("lane-act"));
+  if (!extras.vertical) {
+    align?.classList.add(cls("span2"));
+  }
+  body.append(
+    el("div", { class: `${cls("fgroup")} ${cls("group")}` }, [
+      el("span", { class: cls("flabel"), text: "Alignment" }),
+      alignLane,
+    ]),
+    el("div", { class: cls("lane") }, [
+      labelledCell("Style", extras.styles),
+      labelledCell("Case", extras.caseGroup),
+    ])
+  );
+
+  const color = control("color");
+  if (color) {
+    body.append(labelledCell("Color", color));
+    body.lastElementChild?.classList.add(cls("group"));
   }
   return ctx.section(group.id, group.label, body, {
     actions: [advancedTypeAction(ctx, node)],
   });
 }
 
-/**
- * The header button that opens Advanced type.
- *
- * Built here rather than through a bare `ctx.headerAction` call for the reason
- * `filters.ts` gives about its own `+`: the popover has to anchor to the button,
- * and the callback is handed no anchor to open against.
- */
 function advancedTypeAction(ctx: SectionContext, node: Element): HTMLElement {
   const button = ctx.headerAction("var-settings", "Advanced type", () =>
     openAdvancedType(ctx, node, button)

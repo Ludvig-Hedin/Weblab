@@ -18,8 +18,8 @@
  * conflicts, in exchange for precision this does not need: a token declaration
  * that a brace-matching scan gets wrong is a token we simply do not offer.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   type CssFramework,
   categorizeToken,
@@ -27,6 +27,8 @@ import {
   type DesignToken,
   isInternalToken,
   isTokenizableValue,
+  type TokenMode,
+  type TokenModeValue,
   type TokenScanResult,
 } from "@airship/protocol/tokens";
 import { readCapped, toPosix, walkFiles } from "./walk";
@@ -278,6 +280,7 @@ function scanUncached(cwd: string): TokenScanResult {
     reject: isBuildArtifact,
   });
   const customProperties = new Map<string, RawCustomProperty>();
+  const overrides = new Map<string, Map<string, TokenModeValue>>();
   const utilities: DesignToken[] = [];
   /** `--name` → the CSS properties it is used on. The best category signal. */
   const usage = new Map<string, Set<string>>();
@@ -301,7 +304,12 @@ function scanUncached(cwd: string): TokenScanResult {
     // Relative to the scan root, which is what the agent's own cwd-relative
     // paths are resolved against.
     const rel = toPosix(relative(root, file)) || file;
-    scanFile(text, lines, rel, { customProperties, usage, utilities });
+    scanFile(text, lines, rel, {
+      customProperties,
+      overrides,
+      usage,
+      utilities,
+    });
   }
 
   const tokens: DesignToken[] = [];
@@ -328,6 +336,7 @@ function scanUncached(cwd: string): TokenScanResult {
       name: prop.name,
       origin: "static",
       values: { "": value },
+      ...modesOf(overrides.get(prop.name)),
     });
   }
   tokens.push(...utilities);
@@ -340,6 +349,8 @@ function scanUncached(cwd: string): TokenScanResult {
 
 interface Sink {
   customProperties: Map<string, RawCustomProperty>;
+  /** `--name` → mode id → its value there. First declaration per mode wins. */
+  overrides: Map<string, Map<string, TokenModeValue>>;
   usage: Map<string, Set<string>>;
   utilities: DesignToken[];
 }
@@ -350,15 +361,119 @@ function scanFile(
   file: string,
   sink: Sink
 ): void {
+  const media = mediaBlocks(text);
   RULE.lastIndex = 0;
   let rule: RegExpExecArray | null = RULE.exec(text);
   while (rule !== null) {
     const [, rawSelector, body] = rule;
     const selector = rawSelector.trim();
     const bodyOffset = rule.index + rawSelector.length + 1;
-    collectDeclarations(body, bodyOffset, lines, file, selector, sink);
+    const mode = modeFor(selector, mediaAt(media, bodyOffset));
+    collectDeclarations(body, bodyOffset, lines, file, selector, sink, mode);
     rule = RULE.exec(text);
   }
+}
+
+function modesOf(
+  byMode: Map<string, TokenModeValue> | undefined
+): Pick<DesignToken, "modes"> {
+  return byMode?.size ? { modes: Object.fromEntries(byMode) } : {};
+}
+
+// ---------------------------------------------------------------------------
+// Modes and breakpoints
+// ---------------------------------------------------------------------------
+
+const DARK_CLASS = /(?:^|[\s,>(])(?:html|:root|body)?\.dark\b/;
+const DATA_THEME = /\[data-(?:theme|mode)\s*=\s*["']?([\w-]+)["']?\s*\]/;
+const THEME_CLASS = /\.theme-([\w-]+)/;
+const PREFERS_DARK = /prefers-color-scheme\s*:\s*dark/;
+const WIDTH_QUERY = /\((max|min)-width\s*:\s*(\d+(?:\.\d+)?)(px|em|rem)\s*\)/;
+
+interface MediaBlock {
+  end: number;
+  query: string;
+  start: number;
+}
+
+/** Every `@media` block in the file, with the span its body covers. */
+function mediaBlocks(text: string): MediaBlock[] {
+  const blocks: MediaBlock[] = [];
+  const stack: { prelude: string; start: number }[] = [];
+  let preludeStart = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "{") {
+      stack.push({ prelude: text.slice(preludeStart, i).trim(), start: i });
+      preludeStart = i + 1;
+    } else if (ch === "}") {
+      const open = stack.pop();
+      if (open?.prelude.startsWith("@media")) {
+        blocks.push({ end: i, query: open.prelude, start: open.start });
+      }
+      preludeStart = i + 1;
+    } else if (ch === ";") {
+      preludeStart = i + 1;
+    }
+  }
+  return blocks;
+}
+
+/** The innermost `@media` query around `offset`, if any. */
+function mediaAt(blocks: MediaBlock[], offset: number): string | null {
+  let best: MediaBlock | null = null;
+  for (const block of blocks) {
+    if (
+      block.start < offset &&
+      offset < block.end &&
+      (!best || block.start > best.start)
+    ) {
+      best = block;
+    }
+  }
+  return best?.query ?? null;
+}
+
+function titleCase(id: string): string {
+  const words = id.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * Which mode a rule sets variables for, or null for the default.
+ *
+ * Themes come from the selector (`.dark`, `[data-theme="brand"]`,
+ * `.theme-brand`) or a `prefers-color-scheme: dark` query; breakpoints from a
+ * width query. A theme inside a breakpoint counts as the theme.
+ */
+export function modeFor(
+  selector: string,
+  media: string | null
+): TokenMode | null {
+  if (DARK_CLASS.test(selector)) {
+    return { id: "dark", kind: "theme", label: "Dark" };
+  }
+  const data = DATA_THEME.exec(selector) ?? THEME_CLASS.exec(selector);
+  if (data) {
+    const id = data[1].toLowerCase();
+    return { id, kind: "theme", label: titleCase(id) };
+  }
+  if (!media) {
+    return null;
+  }
+  if (PREFERS_DARK.test(media)) {
+    return { id: "dark", kind: "theme", label: "Dark" };
+  }
+  const width = WIDTH_QUERY.exec(media);
+  if (width) {
+    const [, side, amount, unit] = width;
+    return {
+      id: `${side}-${amount}${unit}`,
+      kind: "breakpoint",
+      label: `${side === "max" ? "≤" : "≥"} ${amount}${unit}`,
+    };
+  }
+  return null;
 }
 
 function collectDeclarations(
@@ -367,7 +482,8 @@ function collectDeclarations(
   lines: number[],
   file: string,
   selector: string,
-  sink: Sink
+  sink: Sink,
+  mode: TokenMode | null = null
 ): void {
   const simpleClass = SIMPLE_CLASS.exec(selector);
   const declarations: { property: string; value: string }[] = [];
@@ -379,7 +495,22 @@ function collectDeclarations(
     const value = decl[2].trim();
     declarations.push({ property, value });
 
-    if (CUSTOM_PROPERTY.test(property)) {
+    if (CUSTOM_PROPERTY.test(property) && mode) {
+      // An override for one theme or breakpoint: a column, not a new token.
+      let byMode = sink.overrides.get(property);
+      if (!byMode) {
+        byMode = new Map();
+        sink.overrides.set(property, byMode);
+      }
+      if (!byMode.has(mode.id)) {
+        byMode.set(mode.id, {
+          ...mode,
+          file,
+          line: lineOf(lines, bodyOffset + decl.index),
+          value,
+        });
+      }
+    } else if (CUSTOM_PROPERTY.test(property)) {
       // First declaration wins. A token redefined in a dark-theme block is the
       // same token; recording the override would list it twice with two values.
       if (!sink.customProperties.has(property)) {
@@ -559,4 +690,302 @@ function detectFramework(
     return "tailwind";
   }
   return utilityCount > 0 ? "custom" : "unknown";
+}
+
+// ---------------------------------------------------------------------------
+// Writing tokens
+// ---------------------------------------------------------------------------
+
+/** A custom property name the writer accepts: `--brand`, `--color-bg-2`. */
+const TOKEN_NAME = /^--[A-Za-z_][\w-]*$/;
+/** Characters that would end the declaration or its block early. */
+const UNSAFE_VALUE = /[;{}\n\r]/;
+/** First block a new variable can live in, Tailwind's `@theme` before `:root`. */
+const THEME_BLOCK = /@theme(?:\s+inline)?\s*\{/;
+const ROOT_BLOCK = /:root\s*\{/;
+const LEADING_SPACE = /^[ \t]*/;
+
+export type TokenWriteResult =
+  | { ok: true; file: string }
+  | { ok: false; error: string };
+
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** A repo-relative path from the scan, resolved and kept inside the scan root. */
+function resolveTokenFile(cwd: string, file: string): string | null {
+  const root = tokenScanRoot(cwd);
+  const full = resolve(root, file);
+  const rel = relative(root, full);
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    return null;
+  }
+  return full;
+}
+
+function checkValue(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "Enter a value.";
+  }
+  if (UNSAFE_VALUE.test(trimmed)) {
+    return "A value can't contain ; { } or line breaks.";
+  }
+  return null;
+}
+
+/**
+ * Change the value of an existing custom property, in the file and on the line
+ * the scan found it. Only that declaration changes; a `.dark` override or any
+ * other redeclaration is left alone.
+ */
+export function setTokenValue(
+  cwd: string,
+  input: { file: string; line?: number; name: string; value: string }
+): TokenWriteResult {
+  if (!TOKEN_NAME.test(input.name)) {
+    return { error: `${input.name} is not a CSS variable name.`, ok: false };
+  }
+  const bad = checkValue(input.value);
+  if (bad) {
+    return { error: bad, ok: false };
+  }
+  const full = resolveTokenFile(cwd, input.file);
+  if (!(full && existsSync(full))) {
+    return { error: `Can't find ${input.file}.`, ok: false };
+  }
+  const lines = readFileSync(full, "utf8").split("\n");
+  const declaration = declarationPattern(input.name);
+  const index = nearestDeclaration(lines, declaration, input.line);
+  if (index === null) {
+    return { error: `${input.name} is not in ${input.file}.`, ok: false };
+  }
+  lines[index] = lines[index].replace(
+    declaration,
+    (_m, head: string, _old: string, tail: string) =>
+      `${head}${input.value.trim()}${tail}`
+  );
+  writeFileSync(full, lines.join("\n"));
+  invalidateTokenCache();
+  return { file: input.file, ok: true };
+}
+
+function declarationPattern(name: string): RegExp {
+  return new RegExp(
+    `(?<![\\w-])(${escapeRegex(name)}\\s*:\\s*)([^;}]*?)(\\s*(?:;|}|$))`
+  );
+}
+
+/**
+ * The line declaring `name` closest to the scanned line. A variable can be
+ * declared once per mode in one file, and lines shift as others are added,
+ * so "first in the file" would edit the wrong mode.
+ */
+function nearestDeclaration(
+  lines: string[],
+  declaration: RegExp,
+  line?: number
+): number | null {
+  const hinted = (line ?? 1) - 1;
+  let best: number | null = null;
+  for (const [index, text] of lines.entries()) {
+    if (
+      declaration.test(text) &&
+      (best === null || Math.abs(index - hinted) < Math.abs(best - hinted))
+    ) {
+      best = index;
+    }
+  }
+  return best;
+}
+
+/**
+ * Remove one declaration of `name` — the one nearest the scanned line. Used to
+ * undo a create and to clear a mode's value.
+ */
+export function deleteToken(
+  cwd: string,
+  input: { file: string; line?: number; name: string }
+): TokenWriteResult {
+  if (!TOKEN_NAME.test(input.name)) {
+    return { error: `${input.name} is not a CSS variable name.`, ok: false };
+  }
+  const full = resolveTokenFile(cwd, input.file);
+  if (!(full && existsSync(full))) {
+    return { error: `Can't find ${input.file}.`, ok: false };
+  }
+  const lines = readFileSync(full, "utf8").split("\n");
+  const whole = new RegExp(
+    `(?<![\\w-])${escapeRegex(input.name)}\\s*:[^;}]*;?\\s*`
+  );
+  const index = nearestDeclaration(lines, whole, input.line);
+  if (index === null) {
+    return { error: `${input.name} is not in ${input.file}.`, ok: false };
+  }
+  const rest = lines[index].replace(whole, "");
+  if (rest.trim()) {
+    lines[index] = rest;
+  } else {
+    lines.splice(index, 1);
+  }
+  writeFileSync(full, lines.join("\n"));
+  invalidateTokenCache();
+  return { file: input.file, ok: true };
+}
+
+/**
+ * Add a new custom property. It goes into `file` (or the file that already
+ * holds the most variables), inside its first `@theme` block, else its first
+ * `:root` block, else a new `:root` block at the end.
+ */
+export function createToken(
+  cwd: string,
+  input: {
+    /** Insert on the line after this one — a mode's value goes in its block. */
+    afterLine?: number;
+    file?: string;
+    name: string;
+    value: string;
+  }
+): TokenWriteResult {
+  if (!TOKEN_NAME.test(input.name)) {
+    return {
+      error: "Use a name like --brand-color (letters, numbers and dashes).",
+      ok: false,
+    };
+  }
+  const bad = checkValue(input.value);
+  if (bad) {
+    return { error: bad, ok: false };
+  }
+  const scan = scanProjectTokens(cwd, { refresh: true });
+  const anchored = input.afterLine !== undefined && input.file !== undefined;
+  if (!anchored && scan.tokens.some((token) => token.name === input.name)) {
+    return { error: `${input.name} already exists.`, ok: false };
+  }
+  const file = input.file ?? busiestTokenFile(scan);
+  if (!file) {
+    return { error: "No CSS file with variables was found.", ok: false };
+  }
+  const full = resolveTokenFile(cwd, file);
+  if (!(full && existsSync(full))) {
+    return { error: `Can't find ${file}.`, ok: false };
+  }
+  const declaration = `${input.name}: ${input.value.trim()};`;
+  const next = insertDeclaration(
+    readFileSync(full, "utf8"),
+    declaration,
+    anchored ? input.afterLine : undefined
+  );
+  writeFileSync(full, next);
+  invalidateTokenCache();
+  return { file, ok: true };
+}
+
+/**
+ * `text` with `declaration` added: after `afterLine` when given, else inside
+ * the first `@theme` block, else the first `:root` block, else a new `:root`.
+ */
+function insertDeclaration(
+  text: string,
+  declaration: string,
+  afterLine?: number
+): string {
+  if (afterLine !== undefined) {
+    const lines = text.split("\n");
+    const at = Math.min(Math.max(afterLine, 0), lines.length);
+    const indent = LEADING_SPACE.exec(lines[at - 1] ?? "")?.[0] || "  ";
+    lines.splice(at, 0, `${indent}${declaration}`);
+    return lines.join("\n");
+  }
+  const block = THEME_BLOCK.exec(text) ?? ROOT_BLOCK.exec(text);
+  if (block) {
+    const open = block.index + block[0].length;
+    const after = text.slice(open);
+    const nextLine = after.startsWith("\n") ? after.slice(1) : after;
+    const indent = LEADING_SPACE.exec(nextLine)?.[0] || "  ";
+    return `${text.slice(0, open)}\n${indent}${declaration}${text.slice(open)}`;
+  }
+  const sep = text.endsWith("\n") || text === "" ? "" : "\n";
+  return `${text}${sep}\n:root {\n  ${declaration}\n}\n`;
+}
+
+/** The file declaring the most custom properties: where a new one belongs. */
+function busiestTokenFile(scan: TokenScanResult): string | null {
+  const counts = new Map<string, number>();
+  for (const token of scan.tokens) {
+    if (token.kind === "css-var" && token.file) {
+      counts.set(token.file, (counts.get(token.file) ?? 0) + 1);
+    }
+  }
+  let best: string | null = null;
+  let most = 0;
+  for (const [file, count] of counts) {
+    if (count > most) {
+      best = file;
+      most = count;
+    }
+  }
+  return best;
+}
+
+const MODE_SPACES = /\s+/g;
+const MODE_UNSAFE = /[^a-z0-9-]/g;
+
+/** The modes and breakpoints the Variables tab can add. */
+export const NEW_MODES = {
+  custom: { head: "", tail: "}" },
+  dark: { head: ".dark {", tail: "}" },
+  mobile: { head: "@media (max-width: 767px) {\n  :root {", tail: "  }\n}" },
+  tablet: { head: "@media (max-width: 991px) {\n  :root {", tail: "  }\n}" },
+} as const;
+export type NewMode = keyof typeof NEW_MODES;
+
+/**
+ * Start a new mode or breakpoint: a block at the end of the variables file,
+ * seeded with one variable at its current value so the column appears.
+ */
+export function addMode(
+  cwd: string,
+  input: { mode: NewMode; modeName?: string; name: string; value: string }
+): TokenWriteResult {
+  const template = NEW_MODES[input.mode];
+  if (!template) {
+    return { error: "Unknown mode.", ok: false };
+  }
+  const slug = (input.modeName ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(MODE_SPACES, "-")
+    .replace(MODE_UNSAFE, "");
+  if (input.mode === "custom" && !slug) {
+    return { error: "Give the mode a name.", ok: false };
+  }
+  const head =
+    input.mode === "custom" ? `[data-theme="${slug}"] {` : template.head;
+  if (!TOKEN_NAME.test(input.name)) {
+    return { error: `${input.name} is not a CSS variable name.`, ok: false };
+  }
+  const bad = checkValue(input.value);
+  if (bad) {
+    return { error: bad, ok: false };
+  }
+  const scan = scanProjectTokens(cwd, { refresh: true });
+  const file =
+    scan.tokens.find((token) => token.name === input.name)?.file ??
+    busiestTokenFile(scan);
+  const full = file ? resolveTokenFile(cwd, file) : null;
+  if (!(file && full && existsSync(full))) {
+    return { error: "No CSS file with variables was found.", ok: false };
+  }
+  const indent = head.includes("@media") ? "    " : "  ";
+  const text = readFileSync(full, "utf8");
+  const sep = text.endsWith("\n") || text === "" ? "" : "\n";
+  writeFileSync(
+    full,
+    `${text}${sep}\n${head}\n${indent}${input.name}: ${input.value.trim()};\n${template.tail}\n`
+  );
+  invalidateTokenCache();
+  return { file, ok: true };
 }

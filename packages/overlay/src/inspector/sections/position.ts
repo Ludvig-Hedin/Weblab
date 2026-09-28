@@ -1,6 +1,8 @@
 import { cls, el } from "../../dom";
+import { computedStyle } from "../../realm";
 import { isPositioned, measureXY, readAnchor } from "../constraints";
 import { readValue } from "../style-model";
+import { renderAlignRow } from "./align-row";
 import type { SectionContext } from "./context";
 import { insetOf, parseTranslate, readRotation } from "./measure";
 
@@ -114,14 +116,27 @@ export function renderPosition(
     (value) => (value === "auto" ? "" : value)
   );
 
-  const grid = el("div", { class: cls("grid") });
-  grid.append(
-    fields[0].element,
-    fields[1].element,
-    rotField.element,
-    zField.element
+  // Figma's Position section: Alignment, then Position, then Rotation, each
+  // with its label above. Z sits beside Rotation, where Figma has the flips.
+  const labelled = (text: string, control: HTMLElement): HTMLElement =>
+    el("div", { class: cls("fgroup") }, [
+      el("span", { class: cls("flabel"), text }),
+      control,
+    ]);
+  body.append(
+    renderAlignRow(ctx, node),
+    el("div", { class: `${cls("fgroup")} ${cls("group")}` }, [
+      el("span", { class: cls("flabel"), text: "Position" }),
+      el("div", { class: cls("lane") }, [fields[0].element, fields[1].element]),
+    ]),
+    el("div", { class: `${cls("lane")} ${cls("group")}` }, [
+      labelled("Rotation", rotField.element),
+      // z-index does nothing on a box that is neither positioned nor a flex
+      // or grid item, so it is not offered there. `position` and flex-child
+      // are in the panel's `shapeKey`, so the field comes back when one changes.
+      ...(stacks(node) ? [labelled("Layer order", zField.element)] : []),
+    ])
   );
-  body.append(grid);
   return ctx.section("position", "Position", body);
 }
 
@@ -134,6 +149,16 @@ export function renderPosition(
  * current measurement and shifting by the difference is the only form that
  * behaves the same whichever of them is in play.
  */
+/** Does `z-index` apply to this element? */
+function stacks(node: Element): boolean {
+  if (isPositioned(node)) {
+    return true;
+  }
+  const parent = node.parentElement;
+  const display = parent ? computedStyle(parent).display : "";
+  return display.includes("flex") || display.includes("grid");
+}
+
 export function moveTo(
   ctx: SectionContext,
   node: Element,

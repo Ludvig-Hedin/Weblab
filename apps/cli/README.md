@@ -122,6 +122,7 @@ catalog, so it cannot drift from what the keys actually do:
 | open the element menu | Right-click | Right-click |
 | scrub a number | Drag a field's glyph | Drag a field's glyph |
 | undo | ⌘Z | Ctrl+Z |
+| save changes | ⌘S | Ctrl+S |
 | delete element | ⌫ or Del | Backspace or Del |
 | duplicate | ⌘D | Ctrl+D |
 | add element | A or ⌘E | A or Ctrl+E |
@@ -135,6 +136,7 @@ catalog, so it cannot drift from what the keys actually do:
 | zoom out | ⌘- or - | Ctrl+- or - |
 | zoom to 100% | ⌘0 or ⇧0 | Ctrl+0 or Shift+0 |
 | zoom to fit | ⇧1 | Shift+1 |
+| show or hide panels | § or ⌘\ | § or Ctrl+\ |
 | hand tool | H | H |
 | frame tool | F | F |
 | add a frame | ⇧F | Shift+F |

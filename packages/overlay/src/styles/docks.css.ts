@@ -4,17 +4,20 @@ import { ROOT, Z } from "./const";
 /** Bottom bar, mode toggle, the two floating docks, splitters, pills, headers. */
 export const css = `
 /* Bottom bar — tools, Edit/View mode, plus whatever controls the stage owns (on
-   the canvas: add a frame, fit, zoom). Compact and understated: small radius,
-   hairline border + subtle ring, no pill. */
+   the canvas: add a frame, fit, zoom). A soft floating tray, after Framer's:
+   generous radius, a barely-there border and one gentle shadow, so it reads as
+   lifted off the canvas rather than drawn onto it. */
 .${PREFIX}-bar {
   position: fixed; bottom: 16px; transform: translateX(-50%);
   left: calc(50% + (var(--${PREFIX}-inset-l, 0px) - var(--${PREFIX}-inset-r, 0px)) / 2);
-  pointer-events: auto; display: inline-flex; align-items: center; gap: 2px;
-  padding: 4px; border-radius: var(--ap-radius-md);
-  background: var(--ap-surface-panel); border: 1px solid var(--ap-border-default);
-  box-shadow: var(--ap-elevation-card);
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px; border-radius: var(--ap-radius-lg);
+  background: var(--ap-surface-panel); border: 1px solid var(--ap-border-subtle);
+  box-shadow: var(--ap-shadow-sm);
 }
-.${PREFIX}-bar-sep { width: 1px; align-self: stretch; background: var(--ap-border-default); margin: 4px 2px; }
+/* Faint and short — a pause between groups, not a wall. Full-height hairlines
+   between every group were most of what made the bar read as cluttered. */
+.${PREFIX}-bar-sep { width: 1px; height: 16px; align-self: center; background: var(--ap-border-subtle); margin: 0 4px; }
 /* Stretched to the bar's content box on purpose. The add-frame menu is placed
    against the toolbar's rect, and a row centred in a taller bar sits a few
    pixels inside the card — so the menu's gap would be measured from the buttons
@@ -67,7 +70,7 @@ export const css = `
    agent writes them into the code, so this says what it does and how many. */
 .${PREFIX}-bar-save {
   display: inline-flex; align-items: center; gap: 6px;
-  height: var(--ap-control-icon-box); padding: 0 10px; margin-left: 2px;
+  height: var(--ap-control-icon-box); padding: 0 12px; margin-left: 2px;
   border: none; border-radius: var(--ap-radius-sm); cursor: pointer;
   background: var(--ap-primary); color: var(--ap-text-primary);
   font-family: var(--ap-font-sans); font-size: var(--ap-font-size-body); font-weight: 600;
@@ -80,24 +83,21 @@ export const css = `
 .${PREFIX}-bar-save-busy { cursor: default; background: var(--ap-primary-active); }
 .${PREFIX}-bar-save-busy > .${PREFIX}-dot { display: inline-block; }
 
-/* Edit/View mode segmented toggle — compact, restrained, border over shadow. */
+/* Edit/View mode segmented toggle — no box of its own; the selected half is a
+   soft fill, the other is plain text. */
 .${PREFIX}-seg-group {
-  display: inline-flex; align-items: center; gap: 2px; padding: 2px;
-  background: var(--ap-surface-active);
-  border: 1px solid var(--ap-border-default); border-radius: var(--ap-radius-sm);
+  display: inline-flex; align-items: center; gap: 2px; padding: 0;
+  background: transparent; border: 0;
 }
 .${PREFIX}-seg {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer;
-  padding: 5px 10px; border: none; background: transparent;
-  border-radius: var(--ap-radius-xs); font-size: var(--ap-font-size-label); font-weight: 500;
+  height: var(--ap-control-icon-box); padding: 0 10px; border: none; background: transparent;
+  border-radius: var(--ap-radius-sm); font-size: var(--ap-font-size-label); font-weight: 500;
   color: var(--ap-text-primary); opacity: .65;
   transition: opacity var(--ap-motion-dur-micro) var(--ap-motion-ease), background var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
-.${PREFIX}-seg:hover { opacity: 1; }
-.${PREFIX}-seg-on {
-  background: var(--ap-surface-panel); opacity: 1;
-  box-shadow: var(--ap-elevation-card);
-}
+.${PREFIX}-seg:hover { opacity: 1; background: var(--ap-surface-hover); }
+.${PREFIX}-seg-on, .${PREFIX}-seg-on:hover { background: var(--ap-surface-active); opacity: 1; }
 
 /* Docked panels — Figma's arrangement: flush to the window edge, full height,
    one hairline on the side facing the canvas and nothing else. Only a panel
@@ -182,6 +182,19 @@ export const css = `
 }
 /* Lifted while it travels, so it reads as being carried rather than redrawn. */
 .${PREFIX}-dock-moving { box-shadow: var(--ap-elevation-modal); opacity: .92; }
+
+/* Where a dragged panel will dock if it is dropped now. Painted over the panel
+   being carried, so it reads as "this is where it goes" rather than hiding
+   underneath it. Position and size are written by \`showDockGhost\`. */
+.${PREFIX}-dock-ghost {
+  position: fixed; z-index: ${Z}; pointer-events: none;
+  background: color-mix(in srgb, var(--ap-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ap-primary) 70%, transparent);
+  opacity: 0;
+  transition: opacity 120ms var(--ap-motion-ease);
+}
+.${PREFIX}-dock-ghost-pill { border-radius: var(--ap-radius-md); }
+.${PREFIX}-dock-ghost-on { opacity: 1; }
 
 /* Dock resize splitter — a slim invisible grab strip on the dock's inner edge
    that only shows itself on hover or while dragging. */
@@ -288,12 +301,13 @@ html[data-${PREFIX}-drag] .${PREFIX}-head { cursor: inherit; }
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--ap-control-icon-box); height: var(--ap-control-icon-box);
   padding: 0; border: 0; cursor: pointer;
-  background: transparent; border-radius: var(--ap-radius-xs);
+  background: transparent; border-radius: var(--ap-radius-sm);
   transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
-.${PREFIX}-tool:hover { background: var(--ap-surface-active); }
-.${PREFIX}-tool-on { background: var(--ap-primary); }
-.${PREFIX}-tool-on:hover { background: var(--ap-primary-hover); }
+.${PREFIX}-tool:hover { background: var(--ap-surface-hover); }
+/* The armed tool is a soft fill with a bright glyph, not an accent block — the
+   blue stays for selection on the canvas, where it means something. */
+.${PREFIX}-tool-on, .${PREFIX}-tool-on:hover { background: var(--ap-surface-active); }
 ${ROOT} .${PREFIX}-tool-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text-primary); }
 .${PREFIX}-tool:disabled { cursor: default; }
 .${PREFIX}-tool:disabled:hover { background: transparent; }
@@ -301,4 +315,9 @@ ${ROOT} .${PREFIX}-tool-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text-pr
    twin, and the mark is symmetric about its vertical axis, so the flip is exact
    rather than approximate — cheaper and more honest than hand-authoring a
    near-copy into \`icons.ts\`'s \`LEGACY\` block. */
-.${PREFIX}-bar-redo .${PREFIX}-ic { transform: scaleX(-1); }`;
+.${PREFIX}-bar-redo .${PREFIX}-ic { transform: scaleX(-1); }
+/* The left dock's Pages | Layers row sits under the dock head. The shared
+   \`.insp-tabs\` recipe lifts itself above everything with \`order: -1\`, which is
+   right inside the inspector and would put this row above the head. */
+.${PREFIX}-dock-left .${PREFIX}-left-tabs { order: 0; }
+`;

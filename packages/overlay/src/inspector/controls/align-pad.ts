@@ -1,4 +1,5 @@
 import { cls, el } from "../../dom";
+import { icon } from "../../icons";
 import type { ControlHandle, OnChange } from "./types";
 
 /**
@@ -25,11 +26,22 @@ export interface AlignPadState {
   justify: string;
 }
 
+/**
+ * The pad, plus its Space between switch.
+ *
+ * The switch is handed back rather than placed, because it belongs in the
+ * panel's action lane beside the Gap field (where a design tool puts it), not
+ * under the pad where it read as a stray glyph.
+ */
+export interface AlignPadHandle extends ControlHandle {
+  spread: HTMLElement;
+}
+
 export function createAlignPad(
   getDirection: () => "row" | "column",
   initial: AlignPadState,
   onChange: OnChange
-): ControlHandle {
+): AlignPadHandle {
   const cells: { btn: HTMLElement; col: number; row: number }[] = [];
   const state: AlignPadState = { ...initial };
 
@@ -56,6 +68,13 @@ export function createAlignPad(
     pad.dataset.dir = getDirection();
     // `space-between` owns the main axis, so the pad's main axis is inert.
     pad.dataset.spread = String(state.justify === "space-between");
+    spread.setAttribute(
+      "aria-pressed",
+      String(state.justify === "space-between")
+    );
+    spread.replaceChildren(
+      icon(getDirection() === "column" ? "distribute-v" : "distribute-h", "sm")
+    );
   }
 
   const pad = el("div", {
@@ -109,7 +128,7 @@ export function createAlignPad(
     "button",
     {
       "aria-label": "Space between",
-      class: cls("pad-spread"),
+      class: cls("lane-act"),
       "data-tip": "Space between",
       onClick: () => {
         const on = state.justify !== "space-between";
@@ -119,10 +138,10 @@ export function createAlignPad(
       },
       type: "button",
     },
-    [el("span"), el("span"), el("span")]
+    []
   );
 
-  const wrap = el("div", { class: cls("pad-wrap") }, [pad, spread]);
+  const wrap = el("div", { class: cls("pad-wrap") }, [pad]);
   sync();
 
   return {
@@ -141,5 +160,6 @@ export function createAlignPad(
       }
       sync();
     },
+    spread,
   };
 }

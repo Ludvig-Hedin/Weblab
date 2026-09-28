@@ -597,6 +597,11 @@ export interface DesignToken {
   kind: TokenKind;
   /** 1-based, when statically scanned. */
   line?: number;
+  /**
+   * The value in each mode or breakpoint that overrides it, keyed by
+   * {@link TokenMode.id}. Absent for a variable that never changes.
+   */
+  modes?: Record<string, TokenModeValue>;
   /** `--pk-space-4` for a custom property, `.p-4` for a utility class. */
   name: string;
   origin: TokenOrigin;
@@ -609,6 +614,27 @@ export interface DesignToken {
 }
 
 export type CssFramework = "tailwind" | "custom" | "unknown";
+
+/**
+ * A place a variable can take a different value: a theme (`.dark`,
+ * `[data-theme="brand"]`, `prefers-color-scheme: dark`) or a breakpoint
+ * (`@media (max-width: 767px)`). Figma calls both "modes".
+ */
+export interface TokenMode {
+  /** `dark`, `brand`, `max-767`, `min-1024`. */
+  id: string;
+  kind: "breakpoint" | "theme";
+  /** `Dark`, `Brand`, `≤ 767px`. */
+  label: string;
+}
+
+/** One variable's value in one mode, and where it is written. */
+export interface TokenModeValue extends TokenMode {
+  file: string;
+  line: number;
+  /** As authored — `var(--x)` stays a reference. */
+  value: string;
+}
 
 /** What a single scan (static or runtime) produced. */
 export interface TokenScanResult {

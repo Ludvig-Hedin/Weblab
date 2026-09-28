@@ -400,3 +400,59 @@ describe("nested-document ownership", () => {
     }
   });
 });
+
+describe("FrameManager box journal", () => {
+  it("reports a finished resize once, and setBox puts it back", () => {
+    const reports: [number, number][] = [];
+    const local = new FrameManager({
+      onBoxChange: (before, after) => reports.push([before.width, after.width]),
+      pathname: "/",
+      storageKey: "__airship-test:frames-box",
+      world,
+    });
+    try {
+      const frame = local.add({ height: 1024, name: "Desktop", width: 1440 });
+      if (!frame) {
+        throw new Error("add refused");
+      }
+      const before = local.boxOf(frame.id);
+      if (!before) {
+        throw new Error("no box");
+      }
+      // A drag resizes on every pointermove; only the commit is journalled.
+      local.resize(frame.id, 1300, 1024);
+      local.resize(frame.id, 1200, 1024);
+      expect(reports).toEqual([]);
+      local.commitBox(before);
+      expect(reports).toEqual([[1440, 1200]]);
+
+      local.setBox(before);
+      expect(frame.width).toBe(1440);
+      // A replay is not a new edit.
+      expect(reports).toHaveLength(1);
+    } finally {
+      local.destroy();
+    }
+  });
+
+  it("reports a device change on its own, name included", () => {
+    const names: string[] = [];
+    const local = new FrameManager({
+      onBoxChange: (before, after) =>
+        names.push(`${before.name}→${after.name}`),
+      pathname: "/",
+      storageKey: "__airship-test:frames-box",
+      world,
+    });
+    try {
+      const frame = local.add({ height: 1024, name: "Desktop", width: 1440 });
+      if (!frame) {
+        throw new Error("add refused");
+      }
+      local.applyPreset(frame.id, "iphone-16");
+      expect(names).toEqual(["Desktop→iPhone 16"]);
+    } finally {
+      local.destroy();
+    }
+  });
+});

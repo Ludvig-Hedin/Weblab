@@ -62,6 +62,8 @@ export interface PopoverOptions extends PlaceOptions {
    * have nowhere to point at.
    */
   anchor?: HTMLElement;
+  /** Open to the left of this element (a dock) — see `PlaceOptions.beside`. */
+  besideOf?: HTMLElement;
   /** Extra class on the shell — `pop-menu`, `pop-color`. */
   className?: string;
   content: HTMLElement;
@@ -423,6 +425,8 @@ export function openPopover(opts: PopoverOptions): PopoverHandle {
       opts.prefer ?? "below",
       {
         align: opts.align,
+        // Measured on every placement, so a resized dock moves the popover.
+        beside: opts.besideOf?.getBoundingClientRect().left ?? opts.beside,
         /*
          * A floor, not a fixed width.
          *

@@ -22,6 +22,8 @@
  * pointermove, so without `batch()` a single drag would leave 200 undo steps.
  */
 import type { ElementContext, SourceLocation } from "@airship/protocol";
+import type { StoredFrame } from "./canvas/frames";
+import type { VariableWrite } from "./canvas/variables-panel";
 import type { Change } from "./change-set";
 import type { MoveRecord } from "./move-set";
 import type { StructureRecord } from "./structure-set";
@@ -59,6 +61,21 @@ export type Op =
        */
       kind: "structure";
       record: StructureRecord;
+    }
+  | {
+      /**
+       * A design variable written straight to a stylesheet from the Variables
+       * tab. Not a page edit: undo sends the opposite write to the server.
+       */
+      kind: "variable";
+      undo: VariableWrite;
+      redo: VariableWrite;
+    }
+  | {
+      /** A canvas frame moved, resized or changed device. */
+      kind: "frame";
+      before: StoredFrame;
+      after: StoredFrame;
     }
   | {
       kind: "text";

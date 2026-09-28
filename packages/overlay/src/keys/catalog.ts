@@ -152,7 +152,7 @@ export const COMMANDS = [
     doc: "Step back through your pending direct-manipulation edits.",
     essential: true,
     group: "Edit",
-    icon: "rotate-ccw",
+    icon: "undo",
     id: "history.undo",
     keys: ["mod+z"],
     mode: "edit",
@@ -162,13 +162,26 @@ export const COMMANDS = [
   {
     doc: "Step forward again through edits you have undone.",
     group: "Edit",
-    // No glyph: the set has `rotate-ccw` and no mirrored twin, and Redo wearing
-    // Undo's mark is worse than Redo wearing none.
+    icon: "redo",
     id: "history.redo",
     keys: ["mod+shift+z", "mod+y"],
     mode: "edit",
     surface: "both",
     title: "Redo",
+  },
+  {
+    // Works while typing, like any app's ⌘S: the browser's "save page" is
+    // never what someone in the editor means.
+    allowWhileTyping: true,
+    doc: "Write your pending edits into the site's code.",
+    essential: true,
+    group: "Edit",
+    icon: "save",
+    id: "edit.save",
+    keys: ["mod+s"],
+    mode: "edit",
+    surface: "both",
+    title: "Save changes",
   },
   {
     doc: "Remove the selected element.",
@@ -407,13 +420,27 @@ export const COMMANDS = [
     title: "Zoom to selection",
   },
   {
+    // `§` is the key left of 1 on a Nordic or UK Mac keyboard, and it is the
+    // one a hand already rests near. `mod+\` is Figma's chord, for keyboards
+    // that have no `§`.
+    doc: "Hide both side panels for a clear view. Press again to bring them back.",
+    essential: true,
+    group: "View",
+    id: "view.togglePanels",
+    inFrame: true,
+    keys: ["§", "mod+\\"],
+    mode: "any",
+    surface: "both",
+    title: "Show or hide panels",
+  },
+  {
     doc: "Drag anywhere to move the canvas, leaving the page beneath untouched.",
     essential: true,
     group: "View",
     icon: "tool-hand",
     id: "tool.hand",
     keys: ["h"],
-    mode: "view",
+    mode: "edit",
     surface: "canvas",
     title: "Hand tool",
   },
@@ -429,10 +456,26 @@ export const COMMANDS = [
     title: "Frame tool",
   },
   {
+    doc: "Click through to the page, to press a slider's arrows or open a menu. Press again to go back to editing.",
+    group: "View",
+    icon: "proto-click",
+    id: "tool.usePage",
+    // Reaches the registry from inside a frame too: while this is on, focus is
+    // in the page, and this key is how you get back out.
+    inFrame: true,
+    keys: ["u"],
+    mode: "edit",
+    surface: "canvas",
+    title: "Use the page",
+  },
+  {
     doc: "Put the Hand down and go back to pointing.",
     group: "View",
     id: "tool.handDrop",
     keys: ["escape"],
+    // Listed as view so it does not share Escape with Deselect in this table.
+    // At runtime both are bound in edit mode and their guards take turns: the
+    // first Escape clears the selection, the next one puts the Hand down.
     mode: "view",
     surface: "canvas",
     title: "Put the Hand down",

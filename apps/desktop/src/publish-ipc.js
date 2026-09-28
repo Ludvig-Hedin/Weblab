@@ -12,16 +12,21 @@ const deploy = require("./deploy");
 const WEB_LINK = /^https:\/\//;
 
 /**
- * `ctx` gives the live pieces of main: { win, editorView, openSiteId, runner,
- * send }, each a function so it reads the current value.
+ * `ctx` resolves each IPC sender to its own window and runner.
  */
 function register(ctx) {
-  let jobRunning = false;
-  const site = () => {
-    const id = ctx.openSiteId();
+  const jobs = new WeakMap();
+  const queues = new WeakMap();
+  let deployOwner = null;
+  let loginOwner = null;
+  const site = (session) => {
+    const id = session?.openSiteId;
     return id ? sites.get(id) : null;
   };
-  const fromWindow = (event) => event.sender === ctx.win()?.webContents;
+  const fromWindow = (event) => {
+    const session = ctx.sessionFor(event);
+    return event.sender === session?.win.webContents ? session : null;
+  };
   /**
    * Wraps a handler: only the window may call, only with a site open, and a
    * failure comes back as { ok: false } instead of a rejected promise, so no
@@ -29,12 +34,13 @@ function register(ctx) {
    */
   const handle = (channel, fn) => {
     ipcMain.handle(channel, async (event, ...args) => {
-      const open = site();
-      if (!(fromWindow(event) && open)) {
+      const session = fromWindow(event);
+      const open = site(session);
+      if (!(session && open)) {
         return { message: "Open a site first.", ok: false };
       }
       try {
-        return await fn(open, ...args);
+        return await fn(session, open, ...args);
       } catch {
         return { message: "Something went wrong. Try again.", ok: false };
       }
@@ -42,27 +48,31 @@ function register(ctx) {
   };
   // One git change at a time: a branch switch can never land in the middle
   // of an upload's checkout and commit.
-  let queue = Promise.resolve();
   const serial =
     (fn) =>
-    (...args) => {
-      const run = queue.then(() => fn(...args));
-      queue = run.catch(() => undefined);
+    (session, ...args) => {
+      const run = (queues.get(session) || Promise.resolve()).then(() =>
+        fn(session, ...args)
+      );
+      queues.set(
+        session,
+        run.catch(() => undefined)
+      );
       return run;
     };
   /** Refuses git work while the AI is still writing files, and queues it. */
   const whenIdle = (fn) =>
-    serial((open, ...args) =>
-      jobRunning
+    serial((session, open, ...args) =>
+      jobs.get(session)
         ? { code: "busy", message: "The AI is still working.", ok: false }
-        : fn(open, ...args)
+        : fn(session, open, ...args)
     );
 
-  handle("publish:status", async (open) => ({
+  handle("publish:status", async (session, open) => ({
     ...(await upload.status(open.path)),
-    aiBusy: jobRunning,
+    aiBusy: Boolean(jobs.get(session)),
   }));
-  handle("publish:note", async (open, paths) => {
+  handle("publish:note", async (_session, open, paths) => {
     const wanted = new Set(Array.isArray(paths) ? paths.map(String) : []);
     // Only changed files git reported, and never secret ones, reach Claude.
     const { files = [] } = await upload.status(open.path);
@@ -74,7 +84,7 @@ function register(ctx) {
   });
   handle(
     "publish:upload",
-    whenIdle((open, options) =>
+    whenIdle((_session, open, options) =>
       upload.upload(open.path, {
         newBranch: Boolean(options?.newBranch),
         note: String(options?.note || ""),
@@ -84,72 +94,95 @@ function register(ctx) {
   );
   handle(
     "publish:retry",
-    whenIdle((open) => upload.retry(open.path))
+    whenIdle((_session, open) => upload.retry(open.path))
   );
   handle(
     "publish:createRepo",
-    whenIdle((open, name) =>
+    whenIdle((_session, open, name) =>
       upload.createRepo(open.path, { name: String(name || open.name) })
     )
   );
-  handle("publish:pullRequest", (open, title) =>
+  handle("publish:pullRequest", (_session, open, title) =>
     upload.pullRequest(open.path, { title: String(title || "") })
   );
   handle(
     "publish:branches",
-    serial((open) => upload.branches(open.path))
+    serial((_session, open) => upload.branches(open.path))
   );
   handle(
     "publish:switch",
-    whenIdle(async (open, name) => {
+    whenIdle(async (session, open, name) => {
       const result = await upload.switchBranch(open.path, String(name));
       if (result.ok && result.needsInstall) {
-        await reinstall(ctx.runner(), open);
+        await reinstall(session.runner, open);
       }
       return result;
     })
   );
   handle(
     "publish:createBranch",
-    whenIdle((open, name) => upload.createBranch(open.path, String(name)))
+    whenIdle((_session, open, name) =>
+      upload.createBranch(open.path, String(name))
+    )
   );
 
-  handle("deploy:status", (open) => deploy.status(open.path));
-  handle("deploy:prepare", async (open) => {
+  handle("deploy:status", (_session, open) => deploy.status(open.path));
+  handle("deploy:prepare", async (_session, open) => {
     const status = await upload.status(open.path);
     return deploy.prepare(open.path, {
       name: open.name,
       repo: status.remote,
     });
   });
-  handle("deploy:sendKeys", (open, names) =>
+  handle("deploy:sendKeys", (_session, open, names) =>
     deploy.sendKeys(open.path, Array.isArray(names) ? names.map(String) : [])
   );
-  handle("deploy:skipKeys", (open) => deploy.skipKeys(open.path));
+  handle("deploy:skipKeys", (_session, open) => deploy.skipKeys(open.path));
   handle(
     "deploy:start",
-    whenIdle((open, target) =>
-      deploy.deploy(
-        open.path,
-        target === "production" ? "production" : "preview",
-        (progress) => ctx.send("deploy:progress", progress)
-      )
-    )
+    whenIdle(async (session, open, target) => {
+      if (deployOwner) {
+        return {
+          message:
+            "Another site is being deployed. Try again when it finishes.",
+          ok: false,
+        };
+      }
+      deployOwner = session;
+      try {
+        return await deploy.deploy(
+          open.path,
+          target === "production" ? "production" : "preview",
+          (progress) => ctx.send(session, "deploy:progress", progress)
+        );
+      } finally {
+        deployOwner = null;
+      }
+    })
   );
   ipcMain.handle("deploy:cancel", (event) => {
-    if (fromWindow(event)) {
+    if (fromWindow(event) === deployOwner) {
       deploy.cancelDeploy();
     }
   });
   ipcMain.handle("deploy:login", (event) => {
-    if (!fromWindow(event)) {
+    const session = fromWindow(event);
+    if (!session || (loginOwner && loginOwner !== session)) {
       return { ok: false };
     }
-    return deploy.login((payload) => ctx.send("deploy:login", payload));
+    loginOwner = session;
+    return deploy
+      .login((payload) => ctx.send(session, "deploy:login", payload))
+      .finally(() => {
+        if (loginOwner === session) {
+          loginOwner = null;
+        }
+      });
   });
   ipcMain.handle("deploy:cancelLogin", (event) => {
-    if (fromWindow(event)) {
+    if (fromWindow(event) === loginOwner) {
       deploy.cancelLogin();
+      loginOwner = null;
     }
   });
 
@@ -163,8 +196,9 @@ function register(ctx) {
   // from the top bar would open underneath it. While one is open, the page
   // shows a still picture of the editor and the live view steps aside.
   ipcMain.handle("editor:freeze", async (event, frozen) => {
-    const view = ctx.editorView();
-    if (!(fromWindow(event) && view)) {
+    const session = fromWindow(event);
+    const view = session?.editorView;
+    if (!view) {
       return null;
     }
     if (!frozen) {
@@ -183,24 +217,36 @@ function register(ctx) {
 
   // The editor says when an AI job starts and ends.
   ipcMain.on("editor:job", (event, running) => {
-    if (event.sender !== ctx.editorView()?.webContents) {
+    const session = ctx.sessionFor(event);
+    if (event.sender !== session?.editorView?.webContents) {
       return;
     }
-    jobRunning = Boolean(running);
-    ctx.send("editor:job", jobRunning);
+    jobs.set(session, Boolean(running));
+    ctx.send(session, "editor:job", Boolean(running));
   });
   // "Ask AI to fix it": hands text to the editor's chat.
   ipcMain.handle("editor:ask", (event, text) => {
-    const view = ctx.editorView();
-    if (fromWindow(event) && view && typeof text === "string") {
+    const view = fromWindow(event)?.editorView;
+    if (view && typeof text === "string") {
       view.webContents.send("editor:ask", text.slice(0, 8000));
     }
   });
 
   return {
+    close: (session) => {
+      if (deployOwner === session) {
+        deploy.cancelDeploy();
+      }
+      if (loginOwner === session) {
+        deploy.cancelLogin();
+        loginOwner = null;
+      }
+      jobs.delete(session);
+      queues.delete(session);
+    },
     /** A new editor starts with no job running. */
-    reset: () => {
-      jobRunning = false;
+    reset: (session) => {
+      jobs.set(session, false);
     },
   };
 }

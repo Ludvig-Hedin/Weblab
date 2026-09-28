@@ -17,6 +17,7 @@ the editor also answers to a plain `+` and `-`.
 | --- | --- | --- | --- | --- |
 | Undo | ⌘Z | Ctrl+Z | edit mode | Step back through your pending direct-manipulation edits. |
 | Redo | ⌘⇧Z or ⌘Y | Ctrl+Shift+Z or Ctrl+Y | edit mode | Step forward again through edits you have undone. |
+| Save changes | ⌘S | Ctrl+S | edit mode | Write your pending edits into the site's code. |
 | Delete element | ⌫ or Del | Backspace or Del | edit mode | Remove the selected element. |
 | Duplicate | ⌘D | Ctrl+D | edit mode | Copy the selected element in place. |
 | Add element | A or ⌘E | A or Ctrl+E | edit mode | Open the element library and add one inside or after the selection. |
@@ -47,7 +48,9 @@ the editor also answers to a plain `+` and `-`.
 | Zoom to 100% | ⌘0 or ⇧0 | Ctrl+0 or Shift+0 | canvas only | Return the canvas to actual size. |
 | Zoom to fit | ⇧1 | Shift+1 | canvas only | Fit every frame on screen. |
 | Zoom to selection | ⇧2 | Shift+2 | canvas only | Fill the canvas with the current selection. |
-| Hand tool | H | H | view mode, canvas only | Drag anywhere to move the canvas, leaving the page beneath untouched. |
+| Show or hide panels | § or ⌘\ | § or Ctrl+\ | anywhere | Hide both side panels for a clear view. Press again to bring them back. |
+| Hand tool | H | H | edit mode, canvas only | Drag anywhere to move the canvas, leaving the page beneath untouched. |
+| Use the page | U | U | edit mode, canvas only | Click through to the page, to press a slider's arrows or open a menu. Press again to go back to editing. |
 | Put the Hand down | Esc | Esc | view mode, canvas only | Put the Hand down and go back to pointing. |
 
 ## Frames

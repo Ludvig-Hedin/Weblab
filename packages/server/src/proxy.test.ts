@@ -55,9 +55,10 @@ describe("resolveMode", () => {
   });
 
   describe("the surface cookie outranks the launch default", () => {
-    it("makes a canvas launch serve inline", () => {
-      expect(resolveMode(req({ cookie: cookie("inline") }), "shell")).toBe(
-        "inline"
+    // Inline is the shell pinning one page, so choosing it still gets the shell.
+    it("makes an inline launch serve the shell for a chosen inline", () => {
+      expect(resolveMode(req({ cookie: cookie("inline") }), "inline")).toBe(
+        "shell"
       );
     });
 
@@ -69,9 +70,9 @@ describe("resolveMode", () => {
 
     it("is found among other cookies", () => {
       const request = req({
-        cookie: `theme=dark; ${cookie("inline")}; sid=abc`,
+        cookie: `theme=dark; ${cookie("canvas")}; sid=abc`,
       });
-      expect(resolveMode(request, "shell")).toBe("inline");
+      expect(resolveMode(request, "inline")).toBe("shell");
     });
 
     it("falls back to the default when the value is not a surface", () => {
@@ -82,6 +83,11 @@ describe("resolveMode", () => {
     it("never applies to a frame", () => {
       const request = req({ cookie: cookie("inline"), dest: "iframe" });
       expect(resolveMode(request, "shell")).toBe("frame");
+    });
+
+    it("gives frames their agent under an inline launch", () => {
+      const request = req({ cookie: cookie("canvas"), dest: "iframe" });
+      expect(resolveMode(request, "inline")).toBe("frame");
     });
 
     it("never applies to an HTML partial", () => {

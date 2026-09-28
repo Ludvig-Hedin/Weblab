@@ -87,12 +87,11 @@ import { renderCssPane } from "./sections/css";
 import { renderEffects } from "./sections/effects";
 import { renderFill } from "./sections/fill";
 import { renderFilters } from "./sections/filters";
+import { hasLinkSection, renderLink } from "./sections/link";
 import { renderMedia } from "./sections/media";
 import { moveTo, renderPosition } from "./sections/position";
 import { labelled } from "./sections/row";
 import { renderScopeRow } from "./sections/scope";
-import { renderSize } from "./sections/size";
-import { renderSpacing } from "./sections/spacing";
 import { renderStroke } from "./sections/stroke";
 import { renderText } from "./sections/text";
 import { renderVector } from "./sections/vector";
@@ -125,6 +124,8 @@ export interface DesignPanelDeps {
   onCopyPath?: (file: string) => void;
   /** Open a source file in the user's editor. Omitted where there is no socket. */
   onOpenIn?: (editor: Editor, file: string, line?: number) => void;
+  /** Run a selected reveal action while keeping the editor selection. */
+  onPreviewAction?: (node: Element) => void;
   /**
    * A node is being edited in place, or null on exit.
    *
@@ -139,7 +140,7 @@ export interface DesignPanelDeps {
   structureSet: StructureSet;
 }
 
-type Tab = "edit" | "css" | "dom";
+type Tab = "edit" | "css" | "agent";
 type DropPos = "before" | "after" | "inside";
 
 interface TreeDrag {
@@ -382,6 +383,10 @@ export class DesignPanel {
 
   private selection: Selection | null = null;
   private tab: Tab = "edit";
+  /** Inspect mode: selection reads out, but nothing can be dragged. */
+  private inspecting = false;
+  /** Where Inspect came from, to return there when it ends. */
+  private tabBeforeInspect: Tab = "edit";
   /** Substring filter for the CSS tab's computed-styles list. */
   private cssFilter = "";
   private controls: ControlHandle[] = [];
@@ -437,6 +442,23 @@ export class DesignPanel {
   private readonly headEl: HTMLElement;
   private readonly tabsEl: HTMLElement;
   private readonly bodyEl: HTMLElement;
+  /**
+   * The layer tree, for the app to mount in the left dock. It lived in a
+   * Layers tab here; in Figma the layers are on the left and the properties
+   * on the right, so the tree is its own element now and this panel keeps it
+   * current.
+   */
+  readonly layersElement: HTMLElement;
+  private readonly layersTree: HTMLElement;
+  private layersQuery = "";
+  /** The `<body>` the tree was last drawn from. */
+  private layersRoot: Element | null = null;
+  /** Where the app puts the agent chat, shown when the Agent tab is on. */
+  private readonly agentHost: HTMLElement;
+  /** The tab row's right end, after the code toggle: the canvas zoom. */
+  readonly tabExtras: HTMLElement;
+  /** Told when the user picks a tab, so the app can wake what it shows. */
+  onTab: ((tab: Tab) => void) | null = null;
 
   // DOM-tab tree state.
   //
@@ -544,10 +566,43 @@ export class DesignPanel {
     hide(this.treeDropInto);
     deps.layer.add(this.treeDropLine, this.treeDropInto);
 
+    this.agentHost = el("div", { class: cls("insp-agent") });
+    this.tabExtras = el("div", { class: cls("insp-tab-extras") });
     this.element = el("div", { class: cls("insp") }, [
       this.headEl,
       this.tabsEl,
       this.bodyEl,
+      this.agentHost,
+    ]);
+
+    this.layersTree = el("div", {
+      class: `${cls("layers-tree")} ${cls("scroll-y")}`,
+    });
+    const search = el("input", {
+      "aria-label": "Search layers",
+      class: cls("layers-search"),
+      placeholder: "Search layers",
+      spellcheck: "false",
+      type: "search",
+    }) as HTMLInputElement;
+    search.addEventListener("input", () => {
+      this.layersQuery = search.value.trim().toLowerCase();
+      this.renderLayers();
+    });
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && search.value) {
+        e.stopPropagation();
+        search.value = "";
+        this.layersQuery = "";
+        this.renderLayers();
+      }
+    });
+    this.layersElement = el("div", { class: cls("layers") }, [
+      el("div", { class: cls("layers-search-wrap") }, [
+        icon("search", "sm"),
+        search,
+      ]),
+      this.layersTree,
     ]);
 
     this.textEditor = new TextEditor({
@@ -641,7 +696,7 @@ export class DesignPanel {
     // editor feel): the drag controller reads the live selection, so enabling it
     // once makes it auto-follow every new selection. Disable when nothing is
     // selected. Set before renderBody so the button reflects the armed state.
-    if (selection) {
+    if (selection && !this.inspecting) {
       this.armReorder();
     } else {
       this.disarmReorder();
@@ -680,6 +735,9 @@ export class DesignPanel {
       this.renderBody();
     } else {
       this.reseed();
+      // The tree is always on screen now, so an undo, a move or an agent edit
+      // to the DOM has to show there too.
+      this.renderLayers();
     }
     this.notifyChanged();
   }
@@ -790,6 +848,7 @@ export class DesignPanel {
       isSvgRoot(node) ? "s" : "",
       isSvgChild(node) ? "c" : "",
       hasBackgroundImage(node) ? "b" : "",
+      hasLinkSection(node) ? "a" : "",
       /*
        * Gates *inside* a section, not just the ones that decide whether a
        * section renders at all.
@@ -838,12 +897,23 @@ export class DesignPanel {
    * mode exists for, and disarms grab-to-move so a hover cannot become a drag.
    */
   setInspecting(on: boolean): void {
+    if (on === this.inspecting) {
+      return;
+    }
+    this.inspecting = on;
     if (on) {
+      this.tabBeforeInspect = this.tab;
       this.tab = "css";
       this.syncTabs();
       this.renderBody();
       this.disarmReorder();
-    } else if (this.selection) {
+      return;
+    }
+    // Back to the tab you were on, unless you moved off the code view.
+    if (this.tab === "css" && this.tabBeforeInspect !== "css") {
+      this.selectTab(this.tabBeforeInspect);
+    }
+    if (this.selection) {
       this.armReorder();
     }
   }
@@ -2145,34 +2215,61 @@ export class DesignPanel {
 
   // -- DOM tab: expandable tree + drag-to-reparent ---------------------------
 
-  private renderDomTab(): void {
+  /**
+   * Draw the layer tree if it has nothing yet — the page was still loading
+   * the last time it tried. Cheap enough to call on every layout tick.
+   */
+  ensureLayers(): void {
+    // Or if the document it drew has gone: a frame reload leaves rows that
+    // point at nodes in a dead page.
+    const stale = !this.layersRoot?.isConnected;
+    const empty = !this.layersTree.querySelector(`.${cls("tree")}`);
+    if (stale || (!this.layersQuery && empty)) {
+      this.renderLayers();
+    }
+  }
+
+  /** Put the agent chat in the Agent tab. */
+  mountAgent(node: HTMLElement): void {
+    this.agentHost.replaceChildren(node);
+  }
+
+  /**
+   * Rebuild the layer tree in `layersElement`.
+   *
+   * Rooted in the selection's surface — on the canvas there is one DOM tree
+   * per frame, and the one worth showing is the one the selected node lives
+   * in — or, with nothing selected, the first live one, so the tree is there
+   * to pick from before anything is picked, as in Figma.
+   */
+  private renderLayers(): void {
+    // Never mid-drag: clearing the scope would destroy the row being dragged.
+    // `onTreeEnd` redraws once it lands.
+    if (this.treeDrag) {
+      return;
+    }
+    this.treeScope.clear();
+    clear(this.layersTree);
     const sel = this.selection;
-    // The tree is rooted in the *selection's* surface, not the shell's document.
-    // On the canvas there is one DOM tree per frame, and the one worth showing
-    // is the one the selected node lives in.
-    const root = sel?.surface.isLive ? sel.surface.doc.body : null;
-    if (!(sel && root)) {
-      // Reachable with a selection in hand: a frame that has not finished
-      // loading has a surface but no live document to walk. This used to append
-      // nothing at all, so the tab rendered as a blank panel that read like a
-      // bug rather than like a wait.
-      this.bodyEl.append(
+    const surface = sel?.surface.isLive
+      ? sel.surface
+      : this.deps.resolver.all().find((s) => s.isLive);
+    const root = surface?.doc.body ?? null;
+    this.layersRoot = root;
+    if (!root) {
+      this.layersTree.append(
         emptyState({
-          body: "This frame has no live document to walk.",
-          title: "No tree to show",
+          body: "The page is still loading.",
+          title: "No layers yet",
         })
       );
       return;
     }
-    const tree = el("div", { class: cls("tree") });
     // Force-open the *strict* ancestors of the selection, so it is always
-    // visible — the tree is the selection UI here, and collapsing an ancestor
-    // would hide the selected row itself. The selected node's own disclosure
-    // is deliberately not forced: it was seeded open once in `setSelection`,
-    // and from then on its chevron belongs to the user (seeding at the node
-    // itself made `toggleExpand` a no-op — the row could never be closed).
+    // visible. The selected node's own disclosure belongs to the user: it was
+    // seeded open once in `setSelection`.
     const path = new Set<Element>();
-    let cur: Element | null = sel.node.parentElement;
+    let cur: Element | null = sel?.node.parentElement ?? null;
     while (cur) {
       path.add(cur);
       // And keep them open after: an undo that takes the selection away (or
@@ -2181,21 +2278,52 @@ export class DesignPanel {
       this.expanded.add(cur);
       cur = cur.parentElement;
     }
-    this.renderTreeNode(tree, root, 0, path);
-    this.bodyEl.append(
-      el("div", {
-        class: cls("insp-hint"),
-        text: "Click a layer to select it. Drag to move it.",
-      }),
-      tree
-    );
+    const tree = el("div", { class: cls("tree") });
+    const keep = this.layersQuery ? this.searchLayers(root) : null;
+    if (keep?.size === 0) {
+      this.layersTree.append(
+        el("div", { class: cls("insp-hint"), text: "No layers match." })
+      );
+      return;
+    }
+    this.renderTreeNode(tree, root, 0, path, keep);
+    this.layersTree.append(tree);
+  }
+
+  /**
+   * The layers a search keeps: every match and the ancestors that lead to it,
+   * so a hit is shown where it lives rather than as a loose name.
+   */
+  private searchLayers(root: Element): Set<Element> {
+    const keep = new Set<Element>();
+    const limit = 5000;
+    let seen = 0;
+    const walk = (node: Element): void => {
+      seen += 1;
+      if (seen > limit || isEditorNode(node) || isNonVisual(node)) {
+        return;
+      }
+      if (layerName(node).toLowerCase().includes(this.layersQuery)) {
+        let cur: Element | null = node;
+        while (cur && !keep.has(cur)) {
+          keep.add(cur);
+          cur = cur.parentElement;
+        }
+      }
+      for (const kid of Array.from(node.children)) {
+        walk(kid);
+      }
+    };
+    walk(root);
+    return keep;
   }
 
   private renderTreeNode(
     container: HTMLElement,
     node: Element,
     depth: number,
-    path: Set<Element>
+    path: Set<Element>,
+    keep: Set<Element> | null = null
   ): void {
     if (isEditorNode(node)) {
       return;
@@ -2203,17 +2331,19 @@ export class DesignPanel {
     // Non-rendered elements are not layers. A <script> in the tree is noise at
     // best — and because a text-only node is named after its content, an
     // inline script showed up as a row reading `window.__AIRSHIP__={"wsPath"…`.
+    // A search shows only what it kept, every level of it open.
     const kids = Array.from(node.children).filter(
-      (c) => !(isEditorNode(c) || isNonVisual(c))
+      (c) => !(isEditorNode(c) || isNonVisual(c)) && (!keep || keep.has(c))
     );
     const hasKids = kids.length > 0;
-    const open = hasKids && (this.expanded.has(node) || path.has(node));
+    const open =
+      hasKids && (keep !== null || this.expanded.has(node) || path.has(node));
     container.append(
       this.treeRow(node, depth, node === this.selection?.node, hasKids, open)
     );
     if (open) {
       for (const kid of kids) {
-        this.renderTreeNode(container, kid, depth + 1, path);
+        this.renderTreeNode(container, kid, depth + 1, path, keep);
       }
     }
   }
@@ -2447,7 +2577,7 @@ export class DesignPanel {
     } else {
       this.expanded.add(node);
     }
-    this.renderBody();
+    this.renderLayers();
   }
 
   // -- Tree drag-to-reparent -------------------------------------------------
@@ -2522,6 +2652,7 @@ export class DesignPanel {
     this.hideTreeIndicator();
     drag?.node.classList.remove(cls("dragging"));
     if (canceled || !drag) {
+      this.renderLayers();
       return;
     }
     this.dropTreeNode(drag, target);
@@ -2617,11 +2748,7 @@ export class DesignPanel {
           // The tab's own word says *what* it is; the tip says what it is for.
           // Repeating "Design" back at the pointer would be furniture.
           "data-tip": tip,
-          onClick: () => {
-            this.tab = id;
-            this.syncTabs();
-            this.renderBody();
-          },
+          onClick: () => this.selectTab(id),
           type: "button",
         },
         [icon(iconName, "sm"), el("span", { text: label })]
@@ -2639,10 +2766,27 @@ export class DesignPanel {
       // tool uses. The CSS view is still here, as a small code toggle at the
       // end of the row (see `inspector.css.ts`), for whoever wants it.
       mk("edit", "Style", "design", "Colours, size, spacing and type"),
-      mk("dom", "Layers", "layer-group", "Everything on the page, as layers"),
-      mk("css", "Code", "code", "Show the code (CSS)")
+      mk("agent", "Agent", "comment-message", "Ask Weblab to change it"),
+      mk("css", "Code", "code", "Show the code (CSS)"),
+      this.tabExtras
     );
     this.syncTabs();
+  }
+
+  /** The tab showing now. */
+  get activeTab(): Tab {
+    return this.tab;
+  }
+
+  /** Switch tabs, as a click on one does. */
+  selectTab(id: Tab): void {
+    const changed = id !== this.tab;
+    this.tab = id;
+    this.syncTabs();
+    this.renderBody();
+    if (changed) {
+      this.onTab?.(id);
+    }
   }
 
   private syncTabs(): void {
@@ -2686,6 +2830,7 @@ export class DesignPanel {
     const endScan = beginScanPass();
     try {
       this.renderBodyInner();
+      this.renderLayers();
     } finally {
       endScan();
     }
@@ -2713,7 +2858,6 @@ export class DesignPanel {
       control.destroy?.();
     }
     this.controls = [];
-    this.treeScope.clear();
     clear(this.bodyEl);
     this.renderedTab = this.tab;
     this.renderedNode = this.selection?.node ?? null;
@@ -2721,6 +2865,10 @@ export class DesignPanel {
     // One resolution pass per render, shared by every badge built during it.
     this.tokenCache = new Map();
 
+    // The agent chat is the app's; the body stays empty behind it.
+    if (this.tab === "agent") {
+      return;
+    }
     if (!this.selection) {
       this.bodyEl.append(
         emptyState({
@@ -2735,12 +2883,13 @@ export class DesignPanel {
       this.restoreView(scrollTop, focus);
       return;
     }
-    if (this.tab === "dom") {
-      this.renderDomTab();
-      this.restoreView(scrollTop, focus);
-      return;
-    }
     const { node } = this.selection;
+    // Where a link goes is not a style, so it sits above Scope: no scope or
+    // forced state changes it. Null for anything that is not a link or button.
+    const link = renderLink(this.ctx, node, this.deps.onPreviewAction);
+    if (link) {
+      this.bodyEl.append(link);
+    }
     // Scope and State govern every control below them, so they sit above
     // everything — including the alignment strip — and outside the collapsible
     // sections. Null when the element has neither shared classes nor
@@ -2753,9 +2902,6 @@ export class DesignPanel {
     if (scopeRow) {
       this.bodyEl.append(scopeRow);
     }
-    // A design tool opens its Design panel with the alignment strip, above and outside
-    // the collapsible sections — it is the one control that is always there.
-    this.bodyEl.append(renderAlignRow(this.ctx, node));
     this.renderSections(node);
     this.restoreView(scrollTop, focus);
   }
@@ -2863,10 +3009,13 @@ export class DesignPanel {
           ])
         : control.element;
     }
+    // The badge rides inside the control's box, as Figma's variable button
+    // does, rather than as a second control beside it.
     return labelled(
       descriptor.label,
-      control.element,
-      ...(badge ? [badge] : [])
+      badge
+        ? el("div", { class: cls("token-cell") }, [control.element, badge])
+        : control.element
     );
   }
 
@@ -3173,6 +3322,12 @@ export class DesignPanel {
     opts: {
       actions?: HTMLElement[];
       /**
+       * The header's `+`, and when the section counts as empty. A click on an
+       * empty section's heading adds a first row rather than folding nothing:
+       * with no rows, dimming the label was all the click did.
+       */
+      addWhenEmpty?: { button: HTMLElement; isEmpty: () => boolean };
+      /**
        * A read-only adornment for the heading — Source's `App.tsx:31`.
        *
        * Separate from `actions` because that bar swallows the click on its way
@@ -3213,20 +3368,31 @@ export class DesignPanel {
       "aria-label": label,
       class: cls("sect-head"),
       onClick: () => {
-        open = !open;
-        if (open) {
-          this.collapsed.delete(id);
-        } else {
-          this.collapsed.add(id);
+        const add = opts.addWhenEmpty;
+        if (add?.isEmpty() && !add.button.hasAttribute("disabled")) {
+          if (!open) {
+            setOpen(true);
+          }
+          add.button.click();
+          return;
         }
-        body.classList.toggle(cls("hidden"), !open);
-        chevron.replaceChildren(icon(open ? "chev-up" : "chev-down", "xs"));
-        header.setAttribute("aria-expanded", String(open));
-        opts.onToggle?.(open);
+        setOpen(!open);
       },
       role: "button",
       tabindex: "0",
     });
+    const setOpen = (next: boolean): void => {
+      open = next;
+      if (open) {
+        this.collapsed.delete(id);
+      } else {
+        this.collapsed.add(id);
+      }
+      foldSection(body, open);
+      chevron.replaceChildren(icon(open ? "chev-up" : "chev-down", "xs"));
+      header.setAttribute("aria-expanded", String(open));
+      opts.onToggle?.(open);
+    };
     body.classList.toggle(cls("hidden"), !open);
     opts.onToggle?.(open);
     // Heading first, chevron last. On the left it either sat in the gutter —
@@ -3393,14 +3559,25 @@ export class DesignPanel {
      */
     const vector = isSvgChild(node);
 
-    if (!vector) {
+    if (vector) {
+      // Alignment lives in Position, as in Figma. A vector child has no
+      // Position section, so it gets the alignment on its own.
+      const body = el("div", { class: cls("sect-body") }, [
+        renderAlignRow(this.ctx, node),
+      ]);
+      this.bodyEl.append(this.section("position", "Position", body));
+    } else {
       this.bodyEl.append(renderPosition(this.ctx, node));
       this.bodyEl.append(renderConstraints(this.ctx, node));
     }
-    this.bodyEl.append(renderSize(this.ctx, node, this.sizeState));
+    // Size and Spacing live inside Layout now, as they do in Figma. A vector
+    // child has no box to lay out, so it gets the Resizing row alone.
+    this.bodyEl.append(
+      renderAutoLayout(this.ctx, node, this.sizeState, {
+        resizingOnly: vector,
+      })
+    );
     if (!vector) {
-      this.bodyEl.append(renderAutoLayout(this.ctx, node));
-      this.bodyEl.append(renderSpacing(this.ctx, node));
       for (const group of GROUPS) {
         if (group.visible && !group.visible(node)) {
           continue;
@@ -3589,4 +3766,12 @@ function revealNode(node: Element): void {
     block: "center",
     inline: "nearest",
   });
+}
+
+/**
+ * Opens or closes a section body. Instant, on purpose: an animated fold made
+ * the panel feel slow and pushed everything below it around mid-click.
+ */
+function foldSection(body: HTMLElement, open: boolean): void {
+  body.classList.toggle(cls("hidden"), !open);
 }

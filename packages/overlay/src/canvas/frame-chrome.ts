@@ -24,6 +24,8 @@ import {
   groupOfPreset,
   MAX_FRAMES,
   PRESET_GROUPS,
+  type StoredFrame,
+  snapshot,
 } from "./frames";
 import { frameScreenRect } from "./space";
 import type { CanvasViewport } from "./viewport";
@@ -75,6 +77,8 @@ const GRIPS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"] as const;
 type GripPos = (typeof GRIPS)[number];
 
 interface MoveState {
+  /** The box before the drag, so the drop can be undone in one step. */
+  before: StoredFrame;
   id: string;
   /** Latched at drag start so a mid-drag zoom cannot change the ratio. */
   scale: number;
@@ -83,6 +87,7 @@ interface MoveState {
 }
 
 interface ResizeState {
+  before: StoredFrame;
   grip: GripPos;
   id: string;
   scale: number;
@@ -158,7 +163,7 @@ export class FrameChrome {
     // back to 100%" is a hidden affordance; the list also surfaces zoom-to-
     // selection, which had no discoverable entry point at all.
     this.zoomLabel = el("button", {
-      class: cls("fbar-zoom"),
+      class: `${cls("fbar-zoom")} ${cls("has-caret")}`,
       "data-tip": "Zoom",
       onClick: (e: Event) => {
         e.stopPropagation();
@@ -168,7 +173,11 @@ export class FrameChrome {
         // close over live viewport state and this costs nothing. Re-opening
         // still toggles shut — that is keyed on the *anchor* in `openPopover`'s
         // stack, not on the handle.
-        createMenu(this.zoomEntries()).open(this.zoomLabel, "above");
+        // Opens away from the edge it sits on: the readout lives in the
+        // right dock's tab row at the top, or a bottom bar in older hosts.
+        const { top } = this.zoomLabel.getBoundingClientRect();
+        const side = top < window.innerHeight / 2 ? "below" : "above";
+        createMenu(this.zoomEntries()).open(this.zoomLabel, side);
       },
       text: "100%",
       type: "button",
@@ -178,9 +187,10 @@ export class FrameChrome {
       e.stopPropagation();
       this.toggleMenu(ADD_MENU);
     });
+    // The `+` button is built but not shown: frames come from the device menu
+    // and `F`, and the bar reads cleaner without it. Kept as an object because
+    // the render pass still writes its state.
     this.toolbar = el("div", { class: cls("fbar") }, [
-      this.addBtn,
-      el("div", { class: cls("fbar-sep") }),
       // "Zoom to fit", not "Zoom to fit (⇧1)". `barButton` uses the label as the
       // tip, and `Tooltips.show` resolves the chord by matching that string
       // against a binding's `label` — so spelling the chord into the text both
@@ -784,8 +794,10 @@ export class FrameChrome {
         }),
         this.customRow((width, height) => {
           const frame = this.deps.frames.active;
-          if (frame) {
+          const before = frame ? this.deps.frames.boxOf(frame.id) : null;
+          if (frame && before) {
             this.deps.frames.resize(frame.id, width, height);
+            this.deps.frames.commitBox(before);
           }
         }, this.deps.frames.active ?? undefined),
       ]
@@ -1123,10 +1135,14 @@ export class FrameChrome {
     ) {
       return;
     }
+    // Only a press on a frame's own title or grips picks it. The canvas is
+    // edit mode's surface now, so a press inside a frame is aimed at an
+    // element; it drops the frame selection, which keeps Backspace deleting
+    // the element and never the whole frame under it.
     const onChrome = target?.closest?.(`.${cls("fc")}`);
     const frame = onChrome
       ? this.deps.frames.byId(onChrome.getAttribute("data-frame") ?? "")
-      : this.deps.frames.frameAt(point);
+      : null;
     this.deps.frames.setActive(frame?.id ?? null);
   };
 
@@ -1197,7 +1213,13 @@ export class FrameChrome {
         return;
       }
       this.deps.frames.setActive(frame.id);
-      this.move = { id: frame.id, scale, startX: frame.x, startY: frame.y };
+      this.move = {
+        before: snapshot(frame),
+        id: frame.id,
+        scale,
+        startX: frame.x,
+        startY: frame.y,
+      };
       this.delta.start();
       return;
     }
@@ -1210,6 +1232,7 @@ export class FrameChrome {
       }
       this.deps.frames.setActive(frame.id);
       this.resize = {
+        before: snapshot(frame),
         grip: pos as GripPos,
         id: frame.id,
         scale,
@@ -1281,6 +1304,10 @@ export class FrameChrome {
       this.deps.frames.move(resize.id, resize.startX, resize.startY);
     }
     this.deps.onChanged();
+    const done = move ?? resize;
+    if (done && !canceled) {
+      this.deps.frames.commitBox(done.before);
+    }
   }
 }
 

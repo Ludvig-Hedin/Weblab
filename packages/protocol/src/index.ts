@@ -747,6 +747,16 @@ export type ServerEvent =
   /** The project's design tokens, scanned from the files on disk. Answers a
    * `tokens` request; also pushed unprompted once the first scan completes. */
   | { type: "tokens:result"; scan: TokenScanResult }
+  /** Answers a `token:write`. On success a fresh `tokens:result` follows to
+   * every client, so all open inspectors show the new value. */
+  | {
+      type: "token:write:result";
+      name: string;
+      ok: boolean;
+      error?: string;
+      /** The stylesheet that was written, on success. */
+      file?: string;
+    }
   /** What each backend offers, answering a `models` request. Sent to the asking
    * socket only — the probe is per-connection work, and a broadcast would repaint
    * every other tab's open menu underneath its user. */
@@ -821,6 +831,26 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
    * show the user a string the agent never receives.
    */
   z.object({ request: CreateJobRequestSchema, type: z.literal("prompt") }),
+  /**
+   * Change or add one design variable (a CSS custom property) directly on disk.
+   * Deterministic and instant, so it does not go through the agent: `set`
+   * rewrites the declaration the scan found at `file`/`line`; `create` adds a
+   * declaration to `file`, or to the file holding the most variables.
+   */
+  z.object({
+    /** `create` only: insert on the line after this one, in `file`. */
+    afterLine: z.number().int().optional(),
+    file: z.string().optional(),
+    line: z.number().int().optional(),
+    /** `add-mode` only: which block to start. */
+    mode: z.enum(["dark", "tablet", "mobile", "custom"]).optional(),
+    /** `add-mode` with `custom`: the theme's name, e.g. "brand". */
+    modeName: z.string().optional(),
+    name: z.string(),
+    op: z.enum(["set", "create", "delete", "add-mode"]),
+    type: z.literal("token:write"),
+    value: z.string().optional(),
+  }),
   z.object({
     jobId: z.string(),
     message: z.string().optional(),
@@ -934,6 +964,12 @@ export interface AirshipWindowConfig {
    * reconstructing one from a URL that may still carry an explicit override.
    */
   pathname?: string;
+  /**
+   * The surface the user picked, when the shell serves it. The shell hosts both:
+   * `canvas` is the free pan/zoom surface, `inline` pins one page between the
+   * docks at 100%. Absent ⇒ read off `mode`.
+   */
+  surface?: AirshipSurface;
   wsPath: string;
 }
 

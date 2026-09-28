@@ -1,4 +1,40 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
+
+// Finder files enter here. Only local folder paths reach main, where Weblab
+// checks that the folder is a website before opening it.
+document.addEventListener(
+  "dragover",
+  (event) => {
+    if (
+      [...(event.dataTransfer?.items || [])].some(
+        (item) => item.kind === "file" && item.type === ""
+      )
+    ) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  },
+  true
+);
+document.addEventListener(
+  "drop",
+  (event) => {
+    const item = [...(event.dataTransfer?.items || [])].find(
+      (candidate) =>
+        candidate.kind === "file" &&
+        (candidate.webkitGetAsEntry?.()?.isDirectory ||
+          (!candidate.webkitGetAsEntry?.() && candidate.type === ""))
+    );
+    const file = item?.getAsFile();
+    const path = file && webUtils.getPathForFile(file);
+    if (path) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      ipcRenderer.invoke("sites:dropFolder", path);
+    }
+  },
+  true
+);
 
 const on = (channel) => (callback) => {
   const listener = (_event, payload) => callback(payload);
@@ -35,6 +71,9 @@ contextBridge.exposeInMainWorld("weblab", {
     status: () => ipcRenderer.invoke("deploy:status"),
   },
   editor: {
+    command: (name) => ipcRenderer.invoke("editor:command", name),
+    onMode: on("editor:mode"),
+    setMode: (mode) => ipcRenderer.invoke("editor:setMode", mode),
     setVisible: (visible) => ipcRenderer.invoke("editor:visible", visible),
   },
   github: {
@@ -51,6 +90,9 @@ contextBridge.exposeInMainWorld("weblab", {
     onDashboard: on("nav:dashboard"),
     onNew: on("nav:new"),
     onOpen: on("nav:open"),
+    onSite: on("nav:site"),
+    onSiteError: on("nav:siteError"),
+    ready: () => ipcRenderer.invoke("nav:ready"),
   },
   publish: {
     ask: (text) => ipcRenderer.invoke("editor:ask", text),
@@ -82,6 +124,8 @@ contextBridge.exposeInMainWorld("weblab", {
     create: (name) => ipcRenderer.invoke("sites:create", name),
     list: () => ipcRenderer.invoke("sites:list"),
     menu: (id) => ipcRenderer.invoke("sites:menu", id),
+    onChanged: on("sites:changed"),
+    openNewWindow: (id) => ipcRenderer.invoke("sites:openNewWindow", id),
     pickFolder: () => ipcRenderer.invoke("sites:pickFolder"),
   },
 });

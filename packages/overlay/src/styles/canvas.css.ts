@@ -12,6 +12,9 @@ export const css = `
 .${PREFIX}-canvas-viewport {
   position: fixed; inset: 0;
   overflow: hidden; z-index: 0; touch-action: none;
+  /* A double-click on empty canvas otherwise starts a text selection in the
+     shell, and the browser paints the nearest frame's iframe as selected. */
+  -webkit-user-select: none; user-select: none;
   background: var(--ap-surface-canvas);
   /* A faint dot grid, so panning and zooming read as motion over a surface. */
   background-image: radial-gradient(rgba(255,255,255,var(--ap-opacity-08)) 1px, transparent 1px);
@@ -70,6 +73,12 @@ export const css = `
    inline; both are driven from the same attribute write. */
 html[data-${PREFIX}-cursor="text"] .${PREFIX}-frame-plane { cursor: text; }
 html[data-${PREFIX}-drag] .${PREFIX}-frame-plane { cursor: inherit; }
+/* The Hand, latched or borrowed, owns the cursor over the frames too. The plane
+   sits over each frame with its own arrow, so without this the grab cursor
+   showed only over empty canvas. After the text rule, and as specific, so it
+   wins. */
+html .${PREFIX}-canvas-pannable .${PREFIX}-frame-plane { cursor: grab; }
+html .${PREFIX}-canvas-panning .${PREFIX}-frame-plane { cursor: grabbing; }
 
 /* Per-frame furniture, drawn in screen space at 1x — see frame-chrome.ts. */
 .${PREFIX}-fchrome-root { position: absolute; inset: 0; pointer-events: none; }
@@ -294,4 +303,45 @@ html[data-${PREFIX}-drag] .${PREFIX}-frame-plane { cursor: inherit; }
 .${PREFIX}-fbar-zoom { min-width: var(--ap-control-icon-box); padding: 0 6px; }
 .${PREFIX}-fbar-btn:hover, .${PREFIX}-fbar-zoom:hover { background: var(--ap-surface-active); }
 .${PREFIX}-fbar-off { opacity: .35; pointer-events: none; }
-.${PREFIX}-fbar-sep { width: 1px; height: 14px; margin: 0 2px; background: var(--ap-border-default); }`;
+.${PREFIX}-fbar-sep { width: 1px; height: 14px; margin: 0 2px; background: var(--ap-border-default); }
+
+/* The Inline view's scroll bar, on the right edge of the page between the
+   docks. The page is drawn full height and the camera moves over it, so this
+   is the only thing that shows how far down you are. */
+.${PREFIX}-page-scroll {
+  position: fixed; top: 0; bottom: 0; width: 12px; z-index: 1;
+  pointer-events: none;
+}
+.${PREFIX}-page-scroll-thumb {
+  position: absolute; top: 0; right: 3px; width: 6px;
+  border-radius: 3px; pointer-events: auto; cursor: default;
+  background: rgba(128,128,128,.55);
+  transition: width 120ms ease-out, background 120ms ease-out;
+}
+.${PREFIX}-page-scroll-thumb:hover { width: 8px; background: rgba(128,128,128,.8); }
+html[data-${PREFIX}-view] .${PREFIX}-page-scroll { display: none; }
+
+/* View mode is the page on its own, never the canvas: one frame filling the
+   window like the real site. The canvas, its frame chrome and the docks stay
+   built underneath and are only hidden, so going back to Edit is instant.
+   Visibility, not display, for the canvas: display none would stop its frames
+   from laying out, and they must be ready the moment Edit comes back. */
+.${PREFIX}-view-frame {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  border: 0; z-index: 1; background: #fff;
+}
+html[data-${PREFIX}-view] .${PREFIX}-canvas-viewport,
+html[data-${PREFIX}-view] .${PREFIX}-chrome-layer { visibility: hidden; }
+html[data-${PREFIX}-view] .${PREFIX}-dock,
+html[data-${PREFIX}-view] .${PREFIX}-pill,
+html[data-${PREFIX}-view] .${PREFIX}-minimap-host { display: none !important; }
+/* Inside the desktop app, Edit and Preview live in the window's top bar, so
+   the bottom bar drops its own toggle, and in view mode the bar goes away. */
+html[data-${PREFIX}-hosted] .${PREFIX}-seg-group,
+html[data-${PREFIX}-hosted] .${PREFIX}-bar-sep:has(+ .${PREFIX}-seg-group) { display: none; }
+html[data-${PREFIX}-hosted][data-${PREFIX}-view] .${PREFIX}-bar { display: none; }
+/* The palette and shortcuts buttons: in the desktop app they are in the
+   window's top bar, so the floating bar does not repeat them. */
+html[data-${PREFIX}-hosted] .${PREFIX}-bar-help,
+html[data-${PREFIX}-hosted] .${PREFIX}-bar > [data-key^="help."] { display: none; }
+`;

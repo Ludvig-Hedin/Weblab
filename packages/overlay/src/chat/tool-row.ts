@@ -1,18 +1,14 @@
 /**
  * The chat timeline's row renderers — one factory per `TimelineItem` kind.
  *
- * The visual grammar is Claude Code's, translated into the editor's tokens: a
- * glyph leading the tool name, an elbow rail under it carrying the one-line
- * result, and the full output tucked behind a disclosure. The glyphs are drawn
- * or imported (see `icons.ts`), not typed — `⏺`/`⎿` aren't in the fonts we
- * self-host.
+ * One quiet line per step, after t3code's work log: a glyph that says which
+ * kind of tool, a plain verb ("Read", "Edited", "Ran"), and the argument in a
+ * dimmer tone. Everything else — the result, the arguments, the raw output —
+ * is behind the row's own disclosure. A failure is the exception and shows on
+ * the line itself, since it is the one result worth reading at rest.
  *
- * The one departure: where Claude Code repeats one dot down the whole
- * transcript, the leading glyph here says *which* tool (`TOOL_GLYPH`), which is
- * what makes a long turn skimmable without reading a single label.
- *
- * The result line sits *outside* the collapsible body on purpose: collapsed is
- * the resting state, so the summary has to be readable without expanding.
+ * The glyph says *which* tool (`TOOL_GLYPH`), which is what makes a long turn
+ * skimmable without reading a single label.
  */
 import type {
   TimelineItem,
@@ -107,31 +103,62 @@ function toolGlyph(name: string): IconName {
   return TOOL_GLYPH[name] ?? "dot";
 }
 
+/**
+ * Plain verbs for the raw tool names, as a person would say what happened:
+ * "Read", "Edited", "Ran". The raw names (`Bash`, `MultiEdit`) are the SDK's
+ * vocabulary, and a bold mono `Bash` at the head of every row was most of what
+ * made the log read like a terminal dump. `[while running, once done]`.
+ */
+const TOOL_VERB: Record<string, [string, string]> = {
+  Bash: ["Running", "Ran"],
+  Delete: ["Deleting", "Deleted"],
+  Edit: ["Editing", "Edited"],
+  Glob: ["Finding files", "Found files"],
+  Grep: ["Searching", "Searched"],
+  MultiEdit: ["Editing", "Edited"],
+  NotebookEdit: ["Editing", "Edited"],
+  Read: ["Reading", "Read"],
+  Task: ["Delegating", "Delegated"],
+  TodoWrite: ["Planning", "Planned"],
+  WebFetch: ["Fetching", "Fetched"],
+  WebSearch: ["Searching the web", "Searched the web"],
+  Write: ["Creating", "Created"],
+};
+
+/** The row's label for a phase. Unknown tools keep their own name. */
+function toolVerb(name: string, fallback: string, pending: boolean): string {
+  const verb = TOOL_VERB[name];
+  if (!verb) {
+    return fallback;
+  }
+  return pending ? verb[0] : verb[1];
+}
+
 export function toolRow(item: TimelineToolItem): TimelineRow {
-  // `title` already reads `Read(src/app.ts)`; split it so the name and the
+  // `title` already reads `Read(src/app.ts)`; split it so the verb and the
   // argument can carry different weights without re-deriving either.
   const open = item.title.indexOf("(");
   const name = open > 0 ? item.title.slice(0, open) : item.title;
   const arg =
     open > 0 && item.title.endsWith(")") ? item.title.slice(open + 1, -1) : "";
 
-  const res = el("div", { class: cls("tl-res") }, [
-    icon("gutter", "xs"),
-    el("span", { class: cls("tl-res-text") }),
-  ]);
+  const label = el("span", { class: cls("tl-name") });
+  // A failure is the one result worth reading without expanding, so it rides
+  // on the header. Every other result lives in the body.
+  const failure = el("span", { class: cls("tl-fail") });
 
   const d = disclosure({
     head: [
       el("span", { class: cls("tl-glyph") }, [
         icon(toolGlyph(item.name), "xs"),
       ]),
-      el("span", { class: cls("tl-name"), text: name }),
+      label,
       arg ? el("span", { class: cls("tl-args"), text: arg }) : "",
+      failure,
     ],
     toggleable: true,
   });
   d.root.classList.add(cls("tl-tool"));
-  d.root.append(res);
 
   const row: TimelineRow = {
     root: d.root,
@@ -140,14 +167,12 @@ export function toolRow(item: TimelineToolItem): TimelineRow {
       if (next.kind !== "tool") {
         return;
       }
-      // Only the phase, the result line, and the body change across a patch —
-      // never the header, so a pending→ok transition doesn't reflow the list.
+      // Only the phase, the label, and the body change across a patch — the
+      // row keeps its height, so a pending→ok transition doesn't reflow.
       d.root.setAttribute("data-phase", next.phase);
-      const text = res.querySelector(`.${cls("tl-res-text")}`);
-      if (text) {
-        text.textContent =
-          next.result?.text ?? (next.phase === "pending" ? "…" : "");
-      }
+      label.textContent = toolVerb(next.name, name, next.phase === "pending");
+      failure.textContent =
+        next.phase === "error" ? (next.result?.text ?? "Failed") : "";
       renderToolBody(d.body, next);
       // Nothing to expand until there is something to show.
       const expandable = hasBody(next);
@@ -164,12 +189,19 @@ export function toolRow(item: TimelineToolItem): TimelineRow {
 
 function hasBody(item: TimelineToolItem): boolean {
   return Boolean(
-    item.result?.detail || Object.keys(item.args ?? {}).length > 0
+    item.result?.text ||
+      item.result?.detail ||
+      Object.keys(item.args ?? {}).length > 0
   );
 }
 
 function renderToolBody(body: HTMLElement, item: TimelineToolItem): void {
   clear(body);
+
+  const summary = item.phase === "error" ? "" : item.result?.text;
+  if (summary) {
+    body.append(el("div", { class: cls("tl-sum"), text: summary }));
+  }
 
   const args = Object.entries(item.args ?? {});
   if (args.length) {
@@ -223,15 +255,12 @@ export function thinkingRow(item: TimelineThinkingItem): TimelineRow {
         return;
       }
       const hasText = Boolean(next.text.trim());
-      // Redacted thinking streams token estimates and no prose — say so rather
-      // than rendering an empty box.
-      if (hasText) {
-        label.textContent = next.streaming ? "Thinking…" : "Thought";
-      } else {
-        label.textContent = next.estimatedTokens
-          ? `Thinking… ~${next.estimatedTokens} tokens`
-          : "Thinking…";
-      }
+      // Redacted thinking streams only a token estimate. A running count of
+      // tokens is not something anyone reading the chat can act on, so the row
+      // just says whether the model is still thinking.
+      const live = Boolean(next.streaming);
+      label.textContent = live ? "Thinking" : "Thought";
+      d.root.classList.toggle(cls("tl-live"), live);
       clear(d.body);
       if (hasText) {
         d.body.append(
@@ -274,10 +303,7 @@ export function textRow(item: TimelineTextItem): TimelineRow {
 
 export function todosRow(item: TimelineTodosItem): TimelineRow {
   const list = el("ul", { class: cls("todos") });
-  const root = el("div", { class: cls("tl-todos") }, [
-    el("span", { class: cls("tl-res-glyph") }, [icon("gutter", "xs")]),
-    list,
-  ]);
+  const root = el("div", { class: cls("tl-todos") }, [list]);
 
   const row: TimelineRow = {
     root,

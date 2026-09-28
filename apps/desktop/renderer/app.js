@@ -20,7 +20,38 @@ function show(name) {
   }
   const canEditSettings = Boolean(currentSite?.hasSettings);
   $("#topbar-settings").hidden = !(name === "editor" && canEditSettings);
+  $("#mode").hidden = name !== "editor";
+  $("#topbar-tools").hidden = name !== "editor";
+  // Settings sits over a live editor that keeps its mode, so only leaving the
+  // site resets the buttons. A new editor reports its own mode on load.
+  if (!inSite) {
+    setMode("edit");
+  }
   $("#error-settings").hidden = !(name === "error" && canEditSettings);
+}
+
+// Edit and Preview. The editor owns the mode; these buttons ask for one and
+// show what the editor reports back, so a shortcut inside it stays in sync.
+function setMode(mode) {
+  for (const button of $$("#mode button")) {
+    button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+  }
+}
+
+for (const button of $$("#mode button")) {
+  button.addEventListener("click", () => {
+    setMode(button.dataset.mode);
+    api.editor.setMode(button.dataset.mode);
+  });
+}
+api.editor.onMode(setMode);
+
+// The command palette and the shortcuts sheet live in the editor; these
+// buttons ask it to open them.
+for (const button of $$("#topbar-tools button")) {
+  button.addEventListener("click", () => {
+    api.editor.command(button.dataset.command);
+  });
 }
 
 function setStatus(text, state) {
@@ -102,7 +133,9 @@ api.auth.onEvent((event) => {
   }
   if (event.type === "done") {
     if (event.ok) {
-      goDashboard();
+      if (!$('[data-screen="connect"]').hidden) {
+        goDashboard();
+      }
     } else {
       connectStep("start");
       connectError(event.message);
@@ -147,58 +180,176 @@ function prettyPath(path) {
   return path.replace(HOME_PREFIX, "~");
 }
 
+// Cards or list, remembered on this Mac. Storage can be blocked, so it is
+// only a convenience.
+const VIEW_KEY = "weblab.sitesView";
+let sitesView = "grid";
+try {
+  if (localStorage.getItem(VIEW_KEY) === "list") {
+    sitesView = "list";
+  }
+} catch {
+  // Keep the default.
+}
+
+function setSitesView(view) {
+  sitesView = view;
+  try {
+    localStorage.setItem(VIEW_KEY, view);
+  } catch {
+    // Still works for this session.
+  }
+  renderSites();
+}
+
+for (const button of $$("#view-toggle button")) {
+  button.addEventListener("click", () => setSitesView(button.dataset.view));
+}
+
+const MORE_ICON =
+  '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.1" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="currentColor"/><circle cx="12.5" cy="8" r="1.1" fill="currentColor"/></svg>';
+
+/** The site's picture, or its first letter until it has been opened once. */
+function thumb(site) {
+  const box = document.createElement("div");
+  box.className = "site-thumb";
+  if (site.preview && !site.missing) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = site.preview;
+    img.draggable = false;
+    box.append(img);
+  } else {
+    box.textContent = (site.name.trim()[0] || "?").toUpperCase();
+  }
+  return box;
+}
+
+function siteStatus(site, siteLocation) {
+  if (!site.missing) {
+    return prettyPath(siteLocation);
+  }
+  return site.entry ? "File not found" : "Folder not found";
+}
+
+function siteItem(site) {
+  const li = document.createElement("li");
+  li.className = `site${site.missing ? " missing" : ""}`;
+  li.tabIndex = 0;
+  const siteLocation = site.entry ? `${site.path}/${site.entry}` : site.path;
+  li.title = site.missing ? "" : prettyPath(siteLocation);
+  li.innerHTML = `
+    <div class="site-identity"><div class="site-icon"></div><div class="site-text"><div class="site-name"></div><div class="site-path"></div><div class="site-when"></div></div></div>
+    <button class="more" aria-label="More">${MORE_ICON}</button>`;
+  li.prepend(thumb(site));
+  const icon = li.querySelector(".site-icon");
+  if (site.favicon) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = site.favicon;
+    img.addEventListener("error", () => {
+      img.remove();
+      icon.textContent = (site.name.trim()[0] || "?").toUpperCase();
+    });
+    icon.append(img);
+  } else {
+    icon.textContent = (site.name.trim()[0] || "?").toUpperCase();
+  }
+  li.querySelector(".site-name").textContent = site.name;
+  li.querySelector(".site-path").textContent = siteStatus(site, siteLocation);
+  li.querySelector(".site-when").textContent = relativeTime(site.lastOpened);
+  li.addEventListener("click", (event) => {
+    if (event.target.closest(".more")) {
+      return;
+    }
+    if (event.metaKey) {
+      api.sites.openNewWindow(site.id);
+    } else {
+      openSite(site);
+    }
+  });
+  li.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      openSite(site);
+    }
+  });
+  const menu = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const result = await api.sites.menu(site.id);
+    if (result === "open") {
+      openSite(site);
+    }
+    if (result === "new-window") {
+      api.sites.openNewWindow(site.id);
+    }
+    if (result === "settings") {
+      currentSite = { ...site, hasSettings: true };
+      showSettings("edit");
+    }
+    if (result === "removed") {
+      renderSites();
+    }
+  };
+  li.addEventListener("contextmenu", menu);
+  li.querySelector(".more").addEventListener("click", menu);
+  return li;
+}
+
+let sitesRender = 0;
+
+function showSitesLoading() {
+  const ul = $("#sites");
+  ul.classList.toggle("grid", sitesView === "grid");
+  ul.setAttribute("aria-busy", "true");
+  ul.innerHTML = `<li class="site site-skeleton" aria-hidden="true"><div class="skeleton-thumb"></div><div class="skeleton-icon"></div><div class="skeleton-copy"><span></span><span></span></div></li><li class="site site-skeleton" aria-hidden="true"><div class="skeleton-thumb"></div><div class="skeleton-icon"></div><div class="skeleton-copy"><span></span><span></span></div></li>`;
+  $(".dash").hidden = false;
+  $("#empty").hidden = true;
+}
+
 async function renderSites() {
-  const list = await api.sites.list();
+  sitesRender += 1;
+  const render = sitesRender;
+  showSitesLoading();
+  let list;
+  try {
+    list = await api.sites.list();
+  } catch {
+    if (render === sitesRender) {
+      const ul = $("#sites");
+      ul.removeAttribute("aria-busy");
+      ul.innerHTML =
+        '<li class="sites-failed">Couldn’t load sites. <button class="link" type="button">Try again</button></li>';
+      ul.querySelector("button").addEventListener("click", renderSites);
+    }
+    return;
+  }
+  if (render !== sitesRender) {
+    return;
+  }
   const ul = $("#sites");
   ul.textContent = "";
+  ul.removeAttribute("aria-busy");
+  ul.classList.toggle("grid", sitesView === "grid");
+  for (const button of $$("#view-toggle button")) {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.view === sitesView)
+    );
+  }
   $(".dash").hidden = list.length === 0;
   $("#empty").hidden = list.length > 0;
   for (const site of list) {
-    const li = document.createElement("li");
-    li.className = `site${site.missing ? " missing" : ""}`;
-    li.tabIndex = 0;
-    li.innerHTML = `
-      <div class="site-text"><div class="site-name"></div><div class="site-path"></div></div>
-      <div class="site-when"></div>
-      <button class="more" aria-label="More">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.1" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="currentColor"/><circle cx="12.5" cy="8" r="1.1" fill="currentColor"/></svg>
-      </button>`;
-    li.querySelector(".site-name").textContent = site.name;
-    li.querySelector(".site-path").textContent = site.missing
-      ? "Folder not found"
-      : prettyPath(site.path);
-    li.querySelector(".site-when").textContent = relativeTime(site.lastOpened);
-    li.addEventListener("click", (event) => {
-      if (event.target.closest(".more")) {
-        return;
-      }
-      openSite(site);
-    });
-    li.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        openSite(site);
-      }
-    });
-    const menu = async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const result = await api.sites.menu(site.id);
-      if (result === "open") {
-        openSite(site);
-      }
-      if (result === "settings") {
-        currentSite = { ...site, hasSettings: true };
-        showSettings("edit");
-      }
-      if (result === "removed") {
-        renderSites();
-      }
-    };
-    li.addEventListener("contextmenu", menu);
-    li.querySelector(".more").addEventListener("click", menu);
-    ul.append(li);
+    ul.append(siteItem(site));
   }
 }
+
+// A new picture arrives after a site opens or closes.
+api.sites.onChanged(() => {
+  if (!$('[data-screen="dashboard"]').hidden) {
+    renderSites();
+  }
+});
 
 function dashError(message) {
   for (const el of [$("#dash-error"), $("#empty-error")]) {
@@ -210,8 +361,9 @@ function dashError(message) {
 async function goDashboard() {
   currentSite = null;
   dashError("");
-  await renderSites();
   show("dashboard");
+  await renderSites();
+  await api.nav.ready();
 }
 
 // New website
@@ -295,20 +447,41 @@ async function openSite(site) {
     );
     return;
   }
-  const fields = await api.settings.get(site.id);
-  currentSite = { ...site, hasSettings: fields.length > 0 };
-  if (await api.settings.needed(site.id)) {
-    showSettings("before-open");
-    return;
+  currentSite = site;
+  $("[data-screen=loading] h1").textContent = "Getting your site ready…";
+  $("#loading-step").textContent = "";
+  show("loading");
+  try {
+    const fields = await api.settings.get(site.id);
+    currentSite = { ...site, hasSettings: fields.length > 0 };
+    if (await api.settings.needed(site.id)) {
+      showSettings("before-open");
+      return;
+    }
+    startSite();
+  } catch (error) {
+    $("#error-message").textContent = error.message;
+    $("#error-details").textContent = "";
+    show("error");
   }
-  startSite();
 }
 
 async function startSite(options) {
+  $("[data-screen=loading] h1").textContent = "Getting your site ready…";
   $("#loading-step").textContent = "";
   show("loading");
   setStatus("Starting…");
-  await api.site.open(currentSite.id, options);
+  const result = await api.site.open(currentSite.id, options);
+  if (!result.ok) {
+    if (result.code === "already-open") {
+      goDashboard();
+    } else {
+      $("#error-message").textContent =
+        result.message || "Couldn’t open this site.";
+      $("#error-details").textContent = "";
+      show("error");
+    }
+  }
 }
 
 // Clone from GitHub
@@ -670,9 +843,24 @@ api.site.onEvent((event) => {
 });
 
 async function leaveSite() {
-  await api.site.close();
-  goDashboard();
+  if (leavingSite) {
+    return;
+  }
+  leavingSite = true;
+  currentSite = null;
+  show("dashboard");
+  showSitesLoading();
+  try {
+    await api.site.close();
+    await goDashboard();
+  } catch (error) {
+    dashError(error.message || "Couldn’t close the site. Try again.");
+  } finally {
+    leavingSite = false;
+  }
 }
+
+let leavingSite = false;
 
 $("#back").addEventListener("click", leaveSite);
 $("#error-back").addEventListener("click", leaveSite);
@@ -684,6 +872,14 @@ $("#retry").addEventListener(
 api.nav.onDashboard(() => goDashboard());
 api.nav.onNew(openNewDialog);
 api.nav.onOpen(openFolder);
+api.nav.onSite(openSite);
+api.nav.onSiteError((message) => {
+  if ($('[data-screen="dashboard"]').hidden) {
+    setStatus(message, "error");
+  } else {
+    dashError(message);
+  }
+});
 
 // Start
 

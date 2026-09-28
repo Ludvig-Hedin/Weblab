@@ -39,6 +39,23 @@ ${ROOT} [disabled] .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-icon-disabled);
 
 .${PREFIX}-hidden { display: none !important; }
 
+/* Anything you can click shows the hand. Most controls never said so, and the
+   arrow over a button read as "not a button". Zero specificity through
+   \`:where\`, so every rule that deliberately says otherwise (a disabled tool,
+   a locked field, the ew-resize scrub label) still wins without a fight. */
+:where(${ROOT}, .${PREFIX}-chrome-layer) :where(
+  button, a[href], select, summary, label[for],
+  input[type="checkbox"], input[type="radio"], input[type="color"],
+  [role="button"], [role="tab"], [role="menuitem"], [role="option"],
+  [role="checkbox"], [role="switch"],
+  .${PREFIX}-tree-node, .${PREFIX}-fp-row, .${PREFIX}-minimap-frame,
+  .${PREFIX}-pop-item, .${PREFIX}-pop-group-head, .${PREFIX}-model-row,
+  .${PREFIX}-pop-recent, .${PREFIX}-pop-token
+) { cursor: pointer; }
+:where(${ROOT}, .${PREFIX}-chrome-layer) :where(
+  :disabled, [aria-disabled="true"]
+) { cursor: default; }
+
 /* Scrollbars. One definition, applied by class, for every scroll container the
    overlay owns.
 

@@ -335,6 +335,19 @@ const SPECIMENS = {
       </article>`,
     wrap: "stack",
   },
+  /** A button that opens a dialog: the Link section becomes Action. */
+  dialogButton: {
+    covers:
+      "a `<button>` with `aria-haspopup=dialog` → the Link section titled Action, naming what the click does, with the link picker under Link instead",
+    label: "a button that opens a dialog",
+    markup: `
+      <button class="btn" type="button" aria-haspopup="dialog" aria-controls="demo" data-subject>
+        Book a demo
+      </button>`,
+    siblings: `
+      <div id="demo" role="dialog" aria-label="Book a demo" hidden></div>`,
+    wrap: "stack",
+  },
 
   /**
    * A hero with a darkened photograph behind it.
@@ -389,6 +402,19 @@ const SPECIMENS = {
    * more common shape in a real app, and it is the arm that would silently stop
    * working if the scan were dropped.
    */
+  /** A text link: the Link section, above Scope, on its Page tab. */
+  link: {
+    covers:
+      "an `<a>` → the Link section above Scope · a same-site href, so it opens on the Page tab with the other paths on the page offered · an id on the page, for the Section tab",
+    label: "a text link",
+    markup: `
+      <a class="nav-link" href="/pricing" data-subject>Pricing</a>`,
+    siblings: `
+      <a class="nav-link" href="/about">About</a>
+      <a class="nav-link" href="#faq">FAQ</a>
+      <section id="faq"><h3>Questions</h3></section>`,
+    wrap: "stack",
+  },
   /**
    * Four edges that disagree, which the Stroke section used to hide.
    *

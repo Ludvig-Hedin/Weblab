@@ -1,5 +1,6 @@
 import { buildCss } from "@airship/editor-tokens";
 import { PREFIX } from "../dom";
+import { css as assetsPanel } from "./assets-panel.css";
 import { css as base } from "./base.css";
 import { css as canvas } from "./canvas.css";
 import { css as chat } from "./chat.css";
@@ -11,12 +12,17 @@ import { css as docks } from "./docks.css";
 import { css as empty } from "./empty.css";
 import { css as framesPanel } from "./frames-panel.css";
 import { css as help } from "./help.css";
+import { css as image } from "./image.css";
 import { css as inspector } from "./inspector.css";
+import { css as link } from "./link.css";
 import { css as minimap } from "./minimap.css";
 import { css as motion } from "./motion.css";
+import { css as panelGrid } from "./panel-grid.css";
 import { css as pop } from "./pop.css";
 import { css as portable } from "./portable.css";
+import { css as saveMenu } from "./save-menu.css";
 import { css as toast } from "./toast.css";
+import { css as variables } from "./variables.css";
 
 let injected = false;
 
@@ -105,6 +111,8 @@ const CSS = [
   // thing — the contents of a panel, not the panel — and the two are never on
   // screen together, so the order between them is documentation, not cascade.
   framesPanel,
+  assetsPanel,
+  variables,
   inspector,
   cssPane,
   // Empty states are surface-agnostic — the same block renders in the chat
@@ -112,11 +120,21 @@ const CSS = [
   // its own tones win over whatever the host surface set on the container.
   empty,
   controls,
+  // After `controls`: the Design panel's grid restates field, segmented and
+  // section rules there, and has to be the last word on them.
+  panelGrid,
+  // After `panelGrid`: the Link section's sentences sit among its fields.
+  link,
   pop,
   // After `pop`, because both discovery surfaces are `.pop` shells and this is
   // what fills them — the shell's recipe has to land first for these to be
   // overrides of it rather than a parallel definition.
   help,
+  // After `pop` for the same reason: the bar's changes dropdown fills a shell.
+  saveMenu,
+  // After `pop` too: the image popover fills a shell, and the image row sits
+  // among the section's controls.
+  image,
   chrome,
   toast,
   // Last, and it has to be: it overrides the motion every module above declares,

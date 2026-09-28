@@ -73,7 +73,6 @@ ${[
   "ctl-seg-btn",
   "pad-cell",
   "pad-mode",
-  "pad-spread",
   "sect-act",
   "anchor-bar",
   "select",
@@ -81,7 +80,6 @@ ${[
   "tree-act",
   "iconbtn",
   "fbar-btn",
-  "ctl-toggle",
 ]
   .map((c) => `.${PREFIX}-${c}:focus-visible`)
   .join(",\n")} {
@@ -209,13 +207,6 @@ ${[
 ${ROOT} .${PREFIX}-ctl-seg-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text-primary); }
 /* ---- Auto layout ------------------------------------------------------- */
 
-/* Direction row, then the 3x3 pad beside a stack of fields — the design-tool layout. */
-/* No margin under the direction row: \`.al-main\` carries \`group\`, so the
-   section body puts a group-gap between them the same way it does everywhere
-   else. A margin here would be added to that gap, not instead of it. */
-.${PREFIX}-al-main { display: flex; align-items: flex-start; gap: var(--ap-control-gutter); }
-.${PREFIX}-al-fields { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--ap-control-row-gap); }
-
 /* The 3x3 alignment pad. Each cell previews its result with three bars drawn
    as pseudo-elements — nine more SVGs would cost ~8KB to say the same thing
    less clearly, and these can respond to the direction with CSS alone.
@@ -225,14 +216,7 @@ ${ROOT} .${PREFIX}-ctl-seg-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text
    drawing*, sized against the 72px pad and the 11px ink bars. Snapping them to
    a 2px spacing token would visibly thicken the widget while telling the reader
    they are the same kind of quantity as the space between two fields. */
-/* Room for the spread button, which hangs 20px below the pad on \`bottom: -20px\`
-   and is out of flow — so the wrap measured 72px, the fields column beside it
-   measured 80 in sides mode, and the button painted straight through the
-   padding row's second line. Reserving its height is what makes "below the pad"
-   a place rather than an overlap. */
-.${PREFIX}-pad-wrap {
-  position: relative; flex: 0 0 auto; padding-bottom: var(--ap-space-md);
-}
+.${PREFIX}-pad-wrap { position: relative; flex: 0 0 auto; }
 .${PREFIX}-pad {
   display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   width: 72px; height: 72px; gap: 1px;
@@ -267,6 +251,8 @@ ${ROOT} .${PREFIX}-ctl-seg-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text
 .${PREFIX}-pad[data-dir="row"] .${PREFIX}-pad-cell[data-row="1"] .${PREFIX}-pad-ink { align-items: center; }
 .${PREFIX}-pad[data-dir="row"] .${PREFIX}-pad-cell[data-row="2"] .${PREFIX}-pad-ink { align-items: flex-end; }
 
+
+
 /* Column: three horizontal bars. */
 .${PREFIX}-pad[data-dir="column"] .${PREFIX}-pad-ink { flex-direction: column; }
 .${PREFIX}-pad[data-dir="column"] .${PREFIX}-pad-ink i { height: 2px; }
@@ -280,17 +266,6 @@ ${ROOT} .${PREFIX}-ctl-seg-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text
 /* space-between owns the main axis, so the pad's main axis stops meaning
    anything and says so rather than silently disagreeing with the canvas. */
 .${PREFIX}-pad[data-spread="true"] .${PREFIX}-pad-cell { opacity: .4; }
-
-.${PREFIX}-pad-spread {
-  position: absolute; left: 0; right: 0; bottom: -20px;
-  justify-content: center;
-  display: inline-flex; align-items: center; gap: var(--ap-control-field-gap);
-  height: 18px; padding: 0 5px; border: 0; cursor: pointer;
-  background: transparent; border-radius: var(--ap-radius-xs);
-}
-.${PREFIX}-pad-spread span { width: 2px; height: 9px; background: var(--ap-icon-muted); border-radius: 1px; }
-.${PREFIX}-pad-spread:hover { background: var(--ap-surface-active); }
-.${PREFIX}-pad-spread:hover span { background: var(--ap-icon-secondary); }
 
 /* Padding: two fields with a switch to four. */
 .${PREFIX}-pad-row { display: flex; align-items: flex-start; gap: var(--ap-control-field-gap); }
@@ -331,59 +306,7 @@ ${ROOT} .${PREFIX}-ctl-seg-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text
 .${PREFIX}-pad-mode-on { background: var(--ap-primary-bg); }
 ${ROOT} .${PREFIX}-pad-mode-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-primary); }
 
-/* Size: a W/H field with its Hug/Fill/Fixed switch on the same line.
-
-   The two rows and the aspect lock share one flex line rather than living in
-   the two-column .grid: a .size-row already spans both of that grid's columns,
-   so a lock appended as a third child auto-placed onto a row of its own
-   underneath them — which is what it did. Here the rows stack in a column and
-   the lock is their sibling, so "beside the two fields" is structural. */
-.${PREFIX}-size-wrap {
-  display: flex; align-items: center; gap: var(--ap-control-gutter);
-}
-.${PREFIX}-size-rows {
-  flex: 1 1 auto; min-width: 0;
-  display: flex; flex-direction: column; gap: var(--ap-control-row-gap);
-}
-/* Two children, or three when the axis has a sizing token — so the columns are
-   counted rather than declared. \`1fr auto\` with a badge between the field and
-   the Fixed/Hug/Fill switch auto-placed the switch onto an implicit second row
-   underneath, which is what it did in any project declaring width/height
-   tokens. \`grid-auto-flow: column\` gives the extra child a track of its own,
-   and no trailing gap when there is no badge. The minmax floor makes the row
-   overflow rather than crush the W/H field, which cannot happen in range
-   (72 + 8 + 37 + 8 + 80 = 205, against 230 at the narrowest dock). */
-.${PREFIX}-size-row {
-  display: grid;
-  grid-template-columns: minmax(var(--${PREFIX}-field-min), 1fr);
-  grid-auto-flow: column; grid-auto-columns: auto;
-  gap: var(--ap-control-gutter);
-  align-items: center;
-}
-
 .${PREFIX}-grid-tracks { display: flex; flex-direction: column; gap: var(--ap-control-row-gap); }
-
-/* A labelled on/off toggle — Clip content, and anything else that is one
-   boolean with a name. A segmented group of two would be the alternative and
-   it is the wrong shape: "on" and "off" are not two peer choices you pick
-   between, they are one state you flip. */
-.${PREFIX}-ctl-toggle {
-  display: inline-flex; align-items: center; gap: var(--ap-control-gutter);
-  height: var(--ap-control-height); padding: 0 var(--ap-space-xs) 0 4px;
-  cursor: pointer; background: transparent; color: var(--ap-text-secondary);
-  border: 1px solid transparent; border-radius: var(--ap-radius-sm);
-  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-label);
-  transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease), color var(--ap-motion-dur-micro) var(--ap-motion-ease);
-}
-.${PREFIX}-ctl-toggle { --${PREFIX}-ic-tone: var(--ap-icon-muted); }
-.${PREFIX}-ctl-toggle:hover {
-  background: var(--ap-surface-hover); color: var(--ap-text-primary);
-}
-${ROOT} .${PREFIX}-ctl-toggle:hover .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-icon-secondary); }
-.${PREFIX}-ctl-toggle-on {
-  background: var(--ap-primary-bg); color: var(--ap-text-primary);
-}
-${ROOT} .${PREFIX}-ctl-toggle-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-primary); }
 
 /* ---- Repeatable rows (Fill / Stroke / Effects) -------------------------- */
 .${PREFIX}-rows { display: flex; flex-direction: column; gap: var(--ap-control-row-gap); }
@@ -540,6 +463,23 @@ ${ROOT} .${PREFIX}-select[aria-expanded="true"] .${PREFIX}-ic { --${PREFIX}-ic-t
    popover host precisely because being positioned against this box put it
    inside .insp-body's scroller and .dock's overflow:hidden, which clipped it. */
 .${PREFIX}-select-wrap { flex: 1 1 auto; min-width: 0; }
+/* The value, and an optional muted second line under it (the Scope picker's
+   element count). Both truncate on one line; the label's full text is on its
+   title. min-width: 0 all the way down or the flex item refuses to shrink. */
+.${PREFIX}-select-text {
+  display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0;
+}
+.${PREFIX}-select-label,
+.${PREFIX}-select-detail {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.${PREFIX}-select-detail {
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-secondary);
+}
+.${PREFIX}-select[data-detailed] {
+  height: auto; min-height: var(--ap-control-height);
+  padding-block: var(--ap-space-xxs);
+}
 
 /* ---- Text extras -------------------------------------------------------- */
 /* The font-family field, then Style / Vertical / Case as labelled rows.
@@ -877,9 +817,8 @@ ${ROOT} .${PREFIX}-select[aria-expanded="true"] .${PREFIX}-ic { --${PREFIX}-ic-t
 }
 
 /* -- Aspect lock -----------------------------------------------------------
-   Sits beside the two size rows, because the thing it locks is the
-   relationship between them. See .size-wrap for why that is a flex sibling
-   rather than a grid cell. Shape from .row-icon; this adds only the on state. */
+   Sits in the action lane beside W and H, because the thing it locks is the
+   relationship between them. It is aria-pressed, so panel-grid lights it. */
 .${PREFIX}-aspect-lock[data-on] { color: var(--ap-primary); opacity: 1; }
 
 /* -- Gradient editor -------------------------------------------------------

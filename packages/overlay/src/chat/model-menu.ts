@@ -43,6 +43,8 @@ export interface ModelMenuDeps {
   agent: AgentKind;
   /** Live catalogue if one has arrived, else the seed. */
   catalogue: ModelCatalogue;
+  /** Starred models, as `agent:model` keys. See `favoriteKey`. */
+  favorites?: ReadonlySet<string>;
   /** The current model per harness, so each list marks its own. */
   models: Partial<Record<AgentKind, string>>;
   pick: (choice: ModelPick) => void;
@@ -68,6 +70,15 @@ export function modelLabel(
   return group?.models.find((m) => m.id === model)?.label ?? model;
 }
 
+/** The Favorites rail entry, shown above the backends as T3 Code does. */
+export const FAVORITES = "favorites";
+export type RailView = AgentKind | typeof FAVORITES;
+
+/** How a model is remembered as a favorite. */
+export function favoriteKey(agent: AgentKind, model: string): string {
+  return `${agent}:${model}`;
+}
+
 /** One line in the list. Data, so the filtering is testable without a DOM. */
 export interface ModelRow {
   agent: AgentKind;
@@ -75,6 +86,8 @@ export interface ModelRow {
   custom?: boolean;
   /** A backend's note standing in for its models. Shown, never chosen. */
   disabled?: boolean;
+  /** Starred. */
+  fav?: boolean;
   hint?: string;
   label: string;
   /** `MODEL_DEFAULT` for the Default row. */
@@ -94,9 +107,12 @@ export interface ModelRow {
 function rowsFor(deps: ModelMenuDeps, agent: AgentKind): ModelRow[] {
   const group = deps.catalogue.find((g) => g.agent === agent);
   const current = deps.models[agent];
+  const fav = (model: string): boolean =>
+    deps.favorites?.has(favoriteKey(agent, model)) ?? false;
   const rows: ModelRow[] = [
     {
       agent,
+      fav: fav(MODEL_DEFAULT),
       hint: group?.default ?? "the backend decides",
       label: "Default",
       model: MODEL_DEFAULT,
@@ -118,6 +134,7 @@ function rowsFor(deps: ModelMenuDeps, agent: AgentKind): ModelRow[] {
   for (const model of group?.models ?? []) {
     rows.push({
       agent,
+      fav: fav(model.id),
       hint: model.hint,
       label: model.label,
       model: model.id,
@@ -141,12 +158,19 @@ function rowsFor(deps: ModelMenuDeps, agent: AgentKind): ModelRow[] {
  */
 export function modelRows(
   deps: ModelMenuDeps,
-  shown: AgentKind,
+  view: RailView,
   query: string
 ): ModelRow[] {
   const q = query.trim();
+  // Favorites lists the starred rows of every backend; a typed id there is
+  // taken as the composer's own backend.
+  const shown = view === FAVORITES ? deps.agent : view;
   if (!q) {
-    return rowsFor(deps, shown);
+    return view === FAVORITES
+      ? AGENT_META.flatMap((meta) => rowsFor(deps, meta.kind)).filter(
+          (row) => row.fav
+        )
+      : rowsFor(deps, shown);
   }
   const needle = q.toLowerCase();
   const found = AGENT_META.flatMap((meta) => rowsFor(deps, meta.kind)).filter(
@@ -173,7 +197,11 @@ function metaFor(agent: AgentKind): (typeof AGENT_META)[number] {
   return AGENT_META.find((m) => m.kind === agent) ?? AGENT_META[0];
 }
 
-function buildRow(row: ModelRow, id: string, searching: boolean): HTMLElement {
+function buildRow(
+  row: ModelRow,
+  id: string,
+  onStar: (() => void) | null
+): HTMLElement {
   const meta = metaFor(row.agent);
   const main = row.custom
     ? [
@@ -186,18 +214,34 @@ function buildRow(row: ModelRow, id: string, searching: boolean): HTMLElement {
           ? el("span", { class: cls("model-row-hint"), text: row.hint })
           : null,
       ];
-  // The backend line only when the list mixes backends. Unsearched, the rail
-  // already says whose models these are, and a second copy on every row would
-  // double the list's height to repeat one word.
-  const sub =
-    searching || row.custom
-      ? el("span", { class: cls("model-row-sub") }, [
-          icon(meta.icon, "xs"),
-          el("span", {
-            text: row.custom ? `as a ${meta.label} model id` : meta.label,
-          }),
-        ])
-      : null;
+  // The backend on its own line under every row, as T3 Code shows it: the
+  // list can mix backends (Favorites, a search), and one shape reads calmer.
+  const sub = row.disabled
+    ? null
+    : el("span", { class: cls("model-row-sub") }, [
+        icon(meta.icon, "xs"),
+        el("span", {
+          text: row.custom ? `as a ${meta.label} model id` : meta.label,
+        }),
+      ]);
+  const star = onStar
+    ? el(
+        "button",
+        {
+          "aria-label": row.fav ? "Remove from favorites" : "Add to favorites",
+          "aria-pressed": String(Boolean(row.fav)),
+          class: cls("model-star"),
+          onClick: (e: Event) => {
+            // The row's own click picks the model; the star only stars it.
+            e.stopPropagation();
+            onStar();
+          },
+          tabindex: "-1",
+          type: "button",
+        },
+        [starGlyph(Boolean(row.fav))]
+      )
+    : null;
   return el(
     "div",
     {
@@ -212,9 +256,51 @@ function buildRow(row: ModelRow, id: string, searching: boolean): HTMLElement {
         el("span", { class: cls("model-row-main") }, main),
         sub,
       ]),
-      row.on ? icon("check", "xs") : null,
+      star,
     ]
   );
+}
+
+/** A five-point star, filled when on. Drawn here: the icon set has none. */
+function starGlyph(on: boolean): SVGElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute(
+    "d",
+    "M8 1.9l1.8 3.7 4 .6-2.9 2.8.7 4L8 11.1 4.4 13l.7-4-2.9-2.8 4-.6z"
+  );
+  path.setAttribute("fill", on ? "currentColor" : "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "1.1");
+  path.setAttribute("stroke-linejoin", "round");
+  svg.append(path);
+  return svg;
+}
+
+const FAVORITES_STORE = "__airship-model-favorites";
+
+/** Starred models from this browser's storage. Empty if it cannot be read. */
+export function readFavorites(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FAVORITES_STORE);
+    const list: unknown = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeFavorites(favs: Set<string>): void {
+  try {
+    localStorage.setItem(FAVORITES_STORE, JSON.stringify([...favs]));
+  } catch {
+    // A private window: the star still works until the picker closes.
+  }
 }
 
 /**
@@ -229,8 +315,10 @@ export function openModelPicker(
   initial: ModelMenuDeps,
   onClose: () => void
 ): ModelPickerHandle | null {
-  let deps = initial;
-  let shown = deps.agent;
+  const favorites = readFavorites();
+  let deps: ModelMenuDeps = { ...initial, favorites };
+  // Opens on Favorites when there are any, as T3 Code does.
+  let shown: RailView = favorites.size > 0 ? FAVORITES : deps.agent;
   let rows: { el: HTMLElement; row: ModelRow }[] = [];
   let active = 0;
 
@@ -251,7 +339,11 @@ export function openModelPicker(
     role: "listbox",
   });
 
-  const railButtons = AGENT_META.map((meta) =>
+  const railMeta: { icon: IconName | null; kind: RailView; label: string }[] = [
+    { icon: null, kind: FAVORITES, label: "Favorites" },
+    ...AGENT_META,
+  ];
+  const railButtons = railMeta.map((meta) =>
     el(
       "button",
       {
@@ -268,7 +360,7 @@ export function openModelPicker(
         },
         type: "button",
       },
-      [icon(meta.icon, "sm")]
+      [meta.icon ? icon(meta.icon, "sm") : starGlyph(true)]
     )
   );
 
@@ -324,8 +416,32 @@ export function openModelPicker(
     const searching = Boolean(field.value.trim());
     list.replaceChildren();
     rows = [];
-    modelRows(deps, shown, field.value).forEach((row, i) => {
-      const node = buildRow(row, `${cls("model-row")}-${i}`, searching);
+    const found = modelRows(deps, shown, field.value);
+    if (found.length === 0) {
+      list.append(
+        el("div", {
+          class: cls("model-empty"),
+          text: "Star a model to keep it here.",
+        })
+      );
+    }
+    found.forEach((row, i) => {
+      const toggleStar = (): void => {
+        const key = favoriteKey(row.agent, row.model);
+        if (favorites.has(key)) {
+          favorites.delete(key);
+        } else {
+          favorites.add(key);
+        }
+        writeFavorites(favorites);
+        deps = { ...deps, favorites };
+        render();
+      };
+      const node = buildRow(
+        row,
+        `${cls("model-row")}-${i}`,
+        row.disabled || row.custom ? null : toggleStar
+      );
       list.append(node);
       if (row.disabled) {
         return;
@@ -383,7 +499,11 @@ export function openModelPicker(
       offKeys();
       onClose();
     },
-    prefer: "below",
+    // Away from the edge the trigger sits on: the composer is at the bottom.
+    prefer:
+      anchor.getBoundingClientRect().top > window.innerHeight / 2
+        ? "above"
+        : "below",
     // The pane's own commands do the navigating; the host's roving would move
     // real focus out of the search field.
     roving: false,
@@ -400,7 +520,7 @@ export function openModelPicker(
   return {
     close: () => popover.close(),
     update(next) {
-      deps = next;
+      deps = { ...next, favorites };
       render();
       popover.reposition();
     },

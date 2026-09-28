@@ -18,8 +18,10 @@ icons:
   search: general/search.svg
   more: general/more-actions.svg
   settings: general/setting.svg
-  eye: appearance/show.svg
-  eye-off: appearance/hide.svg
+  # The set names each file for the action, not the state: `show.svg` is the
+  # shut eye you click to show, `hide.svg` the open one you click to hide.
+  eye: appearance/hide.svg
+  eye-off: appearance/show.svg
   list-view: general/show-as-list.svg
   grid-view: general/show-as-grid.svg
   question: others/question-mark.svg
@@ -448,6 +450,15 @@ icons:
   lock: local/lock.svg
   unlock: local/unlock.svg
   trash: local/trash.svg
+  mail: local/mail.svg
+  phone: local/phone.svg
+  undo: local/undo.svg
+  redo: local/redo.svg
+  page: local/page.svg
+  home: local/home.svg
+  database: local/database.svg
+  folder-open: local/folder-open.svg
+  warning: local/warning.svg
   claude: local/claude.svg
   codex: local/codex.svg
   opencode: local/opencode.svg
@@ -602,7 +613,7 @@ is the control, not the bundler.
 
 ## Marks we draw ourselves
 
-Eleven slugs under `assets/local/` are not from the imported set. They go through the same
+Fifteen slugs under `assets/local/` are not from the imported set. They go through the same
 manifest and the same normalisation as everything else — which is the point.
 They previously lived as hand-authored strings in the overlay's `icons.ts`,
 inset "roughly 4..20" (a **16-unit** span) to match the set by eye. The set's

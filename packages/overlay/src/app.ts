@@ -17,8 +17,18 @@ import {
   type ServerEvent,
 } from "@airship/protocol";
 import { SEED_MODELS } from "@airship/protocol/models";
+import { isImageFile } from "./assets/client";
 import { AttrSet } from "./attr-set";
+import { AssetsPanel } from "./canvas/assets-panel";
+import type { StoredFrame } from "./canvas/frames";
+import {
+  bindImageDrop,
+  type ImageSource,
+  isSwappableImage,
+} from "./canvas/image-drop";
+import type { PagesPanelHooks } from "./canvas/pages-panel";
 import type { Point } from "./canvas/space";
+import { VariablesPanel } from "./canvas/variables-panel";
 import type { SafeInset } from "./canvas/viewport";
 import { ChangeSet } from "./change-set";
 import { buildEditRequest, hasVisualDeltas } from "./chat/build-request";
@@ -26,6 +36,9 @@ import {
   attachRailKeys,
   attachRailWheel,
   type ChangeChip,
+  type ChipGroup,
+  groupChips,
+  humanizeDetail,
   renderChangeChips,
   shortValue,
 } from "./chat/change-chips";
@@ -62,10 +75,21 @@ import { emptyState } from "./empty";
 import { History } from "./history";
 import { createOpApplier } from "./history-ops";
 import { type IconName, icon } from "./icons";
+import { setTokenEditHandler } from "./inspector/controls/token-field";
+import {
+  applyImageUrl,
+  openActiveImageEditor,
+  replaceImageFromFile,
+} from "./inspector/image-editor";
 import { tagWord } from "./inspector/node-kind";
 import { DesignPanel } from "./inspector/panel";
+import { clickAction } from "./inspector/sections/click-action";
 import { applyPreview, clearPreview } from "./inspector/style-model";
-import { isEditableText, textTargetIn } from "./inspector/text-edit";
+import {
+  isEditableText,
+  textEditTarget,
+  textTargetIn,
+} from "./inspector/text-edit";
 import { type CommandId, commandSpec } from "./keys/catalog";
 import { openPalette, setPaletteSource } from "./keys/palette";
 import { isTypingTarget, keys, tip } from "./keys/registry";
@@ -78,7 +102,13 @@ import {
   SelectionController,
   type SelectMode,
 } from "./picker";
-import { closeOpenPopover, createMenu, mountPopoverHost } from "./popover-host";
+import {
+  closeOpenPopover,
+  createMenu,
+  mountPopoverHost,
+  openPopover,
+  type PopoverHandle,
+} from "./popover-host";
 import { FLEX_WRAPPER_STYLE, StructureEditor } from "./structure-ops";
 import {
   addPaletteRows,
@@ -144,7 +174,29 @@ const HEAD_H = 40;
 /** The dock's inset from the viewport edge — `--ap-space-md`, read at mount so
  *  the number is not written twice. This is only the first-paint fallback. */
 const DOCK_INSET = 20;
-const DOCKS_KEY = `${PREFIX}-dock-layout`;
+/**
+ * Versioned because v1 stores can hold a placement written against a window
+ * with no size yet: the desktop app lays the overlay out before its window is
+ * sized, and the old restore clamped into that, parking a floating Design panel
+ * at x 0 and 200px tall, on top of Layers. Those stores are dropped, so every
+ * panel starts docked to its own edge again.
+ */
+const DOCKS_KEY = `${PREFIX}-dock-layout-v2`;
+/** Which tab the left dock was last left on. */
+const LEFT_TAB_KEY = `${PREFIX}-left-tab`;
+
+type LeftTab = "pages" | "layers" | "assets" | "variables";
+
+function readLeftTab(): LeftTab {
+  try {
+    const saved = localStorage.getItem(LEFT_TAB_KEY);
+    return saved === "pages" || saved === "assets" || saved === "variables"
+      ? saved
+      : "layers";
+  } catch {
+    return "layers";
+  }
+}
 
 /** How long the prompt preview waits for edits to settle before re-rendering.
  *  One keystroke is not a new prompt, and each request has the daemon resolve
@@ -249,6 +301,11 @@ export interface Stage {
   addFrame?: () => void;
   /** Frames may need re-checking after an edit lands (HMR reloads them). */
   afterApply?: () => void;
+  /** Hand the stage a way to journal a frame move, resize or device change,
+   * so ⌘Z takes it back like any other edit. */
+  bindFrameBoxChange?: (
+    report: (before: StoredFrame, after: StoredFrame) => void
+  ) => void;
   /**
    * Hand the stage a way to report a press that happened *inside* one of its
    * frames.
@@ -326,6 +383,8 @@ export interface Stage {
    * itself and has no world to map, so it omits this.
    */
   mountMinimap?: (host: HTMLElement) => void;
+  /** The left dock's Pages tab body. Absent where there are no frames. */
+  mountPagesPanel?: (host: HTMLElement) => void;
   /**
    * A pan/zoom gesture settled. The pointer has not moved but the canvas under
    * it has, so the app re-resolves what is being hovered — without this the
@@ -339,12 +398,23 @@ export interface Stage {
    * the outline and re-pinning the drag proxy.
    */
   onLayoutChange: (cb: () => void) => void;
+  /** Space or the middle button has the Hand out (true), or put it away. */
+  onTransientHand?: (cb: (on: boolean) => void) => void;
   /** Docks opened, closed or resized — the canvas re-checks what it can see. */
   relayout?: () => void;
+  /** Re-read the page list, when the Pages tab comes into view. */
+  renderPages?: () => void;
   /** Resolves screen points and nodes to the surface they belong to. */
   readonly resolver: SurfaceResolver;
+  /** Bring a selected node into view in its page (a hidden slide). */
+  reveal?: (node: Element) => void;
+  /** Pan the canvas to the selection if it is off screen, without zooming in. */
+  revealSelection?: () => void;
   /** Edit/view mode changed. */
   setEditing?: (on: boolean) => void;
+  /** Put a frame back to a recorded box — the replay half of
+   * `bindFrameBoxChange`. */
+  setFrameBox?: (box: StoredFrame) => void;
   /**
    * Arm or disarm the Hand tool.
    *
@@ -355,6 +425,10 @@ export interface Stage {
    * for a Hand to move there.
    */
   setHandTool?: (on: boolean) => void;
+  /** Let clicks reach the page in every frame, for "use the page". */
+  setLive?: (on: boolean) => void;
+  /** Lend the page list the chat composer and the unsaved-edits test. */
+  setPagesHooks?: (hooks: PagesPanelHooks) => void;
   /**
    * How much of the stage the floating docks are covering. The canvas is
    * full-bleed, so this is what keeps zoom-to-fit aiming at the part of it you
@@ -437,6 +511,21 @@ class InlineStage implements Stage {
  */
 let booted = false;
 
+/** What the Attach button offers: images, and text the agent can read. */
+const ATTACH_ACCEPT =
+  "image/*,text/*,.md,.mdx,.json,.csv,.css,.scss,.html,.svg,.js,.jsx,.ts,.tsx,.yml,.yaml,.txt";
+
+/** A text file larger than this would crowd out the prompt; it is refused. */
+const MAX_TEXT_ATTACHMENT = 200_000;
+
+const TEXT_EXTENSION =
+  /\.(md|mdx|json|csv|css|scss|html|svg|js|jsx|ts|tsx|ya?ml|txt)$/i;
+
+/** Text the agent can read inline, by type or, failing that, by extension. */
+function isTextFile(file: File): boolean {
+  return file.type.startsWith("text/") || TEXT_EXTENSION.test(file.name);
+}
+
 /**
  * Take the page for this bundle, running whatever held it before.
  *
@@ -444,6 +533,26 @@ let booted = false;
  * should do nothing at all — in particular it must not tear down the overlay it
  * just built.
  */
+type EditorMode = "edit" | "view";
+
+/** What the desktop app's editor preload exposes. Absent in a browser. */
+interface DesktopHost {
+  /** The window's top bar has Upload, so the chat hides commit and push. */
+  hostsGit?: boolean;
+  /** Tells the top bar an AI job started or ended. Absent on older builds. */
+  jobState?: (running: boolean) => void;
+  /** Text from the top bar ("Ask AI to fix it") for the chat to send. */
+  onAsk?: (cb: (text: string) => void) => () => void;
+  /** The top bar's palette and shortcuts buttons. Absent on older builds. */
+  onCommand?: (cb: (name: string) => void) => () => void;
+  onMode: (cb: (mode: EditorMode) => void) => () => void;
+  setMode: (mode: EditorMode) => void;
+}
+
+function desktopHost(): DesktopHost | null {
+  return (window as unknown as { weblabHost?: DesktopHost }).weblabHost ?? null;
+}
+
 function claimBoot(): boolean {
   if (booted) {
     return false;
@@ -532,11 +641,13 @@ export class AirshipApp {
   private histEl!: HTMLElement;
   private sendBtn!: HTMLButtonElement;
   private newChatBtn!: HTMLElement;
-  /** The bar's Apply/Discard pair; hidden while nothing is pending. */
+  /** The bar's "N changes" button; hidden while nothing is pending. */
   private applyGroup!: HTMLElement;
   private applyBtn!: HTMLButtonElement;
   private applyLabel!: HTMLElement;
-  private discardBtn!: HTMLButtonElement;
+  private applyChevron!: HTMLElement;
+  /** The changes dropdown under that button, while it is open. */
+  private saveMenu: PopoverHandle | null = null;
 
   // Right (design) dock
   private rightDock!: HTMLElement;
@@ -544,8 +655,6 @@ export class AirshipApp {
 
   // Both panels start open, docked to the window edges — Figma's default.
   private leftOpen = true;
-  /** High-water mark for `pendingCount()`; the composer reveals on an increase. */
-  private pendingSeen = 0;
   private rightOpen = true;
 
   /** Live dock sizes, persisted across reloads and reset from the splitters. */
@@ -579,11 +688,28 @@ export class AirshipApp {
   };
   /** The dock a header drag is currently moving, plus its state at grab time. */
   private moving: {
+    /** Would a drop right now put the panel back on its edge? */
+    docking: boolean;
+    /** The carried box's size, measured once at grab time for the snap guides. */
+    h: number;
     side: Side;
     startPlacement: DockPlacement;
     startX: number;
     startY: number;
+    w: number;
   } | null = null;
+  /** The outline of where a dragged panel will dock if it is dropped now. */
+  private dockGhost!: HTMLElement;
+  /** Which side the ghost is drawn for, so a drag only repaints it on change. */
+  private ghostSide: Side | null = null;
+  /**
+   * § hides both panels and their pills — Figma's hide-UI. A term over the
+   * open flags rather than a write to them, so showing again returns each
+   * panel exactly as it was, open or collapsed.
+   */
+  private panelsHidden = false;
+  /** The in-flight show/hide animations, cancelled if § is pressed again. */
+  private panelAnims: Animation[] = [];
   private readonly moveDelta = new DragDelta();
   /** The two header rows, held so a *collapsed* dock's header can still be
    * measured — it is `display: none`, so it cannot be reached through the DOM
@@ -622,9 +748,28 @@ export class AirshipApp {
    * over one corner — while the thing actually being asked for is that the
    * panel keep its width and position and change what is inside it.
    *
+   * Edit mode shows the layers (as in Figma); view mode shows the frames.
    * The frames pair is null on a stage that has no frames to list.
    */
-  private chatHead!: HTMLElement;
+  private layersHead!: HTMLElement;
+  private layersBody!: HTMLElement;
+  /** The head's icon and name, which follow the tab below it. */
+  private layersBrand!: HTMLElement;
+  /**
+   * Pages | Layers, after Framer. Null on a stage with no pages to list, and
+   * then the left dock is just the layers, as it was.
+   */
+  private leftTabs: HTMLElement | null = null;
+  private pagesBody: HTMLElement | null = null;
+  /** The Assets tab: the project's images. Beside Pages, where it exists. */
+  private assetsBody: HTMLElement | null = null;
+  private assetsPanel: AssetsPanel | null = null;
+  private variablesBody: HTMLElement | null = null;
+  private variablesPanel: VariablesPanel | null = null;
+  private leftTab: LeftTab = readLeftTab();
+  /** What the page list last showed about unsaved edits. */
+  private pagesShowPending = false;
+  /** The chat, mounted in the right dock's Agent tab. */
   private chatBody!: HTMLElement;
   private framesHead: HTMLElement | null = null;
   private framesBody!: HTMLElement;
@@ -643,6 +788,9 @@ export class AirshipApp {
    */
   private hand = false;
   private handBtn: HTMLElement | null = null;
+  /** "Use the page": frames take real clicks while this is on. */
+  private live = false;
+  private liveBtn: HTMLElement | null = null;
   private undoBtn!: HTMLButtonElement;
   private redoBtn!: HTMLButtonElement;
   private tooltips: Tooltips | null = null;
@@ -654,9 +802,16 @@ export class AirshipApp {
    * working Commit is worse than offering one that might fail.
    */
   private gitHealth: GitHealth | undefined;
+  /** Jobs the daemon reports as running, told to the desktop top bar. */
+  private runningJobs = new Set<string>();
 
   private selected: Selection | null = null;
   private images: ImageInput[] = [];
+  /**
+   * Text files attached to the next turn. The protocol carries images only, so
+   * these ride in the prompt as fenced blocks under their file name.
+   */
+  private files: { name: string; text: string }[] = [];
   private activeJobId: string | null = null;
   private parentJobId: string | null = null;
   private activeThreadRoot: string | null = null;
@@ -712,6 +867,20 @@ export class AirshipApp {
    * `enterTextEdit` — this is what keeps entry from racing `extract`.
    */
   private pendingTextEdit: { caret: Point | null; node: Element } | null = null;
+  /**
+   * Something to do to an image once it is the selection: open its editor, or
+   * swap its picture. Armed and consumed the way `pendingTextEdit` is, because
+   * the Media row it goes through is only built when the selection lands.
+   */
+  private pendingImageAction: {
+    cancel?: () => void;
+    node: Element;
+    run: () => void;
+  } | null = null;
+  /** A change the save menu asked to go to, revealed once its selection lands. */
+  private pendingReveal: Element | null = null;
+  /** An image upload is in flight; a second drop or paste waits for it. */
+  private imageBusy = false;
 
   private readonly stage: Stage;
   /** Which surface this document is, for the bar's switcher. */
@@ -743,7 +912,8 @@ export class AirshipApp {
 
   constructor(config: AirshipWindowConfig, stage: Stage) {
     this.stage = stage;
-    this.surface = modeToSurface(config.mode ?? "inline");
+    // The shell serves both surfaces now; it says which one it was asked for.
+    this.surface = config.surface ?? modeToSurface(config.mode ?? "inline");
     this.appPathname = config.pathname;
     this.socket = new AirshipSocket(config.wsPath);
     this.controller = new SelectionController(
@@ -784,9 +954,13 @@ export class AirshipApp {
           // element showing the stylesheet's value.
           this.changeSet.reapplyPreviews(node);
         },
+        setFrameBox: (box) => this.stage.setFrameBox?.(box),
         structureSet: this.structureSet,
         syncControl: (property, value) =>
           this.panel.syncControl(property, value),
+        // Undo of a Variables-tab edit: the opposite write, straight to disk.
+        writeVariable: (write) =>
+          this.socket.send({ ...write, type: "token:write" }),
       }),
       onChange: () => this.syncUndoButtons(),
       refresh: () => {
@@ -814,6 +988,7 @@ export class AirshipApp {
       onChanged: () => this.onVisualChanged(),
       onCopyPath: (file) => this.copyPath(file),
       onOpenIn: (editor, file, line) => this.openIn(editor, file, line),
+      onPreviewAction: (node) => this.previewAction(node),
       onTextOwner: (node) => stage.setTextOwner?.(node),
       resolver: stage.resolver,
       structureSet: this.structureSet,
@@ -944,15 +1119,30 @@ export class AirshipApp {
         // native undo on the page underneath — which can mangle a form the user
         // has open. In edit mode the page belongs to the editor, so it takes the
         // key either way. (`Keys` calls `preventDefault` on any binding that
-        // matches, so this widening is what consumes the event.)
+        // matches, so this widening is what consumes the event.) In view mode
+        // frames are moved and resized, so ⌘Z takes over there once there is
+        // something to take back.
         {
           id: "history.undo",
           run: () => this.undoEdit(),
-          when: () => this.editing,
+          when: () => this.editing || this.history.canUndo,
         },
         {
           id: "history.redo",
           run: () => this.redoEdit(),
+          when: () => this.editing || this.history.canRedo,
+        },
+        // ⌘S saves, as in any design tool: it is the same act as the bar's
+        // Save button, so edits read as yours to keep rather than a request.
+        {
+          id: "edit.save",
+          run: () => {
+            if (this.pendingCount() > 0) {
+              this.submit();
+            } else {
+              toast("Nothing to save yet", { icon: "check" });
+            }
+          },
           when: () => this.editing,
         },
         {
@@ -1034,11 +1224,16 @@ export class AirshipApp {
         {
           id: "tool.hand",
           run: () => this.setHandTool(!this.hand),
-          when: () => !this.editing && Boolean(this.stage.setHandTool),
+          when: () => this.editing && Boolean(this.stage.setHandTool),
+        },
+        {
+          id: "tool.usePage",
+          run: () => this.setLive(!this.live),
+          when: () => this.editing && Boolean(this.stage.setLive),
         },
         // Escape drops the Hand, the way it drops every other latched thing in the
-        // editor. It cannot collide with the picker's Escape: that one is bound
-        // only while editing, and the Hand can only be armed while not.
+        // editor. It shares Escape with the picker's Deselect, which is bound
+        // later and wins while something is selected; the next Escape lands here.
         //
         // `dragActive` is the same guard the picker's Escape carries, and for the
         // same reason. A matched binding stops propagation, and dnd-kit's own
@@ -1079,6 +1274,13 @@ export class AirshipApp {
         // already understand is the wrong way round.
         { id: "help.shortcuts", run: () => openShortcuts() },
         { id: "help.palette", run: () => openPalette() },
+        // Ungated too: a clear view is as useful for reading a page as for
+        // editing one. Held off during a dock drag, which it would strand.
+        {
+          id: "view.togglePanels",
+          run: () => this.setPanelsHidden(!this.panelsHidden),
+          when: () => !this.moving,
+        },
       ])
     );
   }
@@ -1152,6 +1354,20 @@ export class AirshipApp {
     this.buildBar();
     this.buildLeftDock();
     this.buildRightDock();
+    // After the docks, so the drop preview tints the panel being carried.
+    this.dockGhost = el("div", {
+      "aria-hidden": "true",
+      class: cls("dock-ghost"),
+    });
+    this.root.append(this.dockGhost);
+    // The chat is a tab now: when it comes into view, fit the composer to
+    // its text and pin the transcript to its latest turn.
+    this.panel.onTab = (tab) => {
+      if (tab === "agent") {
+        this.autoGrow();
+        this.repinTranscript();
+      }
+    };
     // The stage goes into the body *before* the root, so the canvas paints
     // beneath the docks; the chrome layer it owns is a sibling of the root, not
     // a child, because chrome has to be clippable to the canvas independently of
@@ -1177,8 +1393,14 @@ export class AirshipApp {
       this.isOpen(side) && this.placement[side].mode === "docked"
         ? clampWidth(this.size[side].w) + 8
         : 0;
-    this.stage.setSafeInset?.({ left: cover("left"), right: cover("right") });
-    this.stage.mount(this.barTools);
+    this.stage.setSafeInset?.({
+      gutter: 8,
+      left: cover("left"),
+      right: cover("right"),
+    });
+    // Zoom and fit sit in the right dock's tab row, after the code toggle, so
+    // the bottom bar is only tools and modes.
+    this.stage.mount(this.panel.tabExtras);
     // Inline fills nothing in, and the bar collapses to just the mode toggle.
     this.bar.classList.toggle(
       cls("bar-bare"),
@@ -1201,12 +1423,20 @@ export class AirshipApp {
       // node can vanish out from under a live edit: a frame reload, a frame
       // removal, a React unmount.
       this.panel.pruneTextEdit();
+      // A frame that finished loading gives the layer tree its first page.
+      this.panel.ensureLayers();
       this.syncChrome();
     });
     this.stage.bindFramePress?.((at, mods, dbl) =>
       this.routeFramePress(at, mods, dbl)
     );
+    this.stage.bindFrameBoxChange?.((before, after) =>
+      this.history.push({ after, before, kind: "frame" })
+    );
     this.stage.onGestureEnd?.(() => this.controller.repick());
+    // Holding space or dragging with the middle button borrows the Hand: the
+    // bar shows it while it lasts, then the tool you were on comes back.
+    this.stage.onTransientHand?.((on) => this.paintTransientHand(on));
     // Both inside the root and above every dock by declared `z-index` — see
     // `Z_TOAST` and `Z_POP`. The toast goes first so the popover host stays the
     // root's last child, which is hygiene rather than the mechanism.
@@ -1221,8 +1451,43 @@ export class AirshipApp {
     this.tooltips = new Tooltips(popHost);
     // Land in edit mode: hover-to-auto-select is live from the start.
     this.setEditing(true);
+    this.bindDesktopHost();
+    this.bindImageInput();
     this.socket.on((ev) => this.onEvent(ev));
     this.socket.connect();
+  }
+
+  /**
+   * Inside the desktop app, Edit and Preview are in the window's top bar. The
+   * app tells the editor which one was picked, and hears back when the mode
+   * changes from here (a shortcut, or landing in edit mode after a reload).
+   */
+  private bindDesktopHost(): void {
+    const host = desktopHost();
+    if (!host) {
+      return;
+    }
+    const root = document.documentElement;
+    root.toggleAttribute(`data-${PREFIX}-hosted`, true);
+    host.setMode(this.editing ? "edit" : "view");
+    const off = host.onMode((mode) => this.setEditing(mode === "edit"));
+    const offCommand = host.onCommand?.((name) => {
+      if (name === "palette") {
+        openPalette();
+      } else if (name === "shortcuts") {
+        openShortcuts();
+      }
+    });
+    const offAsk = host.onAsk?.((text) => {
+      this.useFollowUp(text);
+      this.submit();
+    });
+    this.disposers.push(() => {
+      off();
+      offCommand?.();
+      offAsk?.();
+      root.removeAttribute(`data-${PREFIX}-hosted`);
+    });
   }
 
   /**
@@ -1243,7 +1508,19 @@ export class AirshipApp {
     spot.style.top = `${at.y}px`;
     this.root.append(spot);
 
+    const imageNode = this.selected?.node;
     const menu = createMenu([
+      // Only on an image, and apart from the structure verbs below it.
+      ...(imageNode && isSwappableImage(imageNode)
+        ? [
+            {
+              icon: "image" as const,
+              label: "Replace image…",
+              run: () => this.editImage(imageNode),
+            },
+            { separator: true as const },
+          ]
+        : []),
       {
         command: "element.editText",
         icon: "layer-text",
@@ -1693,18 +1970,23 @@ export class AirshipApp {
           open ? this.dockEl(side) : this.pillEl(side)
         ).getBoundingClientRect();
         const from = { ...this.placement[side] };
+        const h = floatHeight(from, open, rect.height, this.inset);
         this.moving = {
+          // True for a docked panel: a grab that barely moves stays docked.
+          docking: inDockZone(side, rect.left, rect.width, window.innerWidth),
+          h: open ? h : rect.height,
           side,
           startPlacement: from,
           startX: rect.left,
           startY: rect.top,
+          w: rect.width,
         };
         this.moveDelta.start();
         this.controller.guard.setDragging(true, "grabbing");
         this.dockEl(side).classList.add(cls("dock-moving"));
         this.pillEl(side).classList.add(cls("dock-moving"));
         this.placement[side] = {
-          h: floatHeight(from, open, rect.height, this.inset),
+          h,
           mode: "floating",
           x: rect.left,
           y: rect.top,
@@ -1724,14 +2006,23 @@ export class AirshipApp {
         }
         const d = this.moveDelta.update(e);
         const p = this.placement[mv.side];
-        const { x, y } = this.clampFloat(
+        let { x, y } = this.clampFloat(
           mv.side,
           mv.startX + d.x,
           mv.startY + d.y
         );
+        // Near its own edge the panel will dock, and the ghost says so. Away
+        // from it, the edges stick to the window insets and the other panel.
+        mv.docking = inDockZone(mv.side, x, mv.w, window.innerWidth);
+        if (!mv.docking) {
+          const guides = this.floatGuides(mv.side, mv.w, mv.h);
+          x = snapTo(x, guides.x);
+          y = snapTo(y, guides.y);
+        }
         p.x = x;
         p.y = y;
         this.applyPlacement(mv.side);
+        this.showDockGhost(mv.docking ? mv.side : null);
       }),
       manager.monitor.addEventListener("dragend", (e) => {
         const mv = this.moving;
@@ -1745,10 +2036,15 @@ export class AirshipApp {
         this.dockEl(mv.side).classList.remove(cls("dock-moving"));
         this.pillEl(mv.side).classList.remove(cls("dock-moving"));
         this.controller.guard.setDragging(false);
+        this.showDockGhost(null);
         if (e.canceled) {
           this.placement[mv.side] = { ...mv.startPlacement };
+          this.applyPlacement(mv.side);
+        } else if (mv.docking) {
+          this.glideHome(mv.side);
+        } else {
+          this.applyPlacement(mv.side);
         }
-        this.applyPlacement(mv.side);
         this.saveDocks();
         // `applyWidths` → `autoGrow` → realign chrome. The composer's max height
         // is derived from the left dock's own height, which a tear-off changes.
@@ -1826,6 +2122,7 @@ export class AirshipApp {
         ? clampWidth(this.size[side].w) + gutter
         : 0;
     this.stage.setSafeInset?.({
+      gutter,
       left: covers("left"),
       right: covers("right"),
     });
@@ -1936,15 +2233,20 @@ export class AirshipApp {
     const p = this.placement[side];
     const floating = p.mode === "floating";
     const pinned = this.size[side].h;
-    const room = Math.max(MIN_DOCK_H, window.innerHeight - p.y - this.inset);
+    // Position is fitted to the window here, like height below, and never
+    // written back. The desktop app lays the overlay out before its window has
+    // a size, and clamping the *stored* spot against that zero-sized window
+    // threw a floating right panel into the top-left corner for good.
+    const { x, y } = this.clampFloat(side, p.x, p.y);
+    const room = Math.max(MIN_DOCK_H, window.innerHeight - y - this.inset);
     const root = document.documentElement;
-    root.style.setProperty(`--${PREFIX}-${side}-x`, `${Math.round(p.x)}px`);
-    root.style.setProperty(`--${PREFIX}-${side}-y`, `${Math.round(p.y)}px`);
+    root.style.setProperty(`--${PREFIX}-${side}-x`, `${Math.round(x)}px`);
+    root.style.setProperty(`--${PREFIX}-${side}-y`, `${Math.round(y)}px`);
     // The width the panel is actually painted at — `--*-w` is clamped too, so
     // an unclamped number here would put the two edges out of step.
     root.style.setProperty(
       `--${PREFIX}-${side}-r`,
-      `${Math.round(window.innerWidth - p.x - clampWidth(this.size[side].w))}px`
+      `${Math.round(window.innerWidth - x - clampWidth(this.size[side].w))}px`
     );
     // Removed rather than set to something arbitrary when there is no height to
     // publish, because of how the two consumers fail. `.dock-h`'s `var()` has no
@@ -1974,21 +2276,207 @@ export class AirshipApp {
   /**
    * Put a panel back on its edge.
    *
-   * The counterpart to tearing it off, and the only way back — there is
-   * deliberately no snap zone. A drop that silently re-docks because the pointer
-   * strayed near an edge is a gesture that has to be *avoided* while dragging,
-   * and it costs a ghost element, a live hit-test and a drop-resolution branch
-   * to build something whose main effect is to surprise you. Double-click is the
-   * same idiom the splitter already teaches one control over (`buildSplitter`).
+   * Two ways back: double-click the header, or drag it near its own edge and
+   * drop. The drag shows a ghost of the docked column first (`showDockGhost`),
+   * so the drop never surprises — you see where it will land before you let go.
    */
   private redock(side: Side): void {
     if (this.placement[side].mode === "docked") {
       return;
     }
-    this.placement[side].mode = "docked";
-    this.applyPlacement(side);
+    this.glideHome(side);
     this.saveDocks();
     this.afterDockToggle();
+  }
+
+  /**
+   * Dock a panel, sliding it from where it is to its edge.
+   *
+   * FLIP: measure, switch to the docked anchors, measure again, and animate the
+   * difference away. Only position animates; the height change is instant, since
+   * scaling a panel full of text reads as a glitch rather than a move.
+   */
+  private glideHome(side: Side): void {
+    const node = this.isOpen(side) ? this.dockEl(side) : this.pillEl(side);
+    const first = node.getBoundingClientRect();
+    this.placement[side].mode = "docked";
+    this.applyPlacement(side);
+    if (reducedMotion()) {
+      return;
+    }
+    const last = node.getBoundingClientRect();
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    if (Math.hypot(dx, dy) < 1) {
+      return;
+    }
+    node.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+      { duration: 220, easing: EASE_OUT }
+    );
+  }
+
+  /**
+   * Where a floating panel's left and top edges like to rest: the window insets,
+   * beside a docked panel, and in line with or beside a floating one.
+   */
+  private floatGuides(
+    side: Side,
+    w: number,
+    h: number
+  ): { x: number[]; y: number[] } {
+    const vw = window.innerWidth;
+    const m = this.inset;
+    const x = [m, vw - w - m];
+    const y = [m, window.innerHeight - h - m];
+    const other: Side = side === "left" ? "right" : "left";
+    if (!this.isVisible(other)) {
+      return { x, y };
+    }
+    const op = this.placement[other];
+    const ow = clampWidth(this.size[other].w);
+    if (op.mode === "docked") {
+      x.push(other === "left" ? ow + m : vw - ow - w - m);
+    } else {
+      x.push(op.x, op.x + ow + m, op.x - w - m);
+      y.push(op.y);
+    }
+    return { x, y };
+  }
+
+  /**
+   * Draw, move or clear the drop preview. Written only when the side changes,
+   * so a drag that stays in the zone costs nothing per frame.
+   */
+  private showDockGhost(side: Side | null): void {
+    if (side === this.ghostSide) {
+      return;
+    }
+    this.ghostSide = side;
+    const ghost = this.dockGhost;
+    if (!side) {
+      ghost.classList.remove(cls("dock-ghost-on"));
+      return;
+    }
+    const vw = window.innerWidth;
+    let box: { h: number; w: number; x: number; y: number };
+    if (this.isOpen(side)) {
+      const w = clampWidth(this.size[side].w);
+      const pinned = this.size[side].h;
+      const h = pinned
+        ? clampHeight(pinned, this.inset, this.inset)
+        : window.innerHeight;
+      box = { h, w, x: side === "left" ? 0 : vw - w, y: 0 };
+    } else {
+      // A collapsed panel docks as its pill, in the corner.
+      const pill = this.pillEl(side);
+      const xs = readPx(this.root, "--ap-space-xs", 8);
+      const w = pill.offsetWidth;
+      box = {
+        h: pill.offsetHeight,
+        w,
+        x: side === "left" ? xs : vw - w - xs,
+        y: xs,
+      };
+    }
+    ghost.classList.toggle(cls("dock-ghost-pill"), !this.isOpen(side));
+    Object.assign(ghost.style, {
+      height: `${box.h}px`,
+      left: `${box.x}px`,
+      top: `${box.y}px`,
+      width: `${box.w}px`,
+    });
+    ghost.classList.add(cls("dock-ghost-on"));
+  }
+
+  /**
+   * Hide or show both panels at once, with a short slide toward their edges.
+   *
+   * The DOM change happens after the exit slide (so there is something to see
+   * leaving) and before the entry one (so there is something to see arriving).
+   * A second press mid-slide cancels the first, so fast tapping never strands a
+   * half-faded panel.
+   */
+  private setPanelsHidden(hidden: boolean): void {
+    if (hidden === this.panelsHidden) {
+      return;
+    }
+    for (const a of this.panelAnims) {
+      a.cancel();
+    }
+    this.panelAnims = [];
+    this.panelsHidden = hidden;
+    const apply = (): void => {
+      this.syncDocks();
+      this.afterDockToggle();
+    };
+    if (reducedMotion()) {
+      apply();
+      return;
+    }
+    if (hidden) {
+      const leaving = this.shownPanelNodes();
+      apply();
+      // Put them back for the length of the slide. `apply` already ran so the
+      // canvas can start re-fitting at once, rather than 160ms late.
+      for (const { node } of leaving) {
+        node.classList.remove(cls("hidden"));
+      }
+      this.panelAnims = leaving.map(({ node, side }) =>
+        node.animate(
+          [
+            { opacity: 1, transform: "none" },
+            {
+              opacity: 0,
+              transform: `translateX(${side === "left" ? -12 : 12}px)`,
+            },
+          ],
+          {
+            duration: 160,
+            easing: "cubic-bezier(0.4, 0, 1, 1)",
+            fill: "forwards",
+          }
+        )
+      );
+      for (const [i, a] of this.panelAnims.entries()) {
+        const { node } = leaving[i];
+        a.finished
+          .then(() => {
+            node.classList.add(cls("hidden"));
+            a.cancel();
+          })
+          .catch(() => {
+            // Cancelled by a second press, which has already set the classes.
+          });
+      }
+      return;
+    }
+    apply();
+    this.panelAnims = this.shownPanelNodes().map(({ node, side }) =>
+      node.animate(
+        [
+          {
+            opacity: 0,
+            transform: `translateX(${side === "left" ? -12 : 12}px)`,
+          },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: 220, easing: EASE_OUT }
+      )
+    );
+  }
+
+  /** The dock or pill each side is showing right now, if any. */
+  private shownPanelNodes(): { node: HTMLElement; side: Side }[] {
+    const out: { node: HTMLElement; side: Side }[] = [];
+    for (const side of ["left", "right"] as const) {
+      for (const node of [this.dockEl(side), this.pillEl(side)]) {
+        if (!node.classList.contains(cls("hidden"))) {
+          out.push({ node, side });
+        }
+      }
+    }
+    return out;
   }
 
   /**
@@ -2013,21 +2501,18 @@ export class AirshipApp {
     };
   }
 
-  /** Re-clamp both floating placements against the current window. */
+  /** Repaint both floating placements fitted to the current window. */
   private clampPlacements(): void {
     for (const side of ["left", "right"] as const) {
       const p = this.placement[side];
       if (p.mode !== "floating") {
         continue;
       }
-      // Height is deliberately not touched here. `applyPlacement` already fits
-      // what it paints to the room below `y`, so clamping the stored number
-      // would only make a shrunk window permanent — the panel would come back
+      // Nothing stored is touched here. `applyPlacement` already fits what it
+      // paints to the window, so clamping the stored numbers would only make a
+      // shrunk window permanent — the panel would come back
       // short after the window grew again, having lost the height the user
       // actually chose.
-      const { x, y } = this.clampFloat(side, p.x, p.y);
-      p.x = x;
-      p.y = y;
       this.applyPlacement(side);
     }
   }
@@ -2082,7 +2567,9 @@ export class AirshipApp {
           continue;
         }
         this.placement[side] = {
-          h: clampHeight(Number(s.h) || 0),
+          // Not clamped here: the window may have no size yet, and
+          // `applyPlacement` fits what it paints to the room anyway.
+          h: Math.max(MIN_DOCK_H, Number(s.h) || 0),
           mode: "floating",
           x: Number(s.x) || 0,
           y: Number(s.y) || 0,
@@ -2154,13 +2641,27 @@ export class AirshipApp {
     // list that gets rendered cannot drift apart. The trailing separator is in
     // it too: it divides Inspect from the mode toggle, and left standing in view
     // mode it would be a hairline leading the bar with nothing in front of it.
+    // The frame slot is filled by the stage with the selected frame's verbs.
+    // Built before the edit list because it lives in it: the canvas is edit
+    // mode's surface only, so frames are picked and changed while editing.
+    // It is an empty wrapper on purpose: two things gate the group inside it
+    // and they are owned by different objects, the mode (the bar's business)
+    // and the selection (only the stage can see it). One element per owner
+    // means neither can clobber the hidden the other wrote.
+    this.frameToolsHost = this.stage.mountFrameTools
+      ? el("div", { class: cls("bar-frame-tools") })
+      : null;
     this.editOnlyBar = [
       undoGroup,
       sep(),
+      // The Hand leads the tools: it answers the same question they do, what
+      // a press does. Absent on a stage with nothing to pan.
+      ...(this.stage.setHandTool ? [this.buildHandGroup()] : []),
       toolGroup,
       this.buildAddGroup(),
       sep(),
       inspectGroup,
+      ...(this.frameToolsHost ? [this.frameToolsHost] : []),
       sep(),
       // Lands immediately before the surface toggle on purpose: that toggle is
       // blocked by exactly this pending state, so the remedy sits beside the
@@ -2181,16 +2682,8 @@ export class AirshipApp {
     // is the bar's business, and the selection, which only the stage can see. One
     // element per owner means neither has to know the other exists, and neither
     // can clobber the `hidden` the other wrote. See `Stage.mountFrameTools`.
-    this.frameToolsHost = this.stage.mountFrameTools
-      ? el("div", { class: cls("bar-frame-tools") })
-      : null;
     this.viewOnlyBar = this.stage.setHandTool
-      ? [
-          this.buildHandGroup(),
-          ...(this.frameToolsHost ? [this.frameToolsHost] : []),
-          this.buildJobChip(),
-          sep(),
-        ]
+      ? [this.buildJobChip(), sep()]
       : [];
     // The surface switcher goes beside the edit toggle, in front of it: they are
     // the two questions that apply on both stages, and "which surface" is the
@@ -2221,7 +2714,9 @@ export class AirshipApp {
       // overlay hides along with the stage slot it divides. Inline that slot is
       // empty, so a shared separator would leave the pair welded to the mode
       // toggle; this one is always the divider between them.
-      el("div", { class: cls("bar-sep") }),
+      // `bar-help` on all three so the desktop app can take the pair to its
+      // own top bar (see `bindDesktopHost`) and leave no stray separator.
+      el("div", { class: `${cls("bar-sep")} ${cls("bar-help")}` }),
       // The palette had no pointer affordance at all, so the one surface that
       // lists every command the editor can run was reachable only by already
       // knowing ⌘K.
@@ -2250,91 +2745,175 @@ export class AirshipApp {
   }
 
   /**
-   * Apply and Discard, as bar buttons — the save affordance the reporter went
-   * looking for. Apply is a second entry point onto `submit()`, not a new
-   * mechanism: `buildEditRequest` already accepts an empty prompt when visual
-   * deltas exist, and `turnLabel` already synthesizes "Applied 3 style
-   * changes". Discard is the same unjournalled bulk clear the composer offers,
-   * so it goes through the same confirm.
+   * "N changes ⌄" — the bar's one save affordance.
+   *
+   * A labelled count rather than a bare Save: edits in the design panel are
+   * previews until the agent writes them into the code, and the first thing
+   * worth knowing before that is *what* is about to be written. The button
+   * opens the list; the list is where you drop the ones you do not want and
+   * then save the rest, or discard the lot. Dropping one goes through the same
+   * journalled `discardOne*` as the composer chip's ✕, so ⌘Z brings it back.
+   * Save is still `submit()`: `buildEditRequest` already accepts an empty
+   * prompt when visual deltas exist.
    */
   private buildApplyGroup(): HTMLElement {
-    this.applyLabel = el("span", { text: "Save changes" });
-    // A labelled primary button, not a bare check glyph. Edits in the design
-    // panel are previews until the agent writes them into the code, and this is
-    // the one control that does that — so it says so, with a count.
+    this.applyLabel = el("span", { text: "Changes" });
+    this.applyChevron = icon("chev-down", "xs");
     this.applyBtn = el(
       "button",
       {
+        "aria-expanded": "false",
+        "aria-haspopup": "dialog",
         class: cls("bar-save"),
-        "data-tip": "Weblab writes these into your site's code",
-        onClick: () => this.submit(),
+        ...tip("Save or review changes", "edit.save"),
+        onClick: () => this.toggleSaveMenu(),
         type: "button",
       },
-      [el("span", { class: cls("dot") }), this.applyLabel]
+      [el("span", { class: cls("dot") }), this.applyLabel, this.applyChevron]
     ) as HTMLButtonElement;
-    this.discardBtn = el(
+    this.applyGroup = el(
+      "div",
+      { class: `${cls("bar-apply-group")} ${cls("hidden")}` },
+      [this.applyBtn, el("div", { class: cls("bar-sep") })]
+    );
+    return this.applyGroup;
+  }
+
+  private toggleSaveMenu(): void {
+    if (this.saveMenu) {
+      this.saveMenu.close();
+      return;
+    }
+    if (this.awaiting || this.pendingCount() === 0) {
+      return;
+    }
+    const content = el("div", { class: cls("save-menu") });
+    this.saveMenu = openPopover({
+      anchor: this.applyBtn,
+      className: "save-pop",
+      content,
+      onClose: () => {
+        this.saveMenu = null;
+        this.applyBtn.setAttribute("aria-expanded", "false");
+      },
+      prefer: "above",
+      roving: true,
+    });
+    this.applyBtn.setAttribute("aria-expanded", "true");
+    this.renderSaveMenu();
+  }
+
+  /**
+   * Draw the open dropdown from the live change sets.
+   *
+   * Rebuilt whole on every change rather than patched: it is a handful of rows,
+   * and the sets are the only truth about what is pending — a ✕ here, a chip ✕
+   * in the composer and an ⌘Z all land in `syncApplyGroup`, which calls this.
+   */
+  private renderSaveMenu(): void {
+    const menu = this.saveMenu;
+    if (!menu) {
+      return;
+    }
+    const content = menu.element.querySelector<HTMLElement>(
+      `.${cls("save-menu")}`
+    );
+    if (!content) {
+      return;
+    }
+    const chips = [
+      ...this.styleChips(),
+      ...this.structureChips(),
+      ...this.attrChips(),
+    ];
+    const n = chips.length;
+    const s = n === 1 ? "" : "s";
+    const rows = groupChips(chips).map((group) =>
+      el("div", { class: cls("save-group") }, [
+        this.saveGroupHead(group),
+        ...group.chips.map((chip) => this.saveChangeRow(chip)),
+      ])
+    );
+    const discardAll = el(
       "button",
       {
-        "aria-label": "Discard changes",
-        class: cls("tool"),
-        "data-tip": "Discard changes",
+        class: cls("save-discard"),
+        "data-pop-item": "",
         onClick: () =>
           this.confirmPending(
-            this.discardBtn,
-            (n) => `Discard all ${n} pending change${n === 1 ? "" : "s"}`,
+            discardAll,
+            (count) => `Discard all ${count} change${count === 1 ? "" : "s"}`,
             () => this.panel.discard(),
             "above"
           ),
         type: "button",
       },
-      [icon("close", "sm")]
-    ) as HTMLButtonElement;
-    this.applyGroup = el(
-      "div",
-      { class: `${cls("bar-apply-group")} ${cls("hidden")}` },
-      [
-        el("div", { class: cls("tool-group") }, [
-          this.discardBtn,
-          this.applyBtn,
-        ]),
-        el("div", { class: cls("bar-sep") }),
-      ]
+      ["Discard all"]
     );
-    return this.applyGroup;
+    content.replaceChildren(
+      el("div", { class: cls("save-list") }, rows),
+      el("div", { class: cls("save-foot") }, [
+        discardAll,
+        el(
+          "button",
+          {
+            class: cls("save-go"),
+            "data-pop-item": "",
+            onClick: () => {
+              menu.close();
+              this.submit();
+            },
+            type: "button",
+          },
+          [`Save ${n === 1 ? "change" : `${n} changes`}`]
+        ),
+      ])
+    );
+    content.setAttribute("aria-label", `${n} pending change${s}`);
+    menu.reposition();
   }
 
   /**
-   * Show the pair only while something is pending, keep the tooltips counting,
-   * and disable Apply during a live job — `submit()` silently no-ops on
-   * `awaiting`, and a control that eats clicks without a word is the exact
-   * shape of complaint this group exists to answer.
+   * Show the button only while something is pending (or the agent is working),
+   * keep its count honest, and keep an open dropdown in step with the sets.
+   * During a live job the button is the progress and opens nothing —
+   * `submit()` silently no-ops on `awaiting`.
    */
   private syncApplyGroup(): void {
     if (!this.applyGroup) {
       return;
     }
     const pending = this.pendingCount();
+    // The page list marks the page with unsaved edits; redraw it only when
+    // that flips, not on every edit.
+    if (pending > 0 !== this.pagesShowPending) {
+      this.pagesShowPending = pending > 0;
+      if (this.leftTab === "pages") {
+        this.stage.renderPages?.();
+      }
+    }
     // Shown while the agent works even with nothing pending, so a typed
     // prompt gets the same progress in the bar as a Save does.
     this.applyGroup.classList.toggle(
       cls("hidden"),
       pending === 0 && !this.awaiting
     );
+    if ((pending === 0 || this.awaiting) && this.saveMenu) {
+      this.saveMenu.close();
+    }
     if (pending === 0 && !this.awaiting) {
       return;
     }
-    const s = pending === 1 ? "" : "s";
-    // While the agent is writing, the button is the progress: it keeps its
-    // place and says what is happening, rather than vanishing mid-save.
     const busy = pending ? "Saving…" : "Working on it…";
-    const label = this.awaiting ? busy : `Save ${pending} change${s}`;
+    const label = this.awaiting
+      ? busy
+      : `${pending} change${pending === 1 ? "" : "s"}`;
     this.applyLabel.textContent = label;
     this.applyBtn.setAttribute("aria-label", label);
     this.applyBtn.classList.toggle(cls("bar-save-busy"), this.awaiting);
-    this.discardBtn.dataset.tip = `Discard ${pending} change${s}`;
+    this.applyChevron.classList.toggle(cls("hidden"), this.awaiting);
     this.applyBtn.disabled = this.awaiting;
-    this.discardBtn.disabled = this.awaiting;
-    this.discardBtn.classList.toggle(cls("hidden"), pending === 0);
+    this.renderSaveMenu();
   }
 
   /**
@@ -2358,7 +2937,7 @@ export class AirshipApp {
     const make = (
       label: string,
       command: CommandId,
-      extra: string,
+      extra: "bar-undo" | "bar-redo",
       run: () => void
     ): HTMLButtonElement =>
       el(
@@ -2372,7 +2951,9 @@ export class AirshipApp {
           onClick: run,
           type: "button",
         },
-        [icon("rotate-ccw", "sm")]
+        // Plain curved arrows, as in Figma. The rotate glyph this used read
+        // as "rotate the element".
+        [icon(extra === "bar-undo" ? "undo" : "redo", "sm")]
       ) as HTMLButtonElement;
     this.undoBtn = make("Undo", "history.undo", "bar-undo", () =>
       this.undoEdit()
@@ -2496,19 +3077,33 @@ export class AirshipApp {
   private showTranscript(): void {
     this.setEditing(true);
     this.setPreview(false);
-    if (!this.leftOpen) {
-      this.setLeft(true);
-    }
+    this.showChat();
     this.repinTranscript();
+  }
+
+  /**
+   * Open the right dock on the Agent tab. The chat lives there now, beside
+   * Style, the way Figma keeps its panels: layers left, properties right.
+   */
+  private showChat(): void {
+    // Asking for the chat is asking to see it, even with the panels put away.
+    this.setPanelsHidden(false);
+    if (!this.rightOpen) {
+      this.setRight(true);
+    }
+    if (this.panel.activeTab !== "agent") {
+      this.panel.selectTab("agent");
+    }
+  }
+
+  /** Is the chat the thing the right dock is showing? */
+  private chatOpen(): boolean {
+    return this.rightOpen && this.panel.activeTab === "agent";
   }
 
   /** Is the transcript actually on screen? Not the same as "in edit mode". */
   private transcriptVisible(): boolean {
-    return (
-      this.editing &&
-      this.leftOpen &&
-      !(this.previewOpen || this.chatBody.classList.contains(cls("hidden")))
-    );
+    return this.editing && this.chatOpen() && !this.previewOpen;
   }
 
   /**
@@ -2558,7 +3153,67 @@ export class AirshipApp {
       },
       [icon("tool-hand", "sm")]
     );
-    return el("div", { class: cls("tool-group") }, [this.handBtn]);
+    this.liveBtn = this.stage.setLive
+      ? el(
+          "button",
+          {
+            "aria-label": "Use the page",
+            "aria-pressed": "false",
+            class: cls("tool"),
+            ...tip("Use the page", "tool.usePage"),
+            onClick: () => this.setLive(!this.live),
+            type: "button",
+          },
+          [icon("proto-click", "sm")]
+        )
+      : null;
+    return el("div", { class: cls("tool-group") }, [
+      this.handBtn,
+      ...(this.liveBtn ? [this.liveBtn] : []),
+    ]);
+  }
+
+  /**
+   * Let clicks through to the page in every frame, without leaving Edit: press
+   * a slider's dots or arrows to reach a slide, then turn it off and edit that
+   * slide. The page stays frozen in time (see motion-gate.ts), so a slide you
+   * pick stays put. One latch with the Hand: each turns the other off.
+   */
+  private setLive(on: boolean): void {
+    if (on === this.live) {
+      return;
+    }
+    this.live = on;
+    if (on) {
+      this.setHandTool(false);
+    }
+    this.liveBtn?.classList.toggle(cls("tool-on"), on);
+    this.liveBtn?.setAttribute("aria-pressed", String(on));
+    this.stage.setLive?.(on);
+  }
+
+  /** Let one selected trigger open its content without leaving Edit mode. */
+  private previewAction(node: Element): void {
+    if (
+      !this.editing ||
+      this.selected?.node !== node ||
+      !node.isConnected ||
+      !clickAction(node)?.previewable
+    ) {
+      return;
+    }
+    // The inline picker intercepts clicks in capture. Pause only its hooks;
+    // a full mode switch drops selection.
+    this.controller.setEditing(false);
+    try {
+      (node as HTMLButtonElement).click();
+    } finally {
+      this.controller.setEditing(true);
+    }
+    if (this.selected?.node === node) {
+      this.panel.refresh();
+      this.controller.drawOutline();
+    }
   }
 
   /**
@@ -2566,13 +3221,38 @@ export class AirshipApp {
    * change. The canvas is the thing that actually changes behaviour; this owns
    * only the latch and what the bar says about it.
    */
+  /** Light the Hand for a borrowed pan, and give the tool back after. */
+  private paintTransientHand(on: boolean): void {
+    const lit = on || this.hand;
+    this.handBtn?.classList.toggle(cls("tool-on"), lit);
+    this.handBtn?.setAttribute("aria-pressed", String(lit));
+    this.paintToolButtons(lit);
+    this.controller.setHandTool(lit);
+  }
+
+  /** Move and Inspect read as off while any Hand is out, latched or borrowed. */
+  private paintToolButtons(handOut: boolean): void {
+    for (const [name, btn] of this.toolButtons) {
+      btn.classList.toggle(
+        cls("tool-on"),
+        !handOut && name === this.tools.active
+      );
+    }
+  }
+
   private setHandTool(on: boolean): void {
     if (on === this.hand) {
       return;
     }
     this.hand = on;
+    if (on) {
+      this.setLive(false);
+    }
     this.handBtn?.classList.toggle(cls("tool-on"), on);
     this.handBtn?.setAttribute("aria-pressed", String(on));
+    // One tool at a time, as in Figma: the Hand out means Move is not.
+    this.paintToolButtons(on);
+    this.controller.setHandTool(on);
     this.stage.setHandTool?.(on);
   }
 
@@ -2604,9 +3284,9 @@ export class AirshipApp {
 
   /** Reflect the active tool, and apply what it means. */
   private onToolChange(tool: Tool): void {
-    for (const [name, btn] of this.toolButtons) {
-      btn.classList.toggle(cls("tool-on"), name === tool);
-    }
+    // Picking Move or Inspect, by button or key, puts the Hand down.
+    this.setHandTool(false);
+    this.paintToolButtons(false);
     // Inspect is a read-only mode: hovering reports rather than selects, so it
     // rides the CSS tab and suppresses the picker's click-to-select. It also
     // ends any live edit — the mode exists to read specs off a hover, and a
@@ -2697,11 +3377,11 @@ export class AirshipApp {
       "button",
       {
         "aria-expanded": "false",
-        "aria-haspopup": "menu",
+        "aria-haspopup": "dialog",
         "aria-label": `Surface: ${active.label}`,
         // `.tool`, not `.iconbtn`: same box and the same ghost recipe, but only
         // `.tool` carries the `:disabled` rules this button needs.
-        class: cls("tool"),
+        class: `${cls("tool")} ${cls("has-caret")}`,
         "data-tip": `Surface: ${active.label}`,
         onClick: () => this.openSurfaceMenu(),
         type: "button",
@@ -2807,15 +3487,23 @@ export class AirshipApp {
     this.panel.endTextEdit();
     this.drawTool.disarm();
     this.pendingTextEdit = null;
+    this.dropPendingImageAction();
     this.editing = on;
     this.editBtn?.classList.toggle(cls("seg-on"), on);
     this.viewBtn?.classList.toggle(cls("seg-on"), !on);
-    if (on) {
-      // The mirror of the line above, and for the same reason: a latched tool
-      // whose button is about to disappear would keep changing what a drag means
-      // with nothing on screen to say so.
-      this.setHandTool(false);
-    } else {
+    // View mode is the page on its own (see the view rules in canvas.css.ts),
+    // and the desktop app's top bar shows the mode, so both hear about it here.
+    // Canvas only: the inline overlay keeps its chat in view mode.
+    document.documentElement.toggleAttribute(
+      `data-${PREFIX}-view`,
+      !on && Boolean(this.stage.mountFramesPanel)
+    );
+    desktopHost()?.setMode(on ? "edit" : "view");
+    // A latched tool whose button is about to disappear would keep changing
+    // what a drag means with nothing on screen to say so.
+    this.setHandTool(false);
+    this.setLive(false);
+    if (!on) {
       // Before hiding the tool group, not after. Inspect is a latched tool that
       // keeps the page inert and suppresses click-to-select; left armed behind a
       // hidden button it would go on doing that in view mode with nothing on
@@ -2874,7 +3562,7 @@ export class AirshipApp {
    */
   private repinTranscript(): void {
     requestAnimationFrame(() => {
-      if (!this.chatBody.classList.contains(cls("hidden"))) {
+      if (this.chatOpen()) {
         this.scrollTranscript();
       }
     });
@@ -2959,22 +3647,99 @@ export class AirshipApp {
     // Codex — so the header said "Agent" and the control beside it said
     // "Agent: claude" about two different things. The mark and the name
     // together are the one place the product signs its own work.
-    const head = el(
+    // The chat's own actions ride at the top of the Agent tab; the left dock
+    // is the layers now, as in Figma.
+    const head = el("div", { class: cls("agent-head") }, [
+      el("span"),
+      el("div", { class: cls("head-actions") }, [
+        this.buildNewChatButton(),
+        this.iconButton("history", "Past chats", () => this.toggleHistory()),
+      ]),
+    ]);
+    this.layersBrand = el("div", { class: cls("brand") });
+    this.layersHead = el(
       "div",
-      { class: cls("head"), ...dockHeadAttrs("Chat panel") },
+      { class: cls("head"), ...dockHeadAttrs("Layers panel") },
       [
-        el("div", { class: cls("brand") }, [
-          icon("logo", "sm"),
-          el("span", { class: cls("brand-name"), text: "Weblab" }),
-        ]),
+        this.layersBrand,
         el("div", { class: cls("head-actions") }, [
-          this.buildAgentButton(),
-          this.buildNewChatButton(),
-          this.iconButton("history", "Past chats", () => this.toggleHistory()),
-          this.panelToggle("left", "chat", false),
+          this.panelToggle("left", "layers", false),
         ]),
       ]
     );
+    this.layersBody = el("div", { class: cls("dock-body") }, [
+      this.panel.layersElement,
+    ]);
+    if (this.stage.mountPagesPanel) {
+      const tab = (id: LeftTab, label: string, hint: string): HTMLElement =>
+        el(
+          "button",
+          {
+            class: cls("insp-tab"),
+            "data-tab": id,
+            "data-tip": hint,
+            onClick: () => this.selectLeftTab(id),
+            role: "tab",
+            type: "button",
+          },
+          [el("span", { text: label })]
+        );
+      this.leftTabs = el(
+        "div",
+        { class: `${cls("insp-tabs")} ${cls("left-tabs")}`, role: "tablist" },
+        [
+          tab("pages", "Pages", "Every page of the site"),
+          tab("layers", "Layers", "Everything on this page"),
+          tab("assets", "Assets", "Images in your project"),
+          tab("variables", "Variables", "Colors, sizes and fonts in your CSS"),
+        ]
+      );
+      this.pagesBody = el("div", { class: cls("dock-body") });
+      this.stage.mountPagesPanel(this.pagesBody);
+      this.stage.setPagesHooks?.({
+        askAgent: (prompt) => this.useFollowUp(prompt),
+        pendingEdits: () => this.hasPendingEdits(),
+      });
+      this.assetsPanel = new AssetsPanel({
+        applyToSelection: (url) => this.applyAssetToSelection(url),
+      });
+      this.assetsBody = el("div", { class: cls("dock-body") }, [
+        this.assetsPanel.element,
+      ]);
+      if (this.leftTab === "assets") {
+        this.assetsPanel.show();
+      }
+      const variables = new VariablesPanel({
+        // The colour picker's drag, shown on every open page.
+        preview: (name, value) => {
+          for (const surface of this.stage.resolver.all()) {
+            const root = surface.doc?.documentElement;
+            if (value === null) {
+              root?.style.removeProperty(name);
+            } else {
+              root?.style.setProperty(name, value);
+            }
+          }
+        },
+        record: (step) => this.history.push({ kind: "variable", ...step }),
+        write: (change) => {
+          if (!this.socket.isOpen()) {
+            return false;
+          }
+          this.socket.send({ ...change, type: "token:write" });
+          return true;
+        },
+      });
+      this.variablesPanel = variables;
+      this.variablesBody = el("div", { class: cls("dock-body") }, [
+        variables.element,
+      ]);
+      // A bound field's hover pencil opens its variable here.
+      setTokenEditHandler((name) => {
+        this.selectLeftTab("variables");
+        variables.reveal(name);
+      });
+    }
 
     // `scroll-y` for the same reason the inspector body and the palette take
     // it: the transcript was the tallest scroller in the product still drawing
@@ -2990,13 +3755,41 @@ export class AirshipApp {
     // rest on its own padding, a 64px textarea floor and a labelled Send pill
     // on a line of its own; everything now shares a single bordered box that
     // starts one line tall and grows with the text.
+    // Attach: a file picker for what a paste or a drop would bring in.
+    const picker = el("input", {
+      accept: ATTACH_ACCEPT,
+      class: cls("hidden"),
+      multiple: "",
+      type: "file",
+    }) as HTMLInputElement;
+    picker.addEventListener("change", () => {
+      this.attachFiles(Array.from(picker.files ?? []));
+      picker.value = "";
+    });
+    const attachBtn = el(
+      "button",
+      {
+        "aria-label": "Attach files",
+        class: `${cls("iconbtn")} ${cls("field-btn")} ${cls("attach-btn")}`,
+        "data-tip": "Attach images or text files",
+        onClick: () => picker.click(),
+        type: "button",
+      },
+      [icon("plus", "sm")]
+    );
     const field = el("div", { class: cls("field") }, [
       this.selChipsEl,
       this.chipsEl,
       this.input,
+      picker,
+      attachBtn,
+      // The model sits in the prompt box, beside what it will answer, the way
+      // T3 Code places it.
+      this.buildAgentButton(),
       this.previewBtn,
       this.sendBtn,
     ]);
+    this.armFileDrop(field);
     const composer = el("div", { class: cls("composer") }, [field]);
     this.buildPreviewPane();
 
@@ -3010,12 +3803,13 @@ export class AirshipApp {
      * `inset: 0` resolving against the dock, which is what it is drawn over.
      */
     this.chatBody = el("div", { class: cls("dock-body") }, [
+      head,
       this.transcriptEl,
       this.previewEl,
       this.histEl,
       composer,
     ]);
-    this.chatHead = head;
+    this.panel.mountAgent(this.chatBody);
     this.framesHead = this.buildFramesHead();
     this.framesBody = el("div", {
       class: `${cls("dock-body")} ${cls("hidden")}`,
@@ -3024,9 +3818,13 @@ export class AirshipApp {
       "div",
       { class: `${cls("dock")} ${cls("dock-left")} ${cls("hidden")}` },
       [
-        this.chatHead,
+        this.layersHead,
         ...(this.framesHead ? [this.framesHead] : []),
-        this.chatBody,
+        ...(this.leftTabs ? [this.leftTabs] : []),
+        ...(this.pagesBody ? [this.pagesBody] : []),
+        ...(this.assetsBody ? [this.assetsBody] : []),
+        ...(this.variablesBody ? [this.variablesBody] : []),
+        this.layersBody,
         this.framesBody,
         this.buildSplitter("left"),
         this.buildHeightSplitter("left"),
@@ -3034,14 +3832,17 @@ export class AirshipApp {
     );
     this.leftBrand = el("span", {
       class: cls("brand-name"),
-      text: "Weblab",
+      text: "Layers",
     });
-    this.leftPill = this.buildPill("left", "chat", [
-      el("div", { class: cls("brand") }, [icon("logo", "sm"), this.leftBrand]),
-      this.panelToggle("left", "chat", true),
+    this.leftPill = this.buildPill("left", "layers", [
+      el("div", { class: cls("brand") }, [
+        icon("layer-group", "sm"),
+        this.leftBrand,
+      ]),
+      this.panelToggle("left", "layers", true),
     ]);
-    this.heads.left = head;
-    this.armDockDrag("left", head, "head");
+    this.heads.left = this.layersHead;
+    this.armDockDrag("left", this.layersHead, "head");
     if (this.framesHead) {
       // A distinct `part`, or the two would build dnd entities with the same
       // id — `armDockDrag` keys on `${type}:${side}:${part}`.
@@ -3103,10 +3904,10 @@ export class AirshipApp {
    * mode — the dock can be open with the chat swapped out from under it.
    */
   private autoGrow(): void {
-    if (!this.leftOpen || this.chatBody.classList.contains(cls("hidden"))) {
+    if (!this.chatOpen()) {
       return;
     }
-    const max = Math.max(96, Math.round(this.leftDock.clientHeight * 0.4));
+    const max = Math.max(96, Math.round(this.rightDock.clientHeight * 0.4));
     this.input.style.height = "auto";
     const wanted = this.input.scrollHeight;
     this.input.style.height = `${Math.min(wanted, max)}px`;
@@ -3209,10 +4010,11 @@ export class AirshipApp {
     this.clearSelectionScope();
     this.input.value = "";
     this.images = [];
+    this.files = [];
     this.renderChips();
     this.closeHistory();
     this.clearTranscript();
-    this.setLeft(true);
+    this.showChat();
     this.input.focus();
   }
 
@@ -3329,10 +4131,17 @@ export class AirshipApp {
     this.rightOpen = open;
     this.syncDocks();
     this.afterDockToggle();
+    // Reopened on the Agent tab: land on the latest turn, not the top.
+    if (open && this.chatOpen()) {
+      this.repinTranscript();
+    }
   }
 
   /** Does this side's panel have a home in the mode we are in? */
   private isVisible(side: Side): boolean {
+    if (this.panelsHidden) {
+      return false;
+    }
     return dockVisible({
       editing: this.editing,
       modeScoped: Boolean(this.stage.mountFramesPanel),
@@ -3360,18 +4169,63 @@ export class AirshipApp {
     const modeScoped = Boolean(this.stage.mountFramesPanel);
     const frames = modeScoped && !this.editing;
     this.leftDock.classList.toggle(cls("hidden"), !leftOn);
-    this.leftPill.classList.toggle(cls("hidden"), leftOn);
+    this.leftPill.classList.toggle(cls("hidden"), leftOn || this.panelsHidden);
     this.rightDock.classList.toggle(cls("hidden"), !rightOn);
     this.rightPill.classList.toggle(
       cls("hidden"),
-      rightOn || (modeScoped && !this.editing)
+      rightOn || this.panelsHidden || (modeScoped && !this.editing)
     );
-    this.chatHead.classList.toggle(cls("hidden"), frames);
-    this.chatBody.classList.toggle(cls("hidden"), frames);
+    // Without a Pages tab the left dock is only ever the layers.
+    const pages = Boolean(this.leftTabs) && this.leftTab === "pages";
+    this.layersHead.classList.toggle(cls("hidden"), frames);
+    this.leftTabs?.classList.toggle(cls("hidden"), frames);
+    const assets = Boolean(this.assetsBody) && this.leftTab === "assets";
+    this.pagesBody?.classList.toggle(cls("hidden"), frames || !pages);
+    this.assetsBody?.classList.toggle(cls("hidden"), frames || !assets);
+    const variables =
+      Boolean(this.variablesBody) && this.leftTab === "variables";
+    this.variablesBody?.classList.toggle(cls("hidden"), frames || !variables);
+    this.layersBody.classList.toggle(
+      cls("hidden"),
+      frames || pages || assets || variables
+    );
     this.framesHead?.classList.toggle(cls("hidden"), !frames);
     this.framesBody.classList.toggle(cls("hidden"), !frames);
-    this.leftBrand.textContent = frames ? "Frames" : "Weblab";
-    this.leftPill.dataset.tip = frames ? "Show frames" : "Show chat";
+    for (const btn of Array.from(this.leftTabs?.children ?? [])) {
+      const on = (btn as HTMLElement).dataset.tab === this.leftTab;
+      btn.classList.toggle(cls("insp-tab-on"), on);
+      btn.setAttribute("aria-selected", String(on));
+    }
+    // With tabs, the head names the dock ("Site", as the right one says
+    // "Design") and the tabs name what is in it; repeating the tab's word in
+    // the head would say it twice, one row apart.
+    const name = this.leftTabs ? "Site" : "Layers";
+    this.layersBrand.replaceChildren(
+      icon(this.leftTabs ? "globe" : "layer-group", "sm"),
+      el("span", { class: cls("brand-name"), text: name })
+    );
+    this.leftBrand.textContent = frames ? "Frames" : name;
+    this.leftPill.dataset.tip = `Show ${(frames ? "Frames" : name).toLowerCase()}`;
+  }
+
+  /** Switch the left dock between the page list and the layer tree. */
+  private selectLeftTab(tab: LeftTab): void {
+    this.leftTab = tab;
+    try {
+      localStorage.setItem(LEFT_TAB_KEY, tab);
+    } catch {
+      // Private mode: the tab still switches for this session.
+    }
+    if (tab === "pages") {
+      this.stage.renderPages?.();
+    }
+    if (tab === "assets") {
+      this.assetsPanel?.show();
+    }
+    if (tab === "variables") {
+      this.variablesPanel?.show();
+    }
+    this.syncDocks();
   }
 
   /** The bottom-right slot exists only in the mode the minimap belongs to. */
@@ -3404,6 +4258,9 @@ export class AirshipApp {
 
   private onSelected(sel: Selection): void {
     this.selected = sel;
+    // A node picked in Layers can sit on a slide that is not showing. No-op
+    // for anything already in view, which is every node picked on the canvas.
+    this.stage.reveal?.(sel.node);
     this.scanFrameTokens(sel.node);
     this.setRight(true);
     this.panel.setSelection(sel);
@@ -3415,6 +4272,19 @@ export class AirshipApp {
     this.pendingTextEdit = null;
     if (pending && pending.node === sel.node) {
       this.panel.beginTextEdit(sel.node, pending.caret);
+    }
+    const reveal = this.pendingReveal;
+    this.pendingReveal = null;
+    if (reveal && reveal === sel.node) {
+      this.revealSelected(reveal);
+    }
+    const imageAction = this.pendingImageAction;
+    this.pendingImageAction = null;
+    if (imageAction && imageAction.node === sel.node) {
+      this.showImageRow();
+      imageAction.run();
+    } else {
+      imageAction?.cancel?.();
     }
     this.renderComposerChips();
   }
@@ -3438,13 +4308,15 @@ export class AirshipApp {
    * after.
    */
   private enterTextEdit(
-    node: Element,
+    hitNode: Element,
     surface: Surface,
     caret: Point | null
   ): boolean {
-    if (!isEditableText(node)) {
+    if (!isEditableText(hitNode)) {
       return false;
     }
+    // One word of an animated, split heading means the whole heading.
+    const node = textEditTarget(hitNode);
     this.panel.endTextEdit();
     if (this.selected?.node === node) {
       return this.panel.beginTextEdit(node, caret);
@@ -3486,7 +4358,175 @@ export class AirshipApp {
     const target = textTargetIn(hit.node);
     if (target) {
       this.enterTextEdit(target, hit.surface, at);
+      return;
     }
+    // No text to edit: on an image, a double-click opens its picker instead.
+    if (isSwappableImage(hit.node)) {
+      this.editImage(hit.node, hit.surface);
+    }
+  }
+
+  // -- Images on the canvas ---------------------------------------------------
+
+  /**
+   * Put the selected image's row on screen: the Design tab, in an open dock.
+   * The canvas's image actions go through that row (`image-editor.ts`).
+   */
+  private showImageRow(): void {
+    if (!this.rightOpen) {
+      this.setRight(true);
+    }
+    if (this.panel.activeTab !== "edit") {
+      this.panel.selectTab("edit");
+    }
+  }
+
+  /**
+   * Run `run` with `node` selected and its Media row built. Straight away when
+   * it already is the only selection; after the selection lands otherwise.
+   */
+  private withImageSelected(
+    node: Element,
+    run: () => void,
+    surface?: Surface,
+    cancel?: () => void
+  ): void {
+    if (this.selected?.node === node) {
+      this.showImageRow();
+      run();
+      return;
+    }
+    this.dropPendingImageAction();
+    this.pendingImageAction = { cancel, node, run };
+    this.controller.select(node, surface, "replace");
+  }
+
+  /**
+   * Forget an armed image action. Wherever a pending text edit is dropped this
+   * is too, for the same reason: a selection that never lands would otherwise
+   * leave it armed, and a much later click on that image would run it.
+   */
+  private dropPendingImageAction(): void {
+    const pending = this.pendingImageAction;
+    this.pendingImageAction = null;
+    pending?.cancel?.();
+  }
+
+  /** Double-click and "Replace image…": open the image picker. */
+  private editImage(node: Element, surface?: Surface): void {
+    this.withImageSelected(node, () => openActiveImageEditor(), surface);
+  }
+
+  /** A file or an Assets thumbnail dropped on an image, or an image pasted. */
+  private replaceImage(
+    node: Element,
+    source: ImageSource,
+    surface?: Surface
+  ): void {
+    if ("url" in source) {
+      this.withImageSelected(
+        node,
+        () => {
+          if (!applyImageUrl(source.url)) {
+            toast("This image can't be replaced here", { tone: "error" });
+          }
+        },
+        surface
+      );
+      return;
+    }
+    // One upload at a time: a second drop while the first is still on its
+    // way would land both, in whichever order the server answered.
+    if (this.imageBusy) {
+      toast("Wait for the current image to finish uploading");
+      return;
+    }
+    this.imageBusy = true;
+    let settled = false;
+    const release = (): void => {
+      if (!settled) {
+        settled = true;
+        this.imageBusy = false;
+      }
+    };
+    const run = (): void => {
+      settled = true;
+      replaceImageFromFile(source.file)
+        .then((done) => {
+          if (!done) {
+            toast("This image can't be replaced here", { tone: "error" });
+          }
+        })
+        .catch((error: unknown) => {
+          toast(
+            error instanceof Error
+              ? error.message
+              : "The upload did not go through.",
+            { tone: "error" }
+          );
+        })
+        .finally(() => {
+          this.imageBusy = false;
+        });
+    };
+    this.withImageSelected(node, run, surface, release);
+    // The selection may never land (the node went away). Do not stay busy, or
+    // armed, for an upload that never started.
+    setTimeout(() => {
+      if (this.pendingImageAction?.run === run) {
+        this.dropPendingImageAction();
+      }
+      release();
+    }, 5000);
+  }
+
+  /** An Assets thumbnail was clicked. False when there is no image to swap. */
+  private applyAssetToSelection(url: string): boolean {
+    const node = this.selected?.node;
+    if (!(node && isSwappableImage(node))) {
+      return false;
+    }
+    this.showImageRow();
+    return applyImageUrl(url);
+  }
+
+  /**
+   * ⌘V with an image on the clipboard and an image selected: replace it.
+   * Anything else is left for whoever else wants the paste.
+   */
+  private onImagePaste(e: ClipboardEvent): void {
+    const node = this.selected?.node;
+    if (
+      !(this.editing && node && isSwappableImage(node)) ||
+      isTypingTarget(e.target) ||
+      isTypingTarget(document.activeElement)
+    ) {
+      return;
+    }
+    const file = Array.from(e.clipboardData?.files ?? []).find(isImageFile);
+    if (!file) {
+      return;
+    }
+    e.preventDefault();
+    this.replaceImage(node, { file }, this.selected?.surface);
+  }
+
+  /** File drops on the page, and image paste. Released by `destroy()`. */
+  private bindImageInput(): void {
+    this.disposers.push(
+      bindImageDrop({
+        enabled: () => this.editing,
+        hitTest: (point) => this.controller.hitTest(point),
+        layer: this.stage.layer,
+        onDrop: (node, surface, source) =>
+          this.replaceImage(node, source, surface),
+        onRefuse: (message) => toast(message, { tone: "error" }),
+        win: window,
+      })
+    );
+    const onPaste = (e: ClipboardEvent): void => this.onImagePaste(e);
+    document.addEventListener("paste", onPaste);
+    this.disposers.push(() => document.removeEventListener("paste", onPaste));
   }
 
   /**
@@ -3604,21 +4644,14 @@ export class AirshipApp {
     this.controller.drawOutline();
   }
 
-  /** The inspector recorded or discarded a tweak. Surface it in the left
-   * composer and — so direct-manipulation edits visibly "land in the chat" —
-   * open the left dock when a *new* edit arrives. */
+  /**
+   * The inspector recorded or discarded a tweak. Surface it in the composer's
+   * chips. The chat does not open itself here: it shares the right dock with
+   * Style, and jumping to it mid-edit would pull the panel out from under the
+   * control being used. The bar's Save button carries the count.
+   */
   private onVisualChanged(): void {
     this.renderComposerChips();
-    // Reveal on an increase only, never on "non-zero": this fires on every
-    // panel change including deselect, undo and refresh, and re-opening a dock
-    // the user deliberately closed on a plain empty-canvas click was a bug.
-    const pending = this.pendingCount();
-    if (pending > this.pendingSeen && !this.leftOpen) {
-      this.setLeft(true);
-    }
-    // Stored unconditionally — inside the `if`, the watermark would latch high
-    // after a discard and the reveal would be dead for the rest of the session.
-    this.pendingSeen = pending;
     this.syncApplyGroup();
   }
 
@@ -3700,6 +4733,106 @@ export class AirshipApp {
     ];
   }
 
+  /**
+   * The element a group of changes is on: its name, and a way to go to it.
+   *
+   * The whole heading goes there, and so does the inspect glyph at its end —
+   * the glyph is what says the heading is a link at all.
+   */
+  private saveGroupHead(group: ChipGroup): HTMLElement {
+    const { node } = group;
+    return el(
+      "button",
+      {
+        "aria-label": `Go to ${group.subject}`,
+        class: cls("save-group-head"),
+        "data-pop-item": "",
+        "data-tip": node ? "Select it on the page" : group.subject,
+        disabled: node ? undefined : "",
+        onClick: () => this.goToChange(node),
+        type: "button",
+      },
+      [
+        el("span", { class: cls("save-group-name"), text: group.subject }),
+        ...(node ? [icon("tool-inspect", "xs")] : []),
+      ]
+    );
+  }
+
+  /** One change: what, from → to, and its ✕. A click on it goes to the element. */
+  private saveChangeRow(chip: ChangeChip): HTMLElement {
+    const values = chip.value
+      ? [
+          ...(chip.from && chip.from !== chip.value
+            ? [
+                el("span", { class: cls("save-from"), text: chip.from }),
+                el("span", { class: cls("save-arrow"), text: "→" }),
+              ]
+            : []),
+          el("span", { class: cls("save-to"), text: chip.value }),
+        ]
+      : [];
+    return el("div", { class: cls("save-row"), "data-tip": chip.tip }, [
+      el(
+        "button",
+        {
+          "aria-label": `Go to ${chip.subject}, ${chip.detail ?? "change"}`,
+          class: cls("save-row-main"),
+          "data-pop-item": "",
+          onClick: () => this.goToChange(chip.node),
+          type: "button",
+        },
+        [
+          el("span", {
+            class: cls("save-row-detail"),
+            text: humanizeDetail(chip.detail ?? "Change"),
+          }),
+          el("span", { class: cls("save-row-values") }, values),
+        ]
+      ),
+      el(
+        "button",
+        {
+          "aria-label": `Discard ${chip.subject} ${chip.detail ?? ""}`.trim(),
+          class: cls("save-row-x"),
+          "data-pop-item": "",
+          "data-tip": "Discard this change",
+          onClick: () => chip.onRemove(),
+          type: "button",
+        },
+        [icon("close", "xs")]
+      ),
+    ]);
+  }
+
+  /**
+   * Select the element a pending change is on, and bring it on screen.
+   *
+   * The menu stays open, so you can step through the changes one by one.
+   */
+  private goToChange(node: Element | undefined): void {
+    if (!node?.isConnected) {
+      toast("That element is not on the page right now");
+      return;
+    }
+    if (this.selected?.node === node) {
+      this.revealSelected(node);
+      return;
+    }
+    this.pendingReveal = node;
+    this.controller.select(node, undefined, "replace");
+  }
+
+  /** The canvas pans to it; the inline page scrolls to it. */
+  private revealSelected(node: Element): void {
+    this.stage.reveal?.(node);
+    if (this.stage.revealSelection) {
+      this.stage.revealSelection();
+      return;
+    }
+    node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   /** One chip per pending style declaration. */
   private styleChips(): ChangeChip[] {
     const chips: ChangeChip[] = [];
@@ -3719,6 +4852,8 @@ export class AirshipApp {
         const suffix = where ? ` ${where}` : "";
         chips.push({
           detail: c.property,
+          from: shortValue(c.from),
+          node: entry.node,
           // No glyph. `settings` said "a style change" on every one of these,
           // which is the one thing a strip of style chips does not need told
           // twelve times — and it cost 26px of the rail each time.
@@ -3745,6 +4880,7 @@ export class AirshipApp {
       chips.push({
         detail: "moved",
         icon: "drag",
+        node: entry.node,
         onRemove: () => this.panel.discardOneMove(entry.node),
         subject: chipLabel(entry.element),
         tip: `${chipLabel(entry.element)} · moved in the tree`,
@@ -3755,6 +4891,7 @@ export class AirshipApp {
       chips.push({
         detail: verb,
         icon: entry.op === "delete" ? "minus" : "plus",
+        node: entry.node,
         onRemove: () => this.panel.discardOneStructure(entry.node, entry),
         subject: chipLabel(entry.element),
         tip: `${chipLabel(entry.element)} · ${verb}`,
@@ -3764,7 +4901,9 @@ export class AirshipApp {
       const label = chipLabel(entry.element);
       chips.push({
         detail: "text",
+        from: `“${shortValue(entry.from)}”`,
         icon: "layer-text",
+        node: entry.node,
         onRemove: () => this.panel.discardOneText(entry.node),
         subject: label,
         tip: `${label} · text: ${JSON.stringify(entry.from)} → ${JSON.stringify(entry.to)}`,
@@ -3782,7 +4921,9 @@ export class AirshipApp {
       const shown = entry.to === null ? "removed" : shortValue(entry.to);
       chips.push({
         detail: entry.attribute,
+        from: entry.from === null ? undefined : shortValue(entry.from),
         icon: "insert",
+        node: entry.node,
         onRemove: () => this.panel.discardOneAttr(entry.node, entry.attribute),
         subject: label,
         tip: `${label} · ${entry.attribute}: ${entry.from ?? "(unset)"} → ${
@@ -3823,6 +4964,7 @@ export class AirshipApp {
     // `extract` that resolves after a deselect is exactly the case the
     // generation guard in `select` drops — so nothing would ever consume it.
     this.pendingTextEdit = null;
+    this.dropPendingImageAction();
     this.controller.clearSelection();
     this.panel.setSelection(null);
     this.renderComposerChips();
@@ -3830,19 +4972,83 @@ export class AirshipApp {
 
   // -- Images ----------------------------------------------------------------
 
+  /**
+   * Files dropped on the composer attach to the next turn. `dragover` has to
+   * be cancelled for the drop to be allowed at all, and only for real files,
+   * so dragging a layer or a chip over the box does not light it.
+   */
+  private armFileDrop(target: HTMLElement): void {
+    const hasFiles = (e: DragEvent): boolean =>
+      Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    target.addEventListener("dragover", (e) => {
+      if (!hasFiles(e)) {
+        return;
+      }
+      e.preventDefault();
+      target.dataset.drop = "";
+    });
+    target.addEventListener("dragleave", (e) => {
+      if (!target.contains(e.relatedTarget as Node | null)) {
+        delete target.dataset.drop;
+      }
+    });
+    target.addEventListener("drop", (e) => {
+      delete target.dataset.drop;
+      if (!hasFiles(e)) {
+        return;
+      }
+      e.preventDefault();
+      this.attachFiles(Array.from(e.dataTransfer?.files ?? []));
+    });
+  }
+
   private onPaste(e: ClipboardEvent): void {
-    const items = e.clipboardData?.items;
-    if (!items) {
+    const files = Array.from(e.clipboardData?.files ?? []);
+    if (files.length === 0) {
       return;
     }
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
-          this.addImage(file);
-        }
+    // Only files: pasted text still lands in the field as text.
+    e.preventDefault();
+    this.attachFiles(files);
+  }
+
+  /**
+   * Take files from the attach button, a drop or a paste. Images go to the
+   * agent as images; text and code go in the prompt; anything else is named
+   * back in a toast rather than silently dropped.
+   */
+  private attachFiles(files: File[]): void {
+    const refused: string[] = [];
+    for (const file of files) {
+      if (file.type.startsWith("image/")) {
+        this.addImage(file);
+      } else if (isTextFile(file) && file.size <= MAX_TEXT_ATTACHMENT) {
+        this.addTextFile(file);
+      } else {
+        refused.push(file.name);
       }
     }
+    if (refused.length > 0) {
+      toast(`Can't attach ${refused.join(", ")}. Images and text files only`, {
+        icon: "attention",
+      });
+    }
+    this.showChat();
+    this.input.focus();
+  }
+
+  private async addTextFile(file: File): Promise<void> {
+    this.files.push({ name: file.name, text: await file.text() });
+    this.renderChips();
+    this.schedulePreview();
+  }
+
+  /** The typed prompt, with any attached text files appended. */
+  private promptText(): string {
+    const blocks = this.files.map(
+      (f) => `Attached file \`${f.name}\`:\n\`\`\`\n${f.text}\n\`\`\``
+    );
+    return [this.input.value, ...blocks].filter(Boolean).join("\n\n");
   }
 
   private async addImage(file: File): Promise<void> {
@@ -3880,6 +5086,28 @@ export class AirshipApp {
               onClick: () => {
                 this.images.splice(i, 1);
                 this.renderChips();
+              },
+              type: "button",
+            },
+            [icon("close", "sm")]
+          ),
+        ])
+      );
+    });
+    this.files.forEach((file, i) => {
+      this.chipsEl.append(
+        el("span", { class: cls("chip") }, [
+          icon("doc-plus", "sm"),
+          el("span", { text: file.name }),
+          el(
+            "button",
+            {
+              "aria-label": `Remove ${file.name}`,
+              class: cls("chip-x"),
+              onClick: () => {
+                this.files.splice(i, 1);
+                this.renderChips();
+                this.schedulePreview();
               },
               type: "button",
             },
@@ -3945,6 +5173,7 @@ export class AirshipApp {
     this.setPreview(false);
     this.input.value = "";
     this.images = [];
+    this.files = [];
     this.commentSet.clear();
     this.renderChips();
     this.renderComposerChips();
@@ -3964,7 +5193,7 @@ export class AirshipApp {
       model: this.models[this.agent],
       moveSet: this.moveSet,
       parentJobId: this.parentJobId,
-      prompt: this.input.value,
+      prompt: this.promptText(),
       selected: this.selected,
       structureSet: this.structureSet,
     });
@@ -4006,15 +5235,18 @@ export class AirshipApp {
    * the tooltip, where there is room for it.
    */
   private buildAgentButton(): HTMLElement {
-    this.agentBtn = this.iconButton("claude", "Agent", () =>
-      this.openAgentMenu()
-    );
+    this.agentBtn = el("button", {
+      class: cls("model-btn"),
+      onClick: () => this.openAgentMenu(),
+      type: "button",
+    });
     // `iconButton` does not set these — most header buttons run an action
     // rather than open anything. This one opens a menu, and after growing a
     // second level it is the header's most complex control, so a screen reader
     // has to be told that and told when it is open. `buildSurfaceToggle` is the
     // same shape; `aria-expanded` is driven from `openAgentMenu`'s `onClose`.
     this.agentBtn.setAttribute("aria-haspopup", "menu");
+    this.agentBtn.classList.add(cls("has-caret"));
     this.agentBtn.setAttribute("aria-expanded", "false");
     this.syncAgentButton();
     return this.agentBtn;
@@ -4101,7 +5333,13 @@ export class AirshipApp {
     );
     // Rebuilt rather than swapped: `icon()` owns the svg markup, and reaching
     // into it to retarget a path would duplicate that knowledge here.
-    this.agentBtn.replaceChildren(icon(active.icon, "sm"));
+    this.agentBtn.replaceChildren(
+      icon(active.icon, "sm"),
+      el("span", {
+        class: cls("model-btn-label"),
+        text: model === "default" ? active.label : model,
+      })
+    );
     this.agentBtn.setAttribute("data-tip", `${active.label} · ${model}`);
     this.agentBtn.setAttribute(
       "aria-label",
@@ -4258,6 +5496,12 @@ export class AirshipApp {
         if (!this.modelRestored) {
           this.setAgent(ev.defaultAgent);
         }
+        this.runningJobs = new Set(
+          ev.jobs
+            .filter((job) => job.status === "running")
+            .map((job) => job.jobId)
+        );
+        desktopHost()?.jobState?.(this.runningJobs.size > 0);
         // The snapshot is the only thing that can tell us a turn ended while we
         // were not listening — see `reconcileAwaiting`.
         this.reconcileAwaiting(ev.jobs);
@@ -4274,6 +5518,8 @@ export class AirshipApp {
         this.gitHealth = ev.health;
         break;
       case "job:created":
+        this.runningJobs.add(ev.job.jobId);
+        desktopHost()?.jobState?.(true);
         if (this.awaiting && !this.activeJobId) {
           this.activeJobId = ev.job.jobId;
         }
@@ -4299,6 +5545,8 @@ export class AirshipApp {
       case "job:todos":
         break;
       case "job:done":
+        this.runningJobs.delete(ev.jobId);
+        desktopHost()?.jobState?.(this.runningJobs.size > 0);
         if (ev.jobId === this.activeJobId) {
           this.onDone(ev.bundle);
         }
@@ -4311,6 +5559,9 @@ export class AirshipApp {
         // what `refresh()` here could not do: it re-seeds unless the element's
         // shape changed, and badges are decided at render time.
         setStaticTokens(ev.scan);
+        break;
+      case "token:write:result":
+        this.variablesPanel?.onWriteResult(ev);
         break;
       case "models:result":
         this.catalogue = ev.catalogue;
@@ -4480,6 +5731,8 @@ export class AirshipApp {
 
   private assistantActions(bundle: JobDiffBundle): AssistantActions {
     const canRevert = bundle.status === "done" && bundle.diffs.length > 0;
+    // Inside the desktop app, Upload in the top bar does commit and push.
+    const canCommit = canRevert && !desktopHost()?.hostsGit;
     return {
       git: this.gitHealth,
       onBranch:
@@ -4487,11 +5740,11 @@ export class AirshipApp {
       onComment: canRevert
         ? (file, body) => this.startComment(bundle.jobId, file, body)
         : undefined,
-      onCommit: canRevert
+      onCommit: canCommit
         ? (push: boolean) => this.commit(bundle.jobId, push)
         : undefined,
       onCopyPath: canRevert ? (file) => this.copyPath(file) : undefined,
-      onCreatePr: canRevert ? () => this.createPr(bundle.jobId) : undefined,
+      onCreatePr: canCommit ? () => this.createPr(bundle.jobId) : undefined,
       onFollowUp: (text) => this.useFollowUp(text),
       onOpenIn: canRevert
         ? (editor, file, line) => this.openIn(editor, file, line)
@@ -4522,8 +5775,9 @@ export class AirshipApp {
 
   private useFollowUp(text: string): void {
     this.input.value = text;
-    // setLeft → afterDockToggle re-grows the field for the new value.
-    this.setLeft(true);
+    // showChat → afterDockToggle re-grows the field for the new value.
+    this.showChat();
+    this.autoGrow();
     this.input.focus();
   }
 
@@ -4531,7 +5785,7 @@ export class AirshipApp {
   private branch(jobId: string): void {
     this.parentJobId = jobId;
     this.forkNext = true;
-    this.setLeft(true);
+    this.showChat();
     toast("Branching. Type a new instruction", { icon: "version-branch" });
     this.input.focus();
   }
@@ -4573,7 +5827,7 @@ export class AirshipApp {
           snippet: range?.text ?? "",
           toLine: range?.to,
         });
-        this.setLeft(true);
+        this.showChat();
         this.renderComposerChips();
         toast("Comment added. Send to apply", { icon: "tool-comment" });
       }
@@ -4765,7 +6019,7 @@ export class AirshipApp {
   private loadThread(rootJobId: string): void {
     this.socket.send({ rootJobId, type: "thread" });
     this.closeHistory();
-    this.setLeft(true);
+    this.showChat();
   }
 
   private onThread(rootJobId: string, entries: JobDiffBundle[]): void {
@@ -4951,6 +6205,45 @@ function floatHeight(
  * out of step, which is the sort of thing that shows up as a panel that will not
  * quite reach the bottom of the window.
  */
+/** How near its own window edge a panel's outer edge must come to dock there. */
+const DOCK_SNAP = 32;
+/** How near a floating panel's edge must come to a guide to stick to it. */
+const EDGE_SNAP = 8;
+/** An ease-out close to `--ap-motion-ease-out`: most of the move up front. */
+const EASE_OUT = "cubic-bezier(0.2, 0, 0, 1)";
+
+const reducedMotion = (): boolean =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+/**
+ * Would a panel dropped at `x` go back on its own edge?
+ *
+ * Measured from the panel's outer edge, not the pointer, so a wide panel does
+ * not have to be dragged half off screen before it offers to dock.
+ */
+export function inDockZone(
+  side: Side,
+  x: number,
+  w: number,
+  viewportW: number
+): boolean {
+  return side === "left" ? x <= DOCK_SNAP : viewportW - (x + w) <= DOCK_SNAP;
+}
+
+/** Pull a value onto the nearest guide within `EDGE_SNAP`, else leave it. */
+export function snapTo(value: number, guides: readonly number[]): number {
+  let best = value;
+  let gap = EDGE_SNAP;
+  for (const g of guides) {
+    const d = Math.abs(g - value);
+    if (d <= gap) {
+      best = g;
+      gap = d;
+    }
+  }
+  return best;
+}
+
 export function clampHeight(
   h: number,
   top = DOCK_INSET,

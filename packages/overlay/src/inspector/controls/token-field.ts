@@ -13,7 +13,47 @@ import { cls, el } from "../../dom";
 import { icon } from "../../icons";
 import { openPopover } from "../../popover-host";
 import { hasTokensFor, tokensForPicker } from "../../tokens/match";
-import { tokenValue } from "../../tokens/registry";
+import { tokens, tokenValue } from "../../tokens/registry";
+
+/**
+ * Opens a variable for editing, set by the app once the Variables tab exists.
+ * A module-level seam rather than another option on every badge, because the
+ * badge is built from a dozen places and only the app knows where the tab is.
+ */
+let editVariable: ((name: string) => void) | null = null;
+
+/** Register (or clear) what the badge's hover edit button does. */
+export function setTokenEditHandler(
+  handler: ((name: string) => void) | null
+): void {
+  editVariable = handler;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** A broken chain link: "detach from the variable". Not in the icon set yet. */
+function detachGlyph(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.6");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of [
+    "M9 17H7a5 5 0 0 1 0-10h2",
+    "M15 7h2a5 5 0 0 1 4 8",
+    "M8 12h3",
+    "M3 3l18 18",
+  ]) {
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
 
 export interface TokenBadgeOptions {
   /** The token currently providing this value, if any. */
@@ -76,8 +116,57 @@ export function createTokenBadge(opts: TokenBadgeOptions): HTMLElement | null {
    * the 17px it was taking from the field it annotates.
    */
   badge.append(icon("var-apply", "xs"));
-  bindPicker(badge, opts);
-  return badge;
+  if (!(linked && opts.current)) {
+    bindPicker(badge, opts);
+    return badge;
+  }
+  return withHoverActions(badge, opts.current.name, opts);
+}
+
+/**
+ * A bound badge with edit and detach beside it, shown on hover.
+ *
+ * The wrapper takes the picker's click, so a caller's `element.click()` still
+ * opens the list; the two actions stop their own clicks from reaching it.
+ */
+function withHoverActions(
+  badge: HTMLElement,
+  name: string,
+  opts: TokenBadgeOptions
+): HTMLElement {
+  const wrap = el("span", { class: cls("token-acts") });
+  // Callers read the linked state off whatever element they were given.
+  wrap.dataset.on = "";
+  const action = (
+    label: string,
+    glyph: Element,
+    run: () => void
+  ): HTMLElement => {
+    const button = el("button", {
+      "aria-label": label,
+      class: `${cls("row-icon")} ${cls("token-act")}`,
+      "data-tip": label,
+      type: "button",
+    });
+    button.append(glyph);
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      run();
+    });
+    return button;
+  };
+  const token = tokens().byName[name];
+  // Only a variable the scan found in a file can be edited in place.
+  if (editVariable && token?.kind === "css-var" && token.file) {
+    const open = editVariable;
+    wrap.append(
+      action(`Edit ${shortName(name)}`, icon("pencil", "xs"), () => open(name))
+    );
+  }
+  wrap.append(action("Detach variable", detachGlyph(), opts.onUnlink), badge);
+  bindPicker(wrap, opts);
+  return wrap;
 }
 
 /** The picker, opened from whichever affordance the control is wearing. */

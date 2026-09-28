@@ -82,6 +82,8 @@ const MIN_SAFE_W = 320;
 
 /** What the floating docks are covering, in CSS pixels. */
 export interface SafeInset {
+  /** Breathing room included in `left`/`right` when that side has a dock. */
+  gutter?: number;
   left: number;
   right: number;
 }
@@ -89,6 +91,12 @@ export interface SafeInset {
 const NO_INSET: SafeInset = { left: 0, right: 0 };
 
 export interface CanvasViewportDeps {
+  /**
+   * Correct every viewport before it is applied. The Inline view pins one page
+   * between the docks at 100%, so it holds the scale and the x and only lets
+   * the y move within the page. Omitted on the free canvas.
+   */
+  constrain?: (vp: Viewport) => Viewport;
   /** World-space rects to fit, for shift-1. */
   getContentRects: () => Rect[];
   /**
@@ -134,6 +142,11 @@ export interface CanvasViewportDeps {
    * no `mousemove` to do the job.
    */
   onGestureEnd?: () => void;
+  /**
+   * Space held or the middle button down: the Hand is in use for as long as
+   * it lasts. Lets the bar light the Hand and put the tool back after.
+   */
+  onTransientHand?: (on: boolean) => void;
   /** Persisted per project alongside the frame layout. */
   storageKey: string;
 }
@@ -179,6 +192,10 @@ export class CanvasViewport {
 
   private vp: Viewport = { scale: 1, x: 0, y: 0 };
   private spaceDown = false;
+  /** A middle-button drag is panning. */
+  private middlePan = false;
+  /** What `onTransientHand` last said, so it only speaks on a change. */
+  private transientHand = false;
   /** The Hand tool's latch. Held here rather than in `AirshipApp` alone because
    * it is read on the hot path — see `onPointerDown`. */
   private handTool = false;
@@ -312,7 +329,8 @@ export class CanvasViewport {
   }
 
   set(vp: Viewport): void {
-    const next = { ...vp, scale: clampScale(vp.scale) };
+    const clamped = { ...vp, scale: clampScale(vp.scale) };
+    const next = this.deps.constrain?.(clamped) ?? clamped;
     if (this.gliding && !reducedMotion()) {
       this.glideTo(next);
       return;
@@ -517,6 +535,38 @@ export class CanvasViewport {
       x: vp.x + (safe.left - r.left),
       y: vp.y + (safe.top - r.top),
     };
+  }
+
+  /**
+   * Bring the selection on screen, without zooming in.
+   *
+   * "Go to this change" rather than "zoom to it": a nudge to a 12px icon
+   * should not fill the window with it. Nothing moves when it is already in
+   * view; a box that fits is centred at the working scale; one that does not
+   * is fitted, which can only zoom out.
+   */
+  revealSelection(): void {
+    const b = this.deps.getSelectionRect();
+    if (!b) {
+      return;
+    }
+    const v = this.visibleSafeRect;
+    const inView =
+      b.left >= v.left &&
+      b.top >= v.top &&
+      b.left + b.width <= v.left + v.width &&
+      b.top + b.height <= v.top + v.height;
+    if (inView) {
+      return;
+    }
+    const fits = b.width <= v.width * 0.9 && b.height <= v.height * 0.9;
+    this.glide(() => {
+      if (fits) {
+        this.centerOn({ x: b.left + b.width / 2, y: b.top + b.height / 2 });
+      } else {
+        this.fitToRect(b, 96, this.goal.scale);
+      }
+    });
   }
 
   panBy(dx: number, dy: number): void {
@@ -748,6 +798,10 @@ export class CanvasViewport {
       origin: { x: e.clientX, y: e.clientY },
       start: { x: this.vp.x, y: this.vp.y },
     };
+    if (middle) {
+      this.middlePan = true;
+      this.syncTransientHand();
+    }
     this.element.classList.add(cls("canvas-panning"));
   }
 
@@ -769,11 +823,24 @@ export class CanvasViewport {
     }
     this.panning = null;
     this.element.classList.remove(cls("canvas-panning"));
+    if (this.middlePan) {
+      this.middlePan = false;
+      this.syncTransientHand();
+    }
     // A drag-pan suppressed hover for its whole duration, and the pointer is
     // now over whatever the canvas slid under it. Same trailing edge the wheel
     // gesture has, reached by a different route.
     this.deps.onGestureEnd?.();
     this.save();
+  }
+
+  /** Tell the app whether a held key or button has the Hand out. */
+  private syncTransientHand(): void {
+    const on = this.spaceDown || this.middlePan;
+    if (on !== this.transientHand) {
+      this.transientHand = on;
+      this.deps.onTransientHand?.(on);
+    }
   }
 
   private onSpaceDown(e: KeyboardEvent): void {
@@ -792,6 +859,7 @@ export class CanvasViewport {
     }
     this.spaceDown = true;
     this.element.classList.add(cls("canvas-pannable"));
+    this.syncTransientHand();
     // Stop the space bar from scrolling the shell or activating a focused
     // button while it is acting as the pan modifier.
     e.preventDefault();
@@ -837,6 +905,7 @@ export class CanvasViewport {
       return;
     }
     this.spaceDown = false;
+    this.syncTransientHand();
     // Not an unconditional remove: space and the Hand tool both put the canvas
     // in the grab cursor, and releasing the transient one must not clear the
     // latched one.

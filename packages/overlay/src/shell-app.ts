@@ -1,15 +1,32 @@
-import type { AirshipWindowConfig } from "@airship/protocol";
+import {
+  AIRSHIP_FRAME_NAME,
+  AIRSHIP_MODE_PARAM,
+  type AirshipWindowConfig,
+  readSurfaceCookie,
+} from "@airship/protocol";
 import { AirshipApp, claimBoot, publishDestroy, type Stage } from "./app";
 import { FrameChrome } from "./canvas/frame-chrome";
-import { type Frame, FrameManager } from "./canvas/frames";
+import {
+  type Frame,
+  FrameManager,
+  type StoredFrame,
+  shownHeight,
+} from "./canvas/frames";
 import { FramesPanel } from "./canvas/frames-panel";
 import { Minimap } from "./canvas/minimap";
+import {
+  normalizePath,
+  PagesPanel,
+  type PagesPanelHooks,
+} from "./canvas/pages-panel";
 import {
   frameChain,
   frameToScreen,
   nestOffset,
   type Point,
   type Rect,
+  unionRects,
+  type Viewport,
 } from "./canvas/space";
 import { CanvasViewport, type SafeInset } from "./canvas/viewport";
 import {
@@ -21,13 +38,40 @@ import {
   type WheelRouteCtx,
 } from "./canvas/wheel";
 import { ChromeLayer } from "./chrome-layer";
-import { cls, PREFIX } from "./dom";
+import { cls, el, PREFIX } from "./dom";
 import type { FrameAgent, FrameHost, FrameWheel } from "./frame-agent";
 import { keys } from "./keys/registry";
 import type { Mods, Selection } from "./picker";
 import { isElement } from "./realm";
 import { injectStyles } from "./styles";
 import { CanvasResolver, type SurfaceResolver } from "./surface";
+
+/** How long after a page switch the canvas keeps fitting frames as they load. */
+const PAGE_FIT_MS = 2500;
+
+/** The narrowest the Inline page gets when the docks leave little room. */
+const MIN_PAGE_WIDTH = 320;
+
+/** The saved zoom per page. A bad entry is dropped, never trusted. */
+function readPageViewports(storageKey: string): Map<string, Viewport> {
+  const out = new Map<string, Viewport>();
+  try {
+    const raw = JSON.parse(localStorage.getItem(storageKey) ?? "{}");
+    for (const [path, vp] of Object.entries(raw ?? {})) {
+      const v = vp as Partial<Viewport> | null;
+      if (
+        typeof v?.x === "number" &&
+        typeof v.y === "number" &&
+        typeof v.scale === "number"
+      ) {
+        out.set(path, { scale: v.scale, x: v.x, y: v.y });
+      }
+    }
+  } catch {
+    // Unreadable or private mode: start with none remembered.
+  }
+  return out;
+}
 
 /**
  * The canvas stage: a pan/zoom surface holding device frames, each a live copy
@@ -49,19 +93,43 @@ class CanvasStage implements Stage {
   private readonly chrome: FrameChrome;
   private readonly minimap: Minimap;
   private readonly framesPanel: FramesPanel;
+  private readonly pagesPanel: PagesPanel;
   private readonly listeners: (() => void)[] = [];
   /** Subscribers to the trailing edge of a pan/zoom — see `isGesturing`. */
   private readonly gestureEndListeners: (() => void)[] = [];
+  private readonly transientHandListeners: ((on: boolean) => void)[] = [];
   /** Per frame id, one disposer per registered agent window — the frame's own
    * realm and any nested same-origin document's. Keyed two-deep so a nested
    * agent registering never tears down the root agent's subscriptions. */
   private readonly frameUnsubs = new Map<string, Map<Window, () => void>>();
+  /** The site page the frames are on, as the lead frame reports it. */
+  private page: string;
+  /** The zoom each page was left at, so going back lands where you were. */
+  private readonly pageViewports: Map<string, Viewport>;
+  private readonly pageViewportsKey: string;
+  /** Until when a new page's frames are fitted as they load; 0 when done. */
+  private fitPageUntil = 0;
   private getSelection: (() => Selection | null) | null = null;
   /** Where a press inside a live frame goes. Set by `bindFramePress`. */
   private reportFramePress:
     | ((at: Point, mods: Mods, dbl: boolean) => void)
     | null = null;
+  /** Where a finished frame move or resize is journalled. Set by
+   * `bindFrameBoxChange`. */
+  private reportFrameBox:
+    | ((before: StoredFrame, after: StoredFrame) => void)
+    | null = null;
   private editing = true;
+  /**
+   * The Inline view: one page pinned between the docks at 100%, as wide as the
+   * gap, scrolling up and down. Same stage and frames as the canvas, so every
+   * editing tool works the same; only the camera and the frame box are held.
+   */
+  private readonly pageView: boolean;
+  /** Listeners the Inline view adds, taken off again in `destroy`. */
+  private readonly pageUnbind: (() => void)[] = [];
+  /** The Inline view's scroll bar, since the page has no scroll of its own. */
+  private pageScroll: { bar: HTMLElement; thumb: HTMLElement } | null = null;
   /** What the open docks are covering. Written by the app on every toggle and
    * splitter drag; read by the viewport whenever it has to aim at the canvas. */
   private safeInset: SafeInset = { left: 0, right: 0 };
@@ -74,8 +142,21 @@ class CanvasStage implements Stage {
   } | null = null;
 
   constructor(config: AirshipWindowConfig) {
-    const key = `${PREFIX}-canvas:${window.location.pathname}`;
+    // One canvas per site, not per page. The address follows the page the
+    // frames are on (so a reload stays there), and a key per path would hand
+    // every page its own frame layout.
+    const key = `${PREFIX}-canvas:/`;
+    this.pageView = config.surface === "inline";
+    // The Inline view keeps its own frame, so pinning it to the gap never
+    // resizes or moves the frames you arranged on the canvas.
+    const layout = this.pageView ? "page-" : "";
+    this.page = normalizePath(
+      new URL(config.pathname ?? "/", window.location.origin).pathname
+    );
+    this.pageViewportsKey = `${key}:pages`;
+    this.pageViewports = readPageViewports(this.pageViewportsKey);
     this.canvas = new CanvasViewport({
+      constrain: this.pageView ? (vp) => this.constrainPage(vp) : undefined,
       getContentRects: () => this.frames.worldRects(),
       getSafeInset: () => this.safeInset,
       getSelectionRect: () => this.selectionWorldRect(),
@@ -83,13 +164,19 @@ class CanvasStage implements Stage {
         this.offerWheelToFrame(e, point, target),
       onChange: () => this.onViewportChange(),
       onGestureEnd: () => this.emitGestureEnd(),
-      storageKey: `${key}:viewport`,
+      onTransientHand: (on) => {
+        for (const cb of this.transientHandListeners) {
+          cb(on);
+        }
+      },
+      storageKey: `${key}:${layout}viewport`,
     });
     this.frames = new FrameManager({
+      onBoxChange: (before, after) => this.reportFrameBox?.(before, after),
       onChanged: () => this.onFramesChanged(),
       onFrameReady: (frame, agent) => this.onFrameReady(frame, agent),
       pathname: config.pathname ?? "/",
-      storageKey: `${key}:frames`,
+      storageKey: `${key}:${layout}frames`,
       world: this.canvas.world,
     });
     this.minimap = new Minimap({
@@ -100,6 +187,7 @@ class CanvasStage implements Stage {
       frames: this.frames,
       viewport: this.canvas,
     });
+    this.pagesPanel = new PagesPanel({ frames: this.frames });
     this.chrome = new FrameChrome({
       frames: this.frames,
       inCanvas: (point) => this.canvas.contains(point),
@@ -317,11 +405,17 @@ class CanvasStage implements Stage {
 
   /** `F` opens the canvas's own add-frame menu — the `+` button's shortcut. */
   addFrame(): void {
+    if (this.pageView) {
+      return;
+    }
     this.chrome.openAddMenu();
   }
 
   /** The bar's view-mode slot for the selected frame's verbs. */
   mountFrameTools(host: HTMLElement): void {
+    if (this.pageView) {
+      return;
+    }
     this.chrome.mountFrameTools(host);
   }
 
@@ -331,6 +425,24 @@ class CanvasStage implements Stage {
     this.framesPanel.render();
   }
 
+  /** The left dock's Pages tab. */
+  mountPagesPanel(host: HTMLElement): void {
+    host.append(this.pagesPanel.element);
+    this.pagesPanel.render();
+  }
+
+  renderPages(): void {
+    this.pagesPanel.render();
+  }
+
+  revealSelection(): void {
+    this.canvas.revealSelection();
+  }
+
+  setPagesHooks(hooks: PagesPanelHooks): void {
+    this.pagesPanel.setHooks(hooks);
+  }
+
   /** The bottom-right corner. */
   mountMinimap(host: HTMLElement): void {
     this.minimap.mount(host);
@@ -338,6 +450,16 @@ class CanvasStage implements Stage {
 
   bindFramePress(report: (at: Point, mods: Mods, dbl: boolean) => void): void {
     this.reportFramePress = report;
+  }
+
+  bindFrameBoxChange(
+    report: (before: StoredFrame, after: StoredFrame) => void
+  ): void {
+    this.reportFrameBox = report;
+  }
+
+  setFrameBox(box: StoredFrame): void {
+    this.frames.setBox(box);
   }
 
   /**
@@ -397,6 +519,10 @@ class CanvasStage implements Stage {
     };
     document.body.append(this.canvas.element);
     this.layer.mount(document.body);
+    if (this.pageView) {
+      this.mountPage();
+      return;
+    }
     this.chrome.mount(tools);
 
     // Read the saved viewport *before* touching frames. Adding a frame fires
@@ -413,9 +539,153 @@ class CanvasStage implements Stage {
     if (!hadViewport) {
       this.fitOnceSized();
     }
-    this.frames.setEditing(this.editing);
-    this.chrome.setEditing(this.editing);
+    // The canvas is edit mode's surface only now (view mode shows one page on
+    // its own, see `setEditing`), so frames stay inert behind their capture
+    // planes and the frame furniture stays live for good.
+    this.frames.setEditing(true);
+    this.chrome.setEditing(false);
     this.relayout();
+  }
+
+  /**
+   * The Inline view's half of `mount`: one frame, no frame furniture, no saved
+   * camera. The camera is whatever `constrainPage` allows, which is the page
+   * at 100% between the docks, scrolled somewhere between its top and bottom.
+   */
+  private mountPage(): void {
+    if (!this.frames.restore()) {
+      this.frames.add({ presetId: "desktop", x: 0, y: 0 });
+    }
+    for (const extra of this.frames.all.slice(1)) {
+      this.frames.remove(extra.id);
+    }
+    this.frames.setEditing(true);
+    this.mountPageScroll();
+    const relayout = (): void => this.layoutPage();
+    window.addEventListener("resize", relayout);
+    document.addEventListener("visibilitychange", relayout);
+    this.pageUnbind.push(() => {
+      window.removeEventListener("resize", relayout);
+      document.removeEventListener("visibilitychange", relayout);
+    });
+    this.layoutPage();
+    this.relayout();
+  }
+
+  /** The screen x range the Inline page fills: between the docked panels. */
+  private pageSpan(): { left: number; width: number } {
+    const { gutter = 0, left, right } = this.safeInset;
+    const start = left > 0 ? left - gutter : 0;
+    const end = right > 0 ? right - gutter : 0;
+    const { width } = this.canvas.rect;
+    return {
+      left: start,
+      width: Math.max(MIN_PAGE_WIDTH, width - start - end),
+    };
+  }
+
+  /**
+   * Size the Inline page to the gap: as wide as the room between the docks and
+   * one window tall, so the site lays itself out for that width the way a
+   * browser window of that size would. Dragging a dock resizes the page; it
+   * never scales it.
+   */
+  private layoutPage(): void {
+    const [frame] = this.frames.all;
+    const { height } = this.canvas.rect;
+    if (!frame || height < 1) {
+      return;
+    }
+    const { width } = this.pageSpan();
+    if (frame.x !== 0 || frame.y !== 0) {
+      this.frames.move(frame.id, 0, 0);
+    }
+    if (
+      frame.width !== Math.round(width) ||
+      frame.height !== Math.round(height)
+    ) {
+      this.frames.resize(frame.id, width, height);
+    }
+    this.canvas.set(this.canvas.viewport);
+  }
+
+  /** Hold the Inline camera at 100%, on the gap, within the page's height. */
+  private constrainPage(vp: Viewport): Viewport {
+    const [frame] = this.frames.all;
+    if (!frame) {
+      return vp;
+    }
+    const { height } = this.canvas.rect;
+    const top = -frame.y;
+    const bottom = Math.min(top, height - shownHeight(frame) - frame.y);
+    return {
+      scale: 1,
+      x: this.pageSpan().left - frame.x,
+      y: Math.min(top, Math.max(bottom, vp.y)),
+    };
+  }
+
+  /**
+   * A scroll bar for the Inline page. The page is drawn as tall as it is and
+   * the camera moves over it, so nothing native shows how far down you are.
+   * The thumb can be dragged; the wheel works as it does anywhere on the canvas.
+   */
+  private mountPageScroll(): void {
+    const thumb = el("div", { class: cls("page-scroll-thumb") });
+    // Marked as editor chrome, so a press on it never selects the page below.
+    const bar = el("div", { class: `${cls("layer")} ${cls("page-scroll")}` }, [
+      thumb,
+    ]);
+    thumb.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      thumb.setPointerCapture(e.pointerId);
+      const startY = e.clientY;
+      const startCamera = this.canvas.viewport.y;
+      const [frame] = this.frames.all;
+      const { height } = this.canvas.rect;
+      const ratio = frame && height > 0 ? shownHeight(frame) / height : 1;
+      const move = (ev: PointerEvent): void => {
+        this.canvas.set({
+          ...this.canvas.viewport,
+          y: startCamera - (ev.clientY - startY) * ratio,
+        });
+      };
+      const end = (): void => {
+        thumb.removeEventListener("pointermove", move);
+        thumb.removeEventListener("pointerup", end);
+        thumb.removeEventListener("pointercancel", end);
+        this.canvas.save();
+      };
+      thumb.addEventListener("pointermove", move);
+      thumb.addEventListener("pointerup", end);
+      thumb.addEventListener("pointercancel", end);
+    });
+    this.layer.add(bar);
+    this.pageScroll = { bar, thumb };
+  }
+
+  private syncPageScroll(): void {
+    const scroll = this.pageScroll;
+    const [frame] = this.frames.all;
+    if (!(scroll && frame)) {
+      return;
+    }
+    const { height, width } = this.canvas.rect;
+    const page = shownHeight(frame);
+    const { left, width: span } = this.pageSpan();
+    scroll.bar.style.right = `${Math.max(0, width - left - span)}px`;
+    const scrolls = page > height + 1;
+    scroll.bar.classList.toggle(cls("hidden"), !scrolls);
+    if (!scrolls) {
+      return;
+    }
+    const thumbHeight = Math.max(32, (height * height) / page);
+    const travel = height - thumbHeight;
+    const scrolled = -this.canvas.viewport.y - frame.y;
+    const at = travel * (scrolled / (page - height));
+    scroll.thumb.style.height = `${thumbHeight}px`;
+    scroll.thumb.style.transform = `translateY(${at}px)`;
   }
 
   /**
@@ -471,28 +741,86 @@ class CanvasStage implements Stage {
 
   setSafeInset(inset: SafeInset): void {
     this.safeInset = inset;
+    if (this.pageView) {
+      this.layoutPage();
+    }
+  }
+
+  /** Space or the middle button has the Hand out, or has put it away. */
+  onTransientHand(cb: (on: boolean) => void): void {
+    this.transientHandListeners.push(cb);
   }
 
   setHandTool(on: boolean): void {
     this.canvas.setHandTool(on);
   }
 
+  setLive(on: boolean): void {
+    this.frames.setLive(on);
+  }
+
+  reveal(node: Element): void {
+    const win = node.ownerDocument.defaultView;
+    const frame = win ? this.frames.frameOfWindow(win) : null;
+    const agent = win ? frame?.agents.get(win) : undefined;
+    try {
+      agent?.reveal?.(node);
+    } catch {
+      // The realm died mid-call (a reload). Nothing to reveal.
+    }
+  }
+
+  /**
+   * View mode is not the canvas. It shows one page on its own, filling the
+   * window like the real site, in a fresh frame loaded at the selected (or
+   * first) frame's current address. The canvas and its frames stay as they
+   * were underneath, hidden, so going back to Edit is instant.
+   */
   setEditing(on: boolean): void {
     this.editing = on;
     // A latched scroll must not survive into a mode where frames are inert.
     this.dropFrameGesture();
-    // Two things change, in opposite directions. The frames themselves go inert
-    // behind their capture planes in edit mode and live in view mode; the
-    // furniture *around* them goes the other way — interactive in view mode,
-    // visible but inert in edit. See the note above `FrameChrome.setEditing`.
-    this.frames.setEditing(on);
-    this.chrome.setEditing(on);
-    if (!on) {
-      // Coming into view mode, both have been ignoring every change since the
-      // last time they were on screen and are showing a stale canvas.
-      this.minimap.render();
-      this.framesPanel.render();
+    if (on) {
+      this.closeViewFrame();
+    } else {
+      this.openViewFrame();
     }
+  }
+
+  private viewFrame: HTMLIFrameElement | null = null;
+
+  private openViewFrame(): void {
+    this.closeViewFrame();
+    const frame = this.frames.active ?? this.frames.all[0];
+    if (!frame) {
+      return;
+    }
+    let { src } = frame.iframe;
+    try {
+      src = frame.win?.location.href ?? src;
+    } catch {
+      // A realm mid-reload; the frame's own src is the same page.
+    }
+    // Client-side navigation can drop the frame marker from the address, and
+    // the proxy needs it to serve the app rather than a second shell.
+    const url = new URL(src, window.location.href);
+    url.searchParams.set(AIRSHIP_MODE_PARAM, "frame");
+    src = url.href;
+    // Same-origin and named like a frame, so the proxy serves the app with only
+    // the frame agent in it. The agent registers with the canvas and is ignored
+    // there, since this iframe belongs to no frame.
+    this.viewFrame = document.createElement("iframe");
+    this.viewFrame.name = `${AIRSHIP_FRAME_NAME}view`;
+    this.viewFrame.className = cls("view-frame");
+    this.viewFrame.allow = "clipboard-read; clipboard-write; fullscreen";
+    this.viewFrame.title = frame.name;
+    this.viewFrame.src = src;
+    document.body.append(this.viewFrame);
+  }
+
+  private closeViewFrame(): void {
+    this.viewFrame?.remove();
+    this.viewFrame = null;
   }
 
   relayout(): void {
@@ -526,6 +854,12 @@ class CanvasStage implements Stage {
    * gone would be pruning an empty list.
    */
   destroy(): void {
+    this.closeViewFrame();
+    for (const off of this.pageUnbind.splice(0)) {
+      off();
+    }
+    this.pageScroll?.bar.remove();
+    this.pageScroll = null;
     for (const byWindow of this.frameUnsubs.values()) {
       for (const off of byWindow.values()) {
         off();
@@ -534,6 +868,7 @@ class CanvasStage implements Stage {
     this.frameUnsubs.clear();
     this.listeners.length = 0;
     this.gestureEndListeners.length = 0;
+    this.transientHandListeners.length = 0;
     this.chrome.destroy();
     this.framesPanel.destroy();
     this.minimap.destroy();
@@ -549,17 +884,25 @@ class CanvasStage implements Stage {
   // -- Internals -------------------------------------------------------------
 
   private onViewportChange(): void {
+    this.syncPageScroll();
     this.frames.updateMounts(this.canvas.rect);
     this.chrome.render();
     this.notify();
   }
 
   private onFramesChanged(): void {
+    if (this.pageView) {
+      // The page grew or shrank as it loaded: keep the camera inside it.
+      this.canvas.set(this.canvas.viewport);
+      this.syncPageScroll();
+    }
     this.pruneFrameUnsubs();
     this.frames.updateMounts(this.canvas.rect);
     this.chrome.render();
     this.notify();
     this.save();
+    // A new page's frames grow to its height as it loads.
+    this.fitPageSoon();
   }
 
   /**
@@ -651,6 +994,11 @@ class CanvasStage implements Stage {
       byWindow = new Map();
       this.frameUnsubs.set(frame.id, byWindow);
     }
+    // A page finished loading: its links may name pages not listed yet.
+    this.pagesPanel.render();
+    if (agent.window === frame.win) {
+      this.onFramePage(frame);
+    }
     const offLayout = agent.onLayoutChange(() => this.notify());
     // The agent's own document, not `frame.doc`: for a nested agent that is
     // the nested document, which is exactly where shortcuts would otherwise
@@ -684,7 +1032,107 @@ class CanvasStage implements Stage {
     }
   }
 
+  /**
+   * A frame's root page loaded. When the lead frame (the selected one, else the
+   * first) is on a new page, the canvas follows it: the address changes so a
+   * reload opens this page, and the zoom is fitted to the new page's frames,
+   * or put back where it was if you have been on this page before.
+   */
+  private onFramePage(frame: Frame): void {
+    let location: Location | null = null;
+    try {
+      location = frame.win?.location ?? null;
+    } catch {
+      // A realm mid-reload; its successor registers too.
+    }
+    if (!location) {
+      return;
+    }
+    const path = normalizePath(location.pathname);
+    const lead = this.frames.active ?? this.frames.all[0];
+    if (frame === lead) {
+      this.syncAddress(location);
+      if (path !== this.page) {
+        this.switchPage(path);
+        return;
+      }
+    }
+    if (path === this.page) {
+      this.fitPageSoon();
+    }
+  }
+
+  private switchPage(path: string): void {
+    this.pageViewports.set(this.page, { ...this.canvas.viewport });
+    try {
+      localStorage.setItem(
+        this.pageViewportsKey,
+        JSON.stringify(Object.fromEntries(this.pageViewports))
+      );
+    } catch {
+      // Private mode: the zooms are still remembered until a reload.
+    }
+    this.page = path;
+    if (this.pageView) {
+      // A new page opens at its top, the way a browser does.
+      this.canvas.set({ ...this.canvas.viewport, y: Number.MAX_SAFE_INTEGER });
+      return;
+    }
+    const before = this.pageViewports.get(path);
+    if (before) {
+      this.fitPageUntil = 0;
+      this.canvas.set(before);
+      this.canvas.save();
+      return;
+    }
+    this.fitPageUntil = performance.now() + PAGE_FIT_MS;
+    this.fitPageSoon();
+  }
+
+  /** Fit the frames while a new page is still loading into them. */
+  private fitPageSoon(): void {
+    if (performance.now() >= this.fitPageUntil) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      if (performance.now() < this.fitPageUntil) {
+        this.fitPageTop();
+      }
+    });
+  }
+
+  /**
+   * Fit every frame's width and show the top of the page. Each frame is as
+   * tall as its whole page, so fitting the height too would shrink a long
+   * page to a sliver nobody can read.
+   */
+  private fitPageTop(): void {
+    const bounds = unionRects(this.frames.worldRects());
+    const safe = this.canvas.visibleSafeRect;
+    if (!bounds || safe.width <= 0) {
+      return;
+    }
+    const screenful = bounds.width * (safe.height / safe.width);
+    this.canvas.fitToRect({
+      ...bounds,
+      height: Math.min(bounds.height, screenful),
+    });
+    this.canvas.save();
+  }
+
+  /** Point the shell's own address at the frame's page, without navigating. */
+  private syncAddress(location: Location): void {
+    const url = new URL(location.href);
+    url.searchParams.delete(AIRSHIP_MODE_PARAM);
+    const next = `${url.pathname}${url.search}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(window.history.state, "", next);
+    }
+  }
+
   private emitGestureEnd(): void {
+    // A pan or zoom of your own ends the fitting of a page that is loading.
+    this.fitPageUntil = 0;
     for (const cb of this.gestureEndListeners) {
       cb();
     }
@@ -728,8 +1176,12 @@ export function bootShell(config: AirshipWindowConfig): void {
   }
   document.documentElement.setAttribute(`data-${PREFIX}-shell`, "");
   injectStyles();
-  const stage = new CanvasStage(config);
-  const app = new AirshipApp(config, stage);
+  // A server older than this bundle does not say which surface it served, so
+  // the sticky choice is read here too.
+  const surface = config.surface ?? readSurfaceCookie(document.cookie);
+  const withSurface = { ...config, surface };
+  const stage = new CanvasStage(withSurface);
+  const app = new AirshipApp(withSurface, stage);
   app.mount();
   publishDestroy(() => app.destroy());
 }

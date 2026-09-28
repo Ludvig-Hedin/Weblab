@@ -106,6 +106,15 @@ export function onTokensChange(
 let staticScan: TokenScanResult | null = null;
 let runtimeScan: TokenScanResult | null = null;
 
+/**
+ * Every variable the server found on disk, aliases and primitives alike —
+ * unlike {@link tokens}, which folds an alias into its primitive for the
+ * picker. The Variables tab lists these.
+ */
+export function fileTokens(): DesignToken[] {
+  return staticScan?.tokens ?? [];
+}
+
 /** The server's file scan arrived. */
 export function setStaticTokens(scan: TokenScanResult): void {
   staticScan = scan;

@@ -1,5 +1,6 @@
 import { cls, el } from "../../dom";
 import { type IconName, icon } from "../../icons";
+import { createMenu } from "../../popover-host";
 import { type AlignAction, planAlign } from "../align";
 import type { SectionContext } from "./context";
 
@@ -32,7 +33,45 @@ export function renderAlignRow(
     return btn;
   };
 
-  return el("div", { class: cls("align-row") }, [
+  /*
+   * Distribute and Tidy up behind one icon in the action lane, as Figma has
+   * them: they act on several layers and are used far less than the six
+   * alignments, so they do not get a third group of buttons.
+   */
+  const more = el(
+    "button",
+    {
+      "aria-expanded": "false",
+      "aria-haspopup": "menu",
+      "aria-label": "Distribute and tidy up",
+      class: cls("lane-act"),
+      "data-tip": "Distribute and tidy up",
+      type: "button",
+    },
+    [icon("distribute-h", "sm")]
+  );
+  more.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const item = (action: AlignAction, iconName: IconName, label: string) => {
+      const plan = planAlign(node, action);
+      return {
+        disabled: !plan,
+        icon: iconName,
+        label,
+        run: () => applyAlign(ctx, node, action),
+        tip: plan?.note,
+      };
+    };
+    more.setAttribute("aria-expanded", "true");
+    createMenu([
+      item("distribute-h", "distribute-h", "Distribute horizontally"),
+      item("distribute-v", "distribute-v", "Distribute vertically"),
+      item("tidy", "tidy-up", "Tidy up"),
+    ]).open(more, "below", {
+      onClose: () => more.setAttribute("aria-expanded", "false"),
+    });
+  });
+  const lane = el("div", { class: `${cls("lane")} ${cls("align-row")}` }, [
     el("div", { class: cls("align-grp") }, [
       cell("left", "align-left", "Align left"),
       cell("h-center", "align-h-center", "Align horizontal centre"),
@@ -43,11 +82,12 @@ export function renderAlignRow(
       cell("v-center", "align-v-center", "Align vertical centre"),
       cell("bottom", "align-bottom", "Align bottom"),
     ]),
-    el("div", { class: cls("align-grp") }, [
-      cell("distribute-h", "distribute-h", "Distribute horizontally"),
-      cell("distribute-v", "distribute-v", "Distribute vertically"),
-      cell("tidy", "tidy-up", "Tidy up"),
-    ]),
+    more,
+  ]);
+  lane.dataset.act = "";
+  return el("div", { class: `${cls("fgroup")} ${cls("group")}` }, [
+    el("span", { class: cls("flabel"), text: "Alignment" }),
+    lane,
   ]);
 }
 

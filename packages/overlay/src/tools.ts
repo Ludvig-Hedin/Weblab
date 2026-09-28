@@ -97,10 +97,12 @@ export class ToolController {
     return this.tool;
   }
 
+  /**
+   * Always tells the listeners, even when the tool is already active: pressing
+   * V with the Hand out is a choice to point again, and the app puts the Hand
+   * down on hearing it.
+   */
   set(tool: Tool): void {
-    if (tool === this.tool) {
-      return;
-    }
     this.tool = tool;
     for (const listener of this.listeners) {
       listener(tool);

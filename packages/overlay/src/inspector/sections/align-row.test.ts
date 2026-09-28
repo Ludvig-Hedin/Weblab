@@ -70,12 +70,26 @@ function undoSteps(history: { undo: () => boolean }): number {
   return steps;
 }
 
+/**
+ * Clicks an alignment by name. Distribute and Tidy up live in the menu behind
+ * the action-lane button, as in Figma, so those are reached through it.
+ */
 function press(root: HTMLElement, label: string): void {
   const button = root.querySelector<HTMLElement>(`[aria-label="${label}"]`);
-  if (!button) {
+  if (button) {
+    button.click();
+    return;
+  }
+  root
+    .querySelector<HTMLElement>('[aria-label="Distribute and tidy up"]')
+    ?.click();
+  const item = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+  ).find((node) => node.textContent?.includes(label));
+  if (!item) {
     throw new Error(`no "${label}" button`);
   }
-  button.click();
+  item.click();
 }
 
 describe("one click, one undo step", () => {

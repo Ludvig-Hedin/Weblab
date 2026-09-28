@@ -93,9 +93,10 @@ function scopeControl(
   deps: ScopeRowDeps
 ): HTMLElement {
   const options: EnumOption[] = levels.map((level) => ({
-    label: level.selector
-      ? `${level.label} · ${level.count} elements`
-      : level.label,
+    // The count on its own muted line under the class, so a long class name
+    // gets the full width to itself instead of pushing the count off the edge.
+    detail: level.selector ? `${level.count} elements` : undefined,
+    label: level.label,
     value: level.selector ?? THIS_ELEMENT,
   }));
   const control = createSelect(

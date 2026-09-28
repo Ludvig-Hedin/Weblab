@@ -1,10 +1,14 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  addMode,
+  createToken,
+  deleteToken,
   invalidateTokenCache,
   scanProjectTokens,
+  setTokenValue,
   tokenScanRoot,
 } from "./tokens";
 
@@ -179,5 +183,175 @@ describe("scanProjectTokens", () => {
       refresh: true,
     }).tokens.map((t) => t.name);
     expect(names).toContain("--pk-radius-md");
+  });
+});
+
+describe("setTokenValue", () => {
+  it("rewrites only the scanned declaration", () => {
+    const root = fixture({
+      ".git/HEAD": "",
+      "src/app.css":
+        ":root {\n  --brand: #111;\n  --brand-2: #222;\n}\n.dark {\n  --brand: #000;\n}\n",
+    });
+    const result = setTokenValue(root, {
+      file: "src/app.css",
+      line: 2,
+      name: "--brand",
+      value: "#ff0000",
+    });
+    expect(result).toEqual({ file: "src/app.css", ok: true });
+    expect(readFileSync(join(root, "src/app.css"), "utf8")).toBe(
+      ":root {\n  --brand: #ff0000;\n  --brand-2: #222;\n}\n.dark {\n  --brand: #000;\n}\n"
+    );
+  });
+
+  it("refuses values that would break the stylesheet", () => {
+    const root = fixture({ ".git/HEAD": "", "a.css": ":root { --x: 1px; }" });
+    const result = setTokenValue(root, {
+      file: "a.css",
+      name: "--x",
+      value: "2px; color: red",
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it("stays inside the project", () => {
+    const root = fixture({ ".git/HEAD": "", "a.css": ":root { --x: 1px; }" });
+    const result = setTokenValue(root, {
+      file: "../outside.css",
+      name: "--x",
+      value: "2px",
+    });
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("createToken", () => {
+  it("adds to the first @theme block with its indentation", () => {
+    const root = fixture({
+      ".git/HEAD": "",
+      "src/app.css":
+        '@import "tailwindcss";\n@theme {\n    --color-brand: #111;\n}\n',
+    });
+    const result = createToken(root, { name: "--color-ink", value: "#222" });
+    expect(result).toEqual({ file: "src/app.css", ok: true });
+    expect(readFileSync(join(root, "src/app.css"), "utf8")).toBe(
+      '@import "tailwindcss";\n@theme {\n    --color-ink: #222;\n    --color-brand: #111;\n}\n'
+    );
+  });
+
+  it("refuses a name that already exists", () => {
+    const root = fixture({ ".git/HEAD": "", "a.css": ":root { --x: 1px; }" });
+    expect(createToken(root, { name: "--x", value: "2px" }).ok).toBe(false);
+  });
+});
+
+describe("modes", () => {
+  it("reads themes and breakpoints as modes, not new variables", () => {
+    const root = fixture({
+      ".git/HEAD": "",
+      "src/app.css": [
+        ":root {",
+        "  --bg: #ffffff;",
+        "  --gap: 24px;",
+        "}",
+        ".dark {",
+        "  --bg: #000000;",
+        "}",
+        "@media (max-width: 767px) {",
+        "  :root {",
+        "    --gap: 12px;",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+    });
+    const { tokens } = scanProjectTokens(root, { refresh: true });
+    const bg = tokens.find((t) => t.name === "--bg");
+    const gap = tokens.find((t) => t.name === "--gap");
+    expect(tokens.filter((t) => t.name === "--bg")).toHaveLength(1);
+    expect(bg?.values[""]).toBe("#ffffff");
+    expect(bg?.modes?.dark).toMatchObject({
+      label: "Dark",
+      line: 6,
+      value: "#000000",
+    });
+    expect(gap?.modes?.["max-767px"]).toMatchObject({
+      kind: "breakpoint",
+      label: "≤ 767px",
+      value: "12px",
+    });
+  });
+
+  it("edits, adds and removes a mode's value in its own block", () => {
+    const root = fixture({
+      ".git/HEAD": "",
+      "a.css":
+        ":root {\n  --bg: #fff;\n  --fg: #111;\n}\n.dark {\n  --bg: #000;\n}\n",
+    });
+    expect(
+      setTokenValue(root, {
+        file: "a.css",
+        line: 6,
+        name: "--bg",
+        value: "#222",
+      }).ok
+    ).toBe(true);
+    expect(
+      createToken(root, {
+        afterLine: 6,
+        file: "a.css",
+        name: "--fg",
+        value: "#eee",
+      }).ok
+    ).toBe(true);
+    expect(readFileSync(join(root, "a.css"), "utf8")).toBe(
+      ":root {\n  --bg: #fff;\n  --fg: #111;\n}\n.dark {\n  --bg: #222;\n  --fg: #eee;\n}\n"
+    );
+    expect(deleteToken(root, { file: "a.css", line: 7, name: "--fg" }).ok).toBe(
+      true
+    );
+    expect(readFileSync(join(root, "a.css"), "utf8")).toBe(
+      ":root {\n  --bg: #fff;\n  --fg: #111;\n}\n.dark {\n  --bg: #222;\n}\n"
+    );
+  });
+
+  it("starts a custom-named theme", () => {
+    const root = fixture({
+      ".git/HEAD": "",
+      "a.css": ":root {\n  --bg: #fff;\n}\n",
+    });
+    expect(
+      addMode(root, {
+        mode: "custom",
+        modeName: "Brand Blue",
+        name: "--bg",
+        value: "#00f",
+      }).ok
+    ).toBe(true);
+    expect(readFileSync(join(root, "a.css"), "utf8")).toContain(
+      '[data-theme="brand-blue"] {'
+    );
+    const bg = scanProjectTokens(root, { refresh: true }).tokens.find(
+      (t) => t.name === "--bg"
+    );
+    expect(bg?.modes?.["brand-blue"]).toMatchObject({
+      label: "Brand blue",
+      value: "#00f",
+    });
+  });
+
+  it("starts a new mode with one seeded value", () => {
+    const root = fixture({
+      ".git/HEAD": "",
+      "a.css": ":root {\n  --bg: #fff;\n}\n",
+    });
+    expect(
+      addMode(root, { mode: "dark", name: "--bg", value: "#fff" }).ok
+    ).toBe(true);
+    const bg = scanProjectTokens(root, { refresh: true }).tokens.find(
+      (t) => t.name === "--bg"
+    );
+    expect(bg?.modes?.dark?.value).toBe("#fff");
   });
 });

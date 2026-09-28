@@ -148,4 +148,81 @@ export const css = `
   height: 2px; border-radius: 1px;
   background: var(--ap-primary); pointer-events: none;
 }
+
+/* ---- Pages tab: the left dock's page list, after Framer's ---------------- */
+.${PREFIX}-pg { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.${PREFIX}-pg-head {
+  flex: 0 0 auto; padding: var(--ap-space-xs) var(--ap-space-sm) var(--ap-space-xxs) var(--ap-space-md);
+  font-size: var(--ap-font-size-label); font-weight: 600; color: var(--ap-text-primary);
+  display: flex; align-items: center; justify-content: space-between; min-height: 32px;
+}
+.${PREFIX}-pg-add {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--ap-radius-xs);
+  background: transparent; color: var(--ap-icon-muted); cursor: pointer;
+}
+.${PREFIX}-pg-add:hover { background: var(--ap-surface-hover); color: var(--ap-text-primary); }
+.${PREFIX}-pg-list {
+  flex: 1; min-height: 0; padding: 0 var(--ap-space-sm) var(--ap-space-md);
+  display: flex; flex-direction: column; gap: 2px;
+}
+/* Rows keep their height and the list scrolls, rather than squashing them. */
+.${PREFIX}-pg-list > * { flex-shrink: 0; }
+.${PREFIX}-pg-row {
+  display: flex; align-items: center; gap: var(--ap-space-xs);
+  width: 100%; height: var(--ap-control-height); padding: 0 var(--ap-space-xs);
+  border: 0; border-radius: var(--ap-radius-sm); background: transparent;
+  color: var(--ap-text-secondary); font-family: var(--ap-font-sans);
+  font-size: var(--ap-font-size-label); text-align: left; cursor: pointer;
+  transition: background var(--ap-motion-dur-micro) var(--ap-motion-ease);
+}
+.${PREFIX}-pg-row:hover { background: var(--ap-surface-hover); color: var(--ap-text-primary); }
+.${PREFIX}-pg-row-on { background: var(--ap-surface-selected); color: var(--ap-text-primary); }
+.${PREFIX}-pg-row:focus-visible { outline: 2px solid var(--ap-primary); outline-offset: -2px; }
+.${PREFIX}-pg-name {
+  flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--ap-space-xs);
+  overflow: hidden; white-space: nowrap;
+}
+.${PREFIX}-pg-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* The path beside a page's title: the title is what you look for, the path
+   is what tells two "Blog" pages apart. It gives way first when space runs out. */
+.${PREFIX}-pg-path {
+  flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary);
+}
+.${PREFIX}-pg-dot {
+  flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--ap-primary);
+}
+.${PREFIX}-pg-row-broken > .${PREFIX}-ic { color: var(--ap-semantic-warning); }
+.${PREFIX}-pg-empty {
+  padding: 2px 0 2px calc(var(--ap-space-xxs) + var(--pg-depth, 0) * 16px + 16px + var(--ap-space-xxs));
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary);
+}
+.${PREFIX}-pg-draft {
+  display: flex; align-items: center; gap: var(--ap-space-xxs);
+  height: var(--ap-control-height); padding: 0 var(--ap-space-xxs) 0 calc(var(--ap-space-xxs) + 16px + var(--ap-space-xxs));
+  border-radius: var(--ap-radius-sm); background: var(--ap-input-bg);
+  color: var(--ap-text-secondary);
+}
+.${PREFIX}-pg-draft-input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-label); color: var(--ap-text-primary);
+}
+/* The tree: each level steps in by one chevron's width, and every row keeps
+   the chevron's slot so page, folder and Home icons share one column. */
+.${PREFIX}-pg-row { padding-left: calc(var(--ap-space-xxs) + var(--pg-depth, 0) * 16px); gap: var(--ap-space-xxs); }
+.${PREFIX}-pg-row > .${PREFIX}-ic { flex: 0 0 auto; }
+.${PREFIX}-pg-chev {
+  flex: 0 0 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--ap-radius-xs); color: var(--ap-icon-muted);
+}
+.${PREFIX}-pg-chev:not(:empty):hover { background: var(--ap-surface-active); color: var(--ap-text-primary); }
+.${PREFIX}-pg-count {
+  flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--ap-text-tertiary);
+  padding-right: var(--ap-space-xxs);
+}
+.${PREFIX}-pg-note {
+  margin-top: auto; padding: var(--ap-space-md) var(--ap-space-xs) 0;
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary);
+}
 `;

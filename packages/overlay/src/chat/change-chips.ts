@@ -36,8 +36,12 @@ const SCROLL_EPSILON = 1;
 export interface ChangeChip {
   /** What changed: "flex", "moved", "duplicated". */
   readonly detail?: string;
+  /** The value before the edit, where there is one. */
+  readonly from?: string;
   /** Leading glyph, where the kind is not already spoken by `detail`. */
   readonly icon?: IconName;
+  /** The element the edit is on, so a list of changes can go to it. */
+  readonly node?: Element;
   readonly onRemove: () => void;
   /** What the edit is about: "RootDocument", "Button:hover". Ellipsises first. */
   readonly subject: string;
@@ -362,4 +366,35 @@ export function attachRailKeys(rail: HTMLElement): () => void {
     off();
     mutate.disconnect();
   };
+}
+
+export interface ChipGroup {
+  chips: ChangeChip[];
+  node: Element | undefined;
+  subject: string;
+}
+
+/** Changes grouped by the element (and state) they are on, in first-seen order. */
+export function groupChips(chips: ChangeChip[]): ChipGroup[] {
+  const groups: ChipGroup[] = [];
+  for (const chip of chips) {
+    const found = groups.find(
+      (g) => g.node === chip.node && g.subject === chip.subject
+    );
+    if (found) {
+      found.chips.push(chip);
+    } else {
+      groups.push({ chips: [chip], node: chip.node, subject: chip.subject });
+    }
+  }
+  return groups;
+}
+
+/** `border-top-style` → `Border top style`; a custom property keeps its name. */
+export function humanizeDetail(detail: string): string {
+  if (detail.startsWith("--")) {
+    return detail;
+  }
+  const words = detail.replaceAll("-", " ").trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : detail;
 }

@@ -312,6 +312,8 @@ export class SelectionController {
   private lastDelta: Coordinates = { x: 0, y: 0 };
   private unbindKeys: (() => void) | null = null;
   private inspecting = false;
+  /** The Hand is out: nothing can be picked, so nothing is highlighted. */
+  private handTool = false;
   /** The node a live in-place text edit owns, or null. See `setTextOwner`. */
   private textOwner: Element | null = null;
   /** Last value written to the cursor attribute, so a move is not a DOM write. */
@@ -447,6 +449,20 @@ export class SelectionController {
    */
   setInspecting(on: boolean): void {
     this.inspecting = on;
+  }
+
+  /**
+   * The Hand is armed. A press pans, so a hover box would promise a click that
+   * can no longer select — Figma drops it for the same reason. The selection
+   * stays drawn: the Hand moves the view, not what you are working on.
+   */
+  setHandTool(on: boolean): void {
+    this.handTool = on;
+    if (on) {
+      this.clearHover();
+    } else {
+      this.repick();
+    }
   }
 
   /**
@@ -1007,7 +1023,7 @@ export class SelectionController {
   private readonly onMove = (e: MouseEvent): void => {
     this.lastPointer = { x: e.clientX, y: e.clientY };
     this.cancelAscent();
-    if (isOwn(e.target) || this.deps.isGesturing?.()) {
+    if (isOwn(e.target) || this.handTool || this.deps.isGesturing?.()) {
       this.clearHover();
       return;
     }
@@ -1052,6 +1068,10 @@ export class SelectionController {
     if (!this.editing || this.resize || this.guard.dragActive) {
       return;
     }
+    if (this.handTool) {
+      this.clearHover();
+      return;
+    }
     const node = this.hovered;
     const surface = node ? this.deps.resolver.of(node) : null;
     if (!(node?.isConnected && surface?.isLive) || this.ownsPoint(node)) {
@@ -1081,7 +1101,7 @@ export class SelectionController {
     ) {
       return;
     }
-    if (this.deps.isGesturing?.()) {
+    if (this.handTool || this.deps.isGesturing?.()) {
       this.clearHover();
       return;
     }
@@ -1125,7 +1145,8 @@ export class SelectionController {
    * thing you try — hold Alt, point at something — does nothing.
    */
   private drawMeasure(hovered: Element, surface: Surface): void {
-    if (!this.altKey) {
+    // Inspect shows the spacing on every hover: reading it is the whole mode.
+    if (!(this.altKey || this.inspecting)) {
       this.measure.hide();
       this.boxModel.hide();
       return;
@@ -1139,8 +1160,10 @@ export class SelectionController {
   }
 
   private readonly onClick = (e: MouseEvent): void => {
-    // Inspect reports rather than selects.
-    if (this.inspecting || isOwn(e.target)) {
+    // Inspect selects too, so the code view has something to read out; what
+    // it takes away is the dragging (see `onMarqueeDown` and the panel's
+    // reorder, which stays disarmed) and the context menu.
+    if (isOwn(e.target)) {
       return;
     }
     // A drag leaves a synthetic click whose target is the common ancestor of

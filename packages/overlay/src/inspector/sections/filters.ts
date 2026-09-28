@@ -106,8 +106,13 @@ export function renderFilters(ctx: SectionContext, node: Element): HTMLElement {
     body.append(list.element);
   }
 
+  const add = addButton(ctx, lists);
   return ctx.section("filters", "Filters", body, {
-    actions: [addButton(ctx, lists)],
+    actions: [add],
+    addWhenEmpty: {
+      button: add,
+      isEmpty: () => lists.every((list) => !list.rows().length),
+    },
     startCollapsed: true,
   });
 }

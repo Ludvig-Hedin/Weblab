@@ -100,6 +100,42 @@ p {
   justify-content: flex-end;
   padding-right: 14px;
 }
+.topbar-right {
+  gap: 12px;
+  align-items: center;
+}
+.mode {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  gap: 2px;
+}
+.mode[hidden] {
+  display: none;
+}
+.mode button {
+  height: 24px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.mode button:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.mode button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--hover);
+}
+.mode button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .topbar-title {
   max-width: 40vw;
   overflow: hidden;
@@ -137,6 +173,35 @@ p {
   border: 0;
   border-radius: var(--radius);
   color: var(--text-2);
+}
+.topbar-tools {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 6px;
+}
+.topbar-tools[hidden] {
+  display: none;
+}
+.topbar-tools .icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text-2);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+.topbar-tools .icon:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.topbar-tools .icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .back:hover {
   color: var(--text);
@@ -182,6 +247,10 @@ main {
 
 /* Buttons and fields */
 .btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
   height: 32px;
   padding: 0 14px;
   font-weight: 500;
@@ -208,6 +277,29 @@ main {
 }
 .btn.wide {
   width: 100%;
+}
+.btn-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-left: -4px;
+}
+/* The GitHub mark is solid, so it reads larger than the line icons. */
+.btn-icon.gh {
+  width: 14px;
+  height: 14px;
+}
+/* The folder glyph sits small in its box. */
+.btn-icon.folder {
+  width: 18px;
+  height: 18px;
+  margin-right: -2px;
+}
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
 .btn:focus-visible,
 .link:focus-visible,
@@ -299,7 +391,7 @@ input::placeholder {
 
 /* Dashboard */
 .dash {
-  max-width: 760px;
+  max-width: 960px;
   height: 100%;
   padding: 32px 24px;
   margin: 0 auto;
@@ -307,9 +399,43 @@ input::placeholder {
 }
 .dash-head {
   display: flex;
+  gap: 12px;
   align-items: center;
-  justify-content: space-between;
   padding: 0 8px 12px;
+}
+.dash-head .actions {
+  margin-left: auto;
+}
+.view-toggle {
+  display: inline-flex;
+  gap: 2px;
+}
+.view-toggle button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+.view-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+.view-toggle button:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.view-toggle button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--hover);
+}
+.view-toggle button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .sites {
   padding: 0;
@@ -319,13 +445,61 @@ input::placeholder {
 }
 .site {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 28px;
+  grid-template-columns: 56px minmax(0, 1fr) 28px;
   gap: 16px;
   align-items: center;
-  height: 52px;
+  height: 60px;
   padding: 0 4px 0 8px;
   border-bottom: 1px solid var(--line);
 }
+.site-identity {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+.site-icon {
+  display: grid;
+  flex: 0 0 24px;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--panel);
+  border-radius: 5px;
+}
+.site-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.site-text {
+  min-width: 0;
+}
+.site-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.site-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.site.missing .site-thumb {
+  opacity: 0.5;
+}
+
 .site:hover {
   background: #252525;
 }
@@ -346,8 +520,120 @@ input::placeholder {
   font-size: 12px;
   color: var(--text-2);
 }
+
+/* Cards */
+.sites.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px 16px;
+  padding: 8px 8px 0;
+  border-top: 0;
+}
+.sites.grid .site {
+  grid-template-areas:
+    "thumb thumb"
+    "identity more";
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 0 8px;
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  border-radius: var(--radius);
+}
+.sites.grid .site:hover {
+  background: none;
+}
+.sites.grid .site-thumb {
+  grid-area: thumb;
+  margin-bottom: 10px;
+  font-size: 22px;
+  border-radius: var(--radius);
+  transition: border-color 0.12s;
+}
+.sites.grid .site:hover .site-thumb {
+  border-color: #4a4a4a;
+}
+.sites.grid .site-text {
+  min-width: 0;
+}
+.sites.grid .site-identity {
+  grid-area: identity;
+}
+.sites.grid .site-path {
+  display: none;
+}
+.sites.grid .site-when {
+  color: var(--text-3);
+}
 .site.missing .site-name {
   color: var(--text-2);
+}
+.site-skeleton {
+  pointer-events: none;
+}
+.sites-failed {
+  grid-column: 1 / -1;
+  padding: 20px 8px;
+  color: var(--text-2);
+}
+.site-skeleton .skeleton-thumb,
+.site-skeleton .skeleton-icon,
+.site-skeleton .skeleton-copy span {
+  background: var(--panel);
+  animation: skeleton-pulse 1.2s ease-in-out infinite alternate;
+}
+.site-skeleton .skeleton-thumb {
+  width: 56px;
+  aspect-ratio: 16 / 10;
+  border-radius: 4px;
+}
+.site-skeleton .skeleton-icon {
+  display: none;
+}
+.site-skeleton .skeleton-copy {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 180px);
+}
+.site-skeleton .skeleton-copy span {
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+}
+.site-skeleton .skeleton-copy span:last-child {
+  width: 45%;
+}
+.sites.grid .site-skeleton {
+  grid-template-areas: "thumb thumb" "identity identity";
+}
+.sites.grid .site-skeleton .skeleton-thumb {
+  grid-area: thumb;
+  width: 100%;
+  margin-bottom: 10px;
+  border-radius: var(--radius);
+}
+.sites.grid .site-skeleton .skeleton-icon {
+  display: block;
+  grid-area: identity;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+}
+.sites.grid .site-skeleton .skeleton-copy {
+  grid-area: identity;
+  margin-left: 34px;
+}
+@keyframes skeleton-pulse {
+  to {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-skeleton .skeleton-thumb,
+  .site-skeleton .skeleton-icon,
+  .site-skeleton .skeleton-copy span {
+    animation: none;
+  }
 }
 .more {
   display: grid;
@@ -367,6 +653,10 @@ input::placeholder {
 .more:hover {
   color: var(--text);
   background: var(--hover);
+}
+.sites.grid .more {
+  grid-area: more;
+  align-self: center;
 }
 .empty {
   position: absolute;
@@ -419,7 +709,7 @@ input::placeholder {
   font-size: 12px;
   color: var(--text-2);
   text-align: center;
-  cursor: default;
+  cursor: pointer;
   list-style: none;
 }
 .details summary::-webkit-details-marker {
@@ -571,7 +861,7 @@ input::placeholder {
   align-items: center;
   height: 28px;
   padding: 0 10px;
-  cursor: default;
+  cursor: pointer;
 }
 .repos li:hover,
 .repos li.selected {
@@ -620,4 +910,16 @@ input::placeholder {
 }
 #gh-code-step .progress {
   margin-bottom: 8px;
+}
+
+/* Anything you can click shows the hand. */
+button,
+/* biome-ignore lint/style/noDescendingSpecificity: `.details summary` sets the same cursor, so order cannot change the result. */
+summary,
+.site {
+  cursor: pointer;
+}
+button:disabled,
+.repos .empty-row {
+  cursor: default;
 }

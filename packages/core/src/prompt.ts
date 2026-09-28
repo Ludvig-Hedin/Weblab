@@ -471,6 +471,9 @@ function appendAttrTargets(lines: string[], targets: AttrEditTarget[]): void {
   lines.push(
     "- A `to` of (removed) means delete the attribute — a boolean attribute switched off."
   );
+  lines.push(
+    "- An `href` set on an element that is not a link (a `<button>`) means make it one: render it as an `<a>` (or the project's own Link component) with that href and any `target`/`rel`, keeping its classes, children and look."
+  );
   lines.push("");
   targets.forEach((target, i) => {
     lines.push(

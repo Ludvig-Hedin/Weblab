@@ -22,6 +22,8 @@
  * knowledge of what an edit means stays with the edit.
  */
 import type { AttrSet } from "./attr-set";
+import type { StoredFrame } from "./canvas/frames";
+import type { VariableWrite } from "./canvas/variables-panel";
 import { type ChangeSet, targetOf } from "./change-set";
 import type { Direction, Op } from "./history";
 import type { MoveSet } from "./move-set";
@@ -39,9 +41,13 @@ export interface OpApplierDeps {
     tracked: boolean,
     important: boolean
   ) => void;
+  /** Put a canvas frame back to a recorded box. Absent on the inline stage. */
+  setFrameBox?: (box: StoredFrame) => void;
   structureSet: StructureSet;
   /** Push a replayed value back into the matching control, if one is mounted. */
   syncControl: (property: string, value: string) => void;
+  /** Send a variable write to the editor server. Absent without one. */
+  writeVariable?: (write: VariableWrite) => void;
 }
 
 /**
@@ -68,6 +74,12 @@ export function createOpApplier(
         break;
       case "attr":
         applyAttr(deps, op, direction);
+        break;
+      case "frame":
+        deps.setFrameBox?.(direction === "undo" ? op.before : op.after);
+        break;
+      case "variable":
+        deps.writeVariable?.(direction === "undo" ? op.undo : op.redo);
         break;
       default:
         applyDecl(deps, op, direction);

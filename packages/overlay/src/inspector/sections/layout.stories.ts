@@ -3,11 +3,10 @@ import { sectionStory } from "../../stories/story-panel";
 import { renderAutoLayout } from "./auto-layout";
 import { renderConstraints } from "./constraints";
 import { renderPosition } from "./position";
-import { renderSize } from "./size";
-import { renderSpacing } from "./spacing";
 
 /*
- * The geometry sections: Position, Constraints, Size, Auto layout and Spacing.
+ * The geometry sections: Position, Constraints and Layout (which holds size,
+ * auto layout and spacing, as Figma's does).
  *
  * Grouped into one file because they are one subject — where the element is, how
  * big it is, and how it arranges what is inside it — and because they share the
@@ -89,55 +88,35 @@ export const Constraints: StoryObj = {
 };
 
 /**
- * Size on a card whose width is capped by `max-width`.
- *
- * The sizing mode — Hug, Fill or Fixed — is derived from the *authored* value
- * via `declaredValue`, not from the resolved px, so that editing preserves the
- * unit the stylesheet actually wrote. A card at `max-width: 420px` inside a flex
- * row is the case where the two most obviously disagree.
- */
-export const Size: StoryObj = {
-  render: () =>
-    sectionStory(
-      (ctx, node) => renderSize(ctx, node, { showBounds: true }),
-      "card",
-      {
-        caption: {
-          what: "Hug/Fill/Fixed is derived from the *authored* value, not the resolved px — a capped card is where those disagree most visibly.",
-        },
-      }
-    ),
-};
-
-/** Size with the min/max grid folded away — the section's default. */
-export const SizeCollapsed: StoryObj = {
-  render: () =>
-    sectionStory(
-      (ctx, node) => renderSize(ctx, node, { showBounds: false }),
-      "card",
-      {
-        caption: {
-          what: "The same section with the min/max grid folded away, which is its default.",
-        },
-      }
-    ),
-};
-
-/**
- * Auto layout on a flex column.
- *
- * The 3×3 alignment pad, the direction switch, the gap field and padding, which
- * appears here as well as in Spacing — the same control reading the same
- * longhands, not a second copy, so the two cannot disagree.
+ * Layout on a flex column, in Figma's order: Flow, Resizing, Alignment and
+ * Gap, Padding, Margin, Clip content.
  */
 export const AutoLayout: StoryObj = {
   render: () =>
-    sectionStory(renderAutoLayout, "card", {
-      caption: {
-        try: "flip the direction — the alignment pad's two axes swap meaning, which is the one thing about it that is not obvious",
-        what: "A flex column: the 3×3 pad, the direction switch, the gap and the padding.",
-      },
-    }),
+    sectionStory(
+      (ctx, node) => renderAutoLayout(ctx, node, { showBounds: false }),
+      "card",
+      {
+        caption: {
+          try: "flip Flow between Vertical and Horizontal — the alignment pad's two axes swap meaning",
+          what: "A flex column: Flow, Resizing, the 3×3 pad beside Gap, Padding and Margin.",
+        },
+      }
+    ),
+};
+
+/** The same section with min and max open, from the W or H mode menu. */
+export const WithMinMax: StoryObj = {
+  render: () =>
+    sectionStory(
+      (ctx, node) => renderAutoLayout(ctx, node, { showBounds: true }),
+      "card",
+      {
+        caption: {
+          what: "Min and max open under Resizing, as the W / H mode menu leaves them.",
+        },
+      }
+    ),
 };
 
 /**
@@ -149,35 +128,28 @@ export const AutoLayout: StoryObj = {
  */
 export const Grid: StoryObj = {
   render: () =>
-    sectionStory(renderAutoLayout, "tiles", {
-      caption: {
-        what: "The section's other branch: a real three-column grid, so the track editor has tracks to edit.",
-      },
-    }),
-};
-
-/**
- * Spacing — padding and margin as two instances of the same control.
- *
- * A design tool has no equivalent section and would not want one; this is a DOM editor,
- * and margin is half of how web layouts are actually spaced.
- */
-export const Spacing: StoryObj = {
-  render: () =>
-    sectionStory(renderSpacing, "card", {
-      caption: {
-        what: "Padding and margin, two instances of one control. A design tool has no equivalent; a DOM editor needs one.",
-      },
-    }),
+    sectionStory(
+      (ctx, node) => renderAutoLayout(ctx, node, { showBounds: false }),
+      "tiles",
+      {
+        caption: {
+          what: "The section's other branch: a real three-column grid, so the track editor has tracks to edit.",
+        },
+      }
+    ),
 };
 
 /** The geometry sections at `MIN_DOCK_W`, where the four-field splits bite. */
 export const Narrow: StoryObj = {
   render: () =>
-    sectionStory(renderSpacing, "card", {
-      caption: {
-        what: "`MIN_DOCK_W`, where a four-field split has the least room to work with.",
-      },
-      narrow: true,
-    }),
+    sectionStory(
+      (ctx, node) => renderAutoLayout(ctx, node, { showBounds: false }),
+      "card",
+      {
+        caption: {
+          what: "`MIN_DOCK_W`, where a four-field split has the least room to work with.",
+        },
+        narrow: true,
+      }
+    ),
 };

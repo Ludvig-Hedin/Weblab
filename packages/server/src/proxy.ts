@@ -20,8 +20,8 @@ import {
   AIRSHIP_MODE_PARAM,
   type AirshipMode,
   type AirshipWindowConfig,
+  modeToSurface,
   readSurfaceCookie,
-  surfaceToMode,
 } from "@airship/protocol";
 import {
   denyResponse,
@@ -30,6 +30,7 @@ import {
   parseHostHeader,
 } from "./access";
 import { handleAssetsRequest, isAssetsRequest } from "./assets";
+import { handlePagesRequest, isPagesRequest } from "./pages";
 import { escapeForScript, shellHtml } from "./shell";
 
 /** The only shape of font filename this server will read off disk. */
@@ -155,12 +156,15 @@ export function resolveMode(
     return explicit;
   }
   const dest = req.headers["sec-fetch-dest"];
+  // Both surfaces the switcher offers are served by the shell: Inline is the
+  // shell pinning one page between the docks. So a sticky choice always means
+  // the shell, and its frames need their agents.
+  const sticky = readSurfaceCookie(req.headers.cookie);
   if (dest === undefined || dest === "document") {
-    const sticky = readSurfaceCookie(req.headers.cookie);
-    return sticky ? surfaceToMode(sticky) : defaultMode;
+    return sticky ? "shell" : defaultMode;
   }
   if (
-    defaultMode === "shell" &&
+    (defaultMode === "shell" || sticky !== undefined) &&
     (dest === "iframe" || dest === "embed" || dest === "object")
   ) {
     return "frame";
@@ -253,8 +257,9 @@ export interface ProxyDeps {
     head: Buffer
   ) => void;
   /**
-   * The user's project root. Enables the image library API
-   * (`/__airship/api/assets`); without it that route answers 404.
+   * The user's project root. Enables the image library and page list APIs
+   * (`/__airship/api/assets`, `/__airship/api/pages`); without it those
+   * routes answer 404.
    */
   projectRoot?: string;
   targetHost: string;
@@ -308,6 +313,11 @@ function handleHttp(
 
   if (isAssetsRequest(req.url)) {
     serveAssetsApi(req, res, deps.projectRoot);
+    return;
+  }
+
+  if (isPagesRequest(req.url)) {
+    servePagesApi(req, res, deps.projectRoot);
     return;
   }
 
@@ -377,6 +387,9 @@ function handleHttp(
         const body = shellHtml({
           mode,
           pathname: appPathname(req),
+          surface:
+            readSurfaceCookie(req.headers.cookie) ??
+            modeToSurface(deps.defaultMode),
           wsPath: deps.wsPath,
         });
         res.writeHead(status, {
@@ -544,6 +557,20 @@ function serveAssetsApi(
   handleAssetsRequest(req, res, { projectRoot }).catch(() => {
     // handleAssetsRequest answers every failure itself.
   });
+}
+
+/** The page list API. Never proxied: it reads the user's route files. */
+function servePagesApi(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  projectRoot: string | undefined
+): void {
+  if (!projectRoot) {
+    res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ error: "The page list is not available here." }));
+    return;
+  }
+  handlePagesRequest(req, res, { projectRoot });
 }
 
 function serveAirshipAsset(

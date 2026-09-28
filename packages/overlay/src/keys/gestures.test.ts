@@ -75,6 +75,8 @@ const NOT_GESTURES: Readonly<Record<string, string>> = {
     "dragging a slider inside an open control, not a canvas gesture",
   "inspector/controls/gradient-editor.ts":
     "same: a slider inside an open control",
+  "inspector/controls/image-popover.ts":
+    "dragging the focal point inside an open control, like the sliders above",
   "inspector/reorder.ts": "the DOM-tree drag, driven by the dnd manager above",
   "inspector/text-edit.ts":
     "click-away from a live caret, which the browser owns",

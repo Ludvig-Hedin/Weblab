@@ -24,6 +24,12 @@ export const css = `
 }
 
 .${PREFIX}-insp { display: flex; flex-direction: column; flex: 1 1 auto; overflow: hidden; }
+/* Panel chrome is not text to select: a double-click on a heading or label
+   should not paint a selection across the section. Fields stay selectable. */
+.${PREFIX}-insp { -webkit-user-select: none; user-select: none; }
+.${PREFIX}-insp :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text; user-select: text;
+}
 /* Bare container: the Source section inside it brings its own padding and
    bottom rule, so anything here would double them. Hidden with no selection. */
 .${PREFIX}-insp-head { flex: 0 0 auto; }
@@ -75,17 +81,19 @@ export const css = `
   flex: 0 0 auto; order: -1; height: 40px; padding: 0 var(--ap-space-xs);
   border-bottom: 1px solid var(--ap-border-default);
 }
+/* Padding, corner and active fill match the desktop app's Edit | Preview
+   switch, so every tab row in the window reads as the same control. */
 .${PREFIX}-insp-tab {
   display: inline-flex; align-items: center; justify-content: center;
-  height: 24px; padding: 0 var(--ap-space-xs); cursor: pointer;
-  background: transparent; border: none; border-radius: var(--ap-radius-sm);
+  height: 24px; padding: 0 10px; cursor: pointer;
+  background: transparent; border: none; border-radius: var(--ap-radius-xs);
   color: var(--ap-text-tertiary); font-family: var(--ap-font-sans);
   font-size: var(--ap-font-size-body); font-weight: 600;
   transition: color var(--ap-motion-dur-micro) var(--ap-motion-ease), background var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
-.${PREFIX}-insp-tab:hover { color: var(--ap-text-secondary); }
+.${PREFIX}-insp-tab:hover { color: var(--ap-text-secondary); background: var(--ap-surface-hover); }
 ${ROOT} .${PREFIX}-insp-tab .${PREFIX}-ic { display: none; }
-.${PREFIX}-insp-tab-on { color: var(--ap-text-primary); background: var(--ap-surface-hover); }
+.${PREFIX}-insp-tab-on, .${PREFIX}-insp-tab-on:hover { color: var(--ap-text-primary); background: var(--ap-surface-selected); }
 .${PREFIX}-insp-tab[data-tab="css"] { margin-left: auto; width: 24px; padding: 0; color: var(--ap-icon-muted); }
 .${PREFIX}-insp-tab[data-tab="css"] > span { display: none; }
 ${ROOT} .${PREFIX}-insp-tab[data-tab="css"] .${PREFIX}-ic { display: inline-flex; }
@@ -203,9 +211,7 @@ ${ROOT} .${PREFIX}-insp-tab[data-tab="css"].${PREFIX}-insp-tab-on .${PREFIX}-ic 
   font-family: var(--ap-font-sans); font-weight: 600;
   font-size: var(--ap-font-size-body); color: var(--ap-text-primary);
 }
-.${PREFIX}-sect-chev { color: var(--ap-icon-muted); opacity: 0; transition: opacity var(--ap-motion-dur-micro) var(--ap-motion-ease); }
-.${PREFIX}-sect-head:hover .${PREFIX}-sect-chev,
-.${PREFIX}-sect-head[aria-expanded="false"] .${PREFIX}-sect-chev { opacity: 1; }
+.${PREFIX}-sect-chev { color: var(--ap-icon-muted); }
 .${PREFIX}-sect-title { flex: 1 1 auto; }
 .${PREFIX}-sect-chev { display: inline-flex; align-items: center; flex: 0 0 auto; }
 .${PREFIX}-sect-head[aria-expanded="false"] { color: var(--ap-text-secondary); }
@@ -310,7 +316,7 @@ ${ROOT} .${PREFIX}-insp-tab[data-tab="css"].${PREFIX}-insp-tab-on .${PREFIX}-ic 
    its weight — and the gap above says where the previous decision ended.
 
    A marker, never a box: \`.group\` is composed onto four different shapes
-   (\`row group\`, \`grid group\`, \`size-wrap group\`, and a bare div), so it must
+   (\`row group\`, \`grid group\`, \`fgroup group\`, and a bare div), so it must
    not declare \`display\` — giving it a column direction would lay every
    \`row group\` out vertically. It only ever adds the distance above itself.
 

@@ -7,10 +7,23 @@
  * paths — `ctx.onChange` for declarations, `ctx.onAttr` for attributes — and
  * land in different arrays on the wire.
  */
+import { uploadImage } from "../../assets/client";
 import { cls, el } from "../../dom";
+import { icon } from "../../icons";
+import {
+  displayName,
+  fitCss,
+  fitFromCss,
+  type ImageBinding,
+  layerOfUrl,
+  openImagePopover,
+  resolveSrc,
+  urlOfLayer,
+} from "../controls/image-popover";
 import { createTextField } from "../controls/num-field";
 import { createSegmented } from "../controls/segmented";
 import { createSelect } from "../controls/select";
+import { parseFillLayers } from "../css-value";
 import type { Descriptor, EnumOption } from "../descriptors";
 import {
   hasBackgroundImage,
@@ -18,8 +31,10 @@ import {
   isRasterImage,
   isVideo,
 } from "../element-kind";
+import { consumeImageEditorReopen, registerImageEditor } from "../image-editor";
 import { readValue } from "../style-model";
 import type { SectionContext } from "./context";
+import { backgroundImageBinding } from "./fill";
 import { enumDescriptor, labelled } from "./row";
 
 const POSITIONS: EnumOption[] = [
@@ -129,10 +144,221 @@ function attrDescriptor(
   };
 }
 
+/**
+ * Whether the rarely-touched `<img>` attributes are showing.
+ *
+ * Module state rather than per render: the section rebuilds on every change
+ * of selection, and a disclosure that snapped shut each time would have to be
+ * reopened for every image in a row of thumbnails.
+ */
+let moreOpen = false;
+
+/**
+ * The `<img>` element's view for the image popover.
+ *
+ * A new `src` also drops `srcset` and `sizes`: the browser prefers a srcset
+ * candidate over `src`, so swapping only `src` on a responsive image (every
+ * Next.js `<Image>`) changes the markup and leaves the old picture on screen.
+ * All three writes are one undo step.
+ */
+export function imgBinding(ctx: SectionContext, node: Element): ImageBinding {
+  return {
+    baseUrl: node.ownerDocument.baseURI,
+    kind: "img",
+    read: () => ({
+      alt: node.getAttribute("alt") ?? "",
+      fit: fitFromCss("img", { objectFit: readValue(node, "object-fit") }),
+      position: readValue(node, "object-position"),
+      src: node.getAttribute("src") ?? "",
+    }),
+    setAlt: (alt) => ctx.onAttr(node, "alt", alt === "" ? null : alt),
+    setFit: (fit) => {
+      for (const [property, value] of fitCss("img", fit)) {
+        ctx.onChange(property, value);
+      }
+      ctx.reseed();
+    },
+    setPosition: (position) => {
+      ctx.onChange("object-position", position);
+      ctx.reseed();
+    },
+    setSrc: (url) => {
+      ctx.batch(() => {
+        ctx.onAttr(node, "src", url);
+        for (const attribute of ["srcset", "sizes"]) {
+          if (node.hasAttribute(attribute)) {
+            ctx.onAttr(node, attribute, null);
+          }
+        }
+      });
+    },
+  };
+}
+
+/**
+ * An `<img>` whose `<picture>` offers `<source>` candidates.
+ *
+ * The browser paints the first matching source, so a new `src` on the `<img>`
+ * changes nothing on screen. Clearing the sources' `srcset` would, but an
+ * attribute edit is described to the agent against the selected element, so
+ * it would land on the `<img>` in code while the preview showed something
+ * else. Pointed at the code instead.
+ */
+function hasResponsiveSources(node: Element): boolean {
+  const parent = node.parentElement;
+  return (
+    parent?.tagName.toUpperCase() === "PICTURE" &&
+    Array.from(parent.children).some(
+      (child) =>
+        child.tagName.toUpperCase() === "SOURCE" && child.hasAttribute("srcset")
+    )
+  );
+}
+
+/** The first background layer that is a picture, or -1. */
+function firstImageLayer(node: Element): number {
+  return parseFillLayers(readValue(node, "background-image")).findIndex(
+    (layer) => layer.kind === "image" && urlOfLayer(layer.value) !== ""
+  );
+}
+
+/**
+ * The row a design tool shows for an image fill: a thumbnail and a file name,
+ * and the whole row opens the image popover.
+ *
+ * Registered with the panel so an undo or an agent edit repaints it, and with
+ * the image-editor registry so the canvas can open the same popover. Both go
+ * when the row is torn down.
+ */
+function imageRow(
+  ctx: SectionContext,
+  binding: () => ImageBinding,
+  key: string
+): HTMLElement {
+  const thumb = el("span", { class: cls("img-thumb") });
+  const name = el("span", { class: cls("img-row-name") });
+  const row = el(
+    "button",
+    {
+      class: `${cls("img-row")} ${cls("span2")}`,
+      type: "button",
+    },
+    [thumb, name]
+  );
+  const open = (): void => {
+    if (!row.isConnected) {
+      return;
+    }
+    openImagePopover(row, {
+      ...binding(),
+      gestures: ctx.gestures,
+      // Torn down with the panel: a different element, or this one rebuilt.
+      isCurrent: () => live,
+      reopenKey: key,
+    });
+  };
+  row.addEventListener("click", open);
+
+  const paint = (): void => {
+    const current = binding();
+    const { src } = current.read();
+    const shown = displayName(src);
+    thumb.style.setProperty(
+      "background-image",
+      `${src ? layerOfUrl(resolveSrc(src, current.baseUrl)) : "none"}, var(--${cls("checker")})`
+    );
+    name.textContent = shown || "No image";
+    name.toggleAttribute("data-empty", !shown);
+    row.setAttribute("aria-label", `Image: ${shown || "none"}. Change image`);
+    row.dataset.tip = "Change image";
+  };
+  paint();
+
+  // From the canvas the row may sit in a section the user folded; unfold it,
+  // or the popover would anchor to a box that is not on screen.
+  const openFromCanvas = (): void => {
+    const head = row.closest(`.${cls("sect")}`)?.firstElementChild;
+    if (head?.getAttribute("aria-expanded") === "false") {
+      (head as HTMLElement).click();
+    }
+    row.scrollIntoView?.({ block: "nearest" });
+    open();
+  };
+
+  let live = true;
+  const unregister = registerImageEditor(
+    openFromCanvas,
+    async (file) => {
+      const asset = await uploadImage(file);
+      if (!live) {
+        return false;
+      }
+      binding().setSrc(asset.url);
+      return true;
+    },
+    (url) => binding().setSrc(url)
+  );
+  ctx.register({
+    destroy: () => {
+      live = false;
+      unregister();
+    },
+    element: row,
+    resync: paint,
+    setValue: () => undefined,
+    virtual: true,
+  });
+  if (consumeImageEditorReopen(key)) {
+    queueMicrotask(open);
+  }
+  return row;
+}
+
+/**
+ * A closed-by-default group for the attributes most people never touch.
+ *
+ * `display: contents` on the body, so the rows inside still sit in the
+ * section's field grid exactly as they did before they were grouped.
+ */
+function moreGroup(rows: HTMLElement[]): HTMLElement[] {
+  const inner = el("div", { class: cls("img-more-body") }, rows);
+  inner.hidden = !moreOpen;
+  const toggle = el(
+    "button",
+    {
+      "aria-expanded": String(moreOpen),
+      class: `${cls("img-more")} ${cls("span2")}`,
+      type: "button",
+    },
+    [icon("chev-right", "xs"), el("span", { text: "More" })]
+  );
+  toggle.addEventListener("click", () => {
+    moreOpen = !moreOpen;
+    inner.hidden = !moreOpen;
+    toggle.setAttribute("aria-expanded", String(moreOpen));
+  });
+  return [toggle, inner];
+}
+
 export function renderMedia(ctx: SectionContext, node: Element): HTMLElement {
   const body = el("div", { class: cls("sect-body") });
   const image = isImage(node);
   const video = isVideo(node);
+
+  // `<img>` only, not every IMAGE_TAG: on `<picture>` the `<source>` children
+  // decide what paints, and a new `src` on the wrapper would change nothing.
+  if (isRasterImage(node)) {
+    if (hasResponsiveSources(node)) {
+      body.append(
+        el("div", {
+          class: `${cls("img-note")} ${cls("span2")}`,
+          text: "This image has responsive sources. Edit them in code.",
+        })
+      );
+    } else {
+      body.append(imageRow(ctx, () => imgBinding(ctx, node), "media-img"));
+    }
+  }
 
   if (image || video) {
     body.append(ctx.fieldCell(OBJECT_FIT, node));
@@ -145,28 +371,25 @@ export function renderMedia(ctx: SectionContext, node: Element): HTMLElement {
   // and on `<picture>` they belong to the inner `<img>`.
   if (isRasterImage(node)) {
     /*
-     * The source attributes, which this section could not edit at all.
-     *
-     * `alt`, `loading` and `decoding` were the whole of it — so the one thing a designer
-     * most often wants to change about an image, *which image it is*, had to be done in
-     * the source. `srcset` and `sizes` come with it, because changing `src` without them
-     * on a responsive image silently leaves the old art direction in place.
+     * Which image it is lives in the image row above (and its popover, which
+     * also takes a pasted URL). `srcset` and `sizes` stay editable by hand, but
+     * behind More with the loading hints: a new source from the popover already
+     * clears them, so they are rarely the thing anyone came here for.
      */
-    body.append(textAttr(ctx, node, "src", "Source"));
-    body.append(textAttr(ctx, node, "srcset", "Srcset"));
-    body.append(textAttr(ctx, node, "sizes", "Sizes"));
     body.append(textAttr(ctx, node, "alt", "Alt text"));
     body.append(
-      attrToggle(ctx, node, "loading", "Loading", [
-        { label: "Lazy", value: "lazy" },
-        { label: "Eager", value: "eager" },
-      ])
-    );
-    body.append(
-      attrToggle(ctx, node, "decoding", "Decoding", [
-        { label: "Auto", value: "auto" },
-        { label: "Async", value: "async" },
-        { label: "Sync", value: "sync" },
+      ...moreGroup([
+        textAttr(ctx, node, "srcset", "Srcset"),
+        textAttr(ctx, node, "sizes", "Sizes"),
+        attrToggle(ctx, node, "loading", "Loading", [
+          { label: "Lazy", value: "lazy" },
+          { label: "Eager", value: "eager" },
+        ]),
+        attrToggle(ctx, node, "decoding", "Decoding", [
+          { label: "Auto", value: "auto" },
+          { label: "Async", value: "async" },
+          { label: "Sync", value: "sync" },
+        ]),
       ])
     );
   }
@@ -189,6 +412,16 @@ export function renderMedia(ctx: SectionContext, node: Element): HTMLElement {
 
   if (hasBackgroundImage(node)) {
     body.append(el("div", { class: cls("sect-sub-head"), text: "Background" }));
+    const layer = firstImageLayer(node);
+    if (layer !== -1 && !isRasterImage(node)) {
+      body.append(
+        imageRow(
+          ctx,
+          () => backgroundImageBinding(ctx, node, layer),
+          "media-bg"
+        )
+      );
+    }
     body.append(ctx.fieldCell(BG_SIZE, node));
     body.append(positionRow(ctx, node, "background-position", "Position"));
     for (const descriptor of [BG_REPEAT, BG_ATTACHMENT, BG_CLIP]) {

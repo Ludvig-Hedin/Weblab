@@ -183,14 +183,39 @@ describe("controls that are not CSS properties", () => {
     panel.refresh();
     const pressed = (): string | null =>
       panel.element
-        .querySelector(`.${cls("ctl-toggle")}`)
-        ?.getAttribute("aria-pressed") ?? null;
+        .querySelector(`.${cls("check")}`)
+        ?.getAttribute("aria-checked") ?? null;
     expect(pressed()).toBe("true");
 
     node.style.removeProperty("overflow");
     panel.refresh();
 
     expect(pressed()).toBe("false");
+    panel.destroy();
+  });
+});
+
+describe("an empty list section's heading adds a first row", () => {
+  beforeEach(resetDocument);
+
+  it("adds a shadow when Effects has none, instead of only dimming the label", () => {
+    // Was: with no shadows, clicking the heading folded an empty body, so all
+    // anyone saw was the label changing colour.
+    const { panel } = selected();
+    const head = panel.element.querySelector<HTMLElement>(
+      `.${cls("sect-head")}[aria-label="Effects"]`
+    );
+    if (!head) {
+      throw new Error("no Effects heading");
+    }
+    const sect = head.parentElement as HTMLElement;
+    expect(sect.querySelectorAll(`.${cls("rows-row")}`)).toHaveLength(0);
+    head.click();
+    expect(sect.querySelectorAll(`.${cls("rows-row")}`)).toHaveLength(1);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    // With a row in place the heading folds again, as every other one does.
+    head.click();
+    expect(head.getAttribute("aria-expanded")).toBe("false");
     panel.destroy();
   });
 });

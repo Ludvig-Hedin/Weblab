@@ -10,6 +10,11 @@
  * packages/server/src/proxy.ts (injectOverlay / serveAirshipAsset).
  */
 import { instrument } from "bippy";
+import { installMotionGate } from "./motion-gate";
+
+// Before any app code, so the first autoplay timer is already held. Canvas
+// frames only; see motion-gate.ts.
+installMotionGate();
 
 instrument({
   name: "airship",

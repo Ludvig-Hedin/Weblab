@@ -189,7 +189,10 @@ function pinRoot(doc: Document, height: number): void {
     style.id = ROOT_STYLE_ID;
     doc.head.append(style);
   }
-  const text = `html:root { height: ${height}px !important; min-height: 0 !important; max-height: none !important; }`;
+  // The frame is as tall as the page, so its own scrollbar has nothing to
+  // scroll. With classic scrollbars it still took a white strip off the right
+  // edge and narrowed the layout by its width.
+  const text = `html:root { height: ${height}px !important; min-height: 0 !important; max-height: none !important; scrollbar-width: none !important; }`;
   // Only on change: rewriting it is a DOM mutation, which would schedule the
   // next measure, which would rewrite it — one restyle per animation frame.
   if (style.textContent !== text) {

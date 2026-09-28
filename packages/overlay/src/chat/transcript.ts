@@ -50,53 +50,156 @@ export function userBubble(text: string): HTMLElement {
   ]);
 }
 
-const WORKING = "Working on it…";
+/** Everything `fillAssistant` needs to fold a turn's work log shut. */
+interface TurnWork {
+  /** The "Worked for 12s" row; hidden until the turn settles. */
+  fold: HTMLElement;
+  /** Holds the timeline. Shown live, folded shut once the turn settles. */
+  log: HTMLElement;
+  /** Local clock at turn start, for turns the bundle carries no times for. */
+  startedAt: number;
+  timeline: TimelineView;
+}
 
-/** Each turn's result slot → its "Show details" body. See `assistantTurn`. */
-const DETAILS = new WeakMap<HTMLElement, HTMLElement>();
+/** Each turn's result slot → its work log. See `assistantTurn`. */
+const WORK = new WeakMap<HTMLElement, TurnWork>();
 
-/** An assistant bubble: activity timeline, live status, then the result. */
+const TICK_MS = 1000;
+const TENTHS_BELOW_S = 10;
+const SECONDS_PER_MINUTE = 60;
+
+/** "4.3s", "12s", "1m 5s". Tenths only where they still matter. */
+export function formatDuration(ms: number): string {
+  const s = Math.max(0, ms) / 1000;
+  if (s < TENTHS_BELOW_S) {
+    return `${s.toFixed(1)}s`;
+  }
+  const whole = Math.round(s);
+  if (whole < SECONDS_PER_MINUTE) {
+    return `${whole}s`;
+  }
+  const m = Math.floor(whole / SECONDS_PER_MINUTE);
+  const rest = whole % SECONDS_PER_MINUTE;
+  return rest ? `${m}m ${rest}s` : `${m}m`;
+}
+
+/** The live label: whole seconds, so it ticks evenly. */
+function workingLabel(ms: number): string {
+  const whole = Math.floor(Math.max(0, ms) / 1000);
+  if (whole < 1) {
+    return "Working…";
+  }
+  if (whole < SECONDS_PER_MINUTE) {
+    return `Working for ${whole}s`;
+  }
+  return `Working for ${formatDuration(whole * 1000)}`;
+}
+
+/**
+ * The live "Working for 12s" line. Ticks until it leaves the page — the app
+ * removes it when the turn settles — so no caller has to remember to stop it.
+ */
+function workingStatus(startedAt: number): HTMLElement {
+  const label = el("span", {
+    class: cls("turn-status-label"),
+    text: workingLabel(0),
+  });
+  const status = el("div", { class: cls("turn-status") }, [label]);
+  let seen = false;
+  const timer = setInterval(() => {
+    if (status.isConnected) {
+      seen = true;
+    } else if (seen) {
+      clearInterval(timer);
+      return;
+    }
+    label.textContent = workingLabel(Date.now() - startedAt);
+  }, TICK_MS);
+  return status;
+}
+
+/**
+ * An assistant turn, laid out the way t3code does it: a live "Working for…"
+ * line with the steps streaming under it, and once the turn is done those
+ * steps fold behind one "Worked for 12s" row that sits *above* the answer.
+ * The answer is what the user came for, so it is the thing left open.
+ */
 export function assistantTurn(): AssistantTurn {
+  const startedAt = Date.now();
   const timeline = timelineView();
-  const status = el("div", { class: cls("turn-status") }, [
-    el("span", { class: cls("dot") }),
-    el("span", { text: WORKING }),
-  ]);
+  const status = workingStatus(startedAt);
   const result = el("div", { class: cls("turn-result") });
-  // Tool calls, file paths and diffs are for whoever wants them. They sit
-  // behind one quiet disclosure per turn, so the chat reads as a
-  // conversation: a progress line while it works, then what changed.
-  const details = el("div", { class: cls("turn-details-body") }, [
-    timeline.root,
-  ]);
-  // Remembered here because the disclosure only mounts its body when opened,
-  // so `fillAssistant` cannot find it by querying the bubble.
-  DETAILS.set(result, details);
+  const log = el("div", { class: cls("turn-log") }, [timeline.root]);
+  const fold = el("button", {
+    "aria-expanded": "false",
+    class: cls("turn-fold"),
+    hidden: true,
+    type: "button",
+  });
+  fold.addEventListener("click", () => {
+    const open = fold.getAttribute("aria-expanded") !== "true";
+    setFoldOpen(fold, log, open);
+  });
+  WORK.set(result, { fold, log, startedAt, timeline });
   const root = el("div", { class: `${cls("msg")} ${cls("msg-assistant")}` }, [
     status,
+    fold,
+    log,
     result,
-    collapsible("Show details", details, cls("turn-details")),
   ]);
   return { result, root, status, timeline };
 }
 
+function setFoldOpen(fold: HTMLElement, log: HTMLElement, open: boolean): void {
+  fold.setAttribute("aria-expanded", String(open));
+  log.hidden = !open;
+  const label = fold.querySelector(`.${cls("turn-fold-label")}`);
+  fold.replaceChildren(
+    label ?? "",
+    el("span", { class: cls("disc-chev") }, [
+      icon(open ? "chev-down" : "chev-right", "xs"),
+    ])
+  );
+}
+
+/** Fold a finished turn's steps behind "Worked for 12s". */
+function settleWork(target: HTMLElement, bundle: JobDiffBundle): void {
+  const work = WORK.get(target);
+  if (!work) {
+    return;
+  }
+  const { fold, log, startedAt, timeline } = work;
+  if (timeline.isEmpty()) {
+    fold.hidden = true;
+    log.hidden = true;
+    return;
+  }
+  const ms =
+    bundle.completedAt && bundle.createdAt
+      ? bundle.completedAt - bundle.createdAt
+      : Date.now() - startedAt;
+  const took = formatDuration(ms);
+  const text =
+    bundle.status === "cancelled"
+      ? `Stopped after ${took}`
+      : `Worked for ${took}`;
+  fold.replaceChildren(el("span", { class: cls("turn-fold-label"), text }));
+  fold.hidden = false;
+  setFoldOpen(fold, log, false);
+}
+
 /**
- * The live progress line. Deliberately one plain sentence whatever step the
- * agent reports — "Reading src/app/page.tsx" is detail, and the detail is in
- * "Show details". The text is kept as the tooltip for anyone curious.
+ * The live progress line. Deliberately the same words whatever step the agent
+ * reports — "Reading src/app/page.tsx" is detail, and the steps themselves
+ * stream right under it. The step is kept as the tooltip for anyone curious.
  */
 export function setTurnStatus(status: HTMLElement, text: string): void {
-  clear(status);
   status.title = text;
-  status.append(
-    el("span", { class: cls("dot") }),
-    el("span", { text: WORKING })
-  );
 }
 
 /**
  * Populate a turn's *result slot* with the finished job — markdown summary,
- * meta, diffs, follow-ups, and actions.
+ * changed files, follow-ups, and actions.
  *
  * `target` is the `.turn-result` node, not the bubble root: this function
  * clears what it is given, and pointing it at the root is what used to wipe the
@@ -108,6 +211,7 @@ export function fillAssistant(
   actions: AssistantActions
 ): void {
   clear(target);
+  settleWork(target, bundle);
   const bubble = target.parentElement ?? target;
   bubble.classList.remove(cls("msg-err"));
   if (bundle.status !== "done") {
@@ -128,24 +232,12 @@ export function fillAssistant(
     })
   );
 
-  // The change counts always render; only the price is conditional. Codex
-  // reports tokens but no cost, as does Claude under subscription auth, and
-  // gating the whole line on a dollar figure silently dropped the file and
-  // ±line counts along with it.
-  // Plain words, and no "0 file(s)" when the count is unknown. Line counts,
-  // the price and the diffs themselves go in "Show details".
-  const files = bundle.filesChanged;
-  if (files) {
-    target.append(
-      el("div", {
-        class: cls("meta"),
-        text: `Changed ${files} file${files === 1 ? "" : "s"}`,
-      })
-    );
+  // No price. Under a Claude or ChatGPT subscription the figure the SDK reports
+  // is what the same run would have cost on the API, not what anyone paid, and
+  // "$4.72" under a one-line edit reads as a bill.
+  if (bundle.diffs?.length) {
+    target.append(changedFiles(bundle, actions));
   }
-  const details = DETAILS.get(target);
-  details?.querySelector(`.${cls("turn-extra")}`)?.remove();
-  (details ?? target).append(turnExtra(bundle, actions));
 
   if (hasTurnActions(actions)) {
     target.append(actionsRow(bundle, actions));
@@ -173,28 +265,32 @@ export function fillAssistant(
   }
 }
 
-/** What "Show details" adds once a turn is done: line counts, price, diffs. */
-function turnExtra(
+/** "+12 −4", each half in its own tone. */
+function lineStats(additions: number, deletions: number): HTMLElement {
+  return el("span", { class: cls("turn-stat") }, [
+    el("span", { class: cls("turn-stat-add"), text: `+${additions}` }),
+    el("span", { class: cls("turn-stat-del"), text: `−${deletions}` }),
+  ]);
+}
+
+/** One card: "2 changed files +12 −4", then a folded row per file. */
+function changedFiles(
   bundle: JobDiffBundle,
   actions: AssistantActions
 ): HTMLElement {
-  const extra = el("div", { class: cls("turn-extra") });
-  const cost = bundle.usage?.costUsd;
-  const stats = [
-    bundle.filesChanged ? `+${bundle.additions} −${bundle.deletions}` : "",
-    typeof cost === "number" ? `$${cost.toFixed(2)}` : "",
-  ].filter(Boolean);
-  if (stats.length) {
-    extra.append(el("div", { class: cls("meta"), text: stats.join(" · ") }));
+  const n = bundle.diffs.length;
+  const head = el("div", { class: cls("turn-files-head") }, [
+    el("span", {
+      class: cls("turn-files-title"),
+      text: `${n} changed file${n === 1 ? "" : "s"}`,
+    }),
+    lineStats(bundle.additions, bundle.deletions),
+  ]);
+  const card = el("div", { class: cls("turn-files") }, [head]);
+  for (const d of bundle.diffs) {
+    card.append(fileDiff(d, bundle, actions));
   }
-  if (bundle.diffs?.length) {
-    const diffs = el("div", { class: cls("diffs") });
-    for (const d of bundle.diffs) {
-      diffs.append(fileDiff(d, bundle, actions));
-    }
-    extra.append(diffs);
-  }
-  return extra;
+  return card;
 }
 
 /**
@@ -242,7 +338,8 @@ function collapsible(
   const d = disclosure({
     bodyClass: cls("disc-body"),
     class: rootClass,
-    head: [chev, el("span", { text: label })],
+    // Label first, chevron after, the same as "Worked for 12s ›".
+    head: [el("span", { text: label }), chev],
     headClass: cls("disc-head"),
     onToggle: (open) =>
       chev.replaceChildren(icon(open ? "chev-down" : "chev-right", "xs")),
@@ -266,13 +363,18 @@ function fileDiff(
   actions: AssistantActions
 ): HTMLElement {
   const chev = el("span", { class: cls("disc-chev") });
+  // The file name first, where it can't be cut off; the folder after it in a
+  // dimmer tone, which is the half that gives way when the dock is narrow.
+  const slash = diff.file.lastIndexOf("/");
+  const base = slash >= 0 ? diff.file.slice(slash + 1) : diff.file;
+  const dir = slash >= 0 ? diff.file.slice(0, slash) : "";
   const head: HTMLElement[] = [
     chev,
-    el("span", { class: cls("diff-file"), text: diff.file }),
-    el("span", {
-      class: cls("diff-stat"),
-      text: `+${diff.additions} −${diff.deletions}`,
-    }),
+    el("span", { class: cls("diff-path"), title: diff.file }, [
+      el("span", { class: cls("diff-file"), text: base }),
+      dir ? el("span", { class: cls("diff-dir"), text: dir }) : "",
+    ]),
+    lineStats(diff.additions, diff.deletions),
   ];
 
   const d = disclosure({

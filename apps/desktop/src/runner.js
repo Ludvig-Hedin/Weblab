@@ -1,6 +1,6 @@
 // Opening a site: install if needed, then start the Airship CLI (which starts
 // the site's own dev command and the editor proxy) and hand back its URL.
-// One site at a time.
+// Each window owns one runner, and each runner opens one site at a time.
 
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
@@ -9,8 +9,11 @@ const { join } = require("node:path");
 const { cliEntry, bunBinary, childEnv } = require("./runtime");
 const { snapshotTree, stopGroups, stopTree } = require("./procs");
 const auth = require("./auth");
+const { createStaticSite } = require("./static-site");
 
 const LOG_LIMIT = 400;
+const reservedPorts = new Set();
+let portQueue = Promise.resolve();
 const LINE_BREAK = /\r?\n/;
 // Built from a char code so no control character sits in a regex literal.
 const CSI_SEQUENCE = new RegExp(
@@ -29,6 +32,8 @@ class SiteRunner {
     this.install = null;
     this.log = [];
     this.token = 0;
+    this.port = null;
+    this.staticServer = null;
   }
 
   appendLog(text) {
@@ -47,13 +52,13 @@ class SiteRunner {
   }
 
   get running() {
-    return Boolean(this.child || this.install);
+    return Boolean(this.child || this.install || this.staticServer);
   }
 
   /** `fresh` clears the site's build cache first, which a crashed start can leave broken. */
   async open(site, { fresh = false } = {}) {
     await this.stop();
-    if (fresh) {
+    if (fresh && !site.entry) {
       fs.rmSync(join(site.path, ".next"), { force: true, recursive: true });
     }
     this.token += 1;
@@ -67,7 +72,12 @@ class SiteRunner {
           "We can’t find this site’s folder. It may have been moved or deleted."
         );
       }
-      if (!fs.existsSync(join(site.path, "node_modules"))) {
+      if (site.entry && !fs.existsSync(join(site.path, site.entry))) {
+        throw new Friendly(
+          "We can’t find this HTML file. It may have been moved or deleted."
+        );
+      }
+      if (!(site.entry || fs.existsSync(join(site.path, "node_modules")))) {
         this.onEvent({
           step: "Setting up for the first time. This can take a minute.",
           type: "progress",
@@ -78,12 +88,12 @@ class SiteRunner {
         }
       }
       this.onEvent({ step: "Starting your site…", type: "progress" });
-      const url = await this.startCli(site.path, current);
+      const url = await this.startCli(site.path, current, site.entry);
       if (!current()) {
         return;
       }
       this.onEvent({ step: "Opening the editor…", type: "progress" });
-      this.onEvent({ type: "ready", url });
+      this.onEvent({ siteUrl: this.siteUrl, type: "ready", url });
     } catch (err) {
       if (!current()) {
         return;
@@ -142,8 +152,24 @@ class SiteRunner {
     });
   }
 
-  async startCli(cwd, current) {
-    const port = await freePort(4100);
+  async startCli(cwd, current, entry) {
+    const port = await reservePort();
+    if (!current()) {
+      releasePort(port);
+      return null;
+    }
+    this.port = port;
+    let staticServer = null;
+    if (entry) {
+      staticServer = createStaticSite(cwd, entry);
+      this.staticServer = staticServer;
+      await new Promise((resolve, reject) => {
+        staticServer.once("error", reject);
+        staticServer.listen(port, "127.0.0.1", resolve);
+      });
+    }
+    // The site's own dev server, without the editor on top.
+    this.siteUrl = `http://localhost:${port}/`;
     const env = childEnv({
       ELECTRON_RUN_AS_NODE: "1",
       PORT: String(port),
@@ -157,8 +183,7 @@ class SiteRunner {
       cliEntry(),
       "--cwd",
       cwd,
-      "--exec",
-      "bun run dev",
+      ...(entry ? [] : ["--exec", "bun run dev"]),
       "--target",
       String(port),
       "--agent",
@@ -212,6 +237,14 @@ class SiteRunner {
       child.stderr.on("data", (chunk) => this.appendLog(chunk.toString()));
       child.on("error", (err) => finish(reject, err));
       child.on("exit", (code, signal) => {
+        if (this.staticServer === staticServer && staticServer) {
+          staticServer.stopStaticSite();
+          this.staticServer = null;
+        }
+        releasePort(port);
+        if (this.port === port) {
+          this.port = null;
+        }
         this.appendLog(`Editor stopped (${signal || `code ${code}`})`);
         if (this.child === child) {
           this.child = null;
@@ -236,7 +269,8 @@ class SiteRunner {
 
   async stop() {
     this.token += 1;
-    const { install, child, groups } = this;
+    const { install, child, groups, staticServer } = this;
+    this.staticServer = null;
     clearInterval(this.watch);
     if (child?.pid && child.exitCode === null) {
       for (const group of snapshotTree(child.pid).groups) {
@@ -247,8 +281,31 @@ class SiteRunner {
     this.child = null;
     this.groups = new Set();
     await Promise.all([stopTree(install, 3000), stopTree(child, 6000)]);
+    if (staticServer) {
+      await staticServer.stopStaticSite();
+    }
     await stopGroups(groups);
+    releasePort(this.port);
+    this.port = null;
   }
+}
+
+function releasePort(port) {
+  if (port !== null) {
+    reservedPorts.delete(port);
+    reservedPorts.delete(port + 1);
+  }
+}
+
+function reservePort() {
+  const next = portQueue.then(async () => {
+    const port = await freePort(4100);
+    reservedPorts.add(port);
+    reservedPorts.add(port + 1);
+    return port;
+  });
+  portQueue = next.catch(() => undefined);
+  return next;
 }
 
 class Friendly extends Error {}
@@ -269,6 +326,9 @@ function portFree(port, host) {
 /** First port from `start` that is free on IPv4 and IPv6, with the next one free too for the editor. */
 async function freePort(start) {
   for (let port = start; port < start + 400; port += 1) {
+    if (reservedPorts.has(port) || reservedPorts.has(port + 1)) {
+      continue;
+    }
     // Ports are probed one at a time on purpose: stop at the first free one.
     const free =
       // biome-ignore lint/performance/noAwaitInLoops: sequential probe by design

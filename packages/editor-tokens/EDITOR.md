@@ -11,18 +11,18 @@ description: >-
   No shadows on panels — separate surfaces with borders instead.
 tokens:
   surface:
-    canvas: "#1E1E1E"
-    base: "#242424"
-    sidebar: "#2C2C2C"
-    panel: "#2C2C2C"
-    hover: "#383838"
-    active: "#3F3F3F"
-    selected: "#454545"
+    canvas: "#161616"
+    base: "#1A1A1A"
+    sidebar: "#1E1E1E"
+    panel: "#1E1E1E"
+    hover: "#292929"
+    active: "#2E2E2E"
+    selected: "#363636"
     overlay: "#202020F2"
   border:
-    subtle: "rgba(255,255,255,0.06)"
-    default: "#444444"
-    strong: "#555555"
+    subtle: "rgba(255,255,255,0.05)"
+    default: "#2B2B2B"
+    strong: "#3A3A3A"
     focus: "#0D99FF"
     disabled: "rgba(255,255,255,0.04)"
   text:
@@ -75,7 +75,7 @@ tokens:
     handle: "#FFFFFF"
     guide: "#0D99FF"
   timeline:
-    track: "#242424"
+    track: "#1A1A1A"
     marker: "#666666"
     active-marker: "#FFFFFF"
     highlight: "#0D99FF"
@@ -85,9 +85,9 @@ tokens:
     thumb-hover: "rgba(255,255,255,0.20)"
     thumb-active: "rgba(255,255,255,0.30)"
   divider:
-    horizontal: "#444444"
-    vertical: "#444444"
-    heavy: "rgba(255,255,255,0.12)"
+    horizontal: "#2B2B2B"
+    vertical: "#2B2B2B"
+    heavy: "rgba(255,255,255,0.08)"
   shadow:
     xs: "0 1px 2px rgba(0,0,0,0.16)"
     sm: "0 2px 8px rgba(0,0,0,0.20)"
@@ -116,21 +116,21 @@ tokens:
     "900": "#2B2B2B"
     "950": "#1E1E1E"
   input:
-    bg: "#383838"
-    hover: "#3E3E3E"
-    focus: "#383838"
+    bg: "#282828"
+    hover: "#2E2E2E"
+    focus: "#282828"
     border: "transparent"
     focus-border: "#0D99FF"
-    disabled: "#252525"
+    disabled: "#202020"
   button:
     primary: "#0D99FF"
     primary-hover: "#33AEFF"
     primary-pressed: "#007BE5"
     primary-disabled: "#3E5D73"
-    secondary: "#383838"
-    secondary-hover: "#3E3E3E"
-    secondary-pressed: "#404040"
-    secondary-disabled: "#292929"
+    secondary: "#282828"
+    secondary-hover: "#2E2E2E"
+    secondary-pressed: "#333333"
+    secondary-disabled: "#222222"
     ghost-hover: "rgba(255,255,255,0.05)"
     ghost-pressed: "rgba(255,255,255,0.08)"
   typography:
@@ -169,11 +169,11 @@ tokens:
     section: 80
   rounded:
     none: 0
-    xs: 4
-    sm: 6
-    md: 8
-    lg: 12
-    xl: 16
+    xs: 6
+    sm: 8
+    md: 12
+    lg: 16
+    xl: 20
     pill: 9999
     full: 9999
   elevation:
@@ -210,9 +210,12 @@ workspace.
 
 ## Character
 
-- Neutral grays, not warm — the canvas is `#1E1E1E`, panels `#2C2C2C`, inputs are
-  filled `#383838` with no border, and dividers are a solid `#444` hairline. Surfaces step `#1E1E1E → #454545` in ~3–5% luminance
-  increments (`{surface.canvas}` → `{surface.selected}`). This progression is the
+- Neutral grays, not warm — the canvas is `#161616`, and the panels share the
+  window's title-bar colour `#1E1E1E`, so the chrome reads as one frame around a
+  slightly darker canvas (Framer's arrangement). Inputs are filled `#282828` with
+  no border, and dividers are a muted `#2B2B2B` hairline. Surfaces step
+  `#161616 → #363636` in small luminance increments (`{surface.canvas}` →
+  `{surface.selected}`). This progression is the
   core of the editor's feel: calm, dense, cohesive.
 - **Hairline borders**, no heavy shadows. Panels separate with `{border.*}`
   hairlines; shadows are reserved for the floated chrome (`{shadow.*}`).

@@ -80,8 +80,15 @@ const TEXT_DRILL_CAP = 400;
  * `inspector/node-kind.ts` carries the same predicate inline, to classify a
  * `"text"` layer for the tree. The duplication is deliberate: `nodeKind` is
  * about naming and iconography and should not take a dependency on the editor.
+ *
+ * The one exception to "only text children" is a split-text group — a heading
+ * a reveal animation has cut into word spans. See `isSplitTextGroup`.
  */
 export function isEditableText(node: Element): boolean {
+  return isLeafText(node) || isSplitTextGroup(node);
+}
+
+function isLeafText(node: Element): boolean {
   if (!isHtmlElement(node)) {
     return false;
   }
@@ -115,7 +122,7 @@ export function isEditableText(node: Element): boolean {
  */
 export function textTargetIn(node: Element): Element | null {
   if (isEditableText(node)) {
-    return node;
+    return textEditTarget(node);
   }
   // `PREFIX` rather than `edit-guard`'s `isOwn`: importing that module here
   // would pull dnd-kit into the editor and into its tests, for a check this
@@ -131,12 +138,133 @@ export function textTargetIn(node: Element): Element | null {
     if (child.closest(chrome) || !isEditableText(child)) {
       continue;
     }
-    if (found) {
+    // Every word of one split heading is the same candidate, not a tie.
+    const target = textEditTarget(child);
+    if (found && found !== target) {
       return null;
     }
-    found = child;
+    found = target;
   }
   return found;
+}
+
+/*
+ * Split text.
+ *
+ * Reveal animations (GSAP `SplitText`, Motion, a hand-rolled
+ * `text.split(" ").map(...)`) wrap every word — or letter, or line — of a
+ * heading in its own span. Each span is then a perfectly good leaf by
+ * `isLeafText`, so double-clicking "More" in "More than search." edited the
+ * one word and nothing else. The heading is what the user meant, so text
+ * editing resolves a split part up to its group and edits the whole run.
+ *
+ * Recognised narrowly, because a false positive merges strings the user wrote
+ * as separate elements: only spans and `<br>`s inside, no loose words between
+ * them, at least two text-bearing parts, and every part marked the way
+ * splitters mark them (an inline style, `aria-hidden`, or a
+ * word/char/line class). A plain `<p>Hello <b>world</b></p>` is not a group.
+ */
+
+/** How many nodes `isSplitTextGroup` walks before calling it not-a-group. */
+const SPLIT_SCAN_CAP = 600;
+const SPLIT_CLASS = /split|word|char|letter|line/i;
+
+function isSplitPart(span: Element): boolean {
+  return (
+    span.hasAttribute("style") ||
+    span.getAttribute("aria-hidden") === "true" ||
+    SPLIT_CLASS.test(span.getAttribute("class") ?? "")
+  );
+}
+
+/** Is `node` a run of split-text spans, and nothing else? */
+export function isSplitTextGroup(node: Element): boolean {
+  if (!isHtmlElement(node)) {
+    return false;
+  }
+  const tally = { parts: 0, seen: 0 };
+  return walkSplit(node, tally) && tally.parts >= 2;
+}
+
+/** Walk one container of a candidate group. False as soon as it disqualifies. */
+function walkSplit(
+  el: Element,
+  tally: { parts: number; seen: number }
+): boolean {
+  for (const child of Array.from(el.childNodes)) {
+    tally.seen += 1;
+    const kind = tally.seen > SPLIT_SCAN_CAP ? "bad" : splitChildKind(child);
+    if (kind === "bad") {
+      return false;
+    }
+    if (kind === "part") {
+      tally.parts += 1;
+    } else if (kind === "nest" && !walkSplit(child as Element, tally)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function splitChildKind(child: Node): "bad" | "gap" | "nest" | "part" {
+  if (child.nodeType === Node.TEXT_NODE) {
+    // Text directly in a container is a loose word, not a gap.
+    return child.textContent?.trim() ? "bad" : "gap";
+  }
+  if (child.nodeType !== Node.ELEMENT_NODE) {
+    return "gap";
+  }
+  const span = child as Element;
+  const tag = span.tagName.toUpperCase();
+  if (tag === "BR") {
+    return "gap";
+  }
+  if (tag !== "SPAN") {
+    return "bad";
+  }
+  if (!isLeafText(span)) {
+    return "nest";
+  }
+  return isSplitPart(span) ? "part" : "bad";
+}
+
+/**
+ * The string an edit records. `textContent`, except that a `<br>` reads as a
+ * line break: split headings keep the author's `<br>`, and without this
+ * "search.<br>Analysis" would reach the agent as "search.Analysis".
+ */
+export function readText(node: Element): string {
+  if (!node.querySelector("br")) {
+    return node.textContent ?? "";
+  }
+  let out = "";
+  const walk = (n: Node): void => {
+    for (const child of Array.from(n.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        out += child.textContent ?? "";
+      } else if ((child as Element).tagName?.toUpperCase() === "BR") {
+        out += "\n";
+      } else {
+        walk(child);
+      }
+    }
+  };
+  walk(node);
+  return out;
+}
+
+/**
+ * The node a text edit on `node` should open: the outermost split-text group
+ * it belongs to, or `node` itself when it is not part of one.
+ */
+export function textEditTarget(node: Element): Element {
+  let target: Element = node;
+  let parent = node.parentElement;
+  while (parent && isSplitTextGroup(parent)) {
+    target = parent;
+    parent = parent.parentElement;
+  }
+  return target;
 }
 
 export interface BeginOptions {
@@ -192,7 +320,7 @@ export class TextEditor {
       return false;
     }
     this.editing = node;
-    this.original = node.textContent ?? "";
+    this.original = readText(node);
     this.prevEditable = node.getAttribute("contenteditable");
 
     // `plaintext-only` is what keeps a paste from injecting markup into the
@@ -245,7 +373,7 @@ export class TextEditor {
     if (!node) {
       return;
     }
-    const to = node.textContent ?? "";
+    const to = readText(node);
     // Read before `teardown`, which is what makes the check honest — and note
     // that a node React unmounted, a frame that reloaded over HMR or a subtree
     // the app replaced mid-edit all land here. Recording against one would ship
@@ -333,6 +461,21 @@ export class TextEditor {
       this.commit();
       return;
     }
+    // Inside a button, Space and Enter are the button's *activation* keys, and
+    // the browser runs that default instead of inserting text — so a space typed
+    // into "Book a demo" never landed, and the keyup fired a click (a form
+    // submit, for a submit button). Take the key and insert the space by hand;
+    // Enter just stops activating, as a label has no use for a line break.
+    if (
+      !(this.composing || ke.isComposing) &&
+      isActivationKey(ke) &&
+      activatableHost(node)
+    ) {
+      ke.preventDefault();
+      if (ke.key === " ") {
+        node.ownerDocument.execCommand("insertText", false, " ");
+      }
+    }
     // Every other key belongs to the field, not to the editor's shortcuts.
     ke.stopPropagation();
   };
@@ -349,6 +492,22 @@ export class TextEditor {
       ce.target.ownerDocument.execCommand("insertText", false, text);
     }
   };
+}
+
+/**
+ * Elements whose native keyboard activation swallows Space or Enter. The
+ * edited node may be the label *inside* one (`textTargetIn` drills down), so
+ * this is matched with `closest`.
+ */
+const ACTIVATABLE = "button, summary, a[href], [role='button']";
+
+function activatableHost(node: Element): boolean {
+  return node.closest(ACTIVATABLE) !== null;
+}
+
+function isActivationKey(ke: KeyboardEvent): boolean {
+  const plain = !(ke.metaKey || ke.ctrlKey || ke.altKey);
+  return plain && (ke.key === " " || ke.key === "Enter");
 }
 
 let plaintextSupport: boolean | null = null;

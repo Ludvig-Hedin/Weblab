@@ -16,6 +16,7 @@
  * the closures write, and a stub is the only way to see them.
  */
 import { afterEach, describe, expect, it } from "vitest";
+import { cls } from "../../dom";
 import type { SectionContext } from "./context";
 import { renderStroke } from "./stroke";
 
@@ -211,5 +212,36 @@ describe("every write is a longhand", () => {
     ]);
     expect(got.changes.some(([p]) => p === "border-style")).toBe(false);
     expect(got.changes.some(([p]) => p === "border-width")).toBe(false);
+  });
+});
+
+describe("a hidden stroke stays in the list", () => {
+  it("keeps the row, dimmed, and the eye puts the old style back", () => {
+    // Was: the row vanished on hide, so the only way back was Add stroke,
+    // which reset the weight to 1px and the style to solid.
+    const { ctx, got } = recordingCtx();
+    const node = bordered({});
+    for (const side of ["top", "right", "bottom", "left"]) {
+      node.style.setProperty(`border-${side}-style`, "dashed");
+    }
+    // Apply writes, so the section's own reads see them the way the preview does.
+    const record = ctx.onChange;
+    ctx.onChange = (property, value) => {
+      record(property, value);
+      node.style.setProperty(property, value);
+    };
+    const body = renderStroke(ctx, node);
+    press(body, "Hide stroke");
+    const row = body.querySelector(`.${cls("rows-row")}`);
+    expect(row?.classList.contains(cls("rows-off"))).toBe(true);
+    got.changes = [];
+    press(body, "Show stroke");
+    expect(got.changes).toEqual([
+      ["border-top-style", "dashed"],
+      ["border-right-style", "dashed"],
+      ["border-bottom-style", "dashed"],
+      ["border-left-style", "dashed"],
+    ]);
+    expect(body.querySelector('[aria-label="Hide stroke"]')).not.toBeNull();
   });
 });

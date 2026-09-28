@@ -48,7 +48,14 @@ import {
   surfaceToMode,
   type VisualEditTarget,
 } from "@airship/protocol";
-import { scanProjectTokens } from "@airship/source/tokens";
+import {
+  addMode,
+  createToken,
+  deleteToken,
+  scanProjectTokens,
+  setTokenValue,
+  type TokenWriteResult,
+} from "@airship/source/tokens";
 import { type RawData, WebSocket, WebSocketServer } from "ws";
 import { bindUrl, buildAllowedHosts } from "./access";
 import { listHistory, readBundle, thread, writeBundle } from "./history";
@@ -299,6 +306,38 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           type: "tokens:result",
         });
         break;
+      // A variable write is a one-line text edit, not an agent turn, so it runs
+      // at once. It still waits for any running edit so the two never race on
+      // the same stylesheet.
+      case "token:write": {
+        const write = parsed;
+        editChain = editChain
+          .then(() => {
+            const result = applyTokenWrite(cwd, write);
+            send(ws, {
+              error: result.ok ? undefined : result.error,
+              file: result.ok ? result.file : undefined,
+              name: write.name,
+              ok: result.ok,
+              type: "token:write:result",
+            });
+            if (result.ok) {
+              broadcast({
+                scan: scanProjectTokens(cwd, { refresh: true }),
+                type: "tokens:result",
+              });
+            }
+          })
+          .catch((err) => {
+            send(ws, {
+              error: err instanceof Error ? err.message : String(err),
+              name: write.name,
+              ok: false,
+              type: "token:write:result",
+            });
+          });
+        break;
+      }
       // Off `editChain` like `tokens`, and for a stronger reason: the probe
       // talks to the same backends a running turn is using, and queueing it
       // would leave the picker spinning for the length of an edit. Answered to
@@ -1002,4 +1041,46 @@ function summarizeMoves(moves?: MoveEdit[]): string {
   return first.newParent
     ? `Move ${what} into ${where}${scope}`
     : `Reposition ${what}${scope}`;
+}
+
+/** Run one `token:write` against the stylesheets under `cwd`. */
+function applyTokenWrite(
+  cwd: string,
+  write: Extract<ClientMessage, { type: "token:write" }>
+): TokenWriteResult {
+  const value = write.value ?? "";
+  if (write.op === "create") {
+    return createToken(cwd, {
+      afterLine: write.afterLine,
+      file: write.file,
+      name: write.name,
+      value,
+    });
+  }
+  if (write.op === "add-mode") {
+    return write.mode
+      ? addMode(cwd, {
+          mode: write.mode,
+          modeName: write.modeName,
+          name: write.name,
+          value,
+        })
+      : { error: "Choose a mode to add.", ok: false };
+  }
+  if (!write.file) {
+    return { error: "This variable has no file.", ok: false };
+  }
+  if (write.op === "delete") {
+    return deleteToken(cwd, {
+      file: write.file,
+      line: write.line,
+      name: write.name,
+    });
+  }
+  return setTokenValue(cwd, {
+    file: write.file,
+    line: write.line,
+    name: write.name,
+    value,
+  });
 }

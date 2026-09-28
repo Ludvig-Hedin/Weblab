@@ -21,9 +21,19 @@ export function createSelect(
   const options = descriptor.enumValues ?? [];
   let current = initial || descriptor.defaultValue;
 
-  const label = el("span", {
-    text: options.find((o) => o.value === current)?.label ?? current,
-  });
+  // One line each, ellipsised; the full label rides on `title` so a class name
+  // too long for the rail can still be read by hovering it.
+  const label = el("span", { class: cls("select-label") });
+  const detail = el("span", { class: cls("select-detail") });
+  const show = (value: string): void => {
+    const option = options.find((o) => o.value === value);
+    label.textContent = option?.label ?? value;
+    label.title = label.textContent;
+    detail.textContent = option?.detail ?? "";
+    detail.hidden = !option?.detail;
+  };
+  show(current);
+  const text = el("span", { class: cls("select-text") }, [label, detail]);
 
   const button = el(
     "button",
@@ -49,8 +59,13 @@ export function createSelect(
       class: cls("select"),
       type: "button",
     },
-    [label, icon("caret-down", "xs")]
+    [text, icon("caret-down", "xs")]
   );
+  // Grows to two lines only when some option carries a detail line, so every
+  // other select keeps the standard control height.
+  if (options.some((o) => o.detail)) {
+    button.dataset.detailed = "";
+  }
 
   /*
    * The menu is built when it opens, not when the control is.
@@ -69,11 +84,12 @@ export function createSelect(
   button.addEventListener("click", () => {
     menu = createMenu(
       options.map((opt) => ({
+        hint: opt.detail,
         label: opt.label,
         on: opt.value === current,
         run: () => {
           current = opt.value;
-          label.textContent = opt.label;
+          show(opt.value);
           onChange(descriptor.cssProperty, opt.value);
         },
       }))
@@ -105,8 +121,7 @@ export function createSelect(
         return;
       }
       current = value;
-      label.textContent =
-        options.find((o) => o.value === value)?.label ?? value;
+      show(value);
     },
   };
 }

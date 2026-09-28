@@ -5,6 +5,8 @@ import {
   attachRailKeys,
   attachRailWheel,
   type ChangeChip,
+  groupChips,
+  humanizeDetail,
   renderChangeChips,
   shortValue,
 } from "./change-chips";
@@ -381,5 +383,36 @@ describe("arrowing through the chips", () => {
     expect(node.getAttribute("role")).toBe("toolbar");
     expect(node.getAttribute("aria-orientation")).toBe("horizontal");
     expect(node.getAttribute("aria-label")).toBe("Pending changes");
+  });
+});
+
+describe("the save menu's grouping", () => {
+  it("puts changes to one element under one heading, in order", () => {
+    const a = document.createElement("div");
+    const b = document.createElement("div");
+    const make = (node: Element, subject: string, detail: string) =>
+      ({
+        detail,
+        node,
+        onRemove: () => undefined,
+        subject,
+        tip: "",
+      }) as ChangeChip;
+    const groups = groupChips([
+      make(a, "Frame", "border-top-style"),
+      make(b, "Button", "color"),
+      make(a, "Frame", "border-right-style"),
+      make(a, "Frame:hover", "color"),
+    ]);
+    expect(groups.map((g) => [g.subject, g.chips.length])).toEqual([
+      ["Frame", 2],
+      ["Button", 1],
+      ["Frame:hover", 1],
+    ]);
+  });
+
+  it("reads a property as words", () => {
+    expect(humanizeDetail("border-top-style")).toBe("Border top style");
+    expect(humanizeDetail("--brand")).toBe("--brand");
   });
 });

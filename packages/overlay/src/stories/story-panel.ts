@@ -145,8 +145,10 @@ export function sectionStory(
 export interface PanelStoryOptions extends SectionStoryOptions {
   /** Extra nodes for a multi-selection, by selector within the subject page. */
   extra?: string[];
-  /** Start on a tab other than Design. */
-  tab?: "css" | "dom";
+  /** Show the left dock's layer tree instead of the right dock's panel. */
+  layers?: boolean;
+  /** Start on a tab other than Style. */
+  tab?: "css";
 }
 
 /**
@@ -195,11 +197,9 @@ export function emptyPanelStory(caption?: Caption): HTMLElement {
  * click handler is what re-renders the body — setting the field alone would
  * leave the panel showing the Design tab while claiming to be on CSS.
  */
-function selectTab(panel: DesignPanel, tab: "css" | "dom"): void {
-  const label = tab === "css" ? "css" : "dom";
-  const buttons = [...panel.element.querySelectorAll<HTMLElement>("button")];
-  const target = buttons.find(
-    (b) => (b.textContent ?? "").trim().toLowerCase() === label
+function selectTab(panel: DesignPanel, tab: "css"): void {
+  const target = panel.element.querySelector<HTMLElement>(
+    `button[data-tab="${tab}"]`
   );
   if (!target) {
     throw new Error(`No ${tab} tab in the panel's tab strip.`);
@@ -245,9 +245,11 @@ type MakePanel = (
  */
 function build(
   name: SubjectName,
-  opts: SectionStoryOptions,
+  opts: SectionStoryOptions & { layers?: boolean },
   makePanel: MakePanel
 ): HTMLElement {
+  const shown = (panel: DesignPanel): HTMLElement =>
+    opts.layers ? panel.layersElement : panel.element;
   if (opts.tokens) {
     withTokens();
   }
@@ -263,7 +265,7 @@ function build(
     const node = stage(slot, { ...common, page: built.page });
     node.prepend(markSelection(built.node));
     requestAnimationFrame(() => {
-      slot.replaceWith(makePanel(built.node, undefined, built.page).element);
+      slot.replaceWith(shown(makePanel(built.node, undefined, built.page)));
     });
     return node;
   }
@@ -272,7 +274,7 @@ function build(
   const node = stage(slot, { ...common, page: frame });
   requestAnimationFrame(() => {
     const built = fill(name);
-    slot.replaceWith(makePanel(built.node, built.surface, built.page).element);
+    slot.replaceWith(shown(makePanel(built.node, built.surface, built.page)));
     // After `fill`, because the node does not exist until the frame is written.
     node.prepend(markSelection(built.node, built.surface));
   });

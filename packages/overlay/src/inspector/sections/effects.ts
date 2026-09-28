@@ -72,14 +72,15 @@ export function renderEffects(ctx: SectionContext, node: Element): HTMLElement {
    * exactly this (`.sect-act`'s `flex: 0 0 auto` exists because the computed
    * sub-head needed one there first).
    */
+  // Adding a layer to a bound stack would fork it from the token without
+  // saying so. Detach first, through the badge.
+  const add = bound
+    ? null
+    : ctx.headerAction("plus", "Add shadow", () => shadows.add());
   return ctx.section("effects", "Effects", body, {
-    actions: [
-      ...(slot ? [slot.element] : []),
-      // Adding a layer to a bound stack would fork it from the token without
-      // saying so. Detach first, through the badge.
-      ...(bound
-        ? []
-        : [ctx.headerAction("plus", "Add shadow", () => shadows.add())]),
-    ],
+    actions: [...(slot ? [slot.element] : []), ...(add ? [add] : [])],
+    ...(add && {
+      addWhenEmpty: { button: add, isEmpty: () => !shadows.rows().length },
+    }),
   });
 }

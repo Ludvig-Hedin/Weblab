@@ -180,7 +180,7 @@ export function groupOfPreset(id: string | null): PresetGroup | null {
 }
 
 /** A live frame reduced to the fields `build` can make one from. */
-function snapshot(frame: Frame): StoredFrame {
+export function snapshot(frame: Frame): StoredFrame {
   return {
     height: frame.height,
     id: frame.id,
@@ -190,6 +190,17 @@ function snapshot(frame: Frame): StoredFrame {
     x: frame.x,
     y: frame.y,
   };
+}
+
+function sameBox(a: StoredFrame, b: StoredFrame): boolean {
+  return (
+    a.x === b.x &&
+    a.y === b.y &&
+    a.width === b.width &&
+    a.height === b.height &&
+    a.presetId === b.presetId &&
+    a.name === b.name
+  );
 }
 
 /**
@@ -313,6 +324,8 @@ export interface RemovedFrame {
 }
 
 export interface FrameManagerDeps {
+  /** A frame finished moving, resizing or changing device — see `commitBox`. */
+  onBoxChange?: (before: StoredFrame, after: StoredFrame) => void;
   /** Frames were added, removed, moved or resized. */
   onChanged?: () => void;
   /** An agent registered (initial load, or an HMR full reload) — the frame's
@@ -383,6 +396,7 @@ export class FrameManager {
       this.fitPage(frame);
     }
     frame.agents.set(agent.window, agent);
+    this.applyMedia(frame);
     this.deps.onFrameReady?.(frame, agent);
   };
 
@@ -707,6 +721,7 @@ export class FrameManager {
     if (!(preset && frame)) {
       return;
     }
+    const before = snapshot(frame);
     frame.width = preset.width;
     frame.height = preset.height;
     frame.presetId = preset.id;
@@ -714,6 +729,7 @@ export class FrameManager {
     this.applyBox(frame);
     this.fitPage(frame);
     this.deps.onChanged?.();
+    this.commitBox(before);
   }
 
   /**
@@ -731,12 +747,53 @@ export class FrameManager {
     if (!frame) {
       return;
     }
+    const before = snapshot(frame);
     const { width, height } = frame;
     frame.width = height;
     frame.height = width;
     this.applyBox(frame);
     this.fitPage(frame);
     this.deps.onChanged?.();
+    this.commitBox(before);
+  }
+
+  /** A frame's size, place and device, as `commitBox` and `setBox` take it. */
+  boxOf(id: string): StoredFrame | null {
+    const frame = this.byId(id);
+    return frame ? snapshot(frame) : null;
+  }
+
+  /**
+   * Put a frame back to a recorded box. Undo and redo for size and place.
+   * Reports nothing to `onBoxChange`: a replay must not record itself.
+   */
+  setBox(box: StoredFrame): void {
+    const frame = this.byId(box.id);
+    if (!frame) {
+      return;
+    }
+    frame.x = box.x;
+    frame.y = box.y;
+    frame.width = box.width;
+    frame.height = box.height;
+    frame.presetId = box.presetId;
+    frame.name = box.name;
+    this.applyBox(frame);
+    this.fitPage(frame);
+    this.deps.onChanged?.();
+  }
+
+  /**
+   * Report a finished change to a frame's box so it can be undone.
+   *
+   * Called once per gesture, not from `move` or `resize`: a drag calls those
+   * on every pointermove, and each call would be its own undo step.
+   */
+  commitBox(before: StoredFrame): void {
+    const after = this.boxOf(before.id);
+    if (after && !sameBox(before, after)) {
+      this.deps.onBoxChange?.(before, after);
+    }
   }
 
   rename(id: string, name: string): void {
@@ -826,10 +883,38 @@ export class FrameManager {
    * which is what makes the text override survive a mode change and a new
    * frame's birth without either having to know about it.
    */
+  /**
+   * Every frame takes real clicks while on: the "use the page" tool, for
+   * pressing a slider's arrows or opening a menu without leaving Edit.
+   */
+  setLive(on: boolean): void {
+    this.live = on;
+    for (const frame of this.frames) {
+      this.applyMode(frame);
+    }
+  }
+
+  private live = false;
+
   private applyMode(frame: Frame): void {
-    const inert = this.editing && frame.id !== this.textFrameId;
+    const inert = this.editing && !this.live && frame.id !== this.textFrameId;
     frame.plane.style.display = inert ? "block" : "none";
     frame.iframe.style.pointerEvents = inert ? "none" : "auto";
+    this.applyMedia(frame);
+  }
+
+  /**
+   * Videos on the canvas always hold still. The canvas is for editing only;
+   * view mode plays the page in its own frame (see `CanvasStage.setEditing`).
+   */
+  private applyMedia(frame: Frame): void {
+    for (const agent of frame.agents.values()) {
+      try {
+        agent.setMediaPaused?.(true);
+      } catch {
+        // The realm died mid-call (a reload). Its successor will register.
+      }
+    }
   }
 
   // -- Lazy mounting ---------------------------------------------------------
@@ -852,6 +937,24 @@ export class FrameManager {
         r.top + r.height > viewportRect.top - MOUNT_MARGIN;
       if (visible) {
         this.mount(frame);
+      }
+    }
+  }
+
+  /** The site path every frame loads. */
+  get pathname(): string {
+    return this.deps.pathname;
+  }
+
+  /**
+   * Point every frame at another page of the site. Mounted frames load it now;
+   * the rest load it when they scroll into view.
+   */
+  goTo(pathname: string): void {
+    this.deps.pathname = pathname;
+    for (const frame of this.frames) {
+      if (frame.mounted) {
+        frame.iframe.src = this.frameSrc();
       }
     }
   }

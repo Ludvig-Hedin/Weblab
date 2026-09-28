@@ -73,6 +73,16 @@
       ],
       "notarize": false,
       "extendInfo": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Website folder",
+            "CFBundleTypeRole": "Editor",
+            "LSHandlerRank": "Alternate",
+            "LSItemContentTypes": [
+              "public.folder"
+            ]
+          }
+        ],
         "NSAppleEventsUsageDescription": "Weblab opens your site folder in Finder."
       },
       "artifactName": "Weblab-${version}-${arch}-mac.${ext}"

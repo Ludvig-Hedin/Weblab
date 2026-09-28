@@ -28,6 +28,12 @@ export type GroupId =
   | "position";
 
 export interface EnumOption {
+  /**
+   * A muted second line under the label in a select's trigger, and the
+   * right-aligned hint in its menu. For a fact about the option rather than
+   * its name: the Scope picker's `48 elements` under `.btn`.
+   */
+  detail?: string;
   /** Rendered as a real glyph; `label` becomes its tooltip. */
   icon?: IconName;
   label: string;
@@ -35,6 +41,11 @@ export interface EnumOption {
 }
 
 export interface Descriptor {
+  /**
+   * Shown and typed as a percentage of a 0-1 CSS value (opacity). `80` means
+   * 0.8, and so does a typed `0.8` — a decimal up to 1 reads as the fraction.
+   */
+  asPercent?: boolean;
   /** For box-model: which cross this side belongs to. */
   compoundGroup?: "padding" | "margin";
   controlType: ControlType;
@@ -354,6 +365,7 @@ const TYPOGRAPHY: Descriptor[] = [
 
 const APPEARANCE: Descriptor[] = [
   {
+    asPercent: true,
     controlType: "number-scrub",
     cssProperty: "opacity",
     defaultValue: "1",

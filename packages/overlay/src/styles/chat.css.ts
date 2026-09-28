@@ -12,16 +12,20 @@ export const css = `
 /* The transcript's empty state is a \`.empty-md\` block (empty.css). This class
    carries no styling of its own any more — it is the handle \`pushBubble\` uses
    to find and drop the block when the first bubble lands. */
-.${PREFIX}-msg { font-size: var(--ap-font-size-title); line-height: 1.5; }
+/* One type size for every sentence in the chat — the question, the steps, the
+   answer — after t3code. Hierarchy comes from tone, not from size: prose is
+   bright, the work log is muted, the meta is dimmer still. */
+.${PREFIX}-msg { font-family: var(--ap-font-sans); font-size: var(--ap-font-size-title); line-height: 1.55; }
 .${PREFIX}-msg-user {
-  align-self: flex-end; max-width: 88%; padding: 8px 12px; word-break: break-word;
+  align-self: flex-end; max-width: 85%; padding: 8px 12px; word-break: break-word;
   background: var(--ap-surface-selected); color: var(--ap-text-primary);
-  border-radius: var(--ap-radius-md) var(--ap-radius-md) var(--ap-radius-xs) var(--ap-radius-md);
+  border-radius: var(--ap-radius-lg);
 }
 .${PREFIX}-msg-assistant {
-  align-self: flex-start; max-width: 96%; padding: 10px 12px; word-break: break-word;
-  background: transparent; border: 1px solid transparent; padding-left: 0; padding-right: 0;
-  border-radius: var(--ap-radius-md) var(--ap-radius-md) var(--ap-radius-md) var(--ap-radius-xs);
+  align-self: stretch; padding: 0; word-break: break-word;
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--ap-radius-md);
+  color: var(--ap-text-primary);
 }
 /* A failed turn. The bubble's body *is* the error string (\`fillAssistant\` puts
    \`bundle.error\` or "Edit failed." there), so the words already carry the news;
@@ -31,7 +35,7 @@ export const css = `
 .${PREFIX}-msg-assistant.${PREFIX}-msg-err { border-color: var(--ap-border-strong); padding: 10px 12px; }
 .${PREFIX}-msg-body > *:first-child { margin-top: 0; }
 .${PREFIX}-msg-body > *:last-child { margin-bottom: 0; }
-.${PREFIX}-msg-body p { margin: 6px 0; }
+.${PREFIX}-msg-body p { margin: 8px 0; }
 .${PREFIX}-msg-body h4, .${PREFIX}-msg-body h5, .${PREFIX}-msg-body h6 { margin: 8px 0 4px; font-size: var(--ap-font-size-heading); font-weight: 600; }
 .${PREFIX}-msg-body ul, .${PREFIX}-msg-body ol { margin: 6px 0; padding-left: 18px; }
 .${PREFIX}-msg-body li { margin: 2px 0; }
@@ -69,14 +73,26 @@ export const css = `
    Moving it costs nothing: an absolutely-positioned child resolves \`right\` and
    \`bottom\` against this element's *padding box*, whose edges do not move when
    padding changes. Both buttons keep their exact coordinates. */
-.${PREFIX}-composer { flex: 0 0 auto; border-top: 1px solid var(--ap-border-default); padding: var(--ap-space-sm) var(--ap-space-md); }
+.${PREFIX}-composer { flex: 0 0 auto; padding: var(--ap-space-xs) var(--ap-space-sm) var(--ap-space-sm); }
+/* The composer card, after Claude's and Framer's: text on top, a row of
+   controls underneath, one soft rounded box around both. A grid rather than
+   absolutely-placed buttons, so the text never runs under Send. */
 .${PREFIX}-field {
-  position: relative; display: flex; flex-direction: column; gap: 4px;
-  padding: 6px 8px;
-  background: var(--ap-input-bg); border: 1px solid var(--ap-input-border);
-  border-radius: var(--ap-radius-sm);
+  position: relative; display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 8px 4px;
+  padding: 12px 8px 8px 12px;
+  /* One step up from the panel, no drawn edge at rest: the fill alone marks the
+     card, the way Framer's composer does. The border stays, transparent, so the
+     focus state can fade one in without the card shifting a pixel. */
+  background: var(--ap-surface-hover); border: 1px solid transparent;
+  border-radius: var(--ap-radius-md);
+  transition: border-color var(--ap-motion-dur-micro) var(--ap-motion-ease), background var(--ap-motion-dur-micro) var(--ap-motion-ease);
 }
-.${PREFIX}-field:focus-within { border-color: var(--ap-input-focus-border); }
+.${PREFIX}-field > .${PREFIX}-sel-chips,
+.${PREFIX}-field > .${PREFIX}-chips,
+.${PREFIX}-field > .${PREFIX}-input { grid-column: 1 / -1; }
+.${PREFIX}-field:focus-within { border-color: var(--ap-border-strong); }
+.${PREFIX}-field > button { cursor: pointer; }
 /* Chip rows scroll sideways rather than wrapping: each pending change is now
    its own chip, and wrapping a dozen of them would push the field to half the
    dock. Hidden when empty so they cost nothing at rest.
@@ -234,7 +250,7 @@ export const css = `
 .${PREFIX}-input {
   width: 100%; resize: none; display: block; font-family: var(--ap-font-sans);
   font-size: var(--ap-font-size-title); line-height: 1.45; color: var(--ap-text-primary);
-  background: transparent; border: 0; padding: 2px 65px 2px 0;
+  background: transparent; border: 0; padding: 0 4px 0 0; min-height: 44px;
 }
 .${PREFIX}-input::placeholder { color: var(--ap-text-placeholder); }
 .${PREFIX}-input:focus { outline: none; }
@@ -246,8 +262,26 @@ export const css = `
    The box comes from \`.action\`/\`.action-icon\` below: 28px. This rule used to
    restate 24 and lose on source order, so the numbers here described a button
    that never existed. */
-.${PREFIX}-send {
-  position: absolute; right: 5px; bottom: 5px;
+/* Round and bright, the one filled thing in the card. */
+.${PREFIX}-field > .${PREFIX}-action.${PREFIX}-send {
+  grid-column: 3; width: 28px; height: 28px; border: 0; border-radius: var(--ap-radius-pill);
+  background: var(--ap-text-primary); --${PREFIX}-ic-tone: var(--ap-text-inverse);
+}
+.${PREFIX}-field > .${PREFIX}-action.${PREFIX}-send:not(:disabled):hover { background: var(--ap-gray-200); border: 0; }
+.${PREFIX}-field > .${PREFIX}-action.${PREFIX}-send:not(:disabled):active { background: var(--ap-gray-300); }
+/* Nothing to send yet: no text and no pending changes or attachments. Muted
+   rather than disabled, so it stays clickable and focusable exactly as before;
+   it lights up the moment there is something to send. Pure CSS off the
+   textarea's own placeholder state, so no script has to keep a class in sync. */
+.${PREFIX}-field:has(> .${PREFIX}-input:placeholder-shown):has(> .${PREFIX}-chips:empty):not(:has(.${PREFIX}-tweak-chip)) > .${PREFIX}-action.${PREFIX}-send {
+  background: var(--ap-surface-selected); --${PREFIX}-ic-tone: var(--ap-text-tertiary);
+}
+.${PREFIX}-field:has(> .${PREFIX}-input:placeholder-shown):has(> .${PREFIX}-chips:empty):not(:has(.${PREFIX}-tweak-chip)) > .${PREFIX}-action.${PREFIX}-send:not(:disabled):hover {
+  background: var(--ap-gray-600);
+}
+.${PREFIX}-field > .${PREFIX}-action.${PREFIX}-send:focus-visible,
+.${PREFIX}-field > .${PREFIX}-field-btn:focus-visible {
+  outline: 2px solid var(--ap-primary-border); outline-offset: 1px;
 }
 
 /* The prompt-preview toggle, in the field's gutter beside Send — the control
@@ -263,12 +297,16 @@ export const css = `
    own rule in base.css, so a \`color\` here never reached it and "secondary
    control is dimmer" was a hierarchy that only existed in this file. */
 .${PREFIX}-field-btn {
-  position: absolute; right: 37px; bottom: 7px;
-  width: 24px; height: 24px; padding: 0;
+  grid-column: 1; margin-left: -4px;
+  width: 28px; height: 28px; padding: 0; border-radius: var(--ap-radius-pill);
   --${PREFIX}-ic-tone: var(--ap-text-tertiary);
 }
+/* The card is already \`surface-hover\`, so the ghost's own hover fill would
+   vanish into it. One step further up the ladder instead. */
+.${PREFIX}-field-btn:hover { background: var(--ap-surface-active); --${PREFIX}-ic-tone: var(--ap-text-primary); }
 /* A toggle that stays down while its surface is open. */
 .${PREFIX}-iconbtn-on { background: var(--ap-surface-selected); color: var(--ap-text-primary); }
+.${PREFIX}-field-btn.${PREFIX}-iconbtn-on { --${PREFIX}-ic-tone: var(--ap-text-primary); }
 
 /* Chips. Same rail treatment as \`.sel-chips\` — \`.scroll-x\` owns the overflow. */
 .${PREFIX}-chips {
@@ -339,9 +377,44 @@ export const css = `
    is what says "running". Tinting it as well says it twice, and a saturated dot
    blinking through a long turn is the most attention-drawing thing the panel
    could do for its least surprising message. */
-.${PREFIX}-step,
-.${PREFIX}-turn-status { display: flex; align-items: center; gap: var(--ap-space-xs); font-size: var(--ap-font-size-title); color: var(--ap-text-tertiary); }
-.${PREFIX}-turn-status { margin-top: var(--ap-space-xs); }
+.${PREFIX}-step { display: flex; align-items: center; gap: var(--ap-space-xs); font-size: var(--ap-font-size-title); color: var(--ap-text-tertiary); }
+/* "Working for 12s". No dot: the label shimmers, and the timer ticking is
+   already the proof of life. */
+.${PREFIX}-turn-status {
+  display: flex; align-items: center; min-height: 24px; padding: 0 4px; margin-bottom: 2px;
+  font-size: var(--ap-font-size-title); font-variant-numeric: tabular-nums; color: var(--ap-text-tertiary);
+}
+.${PREFIX}-turn-status-label,
+.${PREFIX}-tl-row[data-phase="pending"] > .${PREFIX}-tl-head .${PREFIX}-tl-name,
+.${PREFIX}-tl-think.${PREFIX}-tl-live .${PREFIX}-tl-think-label {
+  color: transparent;
+  background: linear-gradient(90deg, transparent, var(--ap-text-primary), transparent) -72px 0 / 72px 100% no-repeat,
+    linear-gradient(var(--ap-text-tertiary), var(--ap-text-tertiary));
+  -webkit-background-clip: text; background-clip: text;
+  animation: ${PREFIX}-shine 2.2s linear infinite;
+}
+@keyframes ${PREFIX}-shine { to { background-position: calc(100% + 72px) 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .${PREFIX}-turn-status-label,
+  .${PREFIX}-tl-row[data-phase="pending"] > .${PREFIX}-tl-head .${PREFIX}-tl-name,
+  .${PREFIX}-tl-think.${PREFIX}-tl-live .${PREFIX}-tl-think-label {
+    animation: none; background: none; color: var(--ap-text-tertiary);
+  }
+}
+
+/* "Worked for 12s ›" — the finished turn's steps, folded above the answer. */
+.${PREFIX}-turn-fold {
+  display: inline-flex; align-items: center; gap: 2px; min-height: 24px;
+  margin: 0 0 var(--ap-space-xxs); padding: 0 4px; cursor: pointer;
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-title);
+  font-variant-numeric: tabular-nums; color: var(--ap-text-tertiary);
+  background: transparent; border: 0; border-radius: var(--ap-radius-xs);
+  -webkit-appearance: none; appearance: none;
+}
+.${PREFIX}-turn-fold:hover { color: var(--ap-text-secondary); }
+.${PREFIX}-turn-fold:focus-visible { outline: 1px solid var(--ap-border-focus); outline-offset: 1px; }
+.${PREFIX}-turn-fold[hidden], .${PREFIX}-turn-log[hidden] { display: none; }
+.${PREFIX}-turn-log { margin-bottom: var(--ap-space-xs); }
 .${PREFIX}-dot { width: 7px; height: 7px; border-radius: var(--ap-radius-full); background: var(--ap-text-tertiary); animation: ${PREFIX}-pulse 1s infinite; }
 @keyframes ${PREFIX}-pulse { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
 
@@ -361,11 +434,13 @@ export const css = `
 
 /* Header row. A <button> when expandable, a <div> when not — both must present
    as the same dense, left-aligned line. */
+/* One quiet sans line per step, the same size as the prose around it and a
+   tone below it. Mono is kept for the one place it helps: raw tool output. */
 .${PREFIX}-tl-head {
-  display: flex; align-items: baseline; gap: var(--ap-space-xs);
+  display: flex; align-items: center; gap: 6px; min-height: 24px;
   width: 100%; margin: 0; padding: 2px 4px; cursor: pointer; text-align: left;
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-label);
-  line-height: 1.5; color: var(--ap-text-primary);
+  font-family: var(--ap-font-sans); font-size: var(--ap-font-size-title);
+  line-height: 1.5; color: var(--ap-text-secondary);
   background: transparent; border: 0; border-radius: var(--ap-radius-xs);
   -webkit-appearance: none; appearance: none;
 }
@@ -404,26 +479,18 @@ export const css = `
 ${ROOT} .${PREFIX}-tl-glyph .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-text-tertiary); }
 .${PREFIX}-tl-row[data-phase="pending"] .${PREFIX}-tl-glyph { animation: ${PREFIX}-pulse 1s infinite; }
 
-.${PREFIX}-tl-name { font-weight: 600; color: var(--ap-text-primary); white-space: nowrap; }
+.${PREFIX}-tl-name { flex: 0 0 auto; color: var(--ap-text-secondary); white-space: nowrap; }
 .${PREFIX}-tl-args {
   min-width: 0; flex: 0 1 auto; color: var(--ap-text-tertiary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
-/* Result line. Lives outside the collapsible body so the summary reads at rest;
-   the glyph column is indented to sit under the tool name. */
-.${PREFIX}-tl-res {
-  display: flex; align-items: baseline; gap: var(--ap-space-xs);
-  margin: 0; padding: 0 4px 2px 10px;
-  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-body);
-  line-height: 1.5; color: var(--ap-text-secondary); word-break: break-word;
+/* A failed step says so on its own line, bright rather than red — see the
+   glyph note above. */
+.${PREFIX}-tl-fail {
+  min-width: 0; flex: 0 1 auto; color: var(--ap-text-primary); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-${ROOT} .${PREFIX}-tl-res .${PREFIX}-ic { flex: 0 0 auto; --${PREFIX}-ic-tone: var(--ap-text-tertiary); align-self: flex-start; }
-.${PREFIX}-tl-res-text { min-width: 0; }
-/* The one row in a thirty-row turn worth finding. Brighter and heavier than the
-   \`--ap-text-secondary\` result lines around it, which is enough to catch the
-   eye scanning the column — see the glyph note above for why it is not red. */
-.${PREFIX}-tl-row[data-phase="error"] .${PREFIX}-tl-res-text { color: var(--ap-text-primary); font-weight: 600; }
+.${PREFIX}-tl-fail:empty { display: none; }
 
 /* Expanded body. */
 /* Collapsing is per-row state (see TimelineView.setCollapsed) — deliberately
@@ -431,6 +498,7 @@ ${ROOT} .${PREFIX}-tl-res .${PREFIX}-ic { flex: 0 0 auto; --${PREFIX}-ic-tone: v
    that outranks the row's own disclosure, which is what used to freeze every
    finished turn's rows shut. */
 .${PREFIX}-tl-body { margin: 0 0 var(--ap-space-xs) 0; padding: 0 4px 0 26px; }
+.${PREFIX}-tl-sum { margin: 0 0 var(--ap-space-xxs); color: var(--ap-text-tertiary); font-size: var(--ap-font-size-label); }
 
 .${PREFIX}-tl-args-list {
   display: grid; grid-template-columns: auto 1fr; gap: 0 var(--ap-space-xs);
@@ -464,24 +532,26 @@ ${ROOT} .${PREFIX}-tl-res .${PREFIX}-ic { flex: 0 0 auto; --${PREFIX}-ic-tone: v
    not have earned one back regardless: "the model is thinking" is a *kind* of
    row rather than a state, and the sans face and the italic already carry that
    against a column of mono tool names. */
-.${PREFIX}-tl-think > .${PREFIX}-tl-head { font-family: var(--ap-font-sans); font-size: var(--ap-font-size-title); }
-.${PREFIX}-tl-think-label { color: var(--ap-text-tertiary); font-style: italic; }
+.${PREFIX}-tl-think-label { color: var(--ap-text-tertiary); }
 .${PREFIX}-tl-think-text {
   font-family: var(--ap-font-sans); font-size: var(--ap-font-size-title); line-height: 1.55;
   color: var(--ap-text-secondary); white-space: pre-wrap; word-break: break-word;
 }
 
 /* Assistant prose inside the timeline keeps the bubble's sans body scale. */
-.${PREFIX}-tl-text { padding: var(--ap-space-xs) 4px; font-size: var(--ap-font-size-heading); }
+.${PREFIX}-tl-text { padding: 2px 4px; margin: 2px 0 4px; font-size: var(--ap-font-size-title); color: var(--ap-text-primary); }
 
 /* Todos, hung off the same rail as a tool result. */
-.${PREFIX}-tl-todos { display: flex; align-items: flex-start; gap: var(--ap-space-xs); padding: 0 4px 0 10px; }
-.${PREFIX}-tl-todos .${PREFIX}-tl-res-glyph { display: inline-flex; flex: 0 0 auto; color: var(--ap-text-tertiary); }
-.${PREFIX}-tl-todos .${PREFIX}-todos { margin-top: 0; flex: 1 1 auto; min-width: 0; }
+/* Todos, indented under the step labels, a size and a tone down: the plan is
+   context for the steps, not a second answer. */
+.${PREFIX}-tl-todos { padding: 2px 4px 4px 26px; }
+.${PREFIX}-tl-todos .${PREFIX}-todos { margin-top: 0; }
+.${PREFIX}-tl-todos .${PREFIX}-todos li { font-size: var(--ap-font-size-label); color: var(--ap-text-secondary); padding: 1px 0; }
 
 /* A diff nested in a tool body already sits inside a bordered box. */
 .${PREFIX}-tl-body .${PREFIX}-diff { margin: 0; border: 0; border-radius: 0; }
 
+.${PREFIX}-turn-result { padding: 0 4px; }
 .${PREFIX}-turn-result:empty { display: none; }
 
 /* Todos. Status rides opacity and weight, not hue.
@@ -513,14 +583,38 @@ ${ROOT} .${PREFIX}-tl-res .${PREFIX}-ic { flex: 0 0 auto; --${PREFIX}-ic-tone: v
 .${PREFIX}-disc-head:hover { color: var(--ap-text-primary); background: var(--ap-surface-hover); }
 .${PREFIX}-disc-body { padding-top: var(--ap-space-xs); }
 .${PREFIX}-follow-disc { margin-top: var(--ap-space-xs); }
-/* "Show details": quiet, left-aligned with the text, below the result. */
-.${PREFIX}-turn-details { margin-top: var(--ap-space-xs); }
-.${PREFIX}-turn-details > .${PREFIX}-disc-head {
-  width: auto; padding: 4px 0; color: var(--ap-text-tertiary);
-  font-size: var(--ap-font-size-body);
+/* Suggestions: a quiet line under the answer, not a filled bar. */
+.${PREFIX}-follow-disc > .${PREFIX}-disc-head {
+  width: auto; gap: 2px; padding: 4px 0; color: var(--ap-text-tertiary); font-size: var(--ap-font-size-title);
 }
-.${PREFIX}-turn-details > .${PREFIX}-disc-head:hover { background: transparent; color: var(--ap-text-secondary); }
-.${PREFIX}-turn-extra .${PREFIX}-meta { margin-top: var(--ap-space-xs); }
+.${PREFIX}-follow-disc > .${PREFIX}-disc-head:hover { background: transparent; color: var(--ap-text-secondary); }
+
+/* Changed files: one card under the answer. A header with the totals, then a
+   folded row per file — name first, folder dimmer, counts at the end. */
+.${PREFIX}-turn-files {
+  margin-top: var(--ap-space-sm); overflow: hidden;
+  background: var(--ap-surface-hover); border-radius: var(--ap-radius-sm);
+}
+.${PREFIX}-turn-files-head {
+  display: flex; align-items: center; gap: var(--ap-space-xs); padding: 8px 10px;
+  font-size: var(--ap-font-size-label);
+}
+.${PREFIX}-turn-files-title { font-weight: 500; color: var(--ap-text-primary); }
+.${PREFIX}-turn-stat {
+  display: inline-flex; gap: 4px; flex: 0 0 auto; white-space: nowrap;
+  font-family: var(--ap-font-mono); font-size: var(--ap-font-size-caption); font-variant-numeric: tabular-nums;
+}
+.${PREFIX}-turn-stat-add { color: var(--ap-semantic-success); }
+.${PREFIX}-turn-stat-del { color: var(--ap-semantic-error); }
+.${PREFIX}-turn-files .${PREFIX}-diff { margin: 0; border: 0; border-top: 1px solid var(--ap-border-subtle); border-radius: 0; }
+.${PREFIX}-turn-files .${PREFIX}-diff-head { background: transparent; padding: 6px 10px; }
+.${PREFIX}-turn-files .${PREFIX}-diff-head:hover { background: var(--ap-surface-active); }
+.${PREFIX}-diff-path { display: flex; align-items: baseline; gap: 6px; flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
+.${PREFIX}-diff-head .${PREFIX}-diff-path .${PREFIX}-diff-file { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--ap-font-sans); font-weight: 400; font-size: var(--ap-font-size-label); }
+.${PREFIX}-diff-dir {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  font-size: var(--ap-font-size-caption); color: var(--ap-text-tertiary);
+}
 
 /* Diffs. */
 .${PREFIX}-diffs { margin-top: var(--ap-space-md); }

@@ -1,5 +1,5 @@
 import { cls, el } from "../../dom";
-import { icon } from "../../icons";
+import { createMenu } from "../../popover-host";
 import { CORNER_PROPERTIES, createCorners } from "../controls/corners";
 import { APPEARANCE_GROUP } from "../descriptors";
 import { readValue } from "../style-model";
@@ -42,22 +42,19 @@ export function renderAppearance(
     (d) => d.key === "mixBlendMode"
   );
 
-  const top = el("div", { class: cls("grid") });
+  // Figma's Appearance row: Opacity beside Corner radius, labels above, the
+  // independent-corners switch in the action lane.
+  const labelled = (text: string, control: HTMLElement): HTMLElement =>
+    el("div", { class: cls("fgroup") }, [
+      el("span", { class: cls("flabel"), text }),
+      control,
+    ]);
+  const top = el("div", { class: cls("lane") });
   if (opacity) {
-    // Through `fieldCell`, so opacity gets the token affordance every other
-    // descriptor-driven control has — `opacity` is its own token category, and
-    // this control was reaching past the one place that grants it.
     const cell = ctx.fieldCell(opacity, node);
-    cell.classList.add(cls("cell"));
-    // Layer opacity and fill alpha are different things and the panel offers
-    // both, two sections apart. Saying which is which here is cheaper than
-    // letting someone discover it by fading their text along with the box.
     cell.dataset.tip = "Layer opacity, children included";
-    top.append(cell);
+    top.append(labelled("Opacity", cell));
   }
-  // Corner radius is four longhands behind one field with its own mode
-  // switch, so it cannot be a descriptor — but it sits beside opacity because
-  // that is one row of two numbers, not two rows of one.
   const corners = createCorners(
     new Map(CORNER_PROPERTIES.map((p) => [p, readValue(node, p) || "0px"])),
     ctx.onChange,
@@ -65,79 +62,41 @@ export function renderAppearance(
     (properties) => ctx.tokenSlot(node, properties)
   );
   ctx.register(corners);
-  corners.element.classList.add(cls("cell"));
-  top.append(corners.element);
+  top.append(labelled("Corner radius", corners.element));
   body.append(top);
 
+  // Blend mode is an icon in the header, as in Figma: it is rarely changed,
+  // and a full-width dropdown for it was the heaviest row in the section.
+  const actions: HTMLElement[] = [];
   if (blend) {
-    const control = ctx.buildControl(blend, node);
-    body.append(
-      el("div", { class: `${cls("row")} ${cls("group")}` }, [
-        el("span", { class: cls("row-label"), text: blend.label }),
-        control.element,
-      ])
-    );
-  }
-
-  /*
-   * Clip content — `overflow: hidden` ⇄ `visible`.
-   *
-   * Exactly the frame clip, and the most-used frame property the panel
-   * could not previously reach except through the Text section's "Truncate to
-   * one line". Two truths worth knowing rather than hiding: `overflow: hidden`
-   * also makes a scroll container and breaks `position: sticky` inside it, and
-   * because truncation writes the same property, this toggle will read as on
-   * after you truncate some text. Reflecting the real property beats keeping a
-   * private flag that agrees with nothing.
-   *
-   * Gated on the node having something inside it to clip. A toggle on a leaf
-   * `<span>` is a control with no observable effect.
-   */
-  if (node.childElementCount > 0) {
-    const clipped = readValue(node, "overflow") === "hidden";
-    const clip = el(
-      "button",
-      {
-        "aria-pressed": String(clipped),
-        class: `${cls("ctl-toggle")}${clipped ? ` ${cls("ctl-toggle-on")}` : ""}`,
-        "data-tip": "Clip anything outside this element",
-        onClick: () => {
-          const now = readValue(node, "overflow") === "hidden";
-          ctx.onChange("overflow", now ? "visible" : "hidden");
-          // Optimistic, because `onChange` re-seeds through `setValue` only when
-          // the write lands — and this button is what the user is looking at.
-          paintClip(!now);
-        },
-        type: "button",
-      },
-      [
-        icon(clipped ? "overflow-clip" : "overflow-visible", "sm"),
-        el("span", { text: "Clip content" }),
-      ]
-    );
-    /*
-     * Registered, so an undo reaches it.
-     *
-     * It was a bare `el(...)` that only ever repainted itself from its own click
-     * handler, and `overflow` is not in `shapeKey` — so ⌘Z reverted the property
-     * while the button stayed lit with `aria-pressed="true"`, and the next click
-     * wrote `visible` again. A no-op, which reads as a dead control.
-     */
-    const paintClip = (on: boolean): void => {
-      clip.classList.toggle(cls("ctl-toggle-on"), on);
-      clip.setAttribute("aria-pressed", String(on));
-      clip.replaceChildren(
-        icon(on ? "overflow-clip" : "overflow-visible", "sm"),
-        el("span", { text: "Clip content" })
-      );
-    };
-    ctx.register({
-      element: clip,
-      properties: ["overflow"],
-      setValue: (_property, value) => paintClip(value === "hidden"),
+    const current = (): string => readValue(node, "mix-blend-mode") || "normal";
+    const blendButton = ctx.headerAction("blend-mode", "Blend mode", () => {
+      createMenu(
+        (blend.enumValues ?? []).map((option) => ({
+          label: option.label,
+          on: option.value === current(),
+          run: () => {
+            ctx.onChange("mix-blend-mode", option.value);
+            paintBlend(option.value);
+          },
+        }))
+      ).open(blendButton, "below");
     });
-    body.append(el("div", { class: cls("group") }, [clip]));
+    const paintBlend = (value: string): void => {
+      const label =
+        blend.enumValues?.find((o) => o.value === value)?.label ?? value;
+      blendButton.dataset.tip = `Blend mode: ${label}`;
+      blendButton.setAttribute("aria-label", `Blend mode: ${label}`);
+      blendButton.toggleAttribute("data-on", value !== "normal");
+    };
+    paintBlend(current());
+    ctx.register({
+      element: blendButton,
+      properties: ["mix-blend-mode"],
+      setValue: (_property, value) => paintBlend(value),
+    });
+    actions.push(blendButton);
   }
 
-  return ctx.section("appearance", "Appearance", body);
+  return ctx.section("appearance", "Appearance", body, { actions });
 }

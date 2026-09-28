@@ -185,6 +185,8 @@ export interface SectionContext {
     body: HTMLElement,
     opts?: {
       actions?: HTMLElement[];
+      /** A click on an empty section's heading presses this `+` instead of folding. */
+      addWhenEmpty?: { button: HTMLElement; isEmpty: () => boolean };
       /** Settled open/closed, including once on first render — lets a section
        * defer expensive content until someone asks for it. */
       onToggle?: (open: boolean) => void;

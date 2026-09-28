@@ -1,5 +1,15 @@
 import { cls, el } from "../../dom";
 import { icon } from "../../icons";
+import { createMenu } from "../../popover-host";
+import {
+  fitCss,
+  fitFromCss,
+  type ImageBinding,
+  type ImageFit,
+  layerOfUrl,
+  openImagePopover,
+  urlOfLayer,
+} from "../controls/image-popover";
 import { createTextField } from "../controls/num-field";
 import { createRowList } from "../controls/row-list";
 import {
@@ -9,7 +19,8 @@ import {
   splitTop,
 } from "../css-value";
 import { hasFill } from "../gates";
-import { fillLayerRow } from "../paint";
+import { consumeImageEditorReopen } from "../image-editor";
+import { fillLayerRow, type OpenLayerImage } from "../paint";
 import { readValue } from "../style-model";
 import type { SectionContext } from "./context";
 import { labelled } from "./row";
@@ -75,6 +86,247 @@ function writeLayerEntry(
   ctx.onChange(property, next.join(", "));
 }
 
+/** The initial value of one parallel list, by property. */
+function initialOf(property: string): string {
+  return GEOMETRY.find((g) => g.property === property)?.initial ?? "";
+}
+
+/** The parallel lists CSS also aligns with the layers, beyond `GEOMETRY`. */
+const OTHER_LISTS = [
+  { initial: "normal", property: "background-blend-mode" },
+  { initial: "scroll", property: "background-attachment" },
+  { initial: "padding-box", property: "background-origin" },
+  { initial: "border-box", property: "background-clip" },
+] as const;
+
+const URL_TOKEN = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
+
+/**
+ * Turn same-origin `url()`s back into root-relative ones.
+ *
+ * Computed style resolves every `url()` against the document, so a layer
+ * authored as `url("/hero.jpg")` reads back as `url("http://localhost:4100/hero.jpg")`
+ * — the proxy's address, which must never reach the user's source. Anything on
+ * another origin is left exactly as it is.
+ */
+export function relativeUrls(css: string, node: Element): string {
+  let origin = "";
+  try {
+    ({ origin } = new URL(node.ownerDocument.baseURI));
+  } catch {
+    return css;
+  }
+  if (!origin || origin === "null") {
+    return css;
+  }
+  return css.replace(
+    URL_TOKEN,
+    (whole: string, _quote: string, inner: string) => {
+      try {
+        const url = new URL(inner);
+        if (url.origin !== origin) {
+          return whole;
+        }
+        return layerOfUrl(`${url.pathname}${url.search}${url.hash}`);
+      } catch {
+        // Already relative (or not a URL at all): nothing to undo.
+        return whole;
+      }
+    }
+  );
+}
+
+/** `background-image` as the panel should write it back: pending edit first. */
+function currentImages(ctx: SectionContext, node: Element): string {
+  const raw =
+    ctx.gate(node)("background-image") || readValue(node, "background-image");
+  return raw && raw !== "none" ? relativeUrls(raw, node) : "";
+}
+
+/** How many layers `background-image` holds right now. */
+function countLayers(node: Element): number {
+  return parseFillLayers(readValue(node, "background-image")).length;
+}
+
+/**
+ * The image popover's view of one background layer.
+ *
+ * `layer` is how the Fill rows hand over their own value, so a write goes
+ * through the row list rather than around it. Without it (the Media section's
+ * Background row) the layer is read from and written into `background-image`
+ * directly. Size, position and repeat are always this layer's entries in the
+ * parallel lists, so a two-layer background keeps the other layer's geometry.
+ */
+export function backgroundImageBinding(
+  ctx: SectionContext,
+  node: Element,
+  index: number,
+  layer?: { read: () => string; write: (css: string) => void }
+): ImageBinding {
+  const entry = (property: string): string =>
+    layerEntry(node, property, index, initialOf(property));
+  const writeEntry = (property: string, value: string): void =>
+    writeLayerEntry(
+      ctx,
+      node,
+      property,
+      index,
+      initialOf(property),
+      value,
+      countLayers(node)
+    );
+  return {
+    baseUrl: node.ownerDocument.baseURI,
+    kind: "background",
+    read: () => {
+      const current = layer
+        ? layer.read()
+        : (splitTop(readValue(node, "background-image"))[index] ?? "");
+      return {
+        alt: "",
+        fit: fitFromCss("background", {
+          repeat: entry("background-repeat"),
+          size: entry("background-size"),
+        }),
+        position: entry("background-position"),
+        src: urlOfLayer(current),
+      };
+    },
+    setFit: (fit) => {
+      ctx.batch(() => {
+        for (const [property, value] of fitCss("background", fit)) {
+          writeEntry(property, value);
+        }
+      });
+      ctx.refresh();
+    },
+    setPosition: (position) => {
+      writeEntry("background-position", position);
+      ctx.reseed();
+    },
+    setSrc: (url) => {
+      const css = layerOfUrl(url);
+      if (layer) {
+        layer.write(css);
+      } else {
+        const layers = splitTop(currentImages(ctx, node));
+        layers[index] = css;
+        ctx.onChange("background-image", layers.join(", "));
+      }
+      ctx.refresh();
+    },
+  };
+}
+
+/**
+ * Put a new image layer on top of the stack, with its geometry.
+ *
+ * On top means first: CSS paints the first `background-image` layer over the
+ * rest. Each parallel list gets the new layer's entry in front of the entries
+ * the existing layers already had, so nothing underneath changes meaning.
+ * Blend, attachment, origin and clip are only touched when they already list
+ * per-layer values; a single shared value keeps applying to all of them.
+ */
+function insertImageLayer(
+  ctx: SectionContext,
+  node: Element,
+  url: string,
+  fit: ImageFit,
+  position: string
+): void {
+  const layers = splitTop(currentImages(ctx, node));
+  const count = layers.length;
+  const existing = (
+    property: string,
+    initial = initialOf(property)
+  ): string[] =>
+    Array.from({ length: count }, (_, i) =>
+      layerEntry(node, property, i, initial)
+    );
+  const first = new Map<string, string>([
+    ...fitCss("background", fit),
+    ["background-position", position],
+  ]);
+  const writes: [string, string][] = [
+    ["background-image", [layerOfUrl(url), ...layers].join(", ")],
+  ];
+  for (const property of [
+    "background-size",
+    "background-position",
+    "background-repeat",
+  ]) {
+    writes.push([
+      property,
+      [first.get(property) ?? initialOf(property), ...existing(property)].join(
+        ", "
+      ),
+    ]);
+  }
+  // A single shared value keeps applying to every layer, the new one
+  // included; a per-layer list has to make room for it.
+  for (const { initial, property } of OTHER_LISTS) {
+    if (count > 0 && splitTop(readValue(node, property)).length > 1) {
+      writes.push([
+        property,
+        [initial, ...existing(property, initial)].join(", "),
+      ]);
+    }
+  }
+  ctx.batch(() => {
+    for (const [property, value] of writes) {
+      ctx.onChange(property, value);
+    }
+  });
+  ctx.refresh();
+}
+
+/**
+ * The popover for a layer that does not exist yet.
+ *
+ * Nothing is written until an image is chosen, so closing the popover without
+ * one leaves the element exactly as it was. Type and position picked before
+ * that are held and applied with the image.
+ */
+function newImageLayerBinding(
+  ctx: SectionContext,
+  node: Element
+): ImageBinding {
+  let added = false;
+  let fit: ImageFit = "fill";
+  let position = "50% 50%";
+  const live = (): ImageBinding => backgroundImageBinding(ctx, node, 0);
+  return {
+    baseUrl: node.ownerDocument.baseURI,
+    kind: "background",
+    read: () => (added ? live().read() : { alt: "", fit, position, src: "" }),
+    setFit: (next) => {
+      if (added) {
+        live().setFit(next);
+      } else {
+        fit = next;
+      }
+    },
+    setPosition: (next) => {
+      if (added) {
+        live().setPosition(next);
+      } else {
+        position = next;
+      }
+    },
+    setSrc: (url) => {
+      if (added) {
+        live().setSrc(url);
+        return;
+      }
+      added = true;
+      insertImageLayer(ctx, node, url, fit, position);
+    },
+  };
+}
+
+/** The key a Fill image row is reopened under after a rebuild. */
+const reopenKey = (index: number): string => `fill-layer:${index}`;
+
 /** The one solid-fill row: swatch, hex, alpha, and a minus that takes it away. */
 function solidFillRow(
   ctx: SectionContext,
@@ -128,6 +380,8 @@ export function renderFill(ctx: SectionContext, node: Element): HTMLElement {
   }
   body.append(solidRows);
 
+  /** Enabled rows rendered so far in the current pass. See `render`. */
+  let enabledBefore = 0;
   // Gradient and image layers ride on `background-image`, stacked above the
   // base colour — which is exactly how CSS paints them and how a design tool stacks
   // fills, so the two orderings agree for free.
@@ -140,14 +394,60 @@ export function renderFill(ctx: SectionContext, node: Element): HTMLElement {
       }),
       cssProperty: "background-image",
       enabled: (r) => r.enabled,
-      parse: parseFillLayers,
-      render: (row, onEdit, _onDispose, index) =>
-        el("div", { class: cls("fill-layer") }, [
-          fillLayerRow(row, onEdit, ctx.gestures, node),
+      // Relative on the way in, so a round trip through the list never
+      // writes the proxy's absolute address for a layer nobody touched.
+      parse: (css) => parseFillLayers(relativeUrls(css, node)),
+      render: (row, onEdit, _onDispose, index) => {
+        /*
+         * The row's position among the *painted* layers.
+         *
+         * A hidden row is dropped from the CSS, so row 2 behind a hidden row 1
+         * is the second entry of every parallel list, not the third. Rows are
+         * rendered in order, so counting the enabled ones seen so far is exact.
+         */
+        if (index === 0) {
+          enabledBefore = 0;
+        }
+        const cssIndex = enabledBefore;
+        if (row.enabled) {
+          enabledBefore += 1;
+        }
+        const openImage: OpenLayerImage = (anchor, layer) => {
+          openImagePopover(anchor, {
+            ...backgroundImageBinding(ctx, node, cssIndex, layer),
+            gestures: ctx.gestures,
+            isCurrent: () => node.isConnected && anchor.isConnected,
+            reopenKey: reopenKey(index),
+          });
+        };
+        const content = el("div", { class: cls("fill-layer") }, [
+          // A hidden layer has no entry in the CSS lists to edit, so it gets
+          // neither the image popover nor geometry until it is shown again.
+          fillLayerRow(
+            row,
+            onEdit,
+            ctx.gestures,
+            node,
+            row.enabled ? openImage : undefined
+          ),
           // Per-layer geometry, for the layers that have any. A solid colour is
           // painted by `background-color` and has no size, position or repeat.
-          ...(row.kind === "solid" ? [] : [layerGeometry(ctx, node, index)]),
-        ]),
+          ...(row.kind === "solid" || !row.enabled
+            ? []
+            : [layerGeometry(ctx, node, cssIndex)]),
+        ]);
+        if (
+          row.kind === "image" &&
+          consumeImageEditorReopen(reopenKey(index))
+        ) {
+          // The panel rebuilt under an open image popover (the first image
+          // layer adds a Background block to Media). Open it again here.
+          queueMicrotask(() =>
+            content.querySelector<HTMLElement>(`.${cls("fill-thumb")}`)?.click()
+          );
+        }
+        return content;
+      },
       serialize: formatFillLayers,
       setEnabled: (r, on) => ({ ...r, enabled: on }),
     },
@@ -157,26 +457,35 @@ export function renderFill(ctx: SectionContext, node: Element): HTMLElement {
   ctx.register(layers);
   body.append(layers.element);
 
-  return ctx.section("fill", "Fill", body, {
-    actions: [
-      ctx.headerAction("plus", "Add fill", () => {
-        // The first `+` gives you a solid fill, the way a design tool's does. Only
-        // once there is one does it start stacking gradient layers on top.
-        // "Is there one" is asked of the live row rather than of `filled`,
-        // which was captured when the section was built and goes stale the
-        // moment the remove button above takes the row away.
-        if (solidRows.childElementCount) {
-          layers.add();
-        } else {
-          // Appended in place, matching the remove button above it — which
-          // has always taken its row out without a rebuild. A fill appearing
-          // does not change any other section.
-          ctx.onChange("background-color", "#FFFFFF");
-          solidRows.append(solidFillRow(ctx, node, "#FFFFFF"));
-        }
-      }),
-    ],
+  const addImage = (anchor: HTMLElement): void => {
+    openImagePopover(anchor, {
+      ...newImageLayerBinding(ctx, node),
+      gestures: ctx.gestures,
+      isCurrent: () => node.isConnected && anchor.isConnected,
+      // The new layer is first in the list, so its row is row 0.
+      reopenKey: reopenKey(0),
+    });
+  };
+  const plus = ctx.headerAction("plus", "Add fill", () => {
+    // The first `+` gives you a solid fill, the way a design tool's does. Only
+    // once there is one does it offer layers to stack on top: a gradient or an
+    // image. "Is there one" is asked of the live row rather than of `filled`,
+    // which was captured when the section was built and goes stale the moment
+    // the remove button above takes the row away.
+    if (solidRows.childElementCount) {
+      createMenu([
+        { icon: "fill-gradient", label: "Gradient", run: () => layers.add() },
+        { icon: "fill-image", label: "Image", run: () => addImage(plus) },
+      ]).open(plus, "below");
+    } else {
+      // Appended in place, matching the remove button above it — which
+      // has always taken its row out without a rebuild. A fill appearing
+      // does not change any other section.
+      ctx.onChange("background-color", "#FFFFFF");
+      solidRows.append(solidFillRow(ctx, node, "#FFFFFF"));
+    }
   });
+  return ctx.section("fill", "Fill", body, { actions: [plus] });
 }
 
 /** One layer's size, position, repeat and blend, as a compact sub-row. */

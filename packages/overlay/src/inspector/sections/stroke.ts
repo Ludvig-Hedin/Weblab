@@ -92,8 +92,36 @@ function edgeValue(
   );
 }
 
+/**
+ * Strokes the eye has switched off, and what each edge said before it did.
+ *
+ * A hidden stroke is `border-style: none` in the CSS, so the agent and the
+ * source see no border. The row, though, has to stay — dimmed, with a shut
+ * eye — the way a design tool keeps a hidden layer in its list. Nothing in
+ * the element says "hidden" rather than "never had one", and computed style
+ * reports every width as `0px` once the style is `none`, so this remembers the
+ * widths and styles to show while hidden and to put back on the way out.
+ *
+ * Keyed on the element, not the section, because the section is rebuilt on
+ * every selection change and a re-shape. Page-lifetime only: after a reload a
+ * hidden stroke reads as no stroke, which is what the source then says.
+ */
+const HIDDEN_STROKES = new WeakMap<Element, Map<string, string>>();
+
 export function renderStroke(ctx: SectionContext, node: Element): HTMLElement {
   const body = el("div", { class: cls("sect-body") });
+
+  /**
+   * The remembered edges, while the stroke is hidden. A painting stroke means
+   * something else put it back — an undo, an agent edit — so the memory goes.
+   */
+  const hiddenEdges = (): Map<string, string> | undefined => {
+    if (hasStroke(ctx.gate(node))) {
+      HIDDEN_STROKES.delete(node);
+      return;
+    }
+    return HIDDEN_STROKES.get(node);
+  };
 
   /** The stroke's colour, or `MIXED`. Used as both the seed and the re-seed. */
   const strokeColor = (): string => edgeValue(node, "color", "#000000");
@@ -108,94 +136,121 @@ export function renderStroke(ctx: SectionContext, node: Element): HTMLElement {
   const repaintRows = ctx.repaintScope();
   const paintRows = (): void => repaintRows(() => paintRowsInto());
   const paintRowsInto = (): void => {
-    if (!hasStroke(ctx.gate(node))) {
+    const hidden = hiddenEdges() !== undefined;
+    if (!(hidden || hasStroke(ctx.gate(node)))) {
       // Empty, not a "None" row — see the note in `row-list.ts`'s render().
       rows.replaceChildren();
       return;
     }
-    rows.replaceChildren(
-      el("div", { class: cls("rows-row") }, [
-        ctx.colorRow(
-          strokeColor(),
-          "Stroke colour",
-          (next) => {
-            for (const side of STROKE_SIDES) {
-              ctx.onChange(`border-${side.name}-color`, next);
-            }
-          },
-          node,
-          STROKE_SIDES.map((side) => `border-${side.name}-color`),
-          /*
-           * The sixth argument, and it is not optional here.
-           *
-           * Without it the re-seed pass pushes the raw per-property value
-           * (`panel.colorRow`'s `setValue`), and this row registers *four*
-           * properties — so it takes four `setValue` calls, one per edge, and
-           * `border-left-color` wins. A `Mixed` row would settle on the left
-           * edge's colour after the first undo, refresh or discard, which is
-           * the panel changing what it claims for no reason the user can see.
-           *
-           * The same expression as the seed, deliberately: `vector.ts` states
-           * the invariant — "the seed and the re-seed `read` have to agree on
-           * this" — and the only way to keep it is to have one function.
-           */
-          strokeColor
-        ),
-        // The eye keeps the widths and drops the stroke out of what gets
-        // painted — the same contract `row-list`'s disabled rows have. It
-        // restores to `solid` rather than remembering the previous style,
-        // because a width above zero already implies one.
-        el(
-          "button",
-          {
-            "aria-label": "Hide stroke",
-            class: cls("row-icon"),
-            "data-tip": "Hide stroke",
-            onClick: () => {
-              /*
-               * Longhands, like everything else here — this wrote the
-               * `border-style` shorthand and was a no-op after the first
-               * *Add stroke*.
-               *
-               * `hasStroke` asks `ctx.gate` for each `border-<edge>-style`, and
-               * the gate is `changeSet.snapshot(node, property)?.to ??
-               * readValue(node, property)` — a per-property lookup with no
-               * shorthand expansion. Add writes the four longhands, so once a
-               * pending `solid` exists on them it shadows a pending `none` on
-               * the shorthand forever: the inline preview applied,
-               * `borderTopStyle` computed to `none`, and the section went on
-               * showing a stroke the element was not painting.
-               */
-              writeAllEdges(ctx.onChange, "style", "none");
+    const row = el("div", { class: cls("rows-row") }, [
+      ctx.colorRow(
+        strokeColor(),
+        "Stroke colour",
+        (next) => {
+          for (const side of STROKE_SIDES) {
+            ctx.onChange(`border-${side.name}-color`, next);
+          }
+        },
+        node,
+        STROKE_SIDES.map((side) => `border-${side.name}-color`),
+        /*
+         * The sixth argument, and it is not optional here.
+         *
+         * Without it the re-seed pass pushes the raw per-property value
+         * (`panel.colorRow`'s `setValue`), and this row registers *four*
+         * properties — so it takes four `setValue` calls, one per edge, and
+         * `border-left-color` wins. A `Mixed` row would settle on the left
+         * edge's colour after the first undo, refresh or discard, which is
+         * the panel changing what it claims for no reason the user can see.
+         *
+         * The same expression as the seed, deliberately: `vector.ts` states
+         * the invariant — "the seed and the re-seed `read` have to agree on
+         * this" — and the only way to keep it is to have one function.
+         */
+        strokeColor
+      ),
+      // The eye keeps the widths and drops the stroke out of what gets
+      // painted — the same contract `row-list`'s disabled rows have. The row
+      // stays, dimmed, and the eye shuts; see `HIDDEN_STROKES`.
+      el(
+        "button",
+        {
+          "aria-label": hidden ? "Show stroke" : "Hide stroke",
+          class: cls("row-icon"),
+          "data-tip": hidden ? "Show stroke" : "Hide stroke",
+          onClick: () => {
+            const kept = hiddenEdges();
+            if (kept) {
+              HIDDEN_STROKES.delete(node);
+              for (const edge of EDGES) {
+                const style = kept.get(`border-${edge}-style`);
+                ctx.onChange(
+                  `border-${edge}-style`,
+                  style && style !== "none" ? style : "solid"
+                );
+              }
               paintRows();
               paintAdd();
-            },
-            type: "button",
-          },
-          [icon("eye", "xs")]
-        ),
-        el(
-          "button",
-          {
-            "aria-label": "Remove stroke",
-            class: cls("row-icon"),
-            "data-tip": "Remove stroke",
-            onClick: () => {
-              // Longhands, so this actually clears what the section's own fields wrote.
-              writeAllEdges(ctx.onChange, "style", "none");
-              writeAllEdges(ctx.onChange, "width", "0px");
-              paintRows();
-              paintAdd();
-              // The quad field is keyed on the longhands, so it only follows once they
-              // are what changed — `border-width` left it reading the old value.
               ctx.reseed();
-            },
-            type: "button",
+              return;
+            }
+            HIDDEN_STROKES.set(
+              node,
+              new Map(
+                EDGES.flatMap((edge) =>
+                  (["width", "style"] as const).map((suffix) => {
+                    const property = `border-${edge}-${suffix}`;
+                    return [property, readValue(node, property)] as const;
+                  })
+                )
+              )
+            );
+            /*
+             * Longhands, like everything else here — this wrote the
+             * `border-style` shorthand and was a no-op after the first
+             * *Add stroke*.
+             *
+             * `hasStroke` asks `ctx.gate` for each `border-<edge>-style`, and
+             * the gate is `changeSet.snapshot(node, property)?.to ??
+             * readValue(node, property)` — a per-property lookup with no
+             * shorthand expansion. Add writes the four longhands, so once a
+             * pending `solid` exists on them it shadows a pending `none` on
+             * the shorthand forever: the inline preview applied,
+             * `borderTopStyle` computed to `none`, and the section went on
+             * showing a stroke the element was not painting.
+             */
+            writeAllEdges(ctx.onChange, "style", "none");
+            paintRows();
+            paintAdd();
           },
-          [icon("minus", "xs")]
-        ),
-      ])
-    );
+          type: "button",
+        },
+        [icon(hidden ? "eye-off" : "eye", "xs")]
+      ),
+      el(
+        "button",
+        {
+          "aria-label": "Remove stroke",
+          class: cls("row-icon"),
+          "data-tip": "Remove stroke",
+          onClick: () => {
+            HIDDEN_STROKES.delete(node);
+            // Longhands, so this actually clears what the section's own fields wrote.
+            writeAllEdges(ctx.onChange, "style", "none");
+            writeAllEdges(ctx.onChange, "width", "0px");
+            paintRows();
+            paintAdd();
+            // The quad field is keyed on the longhands, so it only follows once they
+            // are what changed — `border-width` left it reading the old value.
+            ctx.reseed();
+          },
+          type: "button",
+        },
+        [icon("minus", "xs")]
+      ),
+    ]);
+    row.classList.toggle(cls("rows-off"), hidden);
+    rows.replaceChildren(row);
   };
   paintRows();
   body.append(rows);
@@ -209,7 +264,14 @@ export function renderStroke(ctx: SectionContext, node: Element): HTMLElement {
       collapsed: { glyph: "stroke-width", label: "Stroke width" },
       // A border with no style is invisible however wide it is; setting one
       // implies the other, and leaving that to the user is a trap.
-      onWrote: (_property, css) => {
+      onWrote: (property, css) => {
+        // While hidden a new weight is remembered, not painted: showing the
+        // stroke is the eye's job, not a side effect of typing a number.
+        const kept = hiddenEdges();
+        if (kept) {
+          kept.set(property, css);
+          return;
+        }
         /*
          * All four edges, and longhands out.
          *
@@ -239,13 +301,21 @@ export function renderStroke(ctx: SectionContext, node: Element): HTMLElement {
     new Map(
       STROKE_SIDES.map((s) => [
         `border-${s.name}-width`,
-        readValue(node, `border-${s.name}-width`) || "0px",
+        hiddenEdges()?.get(`border-${s.name}-width`) ||
+          readValue(node, `border-${s.name}-width`) ||
+          "0px",
       ])
     ),
     ctx.onChange,
     ctx.gestures
   );
-  ctx.register(widths);
+  // A hidden stroke computes to `0px` on every edge, so a re-seed would wipe
+  // the weight the row is still showing. Hold the remembered one instead.
+  ctx.register({
+    ...widths,
+    setValue: (property, value) =>
+      widths.setValue(property, hiddenEdges()?.get(property) ?? value),
+  });
 
   const settings = el(
     "button",
@@ -281,6 +351,7 @@ export function renderStroke(ctx: SectionContext, node: Element): HTMLElement {
    * workarounds — beats either a dead `+` or a fake row.
    */
   const add = ctx.headerAction("plus", "Add stroke", () => {
+    HIDDEN_STROKES.delete(node);
     writeAllEdges(ctx.onChange, "style", "solid");
     writeAllEdges(ctx.onChange, "width", "1px");
     writeAllEdges(ctx.onChange, "color", readValue(node, "color") || "#000000");
@@ -289,7 +360,7 @@ export function renderStroke(ctx: SectionContext, node: Element): HTMLElement {
     ctx.reseed();
   });
   const paintAdd = (): void => {
-    const on = hasStroke(ctx.gate(node));
+    const on = hiddenEdges() !== undefined || hasStroke(ctx.gate(node));
     add.toggleAttribute("disabled", on);
     add.dataset.tip = on ? "CSS gives an element one border" : "Add stroke";
   };

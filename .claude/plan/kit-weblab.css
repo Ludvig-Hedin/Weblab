@@ -11,8 +11,8 @@
 }
 .wl-site__nav {
   display: flex;
-  align-items: center;
   gap: 22px;
+  align-items: center;
   font-size: 12px;
   color: var(--wl-site-muted);
 }

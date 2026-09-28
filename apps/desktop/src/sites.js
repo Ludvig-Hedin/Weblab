@@ -3,9 +3,10 @@
 const { app } = require("electron");
 const { randomUUID } = require("node:crypto");
 const fs = require("node:fs");
-const { basename, join } = require("node:path");
+const { basename, extname, join } = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { templateDir, canUseGit } = require("./runtime");
+const { copyLinkedFiles } = require("./import-html");
 
 const storePath = () => join(app.getPath("userData"), "sites.json");
 
@@ -27,7 +28,12 @@ function writeAll(sites) {
 
 function list() {
   return readAll()
-    .map((site) => ({ ...site, missing: !fs.existsSync(site.path) }))
+    .map((site) => ({
+      ...site,
+      missing: !fs.existsSync(
+        site.entry ? join(site.path, site.entry) : site.path
+      ),
+    }))
     .sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
 }
 
@@ -37,7 +43,7 @@ function get(id) {
 
 function add(path, name) {
   const sites = readAll();
-  const existing = sites.find((entry) => entry.path === path);
+  const existing = sites.find((entry) => entry.path === path && !entry.entry);
   if (existing) {
     return existing;
   }
@@ -50,6 +56,49 @@ function add(path, name) {
   sites.push(site);
   writeAll(sites);
   return site;
+}
+
+/** Import a plain HTML file and its linked assets into a separate site. */
+function addHtml(file) {
+  if (!looksLikeHtml(file)) {
+    throw new Error("Choose an HTML file.");
+  }
+  const sites = readAll();
+  const existing = sites.find((saved) => saved.sourceFile === file);
+  if (existing && fs.existsSync(join(existing.path, existing.entry))) {
+    return existing;
+  }
+  const { dir: path, folderName } = reserveDir(basename(file, extname(file)));
+  fs.mkdirSync(path);
+  let entry;
+  try {
+    entry = copyLinkedFiles(file, path);
+    initGit(path, "Imported HTML");
+  } catch (error) {
+    fs.rmSync(path, { force: true, recursive: true });
+    throw error;
+  }
+  const site = {
+    entry,
+    id: randomUUID(),
+    lastOpened: null,
+    name: folderName,
+    path,
+    sourceFile: file,
+  };
+  sites.push(site);
+  writeAll(sites);
+  return site;
+}
+
+function looksLikeHtml(file) {
+  try {
+    return (
+      extname(file).toLowerCase() === ".html" && fs.statSync(file).isFile()
+    );
+  } catch {
+    return false;
+  }
 }
 
 function remove(id) {
@@ -179,10 +228,12 @@ function setSkipped(id, keys) {
 
 module.exports = {
   add,
+  addHtml,
   create,
   get,
   initGit,
   list,
+  looksLikeHtml,
   looksLikeSite,
   remove,
   reserveDir,
