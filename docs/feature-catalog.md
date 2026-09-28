@@ -183,7 +183,7 @@ Use these conventions so grep/ripgrep work cleanly:
 | F-063 | `#public` | `security/` | [_components/security/](apps/web/client/src/app/_components/security/) | `/security` | Hero, compliance, data, compare, subprocessors, contact, badges |
 | F-064 | `#public` | `shared/` | [_components/shared/](apps/web/client/src/app/_components/shared/) | Cross-page | Shared marketing primitives |
 | F-065 | `#public` | `top-bar/` (marketing) | [_components/top-bar/](apps/web/client/src/app/_components/top-bar/) | Marketing pages | Public header nav |
-| F-066 | `#public` | `landing-page/*` | [_components/landing-page/](apps/web/client/src/app/_components/landing-page/) | Landing pages | faq-section, faq-dropdown, cta-section, features-grid/intro, builder-features-*, ai-features-*, benefits, responsive-mockup, comparison-teaser, social-proof, use-cases, scrolling-velocity, testimonials, terminal-section, just-shipped-strip, feature-trio, feature-backdrop, weblab-interface-mockup, code-one-to-one, obsess-for-hours, contributor, model-agnostic, provider-icons, color-swatch-group, illustrations, contact-link, locale-switcher, theme-switcher |
+| F-066 | `#public` | `landing-page/*` | [_components/landing-page/](apps/web/client/src/app/_components/landing-page/) | Landing pages | faq-section, faq-dropdown, cta-section, features-grid/intro, builder-features-*, ai-features-*, benefits, responsive-mockup, comparison-teaser, use-cases, scrolling-velocity, testimonials, terminal-section, just-shipped-strip, feature-trio, feature-backdrop, weblab-interface-mockup, code-one-to-one, obsess-for-hours, model-agnostic, provider-icons, color-swatch-group, illustrations, contact-link, locale-switcher, theme-switcher |
 
 ---
 

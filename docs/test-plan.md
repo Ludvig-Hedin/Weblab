@@ -64,7 +64,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-003 | F-003, F-004 | E | Browse `/blog` + one slug | Featured + grid render; MDX OK; JSON-LD valid (schema.org) | `[ ]` |
 | T-004 | F-005, F-761 | U + E | Snapshot on `lib/changelog-entries.ts`; browse `/changelog` | All entries with date + tags | `[ ]` |
 | T-005 | F-006 to F-017 | M | Visual + click each card | 11 competitor cards link to subpage; each subpage renders | `[ ]` |
-| T-006 | F-018 | E | Click each download button | Apple Silicon + Intel URLs return 200 | `[ ]` |
+| T-006 | F-018 | E | Click each download button and the Mac installer links in the README | Apple Silicon + Intel downloads and the linked Mac release assets resolve | `[ ]` |
 | T-007 | F-019 | E | Open each section + question | Smooth scroll, active-section highlight, accordion open/close | `[ ]` |
 | T-008 | F-020 … F-025 | M + E | Visual scan + FAQ accordions | Each features subpage renders w/o overflow | `[ ]` |
 | T-009 | F-026 … F-028 | M | Visual on each SEO landing | All render w/o crash | `[ ]` |

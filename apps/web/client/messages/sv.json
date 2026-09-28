@@ -1186,7 +1186,7 @@
         },
         "q3": {
           "question": "Var är Weblab baserat?",
-          "answer": "Weblab byggs i Sverige. Våra open source-bidragsgivare är utspridda över världen och tillför sina unika perspektiv och otroliga talang till projektet medan vi fortsätter tänja på gränserna för design och utveckling."
+          "answer": "Weblab byggs i Sverige av Ludvig Hedin."
         }
       }
     }
@@ -3890,14 +3890,6 @@
         "body": "Börja med valfri Next.js/Tailwind-mall och låt AI:n förstå dina mönster för att generera matchande komponenter"
       }
     },
-    "contributor": {
-      "headingLine1": "Stöttat av dig &",
-      "headingOtherBuilders": "{count} andra byggare",
-      "headingLoading": "...",
-      "body": "Gå med i communityn som bygger open source-Cursor för designers",
-      "contributeButton": "Bidra till Weblab",
-      "avatarAlt": "{name}s avatar"
-    },
     "codeOneToOne": {
       "headingLine1": "Verkligen ett-till-ett",
       "headingLine2": "med koden"
@@ -4035,13 +4027,6 @@
     },
     "justShipped": {
       "badge": "Nytt i v{version}"
-    },
-    "socialProof": {
-      "title": "Community-statistik:",
-      "contributorsCount": "90+",
-      "contributorsLabel": "bidragsgivare",
-      "openSource": "Öppen källkod",
-      "transparent": "& transparent"
     },
     "terminalSection": {
       "eyebrow": "Din stack, din terminal",
