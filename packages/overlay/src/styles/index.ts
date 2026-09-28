@@ -126,6 +126,9 @@ const CSS = [
   // After `panelGrid`: the Link section's sentences sit among its fields.
   link,
   pop,
+  // After `pop`: the image popover fills a shell, and the image row sits
+  // among the section's controls.
+  image,
   // After `pop`, because both discovery surfaces are `.pop` shells and this is
   // what fills them — the shell's recipe has to land first for these to be
   // overrides of it rather than a parallel definition.
