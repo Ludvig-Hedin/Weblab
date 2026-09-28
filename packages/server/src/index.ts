@@ -994,6 +994,15 @@ function synthesizeLabel(request: CreateJobRequest): string {
   if (request.attrChanges?.length) {
     return summarizeAttrs(request.attrChanges);
   }
+  if (request.propChanges?.length) {
+    const [first] = request.propChanges;
+    const count = request.propChanges.length;
+    return `Component edit: ${count} propert${count === 1 ? "y" : "ies"} on ${first.component.name}`;
+  }
+  if (request.componentActions?.length) {
+    const [first] = request.componentActions;
+    return `Component: ${first.action.replace("-", " ")}${first.component ? ` ${first.component.name}` : ""}`;
+  }
   return summarizeMoves(request.moveChanges);
 }
 

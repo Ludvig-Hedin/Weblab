@@ -23,6 +23,7 @@ import {
   svelteResolver,
   vueResolver,
 } from "element-source";
+import { callSiteFrames } from "./component-chain";
 
 type Resolver = ReturnType<typeof createSourceResolver>;
 
@@ -91,6 +92,42 @@ export async function extractElementInfo(el: Element): Promise<{
   };
 }
 
+const RAW_FRAME = /^(.*):(\d+):(\d+)$/;
+
+/**
+ * Call-site frames as source locations, for the components API.
+ *
+ * A frame served over HTTP is a client chunk, and only the browser can fetch
+ * its sourcemap, so it is mapped here. Anything else — a server component's
+ * `about://React/Server/file:///…/.next/…` frame — passes through untouched for
+ * the server, which can read the chunk's map straight off the disk.
+ */
+export async function resolveFrames(
+  frames: string[]
+): Promise<SourceLocation[]> {
+  const resolved = await Promise.all(
+    frames.map(async (raw): Promise<SourceLocation | null> => {
+      const match = RAW_FRAME.exec(raw);
+      if (!match) {
+        return null;
+      }
+      const [, url = "", row, col] = match;
+      const frame = { columnNumber: Number(col), lineNumber: Number(row) };
+      const mapped = url.startsWith("http")
+        ? await mapThroughSourceMap(url, frame).catch(() => null)
+        : null;
+      return (
+        mapped ?? {
+          column: frame.columnNumber,
+          file: url,
+          line: frame.lineNumber,
+        }
+      );
+    })
+  );
+  return resolved.filter((loc): loc is SourceLocation => loc !== null);
+}
+
 // -- Per-element source, from React 19's owner stack --------------------------
 
 /**
@@ -121,7 +158,7 @@ async function elementSource(el: Element): Promise<SourceLocation | null> {
     (f) => f.fileName && isSourceFile(f.fileName) && f.lineNumber !== null
   );
   if (!frame?.fileName || frame.lineNumber === null) {
-    return null;
+    return serverFrameSource(stack);
   }
   return (
     (await mapThroughSourceMap(frame.fileName, frame)) ?? {
@@ -130,6 +167,22 @@ async function elementSource(el: Element): Promise<SourceLocation | null> {
       line: frame.lineNumber,
     }
   );
+}
+
+/**
+ * A server component's element: its stack names a `.next` chunk behind an
+ * `about://React/Server/` URL that bippy does not count as a source file and
+ * the browser cannot fetch. Hand the raw frame to the server, which maps the
+ * chunk through the sourcemap sitting next to it on disk.
+ */
+function serverFrameSource(stack: string): SourceLocation | null {
+  const [raw] = callSiteFrames(stack);
+  const match = raw ? RAW_FRAME.exec(raw) : null;
+  if (!match) {
+    return null;
+  }
+  const [, file = "", row, col] = match;
+  return { column: Number(col), file, line: Number(row) };
 }
 
 /** React attaches its debug stack to the fiber, not to the DOM node. */

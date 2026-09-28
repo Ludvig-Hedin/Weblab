@@ -118,6 +118,7 @@ the editor also answers to a plain `+` and `-`.
 | Measure spacing | ⌥-hover | Alt-hover | edit mode | Hold Alt and hover to read the distance to the element under the pointer. |
 | Move or resize a frame | Drag the title or a grip | Drag the title or a grip | view mode, canvas only | Drag a frame by its title; drag a grip to resize it. |
 | Restack frames | Drag a row in the frame list | Drag a row in the frame list | view mode, canvas only | Drag a row in the frame list to change which frame is in front. |
+| Open the page menu | Right-click a page | Right-click a page | anywhere | Right-click a page in the Pages panel for what you can do with it. |
 | Jump the camera | Press or drag the minimap | Press or drag the minimap | view mode, canvas only | Press anywhere on the minimap to jump there, and keep dragging to keep moving. |
 | Scrub a number | Drag a field's glyph | Drag a field's glyph | edit mode | Drag a field's glyph sideways. Shift for ten at a time, Alt for a tenth. |
 | Re-dock a panel | Double-click a panel header | Double-click a panel header | anywhere | Double-click a floating panel's header to put it back against the edge. |

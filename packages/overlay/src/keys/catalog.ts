@@ -1083,6 +1083,16 @@ export const GESTURES = [
   },
   {
     device: "any",
+    doc: "Right-click a page in the Pages panel for what you can do with it.",
+    id: "gesture.pageMenu",
+    impl: "canvas/pages-panel.ts#row",
+    input: "Right-click a page",
+    mode: "any",
+    surface: "both",
+    title: "Open the page menu",
+  },
+  {
+    device: "any",
     doc: "Press anywhere on the minimap to jump there, and keep dragging to keep moving.",
     id: "gesture.minimap",
     impl: "canvas/minimap.ts#onPress",

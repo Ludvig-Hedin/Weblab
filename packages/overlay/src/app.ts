@@ -60,6 +60,7 @@ import {
 } from "./chat/transcript";
 import { ChromeLayer } from "./chrome-layer";
 import { CommentSet } from "./comment-set";
+import { ComponentLayer } from "./components/layer";
 import { selectedLineRange } from "./diff-view";
 import {
   DND,
@@ -616,6 +617,12 @@ export class AirshipApp {
   private readonly moveSet = new MoveSet();
   private readonly structureSet = new StructureSet();
   private readonly attrSet = new AttrSet();
+  /** Shared components: instances, their props, and entering one. */
+  private readonly components: ComponentLayer;
+  /** Where the component bar mounts; placed into the root in `mount`. */
+  private readonly componentHost = el("div");
+  /** A right-click waiting for its node's selection to land; see `requestContextMenu`. */
+  private pendingMenu: { at: Point; node: Element } | null = null;
   /** Documents already scanned for runtime tokens. Weak: a frame can unload. */
   private readonly scannedDocs = new WeakSet<Document>();
   private readonly history: History;
@@ -928,13 +935,38 @@ export class AirshipApp {
         onTextEnter: (hit, at) => this.onTextEnter(hit, at),
       },
       {
+        identify: (node) => this.components.identify(node),
         isGesturing: () => stage.isGesturing?.() ?? false,
         layer: stage.layer,
-        onContextMenu: (at) => this.openContextMenu(at),
+        onContextMenu: (at, node) => this.requestContextMenu(at, node),
         resolver: stage.resolver,
+        retarget: (node) => this.components.retarget(node),
         swallowPresses: stage.swallowPresses,
       }
     );
+    this.components = new ComponentLayer({
+      beginPropTextEdit: (node, caret, onProp) =>
+        this.panel.beginPropTextEdit(node, caret, onProp),
+      host: this.componentHost,
+      layer: stage.layer,
+      onChanged: () => this.onVisualChanged(),
+      pageName: () => pageLabel(this.appPathname),
+      refreshPanel: () => this.panel.rebuild(),
+      repaint: () => {
+        this.controller.drawOutline();
+        this.controller.repick();
+      },
+      resolver: stage.resolver,
+      select: (node) => this.controller.select(node),
+      selected: () => this.selected,
+      submit: () => {
+        if (this.awaiting || !this.socket.isOpen()) {
+          return false;
+        }
+        this.submit();
+        return true;
+      },
+    });
     this.history = new History({
       apply: createOpApplier({
         attrSet: this.attrSet,
@@ -981,6 +1013,7 @@ export class AirshipApp {
     this.panel = new DesignPanel({
       attrSet: this.attrSet,
       changeSet: this.changeSet,
+      components: this.components.panelHooks(),
       controller: this.controller,
       history: this.history,
       layer: stage.layer,
@@ -1406,6 +1439,7 @@ export class AirshipApp {
       cls("bar-bare"),
       this.barTools.childElementCount === 0
     );
+    this.root.append(this.componentHost);
     document.body.append(this.root);
     // Only readable once the root is in the document — the token vars are scoped
     // to it (see `styles/index.ts`), so this resolves to nothing before that.
@@ -1426,6 +1460,7 @@ export class AirshipApp {
       // A frame that finished loading gives the layer tree its first page.
       this.panel.ensureLayers();
       this.syncChrome();
+      this.components.onLayoutChange();
     });
     this.stage.bindFramePress?.((at, mods, dbl) =>
       this.routeFramePress(at, mods, dbl)
@@ -1587,6 +1622,7 @@ export class AirshipApp {
         label: "Copy selector",
         run: () => this.copySelector(),
       },
+      ...this.components.menuItems(),
     ]);
     menu.open(spot, "below", { onClose: () => spot.remove() });
   }
@@ -1637,6 +1673,7 @@ export class AirshipApp {
       this.nudgeTimer = null;
     }
     this.tools.destroy();
+    this.components.destroy();
     this.controller.destroy();
     this.panel.destroy();
     // The socket's reconnect loop is self-sustaining — `onclose` schedules the
@@ -1666,6 +1703,7 @@ export class AirshipApp {
    * panning changes which element is under the cursor.
    */
   private syncChrome(): void {
+    this.components.scope.draw();
     this.controller.drawOutline();
     this.controller.syncHover();
     this.panel.syncChrome();
@@ -3315,7 +3353,8 @@ export class AirshipApp {
       this.changeSet.count() +
       this.moveSet.count() +
       this.attrSet.count() +
-      this.structureSet.count()
+      this.structureSet.count() +
+      this.components.count()
     );
   }
 
@@ -4258,6 +4297,9 @@ export class AirshipApp {
 
   private onSelected(sel: Selection): void {
     this.selected = sel;
+    // First: a selection outside the open component leaves it, and the panel
+    // below must render for the level the selection is actually at.
+    this.components.onSelected(sel);
     // A node picked in Layers can sit on a slide that is not showing. No-op
     // for anything already in view, which is every node picked on the canvas.
     this.stage.reveal?.(sel.node);
@@ -4286,7 +4328,30 @@ export class AirshipApp {
     } else {
       imageAction?.cancel?.();
     }
+    this.components.afterSelected(sel);
+    const menu = this.pendingMenu;
+    this.pendingMenu = null;
+    if (menu && menu.node === sel.node) {
+      this.openContextMenu(menu.at);
+    }
     this.renderComposerChips();
+  }
+
+  /**
+   * Open the right-click menu once the node it is about is the selection.
+   *
+   * A right-click on something not yet selected starts an async selection, and
+   * when it lands the panel re-renders — which closes any open popover as
+   * anchored to a control that is going away. The menu used to open first and
+   * be closed by its own selection a moment later; now it waits for it.
+   */
+  private requestContextMenu(at: Point, node: Element): void {
+    if (this.selected?.node === node) {
+      this.pendingMenu = null;
+      this.openContextMenu(at);
+      return;
+    }
+    this.pendingMenu = { at, node };
   }
 
   /**
@@ -4355,6 +4420,9 @@ export class AirshipApp {
    * The `T` command toasts instead, because it was asked for by name.
    */
   private onTextEnter(hit: Hit, at: Point): void {
+    if (this.components.onDoubleClick(hit.node, at)) {
+      return;
+    }
     const target = textTargetIn(hit.node);
     if (target) {
       this.enterTextEdit(target, hit.surface, at);
@@ -4729,6 +4797,7 @@ export class AirshipApp {
       ...this.styleChips(),
       ...this.structureChips(),
       ...this.attrChips(),
+      ...this.components.chips(),
       ...this.commentChips(),
     ];
   }
@@ -5168,6 +5237,7 @@ export class AirshipApp {
     this.beginJob();
     this.applyingVisual = hasVisualDeltas(request);
     this.socket.send({ request, type: "edit" });
+    this.components.sent();
     // A pre-flight view has done its job once the turn is away; what matters
     // now is the streaming reply, in the transcript this pane is covering.
     this.setPreview(false);
@@ -5185,6 +5255,7 @@ export class AirshipApp {
   /** This turn's composer state, as the request Send and the preview share. */
   private buildRequest(): CreateJobRequest | null {
     return buildEditRequest({
+      ...this.components.requestParts(),
       agent: this.agent,
       attrSet: this.attrSet,
       changeSet: this.changeSet,
@@ -5693,7 +5764,8 @@ export class AirshipApp {
       this.changeSet.count() +
       this.moveSet.count() +
       this.structureSet.count() +
-      this.attrSet.count();
+      this.attrSet.count() +
+      this.components.count();
     if (pending === 0) {
       return;
     }
@@ -5765,6 +5837,7 @@ export class AirshipApp {
     // HMR now own the real DOM, so drop tracking rather than restoring.
     this.structureSet.clear();
     this.attrSet.clear();
+    this.components.afterSave();
     this.history.clear();
     this.clearSelectionScope();
     this.stage.afterApply?.();
@@ -6269,6 +6342,16 @@ function readPx(node: HTMLElement, name: string, fallback: number): number {
 
 /** A chip's label for an element: its component name, else its tag. */
 /** The element itself ("Heading"), not the component it sits in ("Home"). */
+/** The first crumb in the component bar: the page you are on. */
+function pageLabel(pathname: string | undefined): string {
+  const last = pathname?.split("/").filter(Boolean).at(-1);
+  if (!last) {
+    return "Home";
+  }
+  const words = decodeURIComponent(last).replace(/[-_]+/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function chipLabel(e: ElementContext): string {
   return tagWord(e.tagName);
 }

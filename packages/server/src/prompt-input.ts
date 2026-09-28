@@ -4,6 +4,7 @@
  */
 import type { EditPromptInput } from "@airship/core";
 import type {
+  ComponentRef,
   CreateJobRequest,
   ElementContext,
   SourceLocation,
@@ -24,6 +25,11 @@ function backfillSources(cwd: string, request: CreateJobRequest) {
       ...target,
       source: locate(target.element, target.source),
     })),
+    componentActions: request.componentActions?.map((action) => ({
+      ...action,
+      component: action.component && withCallSite(cwd, action.component),
+      source: locate(action.element, action.source),
+    })),
     // Each move needs its element, its new parent, and its anchor sibling.
     moveChanges: request.moveChanges?.map((move) => ({
       ...move,
@@ -32,6 +38,10 @@ function backfillSources(cwd: string, request: CreateJobRequest) {
         ? locate(move.newParent, move.newParentSource)
         : null,
       source: locate(move.element, move.source),
+    })),
+    propChanges: request.propChanges?.map((edit) => ({
+      ...edit,
+      component: withCallSite(cwd, edit.component),
     })),
     structuralChanges: request.structuralChanges?.map((edit) => ({
       ...edit,
@@ -48,6 +58,16 @@ function backfillSources(cwd: string, request: CreateJobRequest) {
   };
 }
 
+/** A component's call site with the surrounding lines, for the agent. */
+function withCallSite(cwd: string, component: ComponentRef): ComponentRef {
+  return {
+    ...component,
+    callSite: component.callSite
+      ? resolveServerSource(cwd, { source: component.callSite })
+      : null,
+  };
+}
+
 /** The element the turn is *about*, and where it lives. */
 function primaryLocation(cwd: string, request: CreateJobRequest) {
   const primaryElement =
@@ -56,7 +76,8 @@ function primaryLocation(cwd: string, request: CreateJobRequest) {
     request.moveChanges?.[0]?.element ??
     request.structuralChanges?.[0]?.element ??
     request.textChanges?.[0]?.element ??
-    request.attrChanges?.[0]?.element;
+    request.attrChanges?.[0]?.element ??
+    request.componentActions?.[0]?.element;
   const source = resolveServerSource(cwd, {
     element: primaryElement,
     source:
@@ -66,6 +87,8 @@ function primaryLocation(cwd: string, request: CreateJobRequest) {
       request.structuralChanges?.[0]?.source ??
       request.textChanges?.[0]?.source ??
       request.attrChanges?.[0]?.source ??
+      request.componentActions?.[0]?.source ??
+      request.propChanges?.[0]?.component.callSite ??
       null,
   });
   return { primaryElement, source };

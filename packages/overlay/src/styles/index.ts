@@ -5,6 +5,7 @@ import { css as base } from "./base.css";
 import { css as canvas } from "./canvas.css";
 import { css as chat } from "./chat.css";
 import { css as chrome } from "./chrome.css";
+import { css as components } from "./components.css";
 import { ROOT } from "./const";
 import { css as controls } from "./controls.css";
 import { css as cssPane } from "./css-pane.css";
@@ -135,10 +136,9 @@ const CSS = [
   help,
   // After `pop` for the same reason: the bar's changes dropdown fills a shell.
   saveMenu,
-  // After `pop` too: the image popover fills a shell, and the image row sits
-  // among the section's controls.
-  image,
   chrome,
+  // After `chrome`: it recolours chrome's boxes and labels for instances.
+  components,
   toast,
   // Last, and it has to be: it overrides the motion every module above declares,
   // and it does so by winning on order rather than on `!important` everywhere.

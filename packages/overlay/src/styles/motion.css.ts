@@ -30,4 +30,10 @@ export const css = `
     animation-delay: 0s !important;
     transition-delay: 0s !important;
   }
+  /* The chat's shimmering status text: with no sweep it reads as plain text. */
+  .${PREFIX}-turn-status-label,
+  .${PREFIX}-tl-row[data-phase="pending"] > .${PREFIX}-tl-head .${PREFIX}-tl-name,
+  .${PREFIX}-tl-think.${PREFIX}-tl-live .${PREFIX}-tl-think-label {
+    animation: none; background: none; color: var(--ap-text-tertiary);
+  }
 }`;

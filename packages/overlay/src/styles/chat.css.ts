@@ -394,13 +394,7 @@ export const css = `
   animation: ${PREFIX}-shine 2.2s linear infinite;
 }
 @keyframes ${PREFIX}-shine { to { background-position: calc(100% + 72px) 0, 0 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .${PREFIX}-turn-status-label,
-  .${PREFIX}-tl-row[data-phase="pending"] > .${PREFIX}-tl-head .${PREFIX}-tl-name,
-  .${PREFIX}-tl-think.${PREFIX}-tl-live .${PREFIX}-tl-think-label {
-    animation: none; background: none; color: var(--ap-text-tertiary);
-  }
-}
+/* Reduced motion for the shine above lives in motion.css.ts. */
 
 /* "Worked for 12s ›" — the finished turn's steps, folded above the answer. */
 .${PREFIX}-turn-fold {
