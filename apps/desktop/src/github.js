@@ -235,12 +235,141 @@ async function listRepos() {
   }
 }
 
+/** { id, login, name } for commit identity, or null when signed out or offline. */
+async function profile() {
+  const token = readToken();
+  if (!token) {
+    return null;
+  }
+  try {
+    const response = await api("/user", token);
+    if (!response.ok) {
+      return null;
+    }
+    const user = await response.json();
+    return { id: user.id, login: user.login, name: user.name || "" };
+  } catch {
+    return null;
+  }
+}
+
+function send(path, token, body) {
+  return fetch(`${API}${path}`, {
+    body: JSON.stringify(body),
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    method: "POST",
+  });
+}
+
+const REPO_NAME_CHARS = /[^A-Za-z0-9._-]+/g;
+
+/**
+ * A new private repository under the signed-in account. When the name is
+ * taken, tries name-2, name-3… and says which one it used.
+ */
+async function createRepo(rawName) {
+  const token = readToken();
+  if (!token) {
+    return { code: "auth", message: "Sign in to GitHub first.", ok: false };
+  }
+  const base =
+    String(rawName || "")
+      .trim()
+      .replace(REPO_NAME_CHARS, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90) || "website";
+  try {
+    for (let n = 1; n <= 20; n += 1) {
+      const name = n === 1 ? base : `${base}-${n}`;
+      // biome-ignore lint/performance/noAwaitInLoops: stops at the first free name
+      const response = await send("/user/repos", token, {
+        auto_init: false,
+        name,
+        private: true,
+      });
+      if (response.status === 401) {
+        return {
+          code: "auth",
+          message: "Sign in to GitHub again.",
+          ok: false,
+        };
+      }
+      if (response.ok) {
+        const repo = await response.json();
+        return {
+          cloneUrl: repo.clone_url,
+          fullName: repo.full_name,
+          htmlUrl: repo.html_url,
+          ok: true,
+        };
+      }
+      if (response.status !== 422) {
+        return { message: "GitHub didn’t make the repository.", ok: false };
+      }
+    }
+    return { message: "Pick another name for the repository.", ok: false };
+  } catch {
+    return {
+      code: "offline",
+      message: "Weblab couldn’t reach GitHub.",
+      ok: false,
+    };
+  }
+}
+
+/** Opens a pull request, or returns the one already open for this branch. */
+async function openPullRequest({ owner, name, head, base, title }) {
+  const token = readToken();
+  if (!token) {
+    return { code: "auth", message: "Sign in to GitHub first.", ok: false };
+  }
+  try {
+    const response = await send(`/repos/${owner}/${name}/pulls`, token, {
+      base,
+      head,
+      title,
+    });
+    if (response.ok) {
+      return { ok: true, url: (await response.json()).html_url };
+    }
+    const open = await api(
+      `/repos/${owner}/${name}/pulls?state=open&head=${encodeURIComponent(`${owner}:${head}`)}`,
+      token
+    );
+    const existing = open.ok ? (await open.json())[0] : null;
+    if (existing) {
+      return { ok: true, url: existing.html_url };
+    }
+    return {
+      message:
+        response.status === 403
+          ? "GitHub didn’t let Weblab open the request. Your organisation may need to approve Weblab."
+          : "GitHub didn’t open the request.",
+      ok: false,
+    };
+  } catch {
+    return {
+      code: "offline",
+      message: "Weblab couldn’t reach GitHub.",
+      ok: false,
+    };
+  }
+}
+
 module.exports = {
   account,
   cancelSignIn,
+  createRepo,
   GITHUB_CLIENT_ID,
   gitAuthEnv,
   listRepos,
+  openPullRequest,
+  profile,
   readToken,
   signOut,
   startSignIn,

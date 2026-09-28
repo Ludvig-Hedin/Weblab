@@ -17,6 +17,7 @@ const { SiteRunner } = require("./runner");
 const cloner = require("./clone");
 const envSettings = require("./env-settings");
 const github = require("./github");
+const publish = require("./publish-ipc");
 
 const TOP_BAR = 40;
 const WEB_LINK = /^https?:/;
@@ -65,6 +66,7 @@ function layoutEditor() {
 
 function showEditor(url, onShown) {
   hideEditor();
+  publishIpc?.reset();
   editorView = new WebContentsView({
     webPreferences: {
       contextIsolation: true,
@@ -221,7 +223,16 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+let publishIpc = null;
+
 function registerIpc() {
+  publishIpc = publish.register({
+    editorView: () => editorView,
+    openSiteId: () => openSiteId,
+    runner: () => runner,
+    send,
+    win: () => win,
+  });
   ipcMain.handle("auth:state", () => auth.state());
   ipcMain.handle("auth:login", () => {
     auth.startLogin((event) => send("auth:event", event));
