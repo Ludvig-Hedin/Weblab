@@ -20,6 +20,7 @@ const github = require("./github");
 const publish = require("./publish-ipc");
 const previews = require("./previews");
 const favicon = require("./favicon");
+const updates = require("./updates");
 
 const TOP_BAR = 40;
 const WEB_LINK = /^https?:/;
@@ -35,6 +36,8 @@ const windows = new Map();
 const pendingFiles = [];
 const pendingStops = new Set();
 let quitting = false;
+let availableUpdate = null;
+let updateCheck = null;
 
 // Finder sends this before ready when a folder starts the app from the Dock.
 app.on("open-file", (event, path) => {
@@ -54,6 +57,70 @@ function send(session, channel, payload) {
 function broadcast(channel, payload) {
   for (const session of windows.values()) {
     send(session, channel, payload);
+  }
+}
+
+async function showUpdateDialog(options) {
+  const window = focusedSession()?.win;
+  return window
+    ? dialog.showMessageBox(window, options)
+    : dialog.showMessageBox(options);
+}
+
+async function downloadUpdate() {
+  if (!availableUpdate) {
+    return;
+  }
+  try {
+    await shell.openExternal(availableUpdate.downloadUrl);
+  } catch {
+    await showUpdateDialog({
+      buttons: ["OK"],
+      message: "Couldn’t open the update download.",
+      type: "error",
+    });
+  }
+}
+
+async function checkForUpdates(manual = false) {
+  updateCheck ||= updates.findUpdate(app.getVersion()).then((result) => {
+    availableUpdate = result;
+    broadcast("updates:available", result?.version || null);
+    return result;
+  }).finally(() => {
+    updateCheck = null;
+  });
+  try {
+    const result = await updateCheck;
+    if (!manual) {
+      return;
+    }
+    if (!result) {
+      await showUpdateDialog({
+        buttons: ["OK"],
+        message: `Weblab ${app.getVersion()} is up to date.`,
+        type: "info",
+      });
+      return;
+    }
+    const { response } = await showUpdateDialog({
+      buttons: ["Later", "Download"],
+      defaultId: 1,
+      message: `Weblab ${result.version} is available.`,
+      detail: "Download the new Mac app and move it to Applications to update.",
+      type: "info",
+    });
+    if (response === 1) {
+      await downloadUpdate();
+    }
+  } catch {
+    if (manual) {
+      await showUpdateDialog({
+        buttons: ["OK"],
+        message: "Couldn’t check for updates. Try again later.",
+        type: "warning",
+      });
+    }
   }
 }
 
@@ -326,6 +393,10 @@ function buildMenu() {
       label: "Weblab",
       submenu: [
         { label: "About Weblab", role: "about" },
+        {
+          click: () => void checkForUpdates(true),
+          label: "Check for Updates…",
+        },
         { type: "separator" },
         {
           click: () => {
@@ -382,6 +453,12 @@ function buildMenu() {
 let publishIpc = null;
 
 function registerIpc() {
+  ipcMain.handle("updates:status", () => availableUpdate?.version || null);
+  ipcMain.handle("updates:download", (event) => {
+    if (event.sender === sessionFor(event)?.win.webContents) {
+      return downloadUpdate();
+    }
+  });
   publishIpc = publish.register({
     send,
     sessionFor,
@@ -704,6 +781,9 @@ app.whenReady().then(() => {
     createWindow();
   }
   flushFiles();
+  if (app.isPackaged) {
+    void checkForUpdates();
+  }
 });
 
 app.on("activate", () => {

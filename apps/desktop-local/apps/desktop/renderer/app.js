@@ -4,6 +4,16 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 let currentSite = null;
 
+function showAvailableUpdate(version) {
+  const button = $("#update-available");
+  button.hidden = !version;
+  button.title = version ? `Download Weblab ${version}` : "";
+}
+
+api.updates.onAvailable(showAvailableUpdate);
+api.updates.status().then(showAvailableUpdate);
+$("#update-available").addEventListener("click", () => api.updates.download());
+
 // Screens and top bar
 
 function show(name) {

@@ -98,6 +98,8 @@ ${ROOT} .${PREFIX}-insp-tab .${PREFIX}-ic { display: none; }
 .${PREFIX}-insp-tab[data-tab="css"] > span { display: none; }
 ${ROOT} .${PREFIX}-insp-tab[data-tab="css"] .${PREFIX}-ic { display: inline-flex; }
 ${ROOT} .${PREFIX}-insp-tab[data-tab="css"].${PREFIX}-insp-tab-on .${PREFIX}-ic { --${PREFIX}-ic-tone: var(--ap-primary); }
+.${PREFIX}-insp-tab-extras { display: flex; align-items: center; margin-left: 4px; }
+.${PREFIX}-insp-tab-extras .${PREFIX}-ctl-seg { white-space: nowrap; }
 /* Where the element lives in the source is a developer fact, so it shows with
    the code and nowhere else. */
 .${PREFIX}-insp:not([data-tab="css"]) .${PREFIX}-insp-src-sect { display: none; }
@@ -181,6 +183,24 @@ ${ROOT} .${PREFIX}-insp-tab[data-tab="css"].${PREFIX}-insp-tab-on .${PREFIX}-ic 
   flex: 1 1 auto;
   display: flex; flex-direction: column;
 }
+/* Editor-owned copy of a native select popup. It lives in screen-space chrome,
+   so options can be selected and styled without pressing the customer's page. */
+.${PREFIX}-select-options-menu {
+  position: absolute; z-index: 3; max-height: 280px; overflow-y: auto;
+  pointer-events: auto; padding: 4px 0;
+  background: var(--ap-surface-panel); border: 1px solid var(--ap-border-default);
+  border-radius: var(--ap-radius-sm); box-shadow: var(--ap-elevation-floating);
+}
+.${PREFIX}-select-options-option {
+  display: block; width: 100%; min-height: 32px; padding: 5px 12px;
+  border: 0; text-align: left; cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.${PREFIX}-select-options-option:hover,
+.${PREFIX}-select-options-option[aria-selected="true"] {
+  outline: 1px solid var(--ap-primary); outline-offset: -1px;
+}
+.${PREFIX}-select-options-option:disabled { opacity: .45; cursor: default; }
 .${PREFIX}-insp-hint { font-size: var(--ap-font-size-label); opacity: .5; padding: var(--ap-space-md) var(--ap-space-base); }
 .${PREFIX}-sect { border-bottom: 1px solid var(--ap-border-default); }
 /* A sub-section does not pay the inset twice.

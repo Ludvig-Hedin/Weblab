@@ -916,14 +916,14 @@ export class CanvasViewport {
   // -- Transform -------------------------------------------------------------
 
   private apply(): void {
-    this.writeTransform();
-    // Coalesce to one notification per frame: a wheel can fire many times per
-    // frame and every listener downstream re-measures rects.
+    // A trackpad can emit several events before one paint. Keep the latest
+    // viewport and write one transform alongside its chrome update.
     if (this.frameRequest) {
       return;
     }
     this.frameRequest = requestAnimationFrame(() => {
       this.frameRequest = 0;
+      this.writeTransform();
       this.deps.onChange(this.vp);
     });
   }

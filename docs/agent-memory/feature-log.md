@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-09-29 — Weblab for Mac HTML dropdowns and update checks (F-811)
+Author: Codex
+Area: `apps/desktop-local` editor and Mac shell
+Summary: Imported HTML sketches can show JavaScript-created native dropdown options in Edit mode and select one for Style edits. Canvas transform writes now happen once per frame. The Mac shell checks tagged releases at launch, shows an available-update notice, and offers a manual check in the app menu. Version 0.2.1; see T-852.
+Files: `apps/desktop-local/packages/overlay/src/inspector`, `apps/desktop-local/packages/overlay/src/canvas/viewport.ts`, `apps/desktop-local/apps/desktop`
+Links: `apps/desktop-local/apps/desktop/CHANGELOG.md`, `docs/guides/local-app-mode.md`
+
 ## 2026-07-09 — Editor quality audit: ~50 fixes across undo pipeline, text safety, recovery, panels
 Author: Claude (Fable 5)
 Area: apps/web/client editor (stores, canvas, style panel v4, editor bar, left panel)

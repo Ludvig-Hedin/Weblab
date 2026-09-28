@@ -1,5 +1,9 @@
 # Current Progress Snapshot
 
+## 2026-09-29 — Weblab for Mac HTML sketches
+
+The standalone `apps/desktop-local` editor now exposes JavaScript-created native select options through a Show/Hide control at the right of Style. Canvas pan/zoom transform writes are coalesced per animation frame. The desktop shell checks `desktop-local-v*` GitHub releases and offers a Mac DMG from its menu and top bar. Version 0.2.1 is the next planned Mac release; see `apps/desktop-local/apps/desktop/CHANGELOG.md` and `docs/guides/local-app-mode.md` for the release flow.
+
 Last updated: 2026-07-09.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
