@@ -1,0 +1,96 @@
+{
+  "name": "@weblab/desktop",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Weblab: edit your website visually",
+  "license": "MIT",
+  "author": "Ludvig Hedin <ludvig@ludvighedin.com>",
+  "main": "src/main.js",
+  "scripts": {
+    "build:mac": "node scripts/stage.mjs && node scripts/build-mac.cjs",
+    "dev": "node scripts/ensure-electron.cjs && electron .",
+    "stage": "node scripts/stage.mjs"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^3.1.0",
+    "electron": "40.6.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.ludvighedin.weblab",
+    "productName": "Weblab",
+    "copyright": "Copyright © 2026 Ludvig Hedin",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".runtime",
+        "to": ".",
+        "filter": [
+          "cli/**/*",
+          "bun/**/*"
+        ]
+      },
+      {
+        "from": "template",
+        "to": "template"
+      }
+    ],
+    "asar": true,
+    "afterSign": "scripts/notarize.js",
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "binaries": [
+        "Contents/Resources/bun/bun",
+        "Contents/Resources/cli/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+      ],
+      "notarize": false,
+      "extendInfo": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Website folder",
+            "CFBundleTypeRole": "Editor",
+            "LSHandlerRank": "Alternate",
+            "LSItemContentTypes": [
+              "public.folder"
+            ]
+          }
+        ],
+        "NSAppleEventsUsageDescription": "Weblab opens your site folder in Finder."
+      },
+      "artifactName": "Weblab-${version}-${arch}-mac.${ext}"
+    },
+    "dmg": {
+      "title": "Weblab",
+      "artifactName": "Weblab-${version}-${arch}.${ext}"
+    }
+  },
+  "productName": "Weblab"
+}

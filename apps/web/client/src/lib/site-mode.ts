@@ -15,4 +15,4 @@ export const IS_LOCAL_APP_MODE = env.NEXT_PUBLIC_SITE_MODE === 'local';
 
 export const LOCAL_APP_DOWNLOAD_URL =
     env.NEXT_PUBLIC_LOCAL_APP_DOWNLOAD_URL ||
-    'https://github.com/Ludvig-Hedin/airship/releases/latest/download/Weblab-mac-arm64.dmg';
+    'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-mac-arm64.dmg';

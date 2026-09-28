@@ -1,0 +1,336 @@
+/* Weblab overlay kit. Draws the editor overlay's floating toolbar and canvas
+   (packages/overlay) at its real geometry: 28px icon boxes, 6px bar pad,
+   16px card radius, 11px labels. Every colour reads an --ap-* token from
+   packages/editor-tokens/dist/tokens.css. Prefix `ov-`. */
+
+.ov-canvas {
+  position: relative;
+  width: 1100px;
+  height: 640px;
+  overflow: hidden;
+  font: 400 var(--ap-font-size-body) / 1.4 var(--ap-font-sans);
+  color: var(--ap-text-primary);
+  text-align: left;
+  background: var(--ap-surface-canvas);
+  border: 1px solid var(--ap-border-strong);
+  border-radius: 10px;
+}
+.ov-canvas--short {
+  height: 150px;
+}
+.ov-canvas--mid {
+  height: 470px;
+}
+.ov-canvas *,
+.ov-canvas *::before,
+.ov-canvas *::after {
+  box-sizing: border-box;
+}
+.ov-canvas button {
+  font: inherit;
+  color: inherit;
+}
+
+/* A faint site frame on the canvas, so the bar sits over something. */
+.ov-site {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  width: 620px;
+  height: 900px;
+  background: var(--ap-text-secondary);
+  border-radius: 4px;
+  opacity: 0.1;
+  transform: translateX(-50%);
+}
+.ov-sitelabel {
+  position: absolute;
+  top: 16px;
+  left: calc(50% - 310px);
+  font-size: var(--ap-font-size-caption);
+  color: var(--ap-text-tertiary);
+}
+
+/* The card: today's .bar recipe, as a column. */
+.ov-card {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: var(--ap-surface-panel);
+  border: 1px solid var(--ap-border-subtle);
+  border-radius: var(--ap-radius-lg);
+  box-shadow: var(--ap-shadow-sm);
+  transform: translateX(-50%);
+}
+.ov-card--static {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  width: max-content;
+  margin: 40px auto 0;
+  transform: none;
+}
+
+.ov-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.ov-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--ap-border-subtle);
+}
+.ov-group {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.ov-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ap-control-icon-box);
+  height: var(--ap-control-icon-box);
+  padding: 0;
+  color: var(--ap-icon-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ap-radius-sm);
+}
+.ov-tool:hover {
+  background: var(--ap-surface-hover);
+}
+.ov-tool.is-on,
+.ov-tool.is-on:hover {
+  color: var(--ap-text-primary);
+  background: var(--ap-surface-active);
+}
+.ov-tool svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ov-seg {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  height: var(--ap-control-icon-box);
+  padding: 0 10px;
+  font-size: var(--ap-font-size-label);
+  font-weight: 500;
+  color: var(--ap-text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ap-radius-sm);
+  opacity: 0.65;
+}
+.ov-seg:hover {
+  background: var(--ap-surface-hover);
+  opacity: 1;
+}
+.ov-seg.is-on {
+  background: var(--ap-surface-active);
+  opacity: 1;
+}
+.ov-seg svg {
+  width: 12px;
+  height: 12px;
+}
+.ov-zoom {
+  padding: 0 6px;
+  font-size: var(--ap-font-size-label);
+  color: var(--ap-text-secondary);
+}
+
+/* The terminal region inside the card. */
+.ov-term {
+  display: flex;
+  flex-direction: column;
+  width: 640px;
+}
+.ov-grip {
+  align-self: center;
+  width: 32px;
+  height: 3px;
+  margin: 0 0 4px;
+  background: var(--ap-border-strong);
+  border-radius: 2px;
+}
+.ov-tabs {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.ov-tabs .ov-seg {
+  gap: 6px;
+}
+.ov-tabs .ov-x {
+  opacity: 0.6;
+}
+.ov-grow {
+  flex: 1 1 auto;
+}
+.ov-screen {
+  height: 220px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  overflow: hidden;
+  font: 400 12px / 1.4 var(--ap-font-mono);
+  color: var(--ap-text-primary);
+  white-space: pre;
+  background: var(--ap-surface-base);
+  border: 1px solid var(--ap-border-subtle);
+  border-radius: var(--ap-radius-sm);
+}
+.ov-term--tall .ov-screen {
+  height: 300px;
+}
+.ov-screen--center {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ap-font-sans);
+  font-size: var(--ap-font-size-body);
+  text-align: center;
+  white-space: normal;
+}
+.ov-dim {
+  color: var(--ap-text-tertiary);
+}
+.ov-ok {
+  color: var(--ap-semantic-success);
+}
+.ov-warn {
+  color: var(--ap-semantic-warning);
+}
+.ov-err {
+  color: var(--ap-semantic-error);
+}
+.ov-blue {
+  color: var(--ap-blue-400);
+}
+.ov-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  vertical-align: -2px;
+  background: var(--ap-text-primary);
+}
+.ov-spin {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ap-border-strong);
+  border-top-color: var(--ap-text-primary);
+  border-radius: 50%;
+}
+
+/* The AI field under the terminal. */
+.ov-ask {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  height: 32px;
+  padding: 0 6px 0 10px;
+  margin-top: 6px;
+  font-size: var(--ap-font-size-body);
+  background: var(--ap-input-bg, var(--ap-surface-base));
+  border: 1px solid var(--ap-border-default);
+  border-radius: var(--ap-radius-sm);
+}
+.ov-ask--focus {
+  border-color: var(--ap-border-focus);
+}
+.ov-ask svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--ap-icon-secondary);
+}
+.ov-ask__text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--ap-text-placeholder);
+  white-space: nowrap;
+}
+.ov-ask__text--cmd {
+  font-family: var(--ap-font-mono);
+  font-size: 12px;
+  color: var(--ap-text-primary);
+}
+.ov-ask__hint {
+  font-size: var(--ap-font-size-caption);
+  color: var(--ap-text-tertiary);
+  white-space: nowrap;
+}
+.ov-kbd {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: var(--ap-font-size-caption);
+  color: var(--ap-text-secondary);
+  background: var(--ap-surface-active);
+  border-radius: 4px;
+}
+
+.ov-btn {
+  display: inline-flex;
+  align-items: center;
+  height: var(--ap-control-height);
+  padding: 0 10px;
+  font-size: var(--ap-font-size-label);
+  font-weight: 500;
+  color: var(--ap-text-primary);
+  cursor: pointer;
+  background: var(--ap-button-secondary);
+  border: 0;
+  border-radius: var(--ap-radius-xs);
+}
+
+/* Tooltip, as the overlay draws it. */
+.ov-tip {
+  position: absolute;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: var(--ap-font-size-label);
+  color: var(--ap-text-primary);
+  white-space: nowrap;
+  background: var(--ap-surface-overlay);
+  border: 1px solid var(--ap-border-default);
+  border-radius: var(--ap-radius-xs);
+}
+
+/* Prototype: open and close with the product's own curve. */
+.ov-anim {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--ap-motion-dur-slow) var(--ap-motion-ease-out),
+    opacity var(--ap-motion-dur-base) var(--ap-motion-ease-out);
+}
+.ov-anim > * {
+  min-height: 0;
+  overflow: hidden;
+}
+.ov-anim.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov-anim {
+    transition: none;
+  }
+}

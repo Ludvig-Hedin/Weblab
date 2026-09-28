@@ -1,0 +1,137 @@
+/* Fallback tokens — used ONLY when the project has no palette to generate from.
+   Neutral greys with a single blue accent, contrast-checked in both themes.
+
+   If the project has a real palette, generate from it instead:
+     node build-tokens.mjs app/globals.css tokens.css
+   A wireframe in the wrong colours looks authoritative while lying. */
+
+:root {
+  --background: #fcfcfc;
+  --foreground: #0d0d0d;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #0070eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f1f1;
+  --secondary-foreground: #1a1a1a;
+  --muted: #ececec;
+  --muted-foreground: #666666;
+  --accent: #ececec;
+  --accent-foreground: #1a1a1a;
+  --surface-inset: #f7f7f7;
+  --surface-inset-hover: #ececec;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #b91c1c;
+  --border: #cccccc;
+  --input: #929292;
+  --control-edge: #f4f4f4;
+  --control-icon: #949897;
+  --ring: #0070eb;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0d0d0d;
+  --sidebar-border: #e5e5e5;
+  --status-ok: #16a34a;
+  --status-warn: #b45309;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.dark {
+  --background: #0d0d0d;
+  --foreground: #f5f5f5;
+  --card: #171717;
+  --card-foreground: #f5f5f5;
+  --popover: #1c1c1c;
+  --popover-foreground: #f5f5f5;
+  --primary: #3b93ff;
+  --primary-foreground: #0b1220;
+  --secondary: #242424;
+  --secondary-foreground: #f5f5f5;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #f5f5f5;
+  --surface-inset: #1f1f1f;
+  --surface-inset-hover: #2a2a2a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #f87171;
+  --border: #333333;
+  --input: #676767;
+  --control-edge: #2e2e2e;
+  --control-icon: #6e6e6e;
+  --ring: #3b93ff;
+  --sidebar: #131313;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-border: #2a2a2a;
+  --status-ok: #4ade80;
+  --status-warn: #fbbf24;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0d0d0d;
+    --foreground: #f5f5f5;
+    --card: #171717;
+    --card-foreground: #f5f5f5;
+    --popover: #1c1c1c;
+    --popover-foreground: #f5f5f5;
+    --primary: #3b93ff;
+    --primary-foreground: #0b1220;
+    --secondary: #242424;
+    --secondary-foreground: #f5f5f5;
+    --muted: #262626;
+    --muted-foreground: #a3a3a3;
+    --accent: #262626;
+    --accent-foreground: #f5f5f5;
+    --surface-inset: #1f1f1f;
+    --surface-inset-hover: #2a2a2a;
+    --destructive-text: #f87171;
+    --border: #333333;
+    --input: #676767;
+    --control-edge: #2e2e2e;
+    --control-icon: #6e6e6e;
+    --ring: #3b93ff;
+    --sidebar: #131313;
+    --sidebar-foreground: #f5f5f5;
+    --sidebar-border: #2a2a2a;
+    --status-ok: #4ade80;
+    --status-warn: #fbbf24;
+  }
+}
+
+/* Weblab desktop app palette (apps/desktop/renderer/styles.css :root), mapped
+   onto the plan skill's app kit (kit-app.css, --ak-*). The app is dark-only, so
+   these do not switch with the page theme. Load AFTER kit-app.css. */
+:root {
+  --ak-bg: #1e1e1e;
+  --ak-canvas: #161616;
+  --ak-panel: #2c2c2c;
+  --ak-hover: #383838;
+  --ak-line: #2e2e2e;
+  --ak-line-strong: #3a3a3a;
+  --ak-text: #ffffff;
+  --ak-text-2: #b3b3b3;
+  --ak-text-3: #8a8a8a;
+  --ak-accent: #0d99ff;
+  --ak-accent-bg: rgba(13, 153, 255, 0.12);
+  --ak-ok: #14ae5c;
+  --ak-add: #2ecc71;
+  --ak-warn: #f5c84c;
+  --ak-warn-bg: rgba(245, 200, 76, 0.1);
+  --ak-danger: #ff8577;
+  --ak-danger-bg: rgba(255, 133, 119, 0.1);
+  --ak-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --ak-scrim: rgba(0, 0, 0, 0.45);
+  --ak-light-1: #ff5f57;
+  --ak-light-2: #febc2e;
+  --ak-light-3: #28c840;
+  /* The user's website, drawn inside the editor. */
+  --wl-site-bg: #f6f3ee;
+  --wl-site-ink: #1c1a17;
+  --wl-site-muted: #6f6a62;
+  --wl-site-accent: #d9502b;
+  --wl-site-card: #ebe6de;
+}
