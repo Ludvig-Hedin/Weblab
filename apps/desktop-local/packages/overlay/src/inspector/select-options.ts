@@ -1,4 +1,4 @@
-import { type ChromeLayer } from "../chrome-layer";
+import type { ChromeLayer } from "../chrome-layer";
 import { cls, el } from "../dom";
 import type { Surface } from "../surface";
 import { localRect } from "../surface";
@@ -9,6 +9,11 @@ import { localRect } from "../surface";
  * click or change the customer's control.
  */
 export class SelectOptionsOverlay {
+  private readonly layer: ChromeLayer;
+  private readonly onSelect: (
+    option: HTMLOptionElement,
+    surface: Surface
+  ) => void;
   private menu: HTMLElement | null = null;
   private observer: MutationObserver | null = null;
   private select: HTMLSelectElement | null = null;
@@ -16,12 +21,12 @@ export class SelectOptionsOverlay {
   private selected: Element | null = null;
 
   constructor(
-    private readonly layer: ChromeLayer,
-    private readonly onSelect: (
-      option: HTMLOptionElement,
-      surface: Surface
-    ) => void
-  ) {}
+    layer: ChromeLayer,
+    onSelect: (option: HTMLOptionElement, surface: Surface) => void
+  ) {
+    this.layer = layer;
+    this.onSelect = onSelect;
+  }
 
   get isOpen(): boolean {
     return this.menu !== null;
@@ -54,20 +59,26 @@ export class SelectOptionsOverlay {
 
   updateSelected(node: Element | null): void {
     this.selected = node;
-    if (this.menu) this.render();
+    if (this.menu) {
+      this.render();
+    }
   }
 
   refresh(): void {
-    if (this.menu) this.render();
+    if (this.menu) {
+      this.render();
+    }
   }
 
   position(): void {
-    const { menu, select, surface } = this;
-    if (!(menu && select && surface?.isLive && select.isConnected)) {
-      if (menu) this.close();
+    const { menu, select } = this;
+    if (!(menu && select && this.surface?.isLive && select.isConnected)) {
+      if (menu) {
+        this.close();
+      }
       return;
     }
-    const box = surface.toScreen(localRect(select));
+    const box = this.surface.toScreen(localRect(select));
     const width = Math.max(172, box.width);
     const height = Math.min(280, select.options.length * 34 + 8);
     const below = box.top + box.height;
@@ -92,21 +103,22 @@ export class SelectOptionsOverlay {
 
   private render(): void {
     const { menu, select, surface } = this;
-    if (!(menu && select && surface)) return;
+    if (!(menu && select && surface)) {
+      return;
+    }
     menu.replaceChildren(
       ...Array.from(select.options, (option) => {
         const style = surface.win.getComputedStyle(option);
         const row = el("button", {
           "aria-selected": String(this.selected === option),
           class: cls("select-options-option"),
-          disabled: option.disabled ? "" : undefined,
           onClick: () => {
             this.selected = option;
             this.onSelect(option, surface);
             this.render();
           },
           role: "option",
-          text: option.label,
+          text: option.label || option.textContent?.trim() || option.value,
           type: "button",
         });
         row.style.color = style.color;

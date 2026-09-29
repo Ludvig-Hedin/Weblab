@@ -3,19 +3,21 @@ const RELEASES_URL =
 const DOWNLOAD_BASE =
   "https://github.com/Ludvig-Hedin/Weblab/releases/download";
 const RELEASE_TAG = /^desktop-local-v(\d+)\.(\d+)\.(\d+)$/;
+const VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
+const MAC_DMG = /(?:arm64|aarch64).*\.dmg$/i;
 
 function versionParts(version) {
-  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  const match = VERSION.exec(version);
   return match ? match.slice(1).map(Number) : null;
 }
 
 function isNewerVersion(candidate, installed) {
   const next = versionParts(candidate);
   const current = versionParts(installed);
-  if (!next || !current) {
+  if (!(next && current)) {
     return false;
   }
-  for (let index = 0; index < next.length; index++) {
+  for (let index = 0; index < next.length; index += 1) {
     if (next[index] !== current[index]) {
       return next[index] > current[index];
     }
@@ -37,9 +39,7 @@ function latestMacRelease(releases, installedVersion) {
       continue;
     }
     const version = match.slice(1).join(".");
-    const asset = release.assets?.find(
-      (item) => /(?:arm64|aarch64).*\.dmg$/i.test(item.name || "")
-    );
+    const asset = release.assets?.find((item) => MAC_DMG.test(item.name || ""));
     if (!asset || (latest && !isNewerVersion(version, latest.version))) {
       continue;
     }

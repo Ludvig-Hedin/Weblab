@@ -60,7 +60,7 @@ function broadcast(channel, payload) {
   }
 }
 
-async function showUpdateDialog(options) {
+function showUpdateDialog(options) {
   const window = focusedSession()?.win;
   return window
     ? dialog.showMessageBox(window, options)
@@ -83,13 +83,16 @@ async function downloadUpdate() {
 }
 
 async function checkForUpdates(manual = false) {
-  updateCheck ||= updates.findUpdate(app.getVersion()).then((result) => {
-    availableUpdate = result;
-    broadcast("updates:available", result?.version || null);
-    return result;
-  }).finally(() => {
-    updateCheck = null;
-  });
+  updateCheck ||= updates
+    .findUpdate(app.getVersion())
+    .then((result) => {
+      availableUpdate = result;
+      broadcast("updates:available", result?.version || null);
+      return result;
+    })
+    .finally(() => {
+      updateCheck = null;
+    });
   try {
     const result = await updateCheck;
     if (!manual) {
@@ -106,8 +109,8 @@ async function checkForUpdates(manual = false) {
     const { response } = await showUpdateDialog({
       buttons: ["Later", "Download"],
       defaultId: 1,
-      message: `Weblab ${result.version} is available.`,
       detail: "Download the new Mac app and move it to Applications to update.",
+      message: `Weblab ${result.version} is available.`,
       type: "info",
     });
     if (response === 1) {
@@ -394,7 +397,9 @@ function buildMenu() {
       submenu: [
         { label: "About Weblab", role: "about" },
         {
-          click: () => void checkForUpdates(true),
+          click: () => {
+            checkForUpdates(true);
+          },
           label: "Check for Updates…",
         },
         { type: "separator" },
@@ -782,7 +787,7 @@ app.whenReady().then(() => {
   }
   flushFiles();
   if (app.isPackaged) {
-    void checkForUpdates();
+    checkForUpdates();
   }
 });
 

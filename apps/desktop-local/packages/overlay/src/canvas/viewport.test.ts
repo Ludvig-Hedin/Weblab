@@ -174,17 +174,21 @@ describe("fitToRect", () => {
 describe("wheel paint", () => {
   it("writes the latest transform once per animation frame", () => {
     const pending: FrameRequestCallback[] = [];
-    const frame = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      pending.push(cb);
-      return pending.length;
-    });
+    const frame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((cb) => {
+        pending.push(cb);
+        return pending.length;
+      });
     try {
       viewport.set({ scale: 1, x: 10, y: 0 });
       viewport.set({ scale: 1, x: 20, y: 0 });
       expect(pending).toHaveLength(1);
       expect(viewport.world.style.transform).toBe("");
       pending[0]?.(0);
-      expect(viewport.world.style.transform).toBe("translate(20px, 0px) scale(1)");
+      expect(viewport.world.style.transform).toBe(
+        "translate(20px, 0px) scale(1)"
+      );
     } finally {
       frame.mockRestore();
       viewport.destroy();
