@@ -106,7 +106,7 @@ tests and the web Docker image).
 ```bash
 cd apps/desktop-local
 pnpm install
-# bump apps/desktop/package.json "version" and add a CHANGELOG.md entry first
+# bump apps/desktop-local/apps/desktop/package.json "version" and add its CHANGELOG.md entry first
 cd apps/desktop
 CSC_NAME="LUDVIG KARL ERIK HEDIN (XDBG7P4V96)" CSC_IDENTITY_AUTO_DISCOVERY=true \
 APPLE_API_KEY=<path to AuthKey_XXXX.p8> APPLE_API_KEY_ID=<key id> APPLE_API_ISSUER=<issuer id> \

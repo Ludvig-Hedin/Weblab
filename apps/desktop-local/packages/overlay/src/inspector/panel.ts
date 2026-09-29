@@ -95,6 +95,7 @@ import { renderScopeRow } from "./sections/scope";
 import { renderStroke } from "./sections/stroke";
 import { renderText } from "./sections/text";
 import { renderVector } from "./sections/vector";
+import { SelectOptionsOverlay } from "./select-options";
 import { declaredValue, isFlexChild } from "./sizing";
 import {
   applyPreview,
@@ -554,9 +555,16 @@ export class DesignPanel {
   } | null = null;
 
   private readonly deps: DesignPanelDeps;
+  private readonly selectOptionsOverlay: SelectOptionsOverlay;
 
   constructor(deps: DesignPanelDeps) {
     this.deps = deps;
+    this.selectOptionsOverlay = new SelectOptionsOverlay(
+      deps.layer,
+      (option, surface) => {
+        deps.controller.select(option, surface);
+      }
+    );
     this.reorder = new DragReorderController({
       getSelectionNode: () => this.selection?.node ?? null,
       getSelectionSurface: () => this.selection?.surface ?? null,
@@ -702,6 +710,17 @@ export class DesignPanel {
     // that path comes back to `setSelection`.
     if (this.textEditor.active && this.textEditor.node !== selection?.node) {
       this.textEditor.commit();
+    }
+    const menuOwner = this.selectOptionsOverlay.owner;
+    if (
+      !selection ||
+      (menuOwner &&
+        selection.node !== menuOwner &&
+        !menuOwner.contains(selection.node))
+    ) {
+      this.selectOptionsOverlay.close();
+    } else {
+      this.selectOptionsOverlay.updateSelected(selection.node);
     }
     // A scope is a set of classes on the *previous* element and a forced state
     // is a simulation running on it; neither means anything on the next one, and
@@ -919,6 +938,7 @@ export class DesignPanel {
    */
   syncChrome(): void {
     this.reorder.syncProxy();
+    this.selectOptionsOverlay.position();
   }
 
   /** Gate editing interaction in view mode: disarm grab-to-move so nothing in
@@ -1322,6 +1342,7 @@ export class DesignPanel {
 
   /** Release every dnd-kit entity and manager subscription. */
   destroy(): void {
+    this.selectOptionsOverlay.close();
     this.treeScope.clear();
     this.reorder.destroy();
     for (const off of this.unwatch) {
@@ -2906,6 +2927,52 @@ export class DesignPanel {
     }
   }
 
+  private dropdownFor(node: Element): HTMLSelectElement | null {
+    const select =
+      node.tagName.toLowerCase() === "select" ? node : node.closest("select");
+    return select?.tagName.toLowerCase() === "select"
+      ? (select as HTMLSelectElement)
+      : null;
+  }
+
+  private renderDropdownControls(select: HTMLSelectElement): void {
+    const shown =
+      this.selectOptionsOverlay.isOpen &&
+      this.selectOptionsOverlay.owner === select;
+    const control = createSegmented(
+      {
+        controlType: "segmented",
+        cssProperty: "--dropdown-menu",
+        defaultValue: "hide",
+        enumValues: [
+          { label: "Show", value: "show" },
+          { label: "Hide", value: "hide" },
+        ],
+        group: "layout",
+        key: "dropdown-menu",
+        label: "Dropdown menu",
+        span: "full",
+      },
+      shown ? "show" : "hide",
+      () => undefined,
+      {
+        onSelect: (value) => {
+          if (value === "show" && this.selection) {
+            this.selectOptionsOverlay.show(
+              select,
+              this.selection.surface,
+              this.selection.node
+            );
+          } else {
+            this.selectOptionsOverlay.close();
+          }
+          this.renderBody();
+        },
+      }
+    );
+    this.tabExtras.append(control.element);
+  }
+
   private renderBodyInner(): void {
     const sameView =
       this.tab === this.renderedTab &&
@@ -2929,6 +2996,7 @@ export class DesignPanel {
     }
     this.controls = [];
     clear(this.bodyEl);
+    clear(this.tabExtras);
     this.renderedTab = this.tab;
     this.renderedNode = this.selection?.node ?? null;
     this.shape = this.selection ? this.shapeKey(this.selection.node) : "";
@@ -2954,6 +3022,10 @@ export class DesignPanel {
       return;
     }
     const { node } = this.selection;
+    const select = this.dropdownFor(node);
+    if (select) {
+      this.renderDropdownControls(select);
+    }
     const component = this.deps.components?.section(node) ?? null;
     if (component) {
       this.bodyEl.append(component.element);

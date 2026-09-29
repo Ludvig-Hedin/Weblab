@@ -592,6 +592,7 @@ Per package (F-680 … F-705) at least one smoke test.
 | T-825 | F-790, F-791, F-793 | E (auth + project) | brief → Generate sitemap (<30s) → edit → Generate wireframes (every section a real block) → edit copy → refresh (stable) → Style Guide generate + apply → Design styled → Create code → editor opens bootable project | All steps succeed; copy editable; persisted across refresh; emitted project boots | `[ ]` manual |
 | T-850 | F-810 | U + E | `convex/lib/signInAllowlist.test.ts`; build with `NEXT_PUBLIC_SITE_MODE=local` → visit `/`, `/pricing`, `/download`, `/sign-in` signed out, signed in as a non-listed account, signed in as owner | Unit: allowlist parsing + env gate. E2E: hero shows Download for Mac only; `/pricing` → `/`; download is one Mac button; new email on OTP form shows invite-only error; non-listed account sees invite-only panel; owner reaches `/projects` | `[ ]` manual (unit `[x]`) |
 | T-851 | F-811 | U + M | `cd apps/desktop-local && pnpm install && pnpm test`; install the notarized DMG on a clean Mac | All package tests pass; app opens with no Gatekeeper warning, opens a local site folder, edits apply to source | `[ ]` manual |
+| T-852 | F-811 | U + M | Run the dropdown, viewport and update tests; open an HTML sketch with JavaScript-built `<option>` elements in the Mac app | Show/Hide appears at the right of Style, selecting an option exposes its styles without changing the form value, wheel pan stays steady, and a newer Mac DMG is offered in the app | `[ ]` manual |
 
 ---
 

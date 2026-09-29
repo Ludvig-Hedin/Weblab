@@ -104,6 +104,22 @@ p {
   gap: 12px;
   align-items: center;
 }
+.update-link {
+  -webkit-app-region: no-drag;
+  padding: 4px;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.update-link:hover {
+  color: var(--text);
+}
+.update-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .mode {
   -webkit-app-region: no-drag;
   display: inline-flex;

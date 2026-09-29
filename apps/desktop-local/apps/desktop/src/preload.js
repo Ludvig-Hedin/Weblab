@@ -128,4 +128,9 @@ contextBridge.exposeInMainWorld("weblab", {
     openNewWindow: (id) => ipcRenderer.invoke("sites:openNewWindow", id),
     pickFolder: () => ipcRenderer.invoke("sites:pickFolder"),
   },
+  updates: {
+    download: () => ipcRenderer.invoke("updates:download"),
+    onAvailable: on("updates:available"),
+    status: () => ipcRenderer.invoke("updates:status"),
+  },
 });

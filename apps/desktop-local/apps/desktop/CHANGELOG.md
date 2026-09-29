@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-09-29)
+
+- Show and hide native dropdown options from the Style panel, then select an option to edit its look while the sketch stays in Edit mode.
+- Smooth canvas pan and zoom for large HTML sketches by painting one transform per frame.
+- Check for updates from the Weblab menu. New Mac releases also appear in the top bar and open their DMG download.
+
 ## 0.2.0 (2026-09-28)
 
 - Edit shared components the way Framer and Webflow do: open one, change its props, and every use updates.
