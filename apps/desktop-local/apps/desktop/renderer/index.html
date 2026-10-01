@@ -216,27 +216,16 @@
 
       <!-- Dashboard -->
       <section class="screen dashboard-layout" data-screen="dashboard" hidden>
-        <nav aria-label="Site folders" class="folder-nav">
-          <button
-            aria-current="page"
-            class="folder-button"
-            id="all-sites"
-            type="button"
-          >
-            All sites
-          </button>
-          <div class="folder-nav-head">
-            <span>Folders</span
-            ><button class="link" id="new-folder" type="button">
-              New folder
-            </button>
-          </div>
-          <ul class="folder-list" id="folders"></ul>
-        </nav>
         <div class="dashboard-content">
           <div class="dash">
             <div class="dash-head">
-              <h1 id="sites-heading">Sites</h1>
+              <div class="sites-breadcrumb">
+                <button class="link" hidden id="all-sites" type="button">
+                  Sites
+                </button>
+                <span aria-hidden="true" hidden id="folder-divider">/</span>
+                <h1 id="sites-heading">Sites</h1>
+              </div>
               <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its own border, padding and min-width to this segmented control. -->
               <div
                 aria-label="Show sites as"
@@ -264,6 +253,9 @@
                 </button>
               </div>
               <div class="actions">
+                <button class="btn" id="new-folder" type="button">
+                  New folder
+                </button>
                 <button class="btn" data-action="clone" type="button">
                   <svg aria-hidden="true" class="btn-icon gh">
                     <use href="#i-github" />
@@ -305,6 +297,9 @@
               >
               <h1>Your sites will show up here</h1>
               <div class="actions">
+                <button class="btn" data-action="folder" type="button">
+                  New folder
+                </button>
                 <button class="btn" data-action="clone" type="button">
                   <svg aria-hidden="true" class="btn-icon gh">
                     <use href="#i-github" />

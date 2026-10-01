@@ -176,64 +176,74 @@ function closeDialog(id) {
   if (previous?.isConnected) {
     previous.focus();
   } else {
-    $("#all-sites").focus();
+    $("#new-folder").focus();
   }
   dialogFocus.delete(id);
 }
 
-function selectFolder(id) {
+async function selectFolder(id) {
+  const previous = selectedFolder;
   selectedFolder = id;
   dashError("");
-  renderSites();
+  await renderSites();
+  const target = selectedFolder
+    ? $("#all-sites")
+    : $$(".folder-open").find(
+        (button) => button.dataset.folderId === previous
+      ) || $("#new-folder");
+  target.focus();
 }
 
 $("#all-sites").addEventListener("click", () => selectFolder(null));
 $("#folder-show-all").addEventListener("click", () => selectFolder(null));
 
-function renderFolders() {
-  $("#all-sites").setAttribute(
-    "aria-current",
-    selectedFolder ? "false" : "page"
-  );
-  const list = $("#folders");
-  list.textContent = "";
-  for (const folder of folders) {
-    const row = document.createElement("li");
-    row.className = "folder-row";
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "folder-button";
-    button.textContent = folder.name;
-    button.title = folder.name;
-    button.setAttribute(
-      "aria-current",
-      folder.id === selectedFolder ? "page" : "false"
-    );
-    button.addEventListener("click", () => selectFolder(folder.id));
-    const more = document.createElement("button");
-    more.type = "button";
-    more.className = "more";
-    more.setAttribute("aria-label", `Actions for ${folder.name}`);
-    more.innerHTML = MORE_ICON;
-    const menu = async (event) => {
-      event.preventDefault();
-      try {
-        const result = await api.folders.menu(folder.id);
-        if (result === "rename") {
-          openFolderDialog(folder);
-        }
-        if (result === "removed") {
-          renderSites();
-        }
-      } catch (error) {
-        dashError(error.message || "Couldn’t open the folder menu.");
-      }
-    };
-    more.addEventListener("click", menu);
-    row.addEventListener("contextmenu", menu);
-    row.append(button, more);
-    list.append(row);
+function folderItem(folder, sites) {
+  const row = document.createElement("li");
+  row.className = "site folder-card";
+  const open = document.createElement("button");
+  open.type = "button";
+  open.className = "folder-open";
+  open.dataset.folderId = folder.id;
+  open.setAttribute("aria-label", `Open ${folder.name}, ${sites.length} sites`);
+  open.addEventListener("click", () => selectFolder(folder.id));
+  row.innerHTML =
+    '<div class="site-thumb folder-preview"></div><div class="site-identity"><div class="site-icon"><svg aria-hidden="true"><use href="#i-folder" /></svg></div><div class="site-text"><div class="site-name"></div><div class="site-when"></div></div></div>';
+  const preview = row.querySelector(".folder-preview");
+  for (const site of sites.slice(0, 4)) {
+    preview.append(thumb(site));
   }
+  if (!sites.length) {
+    preview.innerHTML =
+      '<svg aria-hidden="true"><use href="#i-folder" /></svg>';
+  }
+  row.querySelector(".site-name").textContent = folder.name;
+  row.querySelector(".site-when").textContent =
+    `${sites.length} ${sites.length === 1 ? "site" : "sites"}`;
+  row.append(open);
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "more";
+  more.setAttribute("aria-label", `Actions for ${folder.name}`);
+  more.innerHTML = MORE_ICON;
+  const menu = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const result = await api.folders.menu(folder.id);
+      if (result === "rename") {
+        openFolderDialog(folder);
+      }
+      if (result === "removed") {
+        renderSites();
+      }
+    } catch (error) {
+      dashError(error.message || "Couldn’t open the folder menu.");
+    }
+  };
+  more.addEventListener("click", menu);
+  row.addEventListener("contextmenu", menu);
+  row.append(more);
+  return row;
 }
 
 function openFolderDialog(folder = null) {
@@ -254,7 +264,9 @@ function closeFolderDialog() {
   }
 }
 
-$("#new-folder").addEventListener("click", () => openFolderDialog());
+for (const button of $$("[data-action=folder], #new-folder")) {
+  button.addEventListener("click", () => openFolderDialog());
+}
 $("#folder-cancel").addEventListener("click", closeFolderDialog);
 $("#folder-dialog").addEventListener("mousedown", (event) => {
   if (event.target.id === "folder-dialog") {
@@ -731,14 +743,28 @@ async function renderSites() {
   if (selectedFolder && !folders.some((item) => item.id === selectedFolder)) {
     selectedFolder = null;
   }
-  renderFolders();
   const folder = folders.find((item) => item.id === selectedFolder);
+  $("#all-sites").hidden = !folder;
+  $("#folder-divider").hidden = !folder;
   $("#sites-heading").textContent = folder ? folder.name : "Sites";
+  if (!selectedFolder) {
+    for (const group of folders) {
+      ul.append(
+        folderItem(
+          group,
+          list.filter((site) => site.folderId === group.id)
+        )
+      );
+    }
+  }
   const visibleSites = selectedFolder
     ? list.filter((site) => site.folderId === selectedFolder)
-    : list;
-  $(".dash").hidden = !selectedFolder && list.length === 0;
-  $("#empty").hidden = Boolean(selectedFolder) || list.length > 0;
+    : list.filter(
+        (site) => !folders.some((group) => group.id === site.folderId)
+      );
+  const hasItems = list.length > 0 || folders.length > 0;
+  $(".dash").hidden = !(selectedFolder || hasItems);
+  $("#empty").hidden = Boolean(selectedFolder) || hasItems;
   $("#folder-empty").hidden = !selectedFolder || visibleSites.length > 0;
   for (const site of visibleSites) {
     ul.append(siteItem(site));
