@@ -22,7 +22,8 @@ utrymme i maskinskyddet. Ändra inte dess gränser för att komma vidare.
 1. **Innehåll:** Logga in i Studio med ditt Sanity-konto. Ändra startsidans
    rubrik och klicka Publicera. Uppdatera sajten. Den nya texten ska synas.
 2. **Design:** Markera rubriken i editorn. Ändra desktopstorleken från 62 till
-   64 px. Före Spara, skriv i agentpanelen:
+   64 px. Om storleksfältet är låst, klicka först **Detach variable** vid fältet.
+   Byt sedan till agentpanelen. Före Spara, skriv:
    `Ändra bara rubrikens desktopstorlek i src/app/(site)/page.tsx. Behåll home.title och home.intro. Använd endast Read och Edit, inga kommandon.`
    Spara. Kontrollera att rubriken är större, medan texten är samma.
 3. **Mobil:** Välj telefonvyn. Rubriken ska fortfarande vara 36 px och sidan
