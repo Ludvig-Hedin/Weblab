@@ -604,3 +604,11 @@ Per package (F-680 … F-705) at least one smoke test.
 - [ ] Vercel Sandbox CI fixture — recorded API or handwritten?
 - [ ] Test data — seeded user or factory-on-demand?
 - [ ] Convex test harness — `convex-test` package usage standardized?
+
+### Separate Sanity pilot
+
+| ID | Targets | Scope | How | Pass | Status |
+|---|---|---|---|---|---|
+| T-741 | F-741 | U | `examples/sanity-pilot/test/content.test.ts`, `test/pages.test.tsx`, `test/studio.test.tsx` | Published fetch never falls back; filters/routes render; schema matches reader; isolated singleton Studio uses public props. | `[x]` 21 template checks plus scoped type/lint/build, 2026-10-01; unchanged template copied from verified source |
+| T-742 | F-741 | M | Disposable Studio and guarded installed engine; publish/restore title, save/reload h1 desktop size, pending undo/redo, same-visit saved undo, apply local source patch | CMS expressions survive and subsequent publication retains design; desktop62px/mobile36px; article/filter/rich text/missing404 render | `[x]` bounded assisted engine proof, 2026-10-01; native folder startup, handoff-copy build, image upload and hosted publish excluded. Editor reload loses undo; source chip and CMS text policy remain open limits. |
+| T-743 | F-741 | M | Disposable Sanity `k73ltzd4/production`; real `loadContent` before/after/restore of published home title, without token or code edits | Home and two posts validate; published edits reach the read-only loader. | `[x]` 2026-10-01; HTTP/content proof only; scoped typecheck/build passed |

@@ -32,6 +32,7 @@ If you are a **human**, start with the [project README](../README.md), then [`gu
 | [`test-plan.md`](./test-plan.md) | 🤝 | Per-feature test matrix (unit / integration / E2E / manual) mapped to the catalog |
 | [`prompts/`](./prompts) | 🤖 | Reusable prompts — currently `validate-feature.md` for end-to-end feature validation (code + frontend) |
 | [`notes/`](./notes) | 🤖 | Dated working notes — fast running journal, format `YYYY-MM-DD-<topic>.md` |
+| [`../examples/sanity-pilot/`](../examples/sanity-pilot/) | 🤝 | Separate read-only Sanity site, embedded Studio and self-test guide. Does not update the desktop app. |
 | [`product/`](./product) | 👤 | Product planning & marketing (product-video plan/notes, marketing calendar, launches) |
 | [`superpowers/`](./superpowers) | 🤝 | Feature plans (`plans/`) and design specs (`specs/`) |
 | [`archive/`](./archive) | 🤝 | Stale material kept for searchability (legacy projects, closed reviews, old activity log) |

@@ -38,6 +38,18 @@ later without re-discovering the context.
 
 ## Open
 
+### Installed editor source mapping and undo history need customer proof
+
+- **Discovered:** 2026-10-01 (live Sanity pilot using installed Weblab0.2.0 engine)
+- **Where:** matching `apps/desktop-local/packages/source/src/components.ts`, `packages/overlay/src/app.ts`; installed CLI/source-map path; F-741/T-742 pilot notes
+- **Symptom:** A Next16 Turbopack server-rendered h1 source chip showed an encoded generated `.next` chunk rather than the actual `(site)/page.tsx`. Scoped instructions with the real file allowed Read/Edit-only saving and preserved Sanity expressions. Reloading the entire editor cleared completed chat results and their Undo button; saved source/design survived. Same-visit saved Undo worked. Installed engine has no Sanity-specific inline text protection; newer repo parser fixtures are not installed-engine proof.
+- **Next step:** Coordinate the standalone editor owner. Correct encoded server frame mapping, retain recoverable completed-job undo across editor reload with source conflict checks, and validate a supported CMS text policy. Run packaged edit/save/reload/undo on this pilot before offering unsupported customer self-service. Do not patch the app bundle or peer source during the pilot.
+- **Risk if ignored:** Customer edits can target generated code, overwrite CMS expressions or lose access to undo after reopening.
+- **Tags:** `#bug` `#desktop` `#cms` `#history` `#test-gap`
+
+
+
+
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.
