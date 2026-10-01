@@ -754,6 +754,30 @@ declare const messages: {
     "cachedAt": "Cached {time}"
   },
   "selectProject": {
+    "showDetails": "Show details",
+    "projectActions": "Actions for {name}",
+    "detailsCreated": "Created",
+    "localFolderPath": "Folder on this computer",
+    "copyPath": "Copy path",
+    "pathCopied": "Path copied",
+    "copyPathFailed": "Could not copy the path",
+    "revealInFinder": "Reveal in Finder",
+    "locateSourceFolder": "Locate folder",
+    "changeSourceFolder": "Choose another folder",
+    "sourcePreviousFolder": "Previous folder",
+    "sourceChosenFolder": "Chosen folder",
+    "sourceUnknownPath": "No folder recorded",
+    "sourceFutureUpdates": "This folder will be used to review and export your changes. Your saved work stays in Weblab.",
+    "sourceReviewChanges": "This folder has different content. Export stays blocked until the source changes are resolved.",
+    "useSourceFolder": "Use this folder",
+    "savedWorkLocation": "Saved work in Weblab",
+    "workingFolderLocation": "Project working folder",
+    "sourceChecking": "Checking folder…",
+    "sourceMissing": "The source folder is unavailable. Your saved work stays in Weblab. Locate it to review and export changes.",
+    "sourcePermissionDenied": "Weblab cannot access the folder. Locate it to grant access again.",
+    "sourceNeedsConfirmation": "Confirm a source folder before reviewing and exporting changes.",
+    "sourceUnknown": "The original folder location is unavailable.",
+    "sourceActionFailed": "Could not update the folder location",
     "pendingImportTitle": "Welcome back. Pick the folder you wanted to import?",
     "pendingImportBody": "You tried to open a local folder before signing in. Browsers only allow that picker right after a click, so click below to continue.",
     "chooseFolder": "Choose folder",
@@ -1190,7 +1214,7 @@ declare const messages: {
         },
         "q3": {
           "question": "Where is Weblab based?",
-          "answer": "Weblab is built in Sweden. Our open-source contributors are scattered across the world, bringing their unique perspectives and incredible talent to the project as we continue to push the limits of design and development."
+          "answer": "Weblab is built in Sweden by Ludvig Hedin."
         }
       }
     }
@@ -3894,14 +3918,6 @@ declare const messages: {
         "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
       }
     },
-    "contributor": {
-      "headingLine1": "Supported by you &",
-      "headingOtherBuilders": "{count} other builders",
-      "headingLoading": "...",
-      "body": "Join the community building the open source Cursor for Designers",
-      "contributeButton": "Contribute to Weblab",
-      "avatarAlt": "{name}'s avatar"
-    },
     "codeOneToOne": {
       "headingLine1": "Truly one-to-one",
       "headingLine2": "with code"
@@ -4039,13 +4055,6 @@ declare const messages: {
     },
     "justShipped": {
       "badge": "New in v{version}"
-    },
-    "socialProof": {
-      "title": "Community Stats:",
-      "contributorsCount": "90+",
-      "contributorsLabel": "contributors",
-      "openSource": "Open source",
-      "transparent": "& transparent"
     },
     "terminalSection": {
       "eyebrow": "Your stack, your terminal",

@@ -20,8 +20,9 @@
 let ipcMain;
 let dialog;
 let app;
+let shell;
 try {
-    ({ ipcMain, dialog, app } = require('electron'));
+    ({ ipcMain, dialog, app, shell } = require('electron'));
 } catch {
     // Non-Electron context (e.g. a headless node integration test). The core
     // fs / dev-server / watch functions need no electron; registerLocalIpc()
@@ -32,6 +33,7 @@ const { createHash, randomUUID } = require('crypto');
 const { constants: fsConstants } = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
+const { createSourceLocations } = require('./source-location');
 const http = require('http');
 const net = require('net');
 const os = require('os');
@@ -1644,6 +1646,45 @@ function privateWorkingCopyBase() {
     return path.join(parent, 'weblab-private-working-copies');
 }
 
+const sourceLocationStores = new Map();
+function sourceLocations(base) {
+    if (!sourceLocationStores.has(base)) sourceLocationStores.set(base, createSourceLocations({ base }));
+    return sourceLocationStores.get(base);
+}
+
+async function getSourceLocation(root, resolve = false, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    const { sourceRootPath, record } = await privateCopyRecordForRoot(root, base);
+    return { ...await sourceLocations(base).inspect(record.copyId, sourceRootPath, { resolve }), workingPath: root };
+}
+
+async function prepareSourceRelink(root, candidate, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    const { record, manifest } = await privateCopyRecordForRoot(root, base);
+    candidate = await fsp.realpath(candidate);
+    // The picker authorizes a read-only inspection. Nothing changes until confirmation.
+    const source = await sourceGitSnapshot(candidate);
+    if (!source.head) throw new Error('The selected project needs a committed Git history.');
+    const sourceChanged = !(await originalMatchesPrivateBaseline(candidate, manifest));
+    const prepared = await sourceLocations(base).prepare(record.copyId, candidate);
+    return { ...prepared, sourceChanged };
+}
+
+async function confirmSourceRelink(root, token, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    const { record } = await privateCopyRecordForRoot(root, base);
+    const location = await sourceLocations(base).confirm(record.copyId, token, {
+        validateCandidate: async (candidate) => {
+            const source = await sourceGitSnapshot(candidate);
+            if (!source.head) throw new Error('The selected project needs a committed Git history.');
+        },
+    });
+    reviewedHandoffPlans.delete(record.copyId);
+    await sourceLocations(base).assertCurrent(record.copyId, location.generation, location.sourcePath, location.identity);
+    await grantLocalRoot(location.sourcePath);
+    return { ...location, workingPath: root };
+}
+
 function isBaselineTextPath(rel) {
     return BASELINE_TEXT_EXTENSIONS.has(path.extname(rel).toLowerCase()) ||
         BASELINE_TEXT_FILENAMES.has(path.basename(rel));
@@ -2254,13 +2295,25 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
         const releaseLock = await acquirePrivateCopyIndexLock(base);
         try {
             const index = await readPrivateCopyIndex(base);
-            const existing = index.copies[sourceRoot];
+            const knownLocation = await sourceLocations(base).findByPath(sourceRoot, Object.values(index.copies).map((item) => item.copyId));
+            const knownRecord = knownLocation && Object.entries(index.copies).find(([, item]) => item.copyId === knownLocation.copyId);
+            const existingKey = knownRecord?.[0] ?? sourceRoot;
+            const existing = knownRecord?.[1] ?? index.copies[sourceRoot];
+            if (existing && !knownRecord) {
+                const location = await sourceLocations(base).inspect(existing.copyId, existingKey);
+                if (location.generation !== undefined && location.status !== 'available') {
+                    throw new Error('The source folder could not be verified. Use Locate folder from project details.');
+                }
+                if (location.generation !== undefined && location.sourcePath !== sourceRoot) {
+                    throw new Error('A different folder occupies the old project location. Use Locate folder from project details.');
+                }
+            }
             let priorCopyId;
             if (existing) {
                 try {
                     await inspectSourceGitLayout(sourceRoot);
-                    const manifest = await readPrivateCopyManifest(base, sourceRoot, existing);
-                    if (await originalMatchesPrivateBaseline(sourceRoot, manifest)) {
+                    const manifest = await readPrivateCopyManifest(base, existingKey, existing);
+                    if (existingKey !== sourceRoot || await originalMatchesPrivateBaseline(sourceRoot, manifest)) {
                         const existingContainer = path.join(base, existing.copyId);
                         const install = await readDependencyInstallRecord(existingContainer);
                         let startFresh = false;
@@ -2289,7 +2342,7 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
                             await grantLocalRoot(manifest.rootPath);
                             privateWorkingRoots.add(manifest.rootPath);
                             privateWorkingCopyRecords.set(manifest.rootPath, {
-                                sourceRootPath: sourceRoot, record: existing,
+                                sourceRootPath: existingKey, record: existing,
                                 container: existingContainer,
                             });
                             return {
@@ -2395,6 +2448,8 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
                 }
                 index.copies[sourceRoot] = { copyId, manifestSha256: sha256(manifestBytes) };
                 await writePrivateCopyIndex(base, index);
+                // Tracking failure keeps the saved private copy usable; recovery remains manual.
+                try { await sourceLocations(base).capture(copyId, sourceRoot); } catch { /* Locate folder can enroll it later. */ }
                 privateWorkingRoots.add(rootPath);
                 privateWorkingCopyRecords.set(rootPath, {
                     sourceRootPath: sourceRoot, record: index.copies[sourceRoot], container,
@@ -2497,6 +2552,10 @@ function sameHandoffFiles(snapshot, current) {
     return true;
 }
 
+function sameSourceGitIdentity(current, baseline) {
+    return current.kind === baseline.kind && current.branch === baseline.branch;
+}
+
 async function originalMatchesPrivateBaseline(sourceRoot, manifest) {
     const baseline = new Map(manifest.snapshot
         .filter((entry) => !entry.path.split('/').includes('.next'))
@@ -2507,13 +2566,17 @@ async function originalMatchesPrivateBaseline(sourceRoot, manifest) {
     return source.indexSha256 === manifest.sourceIndexSha256 &&
         source.head === manifest.sourceGitHead &&
         (!manifest.sourceGitLayout ||
-            JSON.stringify(source.layout) === JSON.stringify(manifest.sourceGitLayout));
+            sameSourceGitIdentity(source.layout, manifest.sourceGitLayout));
 }
 
 async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase()) {
     copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
-    const { sourceRootPath, record, manifest, container } =
+    const { sourceRootPath: baselineSourcePath, record, manifest, container } =
         await privateCopyRecordForRoot(copyRoot, base);
+    const location = await sourceLocations(base).inspect(record.copyId, baselineSourcePath, { resolve: true });
+    if (location.status !== 'available') throw new Error('Source folder unavailable. Your work is saved in Weblab. Use Locate folder from project details.');
+    const sourceRootPath = location.sourcePath;
+    await sourceLocations(base).assertCurrent(record.copyId, location.generation, sourceRootPath, location.identity);
     try {
         await fsp.lstat(path.join(container, 'write-journal.lock'));
         throw new Error('A private write is in progress, or its journal lock needs recovery.');
@@ -2584,12 +2647,15 @@ async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase
     }
     changedFiles.sort((a, b) => a.path.localeCompare(b.path));
     const sourceChanged = !sameHandoffFiles(snapshot, original);
-    const sourceGit = await sourceGitSnapshot(sourceRootPath, manifest.sourceGitLayout);
+    const sourceGit = await sourceGitSnapshot(sourceRootPath);
+    await sourceLocations(base).assertCurrent(record.copyId, location.generation, sourceRootPath, location.identity);
     const sourceGitChanged = sourceGit.head !== manifest.sourceGitHead ||
-        sourceGit.indexSha256 !== manifest.sourceIndexSha256;
+        sourceGit.indexSha256 !== manifest.sourceIndexSha256 ||
+        Boolean(manifest.sourceGitLayout && !sameSourceGitIdentity(sourceGit.layout, manifest.sourceGitLayout));
     const issues = [...unsupportedChanges].sort();
     const planToken = issues.length || sourceChanged || sourceGitChanged || !changedFiles.length ? null : sha256(Buffer.from(JSON.stringify({
         copyId: record.copyId,
+        sourceBinding: { generation: location.generation, sourceRootPath, identity: location.identity },
         manifestSha256: record.manifestSha256,
         journalSha256: journalBefore.hash,
         copied: [...copied].sort(),
@@ -2598,6 +2664,7 @@ async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase
     })));
     return {
         copyId: record.copyId, sourceRootPath, changedFiles,
+        sourceBinding: { generation: location.generation, identity: location.identity },
         unsupportedChanges: issues, sourceChanged: sourceChanged || sourceGitChanged, planToken,
     };
 }
@@ -2735,6 +2802,8 @@ async function exportPrivateHandoff(copyRoot, planToken, base = privateWorkingCo
     try {
         await handle.writeFile(patch);
         await handle.sync();
+        await sourceLocations(base).assertCurrent(second.copyId, second.sourceBinding.generation,
+            second.sourceRootPath, second.sourceBinding.identity);
     } catch (err) {
         await fsp.rm(patchPath, { force: true });
         throw err;
@@ -2837,6 +2906,32 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
     ipcMain.handle('weblab:localfs:createPrivateWorkingCopy', async (event, { sourceRoot } = {}) => {
         try { return await createPrivateWorkingCopy(await granted(event, sourceRoot)); }
         catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localfs:sourceLocation', async (event, { root, resolve } = {}) => {
+        try { return await getSourceLocation(await granted(event, root), resolve === true); }
+        catch (err) { return { error: err.message }; }
+    });
+    ipcMain.handle('weblab:localfs:locateSource', async (event, { root } = {}) => {
+        try {
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+            if (result.canceled || !result.filePaths.length) return { canceled: true };
+            if (!guard(event)) throw new Error('origin_mismatch');
+            return await prepareSourceRelink(root, result.filePaths[0]);
+        } catch (err) { return { error: err.message }; }
+    });
+    ipcMain.handle('weblab:localfs:confirmSource', async (event, { root, token } = {}) => {
+        try { return await confirmSourceRelink(await granted(event, root), token); }
+        catch (err) { return { error: err.message }; }
+    });
+    ipcMain.handle('weblab:localfs:revealSource', async (event, { root } = {}) => {
+        try {
+            const location = await getSourceLocation(await granted(event, root), true);
+            if (location.status !== 'available') throw new Error('Source folder unavailable.');
+            shell.showItemInFolder(location.sourcePath);
+            return {};
+        } catch (err) { return { error: err.message }; }
     });
 
     ipcMain.handle('weblab:localfs:planPrivateHandoff', async (event, { root } = {}) => {
@@ -3094,6 +3189,9 @@ module.exports = {
     createPrivateWorkingCopy,
     requirePrivateWorkingRoot,
     planPrivateHandoff,
+    getSourceLocation,
+    prepareSourceRelink,
+    confirmSourceRelink,
     exportPrivateHandoff,
     applyHandoffOverrides,
     recordPrivateWrite,

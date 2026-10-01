@@ -9,6 +9,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v5-0-project-organization',
+        version: '5.0',
+        title: 'Project folders and source details',
+        description:
+            'Organize sites in folders without moving their files. View source locations and reconnect moved folders while keeping saved work. Desktop recovery requires the updated native app.',
+        date: '2026-10-01',
+        tags: ['Projects', 'Desktop'],
+        // UI illustration: /assets/changelog/project-organization.svg
+    },
+    {
         slug: 'v4-9-variables-tab',
         version: '4.9',
         title: 'Variables tab',

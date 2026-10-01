@@ -120,6 +120,7 @@ Append IDs `T-XXX` monotonically — never reuse.
 | T-100 | F-100, F-562 | E | Submit name | Workspace + slug created; switcher updates | `[ ]` |
 | T-101 | F-101 | E | Visit signed-out | Redirected to `/sign-in` | `[ ]` |
 | T-102 | F-102, F-548 | E + I | List + create + filter + sort | Projects from Convex; filters work | `[ ]` |
+| T-833 | F-102, F-786, F-796 | U + M (desktop) | Create/rename/remove organization folders, move one or many projects, hover names and open details; rename original source, replace old path, reconnect legacy/copy candidate, move valid linked worktree, invalidate a reviewed export | Organization never moves disk files; source path is primary; private edits and immutable baseline survive recovery; only checked same-directory bookmarks recover automatically; uncertain candidates require confirmation and changed sources block handoff; stale plans fail. Focused registry/integration tests cover native cases; packaged desktop, relaunch, offline-volume and browser proof remain open. | `[ ]` |
 | T-103 | F-103 | E | Edit name + slug + delete | Persists via Convex; slug uniqueness enforced | `[ ]` |
 | T-104 | F-104, F-555 | E (test mode) | Open Stripe portal | Portal session URL returned | `[ ]` |
 | T-105 | F-105, F-587 | E | Change role; remove | Convex membership updates; non-owner can't promote | `[ ]` |

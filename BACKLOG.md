@@ -38,6 +38,15 @@ later without re-discovering the context.
 
 ## Open
 
+### Source recovery still needs packaged desktop proof
+
+- **Discovered:** 2026-10-01 (project organization and Finder recovery)
+- **Where:** F-102, F-786, F-796; `apps/desktop/source-location.js`; T-833
+- **Symptom:** Native source recovery and manual reconnect are implemented, but packaged Electron, app relaunch/Mac restart, offline disks, permissions and browser flows remain unverified. Registry locks recover only when the recorded process is demonstrably gone; uncertain locks fail closed. Legacy projects require a folder choice and confirmation once.
+- **Next step:** Run T-833 in the packaged app, including helper inclusion and non-MAS permissions; verify interrupted registry writes and lock recovery. Implement physical move as a separate reviewed transaction only after recovery proof, with linked-worktree repair and verified cross-volume copy before cleanup.
+- **Risk if ignored:** Best-effort recovery could be mistaken for guaranteed Finder tracking or crash recovery. No physical move command is supplied by this change.
+- **Tags:** `#test-gap` `#workflow` `#desktop`
+
 ### Sanity pilot still needs live CMS and desktop proof
 
 - **Discovered:** 2026-10-01 (owner-requested separate Sanity site pilot)

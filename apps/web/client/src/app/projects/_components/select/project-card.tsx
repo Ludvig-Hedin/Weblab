@@ -13,7 +13,7 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 import { timeAgo } from '@weblab/utility';
 
-import type { ProjectListItem } from './project-card-utils';
+import type { ProjectListItem, ProjectOrganizationProps } from './project-card-utils';
 import { env } from '@/env';
 import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { EditAppButton } from '../edit-app';
@@ -26,6 +26,7 @@ import {
     getProjectSiteUrl,
 } from './project-card-utils';
 import { ProjectPreviewSurface } from './project-preview-surface';
+import { useSourceLocation } from './use-source-location';
 
 export function ProjectCard({
     project,
@@ -37,6 +38,9 @@ export function ProjectCard({
     onSelectionChange,
     onStartMultiSelect,
     isBackfilling = false,
+    folders,
+    onMoveToFolder,
+    onCreateFolder,
 }: {
     project: ProjectListItem;
     refetch: () => void | Promise<unknown>;
@@ -48,7 +52,7 @@ export function ProjectCard({
     /** Enter multi-select mode (used by the card menu's "Select multiple"). */
     onStartMultiSelect?: () => void;
     isBackfilling?: boolean;
-}) {
+} & ProjectOrganizationProps) {
     const t = useTranslations('selectProject') as (
         key: string,
         values?: Record<string, string | number>,
@@ -83,6 +87,10 @@ export function ProjectCard({
     // Block opening only in the browser. Inside the desktop app the NodeFs
     // bridge is present, so local projects open normally.
     const openBlocked = isLocalProject && !isDesktop;
+    const source = useSourceLocation(
+        isLocalProject ? project.metadata.runtime?.local?.rootPath : undefined,
+    );
+    const organization = { folders, onMoveToFolder, onCreateFolder };
 
     const lastUpdated = useMemo(
         () => timeAgo(project.metadata?.updatedAt),
@@ -171,14 +179,19 @@ export function ProjectCard({
                 <img
                     src={faviconUrl}
                     alt=""
-                    className="h-4 w-4 shrink-0 rounded-xs object-cover"
+                    className="rounded-xs h-4 w-4 shrink-0 object-cover"
                     loading="lazy"
                     onError={() => setFaviconFailed(true)}
                 />
             ) : (
                 <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
             )}
-            <span className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current">
+            <span
+                title={source.location?.sourcePath}
+                onMouseEnter={() => void source.refresh()}
+                onFocus={() => void source.refresh()}
+                className="text-foreground underline-offset-3 truncate text-sm font-medium underline decoration-transparent transition-colors duration-200 group-hover/card:decoration-current"
+            >
                 {HighlightText ? (
                     <HighlightText text={project.name} searchQuery={searchQuery} />
                 ) : (
@@ -194,7 +207,10 @@ export function ProjectCard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
             onMouseEnter={handleHoverPrefetch}
-            onFocus={handleHoverPrefetch}
+            onFocus={() => {
+                handleHoverPrefetch();
+                void source.refresh();
+            }}
             className="group/card w-full"
         >
             <div
@@ -247,7 +263,7 @@ export function ProjectCard({
                     {isLocalProject && !selectionMode && (
                         <div className="pointer-events-none absolute bottom-3 left-3 z-30 flex items-center gap-1 rounded-full border border-white/10 bg-black/55 px-2 py-0.5 backdrop-blur-md">
                             <Icons.Laptop className="text-foreground/80 h-3 w-3" />
-                            <span className="text-foreground/90 text-[10px] leading-none font-medium">
+                            <span className="text-foreground/90 text-[10px] font-medium leading-none">
                                 {t('localBadge')}
                             </span>
                         </div>
@@ -259,7 +275,7 @@ export function ProjectCard({
                     {selectionMode && (
                         <div
                             role="presentation"
-                            className="absolute top-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 opacity-100 backdrop-blur-md transition-opacity"
+                            className="absolute left-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 opacity-100 backdrop-blur-md transition-opacity"
                             onClick={(event) => event.stopPropagation()}
                             onKeyDown={(event) => event.stopPropagation()}
                         >
@@ -278,7 +294,7 @@ export function ProjectCard({
                     {(isRecentlyActive || isBackfilling) && !selectionMode && (
                         <div
                             className={cn(
-                                'pointer-events-none absolute top-3 left-3 z-20 flex h-8 w-8 items-center justify-center transition-opacity',
+                                'pointer-events-none absolute left-3 top-3 z-20 flex h-8 w-8 items-center justify-center transition-opacity',
                                 selectionMode || selected
                                     ? 'opacity-0'
                                     : 'group-hover/card:opacity-0',
@@ -290,7 +306,7 @@ export function ProjectCard({
                         <>
                             <div
                                 className={cn(
-                                    'absolute top-3 right-3 z-30 transition-opacity duration-200',
+                                    'absolute right-3 top-3 z-30 transition-opacity duration-200',
                                     menuOpen
                                         ? 'opacity-100'
                                         : 'opacity-0 group-hover/card:opacity-100',
@@ -303,6 +319,7 @@ export function ProjectCard({
                             >
                                 <SettingsDropdown
                                     project={project as Project}
+                                    {...organization}
                                     refetch={() => {
                                         void refetch();
                                     }}

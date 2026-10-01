@@ -47,6 +47,7 @@
             "auth-hosts.js",
             "weblab-cli.js",
             "weblab-local.js",
+            "source-location.js",
             "cli/**",
             "assets/**"
         ],
@@ -54,7 +55,8 @@
             "category": "public.app-category.developer-tools",
             "icon": "assets/icon.icns",
             "extraResources": [
-                { "from": ".runtime/mac/bun", "to": "bin/bun" }
+                { "from": ".runtime/mac/bun", "to": "bin/bun" },
+                { "from": "assets/source-bookmark.jxa.js", "to": "source-bookmark.jxa.js" }
             ],
             "binaries": ["Contents/Resources/bin/bun"],
             "x64ArchFiles": "Contents/Resources/bin/bun",

@@ -12,7 +12,7 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 import { timeAgo } from '@weblab/utility';
 
-import type { ProjectListItem } from './project-card-utils';
+import type { ProjectListItem, ProjectOrganizationProps } from './project-card-utils';
 import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { SettingsDropdown } from '../settings';
 import { ProjectCardContextMenu } from './project-card-context-menu';
@@ -23,8 +23,9 @@ import {
     getProjectSiteUrl,
 } from './project-card-utils';
 import { formatTechLabel } from './projects-toolbar';
+import { useSourceLocation } from './use-source-location';
 
-interface ProjectRowProps {
+interface ProjectRowProps extends ProjectOrganizationProps {
     project: ProjectListItem;
     variant: 'list' | 'table';
     refetch: () => void | Promise<unknown>;
@@ -51,6 +52,9 @@ export const ProjectRow = ({
     selected = false,
     onSelectionChange,
     isBackfilling = false,
+    folders,
+    onMoveToFolder,
+    onCreateFolder,
 }: ProjectRowProps) => {
     const tBase = useTranslations('selectProject');
     const t = tBase as (key: string, values?: Record<string, string | number>) => string;
@@ -82,6 +86,10 @@ export const ProjectRow = ({
     useEffect(() => setIsDesktop(isDesktopLocalAvailable()), []);
     const isLocalProject = project.metadata?.storageMode === 'local';
     const openBlocked = isLocalProject && !isDesktop;
+    const source = useSourceLocation(
+        isLocalProject ? project.metadata.runtime?.local?.rootPath : undefined,
+    );
+    const organization = { folders, onMoveToFolder, onCreateFolder };
 
     // Row-level navigation. In selection mode the same click toggles the
     // checkbox instead. Buttons / dropdowns inside the row stop propagation
@@ -145,20 +153,25 @@ export const ProjectRow = ({
                 <span
                     aria-label={t('freshCapturing')}
                     title={t('freshCapturing')}
-                    className="bg-foreground-success/80 absolute top-1 left-1 h-1.5 w-1.5 animate-pulse rounded-full"
+                    className="bg-foreground-success/80 absolute left-1 top-1 h-1.5 w-1.5 animate-pulse rounded-full"
                 />
             )}
         </div>
     );
 
     const nameCell = (
-        <div className="flex min-w-0 items-center gap-2">
+        <div
+            title={source.location?.sourcePath}
+            onMouseEnter={() => void source.refresh()}
+            onFocus={() => void source.refresh()}
+            className="flex min-w-0 items-center gap-2"
+        >
             {faviconUrl && !faviconFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                     src={faviconUrl}
                     alt=""
-                    className="h-4 w-4 shrink-0 rounded-xs object-cover"
+                    className="rounded-xs h-4 w-4 shrink-0 object-cover"
                     loading="lazy"
                     onError={() => setFaviconFailed(true)}
                 />
@@ -246,7 +259,11 @@ export const ProjectRow = ({
                     <Icons.ExternalLink className="h-3.5 w-3.5" />
                 </a>
             )}
-            <SettingsDropdown project={project as Project} refetch={() => void refetch()} />
+            <SettingsDropdown
+                project={project as Project}
+                {...organization}
+                refetch={() => void refetch()}
+            />
         </div>
     );
 
@@ -276,14 +293,21 @@ export const ProjectRow = ({
 
     if (variant === 'list') {
         return (
-            <ProjectCardContextMenu project={project as Project} refetch={refetch}>
+            <ProjectCardContextMenu
+                project={project as Project}
+                {...organization}
+                refetch={refetch}
+            >
                 <motion.div
                     layout
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                     onMouseEnter={handleHoverPrefetch}
-                    onFocus={handleHoverPrefetch}
+                    onFocus={() => {
+                        handleHoverPrefetch();
+                        void source.refresh();
+                    }}
                     className="relative"
                 >
                     <div
@@ -323,14 +347,17 @@ export const ProjectRow = ({
     }
 
     return (
-        <ProjectCardContextMenu project={project as Project} refetch={refetch}>
+        <ProjectCardContextMenu project={project as Project} {...organization} refetch={refetch}>
             <motion.div
                 layout
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                 onMouseEnter={handleHoverPrefetch}
-                onFocus={handleHoverPrefetch}
+                onFocus={() => {
+                    handleHoverPrefetch();
+                    void source.refresh();
+                }}
                 className="relative"
             >
                 <div
