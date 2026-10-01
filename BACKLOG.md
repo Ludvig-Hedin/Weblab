@@ -38,14 +38,16 @@ later without re-discovering the context.
 
 ## Open
 
-### Sanity pilot still needs Studio publishing and installed-editor proof
+### Installed editor source mapping and undo history need customer proof
 
-- **Discovered:** 2026-10-01 (owner-requested separate Sanity site pilot)
-- **Where:** `examples/sanity-pilot/README.md` (F-741, T-742)
-- **Symptom:** Live published home/post loading and before/after/restore refresh work. Public browser/filter and standalone Studio build/type checks pass. Studio publishing and installed-editor save/undo/local handoff still need visual proof. Installed Weblab0.2.0 edits the chosen folder directly and has no Sanity-specific inline text lock. The guarded editor and its child site share one registered job; two existing jobs block admission.
-- **Next step:** Reuse independent Sanity pilot Git copy and k73ltzd4/production. When a dev slot is free, open Studio on3007 and the installed editor engine on3008 with the fixed guarded start. Publish/edit/reload/undo and test a local Git patch without using Upload or external publishing. The newer repository parser's CMS text refusal is source-tested, not proof of the installed engine.
-- **Risk if ignored:** Source tests or an unrelated desktop version could be mistaken for a proven customer workflow.
-- **Tags:** `#test-gap` `#cms` `#workflow`
+- **Discovered:** 2026-10-01 (live Sanity pilot using installed Weblab0.2.0 engine)
+- **Where:** matching `../weblab-html-dropdown/apps/desktop-local/packages/source/src/components.ts`, `packages/overlay/src/app.ts`; installed CLI/source-map path; F-741/T-742 pilot notes
+- **Symptom:** A Next16 Turbopack server-rendered h1 source chip showed an encoded generated `.next` chunk rather than the actual `(site)/page.tsx`. Scoped instructions with the real file allowed Read/Edit-only saving and preserved Sanity expressions. Reloading the entire editor cleared completed chat results and their Undo button; saved source/design survived. Same-visit saved Undo worked. Installed engine has no Sanity-specific inline text protection; newer repo parser fixtures are not installed-engine proof.
+- **Next step:** Coordinate the standalone editor owner. Correct encoded server frame mapping, retain recoverable completed-job undo across editor reload with source conflict checks, and validate a supported CMS text policy. Run packaged edit/save/reload/undo on this pilot before offering unsupported customer self-service. Do not patch the app bundle or peer source during the pilot.
+- **Risk if ignored:** Customer edits can target generated code, overwrite CMS expressions or lose access to undo after reopening.
+- **Tags:** `#bug` `#desktop` `#cms` `#history` `#test-gap`
+
+
 
 ### Renaming a color variable breaks the classes that use it
 
@@ -2429,6 +2431,15 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Sanity pilot live content and design workflow
+
+- **Discovered:** 2026-10-01 (owner-requested separate Sanity pilot)
+- **Where:** `examples/sanity-pilot/README.md` (F-741, T-741–743)
+- **Resolved:** 2026-10-01. Real Studio login/publication/restore succeeded on k73ltzd4/production. Installed editor engine saved desktop h1 60→62px while mobile remained36px; subsequent Studio publication retained62px. Pending undo/redo and same-visit saved64→62px undo passed. Local Git patch applied to another source copy with CMS expressions unchanged. Category filter/article/rich text/missing404 and mobile overflow checked. Standalone build/type/lint and34 focused checks passed. Full native folder startup, separate handoff-copy build, image upload and external publishing were not claimed. Installed engine limits are tracked in the open source-mapping/history entry.
+- **Commits:** `86b6b11b2` (Studio/template); independent pilot `4c74f45` (saved design); agent-dotfiles `694894b` (owner-approved third slot only for pilot).
+- **Tags:** `#cms` `#workflow` `#test-gap`
+
 ### 2026-07-09 — Editor quality audit (docs/audits/editor-quality-audit.md)
 
 - **`isChildTextEditable` stub returning `true` (P1)** — resolved `acbd9b0df`: source-AST gate in `TextEditingManager` (`text/editable.ts`, 16 unit tests); preload stub intentionally retained (prod SHA pin).

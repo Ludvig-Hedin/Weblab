@@ -6,11 +6,15 @@ kopieras till Weblabs eget CMS. Den publika sajten läser bara publicerat inneh�
 På `/studio` finns Sanitys vanliga redigering och publicering för inloggade
 projektmedlemmar.
 
-**Status 2026-10-01:** en fristående kopia är ansluten till ett nytt Sanity-
-testprojekt. Den riktiga innehållshämtningen läser en startsida och två artiklar.
-En publicerad rubrikändring hämtades och återställdes utan kodändring.
-Visuell redigering i Weblab, Studio-redigering och extern publicering är ännu
-inte verifierade. Detta är ett testunderlag, inte en lanserad Sanity-integration.
+**Status 2026-10-01:** den lokala piloten är verifierad mot ett separat Sanity-
+testprojekt. Inloggning, redigering och publicering i Studio fungerar. En rubrik
+ändrades och återställdes medan den sparade designen låg kvar. Weblabs
+installerade editormotor sparade rubrikens desktopstorlek från 60 till 62 px,
+med 36 px kvar på telefon. Förhandsvisningens ångra/gör om och en sparad
+64 till 62 px-återställning fungerar. En lokal designpatch gick att applicera
+i en separat källkodskopia med CMS-uttrycken kvar. Ingen extern publicering
+eller full native mappstart ingår i detta bevis. Detta är en lokal pilot,
+inte en lanserad eller generell Sanity-integration.
 
 Källkods-, schema- och sidkontrollerna gick igenom: 34 fokuserade testfall med
 exempelsvar. Studio byggs på en egen sida utan sajtens navigation eller CSS.
@@ -31,7 +35,8 @@ produktionsbygge gick också igenom. Inga skarpa kundprojekt ändrades.
 - Det godkända maskinundantaget gäller endast den exakta kopian: installation,
   kontroller, bygge, en lokal produktionsförhandsvisning och den installerade
   appens editor tillsammans med sajtens server. Det behåller minnesgränser,
-  registrering och två-jobbsgränsen. Editor och sajt är ett övervakat projekt.
+  registrering och minnesskydd. Ägaren godkände en tredje startplats enbart
+  för piloten. Editor och sajt är ett övervakat projekt.
 - Weblabs egen utvecklingsserver omfattas inte av undantaget. Editorstarten
   använder appens befintliga motor, inte en ändrad app eller ett globalt undantag.
 
@@ -44,10 +49,10 @@ agent-heavy-run sanity-pilot build
 ```
 
 En lokal förhandsvisning på port 3007 startas med `agent-heavy-run sanity-pilot start`.
-Ta en browser-lease först, respektera två-servergränsen och stoppa bara den egna
+Ta en browser-lease först, respektera pilotens tre-jobbsgräns och stoppa bara den egna
 servern efter kontrollen. Den publika sidan och kategorifiltret är kontrollerade
-på desktop och telefon. Studio och sparad designändring väntar på en ledig
-startplats. Editor och sajt startas tillsammans med `agent-heavy-run sanity-pilot editor`
+på desktop och telefon. Studio-publicering och sparad design är också
+kontrollerade. Editor och sajt startas tillsammans med `agent-heavy-run sanity-pilot editor`
 på port 3008 respektive 3007. `resolve` uppdaterar kopians låsfil endast för den
 fast godkända installationen; använd `install` för fryst återinstallation.
 
@@ -155,3 +160,21 @@ installerad desktopapp.
 
 Teknisk referens: [Sanitys Query API](https://www.sanity.io/docs/http-reference/query),
 [Studio i Next.js](https://www.sanity.io/docs/nextjs/embedding-sanity-studio-in-nextjs).
+
+## Begränsningar som det visuella testet hittade
+
+- Installerad Weblab 0.2.0 har inget Sanity-lås för direktredigering av text.
+  Redigera innehållet i Studio och granska att designändringar behåller CMS-
+  uttrycken. Repots nyare parserkontroller är inte samma sak som installerad app.
+- Den installerade editorns källkodspekare visade en genererad Turbopack-fil
+  för startsidan. Sparandet fungerade med den faktiska sidfilen angiven i
+  instruktionen. Detta behöver fixas innan en kund förväntas spara utan stöd.
+- En sparad ändring går att ångra i samma editorbesök. Hela editorns omladdning
+  tömde chatten och tog bort den tidigare ångraknappen. Sajten behöll ändringen.
+  Spara i Git inför omladdning tills historiken är beständig.
+- Patchprovet verifierade applicering och identisk källkod i en annan kopia.
+  Kopian byggdes inte separat och Upload/GitHub eller publicering till en värd
+  testades inte. Inget sådant är godkänt i denna lokala pilot.
+- Piloten klarar sina egna typ-, lint- och byggkontroller. Weblabs delade
+  arbetskopia hade vid kontrollen typfel i andra pågående CMS- och tokenändringar.
+  Ingen full Weblab-kontroll eller kundrelease påstås ha gått igenom.

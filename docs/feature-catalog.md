@@ -811,7 +811,7 @@ See F-151 to F-160. Plus:
 | ID | Tag | Route | Path | Purpose |
 |---|---|---|---|---|
 | F-740 | `#internal` | `/dev/convex-smoke` | [src/app/dev/convex-smoke/page.tsx](apps/web/client/src/app/dev/convex-smoke/page.tsx) | Convex connection smoke test |
-| F-741 | `#internal` `#cms` `#integration` | Separate Sanity pilot: `/`, `/blog`, `/blog/[slug]`, `/studio/[[...tool]]` | [examples/sanity-pilot/README.md](examples/sanity-pilot/README.md) | Standalone Next.js/Tailwind site with published read-only Sanity data, category filter and isolated embedded Studio. Singleton home and post schemas match loader validation; only public identifiers cross into Studio. Source/style checks cover the isolated site layout. Live read/refresh and guarded typecheck/build passed; Studio publishing and installed-editor save/handoff proof pending. Not a built-in CMS adapter. |
+| F-741 | `#internal` `#cms` `#integration` | Separate Sanity pilot: `/`, `/blog`, `/blog/[slug]`, `/studio/[[...tool]]` | [examples/sanity-pilot/README.md](examples/sanity-pilot/README.md) | Standalone Next.js/Tailwind site, published read-only Sanity data, category filter and isolated embedded Studio. Singleton/schema validation and public-only Studio props. Live Studio publication/restore, installed engine save/reload/same-visit undo and local source-patch application verified with guarded runtime. CMS expressions survive; desktop/mobile sizes retain their separate values. Installed engine source mapping, reload undo history and CMS text protection remain customer-release limits. Not a built-in CMS adapter or deployed integration. |
 
 ---
 
@@ -898,7 +898,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
-| 2026-10-01 | F-741 | Added an isolated Sanity site pilot, then embedded Studio on its own root layout, singleton/schema validators and `(site)` style compatibility. Live loader, public browser/filter and guarded standalone build/type checks passed. Live Studio publishing and installed-editor save/handoff remain pending. |
+| 2026-10-01 | F-741 | Added isolated Sanity pilot and Studio, matching schema validators and `(site)` style compatibility. Verified published content refresh, Studio login/publication/restore, saved design with unchanged CMS expressions, responsive rendering, pending undo/redo, same-visit saved undo and source-patch handoff. Native shell startup and hosted publish excluded; installed-engine limits logged. |
 | 2026-09-28 | F-800 | **Variables tab.** New left-panel tab for globals.css design tokens, plus variable chips with hover edit/detach/connect on color rows and hover edit/detach on the text style chip. |
 | 2026-09-23 | F-121, F-209, F-500, F-527, F-549, F-786, F-793, F-795 | Local paid-work scope: opening an existing desktop folder leaves its source and Git state alone; an explicit source preparation review is added; cloud sandbox file/command access, cloud creation, hosted publishing, and wireframe code export are gated until their authorization and transaction paths are safe. Live QA remains a release gate. |
 | 2026-09-23 | F-796 | Private local Git handoff adds reviewed patch export; original worktree changes only when the designer explicitly applies the patch. Native and desktop proof remain release gates. |
