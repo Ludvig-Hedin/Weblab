@@ -35,14 +35,21 @@ function register(ctx) {
   const handle = (channel, fn) => {
     ipcMain.handle(channel, async (event, ...args) => {
       const session = fromWindow(event);
-      const open = site(session);
-      if (!(session && open)) {
+      const raw = site(session);
+      if (!(session && raw)) {
         return { message: "Open a site first.", ok: false };
       }
       try {
-        return await fn(session, open, ...args);
-      } catch {
-        return { message: "Something went wrong. Try again.", ok: false };
+        const open = await sites.verified(raw.id);
+        return await sites.withVerified(open, () => fn(session, open, ...args));
+      } catch (error) {
+        return {
+          message:
+            error.code === "source-unavailable"
+              ? error.message
+              : "Something went wrong. Try again.",
+          ok: false,
+        };
       }
     });
   };
@@ -51,9 +58,14 @@ function register(ctx) {
   const serial =
     (fn) =>
     (session, ...args) => {
-      const run = (queues.get(session) || Promise.resolve()).then(() =>
-        fn(session, ...args)
-      );
+      const run = (queues.get(session) || Promise.resolve()).then(async () => {
+        const [open] = args;
+        if (session.openSiteId !== open.id) {
+          throw new Error("The open site changed.");
+        }
+        await sites.assertVerified(open);
+        return fn(session, ...args);
+      });
       queues.set(
         session,
         run.catch(() => undefined)
@@ -255,6 +267,7 @@ function register(ctx) {
 async function reinstall(runner, open) {
   await runner.stop();
   try {
+    await sites.assertVerified(open);
     await runner.runInstall(open.path);
   } finally {
     runner.open(open);

@@ -939,3 +939,146 @@ button:disabled,
 .repos .empty-row {
   cursor: default;
 }
+
+/* Library folders share the site grid and never change disk locations. */
+.dashboard-content {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+.sites-breadcrumb {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+.sites-breadcrumb h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sites-breadcrumb .link {
+  font-size: 16px;
+}
+#folder-divider {
+  color: var(--text-3);
+}
+.folder-preview {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px;
+}
+.folder-preview > .site-thumb {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  border: 0;
+}
+.folder-preview > svg {
+  grid-row: 1 / -1;
+  grid-column: 1 / -1;
+  place-self: center;
+  width: 48px;
+  height: 48px;
+}
+.folder-card .site-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.sites.grid .folder-preview > .site-thumb {
+  grid-area: auto;
+  margin: 0;
+  font-size: 14px;
+  border-radius: 3px;
+}
+.site:focus-within .more {
+  opacity: 1;
+}
+.folder-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 32px 8px;
+}
+.site-details-dialog {
+  width: min(520px, calc(100vw - 48px));
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+.site-details {
+  display: grid;
+  grid-template-columns: 138px minmax(0, 1fr);
+  gap: 10px 16px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+.site-details dt {
+  color: var(--text-3);
+}
+.site-details dd {
+  min-width: 0;
+  margin: 0;
+}
+.full-path {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.location-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.location-candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+#site-import-details {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+#site-import-path {
+  margin-top: 8px;
+}
+@media (max-width: 1000px) {
+  .dash-head {
+    flex-wrap: wrap;
+  }
+  .dash-head .actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .dashboard-content .empty .actions {
+    flex-wrap: wrap;
+    padding: 0 20px;
+  }
+}
+
+.folder-card {
+  position: relative;
+}
+.folder-open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+.folder-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.folder-card .more {
+  position: relative;
+  z-index: 2;
+}

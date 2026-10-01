@@ -10,6 +10,7 @@ const { cliEntry, bunBinary, childEnv } = require("./runtime");
 const { snapshotTree, stopGroups, stopTree } = require("./procs");
 const auth = require("./auth");
 const { createStaticSite } = require("./static-site");
+const sites = require("./sites");
 
 const LOG_LIMIT = 400;
 const reservedPorts = new Set();
@@ -34,6 +35,7 @@ class SiteRunner {
     this.token = 0;
     this.port = null;
     this.staticServer = null;
+    this.locationWatch = null;
   }
 
   appendLog(text) {
@@ -56,17 +58,19 @@ class SiteRunner {
   }
 
   /** `fresh` clears the site's build cache first, which a crashed start can leave broken. */
-  async open(site, { fresh = false } = {}) {
+  async open(requestedSite, { fresh = false } = {}) {
     await this.stop();
-    if (fresh && !site.entry) {
-      fs.rmSync(join(site.path, ".next"), { force: true, recursive: true });
-    }
     this.token += 1;
     const { token } = this;
     const current = () => token === this.token;
     this.log = [];
-    this.appendLog(`Opening ${site.path}`);
+    this.appendLog(`Opening ${requestedSite.path}`);
     try {
+      const site = await this.prepareRoot(requestedSite, fresh, current);
+      if (!site) {
+        return;
+      }
+      this.watchRoot(site, current);
       if (!fs.existsSync(site.path)) {
         throw new Friendly(
           "We can’t find this site’s folder. It may have been moved or deleted."
@@ -88,7 +92,11 @@ class SiteRunner {
         }
       }
       this.onEvent({ step: "Starting your site…", type: "progress" });
-      const url = await this.startCli(site.path, current, site.entry);
+      await sites.assertVerified(site);
+      if (!current()) {
+        return;
+      }
+      const url = await this.startCli(site.path, current, site.entry, site);
       if (!current()) {
         return;
       }
@@ -104,16 +112,56 @@ class SiteRunner {
       await this.stop();
       this.onEvent({
         details: this.logTail(),
-        message:
-          err instanceof Friendly
-            ? err.message
-            : "Something went wrong while starting your site.",
+        message: startupMessage(err),
         type: "error",
       });
     }
   }
 
+  async prepareRoot(requestedSite, fresh, current) {
+    const site = await sites.verified(requestedSite.id, { resolve: true });
+    if (!current()) {
+      return null;
+    }
+    this.boundSite = site;
+    if (fresh && !site.entry) {
+      await sites.assertVerified(site);
+      if (!current()) {
+        return null;
+      }
+      sites.checkVerifiedSite(site);
+      const cache = join(site.path, ".next");
+      if (fs.existsSync(cache) && fs.lstatSync(cache).isSymbolicLink()) {
+        throw new Friendly(
+          "The site’s build cache needs checking before a fresh start."
+        );
+      }
+      fs.rmSync(cache, { force: true, recursive: true });
+    }
+    return site;
+  }
+
+  watchRoot(site, current) {
+    this.locationWatch = setInterval(() => {
+      if (!current() || sites.currentRootMatches(site)) {
+        return;
+      }
+      this.stop().then(() =>
+        this.onEvent({
+          message:
+            "The site’s folder moved or changed. Close this site, then use Show details to reconnect it.",
+          type: "error",
+        })
+      );
+    }, 500);
+  }
+
   runInstall(cwd) {
+    if (this.boundSite?.path === cwd) {
+      sites.checkVerifiedSite(this.boundSite);
+    } else {
+      sites.checkVerifiedPath(cwd);
+    }
     return new Promise((resolve, reject) => {
       const child = spawn(bunBinary(), ["install", "--no-progress"], {
         cwd,
@@ -152,13 +200,20 @@ class SiteRunner {
     });
   }
 
-  async startCli(cwd, current, entry) {
+  async startCli(cwd, current, entry, site) {
     const port = await reservePort();
     if (!current()) {
       releasePort(port);
       return null;
     }
     this.port = port;
+    if (site) {
+      await sites.assertVerified(site);
+    }
+    if (!current()) {
+      releasePort(port);
+      return null;
+    }
     let staticServer = null;
     if (entry) {
       staticServer = createStaticSite(cwd, entry);
@@ -191,6 +246,9 @@ class SiteRunner {
       "--json",
     ];
     this.appendLog(`Starting editor on site port ${port}`);
+    if (site) {
+      sites.checkVerifiedSite(site);
+    }
     const child = spawn(process.execPath, args, {
       cwd,
       detached: true,
@@ -256,6 +314,8 @@ class SiteRunner {
           );
         } else if (current()) {
           clearInterval(this.watch);
+          clearInterval(this.locationWatch);
+          this.locationWatch = null;
           stopGroups(this.groups);
           this.onEvent({
             details: this.logTail(),
@@ -272,6 +332,8 @@ class SiteRunner {
     const { install, child, groups, staticServer } = this;
     this.staticServer = null;
     clearInterval(this.watch);
+    clearInterval(this.locationWatch);
+    this.locationWatch = null;
     if (child?.pid && child.exitCode === null) {
       for (const group of snapshotTree(child.pid).groups) {
         groups.add(group);
@@ -309,6 +371,12 @@ function reservePort() {
 }
 
 class Friendly extends Error {}
+
+function startupMessage(error) {
+  return error instanceof Friendly || error.code === "source-unavailable"
+    ? error.message
+    : "Something went wrong while starting your site.";
+}
 
 function portFree(port, host) {
   return new Promise((resolve) => {

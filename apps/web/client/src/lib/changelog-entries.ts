@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v4-7-mac-site-organization',
+        version: '4.7',
+        title: 'Organize sites on your Mac',
+        description: 'Group sites without moving their files. View full folder locations and reconnect moved folders while keeping the same site in your library.',
+        date: '2026-10-01',
+        tags: ['Desktop', 'Sites'],
+        // UI illustration: /assets/changelog/site-folders.png (renderer preview with example sites)
+    },
+    {
         slug: 'v4-6-desktop-startup-fix',
         version: '4.6',
         title: 'Desktop app startup fix',

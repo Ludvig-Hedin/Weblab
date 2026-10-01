@@ -38,6 +38,15 @@ later without re-discovering the context.
 
 ## Open
 
+### Finder recovery needs packaged Mac and interrupted-operation proof
+
+- **Discovered:** 2026-10-01 (Sites organization and Finder moves)
+- **Where:** F-811, T-853; `apps/desktop-local/apps/desktop/src/sites.js`; editor server root identity guard
+- **Symptom:** Metadata folders and checked recovery are implemented, but full packaged Electron/restart/offline-volume/permission flows remain unverified. Automatic bookmarks are best effort. Already executing OS/agent commands cannot be undone by a location guard.
+- **Next step:** Run T-853 in the installed app, including helper resources/signing, parent rename with the app closed, canceled legacy relink, unavailable disks and moving while an edit is already executing. Advise closing a site before Finder moves. Add reviewed physical moving, verified cross-volume cleanup and explicit linked-worktree repair separately.
+- **Risk if ignored:** A same-volume temporary-folder result could be mistaken for guaranteed live-process relocation or physical move support.
+- **Tags:** `#test-gap` `#desktop` `#workflow`
+
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.
