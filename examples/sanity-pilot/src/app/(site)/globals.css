@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+@theme {
+    --color-paper: #f5f3ed;
+    --color-ink: #20251f;
+    --color-muted: #596057;
+    --color-line: #d8dcd2;
+    --color-accent: #365e42;
+}
+
+:root {
+    color-scheme: light;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--color-paper);
+    color: var(--color-ink);
+}
+
+a,
+button {
+    text-underline-offset: 0.2em;
+}
+
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+}
