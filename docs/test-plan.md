@@ -534,7 +534,8 @@ Per package (F-680 … F-705) at least one smoke test.
 |---|---|---|---|---|---|
 | T-740 | F-740 | M | Visit `/dev/convex-smoke` | Convex connection OK | `[ ]` |
 | T-741 | F-741 | U | `examples/sanity-pilot/test/content.test.ts`, `examples/sanity-pilot/test/pages.test.tsx`, `packages/parser/test/sanity-pilot.test.ts` | Sample mode disclosed; published fetch validates content and never falls back on failure; categories/routes render; Weblab source edits preserve CMS expressions. | `[x]` 18 focused checks, 2026-10-01; fixture/source proof only |
-| T-742 | F-741 | M | Connect disposable Sanity dataset; open independent Git copy in desktop; edit/reload/undo/export; publish a test content change and verify the final site | Sanity title/image/content updates retain Weblab design and handoff preserves queries/bindings. | `[ ]` blocked: no Sanity project or guarded live preview |
+| T-742 | F-741 | M | Connect disposable Sanity dataset; open independent Git copy in desktop; edit/reload/undo/export; publish a test content change and verify the final site | Sanity title/image/content updates retain Weblab design and handoff preserves queries/bindings. | `[ ]` pending: independent source/Bun lock and live loader verified; Studio, desktop guarded runtime and published-site proof remain |
+| T-743 | F-741 | M | Disposable Sanity `k73ltzd4/production`; real `loadContent` before/after/restore of published home title, without token or code edits | Home and two posts validate; published edits reach the read-only loader. | `[x]` 2026-10-01; HTTP/content proof only; scoped typecheck/build passed |
 
 ---
 

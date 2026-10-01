@@ -40,13 +40,12 @@ later without re-discovering the context.
 
 ### Sanity pilot still needs live CMS and desktop proof
 
-- **Discovered:** 2026-10-01 (owner-requested separate site, no test Sanity project exists)
+- **Discovered:** 2026-10-01 (owner-requested separate Sanity site pilot)
 - **Where:** `examples/sanity-pilot/README.md` (F-741, T-742)
-- **Symptom:** The pilot has example pages and read-only Sanity loading, but real CMS refresh, desktop design/undo/handoff and the published site are not verified. The tracked template is not directly desktop-importable: it needs an independent Git root and its own Bun lockfile. The machine wrapper currently has no standalone pilot install/typecheck lane.
-- **Next step:** Provision a disposable Sanity project through the owner's login, register guarded standalone checks, prepare an independent pilot Git copy, and run the acceptance checklist in the README. Do not claim customer-ready Sanity integration until this is verified.
+- **Symptom:** The real Sanity loader now reads a disposable project and a published title change was verified before/after/restore. Independent source, Bun lock, guarded install/typecheck/build and sample/source checks are ready. Browser proof, Studio editing, desktop design/undo/handoff and external publishing remain unverified. Desktop creates its own private copy and starts install/dev outside the approved exact-path pilot lane; two existing registered servers also blocked the local production preview.
+- **Next step:** When a registered server slot is free, run the guarded production preview; provide a guarded desktop private-copy/runtime path and a separate Studio for human edits, then run the README acceptance checklist. Sanity test project k73ltzd4/production already exists; do not provision another. Do not claim customer-ready integration yet.
 - **Risk if ignored:** A fixture-backed pilot could be mistaken for a proven customer workflow.
 - **Tags:** `#test-gap` `#cms` `#workflow`
-
 
 ### Renaming a color variable breaks the classes that use it
 
