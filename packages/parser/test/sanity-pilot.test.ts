@@ -46,9 +46,9 @@ describe('Sanity pilot uses Weblab-compatible source', () => {
     });
 
     for (const [file, target] of [
-        ['src/app/page.tsx', 'h1'],
+        ['src/app/(site)/page.tsx', 'h1'],
         ['src/components/post-list.tsx', 'Link'],
-        ['src/app/blog/[slug]/page.tsx', 'img'],
+        ['src/app/(site)/blog/[slug]/page.tsx', 'img'],
         ['src/components/article-body.tsx', 'p'],
     ] as const) {
         test(`restyles ${target} in ${file} without changing its CMS expressions`, async () => {
@@ -83,7 +83,7 @@ describe('Sanity pilot uses Weblab-compatible source', () => {
     }
 
     test('blocks inline text edits on the actual CMS title nodes', async () => {
-        for (const file of ['src/app/page.tsx', 'src/app/blog/[slug]/page.tsx']) {
+        for (const file of ['src/app/(site)/page.tsx', 'src/app/(site)/blog/[slug]/page.tsx']) {
             const ast = parse(await readFile(new URL(file, pilot), 'utf8'));
             let heading: T.JSXElement | undefined;
             traverse(ast, {

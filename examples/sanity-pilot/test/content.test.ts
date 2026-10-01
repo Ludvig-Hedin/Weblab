@@ -102,7 +102,7 @@ describe('content loading', () => {
                 expect(url.searchParams.get('perspective')).toBe('published');
                 const query = url.searchParams.get('query');
                 expect(query).toContain('pilotHome');
-                expect(query).toContain('order(_id asc)[0]');
+                expect(query).toContain('_id == "pilot-home"');
                 expect(query).toContain('pilotPost');
                 expect(query).toContain('order(publishedAt desc)[0...50]');
                 expect(query).toContain('slug.current');
@@ -197,6 +197,18 @@ describe('content loading', () => {
         for (const _id of ['drafts.article', 'versions.release.article']) {
             const content = { ...SAMPLE_CONTENT, posts: [{ ...SAMPLE_CONTENT.posts[0], _id }] };
             await expectInvalidContent(content);
+        }
+    });
+
+    test('rejects empty bodies, unsupported lists/annotations and impossible dates', async () => {
+        const post = SAMPLE_CONTENT.posts[0];
+        for (const change of [
+            { body: [] },
+            { body: [{ ...post.body[0], listItem: 'bullet' }] },
+            { body: [{ ...post.body[0], markDefs: [{ _key: 'link', _type: 'link' }] }] },
+            { publishedAt: '2026-02-30T12:00:00Z' },
+        ]) {
+            await expectInvalidContent({ ...SAMPLE_CONTENT, posts: [{ ...post, ...change }] });
         }
     });
 

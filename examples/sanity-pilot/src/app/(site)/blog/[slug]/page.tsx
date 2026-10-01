@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { ArticleBody } from '../../../components/article-body';
-import copy from '../../../lib/copy.json';
-import { getSiteContent } from '../../../lib/server-content';
+import { ArticleBody } from '../../../../components/article-body';
+import copy from '../../../../lib/copy.json';
+import { getSiteContent } from '../../../../lib/server-content';
 
 export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;

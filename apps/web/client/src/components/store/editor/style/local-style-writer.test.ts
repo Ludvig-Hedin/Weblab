@@ -47,6 +47,21 @@ describe('local visual style writer capability', () => {
         expect(await detects(valid)).toBe(true);
     });
 
+    it('accepts an isolated site layout without treating the Studio as website CSS', async () => {
+        const files = new Map(valid);
+        files.delete('src/app/layout.tsx');
+        files.delete('src/app/globals.css');
+        files.set('src/app/(site)/layout.tsx', 'import "./globals.css"; export default function Layout() {}');
+        files.set('src/app/(site)/globals.css', '@import "tailwindcss";');
+        files.set('src/app/(studio)/layout.tsx', 'export default function StudioLayout() {}');
+        expect(await detects(files)).toBe(true);
+        files.set('src/app/(site)/layout.tsx', 'export default function Layout() {}');
+        expect(await detects(files)).toBe(false);
+        expect(affectsLocalTailwindStyleWriter('src/app/(site)/layout.tsx')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('app/(site)/globals.css')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('src/app/(studio)/layout.tsx')).toBe(false);
+    });
+
     it('rejects a dependency without a wired build plugin or imported stylesheet', async () => {
         const noPlugin = new Map(valid);
         noPlugin.set('postcss.config.mjs', '/* "@tailwindcss/postcss" */ export default { plugins: {} };');

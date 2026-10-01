@@ -1,6 +1,6 @@
 'use client';
 
-import copy from '../lib/copy.json';
+import copy from '../../lib/copy.json';
 
 export default function ContentError() {
     return (

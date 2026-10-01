@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import copy from '../lib/copy.json';
+import copy from '../../lib/copy.json';
 
 export default function NotFound() {
     return (

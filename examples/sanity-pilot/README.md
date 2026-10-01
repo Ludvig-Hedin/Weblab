@@ -2,7 +2,9 @@
 
 En separat testsajt med startsida, blogg, kategorifilter och artikelsidor. Designen
 ligger i Next.js och Tailwind. Innehållet kan hämtas direkt från Sanity. Inget
-kopieras till Weblabs eget CMS och sajten skriver aldrig tillbaka till Sanity.
+kopieras till Weblabs eget CMS. Den publika sajten läser bara publicerat innehåll.
+På `/studio` finns Sanitys vanliga redigering och publicering för inloggade
+projektmedlemmar.
 
 **Status 2026-10-01:** en fristående kopia är ansluten till ett nytt Sanity-
 testprojekt. Den riktiga innehållshämtningen läser en startsida och två artiklar.
@@ -10,7 +12,8 @@ En publicerad rubrikändring hämtades och återställdes utan kodändring.
 Visuell redigering i Weblab, Studio-redigering och extern publicering är ännu
 inte verifierade. Detta är ett testunderlag, inte en lanserad Sanity-integration.
 
-Källkods- och sidkontrollerna gick igenom: 18 fokuserade testfall med exempelsvar.
+Källkods-, schema- och sidkontrollerna gick igenom: 34 fokuserade testfall med
+exempelsvar. Studio byggs på en egen sida utan sajtens navigation eller CSS.
 En separat kontroll med den riktiga innehållshämtningen gick igenom före ändring,
 efter ändring och efter återställning. Fokuserad lint, fristående typkontroll och
 produktionsbygge gick också igenom. Inga skarpa kundprojekt ändrades.
@@ -26,10 +29,11 @@ produktionsbygge gick också igenom. Inga skarpa kundprojekt ändrades.
   Dess ignorerade `.env.local` använder Sanity-läge och behöver ingen läsnyckel.
   Den tillfälliga skrivnyckeln för att lägga in testinnehållet är raderad.
 - Det godkända maskinundantaget gäller endast den exakta kopian: installation,
-  typkontroll, bygge och en lokal produktionsförhandsvisning. Det behåller
-  minnesgränser, registrering och köregler. Det startar inte en utvecklingsserver.
-- Weblabs egen kopia, installation och utvecklingsserver omfattas inte av
-  undantaget. Desktop-testet kräver en separat, skyddad startväg.
+  kontroller, bygge, en lokal produktionsförhandsvisning och den installerade
+  appens editor tillsammans med sajtens server. Det behåller minnesgränser,
+  registrering och två-jobbsgränsen. Editor och sajt är ett övervakat projekt.
+- Weblabs egen utvecklingsserver omfattas inte av undantaget. Editorstarten
+  använder appens befintliga motor, inte en ändrad app eller ett globalt undantag.
 
 Från den fristående kopians mapp kan nästa agent använda:
 
@@ -41,8 +45,11 @@ agent-heavy-run sanity-pilot build
 
 En lokal förhandsvisning på port 3007 startas med `agent-heavy-run sanity-pilot start`.
 Ta en browser-lease först, respektera två-servergränsen och stoppa bara den egna
-servern efter kontrollen. Det visuella testet har ännu inte körts eftersom två
-andra registrerade servrar använde platserna. Sanity Studio ingår inte i kopian.
+servern efter kontrollen. Den publika sidan och kategorifiltret är kontrollerade
+på desktop och telefon. Studio och sparad designändring väntar på en ledig
+startplats. Editor och sajt startas tillsammans med `agent-heavy-run sanity-pilot editor`
+på port 3008 respektive 3007. `resolve` uppdaterar kopians låsfil endast för den
+fast godkända installationen; använd `install` för fryst återinstallation.
 
 ## Generell uppsättning i en annan godkänd miljö
 
@@ -56,7 +63,7 @@ Weblab-repot. Desktopappen kan inte öppna en undermapp som ett eget repo.
 
 I den fristående kopian: installera med Bun, så att kopian får en egen `bun.lock`,
 och skapa en första commit. Ändra inte Weblab-repots dependencies eller lockfil.
-Sajten behöver Node 20.9 eller senare.
+Sajten och Studio behöver Node 22.12 eller senare.
 
 ```sh
 bun install
@@ -66,8 +73,10 @@ git commit -m "Add Sanity pilot site"
 bun dev
 ```
 
-Välj sedan den fristående mappen i Weblab. Låt appen granska förberedelsen och
-starta sin privata kopia. Öppna `/`, `/blog` och en artikel. Gemensamma
+Den installerade Weblab-appen 0.2.0 ändrar den valda mappen direkt. Använd
+därför bara den separata Git-kopian. Dess vanliga mappstart ingår inte i det
+avgränsade undantaget på den här Macen. Här provas samma editormotor genom
+den skyddade starten ovan. Öppna `/`, `/blog` och en artikel. Gemensamma
 bloggrubriker kommer från samma mall, så en stiländring gäller flera inlägg.
 
 ## Ansluta ett nytt Sanity-testprojekt
@@ -75,8 +84,10 @@ bloggrubriker kommer från samma mall, så en stiländring gäller flera inlägg
 1. Återanvänd projektet ovan för den här körningen. Skapa ett nytt, separat
    testprojekt endast för en annan framtida pilot. Använd inte kundens skarpa
    innehåll för den första piloten.
-2. Lägg typerna från [sanity/schema.mjs](sanity/schema.mjs) i testprojektets
-   Sanity Studio. Skapa och publicera en startsida och minst två blogginlägg.
+2. Öppna sajtens `/studio` och logga in med en vanlig Sanity-användare som är
+   medlem i testprojektet. Studio använder [sanity/schema.ts](sanity/schema.ts).
+   Startsida öppnar alltid dokumentet `pilot-home`. Skapa inte ett annat
+   startsidedokument. Publicera startsidan och minst två blogginlägg.
    Slugs använder små bokstäver, siffror och bindestreck. Fyll i rubrik,
    inledning/ingress, kategori och publiceringsdatum. Om du lägger till en bild,
    fyll även i bildbeskrivningen.
@@ -91,12 +102,34 @@ Exempelläget visar alltid “Sanity är inte anslutet”. Sanity-läget visar e
 om anslutningen eller innehållet inte fungerar. Det byter aldrig till
 exempelinnehåll i bakgrunden. Servern hämtar bara publicerat innehåll direkt
 från Sanity vid varje besök. Uppdatera sidan för att se en publicerad ändring.
-Det finns inga realtidsuppdateringar, utkastförhandsvisning eller Studio-panel
-inbyggda i piloten.
+Den publika sajten har inga realtidsuppdateringar eller utkastförhandsvisning.
+Studio ligger på en egen sida och ändrar inte sajtens design.
 
 Piloten visar de 50 senaste artiklarna. Brödtext stöder stycken, underrubriker,
 fetstil och kursiv. Länkar, listor och andra blocktyper ingår inte. Detta är
 avsiktligt litet; en kunds befintliga innehållsmodell behöver en egen anpassning.
+
+## Studio på `/studio`
+
+Studio visar de två befintliga dokumenttyperna: Startsida och Blogginlägg.
+Startsidan är ett enda dokument med ID `pilot-home`. Menyerna erbjuder inte
+nya kopior, duplicering eller radering av startsidan. Artiklar kan skapas och
+redigeras som vanligt. Fältkontroller hindrar tom text, ogiltiga eller upptagna
+adresser, felaktiga datum, bilder utan bildbeskrivning och brödtext med länkar
+eller listor som sajten inte kan visa.
+
+Studio läser projekt-ID och dataset från serverns miljöinställningar. Bara de
+här två offentliga värdena skickas till webbläsaren. `SANITY_READ_TOKEN` används
+bara av sajtens innehållshämtning och ger ingen Studio-inloggning. Studio kan
+öppnas även om den publika sajten använder exempelläge, när projekt-ID och
+dataset är giltiga. Saknas de visas uppsättningshjälp, aldrig exempeldata.
+
+Sanitys vanliga inloggning och projektbehörigheter styr vem som kan redigera.
+För en ny sajtadress måste projektägaren tillåta den exakta adressen som CORS-
+origin med credentials i Sanitys projektinställningar. Ingen egen inloggning
+eller nyckel som skriver innehåll ingår i mallen. Separata sidlayouter håller
+sajtens navigation och Tailwind-stilar borta från Studio. Studio är märkt
+`noindex` för sökmotorer.
 
 ## Vad testet ska bevisa
 
@@ -104,16 +137,21 @@ avsiktligt litet; en kunds befintliga innehållsmodell behöver en egen anpassni
   att innehållet finns kvar på telefon och desktop.
 - Filtrera bloggen och öppna ett inlägg. Kontrollera att bild, text och länkar
   fortfarande kommer från rätt Sanity-dokument.
-- Försök redigera en Sanity-rubrik direkt i canvasen. Weblab ska stoppa
-  textändringen. Redigera själva innehållet i Sanity.
+- Redigera innehållet i Sanity. Repots källkodstransformering blockerar
+  direktredigering av CMS-rubriker i sina fokuserade kontroller. Den installerade
+  appens editormotor har inget särskilt Sanity-lås. Prova därför bara design
+  där och granska att CMS-uttrycken är kvar i den sparade koden.
 - Publicera en annan rubrik i testprojektets Sanity Studio. Uppdatera sajten och
   kontrollera att den nya texten visas med Weblab-designen kvar.
-- Ångra/gör om en stiländring, exportera ändringen och granska att Sanity-
-  kopplingen finns kvar. Prova exporten i en separat kopia före kundarbete.
+- Ångra/gör om en stiländring och granska att Sanity-kopplingen finns kvar.
+  Den installerade appens Upload skickar till GitHub, vilket inte är godkänt
+  i detta lokala test. En lokal Git-patch kan i stället provas i en separat
+  kopia före kundarbete. Ingen extern publicering ingår utan ägarens godkännande.
 
 Automatiska kontroller finns i `test/` och i
 `packages/parser/test/sanity-pilot.test.ts`. De använder exempelsvar och den
 riktiga källkodstransformeringen, inte ett riktigt Sanity-projekt eller en
 installerad desktopapp.
 
-Teknisk referens: [Sanitys Query API](https://www.sanity.io/docs/http-reference/query).
+Teknisk referens: [Sanitys Query API](https://www.sanity.io/docs/http-reference/query),
+[Studio i Next.js](https://www.sanity.io/docs/nextjs/embedding-sanity-studio-in-nextjs).

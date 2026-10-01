@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 
-import copy from '../lib/copy.json';
-import { isSampleMode } from '../lib/server-content';
+import copy from '../../lib/copy.json';
+import { isSampleMode } from '../../lib/server-content';
 
 import './globals.css';
 

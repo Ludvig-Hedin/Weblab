@@ -1,8 +1,8 @@
 import Link from 'next/link';
 
-import { PostList } from '../../components/post-list';
-import copy from '../../lib/copy.json';
-import { getSiteContent } from '../../lib/server-content';
+import { PostList } from '../../../components/post-list';
+import copy from '../../../lib/copy.json';
+import { getSiteContent } from '../../../lib/server-content';
 
 export default async function BlogPage({
     searchParams,

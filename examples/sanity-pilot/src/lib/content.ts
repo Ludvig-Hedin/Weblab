@@ -1,4 +1,11 @@
 import sampleContent from './sample-content.json';
+import {
+    HOME_DOCUMENT_ID,
+    isCanonicalSlug,
+    isPublishedDate,
+    validateBody,
+} from './content-validation';
+import { studioConnectionFromEnvironment } from './studio-config';
 
 export type TextBlock = {
     _key: string;
@@ -85,13 +92,10 @@ function post(value: unknown): Post {
     const id = nonemptyString(entry._id);
     const slug = nonemptyString(entry.slug);
     const publishedAt = nonemptyString(entry.publishedAt);
-    if (/^(drafts|versions)\./.test(id) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    if (/^(drafts|versions)\./.test(id) || !isCanonicalSlug(slug)) {
         throw invalidContent();
     }
-    if (
-        !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)?$/.test(publishedAt) ||
-        Number.isNaN(Date.parse(publishedAt))
-    ) {
+    if (!isPublishedDate(publishedAt) || validateBody(entry.body) !== true) {
         throw invalidContent();
     }
     let image: Post['image'] = null;
@@ -148,24 +152,18 @@ export function configFromEnvironment(env: Record<string, string | undefined>): 
             'SANITY_CONTENT_MODE måste vara sample eller sanity. Kontrollera miljöinställningarna.',
         );
     }
-    const projectId = env.SANITY_PROJECT_ID;
-    const dataset = env.SANITY_DATASET;
-    if (
-        !projectId ||
-        !/^[a-z0-9]{1,64}$/.test(projectId) ||
-        !dataset ||
-        !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(dataset)
-    ) {
+    const connection = studioConnectionFromEnvironment(env);
+    if (!connection) {
         throw new Error(
             'Sanity-läget behöver ett giltigt SANITY_PROJECT_ID och SANITY_DATASET. Kontrollera miljöinställningarna.',
         );
     }
     const token = env.SANITY_READ_TOKEN?.trim();
-    return { mode: 'sanity', projectId, dataset, ...(token ? { token } : {}) };
+    return { mode: 'sanity', ...connection, ...(token ? { token } : {}) };
 }
 
 const query = `{
-    "home": *[_type == "pilotHome" && !(_id in path("drafts.**")) && !(_id in path("versions.**"))] | order(_id asc)[0]{title, intro},
+    "home": *[_type == "pilotHome" && _id == "${HOME_DOCUMENT_ID}"][0]{title, intro},
     "posts": *[_type == "pilotPost" && !(_id in path("drafts.**")) && !(_id in path("versions.**"))] | order(publishedAt desc)[0...50]{
         _id, title, "slug": slug.current, excerpt, category, publishedAt,
         "image": select(defined(mainImage.asset) => {"url": mainImage.asset->url, "alt": mainImage.alt}, null),

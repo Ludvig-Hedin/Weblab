@@ -11,10 +11,10 @@ void mock.module('../src/lib/server-content', () => ({
     isSampleMode: () => true,
 }));
 
-const { default: HomePage } = await import('../src/app/page');
-const { default: BlogPage } = await import('../src/app/blog/page');
-const { default: PostPage } = await import('../src/app/blog/[slug]/page');
-const { default: RootLayout } = await import('../src/app/layout');
+const { default: HomePage } = await import('../src/app/(site)/page');
+const { default: BlogPage } = await import('../src/app/(site)/blog/page');
+const { default: PostPage } = await import('../src/app/(site)/blog/[slug]/page');
+const { default: RootLayout } = await import('../src/app/(site)/layout');
 
 describe('pilot pages with example content', () => {
     test('shows the homepage and explicitly labels the example mode', async () => {

@@ -38,13 +38,13 @@ later without re-discovering the context.
 
 ## Open
 
-### Sanity pilot still needs live CMS and desktop proof
+### Sanity pilot still needs Studio publishing and installed-editor proof
 
 - **Discovered:** 2026-10-01 (owner-requested separate Sanity site pilot)
 - **Where:** `examples/sanity-pilot/README.md` (F-741, T-742)
-- **Symptom:** The real Sanity loader now reads a disposable project and a published title change was verified before/after/restore. Independent source, Bun lock, guarded install/typecheck/build and sample/source checks are ready. Browser proof, Studio editing, desktop design/undo/handoff and external publishing remain unverified. Desktop creates its own private copy and starts install/dev outside the approved exact-path pilot lane; two existing registered servers also blocked the local production preview.
-- **Next step:** When a registered server slot is free, run the guarded production preview; provide a guarded desktop private-copy/runtime path and a separate Studio for human edits, then run the README acceptance checklist. Sanity test project k73ltzd4/production already exists; do not provision another. Do not claim customer-ready integration yet.
-- **Risk if ignored:** A fixture-backed pilot could be mistaken for a proven customer workflow.
+- **Symptom:** Live published home/post loading and before/after/restore refresh work. Public browser/filter and standalone Studio build/type checks pass. Studio publishing and installed-editor save/undo/local handoff still need visual proof. Installed Weblab0.2.0 edits the chosen folder directly and has no Sanity-specific inline text lock. The guarded editor and its child site share one registered job; two existing jobs block admission.
+- **Next step:** Reuse independent Sanity pilot Git copy and k73ltzd4/production. When a dev slot is free, open Studio on3007 and the installed editor engine on3008 with the fixed guarded start. Publish/edit/reload/undo and test a local Git patch without using Upload or external publishing. The newer repository parser's CMS text refusal is source-tested, not proof of the installed engine.
+- **Risk if ignored:** Source tests or an unrelated desktop version could be mistaken for a proven customer workflow.
 - **Tags:** `#test-gap` `#cms` `#workflow`
 
 ### Renaming a color variable breaks the classes that use it

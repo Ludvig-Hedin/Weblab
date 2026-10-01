@@ -50,7 +50,7 @@ export async function hasLocalTailwindStyleWriter(
         return false;
     }
 
-    for (const appRoot of ['src/app', 'app']) {
+    for (const appRoot of ['src/app', 'app', 'src/app/(site)', 'app/(site)']) {
         const [layout, css] = await Promise.all([
             readText(`${appRoot}/layout.tsx`),
             readText(`${appRoot}/globals.css`),
@@ -70,7 +70,7 @@ export function affectsLocalTailwindStyleWriter(path: string): boolean {
     const normalized = path.replace(/^\/+/, '').replace(/\\/g, '/');
     return normalized === 'package.json' ||
         /^postcss\.config\.(?:mjs|js|cjs|ts)$/.test(normalized) ||
-        /^(?:src\/)?app\/(?:layout\.[jt]sx|globals\.css)$/.test(normalized);
+        /^(?:src\/)?app\/(?:\(site\)\/)?(?:layout\.[jt]sx|globals\.css)$/.test(normalized);
 }
 
 /**
