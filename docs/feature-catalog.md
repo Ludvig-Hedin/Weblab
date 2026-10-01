@@ -811,6 +811,7 @@ See F-151 to F-160. Plus:
 | ID | Tag | Route | Path | Purpose |
 |---|---|---|---|---|
 | F-740 | `#internal` | `/dev/convex-smoke` | [src/app/dev/convex-smoke/page.tsx](apps/web/client/src/app/dev/convex-smoke/page.tsx) | Convex connection smoke test |
+| F-741 | `#internal` `#cms` `#integration` | Separate Sanity pilot: `/`, `/blog`, `/blog/[slug]` | [examples/sanity-pilot/README.md](examples/sanity-pilot/README.md) | Standalone Next.js/Tailwind site; visibly marked samples or read-only published Sanity content; category filter; source-transform compatibility checks. No live dataset or desktop/publish proof yet. Not a built-in CMS adapter. |
 
 ---
 
@@ -897,6 +898,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-10-01 | F-741 | Added an isolated Sanity site pilot and focused source/content checks. Live CMS, desktop handoff and published-site checks await a disposable Sanity project and guarded runtime access. |
 | 2026-09-28 | F-800 | **Variables tab.** New left-panel tab for globals.css design tokens, plus variable chips with hover edit/detach/connect on color rows and hover edit/detach on the text style chip. |
 | 2026-09-23 | F-121, F-209, F-500, F-527, F-549, F-786, F-793, F-795 | Local paid-work scope: opening an existing desktop folder leaves its source and Git state alone; an explicit source preparation review is added; cloud sandbox file/command access, cloud creation, hosted publishing, and wireframe code export are gated until their authorization and transaction paths are safe. Live QA remains a release gate. |
 | 2026-09-23 | F-796 | Private local Git handoff adds reviewed patch export; original worktree changes only when the designer explicitly applies the patch. Native and desktop proof remain release gates. |

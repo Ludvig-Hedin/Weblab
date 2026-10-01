@@ -1,0 +1,17 @@
+{
+    "siteName": "Testsajt",
+    "home": "Start",
+    "blog": "Blogg",
+    "sampleNotice": "Exempelinnehåll. Sanity är inte anslutet.",
+    "latestPosts": "Senaste inläggen",
+    "allPosts": "Alla inlägg",
+    "allCategories": "Alla",
+    "categoriesLabel": "Filtrera efter kategori",
+    "emptyPosts": "Inga publicerade inlägg i den här kategorin.",
+    "backToBlog": "Till bloggen",
+    "notFound": "Sidan finns inte.",
+    "backHome": "Till startsidan",
+    "contentError": "Innehållet kunde inte hämtas.",
+    "contentErrorHint": "Kontrollera Sanity-kopplingen och att startsidan har publicerats.",
+    "tryAgain": "Försök igen"
+}

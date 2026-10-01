@@ -33,6 +33,7 @@ If you are a **human**, start with the [project README](../README.md), then [`gu
 | [`prompts/`](./prompts) | 🤖 | Reusable prompts — currently `validate-feature.md` for end-to-end feature validation (code + frontend) |
 | [`notes/`](./notes) | 🤖 | Dated working notes — fast running journal, format `YYYY-MM-DD-<topic>.md` |
 | [`product/`](./product) | 👤 | Product planning & marketing (product-video plan/notes, marketing calendar, launches) |
+| [`../examples/sanity-pilot/`](../examples/sanity-pilot/) | 🤝 | Separate homepage/blog pilot: read-only Sanity content with Weblab design, explicit sample mode, setup and acceptance checklist |
 | [`superpowers/`](./superpowers) | 🤝 | Feature plans (`plans/`) and design specs (`specs/`) |
 | [`archive/`](./archive) | 🤝 | Stale material kept for searchability (legacy projects, closed reviews, old activity log) |
 | [`../apps/docs/`](../apps/docs) | 👤 | Published docs site source (Fumadocs Next.js) — content under `apps/docs/content/docs/` |

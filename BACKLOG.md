@@ -38,6 +38,16 @@ later without re-discovering the context.
 
 ## Open
 
+### Sanity pilot still needs live CMS and desktop proof
+
+- **Discovered:** 2026-10-01 (owner-requested separate site, no test Sanity project exists)
+- **Where:** `examples/sanity-pilot/README.md` (F-741, T-742)
+- **Symptom:** The pilot has example pages and read-only Sanity loading, but real CMS refresh, desktop design/undo/handoff and the published site are not verified. The tracked template is not directly desktop-importable: it needs an independent Git root and its own Bun lockfile. The machine wrapper currently has no standalone pilot install/typecheck lane.
+- **Next step:** Provision a disposable Sanity project through the owner's login, register guarded standalone checks, prepare an independent pilot Git copy, and run the acceptance checklist in the README. Do not claim customer-ready Sanity integration until this is verified.
+- **Risk if ignored:** A fixture-backed pilot could be mistaken for a proven customer workflow.
+- **Tags:** `#test-gap` `#cms` `#workflow`
+
+
 ### Renaming a color variable breaks the classes that use it
 
 - **Discovered:** 2026-09-28 (Variables tab work, F-800)
