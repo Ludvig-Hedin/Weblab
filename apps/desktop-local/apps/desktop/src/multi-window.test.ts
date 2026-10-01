@@ -137,13 +137,27 @@ test("Finder opens a second site in its own window and closing it stops only tha
       add: (folder: string) => {
         const site = { id: folder, name: folder, path: folder };
         sites.set(site.id, site);
-        return site;
+        return Promise.resolve(site);
+      },
+      assertVerified: (site: { id: string }) => {
+        if (!sites.has(site.id)) {
+          throw new Error("Site no longer listed");
+        }
+        return Promise.resolve(site);
       },
       get: (id: string) => sites.get(id),
-      list: () => [...sites.values()],
+      list: async () => [...sites.values()],
       looksLikeHtml: () => false,
       looksLikeSite: (folder: string) => SITE_FOLDER.test(folder),
+      setOpenChecker() {},
       touch() {},
+      verified: (id: string) => {
+        const site = sites.get(id);
+        if (!site) {
+          throw new Error("Site no longer listed");
+        }
+        return Promise.resolve(site);
+      },
     },
     electron,
   };
@@ -168,7 +182,17 @@ test("Finder opens a second site in its own window and closing it stops only tha
     "/site-a"
   );
 
+  expect(
+    await handlers.get("sites:locate")?.(
+      { sender: windows[0].webContents },
+      "/site-a"
+    )
+  ).toEqual({
+    error: "Close this site in every window before choosing a folder.",
+  });
+
   app.emit("open-file", { preventDefault() {} }, "/site-b");
+  await new Promise(setImmediate);
   expect(windows).toHaveLength(2);
   await handlers.get("auth:apiKey")?.(
     { sender: windows[0].webContents },

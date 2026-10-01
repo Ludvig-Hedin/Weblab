@@ -25,6 +25,7 @@ import type http from "node:http";
 import { join, relative, sep } from "node:path";
 import { isPathInside } from "@airship/core";
 import { originMatchesHost } from "./access";
+import { MOVED_PROJECT_MESSAGE } from "./root-identity";
 
 export const ASSETS_API_PATH = "/__airship/api/assets";
 
@@ -46,6 +47,7 @@ export interface AssetList {
 }
 
 export interface AssetsOptions {
+  assertProjectRoot?: () => void;
   maxBytes?: number;
   projectRoot: string;
 }
@@ -106,8 +108,8 @@ const ERR = {
 
 class AssetError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
-    super(message);
+  constructor(status: number, message: string, options?: ErrorOptions) {
+    super(message, options);
     this.status = status;
   }
 }
@@ -448,6 +450,15 @@ function isSvg(buf: Buffer): boolean {
   }
 }
 
+function requireCurrentAssetRoot(options: AssetsOptions): void {
+  try {
+    options.assertProjectRoot?.();
+  } catch (cause) {
+    // biome-ignore lint/style/useErrorCause: AssetError forwards its third argument to Error options.
+    throw new AssetError(409, MOVED_PROJECT_MESSAGE, { cause });
+  }
+}
+
 async function uploadAsset(
   req: http.IncomingMessage,
   options: AssetsOptions
@@ -480,6 +491,7 @@ async function uploadAsset(
   if (name.kind === "svg" && SVG_ACTIVE.test(body.toString("utf8"))) {
     throw new AssetError(415, ERR.svgScript);
   }
+  requireCurrentAssetRoot(options);
   const rootReal = realpathSync(options.projectRoot);
   const dir = ensureUploadDir(rootReal);
   const file = writeUnique(dir.abs, name, body);

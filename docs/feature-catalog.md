@@ -871,7 +871,7 @@ See F-151 to F-160. Plus:
 | ID | Tags | Path | Purpose |
 |---|---|---|---|
 | F-810 | `#public` `#auth-gated` `#convex` | [src/lib/site-mode.ts](apps/web/client/src/lib/site-mode.ts) + [convex/lib/signInAllowlist.ts](apps/web/client/convex/lib/signInAllowlist.ts) | `NEXT_PUBLIC_SITE_MODE=local`: hero becomes centered title + Download for Mac, sign-up/sign-in CTAs, pricing, CMS, publish, collaboration and cloud-only pages are hidden or redirected; sign-in limited to `WEBLAB_SIGN_IN_ALLOWLIST` (Next `getCurrentUser`, Convex `getOptionalUser`/`requireUserJIT`, invite-only panel on `/sign-in`). Default `cloud` changes nothing. |
-| F-811 | `#desktop` | [apps/desktop-local](apps/desktop-local/) | Weblab for Mac: local-first Electron app (canvas editor on your running site, driven by Claude Code; components, images, pages, multi-window). Imported HTML sketches expose native dropdown options for selection and styling in Edit mode. The app checks GitHub releases on launch and offers a manual update check. Own pnpm workspace, released as `desktop-local-v*` in this repo. Replaces the paused `apps/desktop`. |
+| F-811 | `#desktop` | [apps/desktop-local](apps/desktop-local/) | Weblab for Mac: local-first Electron app (canvas editor on your running site, driven by Claude Code; components, images, pages, multi-window). Imported HTML sketches expose native dropdown options for selection and styling in Edit mode. The app checks GitHub releases on launch and offers a manual update check. Sites has metadata-only organization folders, full-path hover/details and guarded Finder-location recovery with explicit reconnect. Live editor source actions reject changed root identity. Own pnpm workspace, released as `desktop-local-v*` in this repo. Replaces the paused `apps/desktop`. |
 
 ## Change Protocol
 
@@ -903,6 +903,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-10-01 | F-811 | Sites organization folders, source details, checked bookmark recovery/manual reconnect, and active editor root identity guards. No physical move command; packaged Mac recovery proof remains open. T-853. |
 | 2026-09-29 | F-811 | Mac editor adds Show/Hide for native dropdown options in Style, frame-coalesced canvas painting, and in-app checks for `desktop-local-v*` Mac releases. T-852. `#desktop`. |
 | 2026-07-07 | F-476 | Transcribe anti-spam cap moved from a per-process in-memory helper to a Convex-backed fleet-wide rolling-window limiter with bounded timestamp storage and daily stale-row cleanup. |
 | 2026-06-23 | F-081 | Production hydration fix: `clerk-auth-form` now normalizes blank `NEXT_PUBLIC_AUTH_PROVIDERS` to the documented `github,google` default so SSR and client render the same OAuth button list. |

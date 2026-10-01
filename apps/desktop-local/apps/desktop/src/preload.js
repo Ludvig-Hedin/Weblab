@@ -76,6 +76,13 @@ contextBridge.exposeInMainWorld("weblab", {
     setMode: (mode) => ipcRenderer.invoke("editor:setMode", mode),
     setVisible: (visible) => ipcRenderer.invoke("editor:visible", visible),
   },
+  folders: {
+    create: (name) => ipcRenderer.invoke("folders:create", name),
+    list: () => ipcRenderer.invoke("folders:list"),
+    menu: (id) => ipcRenderer.invoke("folders:menu", id),
+    remove: (id) => ipcRenderer.invoke("folders:remove", id),
+    rename: (id, name) => ipcRenderer.invoke("folders:rename", id, name),
+  },
   github: {
     account: () => ipcRenderer.invoke("github:account"),
     cancel: () => ipcRenderer.invoke("github:cancel"),
@@ -121,12 +128,18 @@ contextBridge.exposeInMainWorld("weblab", {
     open: (id, options) => ipcRenderer.invoke("site:open", id, options),
   },
   sites: {
+    confirmLocation: (id, token) =>
+      ipcRenderer.invoke("sites:confirmLocation", id, token),
+    copyPath: (id) => ipcRenderer.invoke("sites:copyPath", id),
     create: (name) => ipcRenderer.invoke("sites:create", name),
+    details: (id) => ipcRenderer.invoke("sites:details", id),
     list: () => ipcRenderer.invoke("sites:list"),
+    locate: (id) => ipcRenderer.invoke("sites:locate", id),
     menu: (id) => ipcRenderer.invoke("sites:menu", id),
     onChanged: on("sites:changed"),
     openNewWindow: (id) => ipcRenderer.invoke("sites:openNewWindow", id),
     pickFolder: () => ipcRenderer.invoke("sites:pickFolder"),
+    reveal: (id) => ipcRenderer.invoke("sites:reveal", id),
   },
   updates: {
     download: () => ipcRenderer.invoke("updates:download"),

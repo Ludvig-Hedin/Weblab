@@ -8,6 +8,7 @@ const { execFile } = require("node:child_process");
 const { basename, dirname } = require("node:path");
 const { canUseGit, childEnv } = require("./runtime");
 const github = require("./github");
+const sites = require("./sites");
 
 const GIT = "/usr/bin/git";
 const SECRET = /(^|\/)(\.env(\..*)?|.*\.pem|.*\.key|id_rsa.*|\.npmrc)$/i;
@@ -25,6 +26,7 @@ const GITHUB_REMOTE = /github\.com[:/]([^/]+)\/(.+?)(?:\.git)?\/?$/;
 
 /** Runs git and resolves { code, stdout, stderr }. Never rejects. */
 function git(cwd, args, { auth = false, timeout = 60_000 } = {}) {
+  sites.checkVerifiedPath(cwd);
   // Optional locks off, so the count refreshing in the background never holds
   // index.lock while an upload is adding files.
   const extra = { GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0" };
@@ -38,6 +40,7 @@ function git(cwd, args, { auth = false, timeout = 60_000 } = {}) {
     // Authenticated runs carry the token in the environment, so the
     // repository's own hook scripts must not run and see it.
     const full = auth ? ["-c", "core.hooksPath=/dev/null", ...args] : args;
+    sites.checkVerifiedPath(cwd);
     execFile(
       GIT,
       full,

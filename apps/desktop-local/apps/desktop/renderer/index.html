@@ -215,91 +215,117 @@
       </section>
 
       <!-- Dashboard -->
-      <section class="screen" data-screen="dashboard" hidden>
-        <div class="dash">
-          <div class="dash-head">
-            <h1>Sites</h1>
-            <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its own border, padding and min-width to this segmented control. -->
-            <div
-              aria-label="Show sites as"
-              class="view-toggle"
-              id="view-toggle"
-              role="group"
-            >
-              <button
-                aria-label="Cards"
-                aria-pressed="true"
-                data-view="grid"
-                title="Cards"
-                type="button"
-              >
-                <svg aria-hidden="true"><use href="#i-grid" /></svg>
-              </button>
-              <button
-                aria-label="List"
-                aria-pressed="false"
-                data-view="list"
-                title="List"
-                type="button"
-              >
-                <svg aria-hidden="true"><use href="#i-list" /></svg>
-              </button>
-            </div>
-            <div class="actions">
-              <button class="btn" data-action="clone" type="button">
-                <svg aria-hidden="true" class="btn-icon gh">
-                  <use href="#i-github" />
-                </svg>
-                Clone from GitHub
-              </button>
-              <button class="btn" data-action="open-folder" type="button">
-                <svg aria-hidden="true" class="btn-icon folder">
-                  <use href="#i-folder" />
-                </svg>
-                Open file or folder
-              </button>
-              <button class="btn primary" data-action="new" type="button">
-                <svg aria-hidden="true" class="btn-icon">
-                  <use href="#i-plus" />
-                </svg>
-                New website
-              </button>
-            </div>
+      <section class="screen dashboard-layout" data-screen="dashboard" hidden>
+        <nav aria-label="Site folders" class="folder-nav">
+          <button
+            aria-current="page"
+            class="folder-button"
+            id="all-sites"
+            type="button"
+          >
+            All sites
+          </button>
+          <div class="folder-nav-head">
+            <span>Folders</span
+            ><button class="link" id="new-folder" type="button">
+              New folder
+            </button>
           </div>
-          <ul class="sites" id="sites"></ul>
-          <p class="error" hidden id="dash-error"></p>
-        </div>
-        <div class="empty center" hidden id="empty">
-          <div class="stack">
-            <img
-              alt=""
-              class="mark"
-              height="36"
-              src="../assets/symbol.svg"
-              width="36"
-            >
-            <h1>Your sites will show up here</h1>
-            <div class="actions">
-              <button class="btn" data-action="clone" type="button">
-                <svg aria-hidden="true" class="btn-icon gh">
-                  <use href="#i-github" />
-                </svg>
-                Clone from GitHub
-              </button>
-              <button class="btn" data-action="open-folder" type="button">
-                <svg aria-hidden="true" class="btn-icon folder">
-                  <use href="#i-folder" />
-                </svg>
-                Open file or folder
-              </button>
-              <button class="btn primary" data-action="new" type="button">
-                <svg aria-hidden="true" class="btn-icon">
-                  <use href="#i-plus" />
-                </svg>
-                New website
+          <ul class="folder-list" id="folders"></ul>
+        </nav>
+        <div class="dashboard-content">
+          <div class="dash">
+            <div class="dash-head">
+              <h1 id="sites-heading">Sites</h1>
+              <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its own border, padding and min-width to this segmented control. -->
+              <div
+                aria-label="Show sites as"
+                class="view-toggle"
+                id="view-toggle"
+                role="group"
+              >
+                <button
+                  aria-label="Cards"
+                  aria-pressed="true"
+                  data-view="grid"
+                  title="Cards"
+                  type="button"
+                >
+                  <svg aria-hidden="true"><use href="#i-grid" /></svg>
+                </button>
+                <button
+                  aria-label="List"
+                  aria-pressed="false"
+                  data-view="list"
+                  title="List"
+                  type="button"
+                >
+                  <svg aria-hidden="true"><use href="#i-list" /></svg>
+                </button>
+              </div>
+              <div class="actions">
+                <button class="btn" data-action="clone" type="button">
+                  <svg aria-hidden="true" class="btn-icon gh">
+                    <use href="#i-github" />
+                  </svg>
+                  Clone from GitHub
+                </button>
+                <button class="btn" data-action="open-folder" type="button">
+                  <svg aria-hidden="true" class="btn-icon folder">
+                    <use href="#i-folder" />
+                  </svg>
+                  Open file or folder
+                </button>
+                <button class="btn primary" data-action="new" type="button">
+                  <svg aria-hidden="true" class="btn-icon">
+                    <use href="#i-plus" />
+                  </svg>
+                  New website
+                </button>
+              </div>
+            </div>
+            <ul class="sites" id="sites"></ul>
+            <div class="folder-empty" hidden id="folder-empty">
+              <h2>No sites in this folder</h2>
+              <p class="muted">Use a site’s menu to add it to this folder.</p>
+              <button class="btn" id="folder-show-all" type="button">
+                Show all sites
               </button>
             </div>
-            <p class="error" hidden id="empty-error"></p>
+            <p class="error" hidden id="dash-error"></p>
+          </div>
+          <div class="empty center" hidden id="empty">
+            <div class="stack">
+              <img
+                alt=""
+                class="mark"
+                height="36"
+                src="../assets/symbol.svg"
+                width="36"
+              >
+              <h1>Your sites will show up here</h1>
+              <div class="actions">
+                <button class="btn" data-action="clone" type="button">
+                  <svg aria-hidden="true" class="btn-icon gh">
+                    <use href="#i-github" />
+                  </svg>
+                  Clone from GitHub
+                </button>
+                <button class="btn" data-action="open-folder" type="button">
+                  <svg aria-hidden="true" class="btn-icon folder">
+                    <use href="#i-folder" />
+                  </svg>
+                  Open file or folder
+                </button>
+                <button class="btn primary" data-action="new" type="button">
+                  <svg aria-hidden="true" class="btn-icon">
+                    <use href="#i-plus" />
+                  </svg>
+                  New website
+                </button>
+              </div>
+              <p class="error" hidden id="empty-error"></p>
+            </div>
           </div>
         </div>
       </section>
@@ -462,6 +488,102 @@
           </button>
           <button class="btn primary" hidden id="gh-retry" type="button">
             Try again
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="scrim" hidden id="folder-dialog">
+      <form
+        aria-labelledby="folder-dialog-title"
+        aria-modal="true"
+        class="dialog"
+        id="folder-form"
+        role="dialog"
+      >
+        <h2 id="folder-dialog-title">New folder</h2>
+        <p class="hint">Group sites without moving their files.</p>
+        <label class="label" for="folder-name">Name</label>
+        <input
+          autocomplete="off"
+          id="folder-name"
+          maxlength="80"
+          required
+          type="text"
+        >
+        <p class="error" hidden id="folder-error" role="alert"></p>
+        <div class="actions end">
+          <button class="btn" id="folder-cancel" type="button">Cancel</button>
+          <button class="btn primary" id="folder-submit" type="submit">
+            Create folder
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="scrim" hidden id="site-details-dialog">
+      <div
+        aria-labelledby="site-details-title"
+        aria-modal="true"
+        class="dialog site-details-dialog"
+        role="dialog"
+      >
+        <h2 id="site-details-title">Site details</h2>
+        <dl class="site-details">
+          <dt>Location on this computer</dt>
+          <dd class="full-path" id="site-details-path"></dd>
+          <dt>Status</dt>
+          <dd id="site-details-status"></dd>
+          <dt>Folder</dt>
+          <dd id="site-details-folder"></dd>
+          <dt>Type</dt>
+          <dd id="site-details-kind"></dd>
+          <dt>Last opened</dt>
+          <dd id="site-details-opened"></dd>
+        </dl>
+        <div class="actions location-actions">
+          <button class="btn" id="site-copy-path" type="button">
+            Copy path
+          </button>
+          <button class="btn" id="site-reveal" type="button">
+            Reveal in Finder
+          </button>
+          <button class="btn" id="site-locate" type="button">
+            Locate folder
+          </button>
+        </div>
+        <details hidden id="site-import-details">
+          <summary>Originally imported from</summary>
+          <p class="full-path" id="site-import-path"></p>
+        </details>
+        <div class="location-candidate" hidden id="site-location-candidate">
+          <dl class="site-details">
+            <dt>Previous location</dt>
+            <dd class="full-path" id="site-previous-path"></dd>
+            <dt>Chosen location</dt>
+            <dd class="full-path" id="site-candidate-path"></dd>
+          </dl>
+          <p class="muted">
+            This site will open and be edited here. No files are moved.
+          </p>
+          <div class="actions end">
+            <button class="btn" id="site-location-cancel" type="button">
+              Cancel
+            </button>
+            <button
+              class="btn primary"
+              id="site-location-confirm"
+              type="button"
+            >
+              Use this location
+            </button>
+          </div>
+        </div>
+        <p class="hint" id="site-details-message" role="status"></p>
+        <p class="error" hidden id="site-details-error" role="alert"></p>
+        <div class="actions end">
+          <button class="btn" id="site-details-close" type="button">
+            Done
           </button>
         </div>
       </div>

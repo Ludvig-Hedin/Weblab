@@ -32,6 +32,10 @@
     ],
     "extraResources": [
       {
+        "from": "assets/source-bookmark.jxa.js",
+        "to": "source-bookmark.jxa.js"
+      },
+      {
         "from": ".runtime",
         "to": ".",
         "filter": [

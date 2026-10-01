@@ -240,6 +240,7 @@ export interface ProxyDeps {
    * see `isAllowedHost`.
    */
   allowedHosts: ReadonlySet<string>;
+  assertProjectRoot?: () => void;
   /**
    * Surface a top-level navigation gets when nothing overrides it — the launch
    * `--mode`, translated. Overridable per request by `?__airship=` and per
@@ -312,13 +313,22 @@ function handleHttp(
     return;
   }
 
+  try {
+    deps.assertProjectRoot?.();
+  } catch {
+    res.writeHead(409, { "content-type": "text/plain; charset=utf-8" });
+    res.end(
+      "The site folder moved or changed. Close and reopen it from Sites."
+    );
+    return;
+  }
   if (isComponentsRequest(req.url)) {
     serveComponentsApi(req, res, deps.projectRoot);
     return;
   }
 
   if (isAssetsRequest(req.url)) {
-    serveAssetsApi(req, res, deps.projectRoot);
+    serveAssetsApi(req, res, deps.projectRoot, deps.assertProjectRoot);
     return;
   }
 
@@ -551,7 +561,8 @@ function serveCompressible(
 function serveAssetsApi(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  projectRoot: string | undefined
+  projectRoot: string | undefined,
+  assertProjectRoot?: () => void
 ): void {
   if (!projectRoot) {
     res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
@@ -560,9 +571,11 @@ function serveAssetsApi(
     );
     return;
   }
-  handleAssetsRequest(req, res, { projectRoot }).catch(() => {
-    // handleAssetsRequest answers every failure itself.
-  });
+  handleAssetsRequest(req, res, { assertProjectRoot, projectRoot }).catch(
+    () => {
+      // handleAssetsRequest answers every failure itself.
+    }
+  );
 }
 
 /** The page list API. Never proxied: it reads the user's route files. */

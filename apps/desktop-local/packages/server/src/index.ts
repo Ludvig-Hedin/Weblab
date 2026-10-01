@@ -63,6 +63,7 @@ import { JobStore } from "./jobs";
 import { openInEditor } from "./open-editor";
 import { preparePromptInput } from "./prompt-input";
 import { createProxyServer } from "./proxy";
+import { captureProjectRoot, MOVED_PROJECT_MESSAGE } from "./root-identity";
 
 export type {
   CodexConfigValue,
@@ -153,6 +154,8 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   // server that can drive a coding agent with filesystem write access.
   const host = opts.host ?? "127.0.0.1";
   const { cwd } = opts;
+  const assertProjectRoot = captureProjectRoot(cwd);
+  const activeEdits = new Set<AbortController>();
   const jobs = new JobStore();
   const clients = new Set<WebSocket>();
   const wss = new WebSocketServer({ noServer: true });
@@ -226,6 +229,12 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   }
 
   wss.on("connection", (ws: WebSocket) => {
+    try {
+      assertProjectRoot();
+    } catch {
+      ws.close(1011, "Site folder changed; reopen from Sites");
+      return;
+    }
     clients.add(ws);
     send(ws, {
       defaultAgent: opts.agent ?? "claude",
@@ -268,6 +277,14 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       return;
     }
 
+    if (parsed.type !== "cancel") {
+      try {
+        assertProjectRoot();
+      } catch {
+        send(ws, { message: MOVED_PROJECT_MESSAGE, type: "error" });
+        return;
+      }
+    }
     switch (parsed.type) {
       case "edit": {
         const { request } = parsed;
@@ -313,6 +330,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         const write = parsed;
         editChain = editChain
           .then(() => {
+            assertProjectRoot();
             const result = applyTokenWrite(cwd, write);
             send(ws, {
               error: result.ok ? undefined : result.error,
@@ -388,6 +406,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   }
 
   async function startEdit(request: CreateJobRequest): Promise<void> {
+    assertProjectRoot();
     const displayPrompt = request.prompt.trim() || synthesizeLabel(request);
     const rec = jobs.create(displayPrompt);
     broadcast({
@@ -409,6 +428,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
 
     const abort = new AbortController();
     rec.abort = abort;
+    activeEdits.add(abort);
 
     const result = await runEdit(
       {
@@ -452,8 +472,19 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         onTodos: (todos) =>
           broadcast({ jobId: rec.jobId, todos, type: "job:todos" }),
       }
-    );
-
+    ).finally(() => activeEdits.delete(abort));
+    try {
+      assertProjectRoot();
+    } catch (cause) {
+      jobs.finish(rec.jobId, "cancelled", MOVED_PROJECT_MESSAGE);
+      broadcast({
+        error: MOVED_PROJECT_MESSAGE,
+        jobId: rec.jobId,
+        status: "cancelled",
+        type: "job:status",
+      });
+      throw new Error(MOVED_PROJECT_MESSAGE, { cause });
+    }
     const status = jobStatus(abort.signal.aborted, result.ok);
     const bundle = buildBundle({
       agent,
@@ -615,6 +646,15 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
    * branch or having no `origin` are the two everyday cases, and both are worth
    * naming before anything is committed.
    */
+  function projectRootCurrent(): boolean {
+    try {
+      assertProjectRoot();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function createPullRequest(
     ws: WebSocket,
     jobId: string,
@@ -658,12 +698,23 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       fail("push", pushed.error ?? "push failed");
       return;
     }
+    if (!projectRootCurrent()) {
+      fail("create", MOVED_PROJECT_MESSAGE);
+      return;
+    }
     const pr = await createPr(cwd, {
       base: base ?? undefined,
       body: summary,
       head,
       title: title || summary.slice(0, 72),
     });
+    sendPullRequestResult(ws, pr);
+  }
+
+  function sendPullRequestResult(
+    ws: WebSocket,
+    pr: Awaited<ReturnType<typeof createPr>>
+  ): void {
     send(ws, {
       error: pr.error,
       ok: pr.ok,
@@ -675,6 +726,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
 
   const server = createProxyServer({
     allowedHosts: buildAllowedHosts(opts.allowedHosts, opts.host),
+    assertProjectRoot,
     defaultMode: surfaceToMode(opts.surface ?? "canvas"),
     keepCsp: opts.keepCsp,
     onAirshipUpgrade: (req, socket, head) => {
@@ -711,6 +763,22 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
     });
   });
 
+  let reportedMove = false;
+  const locationMonitor = setInterval(() => {
+    try {
+      assertProjectRoot();
+    } catch {
+      for (const abort of activeEdits) {
+        abort.abort();
+      }
+      if (!reportedMove) {
+        reportedMove = true;
+        broadcast({ message: MOVED_PROJECT_MESSAGE, type: "error" });
+      }
+    }
+  }, 500);
+  locationMonitor.unref();
+
   const addr = server.address() as AddressInfo | null;
   const port = addr?.port ?? opts.port;
   const url = bindUrl(host, port);
@@ -721,6 +789,10 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         // The OpenCode backend spawns an `opencode serve` child that outlives
         // the run and holds the event loop open. It is a no-op on the other
         // backends and when no opencode edit ever happened.
+        clearInterval(locationMonitor);
+        for (const abort of activeEdits) {
+          abort.abort();
+        }
         shutdownOpencodeServer();
         // `terminate`, not `close`: a graceful ws handshake waits on a peer that
         // may never answer, and this path is already "we are going away".

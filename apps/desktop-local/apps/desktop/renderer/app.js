@@ -155,6 +155,359 @@ api.auth.onEvent((event) => {
 
 // Dashboard
 
+let folders = [];
+let selectedFolder = null;
+let editingFolder = null;
+let folderBusy = false;
+let detailsSiteId = null;
+let locationCandidate = null;
+let detailsBusy = false;
+const dialogFocus = new Map();
+
+function openDialog(id, focusSelector) {
+  dialogFocus.set(id, document.activeElement);
+  $(id).hidden = false;
+  $(focusSelector).focus();
+}
+
+function closeDialog(id) {
+  $(id).hidden = true;
+  const previous = dialogFocus.get(id);
+  if (previous?.isConnected) {
+    previous.focus();
+  } else {
+    $("#all-sites").focus();
+  }
+  dialogFocus.delete(id);
+}
+
+function selectFolder(id) {
+  selectedFolder = id;
+  dashError("");
+  renderSites();
+}
+
+$("#all-sites").addEventListener("click", () => selectFolder(null));
+$("#folder-show-all").addEventListener("click", () => selectFolder(null));
+
+function renderFolders() {
+  $("#all-sites").setAttribute(
+    "aria-current",
+    selectedFolder ? "false" : "page"
+  );
+  const list = $("#folders");
+  list.textContent = "";
+  for (const folder of folders) {
+    const row = document.createElement("li");
+    row.className = "folder-row";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "folder-button";
+    button.textContent = folder.name;
+    button.title = folder.name;
+    button.setAttribute(
+      "aria-current",
+      folder.id === selectedFolder ? "page" : "false"
+    );
+    button.addEventListener("click", () => selectFolder(folder.id));
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "more";
+    more.setAttribute("aria-label", `Actions for ${folder.name}`);
+    more.innerHTML = MORE_ICON;
+    const menu = async (event) => {
+      event.preventDefault();
+      try {
+        const result = await api.folders.menu(folder.id);
+        if (result === "rename") {
+          openFolderDialog(folder);
+        }
+        if (result === "removed") {
+          renderSites();
+        }
+      } catch (error) {
+        dashError(error.message || "Couldn’t open the folder menu.");
+      }
+    };
+    more.addEventListener("click", menu);
+    row.addEventListener("contextmenu", menu);
+    row.append(button, more);
+    list.append(row);
+  }
+}
+
+function openFolderDialog(folder = null) {
+  editingFolder = folder;
+  $("#folder-dialog-title").textContent = folder
+    ? "Rename folder"
+    : "New folder";
+  $("#folder-submit").textContent = folder ? "Save name" : "Create folder";
+  $("#folder-name").value = folder?.name || "";
+  $("#folder-error").hidden = true;
+  openDialog("#folder-dialog", "#folder-name");
+  $("#folder-name").select();
+}
+
+function closeFolderDialog() {
+  if (!folderBusy) {
+    closeDialog("#folder-dialog");
+  }
+}
+
+$("#new-folder").addEventListener("click", () => openFolderDialog());
+$("#folder-cancel").addEventListener("click", closeFolderDialog);
+$("#folder-dialog").addEventListener("mousedown", (event) => {
+  if (event.target.id === "folder-dialog") {
+    closeFolderDialog();
+  }
+});
+$("#folder-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (folderBusy) {
+    return;
+  }
+  const name = $("#folder-name").value.trim();
+  if (!name) {
+    return;
+  }
+  folderBusy = true;
+  for (const element of $$("#folder-form button, #folder-form input")) {
+    element.disabled = true;
+  }
+  try {
+    const result = editingFolder
+      ? await api.folders.rename(editingFolder.id, name)
+      : await api.folders.create(name);
+    if (!result.ok) {
+      throw new Error(result.message || "Couldn’t save the folder.");
+    }
+    if (!editingFolder && result.folder) {
+      selectedFolder = result.folder.id;
+    }
+    closeDialog("#folder-dialog");
+    await renderSites();
+  } catch (error) {
+    $("#folder-error").textContent =
+      error.message || "Couldn’t save the folder.";
+    $("#folder-error").hidden = false;
+  } finally {
+    folderBusy = false;
+    for (const element of $$("#folder-form button, #folder-form input")) {
+      element.disabled = false;
+    }
+  }
+});
+
+function detailsError(message = "") {
+  $("#site-details-error").textContent = message;
+  $("#site-details-error").hidden = !message;
+}
+
+function setDetailsBusy(busy) {
+  detailsBusy = busy;
+  for (const button of $$("#site-details-dialog button")) {
+    button.disabled = busy;
+  }
+}
+
+const LOCATION_STATUS = {
+  available: "Available",
+  missing: "This location could not be found. It may have moved.",
+  needsConfirmation: "Confirm the location before editing this site.",
+  permissionDenied:
+    "Access to this location is needed. Choose it again to grant access.",
+};
+
+async function loadSiteDetails(id) {
+  const details = await api.sites.details(id);
+  if (id !== detailsSiteId) {
+    return;
+  }
+  if (!details?.site || details.error) {
+    throw new Error(details?.error || "This site is no longer in the list.");
+  }
+  $("#site-details-title").textContent = details.site.name;
+  $(".location-actions").hidden = false;
+  $("#site-details-path").textContent =
+    details.path || details.site.path || "No location recorded";
+  $("#site-details-status").textContent =
+    LOCATION_STATUS[details.status] || "Location unavailable";
+  $("#site-details-folder").textContent = details.folderName || "No folder";
+  $("#site-details-kind").textContent =
+    details.kind === "html" ? "HTML file" : "Website project";
+  $("#site-details-opened").textContent = details.lastOpened
+    ? new Date(details.lastOpened).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Never opened";
+  $("#site-locate").textContent =
+    details.status === "available" ? "Choose another folder" : "Locate folder";
+  $("#site-reveal").hidden = details.status !== "available";
+  $("#site-import-details").hidden = !details.site.sourceFile;
+  $("#site-import-path").textContent = details.site.sourceFile || "";
+  $("#site-import-details").open = false;
+}
+
+async function showSiteDetails(id, trigger) {
+  detailsSiteId = id;
+  locationCandidate = null;
+  $("#site-location-candidate").hidden = true;
+  $("#site-details-title").textContent = "Site details";
+  for (const element of $$(".site-details dd")) {
+    element.textContent = "";
+  }
+  $("#site-details-message").textContent = "Loading…";
+  $("#site-import-details").hidden = true;
+  $(".location-actions").hidden = true;
+  detailsError();
+  openDialog("#site-details-dialog", "#site-details-close");
+  if (trigger) {
+    dialogFocus.set("#site-details-dialog", trigger);
+  }
+  await detailsAction(() => loadSiteDetails(id));
+  $("#site-details-message").textContent = "";
+}
+
+function closeSiteDetails() {
+  if (detailsBusy) {
+    return;
+  }
+  detailsSiteId = null;
+  locationCandidate = null;
+  closeDialog("#site-details-dialog");
+}
+
+async function detailsAction(action) {
+  if (detailsBusy) {
+    return;
+  }
+  setDetailsBusy(true);
+  detailsError();
+  try {
+    await action();
+  } catch (error) {
+    detailsError(error.message || "Couldn’t update this location.");
+  } finally {
+    setDetailsBusy(false);
+  }
+}
+
+$("#site-details-close").addEventListener("click", closeSiteDetails);
+$("#site-details-dialog").addEventListener("mousedown", (event) => {
+  if (event.target.id === "site-details-dialog") {
+    closeSiteDetails();
+  }
+});
+for (const [selector, action] of [
+  ["#site-copy-path", "copyPath"],
+  ["#site-reveal", "reveal"],
+]) {
+  $(selector).addEventListener("click", () =>
+    detailsAction(async () => {
+      const result = await api.sites[action](detailsSiteId);
+      if (result?.error || result?.ok === false) {
+        throw new Error(
+          result.error || result.message || "Couldn’t access this location."
+        );
+      }
+      $("#site-details-message").textContent =
+        action === "copyPath" ? "Path copied" : "";
+    })
+  );
+}
+$("#site-locate").addEventListener("click", () =>
+  detailsAction(async () => {
+    const result = await api.sites.locate(detailsSiteId);
+    if (result.canceled) {
+      return;
+    }
+    if (result.error || !result.candidate) {
+      throw new Error(result.error || "Couldn’t locate this site.");
+    }
+    locationCandidate = result.candidate;
+    $("#site-previous-path").textContent =
+      result.candidate.previousPath || "No previous location recorded";
+    $("#site-candidate-path").textContent = result.candidate.path;
+    $("#site-location-candidate").hidden = false;
+    $("#site-details-message").textContent = "";
+  })
+);
+$("#site-location-cancel").addEventListener("click", () => {
+  locationCandidate = null;
+  $("#site-location-candidate").hidden = true;
+});
+$("#site-location-confirm").addEventListener("click", () =>
+  detailsAction(async () => {
+    if (!locationCandidate) {
+      return;
+    }
+    const result = await api.sites.confirmLocation(
+      detailsSiteId,
+      locationCandidate.token
+    );
+    if (!result.ok) {
+      throw new Error(result.error || "Couldn’t reconnect the site.");
+    }
+    locationCandidate = null;
+    $("#site-location-candidate").hidden = true;
+    await loadSiteDetails(detailsSiteId);
+    $("#site-details-message").textContent = "Location updated";
+    await renderSites();
+  })
+);
+window.addEventListener("focus", () => {
+  if (detailsSiteId && !detailsBusy && !locationCandidate) {
+    detailsAction(() => loadSiteDetails(detailsSiteId));
+  }
+});
+
+// Keep keyboard focus inside these dialogs and restore it when they close.
+document.addEventListener("keydown", (event) => {
+  const id = ["#folder-dialog", "#site-details-dialog"].find(
+    (selector) => !$(selector).hidden
+  );
+  if (!id) {
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (id === "#folder-dialog") {
+      closeFolderDialog();
+    } else {
+      closeSiteDetails();
+    }
+  }
+  if (event.key !== "Tab") {
+    return;
+  }
+  const focusable = [
+    ...$(id).querySelectorAll(
+      "button:not(:disabled), input:not(:disabled), summary"
+    ),
+  ].filter((element) => element.getClientRects().length);
+  if (!focusable.length) {
+    event.preventDefault();
+    return;
+  }
+  const [first] = focusable;
+  const last = focusable.at(-1);
+  if (
+    event.shiftKey &&
+    (document.activeElement === first ||
+      !$(id).contains(document.activeElement))
+  ) {
+    event.preventDefault();
+    last.focus();
+  } else if (
+    !event.shiftKey &&
+    (document.activeElement === last || !$(id).contains(document.activeElement))
+  ) {
+    event.preventDefault();
+    first.focus();
+  }
+});
+
 function relativeTime(ms) {
   if (!ms) {
     return "Never opened";
@@ -239,6 +592,12 @@ function siteStatus(site, siteLocation) {
   if (!site.missing) {
     return prettyPath(siteLocation);
   }
+  if (site.status === "needsConfirmation") {
+    return "Confirm location";
+  }
+  if (site.status === "permissionDenied") {
+    return "Access needed";
+  }
   return site.entry ? "File not found" : "Folder not found";
 }
 
@@ -247,7 +606,11 @@ function siteItem(site) {
   li.className = `site${site.missing ? " missing" : ""}`;
   li.tabIndex = 0;
   const siteLocation = site.entry ? `${site.path}/${site.entry}` : site.path;
-  li.title = site.missing ? "" : prettyPath(siteLocation);
+  li.title = siteLocation;
+  li.setAttribute(
+    "aria-label",
+    `${site.name}, ${site.missing ? siteStatus(site, siteLocation) : siteLocation}`
+  );
   li.innerHTML = `
     <div class="site-identity"><div class="site-icon"></div><div class="site-text"><div class="site-name"></div><div class="site-path"></div><div class="site-when"></div></div></div>
     <button class="more" aria-label="More">${MORE_ICON}</button>`;
@@ -267,7 +630,9 @@ function siteItem(site) {
   }
   li.querySelector(".site-name").textContent = site.name;
   li.querySelector(".site-path").textContent = siteStatus(site, siteLocation);
-  li.querySelector(".site-when").textContent = relativeTime(site.lastOpened);
+  li.querySelector(".site-when").textContent = site.missing
+    ? siteStatus(site, siteLocation)
+    : relativeTime(site.lastOpened);
   li.addEventListener("click", (event) => {
     if (event.target.closest(".more")) {
       return;
@@ -279,14 +644,21 @@ function siteItem(site) {
     }
   });
   li.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
+    if (event.target === li && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
       openSite(site);
     }
   });
   const menu = async (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const result = await api.sites.menu(site.id);
+    let result;
+    try {
+      result = await api.sites.menu(site.id);
+    } catch (error) {
+      dashError(error.message || "Couldn’t open the site menu.");
+      return;
+    }
     if (result === "open") {
       openSite(site);
     }
@@ -297,7 +669,10 @@ function siteItem(site) {
       currentSite = { ...site, hasSettings: true };
       showSettings("edit");
     }
-    if (result === "removed") {
+    if (result === "details") {
+      showSiteDetails(site.id, li);
+    }
+    if (result === "removed" || result === "organization-changed") {
       renderSites();
     }
   };
@@ -315,6 +690,7 @@ function showSitesLoading() {
   ul.innerHTML = `<li class="site site-skeleton" aria-hidden="true"><div class="skeleton-thumb"></div><div class="skeleton-icon"></div><div class="skeleton-copy"><span></span><span></span></div></li><li class="site site-skeleton" aria-hidden="true"><div class="skeleton-thumb"></div><div class="skeleton-icon"></div><div class="skeleton-copy"><span></span><span></span></div></li>`;
   $(".dash").hidden = false;
   $("#empty").hidden = true;
+  $("#folder-empty").hidden = true;
 }
 
 async function renderSites() {
@@ -322,8 +698,12 @@ async function renderSites() {
   const render = sitesRender;
   showSitesLoading();
   let list;
+  let nextFolders;
   try {
-    list = await api.sites.list();
+    [list, nextFolders] = await Promise.all([
+      api.sites.list(),
+      api.folders.list(),
+    ]);
   } catch {
     if (render === sitesRender) {
       const ul = $("#sites");
@@ -337,6 +717,7 @@ async function renderSites() {
   if (render !== sitesRender) {
     return;
   }
+  folders = nextFolders;
   const ul = $("#sites");
   ul.textContent = "";
   ul.removeAttribute("aria-busy");
@@ -347,9 +728,19 @@ async function renderSites() {
       String(button.dataset.view === sitesView)
     );
   }
-  $(".dash").hidden = list.length === 0;
-  $("#empty").hidden = list.length > 0;
-  for (const site of list) {
+  if (selectedFolder && !folders.some((item) => item.id === selectedFolder)) {
+    selectedFolder = null;
+  }
+  renderFolders();
+  const folder = folders.find((item) => item.id === selectedFolder);
+  $("#sites-heading").textContent = folder ? folder.name : "Sites";
+  const visibleSites = selectedFolder
+    ? list.filter((site) => site.folderId === selectedFolder)
+    : list;
+  $(".dash").hidden = !selectedFolder && list.length === 0;
+  $("#empty").hidden = Boolean(selectedFolder) || list.length > 0;
+  $("#folder-empty").hidden = !selectedFolder || visibleSites.length > 0;
+  for (const site of visibleSites) {
     ul.append(siteItem(site));
   }
 }
@@ -452,9 +843,7 @@ for (const button of $$('[data-action="open-folder"]')) {
 
 async function openSite(site) {
   if (site.missing) {
-    dashError(
-      `We can’t find the folder for “${site.name}”. It may have been moved.`
-    );
+    await showSiteDetails(site.id);
     return;
   }
   currentSite = site;

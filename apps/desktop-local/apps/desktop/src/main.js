@@ -33,6 +33,14 @@ if (process.env.WEBLAB_USER_DATA) {
 }
 
 const windows = new Map();
+sites.setOpenChecker((id) =>
+  [...windows.values()].some(
+    (session) =>
+      session.openSiteId === id ||
+      session.pendingSiteId === id ||
+      session.openingSiteId === id
+  )
+);
 const pendingFiles = [];
 const pendingStops = new Set();
 let quitting = false;
@@ -276,6 +284,7 @@ function createWindow(siteId = null) {
     closePromise: null,
     closing: false,
     editorView: null,
+    openingSiteId: null,
     openSiteId: null,
     openSiteUrl: null,
     pendingSiteId: siteId,
@@ -344,11 +353,8 @@ function openInNewWindow(site) {
   createWindow(site.id);
 }
 
-function openFolderPath(path, source = null) {
-  if (
-    typeof path !== "string" ||
-    !(sites.looksLikeSite(path) || sites.looksLikeHtml(path))
-  ) {
+async function openFolderPath(path, source = null) {
+  if (typeof path !== "string") {
     send(
       source || focusedSession(),
       "nav:siteError",
@@ -358,7 +364,9 @@ function openFolderPath(path, source = null) {
   }
   let site;
   try {
-    site = sites.looksLikeHtml(path) ? sites.addHtml(path) : sites.add(path);
+    site = await (sites.looksLikeHtml(path)
+      ? sites.addHtml(path)
+      : sites.add(path));
   } catch (error) {
     send(source || focusedSession(), "nav:siteError", error.message);
     return { ok: false };
@@ -384,9 +392,10 @@ function openFolderPath(path, source = null) {
   return { ok: true };
 }
 
-function flushFiles() {
+async function flushFiles() {
   while (pendingFiles.length) {
-    openFolderPath(pendingFiles.shift());
+    // biome-ignore lint/performance/noAwaitInLoops: Preserve Finder's open order while imports reserve their folders.
+    await openFolderPath(pendingFiles.shift());
   }
 }
 
@@ -515,20 +524,178 @@ function registerIpc() {
     }
   });
 
-  ipcMain.handle("sites:list", () =>
+  ipcMain.handle("sites:list", async () =>
     Promise.all(
-      sites.list().map(async (site) => ({
-        ...site,
-        favicon: site.missing ? null : await favicon.read(site.path),
-        preview: await previews.read(site.id),
-      }))
+      (await sites.list()).map(async (site) => {
+        let icon = null;
+        if (!site.missing) {
+          try {
+            icon = await favicon.read((await sites.verified(site.id)).path);
+          } catch {
+            /* No reads from an unresolved folder. */
+          }
+        }
+        return {
+          ...site,
+          favicon: icon,
+          preview: await previews.read(site.id),
+        };
+      })
     )
   );
-  ipcMain.handle("sites:create", (_e, name) => {
+  ipcMain.handle("sites:create", async (_e, name) => {
     try {
-      return { ok: true, site: sites.create(name) };
+      return { ok: true, site: await sites.create(name) };
     } catch (err) {
       return { message: err.message, ok: false };
+    }
+  });
+  const fromDashboard = (event) => {
+    const session = sessionFor(event);
+    return event.sender === session?.win.webContents ? session : null;
+  };
+  const organizationChange = (operation) => {
+    try {
+      const folder = operation();
+      broadcast("sites:changed");
+      return { ok: true, ...(folder ? { folder } : {}) };
+    } catch (error) {
+      return { message: error.message, ok: false };
+    }
+  };
+  ipcMain.handle("folders:list", (event) =>
+    fromDashboard(event) ? sites.folderList() : []
+  );
+  ipcMain.handle("folders:create", (event, name) =>
+    fromDashboard(event)
+      ? organizationChange(() => sites.folderCreate(name))
+      : { ok: false }
+  );
+  ipcMain.handle("folders:rename", (event, id, name) =>
+    fromDashboard(event)
+      ? organizationChange(() => sites.folderRename(id, name))
+      : { ok: false }
+  );
+  ipcMain.handle("folders:remove", (event, id) =>
+    fromDashboard(event)
+      ? organizationChange(() => sites.folderRemove(id))
+      : { ok: false }
+  );
+  ipcMain.handle("folders:menu", (event, id) => {
+    const session = fromDashboard(event);
+    if (!(session && sites.folderList().some((folder) => folder.id === id))) {
+      return null;
+    }
+    return new Promise((resolve) => {
+      Menu.buildFromTemplate([
+        { click: () => resolve("rename"), label: "Rename folder…" },
+        {
+          click: () => {
+            const result = organizationChange(() => sites.folderRemove(id));
+            resolve(result.ok ? "removed" : null);
+          },
+          label: "Remove folder",
+        },
+      ]).popup({
+        callback: () => setTimeout(() => resolve(null), 50),
+        window: session.win,
+      });
+    });
+  });
+  ipcMain.handle("sites:details", async (event, id) => {
+    if (!fromDashboard(event)) {
+      return null;
+    }
+    try {
+      return await sites.details(id);
+    } catch {
+      return { error: "Couldn’t read site details. Try again." };
+    }
+  });
+  ipcMain.handle("sites:locate", async (event, id) => {
+    const session = fromDashboard(event);
+    if (!(session && sites.get(id))) {
+      return { error: "This site is no longer in your list." };
+    }
+    if (
+      [...windows.values()].some(
+        (window) =>
+          window.openSiteId === id ||
+          window.openingSiteId === id ||
+          window.pendingSiteId === id
+      )
+    ) {
+      return {
+        error: "Close this site in every window before choosing a folder.",
+      };
+    }
+    const result = await dialog.showOpenDialog(session.win, {
+      buttonLabel: "Choose folder",
+      properties: ["openDirectory"],
+      title: "Locate this site’s folder",
+    });
+    if (result.canceled || !result.filePaths[0]) {
+      return { canceled: true };
+    }
+    try {
+      return {
+        candidate: await sites.prepareLocation(id, result.filePaths[0]),
+      };
+    } catch (error) {
+      return {
+        error: error.code
+          ? "This folder could not be verified. Choose the site’s website folder."
+          : error.message,
+      };
+    }
+  });
+  ipcMain.handle("sites:confirmLocation", async (event, id, token) => {
+    if (!fromDashboard(event)) {
+      return { ok: false };
+    }
+    try {
+      const site = await sites.confirmLocation(id, token);
+      broadcast("sites:changed");
+      return { ok: true, site };
+    } catch (error) {
+      return {
+        error: error.code
+          ? "The folder changed or this confirmation expired. Choose it again."
+          : error.message,
+        ok: false,
+      };
+    }
+  });
+  ipcMain.handle("sites:reveal", async (event, id) => {
+    if (!fromDashboard(event)) {
+      return { ok: false };
+    }
+    try {
+      const site = await sites.verified(id, { resolve: true });
+      shell.showItemInFolder(
+        site.entry ? join(site.path, site.entry) : site.path
+      );
+      return { ok: true };
+    } catch {
+      return {
+        error: "Locate the site’s folder before showing it in Finder.",
+        ok: false,
+      };
+    }
+  });
+  ipcMain.handle("sites:copyPath", async (event, id) => {
+    if (!fromDashboard(event)) {
+      return { ok: false };
+    }
+    try {
+      const site = await sites.verified(id, { resolve: true });
+      clipboard.writeText(site.path);
+      return { ok: true };
+    } catch {
+      return {
+        error: "Locate the site’s folder before copying its current path.",
+        ok: false,
+      };
     }
   });
   ipcMain.handle("sites:pickFolder", async (event) => {
@@ -545,20 +712,16 @@ function registerIpc() {
       return { ok: false };
     }
     const [path] = result.filePaths;
-    if (!(sites.looksLikeSite(path) || sites.looksLikeHtml(path))) {
-      return {
-        message: "Choose a website folder or HTML file.",
-        ok: false,
-      };
-    }
     try {
       return {
         ok: true,
-        site: sites.looksLikeHtml(path) ? sites.addHtml(path) : sites.add(path),
+        site: await (sites.looksLikeHtml(path)
+          ? sites.addHtml(path)
+          : sites.add(path)),
       };
     } catch (error) {
       return {
-        message: `Couldn’t import this HTML file: ${error.message}`,
+        message: `Couldn’t open this site: ${error.message}`,
         ok: false,
       };
     }
@@ -570,42 +733,97 @@ function registerIpc() {
     }
     return openFolderPath(path, session);
   });
-  ipcMain.handle("sites:openNewWindow", (event, id) => {
-    const session = sessionFor(event);
-    const site = sites.get(id);
-    if (!session || event.sender !== session.win.webContents || !site) {
+  ipcMain.handle("sites:openNewWindow", async (event, id) => {
+    if (!fromDashboard(event)) {
       return { ok: false };
     }
-    openInNewWindow(site);
-    return { ok: true };
+    try {
+      const site = await sites.verified(id, { resolve: true });
+      openInNewWindow(site);
+      return { ok: true };
+    } catch (error) {
+      return { code: "source-unavailable", message: error.message, ok: false };
+    }
   });
-  ipcMain.handle("sites:menu", (event, id) => {
-    const session = sessionFor(event);
+  ipcMain.handle("sites:menu", async (event, id) => {
+    const session = fromDashboard(event);
     const site = sites.get(id);
-    if (!session || event.sender !== session.win.webContents || !site) {
+    if (!(session && site)) {
       return null;
     }
+    let available = null;
+    try {
+      available = await sites.verified(id);
+    } catch {
+      /* Recovery stays available. */
+    }
     return new Promise((resolve) => {
+      const folders = sites.folderList();
+      const move = (folderId) => {
+        try {
+          sites.moveToFolder(id, folderId);
+          broadcast("sites:changed");
+          resolve("organization-changed");
+        } catch {
+          resolve(null);
+        }
+      };
       const menu = Menu.buildFromTemplate([
         { click: () => resolve("open"), label: "Open" },
         { click: () => resolve("new-window"), label: "Open in New Window" },
-        ...(!site.entry && envSettings.describe(site.path).length > 0
+        { click: () => resolve("details"), label: "Show details" },
+        ...(available &&
+        !site.entry &&
+        envSettings.describe(available.path).length > 0
           ? [{ click: () => resolve("settings"), label: "Site settings" }]
           : []),
         {
-          click: () =>
-            shell.showItemInFolder(
-              site.entry ? join(site.path, site.entry) : site.path
-            ),
+          label: "Move to folder",
+          submenu: [
+            {
+              checked: !site.folderId,
+              click: () => move(null),
+              label: "All sites",
+              type: "checkbox",
+            },
+            ...folders.map((folder) => ({
+              checked: site.folderId === folder.id,
+              click: () => move(folder.id),
+              label: folder.name,
+              type: "checkbox",
+            })),
+          ],
+        },
+        {
+          click: async () => {
+            try {
+              const current = await sites.verified(id, { resolve: true });
+              shell.showItemInFolder(
+                current.entry ? join(current.path, current.entry) : current.path
+              );
+            } catch {
+              resolve("details");
+            }
+          },
+          enabled: Boolean(available),
           label: "Show in Finder",
         },
         { type: "separator" },
         {
           click: () => {
-            sites.remove(id);
-            previews.remove(id);
-            broadcast("sites:changed");
-            resolve("removed");
+            try {
+              sites.remove(id);
+              previews.remove(id);
+              broadcast("sites:changed");
+              resolve("removed");
+            } catch (error) {
+              dialog.showMessageBox(session.win, {
+                buttons: ["OK"],
+                message: error.message,
+                type: "info",
+              });
+              resolve(null);
+            }
           },
           label: "Remove from list",
         },
@@ -619,10 +837,21 @@ function registerIpc() {
 
   ipcMain.handle("site:open", async (event, id, options) => {
     const session = sessionFor(event);
-    const site = sites.get(id);
-    if (!session || event.sender !== session.win.webContents || !site) {
+    if (
+      !session ||
+      event.sender !== session.win.webContents ||
+      !sites.get(id)
+    ) {
       return { ok: false };
     }
+    let site;
+    try {
+      site = await sites.verified(id, { resolve: true });
+    } catch (error) {
+      session.openingSiteId = null;
+      return { code: "source-unavailable", message: error.message, ok: false };
+    }
+    session.openingSiteId = id;
     const closing = [...windows.values()].find(
       (candidate) =>
         candidate !== session &&
@@ -641,13 +870,21 @@ function registerIpc() {
     if (other) {
       other.win.show();
       other.win.focus();
+      session.openingSiteId = null;
       return { code: "already-open", ok: false };
     }
     if (session.openSiteId || session.closePromise) {
       await closeSite(session);
     }
+    try {
+      await sites.assertVerified(site);
+    } catch (error) {
+      session.openingSiteId = null;
+      return { code: "source-unavailable", message: error.message, ok: false };
+    }
     sites.touch(id);
     session.openSiteId = id;
+    session.openingSiteId = null;
     session.openSiteUrl = null;
     session.runner.open(site, { fresh: Boolean(options?.fresh) });
     return { ok: true, site };
@@ -697,36 +934,63 @@ function registerIpc() {
     }
   });
 
-  // Settings the site asks for in its example env file.
-  ipcMain.handle("settings:get", (_e, id) => {
-    const site = sites.get(id);
-    return site && !site.entry ? envSettings.describe(site.path) : [];
+  // Every settings operation uses the same checked source as opening/publishing.
+  ipcMain.handle("settings:get", async (event, id) => {
+    if (!fromDashboard(event)) {
+      return [];
+    }
+    try {
+      const site = await sites.verified(id);
+      return site.entry ? [] : envSettings.describe(site.path);
+    } catch {
+      return [];
+    }
   });
-  /** Missing settings the user has not already chosen to skip. */
-  ipcMain.handle("settings:needed", (_e, id) => {
-    const site = sites.get(id);
-    if (!site || site.entry) {
+  ipcMain.handle("settings:needed", async (event, id) => {
+    if (!fromDashboard(event)) {
       return false;
     }
-    const skipped = new Set(site.skippedSettings || []);
-    return envSettings.missingKeys(site.path).some((key) => !skipped.has(key));
+    try {
+      const site = await sites.verified(id);
+      if (site.entry) {
+        return false;
+      }
+      const skipped = new Set(site.skippedSettings || []);
+      return envSettings
+        .missingKeys(site.path)
+        .some((key) => !skipped.has(key));
+    } catch {
+      return false;
+    }
   });
-  ipcMain.handle("settings:save", (_e, id, answers) => {
-    const site = sites.get(id);
-    if (!site) {
+  ipcMain.handle("settings:save", async (event, id, answers) => {
+    if (!fromDashboard(event)) {
       return { ok: false };
     }
     try {
+      const site = await sites.verified(id);
       envSettings.save(site.path, answers);
       return { ok: true };
     } catch {
-      return { message: "Weblab couldn’t save the settings.", ok: false };
+      return {
+        message: "Locate the site’s folder before saving its settings.",
+        ok: false,
+      };
     }
   });
-  ipcMain.handle("settings:skip", (_e, id) => {
-    const site = sites.get(id);
-    if (site) {
+  ipcMain.handle("settings:skip", async (event, id) => {
+    if (!fromDashboard(event)) {
+      return { ok: false };
+    }
+    try {
+      const site = await sites.verified(id);
       sites.setSkipped(id, envSettings.missingKeys(site.path));
+      return { ok: true };
+    } catch {
+      return {
+        message: "Locate the site’s folder before changing its settings.",
+        ok: false,
+      };
     }
   });
   // The editor is a native view on top of the page; hide it while a screen

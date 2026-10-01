@@ -15,6 +15,7 @@ const fs = require("node:fs");
 const { join } = require("node:path");
 const { shell } = require("electron");
 const { bunBinary, childEnv } = require("./runtime");
+const sites = require("./sites");
 
 const VERCEL = "vercel@60.1.3";
 const LOG_LINES = 80;
@@ -38,12 +39,22 @@ const ENV_FILES = [
 ];
 
 /** Runs the Vercel CLI. Resolves { code, stdout, stderr }; never rejects. */
-function vercel(cwd, args, { input, onLine, timeout = 120_000, track } = {}) {
+function vercel(
+  cwd,
+  args,
+  { input, onLine, timeout = 120_000, track, source = true } = {}
+) {
+  if (source) {
+    sites.checkVerifiedPath(cwd);
+  }
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
     let child;
     try {
+      if (source) {
+        sites.checkVerifiedPath(cwd);
+      }
       child = spawn(bunBinary(), ["x", VERCEL, ...args, "--no-color"], {
         cwd,
         detached: true,
@@ -122,6 +133,7 @@ async function account({ fresh = false } = {}) {
     return whoCache.value;
   }
   const result = await vercel(process.env.HOME || "/", ["whoami"], {
+    source: false,
     timeout: 60_000,
   });
   const user = result.stdout.trim().split("\n").pop() || "";
@@ -156,6 +168,7 @@ async function login(onEvent) {
         onEvent({ code: DEVICE_CODE.exec(url)?.[1] || "", type: "url", url });
       }
     },
+    source: false,
     timeout: 15 * 60_000,
     track: (child) => {
       mine = child;
@@ -172,6 +185,7 @@ async function login(onEvent) {
 }
 
 function readLink(cwd) {
+  sites.checkVerifiedPath(cwd);
   try {
     const link = JSON.parse(
       fs.readFileSync(join(cwd, ".vercel/project.json"), "utf8")
@@ -183,7 +197,10 @@ function readLink(cwd) {
 }
 
 function writeLink(cwd, project, orgId) {
+  sites.checkVerifiedPath(cwd);
+  sites.checkVerifiedPath(cwd);
   fs.mkdirSync(join(cwd, ".vercel"), { recursive: true });
+  sites.checkVerifiedPath(cwd);
   fs.writeFileSync(
     join(cwd, ".vercel/project.json"),
     JSON.stringify({
@@ -196,6 +213,7 @@ function writeLink(cwd, project, orgId) {
 
 /** Adds a line to an ignore file unless it is already there. */
 function ensureIgnored(cwd, file, pattern) {
+  sites.checkVerifiedPath(cwd);
   const path = join(cwd, file);
   let text = "";
   try {
@@ -207,6 +225,7 @@ function ensureIgnored(cwd, file, pattern) {
     return;
   }
   const lead = text && !text.endsWith("\n") ? "\n" : "";
+  sites.checkVerifiedPath(cwd);
   fs.writeFileSync(path, `${text}${lead}${pattern}\n`);
 }
 
@@ -269,6 +288,7 @@ const FRAMEWORKS = [
 
 /** Vercel's framework preset for the site, read from package.json. */
 function framework(cwd) {
+  sites.checkVerifiedPath(cwd);
   try {
     const pkg = JSON.parse(fs.readFileSync(join(cwd, "package.json"), "utf8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
@@ -344,6 +364,7 @@ function unquote(raw) {
 
 /** Keys and values from the site's env files. Later files win. */
 function localKeys(cwd) {
+  sites.checkVerifiedPath(cwd);
   const keys = new Map();
   for (const file of ENV_FILES) {
     let text = "";
@@ -373,6 +394,7 @@ async function remoteKeyNames(cwd, link) {
 const markerPath = (cwd) => join(cwd, ".vercel/weblab.json");
 
 function readMarker(cwd) {
+  sites.checkVerifiedPath(cwd);
   try {
     return JSON.parse(fs.readFileSync(markerPath(cwd), "utf8"));
   } catch {
@@ -381,7 +403,10 @@ function readMarker(cwd) {
 }
 
 function writeMarker(cwd, patch) {
+  sites.checkVerifiedPath(cwd);
+  sites.checkVerifiedPath(cwd);
   fs.mkdirSync(join(cwd, ".vercel"), { recursive: true });
+  sites.checkVerifiedPath(cwd);
   fs.writeFileSync(
     markerPath(cwd),
     JSON.stringify({ ...readMarker(cwd), ...patch })
