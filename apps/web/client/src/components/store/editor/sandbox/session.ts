@@ -10,6 +10,7 @@ import type { CLISession, TerminalSession } from './terminal';
 import { isOnline } from '@/services/offline/online-status';
 import { isSandboxGoneError, isShellStartupError } from './errors';
 import { OfflineProvider } from './offline-provider';
+import { CloudProvider } from './cloud-provider';
 import { CLISessionImpl, CLISessionType } from './terminal';
 import { VercelBrowserProvider } from './vercel-browser-provider';
 
@@ -82,6 +83,15 @@ export class SessionManager {
         private readonly errorManager: ErrorManager,
     ) {
         makeAutoObservable(this);
+    }
+
+    installCloudProvider(provider: CloudProvider): void {
+        if (this.disposed) { void provider.destroy(); return; }
+        this.provider = provider;
+        this.isOffline = false;
+        this.isConnecting = false;
+        this.connectionError = null;
+        this.sandboxGone = false;
     }
 
     async start(sandboxId: string, _userId?: string): Promise<void> {
@@ -513,6 +523,10 @@ export class SessionManager {
     }
 
     async restartProvider(sandboxId: string, userId?: string) {
+        if (this.provider instanceof CloudProvider) {
+            await this.provider.reconnect();
+            return;
+        }
         if (!this.provider) {
             return;
         }
@@ -568,7 +582,7 @@ export class SessionManager {
         if (this.sandboxGone) return false;
         if (!this.provider) return false;
         try {
-            if (this.provider instanceof NodeFsProvider) {
+            if (this.provider instanceof NodeFsProvider || this.provider instanceof CloudProvider) {
                 return await this.provider.ping();
             }
             await this.provider.runCommand({ args: { command: 'echo "ping"' } });

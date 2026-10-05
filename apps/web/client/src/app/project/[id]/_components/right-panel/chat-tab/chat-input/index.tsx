@@ -103,6 +103,18 @@ export const ChatInput = observer(
         onReasoningEffortChange,
     }: ChatInputProps) => {
         const editorEngine = useEditorEngine();
+        // CLI models (Claude Code, Codex) run in the branch's local working
+        // copy; cloud branches have none. TODO(i18n): move to messages/*.
+        let hasLocalWorkingCopy = false;
+        try {
+            const runtime = editorEngine.branches.activeBranch.runtime;
+            hasLocalWorkingCopy = runtime.type === 'local' && Boolean(runtime.local?.rootPath);
+        } catch {
+            // No active branch yet: treat as cloud until it loads.
+        }
+        const cliUnavailableReason = hasLocalWorkingCopy
+            ? null
+            : 'Open a local folder to use {provider}';
         const t = useTranslations();
         const editorRef = useRef<Editor | null>(null);
         const [isComposing, setIsComposing] = useState(false);
@@ -851,6 +863,7 @@ export const ChatInput = observer(
                                 localModelsLoading={localModelsLoading}
                                 reasoningEffort={reasoningEffort}
                                 onReasoningEffortChange={onReasoningEffortChange}
+                                cliUnavailableReason={cliUnavailableReason}
                             />
                             {lastUsageMessage?.metadata?.usage && (
                                 <ChatContextWindow

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
@@ -58,6 +59,8 @@ export interface AiPromptComposerProps {
     imageButtonDisabled?: boolean;
     showImageButton?: boolean;
     showMicButton?: boolean;
+    /** Runs instead of recording when voice input is not allowed yet. */
+    onMicBlockedClick?: () => void;
     onTranscript?: (text: string) => void;
     showStopButton?: boolean;
     onStop?: () => void | Promise<void>;
@@ -136,6 +139,7 @@ export function AiPromptComposer({
     imageButtonDisabled = false,
     showImageButton = false,
     showMicButton = false,
+    onMicBlockedClick,
     onTranscript,
     showStopButton = false,
     onStop,
@@ -254,7 +258,7 @@ export function AiPromptComposer({
             {isSubmitting ? (
                 <Icons.LoadingSpinner className={cn(buttonIconClassName, 'animate-spin')} />
             ) : (
-                <Icons.ArrowRight className={buttonIconClassName} />
+                <ArrowRight className={buttonIconClassName} strokeWidth={2} />
             )}
         </Button>
     );
@@ -372,6 +376,7 @@ export function AiPromptComposer({
                         {isMounted && showMicButton && onTranscript && (
                             <MicButton
                                 onTranscript={onTranscript}
+                                onBlockedClick={onMicBlockedClick}
                                 disabled={disabled || isSubmitting}
                                 className={classes.button}
                                 iconClassName={cn(classes.icon, variant === 'create' && 'h-4 w-4')}

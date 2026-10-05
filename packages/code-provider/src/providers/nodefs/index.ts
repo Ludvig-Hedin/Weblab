@@ -91,6 +91,7 @@ interface LocalFsBridge {
         priorCopyId?: string;
         previewNeedsInstall?: boolean;
         excludedPaths?: string[];
+        exclusions?: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
         error?: string;
     }>;
     planPrivateHandoff(root: string): Promise<Partial<LocalHandoffPlan> & { error?: string }>;
@@ -245,6 +246,7 @@ export class NodeFsProvider extends Provider {
         priorCopyId?: string;
         previewNeedsInstall: boolean;
         excludedPaths: string[];
+        exclusions: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
     }> {
         const result = await requireLocalFs().createPrivateWorkingCopy(sourceRoot);
         if (result.error) throw new Error(result.error);
@@ -261,6 +263,7 @@ export class NodeFsProvider extends Provider {
             ...(result.priorCopyId ? { priorCopyId: result.priorCopyId } : {}),
             previewNeedsInstall: result.previewNeedsInstall,
             excludedPaths: result.excludedPaths,
+            exclusions: result.exclusions ?? [],
         };
     }
 

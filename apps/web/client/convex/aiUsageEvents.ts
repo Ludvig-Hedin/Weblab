@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import type { QueryCtx } from './_generated/server';
 import { mutation, query } from './_generated/server';
+import { isTrustedSpendWriter, recordAiSpend } from './lib/aiGuards';
 import { getOptionalUser } from './lib/permissions';
 
 /**
@@ -79,8 +80,9 @@ export const insert = mutation({
         totalMs: v.optional(v.number()),
         toolCallCount: v.optional(v.number()),
         errorType: v.optional(v.string()),
+        serverSecret: v.optional(v.string()),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, { serverSecret, ...args }) => {
         const caller = await getOptionalUser(ctx);
         if (!caller || caller._id !== args.userId) {
             // Surface but don't break the response — chat route already
@@ -92,6 +94,14 @@ export const insert = mutation({
             ...args,
             createdAt: Date.now(),
         });
+        // Runaway safeguards: count this call's real cost toward the caller's
+        // hourly/daily spend caps and the fleet daily budget (aiGuards). Same
+        // transaction as the insert, so a recorded event is always counted.
+        if (isTrustedSpendWriter(serverSecret)) {
+            await recordAiSpend(ctx, caller._id, args.estimatedCostUsd);
+        } else {
+            console.error('[aiUsageEvents.insert] spend not counted: untrusted writer');
+        }
         return id;
     },
 });

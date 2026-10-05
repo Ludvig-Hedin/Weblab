@@ -75,6 +75,7 @@ const getSelectedTag = (selected: DomElement[]): TAG_CATEGORIES => {
 
 export const EditorBar = observer(({ availableWidth }: { availableWidth?: number }) => {
     const editorEngine = useEditorEngine();
+    if (!editorEngine.canUseDesign) return null;
     const selectedElement = editorEngine.elements.selected[0];
     const selectedTag = selectedElement ? getSelectedTag(editorEngine.elements.selected) : null;
     const selectedFrame = editorEngine.frames.selected?.[0];

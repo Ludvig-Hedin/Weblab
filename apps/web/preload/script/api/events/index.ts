@@ -4,6 +4,7 @@ import {
     listenForResize,
     reportContentSize,
 } from './dom';
+import { listenForScroll } from './scroll';
 
 // handleBodyReady runs twice per document — once from the local 300ms
 // body-poll in ready.ts and once when the parent calls the exposed penpal
@@ -19,6 +20,7 @@ export function listenForDomChanges() {
     listenForDomMutation();
     listenForResize();
     listenForContentResize();
+    listenForScroll();
 }
 
 export { reportContentSize };

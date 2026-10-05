@@ -105,6 +105,9 @@ export function ProjectChooserCards({
                             variant="default"
                         />
                     </div>
+                    <p className="text-foreground-tertiary mx-auto mt-4 max-w-sm text-center text-sm">
+                        {t('projects.chooser.openFolder.limits')}
+                    </p>
                 </>
             ) : showDesktopFooter ? (
                 <div className="flex justify-center">

@@ -19,7 +19,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { HoverOnlyTooltip } from '../../../editor-bar/hover-tooltip';
-import { toPreviewableUrl } from '../preview-url';
+import { getPopoutRoute, toPreviewableUrl } from '../preview-url';
 import { createMouseMoveHandler } from './helpers';
 
 export const TopBar = observer(
@@ -424,7 +424,9 @@ export const TopBar = observer(
                             className={cn(
                                 'absolute top-1/2 right-1 -translate-y-1/2 transition-opacity duration-300',
                             )}
-                            href={toPreviewableUrl(frame.url)} // Dynamic routes are not supported so we replace them with a temporary value
+                            href={editorEngine.branches.getSandboxById(frame.branchId)?.cloudSource
+                                ? `${getPopoutRoute(editorEngine.projectId)}?frame=${encodeURIComponent(frame.id)}`
+                                : toPreviewableUrl(frame.url)}
                             target="_blank"
                             style={{
                                 transform: `scale(${1 / editorEngine.canvas.scale})`,

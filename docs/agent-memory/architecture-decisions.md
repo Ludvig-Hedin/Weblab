@@ -18,6 +18,16 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-09-29 — Startup recovery begins with a read-only CLI turn
+
+Decision: A local preview failure opens a fresh CLI chat in the active private branch. Its first turn receives only a short issue category and runs read-only; the user approves proposed files in chat before a later edit turn.
+Context: Startup logs can contain local paths and secrets, while Claude's normal edit mode and Codex's file approvals could change the copy before a proposal is shown.
+Alternatives considered: sending the entire log to the CLI; allowing an immediate edit; running a general repair command against the original folder.
+Rationale: The first turn is bounded and reviewable. The original source remains protected by private-copy and Git handoff rules. Preview retry stays explicit while a setup task may still be running.
+Status: Active in source; packaged desktop proof pending.
+
+---
+
 ## 2026-09-23 — Dependency setup stays inside the private copy
 
 Decision: An explicit native action installs from one frozen Bun lockfile in the registered private Git copy, with lifecycle scripts disabled, an isolated persistent cache, and dependency link checks before install and preview.
@@ -487,3 +497,7 @@ See `docs/notes/2026-05-06-project-runtime-modes.md`.
 Status: Active. Hybrid still planned.
 
 ---
+
+## 2026-10-02 — Native release eligibility stays failclosed
+
+Self-selected Content/Full is presentation, never project authority. Known Sanity integrations need frozen source/content/assets/routes together, including non-blog reads; no mutable fallback. Native live switches remain disabled until a shared server destination worker and positive artifact/completion proof exist. CMS snapshot v2 retains validated public field rules and omits provider metadata; immutable v1 is not a complete future runtime contract. Browser drafts are bounded best-effort recovery, not power-loss/reinstall guarantees. [Evidence and remaining boundaries](../audits/desktop-client-readiness-2026-10-01.md). Status: source preparation, no production activation.

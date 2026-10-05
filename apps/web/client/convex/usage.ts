@@ -63,7 +63,7 @@ function startOfUtcMonth(now: number): number {
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
 }
 
-async function loadActiveSubscriptionWithProduct(
+export async function loadActiveSubscriptionWithProduct(
     ctx: QueryCtx,
     userId: Id<'users'>,
 ): Promise<{

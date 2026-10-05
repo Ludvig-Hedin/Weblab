@@ -31,6 +31,7 @@ interface LocalFsBridge {
         reused?: boolean;
         previewNeedsInstall?: boolean;
         excludedPaths?: string[];
+        exclusions?: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
         error?: string;
     }>;
     read(
@@ -201,6 +202,9 @@ export function useOpenLocalProject() {
                 toast.warning(gitText('handoffNewCopy', { appName: APP_NAME }), {
                     description: copy.priorRootPath,
                 });
+            }
+            if (copy.exclusions?.some((entry) => entry.reason === 'credentials')) {
+                toast.warning(gitText('copyCredentialsOmitted'));
             }
             const workingRoot = copy.rootPath;
             const cacheKey = copy.copyId && user?._id

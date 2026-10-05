@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="400" viewBox="0 0 720 400" role="img" aria-label="Local startup error with Fix startup button">
+  <rect width="720" height="400" rx="18" fill="#171717"/>
+  <rect x="26" y="26" width="668" height="348" rx="12" fill="#202020" stroke="#3b3b3b"/>
+  <text x="360" y="144" text-anchor="middle" fill="#f5f5f5" font-family="Arial, sans-serif" font-size="24" font-weight="600">Your site didn't start</text>
+  <text x="360" y="181" text-anchor="middle" fill="#a3a3a3" font-family="Arial, sans-serif" font-size="16">The site may be listening on a different port or address.</text>
+  <rect x="249" y="214" width="130" height="42" rx="8" fill="#1495eb"/>
+  <text x="314" y="241" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="15" font-weight="600">Fix startup</text>
+  <rect x="391" y="214" width="88" height="42" rx="8" fill="#292929" stroke="#494949"/>
+  <text x="435" y="241" text-anchor="middle" fill="#e5e5e5" font-family="Arial, sans-serif" font-size="15">Try again</text>
+  <text x="360" y="293" text-anchor="middle" fill="#a3a3a3" font-family="Arial, sans-serif" font-size="14">Details</text>
+</svg>

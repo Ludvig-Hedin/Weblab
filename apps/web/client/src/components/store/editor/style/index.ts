@@ -14,6 +14,7 @@ import { toast } from '@weblab/ui/sonner';
 import { convertFontString } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
+import { breakpointMinWidth } from '../code/project-breakpoints';
 
 export interface SelectedStyle {
     styles: DomElementStyles;
@@ -256,11 +257,16 @@ export class StyleManager {
     activeBreakpointContext(): BreakpointActionContext | undefined {
         const id = this.editorEngine.breakpoints?.activeId;
         if (!id) return undefined;
-        const sample = this.editorEngine.frames.getAll().find((f) => f.frame.breakpoint?.id === id);
+        const branchId = this.editorEngine.elements.selected[0]?.branchId;
+        const frames = this.editorEngine.frames.getAll().filter((frame) => !branchId || frame.frame.branchId === branchId);
+        const sample = frames.find((f) => f.frame.breakpoint?.id === id);
         const width =
             sample?.frame.breakpoint?.width ?? this.editorEngine.breakpoints.activeWidth();
         const name = sample?.frame.breakpoint?.name ?? id;
-        return { id, name, minWidth: width };
+        const widths = frames.map((frame) => frame.frame.breakpoint?.width)
+            .filter((value): value is number => value !== undefined);
+        const base = widths.length > 0 ? Math.min(...widths) : null;
+        return { id, name, minWidth: breakpointMinWidth(width, base) };
     }
 
     private recordOverrides(
@@ -501,24 +507,38 @@ export class StyleManager {
      * source-defined base. The action manager runs the same source-write
      * rebase pipeline so the JSX class / overrides.css drops the prefix.
      */
-    clearBreakpointOverride(oid: string, property: string, breakpointId: BreakpointId) {
-        if (!this.canWriteVisualStyle()) return;
-        const propMap = this.overrides.get(oid);
+    async clearBreakpointOverride(oid: string, property: string, breakpointId: BreakpointId): Promise<boolean> {
+        if (!this.canWriteVisualStyle()) return false;
         const key = normalizeProperty(property);
-        const bpMap = propMap?.get(key);
-        if (!bpMap?.has(breakpointId)) return;
-        // Keep a tombstone so an in-flight sibling RPC cannot re-seed the
-        // just-cleared value from its stale computed snapshot.
-        bpMap.set(breakpointId, {
-            value: bpMap.get(breakpointId)?.value ?? '',
-            type: StyleChangeType.Remove,
-            provenance: 'authored',
-        });
-        propMap?.set(key, bpMap);
-        this.overrides = new Map(this.overrides);
-        // Re-emit the now-truncated map so the iframe injection / source-write
-        // drops this breakpoint's rule.
-        this.requestSourceRebase?.(oid, property);
+        const previous = this.overrides.get(oid)?.get(key)?.get(breakpointId);
+        if (!previous || previous.type === StyleChangeType.Remove) return false;
+        const selected = this.editorEngine.elements.selected.find((element) =>
+            element.oid === oid || element.instanceId === oid);
+        if (!selected) return false;
+        const primary = this.editorEngine.frames.get(selected.frameId);
+        const frames = this.editorEngine.frames.getAll().filter((frame) => frame.frame.branchId === selected.branchId);
+        const sample = frames.find((frame) => frame.frame.breakpoint?.id === breakpointId);
+        if (!sample?.frame.breakpoint || !primary) return false;
+        const widths = frames.map((frame) => frame.frame.breakpoint?.width)
+            .filter((width): width is number => width !== undefined);
+        const context = {
+            id: breakpointId,
+            name: sample.frame.breakpoint.name ?? breakpointId,
+            minWidth: breakpointMinWidth(sample.frame.breakpoint.width, widths.length > 0 ? Math.min(...widths) : null),
+        };
+        const change = {
+            original: { [key]: { value: previous.value, type: previous.type } },
+            updated: { [key]: { value: '', type: StyleChangeType.Remove } },
+        };
+        const targets = this.editorEngine.frames.getByGroupId(primary.frame.groupId)
+            .filter((frame) => frame.frame.branchId === selected.branchId)
+            .map((frame) => ({
+                frameId: frame.frame.id, branchId: selected.branchId,
+                domId: selected.domId, oid, change, breakpoint: context,
+            }));
+        // Source snapshot + preview change enter history together. Nothing in
+        // the override map changes until the original-content check succeeds.
+        return this.editorEngine.action.resetResponsiveStyle({ type: 'update-style', targets });
     }
 
     /**

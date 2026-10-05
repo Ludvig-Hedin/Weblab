@@ -276,6 +276,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [starredTemplates, setStarredTemplates] = useState<Set<string>>(new Set());
     const [folders, setFolders] = useState<ProjectFolder[]>([]);
+    const [newFolderProjectId, setNewFolderProjectId] = useState<string | null>(null);
     const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
     const [openFolderId, setOpenFolderId] = useState<string | null>(null);
     const [selectionMode, setSelectionMode] = useState(false);
@@ -626,16 +627,22 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         const nextFolder: ProjectFolder = {
             id: crypto.randomUUID(),
             name,
-            projectIds: [],
+            projectIds: newFolderProjectId ? [newFolderProjectId] : [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
 
-        const nextFolders = [...folders, nextFolder];
+        const nextFolders = [
+            ...(newFolderProjectId
+                ? moveProjectIdsToFolder(folders, [newFolderProjectId], null)
+                : folders),
+            nextFolder,
+        ];
         const ok = await persistFolders(nextFolders);
-        if (!ok) return; // persistFolders already rolled back + toasted the error
+        if (!ok) return false;
         setOpenFolderId(nextFolder.id);
         toast.success(t('folderCreated'));
+        return true;
     };
 
     const handleSelectionChange = (projectId: string, checked: boolean) => {
@@ -658,6 +665,13 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     const resetSelection = () => {
         setSelectedProjectIds(new Set());
         setSelectionMode(false);
+    };
+
+    const handleMoveProject = async (projectId: string, folderId: string | null) => {
+        const ok = await persistFolders(moveProjectIdsToFolder(folders, [projectId], folderId));
+        if (!ok) return;
+        if (folderId) setOpenFolderId(folderId);
+        toast.success(folderId ? t('projectsMovedToFolder') : t('projectsRemovedFromFolder'));
     };
 
     const handleMoveSelected = async (folderId: string | null) => {
@@ -1032,6 +1046,14 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                                 <ProjectCard
                                                     key={project.id}
                                                     project={project}
+                                                    folders={folders}
+                                                    onMoveToFolder={(folderId) =>
+                                                        handleMoveProject(project.id, folderId)
+                                                    }
+                                                    onCreateFolder={() => {
+                                                        setNewFolderProjectId(project.id);
+                                                        setShowCreateFolderDialog(true);
+                                                    }}
                                                     refetch={() => void refetch()}
                                                     searchQuery={debouncedSearchQuery}
                                                     HighlightText={HighlightText}
@@ -1130,6 +1152,14 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                     <ProjectCard
                                         key={project.id}
                                         project={project}
+                                        folders={folders}
+                                        onMoveToFolder={(folderId) =>
+                                            handleMoveProject(project.id, folderId)
+                                        }
+                                        onCreateFolder={() => {
+                                            setNewFolderProjectId(project.id);
+                                            setShowCreateFolderDialog(true);
+                                        }}
                                         refetch={() => void refetch()}
                                         searchQuery={debouncedSearchQuery}
                                         HighlightText={HighlightText}
@@ -1151,6 +1181,14 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                     <ProjectRow
                                         key={project.id}
                                         project={project}
+                                        folders={folders}
+                                        onMoveToFolder={(folderId) =>
+                                            handleMoveProject(project.id, folderId)
+                                        }
+                                        onCreateFolder={() => {
+                                            setNewFolderProjectId(project.id);
+                                            setShowCreateFolderDialog(true);
+                                        }}
                                         variant="list"
                                         refetch={() => void refetch()}
                                         searchQuery={debouncedSearchQuery}
@@ -1173,6 +1211,14 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                                     <ProjectRow
                                         key={project.id}
                                         project={project}
+                                        folders={folders}
+                                        onMoveToFolder={(folderId) =>
+                                            handleMoveProject(project.id, folderId)
+                                        }
+                                        onCreateFolder={() => {
+                                            setNewFolderProjectId(project.id);
+                                            setShowCreateFolderDialog(true);
+                                        }}
                                         variant="table"
                                         refetch={() => void refetch()}
                                         searchQuery={debouncedSearchQuery}
@@ -1213,7 +1259,10 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
 
             <CreateFolderDialog
                 open={showCreateFolderDialog}
-                onOpenChange={setShowCreateFolderDialog}
+                onOpenChange={(open) => {
+                    setShowCreateFolderDialog(open);
+                    if (!open) setNewFolderProjectId(null);
+                }}
                 onCreateFolder={handleCreateFolder}
                 existingNames={folders.map((folder) => folder.name)}
             />

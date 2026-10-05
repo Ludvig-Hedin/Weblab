@@ -11,7 +11,7 @@ import type {
     ReasoningEffort,
 } from '@weblab/models';
 import {
-    getMaxTokens,
+    getMaxOutputTokens,
     LLMProvider,
     modelSupportsReasoningEffort,
     OLLAMA_DEFAULT_BASE_URL,
@@ -38,8 +38,7 @@ export type ResolvedProvider = 'openrouter' | 'ollama' | 'anthropic-direct';
  * specific snapshot, change the right side.
  */
 const ANTHROPIC_DIRECT_MODEL_MAP: Record<string, string> = {
-    'anthropic/claude-opus-4.8': 'claude-opus-4-8',
-    'anthropic/claude-sonnet-4.6': 'claude-sonnet-4-6',
+    'anthropic/claude-opus-5.5': 'claude-opus-5-5',
     'anthropic/claude-3.5-haiku': 'claude-3-5-haiku-latest',
 };
 
@@ -66,7 +65,9 @@ export function resolveProviderForModel(payload: InitialModelPayload): ResolvedP
 export function initModel(payload: InitialModelPayload): ModelConfig {
     let model: LanguageModel;
     let providerOptions: ProviderOptions | undefined;
-    const maxOutputTokens = getMaxTokens(payload.model);
+    // OUTPUT cap, not the context window (getMaxTokens). Passing the context
+    // window here let one runaway reply bill up to ~1M output tokens.
+    let maxOutputTokens = getMaxOutputTokens(payload.model);
 
     switch (payload.provider) {
         case LLMProvider.OPENROUTER: {
@@ -102,6 +103,10 @@ export function initModel(payload: InitialModelPayload): ModelConfig {
                 payload.model,
                 payload.reasoningEffort,
             );
+            // Anthropic requires max_tokens > thinking.budget_tokens. The
+            // "Deep" budget (32,768) is above the 32k output cap, so leave room
+            // for the answer on top of the thinking budget.
+            maxOutputTokens = withThinkingHeadroom(maxOutputTokens, providerOptions);
             break;
         }
         case LLMProvider.OLLAMA: {
@@ -145,6 +150,15 @@ function applyReasoningEffort(
         reasoning: { effort },
     };
     return next;
+}
+
+/** Answer room kept on top of an Anthropic extended-thinking budget. */
+const THINKING_ANSWER_HEADROOM_TOKENS = 8_192;
+
+function withThinkingHeadroom(cap: number, options: ProviderOptions | undefined): number {
+    const thinking = options?.anthropic?.thinking as { budgetTokens?: number } | undefined;
+    const budget = thinking?.budgetTokens ?? 0;
+    return budget > 0 ? Math.max(cap, budget + THINKING_ANSWER_HEADROOM_TOKENS) : cap;
 }
 
 function budgetForEffort(effort: ReasoningEffort): number {

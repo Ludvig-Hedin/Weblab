@@ -57,13 +57,13 @@ export default async function AuthCodeErrorPage({ searchParams }: AuthCodeErrorP
     const showCode = !!code;
 
     return (
-        <div className="bg-background flex min-h-screen items-center justify-center px-6">
-            <div className="border-border bg-card w-full max-w-md rounded-2xl border p-8 text-center shadow-2xl">
+        <div className="bg-background flex min-h-screen items-center justify-center px-6 py-12">
+            <div className="w-full max-w-md text-center">
                 <p className="text-foreground-tertiary text-sm">{t('eyebrow')}</p>
                 <h1 className="text-foreground mt-3 text-3xl font-semibold">{title}</h1>
                 <p className="text-foreground-secondary mt-4 text-sm leading-6">{body}</p>
                 {showCode && (
-                    <div className="border-border bg-background mt-4 rounded-md border p-3 text-left">
+                    <div className="mt-4 text-left">
                         <p className="text-foreground-tertiary text-xs">{t('errorCodeLabel')}</p>
                         <p className="text-foreground-secondary mt-1 font-mono text-xs break-all">
                             {code}

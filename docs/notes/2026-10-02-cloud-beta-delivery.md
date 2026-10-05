@@ -1,0 +1,240 @@
+# Cloud beta delivery
+
+Owner requested all six beta gates on 2026-10-02. This is active work, not a release claim.
+
+**Current, 2026-10-05:** owner authorizes local and production testing using the existing privately owned Railway Weblab/production service. No new beta environment or unbounded spending is authorized. The permanent production service is active; earlier “zero active deployments” statements describe only the isolated test service. Local launcher and service-worker proof below does not establish live provider or customer acceptance.
+
+### Local review launcher and cache proof, 2026-10-05
+
+The actual mounted React private-review launcher was exercised locally with a dummy ticket issuer through StrictMode, session switch, sign-out, unmount and retry. Its cross-origin POST succeeded with the strict-origin policy. This proves the mounted component and browser handoff, not live provider acceptance or the full hosted customer review journey.
+
+The actual v5 service worker was exercised in a local browser: old private cache entries were purged and public cache fetches omitted credentials. Private documents cannot be restored from worker caches; reopening a project requires a connection. Local draft storage is retained. Launcher and cache source received fresh independent review.
+
+Focused source checks passed 14 tests with 80 assertions. An initial web-client typecheck passed. Minor launcher cancellation and Next config changes followed; the latest recheck was blocked by the scheduler. Do not apply the earlier typecheck result to those later changes or claim the latest checks passed.
+
+The owner selected existing local/production testing, superseding the historical new-beta-environment proposals below. This authorizes neither a new environment nor new unbounded spending. The original eight sandbox starts and five included site builds remain historical consumed allowances, not a renewed budget.
+
+Real customer canvas acceptance, customer publication of two immutable versions and rollback, opened backup restore, access revocation and runtime restart remain incomplete. Supported publishing remains the fixed starter; multi-site publishing is not delivered. No beta-ready or real-user-ready claim is made.
+
+**Historical, 2026-10-03 evening:** private review HTTP worked with verified private response headers. Customer page/block creation and movement were observed. Customer review popup, publish/rollback and final canvas/recovery acceptance remained open. Isolated test compute was stopped; five included site builds and all eight sandbox starts were consumed. The permanent Weblab/production service is separate from that shutdown.
+
+## Acceptance
+
+One supported Next.js starter, the existing Weblab visual canvas, EW Studio and invited customers. A beta is accepted only after the connected journey succeeds: invite and claim → permitted visual edits and own image upload → CMS/page/block editing → reopen → review an immutable version → publish to the approved isolated destination → rollback → restore a backup. Also prove conflicting saves, revoked preview access, runtime restart and rejected-edit recovery. Ordinary edits do not require AI.
+
+| Gate | Remaining delivery |
+| --- | --- |
+| Stable cloud | Private account only; persistent beta address; runtime expiry/restart and version compatibility proof |
+| Visual customer editing | Own image upload; complete browser save/undo/reload/recovery and attribute proof |
+| Handoff | Email-bound revocable invitation; atomic project membership + cloud role; independent publish grant |
+| Content | Approved versioned starter pages, bounded block slots and a supported CMS collection |
+| Publishing | Complete frozen source/content/assets, isolated Next hosting, serialized publication and rollback |
+| Operations | Retained backup/release assets, restore into a fresh draft, cost limits and explicit unknown outcomes |
+
+## Boundaries
+
+- Private Convex owner-confirmed target is team `ludvighedin15`, project `weblab`. Shared dev and production stay untouched during implementation. The retired wrong-account project must not be recreated.
+- An ephemeral preview is for development acceptance, not the lasting beta service. A lasting target must be selected and checked explicitly before customer invitations.
+- No existing customer production site, subscription or custom domain changes. Vercel sandbox authorization remains eight starts of at most fifteen minutes within 25 SEK; all eight are now used and stopped. No further sandbox start is authorized. Hosting/build expenditure is not silently included in that authorization.
+- Cloud source remains the editing authority. Customer semantic page/block/CMS actions cannot weaken the restricted text writer. Source revision, approval generation and actor-bound retry identity remain mandatory.
+- Releases retain complete assets independently from mutable source cleanup. Rollback does not restore membership. Backups are independently restorable; a backup ZIP alone is not restore proof.
+- Root owns cloud integration, schema composition in `cloudEditorSchema.ts`, shared docs and verification. Desktop owner WhiteGorge retains native publishing and shared native/CMS changes. No broad staging or generated-file edits.
+
+## Review and evidence
+
+Fresh plan review identified the missing customer upload authority, native publication being disabled, absent frozen CMS renderer integration, and asset GC retention. These are implementation requirements, not waived limitations. Source checks and provider/browser acceptance are recorded separately. No full suite is authorized.
+
+AI chat, free simultaneous editing/presence and local-project import remain subsequent original-brief work. They are not substituted for any of these six gates.
+
+## Implementation checkpoint, 2026-10-02
+
+Source slices F-825–F-828 now exist behind the cloud enrollment and disabled provider destination. Independent review found and corrected alias-invite regrant, image post-receipt refresh handling, abandoned upload preparations, CMS domain refusals, rollback confirmation drift and hidden unknown publication outcomes. Immutable per-opening Journal recovery is implemented and independently reviewed. Root integrated the existing editor toolbar, dedicated review-host routing, retained-asset collection and a live/unresolved destination deletion guard.
+
+Focused source checks cover the corrected behavior. These do not establish beta readiness: no new environment has been activated, no persistent beta host is selected, and current account/deployment data has not been changed. Private Convex remains the required owner. Owner clarified: Weblab app and Weblab test environments belong in the private Weblab project; external EW customer sites belong to `ludvig-ew`. Do not place platform infrastructure in EW or StudioBuild. Private Railway Weblab ownership was verified through the CLI; the MCP auth path is stale. No provider project has been created. Previous 25 SEK authorization remains limited to its original sandbox starts.
+
+Still required before acceptance: final review-ticket typecheck and independent review; hosted private navigation cache proof; isolated private Convex and persistent frontend setup; dedicated review-host auth/DNS/protection; real upload and CMS/page/block browser loop; exact preview/publish/rollback; retained-backup restore and preview revocation/restart; approved finite operating budget. Retained backups now have an authorized workspace discovery/restore panel, including captured project names after deletion. Its final checks are pending. Downloaded ZIP re-import is not the supported recovery path; service-retained snapshots are.
+
+### Activation plan awaiting bounded operating authorization
+
+- Platform frontend: isolated `cloud-beta` environment/service inside the existing private Railway **Weblab** project, with no production source/domain changes. Backend: isolated deployment inside private Convex **ludvighedin15/weblab**, never import into existing dev/prod. A stable beta cannot depend on an expiring preview.
+- Customer hosting acceptance: one explicitly designated EW test site under **ludvig-ew**, with no repository auto-publisher or existing customer domain. Fixed server destination, bounded build allowance and seven-day expiry. Do not reuse `studiobuild` or an unidentified project.
+- Dedicated private review origin must have verified wildcard routing and release-only HttpOnly access, with no general Clerk session; existing production domain records must not change. No Vercel-account requirement for the customer. This configuration is not yet proven.
+- Fresh beta frontend requires `NEXT_PUBLIC_ENABLE_SW=false`. Explicit opt-out removes only its root Weblab worker and known cache families; old controlled tabs must all close before reopening. Native host defaults and IndexedDB/durable drafts stay untouched. Production/native private-navigation caching is not claimed repaired by this isolation.
+- Root web-client typecheck completed successfully after cloud integration. New cloud scoped lint passed after one RAM-guard interruption; integration lint and cross-tab immutable-draft correction passed. Final release-ticket checks pass (17 cases); ticket lint has zero errors. The shared typecheck must include that last slice. Source proof is separate from actual hosted acceptance.
+
+### Concrete first activation scope
+
+Proposed bounded run, not yet authorized: at most 100 SEK of additional usage over seven days, no subscription changes. One isolated private Railway Weblab beta service, one isolated persistent deployment within private Convex Weblab, one designated EW test-site hosting project in `ludvig-ew`, at most four frozen hosting builds. Keep the two remaining sandbox starts within their original 25 SEK/eight-start approval; do not reset that ledger in the new database. Stop before any cost ceiling can be exceeded, and leave services stopped at expiry unless the owner extends operation. Production sites and existing domains stay unchanged; new beta/review hostnames require exact target validation before DNS changes.
+
+Acceptance run: builder installs Studio and approves fields/slot → verified-email customer invite with publish permission → customer opens without local machine, edits text/image/link, saves and reopens → approved page/block and Journal draft/ready/archive → freeze/review → exact version live → concurrent stale confirmation rejected → rollback → backup restore into a separate private draft → removed member denied current preview/HTTP/WS → stopped/expired runtime restart from durable source. All remains unchecked in hosted beta until this succeeds.
+
+### Final auth review correction before activation
+
+Full Clerk authentication on a host executing designer-controlled site JavaScript is not acceptable: a working Clerk session on that origin exposes a general session to its scripts. Review remains disabled. The source now uses a one-use actor/release-bound POST exchange issued from the trusted app and an HttpOnly host-only short-lived review cookie; check current membership and immutable deployment on every request. Configured review hosts bypass Clerk middleware entirely, including malformed sub-hosts. Review hosting needs a cookie-isolated domain outside the app authentication domain and proof that no general Clerk session is established there. This is a new source correction, not evidence of an already deployed leak.
+
+Immutable Journal cleanup correction is reviewed and 53 focused draft/source cases pass. Cleanup removes only exact change records and cannot remove another tab's mutable writer pointer or newer payload. Shared web-client typecheck passed before the new review-ticket slice; final ticket checks are still required.
+
+Final release-review source checks: 17 cases passed across real ticket handlers, cookie/body exchange, isolated-domain routing and proxy behavior. Scoped lint completed with zero errors. Fresh independent review found no remaining source blocker; the shared final typecheck remains pending; no provider/browser acceptance has occurred.
+
+### Fresh private-account access check
+
+The current standard Convex CLI login lists only `ludvig-hedin` and `8pixel`, not private `ludvighedin15`. A read-only private project lookup returns 404 and MCP status now reports no access. The local target still correctly names `avid-gnat-539`; no deploy key is set. Earlier successful private access is historical and must not be reused as activation proof. Restore private login and verify team/project identity before any environment creation. No login or account configuration was changed in this check.
+
+Persistent backend feasibility is confirmed in current Convex docs and installed CLI 1.39.1: named `dev/cloud-beta` can be created in the existing private project with no expiration and without changing the default or local target. Proposed command after verified private access and budget: `bunx convex deployment create ludvighedin15:weblab:dev/cloud-beta --type dev --expiration none` (omit `--select` and `--default`). Actual private-team capacity is not yet readable. References: https://docs.convex.dev/production/multiple-deployments and https://docs.convex.dev/cli/reference/deployment.
+
+Backup discovery source checks passed 18 cases across backup/release state/ticket handlers; scoped lint completed with zero errors. Independent review then found that a confirmed restore reused its old operation identity indefinitely, which could return a deleted restored project. Correcting both restore entry points to distinguish unknown retry from a new intentional restore; final checks must cover that correction. Final shared typecheck is currently blocked by the machine guard after the sole native test-fixture nullability error was fixed (19 focused recovery cases pass).
+
+Final backup correction is independently reviewed with no remaining source finding. Both entry points now share an actor/workspace/backup-scoped durable restore request; exact acknowledgement or typed deleted-target refusal clears it, while unknown responses retain it. The last focused run and final shared typecheck were blocked by the machine guard (17% reclaimable RAM, required 20%). Therefore the final correction is not yet execution-verified. Earlier backup checks (18 cases), ticket checks (17 cases), native-fixture checks (19 cases) and scoped lint passed before this last correction. Do not claim these validate the later changes. No new external writes, paid starts, server processes or deployments occurred.
+
+Subsequent admitted focused run verifies the final backup correction: 18 tests pass across backup handlers, shared restore helper and release-state logic. Final whole-client typecheck retry remains scheduler-blocked; it must still complete.
+
+The final correction lint attempt exited 143 under the machine guard. It is not a passing check. No heavy process or server started by root remains active. Source is retained locally on shared main; no commit, push or deployment was made.
+
+### Short test pass requested, 2026-10-02
+
+Owner selected the reduced short-pass proposal. The earlier 100 SEK/seven-day proposal is NOT approved. Scope: two test versions, public publish/rollback proof, stop test compute after the session. Check included usage first; do not infer a new unlimited spending allowance. Original sandbox ledger remains six consumed/stopped and two starts left within 25 SEK.
+
+Fresh read-only preflight: `ludvig-ew` Vercel Pro plus has a confirmed 20 USD included allocation and billing cycle 2026-09-10 to 2026-10-10. Current eligible usage is approximately 11.25 USD (raw service usage 11.913 USD includes a fixed Password Protection add-on of 0.667 USD, which is not test expenditure). No material metered overage appeared. This is current headroom, not a reserved budget or a guarantee against other projects consuming it.
+
+Private Railway login remains valid. Its actual plan reports zero included usage, unlike current generic Pro pricing; do not assume this account has unused included credits. Short runtime quote is being checked read-only. No service, deployment, subscription or domain was changed.
+
+Private Convex login still exposes only work teams. A new device flow was offered through this thread and expired without completion; root process exited and no login remains running. The private target was not changed. Coordinate with native agent WhiteGorge before another login, since their thread also needs the same private identity.
+
+Latest whole-client typecheck and final backup scoped lint attempts both exited143 under machine guards. WhiteGorge owns the next shared typecheck after their current native changes. Prior focused tests/reviews remain valid only for their recorded slices. Browser connection is available again, but no hosted customer journey has run.
+
+Short Railway quote finalized read-only: two hours with test service capped at 2 GB RAM / 1 vCPU plus 1 GB egress is approximately 0.1611 USD, rounded 0.17 USD before tax. Ordinary build CPU/RAM is unbilled per official docs. Existing workspace hard50USD/soft25USD limits must not be lowered because they cover unrelated services. Ask for at most5SEK additional Railway usage before activation; this new cap is NOT yet approved. Runtime timeout/cleanup must be confined to this test service.
+
+Provider preflight still requires proof: Vercel Standard protection excludes production domains, but docs do not establish that this manually assigned alias to a preview deployment becomes public. Keep publicAliasVerified false until measured anonymous access succeeds while immutable raw preview URL stays protected. Do not buy protection add-ons or use a rebuilding promotion as a substitute for exact reviewed bytes.
+
+### Private login restored, 2026-10-03
+
+Owner completed device login. CLI confirmed only team484205/ludvighedin15; MCP confirms private `avid-gnat-539` and read-only prod `rapid-crab-113`. Read-only deployment listing for project2128291 contains exactly those two deployments, with references `dev/ludvig-hedin` and `production`, neither expiring. No deployment was created or selected. Shared native agent was notified to reuse this identity.
+
+WhiteGorge's completed 22:04UTC whole-client typecheck covers the final cloud backup slice and is reusable for those files; subsequent native changes are their own next-check responsibility. Root final cloud scoped lint remains scheduler-blocked (8pixel heavy work), not a passing result. Owner's latest `klart` answered login, not the separate5SEK Railway question; that cost approval is now explicitly pending in the thread. No test infrastructure started.
+
+### Short-pass Railway cost authorized
+
+Owner explicitly approved at most5SEK additional Railway usage for at most2h. This supersedes the pending status above, but does not authorize the old100SEK/seven-day plan, new subscriptions, protection add-ons or production changes. Plan: cap isolated frontend at2GB/1vCPU; restart NEVER; use a fixed absolute end timestamp and container timeout so restart/redeploy cannot reset the test allowance; root also removes exact test deployment on completion. Provider build time is unbilled but sandbox starts remain charged to their original separate ledger. Activation has not occurred yet. Independent short-pass infrastructure review is underway.
+
+### Short-pass preparation resumed, 2026-10-03
+
+Private Convex authentication is restored; the 5 SEK / two-hour Railway allowance is approved. No test infrastructure has been activated. Private team billing inspection reports Free with no paid subscription and no usage-limit warning; isolated named development is within that plan, not a new paid subscription. The original sandbox ledger still has two starts remaining.
+
+Six final backup-only files completed scoped lint with zero errors (224 existing formatting/style warnings). The two release files are undergoing the staged-production correction and will be checked with that slice. Previous whole-client typecheck is valid for the earlier cloud backup slice; WhiteGorge owns the next shared typecheck after native integration and will provide a stable source handoff.
+
+Independent plan review supports staged production with automatic domain assignment disabled, Standard protection only, separate build/publish eligibility, and exact public-alias/raw-private proof. This is not permission to set verification flags from expectations. The first public alias must be proven before enabling customer publishing.
+
+T3 preview opens and page evaluation works. Cloudflare is signed out; owner was asked to sign in for the dedicated isolated review hostname. Snapshot inspection currently fails, so browser acceptance is not yet available. Runtime deadline/traffic guard and a fresh secret-filtered snapshot script are in preparation. The retired wrong-account copy remains untouched.
+
+### Staged publication source correction
+
+Provider requests now use production target with automatic domain assignment disabled. Only Standard protection is accepted. First builds no longer require an already-proven public alias; publish/rollback still do. Status, request, both worker checks and the UI share the distinction. After a live switch, the raw deployment protection is checked again inside the sticky-unknown boundary. Independent source review found no remaining defect; 23 focused provider/state cases pass. Publisher scoped lint was scheduler-blocked (exit75), not a pass. WhiteGorge was notified to include the slice in the next shared typecheck.
+
+First-alias bootstrap remains an operator acceptance action on the designated disposable test site: after the first protected frozen build, assign its exact deployment to the fixed test production hostname, verify anonymous HTML + provider alias target + protected immutable URL, remove only that disposable alias and prove aliasTarget is null, then record publicAliasVerified without resetting the remaining build allowance or deadline. Reopen review after the configuration generation changes, and publish version one through the normal UI so destination live state/history is established. Never set that flag based on expected behavior. This bootstrap cannot be offered to customers before actual proof. A second frozen version must then prove normal UI publication and rollback to the first version without a rebuild.
+
+The new snapshot script is prepared only; it has not copied source or uploaded anything. Independent review caught an overly broad credentials filename exclusion dropping a required Figma screen. An exact source-file exception is being added, without broadening secret handling. Linux process cleanup remains unexecuted on this Mac. T3 Cloudflare sign-in and native stable-source handoff remain pending.
+
+Snapshot review correction confirmed: exact Figma source exception exists in selection and Docker ignore. Approved script artifact hash `e16e9bd3f1495900d4697e4e8f4936dd17d5c73f59c93774ec430e3b55af40b0`; 2,464 selected files / 29,513,196 bytes at latest inventory. No copy executed because peer source still changes. Runtime guard reviewed without a confirmed source defect; Linux execution proof remains required. No app server or test provider runtime was started. Browser lease released; Cloudflare remains at login. Next: owner Cloudflare login + stable native handoff, final publisher lint/shared typecheck, snapshot, bounded isolated activation and connected acceptance. Never claim beta-ready from these source results.
+
+
+### Isolated short-pass preparation, 2026-10-03, current
+
+Owner completed private Cloudflare login. Only three new DNS records were added under `weblab-review.ludvighedin.com`, pointing the wildcard and certificate challenge to the isolated Railway service. Provider confirms verified routing and a valid certificate. Existing DNS, app production domains and subscriptions were not changed. Actual cookie isolation and review access remain unchecked.
+
+Created named non-default private Convex `dev/cloud-beta` (`unique-gopher-11`, deployment5882798) inside team484205/project2128291. Existing dev/prod and main local target are unchanged. Its environment is configured; no backend functions deployed yet. Temporary exact-deployment key is retained privately for startup and must be revoked after deployment. No key is in source or the upload snapshot.
+
+Private Railway isolated service `be24887b-96ef-4eee-9f6f-ad281d763b7d`, environment `44dd9e53-2feb-4d72-984e-6c1077903d01`, remains stopped with no active deployment. It is capped at1CPU/2GB, one replica, restart NEVER, zero overlap/drain and no repository source. Runtime deadline is not set yet. The 5SEK/two-hour allowance is unchanged; no runtime time has been consumed in this preparation.
+
+EW disposable hosting project `ew-weblab-beta-proof-20261003` (`prj_eoKgbJYmObzRbTUh3KugM9vR9iHA`) was created in `ludvig-ew`. No builds, customer domains or Git connection exist. Standard protection is configured. Actual provider setup exposed a new activation blocker: the sole protection bypass must also be a system environment variable. Publishing remains disabled until a supported configuration and actual probe prove that neither build/runtime environment nor forwarded request headers leak this authority into customer code. Do not claim the source-only empty-env check covers it.
+
+WhiteGorge handed off stable web source after the08:57UTC whole-client typecheck passed, followed by scoped native lint. Root publisher scoped lint also completed with zero errors; the23 provider/state tests and final18 backup cases remain valid. Fresh secret-filtered snapshot is at `../weblab-cloud-beta-shortpass-20261003`; the retired wrong-account copy remains untouched. Reviewed startup pins isolated Convex, stops on failure, strips deployment authority before Next and runs under the same absolute deadline/egress guard. Docker executes Linux guard/startup tests before build; those actual Linux results are still pending. Snapshot-only cron registry is empty and service worker disabled.
+
+All six hosted gates remain open. Two original sandbox starts and two hosting builds remain. No beta-ready claim, no production deploy or public announcement.
+
+
+### Actual first activation and corrections, 2026-10-03
+
+Fixed absolute end is2026-10-03T11:25:47Z (13:25:47 Stockholm), unchanged on retries. Initial isolated deployment2453d42c-f66b-46f2-ba34-816dd5bd0326 passed14 Linux guard/startup checks, Next compilation and TypeScript. Actual Convex startup then refused two crypto helpers without Node runtime declarations. Frontend never started; provider marked CRASHED and the exact deployment was explicitly removed. No customer sandbox or hosting build was consumed. Narrow two-directive correction is independently reviewed; second upload is pending.
+
+Peer review also confirmed a publication retry omitted the original expected live release. The reviewed correction stores explicit nullable expectedLiveReleaseId for new operations, strictly matches it on retries, and refuses legacy missing values without migration. Exact retry still returns its receipt after live state advances. Local focused checks were twice denied by the machine admission guard (exit75). The corrected snapshot now carries the three exact focused test files and scoped lint in remote CI before Next build. This is pending execution, not a claimed pass.
+
+Vercel project now reads autoExposeSystemEnvs=false; source requires exactlyfalse before provider work. Official docs support disabling system variables but actual build/runtime/header bypass isolation still needs measurement. A separate trusted boolean-only diagnostic fixture is prepared and independently reviewed; ordinary release validation correctly refuses its environment/API route source, so it is not smuggled into a customer release. One extra third build is awaiting owner approval while the two normal version builds remain reserved. No extra build has started. Existing verified Clerk test actors have fresh task-owned sessions; no account or email was created/sent.
+
+### Live acceptance and corrected blockers, 2026-10-03
+
+The owner approved three hosting builds total within included usage. Diagnostic dpl_8ZuzMzVpkfC7mrebaK1rb4JV5zcN consumed one. It first returned build/runtime environment false but bypass header true. The sole project-level live CDN rule now deletes that request header before customer code: the same immutable diagnostic returns all three flags false, authenticated200 and anonymous302. No second diagnostic build was needed. Strict live-version/rule validation now guards provider operations and each review proxy request. Operator settings must remain stable while the credential is active; revoke it before removing the rule.
+
+Second Railway attempt failed before runtime because scoped lint lacked root.gitignore. Third84bbc0ff-0c22-440b-8741-2ddc6daed3ae passed Linux14 guard/startup cases, focused release34 cases/146 assertions, Next compilation/typechecking and isolated backend deployment. Its Convex lint command ignored files, so it is not lint evidence; the subsequent actual root-scoped lint passed0errors/458warnings. Its deployment key was revoked and its stored Railway variable removed. A fourth candidate is being assembled only for confirmed live fixes, retaining the original11:25:47UTC deadline.
+
+Customer invitation was claimed in the real browser without sending email.31 live API cases passed for approved pages/blocks, Journal save/archive/restore, exact retries, stale revision/approval refusal and one retained-backup restore. Source project sx7fy2n8xx5n0rqfvn6t3t7rkx8fjf3b remains separate from restored project sx77f8v7f36nfde1zsjyrxgqxx8fkh7j, which is stopped, unopened and builder-only. Evidence: task-local content-acceptance-evidence.json. The real canvas then exposed a rejected approved heading edit: the writer reformatted untouched JSX text outside the binding. Comparison now accepts only equivalent rendered JSX whitespace, preserving permissions, comments, syntax and saved fingerprints. Image upload returned empty403 because the server compared public HTTPS Origin with its internal proxy URL; it now checks the configured public origin. These fixes and CDN admission passed94 focused cases/717 assertions plus4 image-origin cases/14 assertions, and eleven-file lint0errors/416warnings. Independent review approved them. Runtime7 is allocated;8 remains reserved. Visual save/upload/reopen and normal publish/rollback are still unproved.
+
+
+### 2026-10-03 fifth candidate and actual provider acceptance
+
+Fifth isolated Railway candidate `e374f53c-cd5a-4ee3-b5ef-90579183ff80` uses source manifest `69601296fcf39328fb2fdeb35dc9503f1d0d51544a7c580268d2a09f71250f10`. Next build/type checking and focused remote checks passed, including 12 Journal/routing cases with 61 assertions. It includes the peer's six reviewed working-level/sign-in/message files. No full suite was requested or run.
+
+Actual customer flows exposed and prompted reviewed fixes for compiler-equivalent JSX text formatting, reverse-proxy image-upload origin validation, the hidden code panel's stale reload warning, Journal's false own-save conflict, and restricted page menus. Review-host requests initially reached Weblab instead of the isolated site because Next uses an internal URL; strict actual Host routing corrected this. Existing forwarded headers are not trusted.
+
+Two included Vercel builds used of three authorized. The diagnostic proved the provider bypass header initially reached customer runtime; the exact live CDN request-header deletion rule now removes it before customer code and is required before every credential-bearing operation. First normal immutable release `nh7fqw1a9c0w8m5sd13q93d37h8fj05x` built successfully. Operator bootstrap of the reserved test alias served its expected HTML anonymously, with exact deployment readback and the raw URL still protected. The alias was removed immediately; both API/public HTTP404 were verified. This is provider alias proof, not an accepted customer publish/rollback journey.
+
+Actual review-host proof: anonymous401 with no app/Clerk response, content-customer bootstrap refusal, foreign-origin exchange403, valid builder exchange303 with Secure/HttpOnly/host-only/Lax cookie, and replay403. Authenticated HTML still returns502, while separate backend authorization, runtime credentials, provider ownership/policy and protected raw HTML succeed. Gateway/public proof flags remain false. T3 then timed out on status/open/evaluate; owner panel reopen was requested. Final canvas acceptance, release review/publish/rollback and opened restored-copy proof remain incomplete. The last sandbox start and last hosting build were not consumed while blocked. Fixed shutdown deadline remains11:25:47UTC; no automatic extension or continuing beta hosting is authorized.
+
+
+### Short-pass closure, 2026-10-03 11:24 UTC
+
+The exact fifth Railway deployment was removed before the fixed11:25:47 deadline; provider readback lists zero active deployments. Service runtime credentials were removed. Isolated Convex provisioning/releases are disabled, customer start allowance is zero, runtime/image/review/provider secrets were removed, and the temporary deploy key was revoked with actual401 denial after propagation. Both task-created Clerk sessions were revoked. Private project/source/backups remain retained; existing dev/prod were not touched.
+
+The sole Vercel task bypass was revoked, old-key access denied302, both exact test deployments deleted with API404 readback, and both reserved/generated test aliases removed. The task project/protection/CDN rule remain. Deletion has provider retention semantics; do not equate it with instant storage purging or claim an exact invoice amount. Two of three authorized included hosting builds and seven of eight sandbox starts were used. The final build/start were not spent. No ongoing runtime or beta hosting was authorized.
+
+The six beta gates are **not accepted**. Remaining release blockers: authenticated review gateway502; actual customer visual save/upload/undo/redo/reload after fixes; browser blocks/Journal completion; two immutable reviews→publish→rollback through the customer flow; actual opened restored-copy and revoked-runtime access proof; a persistent privately owned hosting arrangement. The native peer also observed a Project error after the fifth switch; server logs showed Clerk unexpected EOF errors without an established causal link. Its draft was not reset. AI restrictions/chat, live shared cursors and local-to-cloud upload remain later product scope, not delivered parity with the original brief.
+
+Evidence is in the private task folder `/tmp/weblab-shortpass-20261003`: `gateway-final-evidence.json`, `public-alias-proof.json`, `vercel-cleanup-evidence.json`, `shortpass-close-evidence.json`. No raw credentials belong in repository notes. No release/commit/push was made from the shared dirty main; peer source remains untouched.
+
+
+### Prepared follow-up, awaiting renewed runtime authorization
+
+The actual TypeScript `CloudReleaseVercel.verifyProject` was exercised read-only under Bun1.3.10 after shutdown and passed. T3 status/open respond again. Neither observation proves the failed hosted proxy works.
+
+A three-file diagnostic change now reports only a fixed failure stage and exact allowlisted reason. Request headers, URLs, cookies, tokens, raw errors and customer bytes never enter this diagnostic. Callback failure cannot change access checks or empty failure responses. A composed no-network case connects the real provider adapter to the proxy, preserving the captured CDN route shape and clearly marking synthetic metadata/HTML. Fresh independent review found no actionable issue. Focused checks82/562, scoped lint zero errors (141 existing/style warnings), web-client typecheck exit0. No new deployment was started.
+
+Prepared candidate manifest `2ed152707179164c2c51fbf58dc9ab2159988d6af721f006bd89192b9f5d68ba`, parent fifthmanifest69601296…, differs in only the reviewed three proxy/test/route files. Snapshot credentials remain excluded. Its manifest is `snapshot-diagnostics-manifest.json` in the private task folder; the old manifest remains an historical receipt.
+
+Owner approval requested for a new30-minute Railway window capped at2SEK extra and at most two new included Vercel builds (four total). This is pending, not authorization. No new subscription or production changes. Same pinned private app/Convex and EW disposable test destination. At most two Railway candidate activations; fixed absolute stop time set once when approval arrives, never reset on retry. Preserve1CPU/2GB/one replica/NEVER restart/256MiB TX guard. [Railway resource rates](https://docs.railway.com/pricing/plans): $0.000463/vCPU/min, $0.000231/GB/min and $0.05/GB egress.30min at full1CPU+2GB plus two256MiB transmission reservations is approximately $0.055 before contingency. Using15SEK/USD as a conservative budget factor, not a quoted exchange rate, plus25% contingency stays below2SEK. This is a reservation estimate, not provider-enforced monetary metering or an actual invoice.
+
+Sequence: prove authenticated review HTML/assets with the prepared diagnostics; correct only an established cause; retain the first disposable deployment during the pass. Start the sole remaining authorized15-minute sandbox only after review works. Exercise customer editing and save/reload, then review/publish first and second immutable versions and rollback. Stop and revoke exact task resources by the fixed deadline. Any unresolved result remains blocked, not converted into a beta-ready claim. If the first review is still broken, preserve exact stage evidence and do not consume the editor start or second site build blindly.
+
+
+### Approved follow-up closed, 2026-10-03
+
+Owner approved max2SEK additional Railway/30min and up to four included Vercel builds total. Fixed window13:39:51–14:09:51UTC. Only candidate `a04b9a31-17be-4d5c-b01a-c7778fa62241` activated, from diagnostics manifest2ed15270…. Existing private dev/prod and customer production unchanged. First new immutable release `nh7fvgwem6t070629kc4q3x1ax8fj8ee` revision18 built READY as `dpl_J98kF5pAc67GLzox2Bjcx82coHxF`. Three site builds used overall. Neither the fourth build nor sandbox8 was consumed.
+
+Actual customer Journal entry was edited, saved as ready, closed and reopened with the new body retained and no false save conflict. T3 DOM interaction worked; screenshot capture remained unavailable. Canvas runtime was not started while release review remained blocked. Review access checks repeated successfully, but authenticated HTTP still returned502, now localized to provider-verification/unknown. All gateway/public proof flags remained false.
+
+Controlled same-container diagnosis used a temporary task-only SSH key. Actual source provider verification succeeded. The compiled Next route with the live review session returned200/17369bytes standalone. A fresh session then produced200 before the compiled startup instrumentation ran,502 immediately after it, and502 with the Next request context added. A separate process with `OTEL_SDK_DISABLED=true` plus the same startup hook returned200/17369bytes. This isolates the startup telemetry interaction; no provider/auth bypass was removed. Installed @vercel/otel1.14.1 automatically clones/drains response streams. A source correction disables only that automatic fetch/http instrumentation, retaining exporter, tracer and crash handlers. It still requires local checks/review and actual hosted HTML/assets proof. Clerk EOF correlation is not separately established.
+
+Cleanup completed before the fixed deadline: Railway stopped and credentials removed14:06:30UTC; backend disabled and task key revoked; old Convex key returned401 by14:07:20UTC. Vercel bypass revoked and denied302, exact generated alias/deployment deleted and absence verified14:06:58UTC. Temporary SSH key removed, registered-key list empty and own local key files deleted. Only task-created Clerk sessions revoked. Browser lease released. Source, backups, packages and settings retained. Receipts are private in `/tmp/weblab-followup-20261003`, including shortpass-close-evidence.json and vercel-cleanup-evidence.json. Provider billing is not yet an actual invoice; the cap was enforced by the fixed bounded pass, not claimed as a provider monetary hard limit.
+
+Agent Mail handoff acknowledged WhiteGorge's native repair pins and old separate native window, whose deadline13:38:56UTC had already passed. No extension inferred, no later native files silently activated. Peer informed of telemetry finding and shutdown. All six beta gates remain unaccepted; no ongoing beta host.
+
+Final correction: `instrumentation.ts` sets `instrumentations: []`. Installed SDK source confirms default auto is its fetch/http wrapper only; manual tracing, exporter, context manager, crash handlers and Next spans remain. The isolated regression calls actual startup/SDK with a fake multi-chunk HTTP response, proves the fetch function is untouched/no clones and JSON intact, and proves the exporter and a recording manual span are active. It preserves inherited machine heap/guard settings and isolates only telemetry config; owned child cleanup rechecks liveness before escalation. Fresh reviewer `telemetry_fix_review` accepted after correcting the test timeout. Focused regression1/1, scoped lint0errors/0warnings and web-client typecheck exit0. Existing82 proxy/provider cases remain valid because those files did not change.
+
+Next candidate is prepared without activation: manifest `bc421328332d199fbdd6ab3097b750f0783e0b5105699685068f8804421e29ee` in the follow-up task directory, changes exactly startup instrumentation and its regression from the previous diagnostics snapshot. All parent snapshot hashes verified first. The historical native pins remain separate. No extension, fourth site build or eighth sandbox start authorized by inference. Next runtime proof must use a newly bounded approved window; complete two-version publication/rollback would require two fresh retained site deployments, exceeding the one remaining included build under the current four-total cap.
+
+Stable startup correction committed locally as `7e7cc56f6` (two owned source/test files only), not pushed. Cloud delivery/backlog/catalog/test-plan notes remain with the pre-existing shared dirty tree; unrelated peer changes were not staged.
+
+
+### Evening acceptance and closure, 2026-10-03
+
+Owner approved an additional max2SEK/30-minute Railway pass and two new included site builds, five total. Fixed window18:48:50–19:18:50UTC was not reset. Two app candidates were used. Final candidate `1fc477cd-9e86-462a-b51b-0a675281bc88`, manifest `49eb8631962657ab87963a4111b4d4259cd2b120b63bc88961a0ed6d045e0213`, includes the reviewed telemetry fix and a narrow private-header correction. No native repair pins were included.
+
+The telemetry correction removed the actual502. The first working HTML response exposed a separate Next header-precedence defect: marketing cache and app CSP headers survived route handling. Both middleware review branches now install private/no-store, strict release CSP, DENY, no-referrer and nosniff before rewriting. Fresh independent review accepted the correction;25 focused routing/proxy cases, scoped lint0errors and web-client typecheck passed. Actual final HTML200/17369bytes, JS200/17474bytes and CSS200/17157bytes had the exact private headers. Anonymous requests401, foreign origin403, replay403, unknown session refusal, reissue revocation and an expired unused ticket403 passed. Natural15-minute cookie expiry remains untested. No actual cross-user cache disclosure was established.
+
+Two frozen normal site builds reached READY: revision19 (`nh7dx0r20285vj5zznfh8s75hn8fjr7p`) and revision23 (`nh7ezq4adhsrwfzx05dsbv8m5x8fjrgn`). Exact first-version alias bootstrap served anonymous200 while raw deployment remained protected, then alias removal404 was verified. Only after these measured proofs were gateway/alias flags set, with remaining builds0 and the original deadline. This operator bootstrap is not customer publish/rollback acceptance.
+
+Actual customer UI added Text and Callout blocks in the approved home slot, moved Callout first, and created `/evening-story` from a template. Durable source reached revision23 and the second build contains that page/structure. Sandbox8 reached ready/appliedRevision23 and desktop/phone preview iframes mounted. No final customer text/image/attribute save, undo/redo/reload/recovery was completed during this pass. Clicking Version19 “Open private review” changed T3's attached tab to `about:blank`, where it remained. No customer review confirmation or publish/rollback was attempted. Independent source review could not establish an app defect or T3 causality; test the async popup/form handoff with a mocked issuer before another paid pass. T3 screenshots remained unavailable, so DOM interaction is not visual-quality acceptance.
+
+Cleanup: sandbox8 `sbx_GNZtdm22vddgOV7URUAQ9J3J6UiC` was stopped and provider state verified; the original8/8 ledger is exhausted. Railway removal/credential stripping completed19:14:50UTC with zero active deployments. Isolated backend editor/releases disabled, preview allowance0, runtime secrets removed, task Clerk sessions revoked and exact deploy key revoked; old-key401 confirmed19:16:17. Both evening site deployments and generated/reserved aliases were deleted; provider404 readback completed19:15:43, old bypass denied302. Project protection/CDN settings and private source/backups remain. All cleanup preceded19:18:50. Actual invoice remains unreported; bounded resource use is not a provider monetary hard limit.
+
+Private evidence: `/tmp/weblab-acceptance-20261003-evening/{gateway-http-proof,public-alias-proof,source-after-structure,shortpass-close-evidence,vercel-cleanup-evidence,provider-final-absence,sandbox-eight-stopped}.json`. No credentials are copied to repo notes. Agent Mail informed WhiteGorge; no ongoing host or fresh spending authorization exists.
+
+The six connected beta gates remain unaccepted. Next: reproduce popup handoff without cloud cost; finish customer canvas/upload/history/recovery, customer immutable review/publish/rollback with a newer draft retained, opened restored-copy/revoked-runtime/restart proof, and decide persistent private hosting. AI/chat restrictions, presence and local upload remain later original-brief work. Startup fix is committed locally as7e7cc56f6; the four routing/header source files remain with the earlier uncommitted cloud integration on shared main. No push or public release announcement.

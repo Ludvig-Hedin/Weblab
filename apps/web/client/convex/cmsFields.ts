@@ -4,6 +4,9 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation, query } from './_generated/server';
 import { vCmsFieldType } from './lib/enums';
+import { mergeFieldConfig } from './lib/cmsFieldConfig';
+import { cmsRevision, nextCmsRevision } from './lib/cmsRevision';
+import { validateAndCleanItemValues } from './lib/cmsValueValidation';
 import { requireCap } from './lib/permissions';
 
 const FIELD_KEY_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
@@ -37,6 +40,50 @@ async function assertCollectionInProject(
     }
 }
 
+async function requireNativeCollection(ctx: MutationCtx, collectionId: Id<'cmsCollections'>): Promise<void> {
+    const collection = await ctx.db.get(collectionId);
+    const source = collection ? await ctx.db.get(collection.sourceId) : null;
+    if (!collection || !source || source.projectId !== collection.projectId) throw new Error('NOT_FOUND: source');
+    if (source.type !== 'weblab') throw new Error('READ_ONLY: Manage these fields in the external CMS.');
+}
+
+async function collectionItems(ctx: MutationCtx, collectionId: Id<'cmsCollections'>): Promise<Doc<'cmsItems'>[]> {
+    const items = await ctx.db.query('cmsItems').withIndex('by_collection', (q) => q.eq('collectionId', collectionId)).take(501);
+    if (items.length > 500) throw new Error('BAD_REQUEST: Field changes support up to 500 saved items. No settings were changed.');
+    return items;
+}
+
+async function validateConfigTarget(ctx: MutationCtx, projectId: Id<'projects'>, field: Pick<Doc<'cmsFields'>, 'type' | 'config'>): Promise<void> {
+    if (field.type !== 'reference') return;
+    const config = field.config as Record<string, unknown>;
+    const id = typeof config.collectionId === 'string' ? ctx.db.normalizeId('cmsCollections', config.collectionId) : null;
+    const target = id ? await ctx.db.get(id) : null;
+    if (!target || target.projectId !== projectId) throw new Error('BAD_REQUEST: The reference collection must belong to this project.');
+}
+
+async function validateSavedValues(ctx: MutationCtx, field: Doc<'cmsFields'>, items: Doc<'cmsItems'>[]): Promise<void> {
+    let referencesChecked = 0;
+    for (const item of items) {
+        const cleaned = validateAndCleanItemValues([field], item.values ?? {});
+        if (field.type !== 'reference' || cleaned[field.key] === undefined) continue;
+        const value = cleaned[field.key];
+        const references = Array.isArray(value) ? value as string[] : [value as string];
+        referencesChecked += references.length;
+        if (referencesChecked > 500) throw new Error('BAD_REQUEST: Too many saved references to validate this field change. No settings were changed.');
+        const config = field.config as Record<string, unknown>;
+        for (const reference of references) {
+            const id = ctx.db.normalizeId('cmsItems', reference);
+            const target = id ? await ctx.db.get(id) : null;
+            if (!target || target.collectionId !== config.collectionId) throw new Error('BAD_REQUEST: Existing references do not belong to the selected collection.');
+        }
+    }
+}
+
+async function invalidateItemEditors(ctx: MutationCtx, items: Doc<'cmsItems'>[]): Promise<void> {
+    // Metadata changes must invalidate open content forms too, even when values stay intact.
+    for (const item of items) await ctx.db.patch(item._id, { revision: cmsRevision(item) + 1, updatedAt: Date.now() });
+}
+
 export const listByCollection = query({
     args: {
         projectId: v.id('projects'),
@@ -48,7 +95,8 @@ export const listByCollection = query({
         const rows = await ctx.db
             .query('cmsFields')
             .withIndex('by_collection_order', (q) => q.eq('collectionId', collectionId))
-            .collect();
+            .take(501);
+        if (rows.length > 500) throw new Error('BAD_REQUEST: Too many collection fields.');
         rows.sort((a, b) => a.order - b.order || a._creationTime - b._creationTime);
         return rows;
     },
@@ -68,6 +116,7 @@ export const create = mutation({
     handler: async (ctx, args) => {
         await requireCap(ctx, 'project.update', { projectId: args.projectId });
         await assertCollectionInProject(ctx, args.projectId, args.collectionId);
+        await requireNativeCollection(ctx, args.collectionId);
         const name = validateName(args.name);
         const key = validateFieldKey(args.key);
         if (args.helpText !== undefined && args.helpText.length > 200) {
@@ -76,24 +125,32 @@ export const create = mutation({
         const existing = await ctx.db
             .query('cmsFields')
             .withIndex('by_collection', (q) => q.eq('collectionId', args.collectionId))
-            .collect();
+            .take(501);
+        if (existing.length >= 500) throw new Error('BAD_REQUEST: A collection supports up to 500 fields.');
         if (existing.some((f) => f.key === key)) {
             throw new Error(
                 `CONFLICT: A field with key "${key}" already exists in this collection`,
             );
         }
+        const config = mergeFieldConfig(args.type, {}, args.config);
+        const candidate = { key, name, type: args.type, config, required: args.required ?? false } as Doc<'cmsFields'>;
+        await validateConfigTarget(ctx, args.projectId, candidate);
+        const items = await collectionItems(ctx, args.collectionId);
+        await validateSavedValues(ctx, candidate, items);
         const order = existing.length;
         const id = await ctx.db.insert('cmsFields', {
             collectionId: args.collectionId,
             name,
             key,
             type: args.type,
+            revision: 1,
             helpText: args.helpText,
             required: args.required ?? false,
-            config: args.config ?? {},
+            config,
             order,
             updatedAt: Date.now(),
         });
+        await invalidateItemEditors(ctx, items);
         return (await ctx.db.get(id))!;
     },
 });
@@ -102,12 +159,13 @@ export const update = mutation({
     args: {
         projectId: v.id('projects'),
         fieldId: v.id('cmsFields'),
+        expectedRevision: v.number(),
         name: v.optional(v.string()),
         helpText: v.optional(v.string()),
         required: v.optional(v.boolean()),
         config: v.optional(v.any()),
     },
-    handler: async (ctx, { projectId, fieldId, name, helpText, required, config }) => {
+    handler: async (ctx, { projectId, fieldId, expectedRevision, name, helpText, required, config }) => {
         await requireCap(ctx, 'project.update', { projectId });
         const existing = await ctx.db.get(fieldId);
         if (!existing) throw new Error('NOT_FOUND: field');
@@ -115,15 +173,24 @@ export const update = mutation({
         if (!collection || collection.projectId !== projectId) {
             throw new Error('NOT_FOUND: field');
         }
-        const patch: Partial<Doc<'cmsFields'>> = { updatedAt: Date.now() };
+        await requireNativeCollection(ctx, existing.collectionId);
+        const patch: Partial<Doc<'cmsFields'>> = { updatedAt: Date.now(), revision: nextCmsRevision(existing, expectedRevision) };
         if (name !== undefined) patch.name = validateName(name);
         if (helpText !== undefined) {
             if (helpText.length > 200) throw new Error('BAD_REQUEST: helpText max 200');
             patch.helpText = helpText;
         }
         if (required !== undefined) patch.required = required;
-        if (config !== undefined) patch.config = config;
+        if (config !== undefined) patch.config = mergeFieldConfig(existing.type, existing.config, config);
+        const needsValidation = config !== undefined || required !== undefined;
+        const items = needsValidation ? await collectionItems(ctx, existing.collectionId) : [];
+        if (needsValidation) {
+            const candidate = { ...existing, ...patch };
+            await validateConfigTarget(ctx, projectId, candidate);
+            await validateSavedValues(ctx, candidate, items);
+        }
         await ctx.db.patch(fieldId, patch);
+        await invalidateItemEditors(ctx, items);
         return (await ctx.db.get(fieldId))!;
     },
 });
@@ -140,8 +207,11 @@ export const reorder = mutation({
         const existing = await ctx.db
             .query('cmsFields')
             .withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-            .collect();
+            .take(501);
+        await requireNativeCollection(ctx, collectionId);
+        if (existing.length > 500) throw new Error('BAD_REQUEST: Too many collection fields.');
         const validIds = new Set(existing.map((f) => f._id));
+        if (orderedFieldIds.length !== existing.length || new Set(orderedFieldIds).size !== orderedFieldIds.length) throw new Error('BAD_REQUEST: Supply every field exactly once.');
         for (const id of orderedFieldIds) {
             if (!validIds.has(id)) {
                 throw new Error(`BAD_REQUEST: Field ${id} does not belong to this collection`);
@@ -149,7 +219,8 @@ export const reorder = mutation({
         }
         const now = Date.now();
         for (let i = 0; i < orderedFieldIds.length; i++) {
-            await ctx.db.patch(orderedFieldIds[i]!, { order: i, updatedAt: now });
+            const field = existing.find((entry) => entry._id === orderedFieldIds[i])!;
+            await ctx.db.patch(field._id, { order: i, revision: cmsRevision(field) + 1, updatedAt: now });
         }
         return { success: true } as const;
     },
@@ -159,8 +230,9 @@ export const remove = mutation({
     args: {
         projectId: v.id('projects'),
         fieldId: v.id('cmsFields'),
+        expectedRevision: v.number(),
     },
-    handler: async (ctx, { projectId, fieldId }) => {
+    handler: async (ctx, { projectId, fieldId, expectedRevision }) => {
         await requireCap(ctx, 'project.update', { projectId });
         const existing = await ctx.db.get(fieldId);
         if (!existing) throw new Error('NOT_FOUND: field');
@@ -168,21 +240,19 @@ export const remove = mutation({
         if (!collection || collection.projectId !== projectId) {
             throw new Error('NOT_FOUND: field');
         }
+        nextCmsRevision(existing, expectedRevision);
         const collectionId = existing.collectionId;
+        await requireNativeCollection(ctx, collectionId);
         const fieldKey = existing.key;
 
         // Bug 3 fix: cleanup stale values + broken bindings.
         // (a) Strip values[fieldKey] from every item in the collection.
-        const items = await ctx.db
-            .query('cmsItems')
-            .withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-            .collect();
+        const items = await collectionItems(ctx, collectionId);
         for (const item of items) {
             const itemValues = (item.values ?? {}) as Record<string, unknown>;
-            if (!(fieldKey in itemValues)) continue;
             const next: Record<string, unknown> = { ...itemValues };
             delete next[fieldKey];
-            await ctx.db.patch(item._id, { values: next, updatedAt: Date.now() });
+            await ctx.db.patch(item._id, { values: next, revision: cmsRevision(item) + 1, updatedAt: Date.now() });
         }
 
         // (b) Delete bindings referencing this field on this collection.
@@ -195,7 +265,8 @@ export const remove = mutation({
         const projectBindings = await ctx.db
             .query('cmsBindings')
             .withIndex('by_project', (q) => q.eq('projectId', projectId))
-            .collect();
+            .take(501);
+        if (projectBindings.length > 500) throw new Error('BAD_REQUEST: Too many bindings to safely remove this field.');
         const collectionIdStr = collectionId as unknown as string;
         for (const binding of projectBindings) {
             const payload = binding.binding as {
@@ -245,7 +316,8 @@ export const remove = mutation({
         const collectionPages = await ctx.db
             .query('cmsCollectionPages')
             .withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-            .collect();
+            .take(501);
+        if (collectionPages.length > 500) throw new Error('BAD_REQUEST: Too many page mappings to safely remove this field.');
         for (const page of collectionPages) {
             if (page.matchFieldKey === fieldKey) {
                 await ctx.db.delete(page._id);

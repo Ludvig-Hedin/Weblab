@@ -1,5 +1,6 @@
+import { resolveReleaseReviewRequest, secureReleaseReviewResponse } from './src/lib/cloud-releases/review-routing';
 import { clerkMiddleware } from '@clerk/nextjs/server';
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 // Post-migration middleware: Clerk-only. Supabase session-refresh path is
@@ -36,8 +37,9 @@ const SKIP_EXACT = new Set([
 
 const SKIP_EXT = /\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|json|webmanifest|map|txt|woff|woff2|ttf)$/i;
 
-export default clerkMiddleware(async (_auth, request: NextRequest) => {
+const appMiddleware = clerkMiddleware(async (_auth, request: NextRequest) => {
     const { pathname } = request.nextUrl;
+
 
     if (
         SKIP_EXACT.has(pathname) ||
@@ -57,8 +59,26 @@ export default clerkMiddleware(async (_auth, request: NextRequest) => {
     // Include the query string — layouts build sign-in returnUrls from this
     // header, and pathname alone drops e.g. `?tab=members` deep-link state.
     requestHeaders.set('x-pathname', pathname + request.nextUrl.search);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    if (pathname === '/cloud-review' || pathname.startsWith('/cloud-review/')) {
+        response.headers.set('Cache-Control', 'private, no-store');
+        // Preserve the app Origin on the cross-origin POST ticket exchange.
+        response.headers.set('Referrer-Policy', 'strict-origin');
+    }
+    return response;
 });
+
+/** Designer code is served without a general app/Clerk session on the isolated review origin. */
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+    const suffix = process.env.WEBLAB_CLOUD_RELEASE_REVIEW_HOST_SUFFIX;
+    const review = resolveReleaseReviewRequest(request, suffix);
+    if (review.kind === 'reject') return secureReleaseReviewResponse(new NextResponse(null, { status: 404 }), true);
+    if (review.kind === 'review') {
+        const target = request.nextUrl.clone(); target.pathname = review.pathname;
+        return secureReleaseReviewResponse(NextResponse.rewrite(target));
+    }
+    return appMiddleware(request, event);
+}
 
 export const config = {
     matcher: ['/:path*'],

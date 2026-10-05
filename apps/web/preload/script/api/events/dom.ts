@@ -76,12 +76,17 @@ export function reportContentSize() {
     try {
         const docEl = document.documentElement;
         const body = document.body;
-        const height = Math.max(
-            docEl?.scrollHeight ?? 0,
-            docEl?.offsetHeight ?? 0,
-            body?.scrollHeight ?? 0,
-            body?.offsetHeight ?? 0,
-        );
+        // scrollHeight/offsetHeight never drop below the frame's own height,
+        // so a frame that once grew tall could never shrink back. Measure
+        // where the page content actually ends instead.
+        const height =
+            measureContentBottom() ||
+            Math.max(
+                docEl?.scrollHeight ?? 0,
+                docEl?.offsetHeight ?? 0,
+                body?.scrollHeight ?? 0,
+                body?.offsetHeight ?? 0,
+            );
         const width = Math.max(
             docEl?.scrollWidth ?? 0,
             docEl?.offsetWidth ?? 0,
@@ -99,6 +104,25 @@ export function reportContentSize() {
     } catch (error) {
         console.warn('reportContentSize failed:', error);
     }
+}
+
+/** Bottom edge of the body's in-flow content, in page pixels (0 if unknown). */
+function measureContentBottom(): number {
+    const body = document.body;
+    if (!body) return 0;
+    let bottom = 0;
+    for (const child of Array.from(body.children)) {
+        const style = getComputedStyle(child);
+        if (style.position === 'fixed' || style.display === 'none') continue;
+        const rect = child.getBoundingClientRect();
+        if (rect.height === 0 && rect.width === 0) continue;
+        bottom = Math.max(bottom, rect.bottom + window.scrollY + (parseFloat(style.marginBottom) || 0));
+    }
+    if (bottom === 0) return 0;
+    const bodyStyle = getComputedStyle(body);
+    return Math.ceil(
+        bottom + (parseFloat(bodyStyle.paddingBottom) || 0) + (parseFloat(bodyStyle.marginBottom) || 0),
+    );
 }
 
 /**

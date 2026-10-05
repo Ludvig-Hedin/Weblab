@@ -3,6 +3,7 @@ import { transformAst } from 'src/code-edit/transform';
 import { getAstFromContent, getContentFromAst } from 'src/parse';
 
 import type { CodeDiffRequest } from '@weblab/models';
+import { CodeActionType } from '@weblab/models';
 
 describe('transformAst', () => {
     test('renames tags and replaces classes for a matching element', async () => {
@@ -56,7 +57,7 @@ describe('transformAst', () => {
             overrideClasses: null,
             structureChanges: [
                 {
-                    type: 'insert',
+                    type: CodeActionType.INSERT,
                     oid: 'inserted',
                     tagName: 'section',
                     attributes: {},

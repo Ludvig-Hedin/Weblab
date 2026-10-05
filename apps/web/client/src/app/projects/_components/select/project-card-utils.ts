@@ -32,6 +32,7 @@ type ConvexProjectListCard = {
     updatedPreviewImgAt?: number;
     storageMode?: string;
     runtimeMetadata?: unknown;
+    defaultBranch?: { runtimeMetadata?: unknown } | null;
     siteUrl?: string | null;
     previewUrl?: string | null;
     publishedUrl?: string | null;
@@ -57,6 +58,15 @@ export function fromConvexProjectListCard(doc: ConvexProjectListCard): ProjectLi
         };
     }
 
+    const projectRuntime = doc.runtimeMetadata as ProjectRuntimeMetadata | null | undefined;
+    const branchRuntime = doc.defaultBranch?.runtimeMetadata as
+        | ProjectRuntimeMetadata
+        | null
+        | undefined;
+    const runtime = branchRuntime?.local
+        ? { ...projectRuntime, local: branchRuntime.local }
+        : (projectRuntime ?? null);
+
     return {
         id: doc._id,
         name: doc.name,
@@ -67,7 +77,7 @@ export function fromConvexProjectListCard(doc: ConvexProjectListCard): ProjectLi
             tags: doc.tags ?? [],
             previewImg,
             storageMode: doc.storageMode as ProjectStorageMode | undefined,
-            runtime: (doc.runtimeMetadata as ProjectRuntimeMetadata | null | undefined) ?? null,
+            runtime,
         },
         siteUrl: doc.siteUrl ?? null,
         previewUrl: doc.previewUrl ?? null,
@@ -82,6 +92,12 @@ export interface ProjectFolder {
     projectIds: string[];
     createdAt: string;
     updatedAt: string;
+}
+
+export interface ProjectOrganizationProps {
+    folders?: ProjectFolder[];
+    onMoveToFolder?: (folderId: string | null) => void | Promise<void>;
+    onCreateFolder?: () => void;
 }
 
 const PROJECT_FOLDERS_STORAGE_KEY = 'weblab_project_folders_v1';

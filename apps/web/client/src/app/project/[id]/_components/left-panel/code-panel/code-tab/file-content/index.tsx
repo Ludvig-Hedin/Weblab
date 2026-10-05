@@ -7,6 +7,7 @@ import { pathsEqual } from '@weblab/utility';
 
 import type { EditorFile } from '../shared/types';
 import type { EditorView } from '@codemirror/view';
+import type { CodeDraftPreflight } from '@/lib/code-drafts';
 import { transKeys } from '@/i18n/keys';
 import { CodeEditor } from './code-editor';
 import { UnsavedChangesDialog } from './unsaved-changes-dialog';
@@ -20,6 +21,8 @@ interface CodeEditorAreaProps {
     onSaveFile: () => Promise<void>;
     onSaveAndCloseFiles: () => Promise<void>;
     onUpdateFileContent: (fileId: string, content: string) => void;
+    onBeforeUpdateFileContent?: CodeDraftPreflight;
+    onDraftDispatchFailed?: () => void;
     onDiscardChanges: () => void;
     onCancelUnsaved: () => void;
     fileCountToClose?: number;
@@ -38,6 +41,8 @@ export const CodeEditorArea = ({
     onSaveFile,
     onSaveAndCloseFiles,
     onUpdateFileContent,
+    onBeforeUpdateFileContent,
+    onDraftDispatchFailed,
     onDiscardChanges,
     onCancelUnsaved,
     fileCountToClose,
@@ -74,6 +79,8 @@ export const CodeEditorArea = ({
                             editorViewsRef={editorViewsRef}
                             onSaveFile={onSaveFile}
                             onUpdateFileContent={onUpdateFileContent}
+                            onBeforeUpdateFileContent={onBeforeUpdateFileContent}
+                            onDraftDispatchFailed={onDraftDispatchFailed}
                             onSelectionChange={
                                 pathsEqual(activeFile?.path, file.path)
                                     ? onSelectionChange

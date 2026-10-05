@@ -13,16 +13,20 @@ import type { Doc } from '../_generated/dataModel';
 
 const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const URL_RE = /^https?:\/\/[^\s]+$/i;
-
-type FieldType = Doc<'cmsFields'>['type'];
+function validPublicUrl(value: string): boolean {
+    try {
+        const url = new URL(value);
+        return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && !/\s/.test(value);
+    } catch { return false; }
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function validateValueForType(type: FieldType, value: unknown, fieldName: string): unknown {
+function validateValueForType(field: Doc<'cmsFields'>, value: unknown): unknown {
+    const { type, name: fieldName } = field;
+    const config = isPlainObject(field.config) ? field.config : {};
     switch (type) {
         case 'text':
         case 'rich_text':
@@ -30,10 +34,13 @@ function validateValueForType(type: FieldType, value: unknown, fieldName: string
             if (typeof value !== 'string') {
                 throw new Error(`BAD_REQUEST: ${fieldName} must be a string`);
             }
+            if (config.format === 'url' && value !== '' && !validPublicUrl(value)) {
+                throw new Error(`BAD_REQUEST: ${fieldName} must be an HTTP or HTTPS link.`);
+            }
             return value;
         }
         case 'number': {
-            if (typeof value !== 'number' || Number.isNaN(value)) {
+            if (typeof value !== 'number' || !Number.isFinite(value)) {
                 throw new Error(`BAD_REQUEST: ${fieldName} must be a number`);
             }
             return value;
@@ -59,37 +66,32 @@ function validateValueForType(type: FieldType, value: unknown, fieldName: string
             if (!isPlainObject(value)) {
                 throw new Error(`BAD_REQUEST: ${fieldName} must be an object with { url, path? }`);
             }
-            if (typeof value.url !== 'string' || !URL_RE.test(value.url)) {
+            if (typeof value.url !== 'string' || !validPublicUrl(value.url)) {
                 throw new Error(`BAD_REQUEST: ${fieldName} requires a valid url`);
             }
             if (value.path !== undefined && typeof value.path !== 'string') {
                 throw new Error(`BAD_REQUEST: ${fieldName}.path must be a string`);
             }
+            if (value.alt !== undefined && typeof value.alt !== 'string') throw new Error(`BAD_REQUEST: ${fieldName}.alt must be a string`);
             return value;
         }
-        case 'option': {
-            if (typeof value === 'string') return value;
-            if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
-                return value;
-            }
-            throw new Error(`BAD_REQUEST: ${fieldName} must be a string or array of strings`);
-        }
+        case 'option':
         case 'reference': {
-            if (typeof value === 'string') {
-                if (!UUID_RE.test(value)) {
-                    throw new Error(`BAD_REQUEST: ${fieldName} must be a UUID`);
-                }
-                return value;
+            const entries = typeof value === 'string' ? [value] : value;
+            if (!Array.isArray(entries) || entries.length > 100 || !entries.every((entry) => typeof entry === 'string' && entry.length > 0 && entry.length <= 256)) {
+                throw new Error(`BAD_REQUEST: ${fieldName} must contain valid selections.`);
             }
-            if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
-                for (const id of value) {
-                    if (!UUID_RE.test(id)) {
-                        throw new Error(`BAD_REQUEST: ${fieldName} entries must be UUIDs`);
-                    }
+            if (config.multiple !== true && Array.isArray(value)) throw new Error(`BAD_REQUEST: ${fieldName} allows one selection.`);
+            if (new Set(entries).size !== entries.length) throw new Error(`BAD_REQUEST: ${fieldName} contains duplicate selections.`);
+            if (type === 'option') {
+                const options = config.options;
+                if (!Array.isArray(options) || !options.every((option) => typeof option === 'string')) {
+                    throw new Error(`BAD_REQUEST: Configure the options for ${fieldName} first.`);
                 }
-                return value;
+                if (entries.some((entry) => !options.includes(entry))) throw new Error(`BAD_REQUEST: ${fieldName} contains an unknown option.`);
             }
-            throw new Error(`BAD_REQUEST: ${fieldName} must be a UUID or array of UUIDs`);
+            // Reference IDs are checked against actual same-project rows by cmsItems.
+            return value;
         }
         default:
             return value;
@@ -106,10 +108,9 @@ function validateValueForType(type: FieldType, value: unknown, fieldName: string
  */
 export function validateAndCleanItemValues(
     fields: Doc<'cmsFields'>[],
-    values: Record<string, unknown>,
+    values: unknown,
 ): Record<string, unknown> {
-    const fieldByKey = new Map<string, Doc<'cmsFields'>>();
-    for (const f of fields) fieldByKey.set(f.key, f);
+    if (!isPlainObject(values)) throw new Error('BAD_REQUEST: Item values must be an object.');
 
     const cleaned: Record<string, unknown> = {};
 
@@ -119,7 +120,7 @@ export function validateAndCleanItemValues(
 
         // Required check first — matches Zod's `.refine` on required fields.
         if (field.required) {
-            if (raw === undefined || raw === null || raw === '') {
+            if (raw === undefined || raw === null || raw === '' || (Array.isArray(raw) && raw.length === 0)) {
                 throw new Error(`BAD_REQUEST: ${field.name} is required`);
             }
         }
@@ -127,7 +128,7 @@ export function validateAndCleanItemValues(
         // Optional + missing → drop the key (don't store null/undefined).
         if (raw === undefined || raw === null) continue;
 
-        cleaned[field.key] = validateValueForType(field.type, raw, field.name);
+        cleaned[field.key] = validateValueForType(field, raw);
     }
 
     // 2) Unknown keys (i.e. keys not in fieldByKey) are implicitly stripped

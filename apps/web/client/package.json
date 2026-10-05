@@ -24,7 +24,7 @@
         "convex:codegen": "convex codegen",
         "lint": "eslint . --max-warnings 5000",
         "format": "eslint --fix .",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "bun run scripts/generate-message-types.mjs && tsc --noEmit",
         "prebuild": "bun run ../../../packages/ai/scripts/generate-skills.ts",
         "build": "next build",
         "start": "next start",

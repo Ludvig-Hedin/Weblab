@@ -46,11 +46,7 @@ function ProjectsDropdown() {
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="compact"
-                    className="text-foreground-secondary -mx-1 gap-1 px-1 py-2 text-sm hover:opacity-80 active:opacity-60"
-                >
+                <Button variant="ghost" className="text-foreground-secondary gap-1.5">
                     {t('projects')}
                     <Icons.ChevronDown
                         className={cn(
@@ -137,7 +133,7 @@ export const TopBar = () => {
     // global drag-fallback strip swallows clicks on these buttons. No-op on web
     // (the rules are scoped to [data-desktop]).
     return (
-        <div className="desktop-drag-region text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center gap-4 p-4">
+        <div className="desktop-drag-region text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center gap-3 p-4">
             <Link href={Routes.HOME} className="flex shrink-0 items-center py-3">
                 <BrandLogo className="h-4" />
             </Link>
@@ -149,14 +145,11 @@ export const TopBar = () => {
                 </>
             ) : null}
 
-            <div className="flex shrink-0 items-center gap-5">
+            <div className="flex shrink-0 items-center gap-1">
                 <ProjectsDropdown />
-                <Link
-                    href={Routes.MARKETPLACE}
-                    className="text-foreground-secondary -mx-1 px-1 py-2 text-sm hover:opacity-80 active:opacity-60"
-                >
-                    {t('marketplace')}
-                </Link>
+                <Button variant="ghost" className="text-foreground-secondary" asChild>
+                    <Link href={Routes.MARKETPLACE}>{t('marketplace')}</Link>
+                </Button>
             </div>
 
             <div className="flex-1" />

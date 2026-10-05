@@ -17,6 +17,8 @@
  * confined to the per-call project root; `..` / absolute escapes are rejected.
  */
 
+const { privateCredentialPath, privateCopyExclusion } = require('./private-path-policy');
+
 let ipcMain;
 let dialog;
 let app;
@@ -36,6 +38,9 @@ const http = require('http');
 const net = require('net');
 const os = require('os');
 const { pathToFileURL } = require('url');
+const { AsyncLocalStorage } = require('async_hooks');
+const { readProcessTable } = require('./cli/process-identity');
+const { runCapture } = require('./cli/process');
 
 // chokidar is an optional dep until `bun install` runs in apps/desktop. Load it
 // lazily so the desktop app still boots (with watch disabled) if it's missing.
@@ -181,12 +186,13 @@ async function withWriteLock(abs, operation) {
     }
 }
 
-async function currentFile(abs) {
+async function currentFile(abs, maxBytes = Infinity) {
     let handle;
     try {
         handle = await fsp.open(abs, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
         const before = await handle.stat({ bigint: true });
         if (!before.isFile()) throw new Error('not_regular_file');
+        if (maxBytes !== Infinity && before.size > BigInt(maxBytes)) throw new Error('file_size_limit');
         const bytes = await handle.readFile();
         const after = await handle.stat({ bigint: true });
         if (!sameFileVersion(before, after)) throw new Error('file_changed_during_read');
@@ -355,6 +361,7 @@ async function writeIfUnchanged(root, rel, content, expectedSha256) {
             if (before.hash !== expectedSha256) {
                 return { conflict: true, hash: before.hash, recoveryPath };
             }
+            if (cmsInstallContext.getStore()?.root === root) assertSiteInstallActive();
             await fsp.mkdir(path.dirname(abs), { recursive: true });
             await verifyExistingParent(root, abs);
             temporaryPath = path.join(path.dirname(abs), `.weblab-${randomUUID()}.tmp`);
@@ -377,6 +384,7 @@ async function writeIfUnchanged(root, rel, content, expectedSha256) {
             // best-effort only; an external process can still swap a parent or
             // target after this check and before link()/rename().
             await verifyExistingParent(root, abs);
+            if (cmsInstallContext.getStore()?.root === root) assertSiteInstallActive();
             if (expectedSha256 === null) {
                 // link() is no-replace: an external creator wins atomically.
                 try {
@@ -600,6 +608,9 @@ async function localBunExecutable() {
 // user's HOME/cache. Only a registered private Git copy can reach this path.
 const dependencyInstalls = new Map();
 const startingDevServers = new Set();
+// In-flight starts, so a reloaded editor joins the running start instead of
+// failing with "already starting".
+const pendingDevServerStarts = new Map();
 let localShuttingDown = false;
 const INSTALL_TIMEOUT_MS = 3 * 60 * 1000;
 const INSTALL_MAX_OUTPUT_BYTES = 128 * 1024;
@@ -946,6 +957,7 @@ async function installDependencies(root, base = privateWorkingCopyBase()) {
     try {
         if (localShuttingDown) return { error: 'Weblab is closing.' };
         canonical = await requirePrivateWorkingRoot(root, base);
+        await assertPrivateCredentialsAbsent(canonical);
         if (dependencyInstalls.size) return { error: 'Another dependency install is already running.' };
         if (devServers.has(canonical) || startingDevServers.has(canonical)) {
             return { error: 'Stop the local preview before installing dependencies.' };
@@ -1370,6 +1382,26 @@ function isDevServerRunning(rec) {
 }
 
 async function startDevServer(root, command, requestedPort, getWebContents) {
+    const ownStart = !startingDevServers.has(root);
+    if (ownStart) startingDevServers.add(root);
+    try { return await startDevServerUnlocked(root, command, requestedPort, getWebContents); }
+    finally { if (ownStart) startingDevServers.delete(root); }
+}
+
+async function startDevServerUnlocked(root, command, requestedPort, getWebContents) {
+    try {
+        if (privateWorkingCopyRecords.has(root)) await assertRetainedSanitySiteReady(root);
+        else if (path.basename(root) === 'project') {
+            // Also block interrupted setup after restart, before private registration.
+            const retained = await readSiteInstall(path.dirname(root), path.basename(path.dirname(root)));
+            if (retained) {
+                if (retained.install.status !== 'complete') throw new Error('Sanity website setup needs recovery before preview.');
+                await verifyIncomingSiteSourceInventory(root, retained.artifact, retained, retained.history);
+            }
+        }
+        await assertPrivateCredentialsAbsent(root);
+    }
+    catch (error) { return { error: error.message }; }
     const existing = devServers.get(root);
     if (isDevServerRunning(existing)) {
         return { port: existing.port, url: existing.url };
@@ -1484,7 +1516,10 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
     }
     if (!listening) {
         if (devServers.get(root) === rec) await stopDevServer(root);
-        return { error: `Dev server did not bind port ${port}. Check its dev script and try again.` };
+        // Keep the last dev-server output so the editor's Details view can
+        // show why it stopped (a crash, a port clash, a missing env var).
+        const tail = rec.output.join('').trim().slice(-1500);
+        return { error: `Dev server did not bind port ${port}. Check its dev script and try again.${tail ? `\n\n${tail}` : ''}` };
     }
     return { port, url: rec.url };
 }
@@ -1718,7 +1753,7 @@ async function writePrivateCopyIndex(base, index) {
     }
 }
 
-async function writePrivateJsonFile(directory, name, value, mode = 0o600) {
+async function writePrivateJsonFile(directory, name, value, mode = 0o600, assertActive) {
     const target = path.join(directory, name);
     const temporary = path.join(directory, `${randomUUID()}.${name}.tmp`);
     try {
@@ -1729,6 +1764,7 @@ async function writePrivateJsonFile(directory, name, value, mode = 0o600) {
         } finally {
             await handle.close();
         }
+        assertSiteInstallActive(assertActive);
         await fsp.rename(temporary, target);
         const dir = await fsp.open(directory, fsConstants.O_RDONLY);
         try { await dir.sync(); }
@@ -1783,6 +1819,224 @@ async function privateCopyRecordForRoot(root, base = privateWorkingCopyBase()) {
     return { sourceRootPath, record, manifest, container };
 }
 
+
+const journalLeaseContext = new AsyncLocalStorage();
+const cliTurnContext = new AsyncLocalStorage();
+const activeCliRoots = new Set();
+const quarantinedCliRoots = new Set();
+
+function sameLockStat(left, right) {
+    return left.dev === right.dev && left.ino === right.ino && left.size === right.size &&
+        left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
+}
+
+async function readJournalLock(lockPath) {
+    const initial = await fsp.lstat(lockPath, { bigint: true });
+    if (!initial.isFile() || initial.isSymbolicLink()) throw new Error('Unsafe private journal lock.');
+    const handle = await fsp.open(lockPath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    try {
+        const stat = await handle.stat({ bigint: true });
+        if (!sameLockStat(initial, stat) || !sameLockStat(stat, await fsp.lstat(lockPath, { bigint: true }))) {
+            throw new Error('Private journal lock changed. Try again.');
+        }
+        if (!stat.isFile() || stat.size > 1024n || (stat.mode & 0o077n)) {
+            throw new Error('Private journal lock needs manual recovery.');
+        }
+        let owner;
+        try { owner = JSON.parse(await handle.readFile('utf8')); }
+        catch { throw new Error('Private journal lock needs manual recovery.'); }
+        if (owner?.version !== 1 || !Number.isSafeInteger(owner.pid) || owner.pid <= 0 ||
+            typeof owner.processStart !== 'string' || !owner.processStart ||
+            typeof owner.nonce !== 'string' || !PRIVATE_COPY_ID.test(owner.nonce)) {
+            throw new Error('Private journal lock needs manual recovery.');
+        }
+        return { stat, owner };
+    } finally { await handle.close(); }
+}
+
+async function recoverDeadJournalLock(lockPath, readTable = readProcessTable) {
+    const { stat, owner } = await readJournalLock(lockPath);
+    const current = (await readTable()).get(owner.pid);
+    if (current?.start === owner.processStart) throw new Error('A private write is still in progress.');
+    const latest = await fsp.lstat(lockPath, { bigint: true });
+    if (!sameLockStat(stat, latest)) throw new Error('Private journal lock changed. Try again.');
+    await fsp.unlink(lockPath);
+}
+
+/** Publish a complete owner record; never expose an empty recoverable lock. */
+async function acquireJournalLease(container, readTable = readProcessTable) {
+    const identity = (await readTable()).get(process.pid);
+    if (!identity?.start) throw new Error('Private journal owner identity is unavailable.');
+    const owner = { version: 1, pid: process.pid, processStart: identity.start, nonce: randomUUID() };
+    const lockPath = path.join(container, 'write-journal.lock');
+    const temporary = path.join(container, owner.nonce + '.journal-lock.tmp');
+    const handle = await fsp.open(temporary, 'wx', 0o600);
+    try {
+        await handle.writeFile(JSON.stringify(owner));
+        await handle.sync();
+    } finally { await handle.close(); }
+    try {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                await fsp.link(temporary, lockPath);
+                await fsp.unlink(temporary);
+                const published = await readJournalLock(lockPath);
+                return async () => {
+                    const current = await readJournalLock(lockPath);
+                    if (!sameLockStat(published.stat, current.stat) ||
+                        current.owner.pid !== owner.pid ||
+                        current.owner.processStart !== owner.processStart ||
+                        current.owner.nonce !== owner.nonce) {
+                        throw new Error('Private journal lock ownership changed.');
+                    }
+                    const latest = await fsp.lstat(lockPath, { bigint: true });
+                    if (!sameLockStat(current.stat, latest)) throw new Error('Private journal lock changed.');
+                    await fsp.unlink(lockPath);
+                };
+            } catch (error) {
+                if (error.code !== 'EEXIST') throw error;
+                if (attempt) throw new Error('A private write is still in progress.');
+                await recoverDeadJournalLock(lockPath, readTable);
+            }
+        }
+        throw new Error('Private journal lock could not be acquired.');
+    } finally { await fsp.rm(temporary, { force: true }); }
+}
+
+async function withJournalLease(root, base, operation) {
+    const active = journalLeaseContext.getStore();
+    if (active?.root === root && active.active) return operation();
+    const { container } = privateWorkingCopyRecords.get(root) ?? await privateCopyRecordForRoot(root, base);
+    await checkCliCleanup(root, container);
+    const release = await acquireJournalLease(container);
+    const context = { root, container, active: true };
+    try { return await journalLeaseContext.run(context, operation); }
+    finally { context.active = false; await release(); }
+}
+
+async function quarantineCliCleanup(root, failure, base = privateWorkingCopyBase()) {
+    quarantinedCliRoots.add(root); // Keep blocked even if durable recording fails.
+    const { container, record } = privateWorkingCopyRecords.get(root) ?? await privateCopyRecordForRoot(root, base);
+    const identities = Array.isArray(failure?.identities) ? failure.identities.filter((entry) =>
+        Number.isSafeInteger(entry?.pid) && entry.pid > 0 && typeof entry.start === 'string' && entry.start) : [];
+    await writePrivateJsonFile(container, 'cli-cleanup.json', {
+        version: 1, copyId: record.copyId, identities, unobserved: failure?.unobserved !== false,
+    });
+}
+
+/** Own one durable turn and one journal lease before any adapter can spawn. */
+async function withCliTurn(root, operation, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    await assertPrivateCredentialsAbsent(root);
+    await assertNoPendingSiteInstall(root, base);
+    return withJournalLease(root, base, async () => {
+        const { container, record } = privateWorkingCopyRecords.get(root) ??
+            await privateCopyRecordForRoot(root, base);
+        await assertNoPendingSiteInstall(root, base);
+        return withCliTurnMarker(root, container, record.copyId, operation);
+    });
+}
+
+async function withCliTurnMarker(root, container, copyId, operation, {
+    persist = writePrivateJsonFile, readTable = readProcessTable,
+} = {}) {
+    const identity = (await readTable()).get(process.pid);
+    if (identity?.pid !== process.pid || !identity.start) throw new Error('AI turn ownership could not be verified.');
+    const owner = { root, nonce: randomUUID(), active: true };
+    const marker = { version: 1, copyId, status: 'active', nonce: owner.nonce,
+        owner: { pid: identity.pid, start: identity.start },
+        // A process can spawn descendants between observations. After a crash,
+        // owner death alone cannot prove that every descendant has exited.
+        identities: [], unobserved: true };
+    try {
+        activeCliRoots.add(root);
+        await persist(container, 'cli-cleanup.json', marker);
+        const result = await cliTurnContext.run(owner, operation);
+        // Successful operation means adapter cleanup AND complete journaling.
+        const file = path.join(container, 'cli-cleanup.json');
+        const initial = await fsp.lstat(file, { bigint: true });
+        if (!initial.isFile() || initial.isSymbolicLink()) throw new Error('Unsafe AI ownership record.');
+        const handle = await fsp.open(file, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+        try {
+            const stat = await handle.stat({ bigint: true });
+            if (!stat.isFile() || stat.size > 64_000n || (stat.mode & 0o077n)) {
+                throw new Error('AI ownership record needs manual recovery.');
+            }
+            const current = JSON.parse(await handle.readFile('utf8'));
+            if (!sameLockStat(initial, stat) || !sameLockStat(stat, await fsp.lstat(file, { bigint: true })) ||
+                current.version !== 1 || current.status !== 'active' || current.nonce !== owner.nonce ||
+                current.copyId !== copyId || current.owner?.pid !== marker.owner.pid ||
+                current.owner?.start !== marker.owner.start || current.unobserved !== true) {
+                throw new Error('AI ownership record changed. This copy needs recovery.');
+            }
+            await fsp.unlink(file);
+            const dir = await fsp.open(container, fsConstants.O_RDONLY);
+            try { await dir.sync(); } finally { await dir.close(); }
+        } finally { await handle.close(); }
+        return result;
+    } catch (error) {
+        quarantinedCliRoots.add(root);
+        // Keep the initial unknown marker on failure. Never replace it with a
+        // captured subset that could mistakenly authorize crash recovery.
+        const failure = new Error(error instanceof Error ? error.message : String(error), { cause: error });
+        failure.code = 'cleanup_unconfirmed';
+        failure.unobserved = true;
+        throw failure;
+    } finally { owner.active = false; activeCliRoots.delete(root); }
+}
+
+async function checkCliCleanup(root, container, { readTable = readProcessTable } = {}) {
+    const file = path.join(container, 'cli-cleanup.json');
+    let handle;
+    let initial;
+    try {
+        initial = await fsp.lstat(file, { bigint: true });
+        if (!initial.isFile() || initial.isSymbolicLink()) throw new Error('Unsafe CLI cleanup record.');
+        handle = await fsp.open(file, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    }
+    catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        if (quarantinedCliRoots.has(root) || activeCliRoots.has(root)) {
+            throw new Error('CLI cleanup needs recovery before editing this copy.');
+        }
+        return;
+    }
+    let stat;
+    let record;
+    try {
+        stat = await handle.stat({ bigint: true });
+        if (!sameLockStat(initial, stat) || !sameLockStat(stat, await fsp.lstat(file, { bigint: true }))) {
+            throw new Error('CLI cleanup record changed. Try again.');
+        }
+        if (!stat.isFile() || stat.size > 64_000n || (stat.mode & 0o077n)) {
+            throw new Error('CLI cleanup record needs manual recovery.');
+        }
+        record = JSON.parse(await handle.readFile('utf8'));
+    } finally { await handle.close(); }
+    const ownTurn = cliTurnContext.getStore();
+    if (record?.version === 1 && record.copyId === path.basename(container) &&
+        record.status === 'active' && ownTurn?.active && ownTurn.root === root &&
+        record.nonce === ownTurn.nonce && !quarantinedCliRoots.has(root)) return;
+    if (record?.status === 'active') {
+        throw new Error('An interrupted AI turn needs manual recovery before editing this copy.');
+    }
+    if (record?.version !== 1 || record.copyId !== path.basename(container) ||
+        record.unobserved !== false || !Array.isArray(record.identities) || !record.identities.length ||
+        record.identities.some((entry) => !Number.isSafeInteger(entry?.pid) || entry.pid <= 0 ||
+            typeof entry.start !== 'string' || !entry.start)) {
+        throw new Error('CLI cleanup needs manual recovery before editing this copy.');
+    }
+    const table = await readTable();
+    if (record.identities.some((entry) => table.get(entry.pid)?.start === entry.start)) {
+        throw new Error('An AI process is still running. This copy is paused until cleanup finishes.');
+    }
+    if (!sameLockStat(stat, await fsp.lstat(file, { bigint: true }))) {
+        throw new Error('CLI cleanup record changed. Try again.');
+    }
+    await fsp.unlink(file);
+    quarantinedCliRoots.delete(root);
+}
+
 async function recordPrivateWrite(root, rel, hash, base = privateWorkingCopyBase()) {
     const normalized = path.relative(root, resolveWithin(root, rel)).split(path.sep).join('/');
     if (!normalized || normalized.startsWith('.git/') || normalized === '.git') {
@@ -1790,14 +2044,7 @@ async function recordPrivateWrite(root, rel, hash, base = privateWorkingCopyBase
     }
     const { record, container } = privateWorkingCopyRecords.get(root) ??
         await privateCopyRecordForRoot(root, base);
-    const lockPath = path.join(container, 'write-journal.lock');
-    let lock;
-    try { lock = await fsp.open(lockPath, 'wx', 0o600); }
-    catch (err) {
-        if (err.code === 'EEXIST') throw new Error('Private write journal is locked; handoff is unavailable.');
-        throw err;
-    }
-    try {
+    return withJournalLease(root, base, async () => {
         const { journal } = await readPrivateJournal(container, record.copyId);
         if (journal.intent) throw new Error('A private write intent needs reconciliation.');
         const next = journal.writes.filter((item) => item.path !== normalized);
@@ -1806,10 +2053,7 @@ async function recordPrivateWrite(root, rel, hash, base = privateWorkingCopyBase
         await writePrivateJsonFile(container, 'write-journal.json', {
             version: 1, copyId: record.copyId, writes: next,
         });
-    } finally {
-        await lock.close();
-        await fsp.rm(lockPath, { force: true });
-    }
+    });
 }
 
 async function privatePathHash(root, rel) {
@@ -1822,6 +2066,10 @@ async function privatePathHash(root, rel) {
 }
 
 async function reconcilePrivateWriteIntent(root, base = privateWorkingCopyBase()) {
+    return withJournalLease(root, base, () => reconcilePrivateWriteIntentUnlocked(root, base));
+}
+
+async function reconcilePrivateWriteIntentUnlocked(root, base) {
     const { record, container } = privateWorkingCopyRecords.get(root) ??
         await privateCopyRecordForRoot(root, base);
     const { journal } = await readPrivateJournal(container, record.copyId);
@@ -1845,6 +2093,12 @@ async function reconcilePrivateWriteIntent(root, base = privateWorkingCopyBase()
 }
 
 async function beginPrivateWriteIntent(root, rel, beforeSha256, desiredSha256, base = privateWorkingCopyBase()) {
+    return withJournalLease(root, base, () =>
+        beginPrivateWriteIntentUnlocked(root, rel, beforeSha256, desiredSha256, base));
+}
+
+async function beginPrivateWriteIntentUnlocked(root, rel, beforeSha256, desiredSha256, base) {
+    await assertNoPendingSiteInstall(root, base);
     await reconcilePrivateWriteIntent(root, base);
     const actual = await privatePathHash(root, rel);
     if (actual !== beforeSha256) return { conflict: true, hash: actual };
@@ -1858,6 +2112,607 @@ async function beginPrivateWriteIntent(root, rel, beforeSha256, desiredSha256, b
         intent: { path: normalized, beforeSha256, desiredSha256 },
     });
     return { success: true };
+}
+
+// Main resolves an engine-retained handle. Renderer-supplied paths or bytes are never accepted.
+const cmsInstallContext = new AsyncLocalStorage();
+const CMS_INSTALL_MAX_BYTES = 100 * 1024 * 1024;
+
+function sanitySiteEngine() { return require('./release/sanity-site'); }
+
+function serializeSiteArtifact(artifact) {
+    return { ...artifact, files: artifact.files.map((file) => ({ ...file, bytes: file.bytes.toString('base64') })) };
+}
+
+function restoreSiteArtifact(value) {
+    if (!value || !Array.isArray(value.files) || value.files.length > 10_000) {
+        throw new Error('Sanity website installation record is invalid.');
+    }
+    let total = 0;
+    const files = value.files.map((file) => {
+        if (typeof file?.bytes !== 'string') throw new Error('Sanity website retained bytes are invalid.');
+        const bytes = Buffer.from(file.bytes, 'base64');
+        if (bytes.toString('base64') !== file.bytes || bytes.length > 32 * 1024 * 1024) {
+            throw new Error('Sanity website retained bytes are invalid.');
+        }
+        total += bytes.length;
+        if (total > CMS_INSTALL_MAX_BYTES) throw new Error('Sanity website installation exceeds the size limit.');
+        return { ...file, bytes };
+    });
+    const artifact = { ...value, files };
+    sanitySiteEngine().validateMaterializedSiteArtifact(artifact);
+    return artifact;
+}
+
+async function readSiteInstall(container, copyId, name = 'cms-install.json', loadHistory = true) {
+    const file = await currentFile(path.join(container, name), 145 * 1024 * 1024);
+    if (!file.bytes) return null;
+    if (file.mode & 0o077) throw new Error('Sanity website installation record is unsafe.');
+    const install = JSON.parse(file.bytes.toString('utf8'));
+    if (install.version !== 1 || install.copyId !== copyId ||
+        !['pending', 'conflicted', 'complete'].includes(install.status) ||
+        !Array.isArray(install.completed) || !Array.isArray(install.history) || install.history.length > 20 ||
+        !/^[a-f0-9]{64}$/.test(install.baselineHash) || !install.beforeBytes || typeof install.beforeBytes !== 'object') {
+        throw new Error('Sanity website installation record is invalid.');
+    }
+    const artifact = restoreSiteArtifact(install.artifact);
+    if ((install.requiresPreparation !== undefined && install.requiresPreparation !== true) ||
+        (install.preparationSuccessor !== undefined && (install.preparationSuccessor !== true ||
+            install.requiresPreparation !== true || !artifact.predecessor || install.status === 'complete'))) {
+        throw new Error('Sanity website preparation gate is invalid.');
+    }
+    if (artifact.scope.rootPath !== path.join(container, 'project')) throw new Error('Sanity website retained scope belongs to another copy.');
+    if (install.manifestHash !== artifact.manifestHash || install.profileHash !== artifact.profileHash ||
+        install.captureId !== artifact.captureId || install.sourceHash !== artifact.sourceHash ||
+        install.contentHash !== artifact.contentHash || install.draftHash !== artifact.draftHash) {
+        throw new Error('Sanity website installation pins are invalid.');
+    }
+    const paths = new Set(artifact.files.map((entry) => entry.path));
+    if (new Set(install.completed).size !== install.completed.length ||
+        install.completed.some((rel) => !paths.has(rel)) ||
+        Object.keys(install.beforeBytes).length !== paths.size) {
+        throw new Error('Sanity website installation completion is invalid.');
+    }
+    for (const entry of artifact.files) {
+        const bytes = install.beforeBytes[entry.path];
+        if (entry.beforeSha256 === null ? bytes !== null : typeof bytes !== 'string' ||
+            Buffer.from(bytes, 'base64').toString('base64') !== bytes ||
+            sha256(Buffer.from(bytes, 'base64')) !== entry.beforeSha256) {
+            throw new Error('Sanity website original bytes are invalid.');
+        }
+    }
+    const baselineFile = await currentFile(path.join(container, 'cms-install-baseline.json'), 15 * 1024 * 1024);
+    if (!baselineFile.bytes || baselineFile.mode & 0o077 || baselineFile.hash !== install.baselineHash) {
+        throw new Error('Sanity website original baseline is invalid.');
+    }
+    const baseline = JSON.parse(baselineFile.bytes.toString('utf8'));
+    if (![1, 2].includes(baseline.version) || baseline.copyId !== copyId || !baseline.sourceHashes || !baseline.originals) {
+        throw new Error('Sanity website original baseline is invalid.');
+    }
+    for (const [rel, bytes] of Object.entries(baseline.originals)) {
+        if (!cliJournalCandidates([rel]).includes(rel) || (baseline.version === 2 && bytes === null) || (bytes !== null && (typeof bytes !== 'string' ||
+            Buffer.from(bytes, 'base64').toString('base64') !== bytes || sha256(Buffer.from(bytes, 'base64')) !== baseline.sourceHashes[rel]))) {
+            throw new Error('Sanity website original baseline bytes are invalid.');
+        }
+    }
+    const history = [];
+    if (loadHistory) for (const [index, prior] of install.history.entries()) {
+        if (!/^[a-f0-9]{64}$/.test(prior?.manifestHash) || !/^[a-f0-9]{64}$/.test(prior?.receiptSha256)) {
+            throw new Error('Sanity website installation history is invalid.');
+        }
+        const previous = await readSiteInstall(container, copyId, `cms-install-${prior.manifestHash}.json`, false);
+        if (!previous || previous.hash !== prior.receiptSha256 || previous.artifact.manifestHash !== prior.manifestHash ||
+            previous.install.status !== 'complete' || previous.install.baselineHash !== install.baselineHash ||
+            previous.install.completed.length !== previous.artifact.files.length ||
+            JSON.stringify(previous.install.history) !== JSON.stringify(install.history.slice(0, index))) {
+            throw new Error('Sanity website completed predecessor receipt is invalid.');
+        }
+        history.push(previous);
+    }
+    if (loadHistory) {
+        const lineage = [...history, { artifact, install }];
+        for (const [index, item] of lineage.entries()) {
+            const predecessor = index ? sitePredecessor({ ...lineage[index - 1], history: lineage.slice(0, index - 1) }) : null;
+            if (JSON.stringify(item.artifact.predecessor ?? null) !== JSON.stringify(predecessor)) {
+                throw new Error('Sanity website predecessor pins are invalid.');
+            }
+        }
+        const first = lineage[0];
+        if (JSON.stringify(baseline.sourceHashes) !== JSON.stringify(first.artifact.sourceHashes) ||
+            (baseline.version === 1 ? JSON.stringify(baseline.originals) !== JSON.stringify(first.install.beforeBytes) :
+                !validOriginalSiteBaseline(baseline.originals, first.install.beforeBytes, first.artifact))) {
+            throw new Error('Sanity website first original baseline changed.');
+        }
+        const retainedBytes = lineage.reduce((sum, item) => sum + retainedSiteByteCount(item), 0) +
+            Object.values(baseline.originals).reduce((sum, bytes) => sum + (bytes === null ? 0 : Buffer.from(bytes, 'base64').length), 0);
+        if (retainedBytes > CMS_INSTALL_MAX_BYTES) throw new Error('Sanity website retained history exceeds the size limit.');
+    }
+    return { install, artifact, baseline, history, hash: file.hash, stat: file.stat };
+}
+
+async function verifySiteInstallPaths(root, artifact, { completed = false, history = [], allowEditableSourceChanges = false } = {}) {
+    const targets = new Map(artifact.files.map((entry) => [entry.path, entry]));
+    const predecessors = new Map(history.flatMap((prior) => prior.artifact.files.map((file) => [file.path, file])));
+    for (const [rel, entry] of predecessors) {
+        if (!targets.has(rel) && await privatePathHash(root, rel) !== entry.sha256) {
+            throw new Error(`Sanity website retained predecessor changed at ${rel}. Your file was preserved.`);
+        }
+    }
+    const profilePins = sanitySiteEngine().PROFILE.sourcePins;
+    for (const [rel, expected] of Object.entries(artifact.sourceHashes)) {
+        if (allowEditableSourceChanges && !targets.has(rel) && !Object.hasOwn(profilePins, rel)) continue;
+        const target = targets.get(rel);
+        const current = await privatePathHash(root, rel);
+        if (target ? (completed ? current !== target.sha256 :
+            current !== target.beforeSha256 && current !== target.sha256) : current !== expected) {
+            throw new Error(`Sanity website source changed at ${rel}. Recover this private copy before continuing.`);
+        }
+    }
+    for (const entry of artifact.files) {
+        const actual = await privatePathHash(root, entry.path);
+        if (completed ? actual !== entry.sha256 : actual !== entry.beforeSha256 && actual !== entry.sha256) {
+            throw new Error(`Sanity website installation is conflicted at ${entry.path}. Your file was preserved.`);
+        }
+    }
+}
+
+async function assertNoPendingSiteInstall(root, base) {
+    if (cmsInstallContext.getStore()?.root === root) return;
+    const { record, container } = privateWorkingCopyRecords.get(root) ?? await privateCopyRecordForRoot(root, base);
+    const retained = await readSiteInstall(container, record.copyId);
+    if (retained && retained.install.status !== 'complete') {
+        throw new Error('Sanity website setup needs recovery before editing, preview or release.');
+    }
+}
+
+async function assertRetainedSanitySiteReady(root, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    return withJournalLease(root, base, async () => {
+        const { record, container } = privateWorkingCopyRecords.get(root) ?? await privateCopyRecordForRoot(root, base);
+        const retained = await readSiteInstall(container, record.copyId);
+        if (!retained) return null;
+        if (retained.install.status !== 'complete' || retained.install.completed.length !== retained.artifact.files.length) {
+            throw new Error('Sanity website setup needs recovery before preview or release.');
+        }
+        if (retained.install.requiresPreparation) {
+            throw new Error('Prepare a fresh reviewed website version before preview or release.');
+        }
+        await verifySiteInstallPaths(root, retained.artifact, { completed: true, history: retained.history });
+        await verifyIncomingSiteSourceInventory(root, retained.artifact, retained, retained.history);
+        return retained;
+    });
+}
+
+async function verifySiteRecaptureAdmission(root, retained, journal, current) {
+    if (retained.install.status !== 'complete' || retained.install.completed.length !== retained.artifact.files.length || journal.intent) {
+        throw new Error('Sanity website setup needs recovery before preparing another capture.');
+    }
+    await verifySiteInstallPaths(root, retained.artifact, { completed: true, history: retained.history, allowEditableSourceChanges: true });
+    const owned = new Set(sitePredecessor(retained).targets.map((file) => file.path));
+    const profilePins = sanitySiteEngine().PROFILE.sourcePins;
+    const writes = new Map(journal.writes.map((write) => [write.path, write.sha256]));
+    current ??= await collectHandoffState(root);
+    for (const rel of new Set([...Object.keys(retained.artifact.sourceHashes), ...current.keys()])) {
+        if (owned.has(rel) || Object.hasOwn(profilePins, rel)) continue;
+        const before = retained.artifact.sourceHashes[rel] ?? null;
+        const actual = current.get(rel) ?? null;
+        if (before !== actual && (!writes.has(rel) || writes.get(rel) !== actual)) {
+            throw new Error(`Website source changed without an exact saved edit at ${rel}. Recover or save this file before recapture.`);
+        }
+    }
+    return current;
+}
+
+async function retainedSiteForRecapture(root, base) {
+    const { record, container } = await privateCopyRecordForRoot(root, base);
+    const retained = await readSiteInstall(container, record.copyId);
+    if (!retained) return null;
+    const { journal } = await readPrivateJournal(container, record.copyId);
+    await verifySiteRecaptureAdmission(root, retained, journal);
+    return retained;
+}
+
+// Match the full incoming inventory, including additions and deletions, inside the lease.
+async function verifyIncomingSiteSourceInventory(root, artifact, existing, history) {
+    await verifySiteInstallPaths(root, artifact, { history });
+    const current = await collectHandoffState(root);
+    const targets = new Map([...history.flatMap((item) => item.artifact.files), ...artifact.files].map((file) => [file.path, file]));
+    const originalHashes = existing?.baseline.sourceHashes ?? artifact.sourceHashes;
+    const source = new Map();
+    for (const [rel, actual] of current) {
+        if (targets.has(rel)) {
+            if (Object.hasOwn(originalHashes, rel)) source.set(rel, originalHashes[rel]);
+        } else source.set(rel, actual);
+    }
+    if (!sameHandoffFiles(new Map(Object.entries(artifact.sourceHashes)), source)) {
+        throw new Error('Website source membership changed since capture. Prepare this version again.');
+    }
+}
+
+function siteInstallMetadata(retained) {
+    const { install, artifact } = retained;
+    return { status: install.status, scope: { ...artifact.scope }, manifestHash: artifact.manifestHash,
+        captureId: artifact.captureId, contentHash: artifact.contentHash, draftHash: artifact.draftHash };
+}
+
+async function inspectRetainedSanitySiteInstall(root, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    return withJournalLease(root, base, async () => {
+        const { record, container } = await privateCopyRecordForRoot(root, base);
+        const retained = await readSiteInstall(container, record.copyId);
+        if (!retained) return null;
+        const { journal } = await readPrivateJournal(container, record.copyId);
+        if (journal.intent && !retained.artifact.files.some((entry) => entry.path === journal.intent.path &&
+            entry.beforeSha256 === journal.intent.beforeSha256 && entry.sha256 === journal.intent.desiredSha256)) {
+            throw new Error('An unrelated private write needs recovery before Sanity website setup.');
+        }
+        const metadata = siteInstallMetadata(retained);
+        if (retained.install.status === 'complete') {
+            await verifySiteRecaptureAdmission(root, retained, journal);
+            if (retained.install.requiresPreparation) metadata.needsPreparation = true;
+            try { await verifyIncomingSiteSourceInventory(root, retained.artifact, retained, retained.history); }
+            catch (error) {
+                // Admission already verified every changed ordinary path against
+                // its saved journal receipt. Only those edits need a recapture.
+                if (!error.message.startsWith('Sanity website source changed at ') &&
+                    !error.message.startsWith('Website source membership changed since capture.')) throw error;
+                await verifySiteRecaptureAdmission(root, retained, (await readPrivateJournal(container, record.copyId)).journal);
+                metadata.needsPreparation = true;
+            }
+        } else {
+            await verifyIncomingSiteSourceInventory(root, retained.artifact, retained, retained.history);
+        }
+        return metadata;
+    });
+}
+
+function assertSiteInstallActive(assertActive = cmsInstallContext.getStore()?.assertActive) {
+    if (assertActive !== undefined) {
+        if (typeof assertActive !== 'function') throw new Error('Sanity website cancellation guard is invalid.');
+        assertActive();
+    }
+}
+
+async function assertSiteInstallCurrent(assertCurrent, artifact, root, expectedStat) {
+    if (assertCurrent !== undefined) {
+        if (typeof assertCurrent !== 'function') throw new Error('Sanity website authorization guard is invalid.');
+        await assertCurrent({ scope: { ...artifact.scope }, manifestHash: artifact.manifestHash,
+            captureId: artifact.captureId, contentHash: artifact.contentHash, draftHash: artifact.draftHash,
+            sourceHash: artifact.sourceHash, predecessor: artifact.predecessor ?? null });
+    }
+    if (!root) return;
+    try {
+        const actual = await fsp.lstat(path.join(path.dirname(root), 'cms-install.json'), { bigint: true });
+        if (!actual.isFile() || actual.isSymbolicLink() || actual.mode & 0o077n || !sameFileVersion(expectedStat, actual)) {
+            throw new Error('Native retained website setup changed while authorization was checked.');
+        }
+    } catch (error) {
+        if (error.code === 'ENOENT' && expectedStat === null) return;
+        throw error;
+    }
+}
+
+async function writtenSiteInstallStat(container, value) {
+    const file = await currentFile(path.join(container, 'cms-install.json'), 145 * 1024 * 1024);
+    if (!file.bytes || file.mode & 0o077 || file.hash !== sha256(Buffer.from(JSON.stringify(value)))) {
+        throw new Error('Native retained website setup changed while its marker was written.');
+    }
+    return file.stat;
+}
+
+async function finishSiteInstallUnlocked(root, retained, base, container, copyId, assertCurrent) {
+    const { install, artifact, history = [] } = retained;
+    let recordStat = retained.stat ?? await writtenSiteInstallStat(container, install);
+    await assertSiteInstallCurrent(assertCurrent, artifact, root, recordStat);
+    const journal = await readPrivateJournal(container, copyId);
+    const intent = journal.journal.intent;
+    if (intent && !artifact.files.some((entry) => entry.path === intent.path &&
+        entry.beforeSha256 === intent.beforeSha256 && entry.sha256 === intent.desiredSha256)) {
+        throw new Error('An unrelated private write needs recovery before Sanity website setup.');
+    }
+    try { await verifySiteInstallPaths(root, artifact, { history }); }
+    catch (error) {
+        await writePrivateJsonFile(container, 'cms-install.json', { ...install, status: 'conflicted' });
+        throw error;
+    }
+    if (install.status === 'complete' && !intent) {
+        await verifySiteInstallPaths(root, artifact, { completed: true, history });
+        return { copyId, status: 'complete', manifestHash: artifact.manifestHash, captureId: artifact.captureId };
+    }
+    // Only reconcile the exact retained install intent after the whole source binding passed.
+    await reconcilePrivateWriteIntent(root, base);
+    await assertSiteInstallCurrent(assertCurrent, artifact, root, recordStat);
+    const pending = { ...install, status: 'pending' };
+    if (install.status !== 'pending') {
+        await writePrivateJsonFile(container, 'cms-install.json', pending);
+        recordStat = await writtenSiteInstallStat(container, pending);
+    }
+    const phase = { disable: 0, content: 1, adapter: 2 };
+    const ordered = [...artifact.files].sort((a, b) => phase[a.phase] - phase[b.phase] || a.path.localeCompare(b.path));
+    let previousPhase;
+    for (const entry of ordered) {
+        if (entry.phase !== previousPhase) {
+            await verifySiteInstallPaths(root, artifact, { history });
+            previousPhase = entry.phase;
+        }
+        const actual = await privatePathHash(root, entry.path);
+        if (actual !== entry.sha256) {
+            await assertSiteInstallCurrent(assertCurrent, artifact, root, recordStat);
+            const intentResult = await beginPrivateWriteIntent(root, entry.path, entry.beforeSha256, entry.sha256, base);
+            if (!intentResult.success) throw new Error(`Sanity website installation is conflicted at ${entry.path}.`);
+            await assertSiteInstallCurrent(assertCurrent, artifact, root, recordStat);
+            const written = await writeIfUnchanged(root, entry.path, entry.bytes, entry.beforeSha256);
+            if (!written.success || written.hash !== entry.sha256) {
+                throw new Error(written.error || `Sanity website installation is conflicted at ${entry.path}.`);
+            }
+            await reconcilePrivateWriteIntent(root, base);
+        } else {
+            // Crash after replacement but before journal completion is safe only for exact retained bytes.
+            await recordPrivateWrite(root, entry.path, entry.sha256, base);
+        }
+        if (!pending.completed.includes(entry.path)) pending.completed.push(entry.path);
+        // The existing per-file journal is durable. Recovery rereads before/desired
+        // bytes, so a large retained payload need only be written at completion.
+    }
+    await verifySiteInstallPaths(root, artifact, { completed: true, history });
+    const finalJournal = await readPrivateJournal(container, copyId);
+    if (finalJournal.journal.intent || artifact.files.some((entry) =>
+        !finalJournal.journal.writes.some((write) => write.path === entry.path && write.sha256 === entry.sha256))) {
+        throw new Error('Sanity website installation journal is incomplete.');
+    }
+    await verifyIncomingSiteSourceInventory(root, artifact, retained, history);
+    await assertSiteInstallCurrent(assertCurrent, artifact, root, recordStat);
+    const complete = { ...pending, status: 'complete', completedAt: new Date().toISOString() };
+    if (pending.preparationSuccessor) {
+        delete complete.requiresPreparation;
+        delete complete.preparationSuccessor;
+    }
+    await writePrivateJsonFile(container, 'cms-install.json', complete);
+    // A completed marker never substitutes for the final native reread.
+    await verifySiteInstallPaths(root, artifact, { completed: true, history });
+    return { copyId, status: 'complete', manifestHash: artifact.manifestHash, captureId: artifact.captureId };
+}
+
+function assertSiteInstallIdle(root) {
+    if (isDevServerRunning(devServers.get(root)) || startingDevServers.has(root) ||
+        dependencyInstalls.has(root) || activeCliRoots.has(root)) {
+        throw new Error('Stop the preview and wait for dependency setup or AI edits before Sanity website setup.');
+    }
+}
+
+function sitePredecessor(retained) {
+    const targets = new Map([...retained.history, retained].flatMap((item) =>
+        item.artifact.files.map((file) => [file.path, file.sha256])));
+    return { manifestHash: retained.artifact.manifestHash,
+        targets: [...targets].sort(([a], [b]) => a.localeCompare(b)).map(([path, sha256]) => ({ path, sha256 })) };
+}
+
+function originalSiteBaselineBytes(beforeBytes) {
+    return Object.fromEntries(Object.entries(beforeBytes).filter(([, bytes]) => bytes !== null).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+function originalSiteAssetPath(rel) {
+    return /^public\/weblab-frozen-sanity\/[a-f0-9]{64}\.(?:jpg|png|webp|gif|avif)$/.test(rel);
+}
+
+function validOriginalSiteBaseline(originals, beforeBytes, artifact) {
+    const expected = new Set([...Object.keys(originalSiteBaselineBytes(beforeBytes)),
+        ...Object.keys(artifact.sourceHashes).filter(originalSiteAssetPath)]);
+    const ordered = [...expected].sort((a, b) => a.localeCompare(b));
+    return JSON.stringify(Object.keys(originals)) === JSON.stringify(ordered) &&
+        Object.entries(beforeBytes).every(([rel, bytes]) => bytes === null || originals[rel] === bytes);
+}
+
+function retainedSiteByteCount(retained) {
+    return retained.artifact.files.reduce((sum, file) => sum + file.bytes.length, 0) +
+        Object.values(retained.install.beforeBytes).reduce((sum, bytes) => sum + (bytes === null ? 0 : Buffer.from(bytes, 'base64').length), 0);
+}
+
+async function writeImmutableSiteJson(container, name, value, expectedHash, assertActive) {
+    const bytes = Buffer.from(JSON.stringify(value));
+    const hash = sha256(bytes);
+    if (expectedHash && expectedHash !== hash) throw new Error('Sanity website predecessor receipt changed.');
+    const target = path.join(container, name);
+    const existing = await currentFile(target, 145 * 1024 * 1024);
+    if (existing.bytes) {
+        if (existing.hash !== hash || existing.mode & 0o077) throw new Error('Sanity website immutable receipt is inconsistent.');
+        return hash;
+    }
+    const temporary = path.join(container, `${randomUUID()}.${name}.tmp`);
+    try {
+        const handle = await fsp.open(temporary, 'wx', 0o400);
+        try { await handle.writeFile(bytes); await handle.sync(); }
+        finally { await handle.close(); }
+        assertSiteInstallActive(assertActive);
+        try { await fsp.link(temporary, target); }
+        catch (error) {
+            if (error.code !== 'EEXIST') throw error;
+            const raced = await currentFile(target, 145 * 1024 * 1024);
+            if (raced.hash !== hash || raced.mode & 0o077) throw new Error('Sanity website immutable receipt changed.');
+        }
+        const dir = await fsp.open(container, fsConstants.O_RDONLY);
+        try { await dir.sync(); } finally { await dir.close(); }
+        return hash;
+    } finally { await fsp.rm(temporary, { force: true }); }
+}
+
+async function preflightSiteInstallLimits(root, base, artifact, existing, manifest) {
+    const current = await computePrivateHandoffPlanUnlocked(root, base, { allowUnchanged: true, release: true, recapture: Boolean(existing) });
+    if (current.sourceChanged || current.unsupportedChanges.length) throw new Error('Project files need review or recovery before website setup.');
+    const baseline = new Map(manifest.baseline.map((file) => [file.path, file]));
+    const changes = new Map(current.changedFiles.map((file) => [file.path, file]));
+    for (const file of artifact.files.filter((entry) => entry.kind === 'text')) {
+        changes.set(file.path, { path: file.path, original: baseline.get(file.path)?.content ?? null, updated: file.bytes.toString('utf8') });
+    }
+    const changed = [...changes.values()].filter((file) => file.updated !== file.original);
+    const textBytes = changed.reduce((sum, file) => sum + Buffer.byteLength(file.original ?? '') + Buffer.byteLength(file.updated ?? ''), 0);
+    if (changed.length > HANDOFF_MAX_CHANGED_FILES || textBytes > HANDOFF_MAX_DIFF_BYTES) {
+        throw new Error('Website setup would exceed the release text limit of 100 files or 10 MB.');
+    }
+    const { releasePathAllowed } = require('./release/policy');
+    const paths = await collectHandoffState(root);
+    const historicalAssets = new Set((existing ? [...existing.history, existing] : []).flatMap((item) =>
+        item.artifact.files.filter((file) => file.kind === 'asset').map((file) => file.path)));
+    const active = new Map(artifact.files.map((file) => [file.path, file]));
+    let total = 0;
+    let count = 0;
+    for (const rel of new Set([...paths.keys(), ...active.keys()])) {
+        if (!releasePathAllowed(rel) || historicalAssets.has(rel) && !active.has(rel)) continue;
+        const size = active.has(rel) ? active.get(rel).bytes.length : Number((await fsp.lstat(resolveWithin(root, rel))).size);
+        if (size > 32 * 1024 * 1024 || (total += size) > CMS_INSTALL_MAX_BYTES || ++count > 10_000) {
+            throw new Error('Website setup would exceed the release file or byte limit.');
+        }
+    }
+}
+
+/** Read the approved original source view after verifying the native completed lineage. */
+async function readVerifiedSanitySiteSource(root, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    return withJournalLease(root, base, async () => {
+        const { record, container } = await privateCopyRecordForRoot(root, base);
+        const retained = await retainedSiteForRecapture(root, base);
+        if ((await readPrivateJournal(container, record.copyId)).journal.intent) {
+            throw new Error('A private write needs recovery before capturing website content.');
+        }
+        const current = await collectHandoffState(root);
+        const targets = new Set(retained ? sitePredecessor(retained).targets.map((file) => file.path) : []);
+        const sourceFiles = [];
+        for (const [rel, expected] of [...current].sort(([a], [b]) => a.localeCompare(b))) {
+            if (retained && targets.has(rel) && !Object.hasOwn(retained.baseline.sourceHashes, rel)) continue;
+            const abs = resolveWithin(root, rel);
+            await rejectSymlinkPath(root, abs);
+            await verifyExistingParent(root, abs);
+            const file = await currentFile(abs, 32 * 1024 * 1024);
+            if (!file.bytes || file.hash !== expected) throw new Error('Website source changed while preparing its original view.');
+            const original = retained?.baseline.originals[rel];
+            sourceFiles.push({ path: rel, bytes: typeof original === 'string' ? Buffer.from(original, 'base64') : file.bytes });
+        }
+        if (retained) await verifySiteRecaptureAdmission(root, retained, (await readPrivateJournal(container, record.copyId)).journal);
+        return { sourceFiles, predecessor: retained ? sitePredecessor(retained) : null };
+    });
+}
+
+async function resumeRetainedSanitySiteInstall(root, base = privateWorkingCopyBase(), { assertCurrent, assertActive, requiresPreparation } = {}) {
+    if (requiresPreparation !== undefined && typeof requiresPreparation !== 'boolean') {
+        throw new Error('Sanity website recovery preparation option is invalid.');
+    }
+    root = await requirePrivateWorkingRoot(root, base);
+    if (isDevServerRunning(devServers.get(root)) || startingDevServers.has(root) || dependencyInstalls.has(root)) {
+        throw new Error('Stop the preview and wait for dependency setup before Sanity website setup.');
+    }
+    return withWriteLock(`journal:${root}`, () => withJournalLease(root, base, async () => {
+        assertSiteInstallIdle(root);
+        const { record, container } = await privateCopyRecordForRoot(root, base);
+        const retained = await readSiteInstall(container, record.copyId);
+        if (!retained) throw new Error('No retained Sanity website installation is available.');
+        assertSiteInstallActive(assertActive);
+        if (requiresPreparation) {
+            await verifyIncomingSiteSourceInventory(root, retained.artifact, retained, retained.history);
+            await assertSiteInstallCurrent(assertCurrent, retained.artifact, root, retained.stat);
+            const gated = { ...retained.install, requiresPreparation: true };
+            // Explicit retained-byte recovery has no authority to clear the
+            // preview gate, even if this was once a current successor capture.
+            delete gated.preparationSuccessor;
+            await writePrivateJsonFile(container, 'cms-install.json', gated, 0o600, assertActive);
+            retained.install = gated;
+            retained.stat = await writtenSiteInstallStat(container, gated);
+        }
+        return cmsInstallContext.run({ root, assertActive }, () => finishSiteInstallUnlocked(root, retained, base, container, record.copyId, assertCurrent));
+    }));
+}
+
+async function installRetainedSanitySite(root, retainedHandle, base = privateWorkingCopyBase(), { assertCurrent, assertActive } = {}) {
+    root = await requirePrivateWorkingRoot(root, base);
+    if (isDevServerRunning(devServers.get(root)) || startingDevServers.has(root) || dependencyInstalls.has(root)) {
+        throw new Error('Stop the preview and wait for dependency setup before Sanity website setup.');
+    }
+    const artifact = sanitySiteEngine().getRetainedSiteArtifact(retainedHandle);
+    sanitySiteEngine().validateMaterializedSiteArtifact(artifact);
+    return withWriteLock(`journal:${root}`, () => withJournalLease(root, base, async () => {
+        assertSiteInstallIdle(root);
+        const { record, container, manifest } = await privateCopyRecordForRoot(root, base);
+        const existing = await readSiteInstall(container, record.copyId);
+        await assertSiteInstallCurrent(assertCurrent, artifact, root, existing?.stat ?? null);
+        assertSiteInstallActive(assertActive);
+        if (artifact.scope?.rootPath !== root) throw new Error('Retained Sanity website capture belongs to a different private copy.');
+        if (existing?.artifact.manifestHash === artifact.manifestHash) {
+            return cmsInstallContext.run({ root, assertActive }, () => finishSiteInstallUnlocked(root, existing, base, container, record.copyId, assertCurrent));
+        }
+        if ((await readPrivateJournal(container, record.copyId)).journal.intent) {
+            throw new Error('An unrelated private write needs recovery before Sanity website setup.');
+        }
+        let history = [];
+        let historyPins = [];
+        let baselineHash;
+        if (existing) {
+            if (existing.install.status !== 'complete') throw new Error('Recover the pending Sanity website setup before preparing another capture.');
+            await verifySiteRecaptureAdmission(root, existing, (await readPrivateJournal(container, record.copyId)).journal);
+            const predecessor = sitePredecessor(existing);
+            if (JSON.stringify(artifact.predecessor) !== JSON.stringify(predecessor)) {
+                throw new Error('The retained website capture has an outdated predecessor. Prepare a new capture.');
+            }
+            if (existing.install.history.length >= 20) throw new Error('Sanity website retained history has reached its safe limit.');
+            history = [...existing.history, existing];
+            historyPins = [...existing.install.history, { manifestHash: existing.artifact.manifestHash, receiptSha256: existing.hash }];
+            baselineHash = existing.install.baselineHash;
+        } else if (artifact.predecessor) {
+            throw new Error('The retained website capture requires a different predecessor.');
+        }
+        const beforeBytes = {};
+        let retainedBytes = artifact.files.reduce((sum, entry) => sum + entry.bytes.length, 0);
+        for (const prior of history) retainedBytes += retainedSiteByteCount(prior);
+        for (const entry of artifact.files) {
+            await privatePathHash(root, entry.path);
+            const before = await currentFile(resolveWithin(root, entry.path), 32 * 1024 * 1024);
+            if (before.hash !== entry.beforeSha256) throw new Error(`Sanity website source changed at ${entry.path}.`);
+            retainedBytes += before.bytes?.length ?? 0;
+            if (retainedBytes > CMS_INSTALL_MAX_BYTES) throw new Error('Sanity website retained installation exceeds the size limit.');
+            beforeBytes[entry.path] = before.bytes?.toString('base64') ?? null;
+        }
+        const originals = existing?.baseline.originals ?? originalSiteBaselineBytes(beforeBytes);
+        if (!existing) {
+            // Original-present frozen assets remain part of the immutable source
+            // view even when a retry captures a different active asset set.
+            for (const [rel, expected] of Object.entries(artifact.sourceHashes).filter(([rel]) => originalSiteAssetPath(rel))) {
+                const original = await currentFile(resolveWithin(root, rel), 32 * 1024 * 1024);
+                if (!original.bytes || original.hash !== expected) throw new Error('Sanity website original asset changed before baseline retention.');
+                originals[rel] = original.bytes.toString('base64');
+            }
+        }
+        retainedBytes += Object.values(originals).reduce((sum, bytes) => sum + (bytes === null ? 0 : Buffer.from(bytes, 'base64').length), 0);
+        if (retainedBytes > CMS_INSTALL_MAX_BYTES) throw new Error('Sanity website retained history exceeds the size limit.');
+        await verifyIncomingSiteSourceInventory(root, artifact, existing, history);
+        await preflightSiteInstallLimits(root, base, artifact, existing, manifest);
+        const firstBaseline = existing ? null : {
+            version: 2, copyId: record.copyId, sourceHashes: artifact.sourceHashes, originals: originalSiteBaselineBytes(originals),
+        };
+        if (firstBaseline) {
+            const bytes = Buffer.from(JSON.stringify(firstBaseline));
+            if (bytes.length > 15 * 1024 * 1024) throw new Error('Sanity website original baseline exceeds its retained size limit.');
+            baselineHash = sha256(bytes);
+        }
+        const install = { version: 1, copyId: record.copyId, status: 'pending', history: historyPins, baselineHash,
+            ...(existing?.install.requiresPreparation ? { requiresPreparation: true, preparationSuccessor: true } : {}),
+            profileHash: artifact.profileHash, captureId: artifact.captureId, sourceHash: artifact.sourceHash,
+            contentHash: artifact.contentHash, draftHash: artifact.draftHash, manifestHash: artifact.manifestHash,
+            artifact: serializeSiteArtifact(artifact), beforeBytes, completed: [] };
+        // Reserve space for the completed path list as well as the pending payload.
+        if (Buffer.byteLength(JSON.stringify({ ...install, completed: artifact.files.map((file) => file.path),
+            status: 'complete', completedAt: new Date().toISOString() })) > 145 * 1024 * 1024) {
+            throw new Error('Sanity website retained record exceeds its size limit.');
+        }
+        if (firstBaseline) await writeImmutableSiteJson(container, 'cms-install-baseline.json', firstBaseline, undefined, assertActive);
+        else await writeImmutableSiteJson(container, `cms-install-${existing.artifact.manifestHash}.json`, existing.install, existing.hash, assertActive);
+        assertSiteInstallIdle(root);
+        if (existing) await verifySiteRecaptureAdmission(root, existing, (await readPrivateJournal(container, record.copyId)).journal);
+        await verifyIncomingSiteSourceInventory(root, artifact, existing, history);
+        await assertSiteInstallCurrent(assertCurrent, artifact, root, existing?.stat ?? null);
+        if (existing) await verifySiteRecaptureAdmission(root, existing, (await readPrivateJournal(container, record.copyId)).journal);
+        await verifyIncomingSiteSourceInventory(root, artifact, existing, history);
+        // Predecessor receipt and original baseline are durable before replacing the active marker.
+        await writePrivateJsonFile(container, 'cms-install.json', install, 0o600, assertActive);
+        return cmsInstallContext.run({ root, assertActive }, () => finishSiteInstallUnlocked(root, { install, artifact, history, baseline: existing?.baseline ?? firstBaseline }, base, container, record.copyId, assertCurrent));
+    }));
 }
 
 async function validateIndependentGitRoot(root) {
@@ -2015,6 +2870,7 @@ async function inventoryPrivateCopySource(root, skipRootGitPointer = false) {
     if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error('Source root changed.');
     const entries = [];
     const excludedPaths = [];
+    const exclusions = [];
     let totalBytes = 0;
     const visit = async (relative) => {
         const dir = relative ? path.join(root, relative) : root;
@@ -2024,10 +2880,13 @@ async function inventoryPrivateCopySource(root, skipRootGitPointer = false) {
             const rel = relative ? path.join(relative, name) : name;
             const abs = path.join(root, rel);
             const stat = await fsp.lstat(abs, { bigint: true });
-            if (name === 'node_modules' && relative !== '.git' &&
-                !relative.startsWith(`.git${path.sep}`)) {
-                excludedPaths.push(rel.split(path.sep).join('/'));
-                if (excludedPaths.length > 200) throw new Error('Too many excluded node_modules folders to review.');
+            const reason = relative !== '.git' && !relative.startsWith(`.git${path.sep}`)
+                ? privateCopyExclusion(rel) : null;
+            if (reason) {
+                const excluded = rel.split(path.sep).join('/');
+                excludedPaths.push(excluded);
+                exclusions.push({ path: excluded, reason });
+                if (excludedPaths.length > 200) throw new Error('Too many excluded paths to review.');
                 continue;
             }
             if (stat.isSymbolicLink()) throw new Error(`Symlink cannot be copied safely: ${rel}`);
@@ -2048,7 +2907,7 @@ async function inventoryPrivateCopySource(root, skipRootGitPointer = false) {
         }
     };
     await visit('');
-    return { rootStat, entries, excludedPaths };
+    return { rootStat, entries, excludedPaths, exclusions };
 }
 
 async function copySnapshotFile(source, destination, expectedStat) {
@@ -2169,6 +3028,11 @@ async function readPrivateCopyManifest(base, sourceRoot, record) {
             !/^[a-f0-9]{64}$/.test(manifest.sourceGitLayout.pointerSha256)))) {
         throw new Error('Private working copy metadata or files are inconsistent.');
     }
+    if ([...manifest.baseline, ...manifest.snapshot].some((entry) =>
+        !entry || typeof entry.path !== 'string' || privateCopyExclusion(entry.path))) {
+        throw new Error('This older private copy contains credential data or copied build output. Keep it for recovery and start a fresh copy.');
+    }
+    await assertPrivateCredentialsAbsent(rootPath);
     await readPrivateJournal(container, copyId);
     await validateIndependentGitRoot(rootPath);
     return manifest;
@@ -2286,6 +3150,7 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
                                 sameHandoffFiles(baseline, copied);
                         }
                         if (!startFresh) {
+                            await checkCliCleanup(manifest.rootPath, existingContainer);
                             await grantLocalRoot(manifest.rootPath);
                             privateWorkingRoots.add(manifest.rootPath);
                             privateWorkingCopyRecords.set(manifest.rootPath, {
@@ -2297,6 +3162,7 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
                                 copyId: existing.copyId, reused: true,
                                 previewNeedsInstall: manifest.previewNeedsInstall,
                                 excludedPaths: manifest.excludedPaths,
+                                exclusions: manifest.exclusions ?? [],
                             };
                         }
                     }
@@ -2372,7 +3238,8 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
                             sha256: hashes.get(entry.rel),
                         })),
                     excludedPaths: inventory.excludedPaths,
-                    previewNeedsInstall: inventory.excludedPaths.length > 0,
+                    exclusions: inventory.exclusions,
+                    previewNeedsInstall: inventory.exclusions.some((entry) => entry.reason === 'dependencies'),
                 };
                 const manifestBytes = Buffer.from(JSON.stringify(manifest));
                 const manifestPath = path.join(container, 'baseline.json');
@@ -2406,6 +3273,7 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
                     } : {}),
                     previewNeedsInstall: manifest.previewNeedsInstall,
                     excludedPaths: manifest.excludedPaths,
+                                exclusions: manifest.exclusions ?? [],
                 };
             } catch (err) {
                 await fsp.rm(container, { recursive: true, force: true });
@@ -2421,7 +3289,11 @@ async function createPrivateWorkingCopy(sourceRoot, base = privateWorkingCopyBas
 
 async function requirePrivateWorkingRoot(root, base = privateWorkingCopyBase()) {
     const canonical = await requireGrantedRoot(root);
-    if (privateWorkingRoots.has(canonical)) return canonical;
+    if (privateWorkingRoots.has(canonical)) {
+        const known = privateWorkingCopyRecords.get(canonical);
+        if (known) await checkCliCleanup(canonical, known.container);
+        return canonical;
+    }
     await preparePrivateCopyBase(base);
     const index = await readPrivateCopyIndex(base);
     const record = [
@@ -2435,15 +3307,46 @@ async function requirePrivateWorkingRoot(root, base = privateWorkingCopyBase()) 
         sourceRootPath: record[0], record: record[1],
         container: path.join(base, record[1].copyId),
     });
+    await checkCliCleanup(canonical, path.join(base, record[1].copyId));
     return canonical;
+}
+
+async function assertPrivateCredentialsAbsent(root) {
+    let visited = 0;
+    const visit = async (relative) => {
+        for (const name of (await fsp.readdir(path.join(root, relative))).sort()) {
+            if (['.git', 'node_modules', '.next'].includes(name)) continue;
+            const file = relative ? path.join(relative, name) : name;
+            if (++visited > PRIVATE_COPY_MAX_FILES) throw new Error('Private credential check exceeds its file limit.');
+            if (privateCredentialPath(file)) throw new Error('Live credentials are not allowed in this private preview. Use separate preview settings.');
+            const stat = await fsp.lstat(path.join(root, file));
+            if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) throw new Error('Private preview contains an unsafe path.');
+            if (stat.isDirectory()) await visit(file);
+        }
+    };
+    await visit('');
 }
 
 const HANDOFF_MAX_CHANGED_FILES = 100;
 const HANDOFF_MAX_DIFF_BYTES = 10 * 1024 * 1024;
 const HANDOFF_IGNORED_DIRECTORIES = new Set(['.git', 'node_modules', '.next']);
+// Files that framework tooling rewrites on its own (Next writes next-env.d.ts
+// on every `next dev`; incremental TypeScript writes tsconfig.tsbuildinfo).
+// They are never designer edits, so an unjournaled change to them must not
+// block the handoff, and they stay out of the exported patch.
+const HANDOFF_GENERATED_FILES = ['next-env.d.ts', 'tsconfig.tsbuildinfo'];
+
+function ignoreGeneratedHandoffFiles(state, manifest, journal) {
+    for (const file of HANDOFF_GENERATED_FILES) {
+        if (journal.writes.some((entry) => entry.path === file)) continue;
+        const baseline = manifest.snapshot.find((entry) => entry.path === file);
+        if (baseline) state.set(file, baseline.sha256);
+        else state.delete(file);
+    }
+}
 const reviewedHandoffPlans = new Map(); // copyId -> token
 
-async function collectHandoffState(root) {
+async function collectHandoffState(root, { original = false } = {}) {
     const collect = async () => {
         const entries = [];
         let totalBytes = 0n;
@@ -2454,6 +3357,10 @@ async function collectHandoffState(root) {
             for (const name of (await fsp.readdir(abs)).sort()) {
                 if (HANDOFF_IGNORED_DIRECTORIES.has(name)) continue;
                 const rel = directory ? path.join(directory, name) : name;
+                if (privateCredentialPath(rel)) {
+                    if (original) continue;
+                    throw new Error('Private credential files cannot be previewed or handed off.');
+                }
                 const stat = await fsp.lstat(path.join(root, rel), { bigint: true });
                 if (stat.isSymbolicLink()) throw new Error(`Symlink in handoff source: ${rel}`);
                 if (!stat.isDirectory() && !stat.isFile()) {
@@ -2501,7 +3408,7 @@ async function originalMatchesPrivateBaseline(sourceRoot, manifest) {
     const baseline = new Map(manifest.snapshot
         .filter((entry) => !entry.path.split('/').includes('.next'))
         .map((entry) => [entry.path, entry.sha256]));
-    const current = await collectHandoffState(sourceRoot);
+    const current = await collectHandoffState(sourceRoot, { original: true });
     if (!sameHandoffFiles(baseline, current)) return false;
     const source = await sourceGitSnapshot(sourceRoot);
     return source.indexSha256 === manifest.sourceIndexSha256 &&
@@ -2512,14 +3419,18 @@ async function originalMatchesPrivateBaseline(sourceRoot, manifest) {
 
 async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase()) {
     copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
+    return withJournalLease(copyRoot, base, () => computePrivateHandoffPlanUnlocked(copyRoot, base));
+}
+
+async function computePrivateHandoffPlanUnlocked(copyRoot, base, { allowUnchanged = false, release = false, recapture = false } = {}) {
+    copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
     const { sourceRootPath, record, manifest, container } =
         await privateCopyRecordForRoot(copyRoot, base);
-    try {
-        await fsp.lstat(path.join(container, 'write-journal.lock'));
-        throw new Error('A private write is in progress, or its journal lock needs recovery.');
-    } catch (err) {
-        if (err.code !== 'ENOENT') throw err;
-    }
+    await assertNoPendingSiteInstall(copyRoot, base);
+    const siteInstall = release ? await (recapture ? retainedSiteForRecapture(copyRoot, base) : assertRetainedSanitySiteReady(copyRoot, base)) : null;
+    const activeAssets = new Set((siteInstall?.artifact.files ?? []).filter((entry) => entry.kind === 'asset').map((entry) => entry.path));
+    const ownedAssets = new Map((siteInstall ? [...siteInstall.history, siteInstall] : []).flatMap((item) =>
+        item.artifact.files.filter((entry) => entry.kind === 'asset').map((entry) => [entry.path, entry])));
     await reconcilePrivateWriteIntent(copyRoot, base);
     const journalBefore = await readPrivateJournal(container, record.copyId);
     const copied = await collectHandoffState(copyRoot);
@@ -2533,7 +3444,9 @@ async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase
         }
     }
     await inspectSourceGitLayout(sourceRootPath);
-    const original = await collectHandoffState(sourceRootPath);
+    const original = await collectHandoffState(sourceRootPath, { original: true });
+    ignoreGeneratedHandoffFiles(copied, manifest, journalBefore.journal);
+    ignoreGeneratedHandoffFiles(original, manifest, journalBefore.journal);
     const journalAfter = await readPrivateJournal(container, record.copyId);
     if (journalBefore.hash !== journalAfter.hash) {
         throw new Error('Weblab wrote a file while the handoff was being reviewed. Review again.');
@@ -2545,6 +3458,7 @@ async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase
     const writes = new Map(journalBefore.journal.writes.map((entry) => [entry.path, entry.sha256]));
     const unsupportedChanges = new Set();
     const changedFiles = [];
+    const binaryFiles = [];
     let diffBytes = 0;
 
     for (const [filePath, expected] of writes) {
@@ -2559,6 +3473,11 @@ async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase
         if (beforeHash === afterHash) continue;
         if (!writes.has(filePath) || writes.get(filePath) !== afterHash) {
             unsupportedChanges.add(filePath);
+            continue;
+        }
+        const ownedAsset = ownedAssets.get(filePath);
+        if (ownedAsset && afterHash === ownedAsset.sha256) {
+            if (activeAssets.has(filePath)) binaryFiles.push({ path: filePath, sha256: afterHash, size: ownedAsset.bytes.length });
             continue;
         }
         const prior = baseline.get(filePath);
@@ -2583,21 +3502,24 @@ async function computePrivateHandoffPlan(copyRoot, base = privateWorkingCopyBase
         changedFiles.push({ path: filePath, original: oldContent, updated });
     }
     changedFiles.sort((a, b) => a.path.localeCompare(b.path));
+    binaryFiles.sort((a, b) => a.path.localeCompare(b.path));
     const sourceChanged = !sameHandoffFiles(snapshot, original);
     const sourceGit = await sourceGitSnapshot(sourceRootPath, manifest.sourceGitLayout);
     const sourceGitChanged = sourceGit.head !== manifest.sourceGitHead ||
         sourceGit.indexSha256 !== manifest.sourceIndexSha256;
     const issues = [...unsupportedChanges].sort();
-    const planToken = issues.length || sourceChanged || sourceGitChanged || !changedFiles.length ? null : sha256(Buffer.from(JSON.stringify({
+    const planToken = issues.length || sourceChanged || sourceGitChanged || (!changedFiles.length && !allowUnchanged) ? null : sha256(Buffer.from(JSON.stringify({
         copyId: record.copyId,
         manifestSha256: record.manifestSha256,
         journalSha256: journalBefore.hash,
         copied: [...copied].sort(),
         original: [...original].sort(),
         changedFiles,
+        ...(siteInstall ? { binaryFiles, cmsInstallSha256: siteInstall.hash } : {}),
     })));
     return {
         copyId: record.copyId, sourceRootPath, changedFiles,
+        ...(release ? { binaryFiles, cmsInstallManifestHash: siteInstall?.artifact.manifestHash ?? null } : {}),
         unsupportedChanges: issues, sourceChanged: sourceChanged || sourceGitChanged, planToken,
     };
 }
@@ -2607,6 +3529,26 @@ async function planPrivateHandoff(copyRoot, base = privateWorkingCopyBase()) {
     if (plan.planToken) reviewedHandoffPlans.set(plan.copyId, plan.planToken);
     else reviewedHandoffPlans.delete(plan.copyId);
     return plan;
+}
+
+async function planPrivateRelease(copyRoot, base = privateWorkingCopyBase()) {
+    copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
+    const plan = await withJournalLease(copyRoot, base, () =>
+        computePrivateHandoffPlanUnlocked(copyRoot, base, { allowUnchanged: true, release: true }));
+    if (plan.planToken) reviewedHandoffPlans.set(plan.copyId, plan.planToken);
+    else reviewedHandoffPlans.delete(plan.copyId);
+    return plan;
+}
+
+async function validatePrivateReleaseSnapshot(copyRoot, copyId, planToken, base = privateWorkingCopyBase()) {
+    copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
+    return withJournalLease(copyRoot, base, async () => {
+        const current = await computePrivateHandoffPlanUnlocked(copyRoot, base, { allowUnchanged: true, release: true });
+        if (current.copyId !== copyId || current.planToken !== planToken || current.sourceChanged || current.unsupportedChanges.length) {
+            throw new Error('Project files changed since publication review. Review again.');
+        }
+        return true;
+    });
 }
 
 function isolatedGit(args, cwd, templateDirectory, timeout = 0) {
@@ -2681,7 +3623,7 @@ async function buildIsolatedHandoffPatch(container, changedFiles) {
  * reprint formatting) before export. Overrides may only narrow the reviewed
  * plan: same paths, no new files, no deletions the plan did not contain.
  */
-function applyHandoffOverrides(changedFiles, overrides) {
+function applyHandoffOverrides(changedFiles, overrides, { allowUnchanged = false } = {}) {
     if (overrides === undefined || overrides === null) return changedFiles;
     if (!Array.isArray(overrides) || overrides.length > HANDOFF_MAX_CHANGED_FILES) {
         throw new Error('Invalid cleaned handoff files.');
@@ -2708,11 +3650,16 @@ function applyHandoffOverrides(changedFiles, overrides) {
         if (item.updated === planned.original) continue;
         out.push({ path: item.path, original: planned.original, updated: item.updated });
     }
-    if (!out.length) throw new Error('The cleaned handoff has no changes to export.');
+    if (!out.length && !allowUnchanged) throw new Error('The cleaned handoff has no changes to export.');
     return out;
 }
 
 async function exportPrivateHandoff(copyRoot, planToken, base = privateWorkingCopyBase(), overrides = undefined) {
+    copyRoot = await requirePrivateWorkingRoot(copyRoot, base);
+    return withJournalLease(copyRoot, base, () => exportPrivateHandoffUnlocked(copyRoot, planToken, base, overrides));
+}
+
+async function exportPrivateHandoffUnlocked(copyRoot, planToken, base, overrides) {
     if (typeof planToken !== 'string' || !/^[a-f0-9]{64}$/.test(planToken)) {
         throw new Error('Review a current handoff plan before exporting.');
     }
@@ -2743,6 +3690,113 @@ async function exportPrivateHandoff(copyRoot, planToken, base = privateWorkingCo
     }
     reviewedHandoffPlans.delete(first.copyId);
     return { patchPath, changedFiles: exportedFiles.map((file) => file.path) };
+}
+
+
+/** Freeze original baseline bytes plus reviewed, cleaned edits, never private instrumentation. */
+async function createPrivateReleaseSnapshot(root, planToken, cleanedOverrides, base = privateWorkingCopyBase()) {
+    if (typeof planToken !== 'string' || !/^[a-f0-9]{64}$/.test(planToken) ||
+        !Array.isArray(cleanedOverrides) || cleanedOverrides.length > HANDOFF_MAX_CHANGED_FILES) {
+        throw new Error('Review cleaned release files before publishing.');
+    }
+    const overrides = cleanedOverrides.map((item) => ({ path: item?.path, updated: item?.updated }));
+    root = await requirePrivateWorkingRoot(root, base);
+    const snapshot = await withWriteLock('journal:' + root, () => withJournalLease(root, base, async () => {
+        const { releasePathAllowed } = require('./release/policy');
+        const { sourceRootPath, record, manifest, container } = await privateCopyRecordForRoot(root, base);
+        const pending = await readPrivateJournal(container, record.copyId);
+        if (pending.journal.intent) throw new Error('A private write needs recovery before publishing.');
+        const first = await computePrivateHandoffPlanUnlocked(root, base, { allowUnchanged: true, release: true });
+        if (reviewedHandoffPlans.get(record.copyId) !== planToken || first.planToken !== planToken ||
+            first.sourceChanged || first.unsupportedChanges.length) {
+            throw new Error('Project files changed since release review. Review again.');
+        }
+        const installedSite = await assertRetainedSanitySiteReady(root, base);
+        const pinnedText = new Map((installedSite?.artifact.files ?? []).filter((file) => file.kind === 'text')
+            .map((file) => [file.path, file.bytes.toString('utf8')]));
+        if (overrides.some((file) => pinnedText.has(file.path) && file.updated !== pinnedText.get(file.path))) {
+            throw new Error('Retained website files cannot be changed by release cleanup.');
+        }
+        if (overrides.length !== first.changedFiles.length ||
+            new Set(overrides.map((item) => item.path)).size !== overrides.length ||
+            first.changedFiles.some((item) => !overrides.some((override) => override.path === item.path))) {
+            throw new Error('Every reviewed release file needs a cleaned version.');
+        }
+        for (const item of overrides) {
+            if (path.posix.basename(item.path) === '.gitignore') {
+                const planned = first.changedFiles.find((file) => file.path === item.path);
+                if (item.updated !== planned.updated && item.updated !== planned.original) {
+                    throw new Error('Release cleanup cannot change Git ignore rules.');
+                }
+            }
+        }
+        const changes = first.changedFiles.length ? applyHandoffOverrides(first.changedFiles, overrides, { allowUnchanged: true }) : [];
+        const paths = [...new Set([...manifest.snapshot.map((item) => item.path), ...changes.map((item) => item.path), ...first.binaryFiles.map((item) => item.path)])];
+        const allowed = paths.filter(releasePathAllowed);
+        if (allowed.length > 10_000) throw new Error('Release exceeds the file limit.');
+        const sourceIgnored = await gitIgnoredPaths(sourceRootPath, allowed, { noIndex: true });
+        const privateIgnored = await gitIgnoredPaths(root, allowed, { noIndex: true });
+        if (!sourceIgnored || !privateIgnored) throw new Error('Release ignore rules could not be verified.');
+        const skippedPaths = paths.filter((rel) => !releasePathAllowed(rel) ||
+            sourceIgnored.has(rel) || privateIgnored.has(rel)).sort();
+        const skipped = new Set(skippedPaths);
+        const files = new Map();
+        let total = 0;
+        const put = (rel, bytes) => {
+            const prior = files.get(rel);
+            total -= prior?.bytes.length ?? 0;
+            if (bytes === null) { files.delete(rel); return; }
+            total += bytes.length;
+            if (bytes.length > 32 * 1024 * 1024 || total > 100 * 1024 * 1024) {
+                throw new Error('Release exceeds the upload size limit.');
+            }
+            files.set(rel, { path: rel, bytes: Buffer.from(bytes), sha256: sha256(bytes) });
+        };
+        for (const entry of manifest.snapshot) {
+            if (skipped.has(entry.path)) continue;
+            const abs = resolveWithin(sourceRootPath, entry.path);
+            await rejectSymlinkPath(sourceRootPath, abs);
+            await verifyExistingParent(sourceRootPath, abs);
+            const file = await currentFile(abs, 32 * 1024 * 1024);
+            if (file.hash !== entry.sha256 || !file.bytes) {
+                throw new Error('Original source changed while preparing the release.');
+            }
+            put(entry.path, file.bytes);
+        }
+        for (const item of changes) {
+            if (skipped.has(item.path)) continue;
+            put(item.path, item.updated === null ? null : Buffer.from(item.updated, 'utf8'));
+        }
+        for (const item of first.binaryFiles) {
+            if (skipped.has(item.path)) throw new Error('A retained Sanity website asset cannot be excluded from the release.');
+            const abs = resolveWithin(root, item.path);
+            await rejectSymlinkPath(root, abs);
+            await verifyExistingParent(root, abs);
+            const current = await currentFile(abs, 32 * 1024 * 1024);
+            if (!current.bytes || current.hash !== item.sha256 || current.bytes.length !== item.size) {
+                throw new Error('A retained Sanity website asset changed while preparing the release.');
+            }
+            put(item.path, current.bytes);
+        }
+        const second = await computePrivateHandoffPlanUnlocked(root, base, { allowUnchanged: true, release: true });
+        const sourceIgnoredAfter = await gitIgnoredPaths(sourceRootPath, allowed, { noIndex: true });
+        const privateIgnoredAfter = await gitIgnoredPaths(root, allowed, { noIndex: true });
+        const sameIgnore = (before, after) => after && before.size === after.size &&
+            [...before].every((rel) => after.has(rel));
+        if (second.sourceChanged) throw new Error('Original source changed while preparing the release.');
+        if (second.unsupportedChanges.length || second.planToken !== planToken) throw new Error('Project files changed while preparing the release.');
+        if (!sameIgnore(sourceIgnored, sourceIgnoredAfter) || !sameIgnore(privateIgnored, privateIgnoredAfter)) {
+            throw new Error('Git ignore rules could not be confirmed while preparing the release.');
+        }
+        const frozen = [...files.values()].sort((a, b) => a.path.localeCompare(b.path));
+        if (!frozen.length) throw new Error('The release has no supported files.');
+        const snapshotSha256 = sha256(Buffer.from(JSON.stringify(frozen.map((file) => [file.path, file.sha256]))));
+        return { copyId: record.copyId, files: frozen, size: total, snapshotSha256, skippedPaths,
+            includedPaths: frozen.map((file) => file.path), changedFiles: [...changes.filter((file) => !skipped.has(file.path)).map((file) => file.path), ...first.binaryFiles.map((file) => file.path)],
+            binaryFiles: first.binaryFiles, cmsInstallManifestHash: first.cmsInstallManifestHash };
+    }));
+    if (reviewedHandoffPlans.get(snapshot.copyId) === planToken) reviewedHandoffPlans.delete(snapshot.copyId);
+    return snapshot;
 }
 
 // --- Watch --------------------------------------------------------------------
@@ -2872,7 +3926,7 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
                 return { error: 'invalid_expected_sha256' };
             }
             root = await requirePrivateWorkingRoot(await granted(event, root));
-            return await withWriteLock(`journal:${root}`, async () => {
+            return await withWriteLock(`journal:${root}`, () => withJournalLease(root, privateWorkingCopyBase(), async () => {
                 const intent = await beginPrivateWriteIntent(
                     root, rel, expectedSha256, sha256(toBytes(content)),
                 );
@@ -2884,7 +3938,7 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
                         hash: result.hash, recoveryPath: result.recoveryPath };
                 }
                 return result;
-            });
+            }));
         }
         catch (err) { return { error: err.message }; }
     });
@@ -2895,7 +3949,7 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
         try {
             if (!/^[a-f0-9]{64}$/.test(expectedSha256)) return { error: 'invalid_expected_sha256' };
             root = await requirePrivateWorkingRoot(await granted(event, root));
-            return await withWriteLock(`journal:${root}`, async () => {
+            return await withWriteLock(`journal:${root}`, () => withJournalLease(root, privateWorkingCopyBase(), async () => {
                 const intent = await beginPrivateWriteIntent(root, rel, expectedSha256, null);
                 if (intent.conflict) return intent;
                 const result = await deleteFileIfUnchanged(root, rel, expectedSha256);
@@ -2905,7 +3959,7 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
                         recoveryPath: result.recoveryPath };
                 }
                 return result;
-            });
+            }));
         }
         catch (err) { return { error: err.message }; }
     });
@@ -2981,9 +4035,10 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
             if (localShuttingDown) return { error: 'Weblab is closing.' };
             root = await requirePrivateWorkingRoot(await granted(event, root));
             if (dependencyInstalls.has(root)) return { error: 'Wait for dependency installation to finish before starting the preview.' };
-            if (startingDevServers.has(root)) return { error: 'Local preview is already starting.' };
+            const pending = pendingDevServerStarts.get(root);
+            if (pending) return await pending;
             startingDevServers.add(root);
-            try {
+            const starting = (async () => {
                 const privateCopy = privateWorkingCopyRecords.get(root);
                 const container = privateCopy?.container;
                 if (!container || !privateCopy) return { error: 'Private working copy registration is missing.' };
@@ -2992,8 +4047,13 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
                 }
                 await verifyDependencyLinks(root, await privateInstallCache(container));
                 return await startDevServer(root, null, port, getWebContents);
+            })();
+            pendingDevServerStarts.set(root, starting);
+            try { return await starting; }
+            finally {
+                pendingDevServerStarts.delete(root);
+                startingDevServers.delete(root);
             }
-            finally { startingDevServers.delete(root); }
         } catch (err) {
             return { error: err.message };
         }
@@ -3005,6 +4065,18 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
             return await installDependencies(await granted(event, root));
         }
         catch (err) { return { error: err.message }; }
+    });
+    // Lets the editor skip the install step when this private copy already
+    // has a current install, so opening a project needs no manual clicks.
+    ipcMain.handle('weblab:localdev:dependenciesReady', async (event, { root } = {}) => {
+        try {
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            const privateCopy = privateWorkingCopyRecords.get(root);
+            if (!privateCopy?.container) return { error: 'Private working copy registration is missing.' };
+            return {
+                ready: await privateDependencyInstallIsCurrent(root, privateCopy.container, privateCopy.record.copyId),
+            };
+        } catch (err) { return { error: err.message }; }
     });
     ipcMain.handle('weblab:localdev:cancelInstallDependencies', async (event, { root } = {}) => {
         try {
@@ -3064,6 +4136,91 @@ async function disposeLocal() {
     if (failures.length) throw new Error(failures.join('; '));
 }
 
+// --- CLI agent edits -----------------------------------------------------------
+// Claude Code / Codex edit the private copy directly, outside the renderer's
+// journaled write path. After a turn we journal ONLY the paths the CLI itself
+// reported editing, so dev-server output and unrelated files never reach the
+// user's repo through the Git handoff. Gitignored, protected (.git, .claude,
+// .codex, node_modules) and unsafe (symlinked, unreadable) paths are skipped
+// and reported back so the chat can say why.
+const CLI_PROTECTED_SEGMENTS = new Set(['.git', '.claude', '.codex', 'node_modules']);
+
+function parseIgnoredPaths(result, rels) {
+    if (!result || result.timedOut || result.aborted || result.truncated || result.error ||
+        (result.code !== 0 && result.code !== 1) || typeof result.stdout !== 'string') return null;
+    if (result.code === 1) return result.stdout === '' ? new Set() : null;
+    if (!result.stdout || !result.stdout.endsWith('\0')) return null;
+    const submitted = new Set(rels);
+    const paths = result.stdout.slice(0, -1).split('\0');
+    if (paths.some((rel) => !submitted.has(rel)) || new Set(paths).size !== paths.length) return null;
+    return new Set(paths);
+}
+
+async function gitIgnoredPaths(root, rels, { capture = runCapture, signal, noIndex = false } = {}) {
+    if (!rels.length) return new Set();
+    if (rels.some((rel) => typeof rel !== 'string' || !rel || rel.includes('\0'))) return null;
+    const env = { ...syncedEnv() };
+    for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+    const result = await capture('git', ['-c', 'core.fsmonitor=false', '-C', root, 'check-ignore', '-z', '--stdin', ...(noIndex ? ['--no-index'] : [])], {
+        env, cwd: root, signal, input: rels.join('\0') + '\0',
+        timeoutMs: 8000, maxBytes: 1024 * 1024,
+    });
+    return parseIgnoredPaths(result, rels);
+}
+
+/** Pure filter: which reported paths may be journaled at all. */
+function cliJournalCandidates(rels) {
+    const seen = new Set();
+    const out = [];
+    for (const rel of Array.isArray(rels) ? rels : []) {
+        if (typeof rel !== 'string' || !rel || rel.length > 4096 || rel.includes('\0') ||
+            rel.startsWith('/') || rel.includes('\\')) continue;
+        const parts = rel.split('/');
+        if (parts.some((part) => !part || part === '.' || part === '..')) continue;
+        if (parts.some((part) => CLI_PROTECTED_SEGMENTS.has(part.toLowerCase()))) continue;
+        if (seen.has(rel)) continue;
+        seen.add(rel);
+        out.push(rel);
+    }
+    return out;
+}
+
+async function journalCliEdits(root, reportedPaths, base = privateWorkingCopyBase()) {
+    root = await requirePrivateWorkingRoot(root, base);
+    const candidates = cliJournalCandidates(reportedPaths);
+    const skipped = [];
+    if (candidates.length === 0) return { recorded: [], skipped };
+    return withWriteLock(`journal:${root}`, () => withJournalLease(root, base, async () => {
+        const ignored = await gitIgnoredPaths(root, candidates);
+        if (ignored === null) {
+            return { recorded: [], skipped: candidates.map((path) => ({ path, reason: 'ignore_detection_failed' })) };
+        }
+        const entries = [];
+        for (const rel of candidates) {
+            if (ignored.has(rel)) continue; // build output etc. never goes to the repo
+            try {
+                entries.push({ path: rel, sha256: await privatePathHash(root, rel) });
+            } catch (err) {
+                skipped.push({ path: rel, reason: err?.message ?? String(err) });
+            }
+        }
+        if (entries.length === 0) return { recorded: [], skipped };
+        const { record, container } = privateWorkingCopyRecords.get(root) ??
+            await privateCopyRecordForRoot(root, base);
+        const { journal } = await readPrivateJournal(container, record.copyId);
+        if (journal.intent) {
+            return { recorded: [], skipped: [...skipped, ...entries.map((e) => ({ path: e.path, reason: 'write_intent_pending' }))] };
+        }
+        const byPath = new Map(journal.writes.map((item) => [item.path, item]));
+        for (const entry of entries) byPath.set(entry.path, entry);
+        const writes = [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
+        await writePrivateJsonFile(container, 'write-journal.json', {
+            version: 1, copyId: record.copyId, writes,
+        });
+        return { recorded: entries.map((e) => e.path), skipped };
+    }));
+}
+
 module.exports = {
     registerLocalIpc,
     grantLocalRoot,
@@ -3094,9 +4251,28 @@ module.exports = {
     createPrivateWorkingCopy,
     requirePrivateWorkingRoot,
     planPrivateHandoff,
+    planPrivateRelease,
+    validatePrivateReleaseSnapshot,
     exportPrivateHandoff,
     applyHandoffOverrides,
     recordPrivateWrite,
     beginPrivateWriteIntent,
     reconcilePrivateWriteIntent,
+    syncedEnv,
+    cliJournalCandidates,
+    journalCliEdits,
+    quarantineCliCleanup,
+    withCliTurn,
+    withCliTurnMarker,
+    checkCliCleanup,
+    acquireJournalLease,
+    recoverDeadJournalLock,
+    gitIgnoredPaths,
+    parseIgnoredPaths,
+    createPrivateReleaseSnapshot,
+    installRetainedSanitySite,
+    resumeRetainedSanitySiteInstall,
+    assertRetainedSanitySiteReady,
+    readVerifiedSanitySiteSource,
+    inspectRetainedSanitySiteInstall,
 };

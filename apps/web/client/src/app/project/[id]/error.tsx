@@ -26,8 +26,8 @@ export default function ProjectErrorBoundary({
     }
 
     return (
-        <div className="bg-background flex min-h-screen items-center justify-center px-6">
-            <div className="border-border bg-card w-full max-w-md rounded-2xl border p-8 text-center shadow-2xl">
+        <div className="bg-background flex min-h-screen items-center justify-center px-6 py-12">
+            <div className="w-full max-w-md text-center">
                 <p className="text-foreground-tertiary text-sm">Project error</p>
                 <h1 className="text-foreground mt-3 text-3xl font-semibold">
                     We couldn&apos;t open this project
@@ -36,7 +36,7 @@ export default function ProjectErrorBoundary({
                     The editor failed to load. Try again, or head back to your dashboard.
                 </p>
                 {reference && (
-                    <div className="border-border bg-background mt-4 rounded-md border p-3 text-left">
+                    <div className="mt-4 text-left">
                         <p className="text-foreground-tertiary text-xs">Error reference</p>
                         <p className="text-foreground-secondary mt-1 font-mono text-xs break-all">
                             {reference}

@@ -1,36 +1,10 @@
 import { describe, expect, it, mock } from 'bun:test';
 
-// ZenFS cannot load under bun test, so back the base class with a Map.
-mock.module('./fs', () => ({
-    FileSystem: class {
-        private files = new Map<string, string | Uint8Array>();
-        protected get initialized() {
-            return true;
-        }
-        async initialize() {}
-        private key(path: string) {
-            return path.replace(/^\/+/, '');
-        }
-        async writeFile(path: string, content: string | Uint8Array) {
-            this.files.set(this.key(path), content);
-        }
-        async readFile(path: string) {
-            const content = this.files.get(this.key(path));
-            if (content === undefined) throw new Error(`ENOENT ${path}`);
-            return content;
-        }
-        async fileExists(path: string) {
-            return this.files.has(this.key(path));
-        }
-        async deleteFile(path: string) {
-            this.files.delete(this.key(path));
-        }
-        async createDirectory() {}
-        async listAll() {
-            return [...this.files.keys()].map((path) => ({ path: `/${path}`, type: 'file' }));
-        }
-    },
-}));
+import { MemoryFileSystem } from './test-memory-fs';
+
+// ZenFS cannot load under Bun. Both filesystem test files share this exact
+// constructor because Bun caches CodeFileSystem across module mock updates.
+mock.module('./fs', () => ({ FileSystem: MemoryFileSystem }));
 
 const { CodeFileSystem } = await import('./code-fs');
 

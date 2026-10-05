@@ -246,7 +246,8 @@ const GROUPS: (GroupSpec & { Demo: React.ComponentType })[] = [
         label: 'Feedback',
         eyebrow: 'Status',
         title: 'Feedback',
-        description: 'Alerts, toasts, progress, and skeleton loaders.',
+        description:
+            'Flat full-page status screens, alerts, toasts, progress, and skeleton loaders.',
         filePath: 'packages/ui/src/components/alert.tsx',
         Demo: FeedbackDemo,
     },

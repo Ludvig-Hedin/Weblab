@@ -179,7 +179,7 @@ export const BottomBar = observer(() => {
                                                     disabled && 'pointer-events-none opacity-40',
                                                 )}
                                             >
-                                                <item.icon />
+                                                <item.icon className="h-4 w-4" />
                                             </button>
                                         </TooltipTrigger>
                                         <TooltipContent sideOffset={5} hideArrow>
@@ -201,10 +201,10 @@ export const BottomBar = observer(() => {
                                         editorEngine.canvas.scale / ZOOM_FACTOR,
                                     );
                                 }}
-                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-6 items-center justify-center rounded-md transition-all duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-9 w-7 items-center justify-center rounded-md transition-colors duration-150"
                                 aria-label="Zoom out"
                             >
-                                <Icons.Minus className="h-3 w-3" />
+                                <Icons.Minus className="h-4 w-4" />
                             </button>
 
                             {/* Draggable / editable zoom % */}
@@ -251,10 +251,10 @@ export const BottomBar = observer(() => {
                                         editorEngine.canvas.scale * ZOOM_FACTOR,
                                     );
                                 }}
-                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-6 items-center justify-center rounded-md transition-all duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-9 w-7 items-center justify-center rounded-md transition-colors duration-150"
                                 aria-label="Zoom in"
                             >
-                                <Icons.Plus className="h-3 w-3" />
+                                <Icons.Plus className="h-4 w-4" />
                             </button>
                         </div>
 
@@ -288,9 +288,9 @@ export const BottomBar = observer(() => {
                                     )}
                                 >
                                     {editorEngine.state.canvasLocked ? (
-                                        <Icons.LockClosed />
+                                        <Icons.LockClosed className="h-4 w-4" />
                                     ) : (
-                                        <Icons.LockOpen />
+                                        <Icons.LockOpen className="h-4 w-4" />
                                     )}
                                 </button>
                             </TooltipTrigger>

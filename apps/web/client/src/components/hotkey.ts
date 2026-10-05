@@ -50,6 +50,9 @@ export class Hotkey {
 
     // Toggles
     static readonly TOGGLE_TERMINAL = new Hotkey('mod+`', 'Toggle Terminal');
+    // Hides and shows the side panels. `intlbackslash` is the physical § key
+    // left of 1 on Mac ISO (Nordic/EU) keyboards.
+    static readonly TOGGLE_UI = new Hotkey('intlbackslash', 'Show/Hide UI');
     static readonly OPEN_MODEL_PICKER = new Hotkey('mod+shift+m', 'Open Model Picker');
     // Canvas chrome — Figma parity. `shift+r` toggles canvas rulers,
     // `shift+g` toggles per-frame layout guides globally (the per-guide
@@ -176,6 +179,12 @@ export class Hotkey {
                 if (value === '`') {
                     return '`';
                 }
+                if (value === 'backslash') {
+                    return '\\';
+                }
+                if (value === 'intlbackslash') {
+                    return '§';
+                }
                 if (value === 'arrowup') return '↑';
                 if (value === 'arrowdown') return '↓';
                 if (value === 'arrowleft') return '←';
@@ -209,6 +218,8 @@ export function makeReadableCommand(command: string): string {
             if (value === 'period') return '.';
             if (value === 'slash') return '/';
             if (value === '`') return '`';
+            if (value === 'backslash') return '\\';
+            if (value === 'intlbackslash') return '§';
             if (value === 'arrowup') return '↑';
             if (value === 'arrowdown') return '↓';
             if (value === 'arrowleft') return '←';

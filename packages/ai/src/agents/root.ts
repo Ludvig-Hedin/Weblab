@@ -117,6 +117,8 @@ export const createRootAgentStream = ({
         maxOutputTokens: modelConfig.maxOutputTokens,
         abortSignal,
         stopWhen: stepCountIs(8),
+        // SDK default is 2 retries; each retry re-bills the whole prompt.
+        maxRetries: 1,
         experimental_repairToolCall: createRepairToolCall(provider),
         experimental_transform: smoothStream(),
         experimental_telemetry: {
@@ -244,6 +246,7 @@ export const repairToolCall = async ({
             JSON.stringify(tool?.inputSchema),
             'Please fix the inputs. Return the fixed inputs as a JSON object, DO NOT include any other text.',
         ].join('\n'),
+        maxRetries: 1,
     });
 
     return {

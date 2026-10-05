@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { CloudStandalonePreview } from '@/components/cloud-editor/preview';
 
 import { Icons } from '@weblab/ui/icons';
 
@@ -26,6 +28,7 @@ import { StandalonePreview } from '../_components/standalone-preview';
 export default function ProjectPreviewPage() {
     const params = useParams<{ id: string }>();
     const projectId = params.id as Id<'projects'>;
+    const requestedFrame = useSearchParams().get('frame');
 
     const branches = useQuery(api.branches.getByProjectId, {
         projectId,
@@ -35,10 +38,12 @@ export default function ProjectPreviewPage() {
     const resolved = useMemo(() => {
         if (!branches || branches.length === 0) return null;
         const defaultBranch = branches.find((b) => b.isDefault) ?? branches[0];
-        const frame = defaultBranch?.frames?.[0];
-        if (!frame?.url) return null;
-        return { url: frame.url, branchId: frame.branchId as Id<'branches'> };
-    }, [branches]);
+        const frame = defaultBranch?.frames?.find(frame => frame._id === requestedFrame) ?? defaultBranch?.frames?.[0];
+        if (!defaultBranch || !frame) return null;
+        const durableCloud = defaultBranch.runtimeType === 'cloud' && isCloudEditorRuntime(defaultBranch.runtimeMetadata);
+        if (!frame.url && !durableCloud) return null;
+        return { url: frame.url, branchId: defaultBranch._id, durableCloud };
+    }, [branches, requestedFrame]);
 
     if (branches === undefined) {
         return <PreviewMessage icon="spinner" title="Loading preview…" />;
@@ -51,6 +56,10 @@ export default function ProjectPreviewPage() {
                 body="This project doesn't have a running preview yet. Open it in the editor to start the dev server."
             />
         );
+    }
+
+    if (resolved.durableCloud) {
+        return <CloudStandalonePreview projectId={projectId} branchId={resolved.branchId} url={resolved.url} />;
     }
 
     // A local (http://localhost) dev server can't be iframed from this https

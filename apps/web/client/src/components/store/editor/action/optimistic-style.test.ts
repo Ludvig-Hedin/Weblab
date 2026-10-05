@@ -57,10 +57,42 @@ function setup() {
             },
         },
     } as unknown as EditorEngine;
-    return { manager: new ActionManager(engine), painted, saves };
+    return { engine, manager: new ActionManager(engine), painted, saves };
 }
 
 describe('optimistic style edits', () => {
+    it('refuses the whole selection before painting or saving a dynamic element', async () => {
+        const { engine, manager, painted, saves } = setup();
+        Object.defineProperty(engine, 'code', { value: { preflightStyleAction: async () => { throw new Error('Dynamic classes'); } } });
+        const action = styleAction('red', 'blue');
+        action.targets.push({ ...action.targets[0]!, domId: 'dynamic' });
+        let applied = false;
+        expect(await manager.run(action, () => { applied = true; })).toBe(false);
+        expect(painted).toEqual([]);
+        expect(saves).toEqual([]);
+        expect(applied).toBe(false);
+    });
+
+    it('waits for preflight before paint and pins the source history across a branch switch', async () => {
+        const { engine, manager, painted, saves } = setup();
+        const check = deferred<void>();
+        Object.defineProperty(engine, 'code', { value: { preflightStyleAction: () => check.promise } });
+        const originalHistory = engine.history;
+        engine.branches.getBranchDataById = () => ({ history: originalHistory }) as ReturnType<EditorEngine['branches']['getBranchDataById']>;
+        const run = manager.run(styleAction('red', 'blue'));
+        expect(painted).toEqual([]);
+        expect(saves).toEqual([]);
+        let otherSaves = 0;
+        Object.defineProperty(engine, 'history', { value: { push: async () => { otherSaves++; return true; } } });
+        check.resolve(undefined);
+        await manager.waitForStylePreflights();
+        expect(painted).toEqual(['blue']);
+        expect(saves).toHaveLength(1);
+        expect(otherSaves).toBe(0);
+        saves[0]!.resolve(true);
+        expect(await run).toBe(true);
+    });
+
     it('paints the frame before the source save finishes', async () => {
         const { manager, painted, saves } = setup();
         let applied = false;

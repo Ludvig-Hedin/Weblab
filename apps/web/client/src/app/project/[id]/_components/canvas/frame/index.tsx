@@ -4,14 +4,18 @@ import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
+import { getProviderManifest } from '@weblab/ai/client';
 import type { Frame } from '@weblab/models';
 import { APP_NAME } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { Button } from '@weblab/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
-import { ScrollArea } from '@weblab/ui/scroll-area';
 import { toast } from '@weblab/ui/sonner';
 import { colors } from '@weblab/ui/tokens';
 import { cn } from '@weblab/ui/utils';
@@ -20,19 +24,22 @@ import type { SandboxLivenessState } from './use-sandbox-liveness';
 import type { IFrameView } from './view';
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { LocalPreparationApplyError, PreloadScriptState } from '@/components/store/editor/sandbox';
-import type { LocalPreparationPlan } from '@/components/store/editor/sandbox/preload-script';
+import { PreloadScriptState } from '@/components/store/editor/sandbox';
 import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
 import { EDITOR_SCOPE } from '@/lib/editor-scope';
+import { localStartupIssue, startupRecoveryPrompt } from '@/lib/local-startup-recovery';
+import { Routes } from '@/utils/constants';
 import { RightClickMenu } from '../../right-click-menu';
 import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
-import { CodeDiff } from '../../right-panel/chat-tab/code-display/code-diff';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
 import { isFrameBridgeReady, shouldUnlockCodeSandboxPreview } from './frame-connection';
 import { GestureScreen } from './gesture';
 import { ResizeHandles } from './resize-handles';
 import { TopBar } from './top-bar';
 import { BOOT_RESTART_HINT_MS, BOOT_SOFT_HINT_MS, useFrameReload } from './use-frame-reload';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { authenticatedPreviewUrl } from '@/lib/cloud-editor/preview-url';
+import { useCloudEditorCopy } from '@/lib/cloud-editor/copy';
 import { isLocalPreviewUrl, useSandboxLiveness } from './use-sandbox-liveness';
 import { useSandboxTimeout } from './use-sandbox-timeout';
 import { FrameComponent } from './view';
@@ -57,13 +64,53 @@ function getLocalDependencyInstaller(): ((root: string) => Promise<LocalInstallR
     }).weblabNative?.localdev?.installDependencies ?? null;
 }
 
-function getLocalDependencyCanceller(): ((root: string) => Promise<LocalInstallResult>) | null {
+function getLocalDependenciesReady():
+    | ((root: string) => Promise<{ ready?: boolean; error?: string }>)
+    | null {
     if (typeof window === 'undefined') return null;
     return (window as unknown as {
         weblabNative?: {
-            localdev?: { cancelInstallDependencies?: (root: string) => Promise<LocalInstallResult> };
+            localdev?: {
+                dependenciesReady?: (root: string) => Promise<{ ready?: boolean; error?: string }>;
+            };
         };
-    }).weblabNative?.localdev?.cancelInstallDependencies ?? null;
+    }).weblabNative?.localdev?.dependenciesReady ?? null;
+}
+
+type LocalSetupStep = 'installing' | 'preparing' | 'starting';
+
+// One setup run per branch, shared by every FrameView of that branch, so a
+// remount or a sibling frame can't start the same dev server twice.
+const localSetupBranches = new Set<string>();
+type LocalSetupErrorKey =
+    | 'localSetupMonorepo'
+    | 'localSetupUnsupportedFramework'
+    | 'localSetupLockfile'
+    | 'localSetupPort'
+    | 'localSetupNativeBinding'
+    | 'localSetupDependencies'
+    | 'localSetupFailed';
+
+class LocalSetupError extends Error {
+    constructor(message: string, readonly details?: string) {
+        super(message);
+    }
+}
+
+/** Map a raw setup failure to one plain sentence a designer can act on. */
+function classifyLocalSetupError(message: string): LocalSetupErrorKey {
+    if (/workspace|single-package/i.test(message)) return 'localSetupMonorepo';
+    if (/supports Next\.js|App Router|app\/layout|index\.html at the project root/i.test(message)) {
+        return 'localSetupUnsupportedFramework';
+    }
+    if (/lockfile|lock entries|locks are supported|does not match package\.json/i.test(message)) {
+        return 'localSetupLockfile';
+    }
+    const issue = localStartupIssue(message);
+    if (issue === 'port') return 'localSetupPort';
+    if (issue === 'nativeBinding') return 'localSetupNativeBinding';
+    if (issue === 'dependencies') return 'localSetupDependencies';
+    return 'localSetupFailed';
 }
 
 // Tips shown during very long cold-boots (>60s). Keeps the loader
@@ -185,6 +232,37 @@ function HighlightedError({ content }: { content: string }) {
 export const FrameView = observer(
     ({ frame, isInDragSelection = false }: { frame: Frame; isInDragSelection?: boolean }) => {
         const editorEngine = useEditorEngine();
+        const cloudSource = editorEngine.branches.getBranchDataById(frame.branchId)?.sandbox.cloudSource;
+        const durableCloud = isCloudEditorRuntime(editorEngine.branches.getBranchDataById(frame.branchId)?.branch.runtime);
+        const cloudCopy = useCloudEditorCopy();
+        const [cloudPreviewRetrying, setCloudPreviewRetrying] = useState(false);
+        const [cloudBrowserRetryUntil, setCloudBrowserRetryUntil] = useState(0);
+        const cloudPreviewRetryRef = useRef(false);
+        const cloudPreviewExpired = durableCloud && !!cloudSource?.state.runtimeExpired;
+        const cloudPreviewIdle = durableCloud && cloudSource?.state.runtime?.status === 'stopped';
+        const cloudRuntimeFailed = durableCloud && (cloudPreviewIdle || cloudPreviewExpired ||
+            !!cloudSource?.state.runtimeError || cloudSource?.state.runtime?.status === 'error');
+        const cloudPreviewDisabled = durableCloud && cloudSource?.state.runtime?.enabled === false;
+        const retryCloudPreview = async () => {
+            if (!cloudSource?.canEditContent || cloudPreviewRetryRef.current || cloudPreviewDisabled) return;
+            if (cloudBrowserPreviewFailed) {
+                // The runtime is already ready. Retry this browser's iframe and
+                // bridge only; do not allocate or restart paid runtime work.
+                setCloudBrowserRetryUntil(Date.now() + BOOT_RESTART_HINT_MS);
+                immediateReload();
+                return;
+            }
+            cloudPreviewRetryRef.current = true;
+            setCloudPreviewRetrying(true);
+            try {
+                await cloudSource.retryPreview();
+            } catch {
+                toast.error(cloudSource.state.previewStartErrorCode === 'CLOUD_PREVIEW_ALLOWANCE_REQUIRED' ? cloudCopy.previewAllowanceRequired : cloudSource.state.previewStartErrorCode === 'CLOUD_PREVIEW_PREPARATION_REQUIRED' ? cloudCopy.previewPreparationRequired : cloudCopy.previewUnavailable);
+            } finally {
+                cloudPreviewRetryRef.current = false;
+                setCloudPreviewRetrying(false);
+            }
+        };
         const t = useTranslations('editor.canvas.frame.loading') as (
             key: string,
             values?: Record<string, string | number>,
@@ -211,7 +289,7 @@ export const FrameView = observer(
         // the editor boots with the correct branch sandboxId from the server.
         const wasProvisioningRef = useRef(frame.url === '');
         useEffect(() => {
-            if (wasProvisioningRef.current && frame.url) {
+            if (!durableCloud && wasProvisioningRef.current && frame.url) {
                 wasProvisioningRef.current = false;
                 window.location.reload();
             }
@@ -229,26 +307,25 @@ export const FrameView = observer(
             bootElapsedMs,
         } = useFrameReload();
         const [isRestarting, setIsRestarting] = useState(false);
-        const [isInstallingDependencies, setIsInstallingDependencies] = useState(false);
-        const [installLocalDependencies, setInstallLocalDependencies] = useState<
-            ((root: string) => Promise<LocalInstallResult>) | null
-        >(null);
-        const [cancelLocalDependencyInstall, setCancelLocalDependencyInstall] = useState<
-            ((root: string) => Promise<LocalInstallResult>) | null
-        >(null);
-        useEffect(() => {
-            setInstallLocalDependencies(() => getLocalDependencyInstaller());
-            setCancelLocalDependencyInstall(() => getLocalDependencyCanceller());
-        }, []);
-        const [localPlan, setLocalPlan] = useState<LocalPreparationPlan | null>(null);
-        const [localReviewOpen, setLocalReviewOpen] = useState(false);
-        const [isPlanningLocal, setIsPlanningLocal] = useState(false);
-        const [isApplyingLocal, setIsApplyingLocal] = useState(false);
-        const [localPreparationError, setLocalPreparationError] = useState<{
-            message: string;
-            remainingPaths: string[];
-            rollbackIssues: string[];
+        const [localSetupStep, setLocalSetupStep] = useState<LocalSetupStep | null>(null);
+        const [localSetupError, setLocalSetupError] = useState<{
+            key: LocalSetupErrorKey;
+            details: string;
         } | null>(null);
+        const [showLocalSetupDetails, setShowLocalSetupDetails] = useState(false);
+        const [localSetupSlow, setLocalSetupSlow] = useState(false);
+        const [recoveryLaunching, setRecoveryLaunching] = useState(false);
+        const localSetupRunningRef = useRef(false);
+        const localSetupFiredRef = useRef(false);
+        const isLocalSetupRunning = localSetupStep !== null;
+        useEffect(() => {
+            if (localSetupStep === null) {
+                setLocalSetupSlow(false);
+                return;
+            }
+            const timer = setTimeout(() => setLocalSetupSlow(true), 30_000);
+            return () => clearTimeout(timer);
+        }, [localSetupStep]);
         // Track the post-restart reload timer so we can clear it if the
         // FrameView unmounts (e.g. user navigates away) before the
         // 5s window elapses. Without this, the queued setState would
@@ -276,22 +353,6 @@ export const FrameView = observer(
         const hasBuildErrors = branchErrors.length > 0;
         const branchData = editorEngine.branches.getBranchDataById(frame.branchId);
         const localPreviewStarted = branchData?.sandbox?.session.isLocalPreviewStarted ?? false;
-        // A static site can still ship a package.json with a dev server. The
-        // native start requires an install record for it, so the Install
-        // button must show whenever a manifest exists, not by framework.
-        const [localHasManifest, setLocalHasManifest] = useState(false);
-        const localCodeEditor =
-            branchData?.branch.runtime.type === 'local' ? branchData.codeEditor : null;
-        useEffect(() => {
-            if (!localCodeEditor) return;
-            let cancelled = false;
-            void localCodeEditor.fileExists('package.json').then(
-                (exists) => { if (!cancelled) setLocalHasManifest(exists); },
-                () => { if (!cancelled) setLocalHasManifest(false); },
-            );
-            return () => { cancelled = true; };
-        }, [localCodeEditor]);
-        const showLocalInstall = editorEngine.framework !== 'static-html' || localHasManifest;
         const restoreSandbox = useAction(api.projectActions.restoreSandbox);
         const preloadScriptReady =
             branchData?.sandbox?.preloadScriptState === PreloadScriptState.INJECTED;
@@ -321,7 +382,7 @@ export const FrameView = observer(
         // connect) or during a fresh AI creation (where the user is meant
         // to wait in DESIGN mode while the loader is up). See
         // shouldUnlockCodeSandboxPreview for the gating policy.
-        const shouldTemporarilyUnlockPreview = shouldUnlockCodeSandboxPreview({
+        const shouldTemporarilyUnlockPreview = !durableCloud && shouldUnlockCodeSandboxPreview({
             isCodeSandboxFrame,
             isPenpalConnected,
             connectionFailureCount,
@@ -377,11 +438,14 @@ export const FrameView = observer(
                 (isLocalFrame
                     ? localPreviewStarted
                     : bootElapsedMs >= BOOT_SOFT_HINT_MS || connectionFailureCount >= 1));
-        const livenessState = useSandboxLiveness(
+        const legacyLivenessState = useSandboxLiveness(
             frame.branchId as Id<'branches'>,
             frame.url,
-            livenessEnabled,
+            livenessEnabled && !durableCloud,
         );
+        const livenessState = durableCloud
+            ? authenticatedPreviewUrl(frame.url, cloudSource?.state.runtime) ? 'alive' : cloudRuntimeFailed ? 'error' : 'unknown'
+            : legacyLivenessState;
         // For a LOCAL project the rendered site is usable the moment the dev
         // server responds — don't keep it hidden behind the opaque boot overlay
         // while the preload + penpal bridge finishes connecting in the
@@ -411,13 +475,18 @@ export const FrameView = observer(
             (bootElapsedMs >= BOOT_RESTART_HINT_MS || reloadCapped);
         const showRetryOnlyPanel =
             !isFrameReady && !showRestartPanel && connectionFailureCount >= 2;
+        const cloudBrowserPreviewFailed = durableCloud && !cloudRuntimeFailed && !cloudPreviewDisabled &&
+            cloudSource?.state.runtime?.status === 'ready' && !isFrameReady &&
+            (reloadCapped || connectionFailureCount >= 2 ||
+                (showRestartPanel && Date.now() >= cloudBrowserRetryUntil));
+        const cloudPreviewFailed = cloudRuntimeFailed || cloudBrowserPreviewFailed;
         // 410 Gone is definitive — CSB has reaped the sandbox forever.
         // 404 is ambiguous: a freshly created sandbox returns 404 from
         // the CSB preview proxy while its dev server is still binding
         // port 3000. Only treat 404 as "gone" once the boot grace
         // period has elapsed; before that, keep waiting.
         const sandboxIsGone =
-            !isLocalFrame &&
+            !isLocalFrame && !durableCloud &&
             (livenessState === 'gone' ||
                 (livenessState === 'notFound' && bootElapsedMs >= NOTFOUND_GRACE_MS));
         const [isRestorePending, setIsRestorePending] = useState(false);
@@ -426,6 +495,7 @@ export const FrameView = observer(
         const autoRestoreFiredRef = useRef(false);
         const autoRestartFiredRef = useRef(false);
         const handleRestoreSandbox = async ({ silent = false } = {}) => {
+            if (durableCloud) { await cloudSource?.retryPreview(); return; }
             if (restoreInFlightRef.current) return;
             restoreInFlightRef.current = true;
             setIsRestorePending(true);
@@ -453,47 +523,10 @@ export const FrameView = observer(
         };
 
         const handleRestartSandbox = async () => {
-            if (isRestarting || isInstallingDependencies) return;
-            // Target the FRAME's own branch, not `branches.activeBranch` —
-            // this handler fires from per-frame UI and the per-frame
-            // auto-restart effect, so when this frame belongs to a non-active
-            // branch the old code restarted the wrong branch's sandbox.
-            // `branchData` is already resolved from `frame.branchId` above.
-            const sandbox = branchData?.sandbox;
-            if (!branchData || !sandbox?.session) {
-                toast.error('Sandbox session not available');
-                return;
-            }
-            const sandboxId = branchData.branch.sandbox?.id ??
-                (isLocalFrame ? `local-${branchData.branch.id}` : null);
-            if (!sandboxId) {
-                toast.error('Sandbox session not available');
-                return;
-            }
+            if (isRestarting || isLocalSetupRunning) return;
             setIsRestarting(true);
             try {
-                if (!sandbox.session.provider) {
-                    await sandbox.session.start(sandboxId);
-                }
-                const success = await sandbox.session.restartDevServer();
-                if (!success) {
-                    toast.error("Couldn't restart the sandbox", {
-                        description:
-                            "We tried to restart the dev server but it didn't come back. Try again, or refresh the page.",
-                    });
-                    return;
-                }
-                // Brief delay so the dev server has time to bind its
-                // port — reloading the iframe immediately after restart
-                // would just trip a fresh 502. The timeout is tracked
-                // so we can cancel it on unmount.
-                if (restartReloadTimeoutRef.current) {
-                    clearTimeout(restartReloadTimeoutRef.current);
-                }
-                restartReloadTimeoutRef.current = setTimeout(() => {
-                    restartReloadTimeoutRef.current = null;
-                    immediateReload();
-                }, 5000);
+                await restartDevServerOrThrow();
             } catch (error) {
                 console.error('Restart sandbox failed', error);
                 toast.error("Couldn't restart the sandbox", {
@@ -502,6 +535,41 @@ export const FrameView = observer(
             } finally {
                 setIsRestarting(false);
             }
+        };
+
+        const restartDevServerOrThrow = async () => {
+            if (durableCloud) { await cloudSource?.retryPreview(); return; }
+            // Target the FRAME's own branch, not `branches.activeBranch` —
+            // this handler fires from per-frame UI and the per-frame
+            // auto-restart effect, so when this frame belongs to a non-active
+            // branch the old code restarted the wrong branch's sandbox.
+            // `branchData` is already resolved from `frame.branchId` above.
+            const sandbox = branchData?.sandbox;
+            const sandboxId = branchData?.branch.sandbox?.id ??
+                (isLocalFrame && branchData ? `local-${branchData.branch.id}` : null);
+            if (!sandbox?.session || !sandboxId) {
+                throw new Error('Sandbox session not available');
+            }
+            if (!sandbox.session.provider) {
+                await sandbox.session.start(sandboxId);
+            }
+            const success = await sandbox.session.restartDevServer();
+            if (!success) {
+                throw new Error(
+                    "We tried to restart the dev server but it didn't come back. Try again, or refresh the page.",
+                );
+            }
+            // Brief delay so the dev server has time to bind its
+            // port — reloading the iframe immediately after restart
+            // would just trip a fresh 502. The timeout is tracked
+            // so we can cancel it on unmount.
+            if (restartReloadTimeoutRef.current) {
+                clearTimeout(restartReloadTimeoutRef.current);
+            }
+            restartReloadTimeoutRef.current = setTimeout(() => {
+                restartReloadTimeoutRef.current = null;
+                immediateReload();
+            }, 5000);
         };
 
         // "Primary" frame in a branch = lowest breakpoint.order (Desktop wins),
@@ -530,14 +598,14 @@ export const FrameView = observer(
         // 'gone' fired N concurrent Sandbox.create calls — leaking N-1 orphaned
         // VMs and racing the branch-sandbox DB write (last-writer-wins).
         useEffect(() => {
-            if (isLocalFrame) return;
+            if (isLocalFrame || durableCloud) return;
             if (!isPrimaryFrameInBranch) return;
             if (livenessState !== 'gone') return;
             if (autoRestoreFiredRef.current) return;
             autoRestoreFiredRef.current = true;
             void handleRestoreSandbox({ silent: true });
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [livenessState, isPrimaryFrameInBranch, isLocalFrame]);
+        }, [livenessState, isPrimaryFrameInBranch, isLocalFrame, durableCloud]);
 
         // Auto-recovery on cold-boot transition: when the URL flips from
         // 404/error to alive, the iframe is still pointing at the old
@@ -569,7 +637,7 @@ export const FrameView = observer(
         // Restart panel. Catches the case where CSB has the proxy up
         // but the dev server crashed silently on cold boot.
         useEffect(() => {
-            if (isLocalFrame) return;
+            if (isLocalFrame || durableCloud) return;
             if (isPenpalConnected) {
                 autoRestartFiredRef.current = false;
                 return;
@@ -580,7 +648,7 @@ export const FrameView = observer(
             autoRestartFiredRef.current = true;
             void handleRestartSandbox();
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [livenessState, bootElapsedMs, isPenpalConnected, isLocalFrame]);
+        }, [livenessState, bootElapsedMs, isPenpalConnected, isLocalFrame, durableCloud]);
 
         // `isPrimaryFrameInBranch` (declared above, near the auto-restore
         // effect) also gates the rich loading panel + iframe lazy-mount so
@@ -596,7 +664,7 @@ export const FrameView = observer(
         // intentionally have no bridge yet, so URL liveness can unlock them.
         const primaryFrameAlive = branchData?.sandbox?.primaryFrameAlive ?? false;
         const shouldMountIframe =
-            (isPrimaryFrameInBranch || primaryFrameAlive) && (!isLocalFrame || localPreviewStarted);
+            (isPrimaryFrameInBranch || primaryFrameAlive) && (!isLocalFrame || localPreviewStarted) && (!durableCloud || !!cloudSource?.state.runtime?.previewToken);
 
         // Promote the primary frame's penpal-connect signal into the
         // shared SandboxManager so siblings can react. Set once-and-stay
@@ -638,78 +706,137 @@ export const FrameView = observer(
             }
         };
 
-        const handlePlanLocalPreparation = async () => {
-            if (!branchData?.sandbox || isPlanningLocal) return;
-            setIsPlanningLocal(true);
-            setLocalPreparationError(null);
-            try {
-                const plan = await branchData.sandbox.planLocalPreparation();
-                setLocalPlan(plan);
-                setLocalReviewOpen(true);
-            } catch (error) {
-                toast.error(t('localPreparationPlanFailed'), {
-                    description: error instanceof Error ? error.message : String(error),
-                });
-            } finally {
-                setIsPlanningLocal(false);
-            }
-        };
-
-        const handleApplyLocalPreparation = async () => {
-            if (!branchData?.sandbox || !localPlan || isApplyingLocal) return;
-            setIsApplyingLocal(true);
-            setLocalPreparationError(null);
-            try {
-                await branchData.sandbox.applyLocalPreparation(localPlan);
-                setLocalReviewOpen(false);
-                setLocalPlan(null);
-                toast.success(t('localPreparationSuccess'));
-                if (branchData.sandbox.session.isLocalPreviewStarted) immediateReload();
-            } catch (error) {
-                setLocalPreparationError({
-                    message: error instanceof Error ? error.message : String(error),
-                    remainingPaths:
-                        error instanceof LocalPreparationApplyError ? error.remainingPaths : [],
-                    rollbackIssues:
-                        error instanceof LocalPreparationApplyError ? error.rollbackIssues : [],
-                });
-            } finally {
-                setIsApplyingLocal(false);
-            }
-        };
-
-        const handleInstallLocalDependencies = async () => {
+        // Opening a local project needs no clicks: install packages when the
+        // private copy lacks a current install, add the editor bridge to the
+        // private copy, then start the dev server. The original folder is never
+        // touched; Git handoff still reviews every change before export.
+        const runLocalSetup = async () => {
+            const sandbox = branchData?.sandbox;
             const root = branchData?.branch.runtime.local?.rootPath;
-            if (!root || !installLocalDependencies || isInstallingDependencies || isRestarting) return;
-            setIsInstallingDependencies(true);
+            if (!sandbox || !root || localSetupRunningRef.current) return;
+            if (localSetupBranches.has(frame.branchId)) return;
+            localSetupBranches.add(frame.branchId);
+            localSetupRunningRef.current = true;
+            setLocalSetupError(null);
+            setShowLocalSetupDetails(false);
             try {
-                const result = await installLocalDependencies(root);
-                if (!result.success) {
-                    const detail = result.details?.trim().slice(-600);
-                    throw new Error([result.error ?? t('localInstallFailed'), detail].filter(Boolean).join('\n'));
+                const checkReady = getLocalDependenciesReady();
+                const status = checkReady ? await checkReady(root) : null;
+                if (status?.error) throw new Error(status.error);
+                const needsInstall = status
+                    ? !status.ready
+                    : editorEngine.framework !== 'static-html';
+                if (needsInstall) {
+                    const install = getLocalDependencyInstaller();
+                    if (!install) throw new Error('Update the Weblab desktop app to open this project.');
+                    setLocalSetupStep('installing');
+                    const result = await install(root);
+                    if (!result.success) {
+                        throw new LocalSetupError(
+                            result.error ?? 'Could not install dependencies',
+                            result.details?.trim().slice(-600),
+                        );
+                    }
                 }
-                toast.success(t('localInstallSuccess'));
+                if (sandbox.preloadScriptState !== PreloadScriptState.INJECTED) {
+                    setLocalSetupStep('preparing');
+                    await sandbox.applyLocalPreparation(await sandbox.planLocalPreparation());
+                }
+                setLocalSetupStep('starting');
+                await restartDevServerOrThrow();
             } catch (error) {
-                toast.error(t('localInstallFailed'), {
-                    description: error instanceof Error ? error.message : String(error),
+                console.error('Local project setup failed', error);
+                const message = error instanceof Error ? error.message : String(error);
+                const extra = error instanceof LocalSetupError ? error.details : undefined;
+                setLocalSetupError({
+                    key: classifyLocalSetupError(message),
+                    details: [message, extra].filter(Boolean).join('\n'),
                 });
             } finally {
-                setIsInstallingDependencies(false);
+                localSetupBranches.delete(frame.branchId);
+                localSetupRunningRef.current = false;
+                setLocalSetupStep(null);
             }
         };
 
-        const handleCancelLocalDependencyInstall = async () => {
+        const localSourceReady = branchData?.sandbox?.localSourceReady ?? false;
+        useEffect(() => {
+            if (!isLocalFrame || !isPrimaryFrameInBranch || !localSourceReady) return;
+            if (localPreviewStarted || localSetupFiredRef.current) return;
+            localSetupFiredRef.current = true;
+            void runLocalSetup();
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [isLocalFrame, isPrimaryFrameInBranch, localSourceReady, localPreviewStarted]);
+
+        const startRecovery = async (provider: 'codex' | 'claude-code') => {
+            if (recoveryLaunching) return;
+            if (editorEngine.chat.isStreaming || editorEngine.chat.queuedMessageCount > 0) {
+                toast.error(t('localRecoveryChatBusy'));
+                return;
+            }
+            if (editorEngine.branches.activeBranch.id !== frame.branchId) {
+                toast.error(t('localRecoverySwitchBranch'));
+                return;
+            }
             const root = branchData?.branch.runtime.local?.rootPath;
-            if (!root || !cancelLocalDependencyInstall) return;
+            const probe = window.weblabNative?.cli?.providerStatus;
+            if (!root || !probe) {
+                toast.error(t('localRecoveryUnavailable'));
+                return;
+            }
+            setRecoveryLaunching(true);
             try {
-                const result = await cancelLocalDependencyInstall(root);
-                if (result.error) toast.error(result.error);
+                const status = (await probe())[provider];
+                if (!status?.installed || status.authStatus !== 'ready') {
+                    toast.error(t('localRecoveryProviderNotReady', {
+                        provider: getProviderManifest(provider).label,
+                    }));
+                    return;
+                }
+                const model = getProviderManifest(provider).models[0]?.id;
+                if (!model) throw new Error('CLI model is unavailable.');
+                await editorEngine.chat.startNewChat();
+                if (editorEngine.branches.activeBranch.id !== frame.branchId) {
+                    toast.error(t('localRecoverySwitchBranch'));
+                    return;
+                }
+                editorEngine.chat.requestStartupRecovery(
+                    frame.branchId,
+                    model,
+                    startupRecoveryPrompt(
+                        localStartupIssue(localSetupError?.details ?? ''),
+                        !localSetupError,
+                        frame.branchId,
+                    ),
+                );
             } catch (error) {
-                toast.error(t('localInstallFailed'), {
-                    description: error instanceof Error ? error.message : String(error),
-                });
+                console.error('Could not start local recovery', error);
+                toast.error(t('localRecoveryUnavailable'));
+            } finally {
+                setRecoveryLaunching(false);
             }
         };
+
+        const recoveryMenu = (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button size="sm" disabled={recoveryLaunching}>
+                        {t('localRecoveryFix')}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                    <DropdownMenuItem onSelect={() => void startRecovery('codex')}>
+                        {t('localRecoveryCodex')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => void startRecovery('claude-code')}>
+                        {t('localRecoveryClaude')}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+        const canRecoverLocalSetup = localSetupError !== null &&
+            !['localSetupMonorepo', 'localSetupUnsupportedFramework', 'localSetupLockfile']
+                .includes(localSetupError.key);
 
         return (
             <div
@@ -748,60 +875,80 @@ export const FrameView = observer(
                     )}
                     <GestureScreen frame={frame} isResizing={isResizing} />
 
-                    {isLocalFrame && isPrimaryFrameInBranch && (!preloadScriptReady || !localPreviewReady) && (
-                        <div className="border-border bg-background absolute top-3 left-3 z-[60] max-w-[calc(100%-1.5rem)] rounded-md border p-2 shadow-md">
-                            {!preloadScriptReady && (
-                                <p className="text-foreground-secondary mb-2 text-xs">
-                                    {t('localPreparationIntro')}
-                                </p>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                                {!preloadScriptReady && (
-                                    <Button
-                                        size="sm"
-                                        onClick={() => void handlePlanLocalPreparation()}
-                                        disabled={isPlanningLocal || isApplyingLocal || !branchData?.sandbox?.session.provider}
-                                    >
-                                        {isPlanningLocal ? t('localPreparationPlanning') : t('localPreparationReview')}
-                                    </Button>
-                                )}
-                                {!localPreviewReady && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => void handleRestartSandbox()}
-                                        disabled={isRestarting || isInstallingDependencies || !branchData?.sandbox?.session.provider}
-                                    >
-                                        {isRestarting ? t('localStartingPreview') : t('localStartPreview')}
-                                    </Button>
-                                )}
-                                {!localPreviewReady && showLocalInstall && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => void (isInstallingDependencies
-                                            ? handleCancelLocalDependencyInstall()
-                                            : handleInstallLocalDependencies())}
-                                        disabled={isRestarting || !branchData?.branch.runtime.local?.rootPath || (isInstallingDependencies ? !cancelLocalDependencyInstall : !installLocalDependencies)}
-                                    >
-                                        {isInstallingDependencies ? t('localCancelInstall') : t('localInstallDependencies')}
-                                    </Button>
-                                )}
-                            </div>
-                            {!localPreviewReady && (
-                                <p className="text-foreground-secondary mt-2 text-xs">
-                                    {t('localPreviewScriptWarning')}
-                                </p>
-                            )}
-                            {!localPreviewReady && showLocalInstall && (
-                                <p className="text-foreground-secondary mt-1 text-xs">
-                                    {isInstallingDependencies ? t('localInstallingDependencies') : t('localInstallDescription')}
-                                </p>
+                    {isLocalFrame && isPrimaryFrameInBranch && (isLocalSetupRunning || localSetupError) && (
+                        <div
+                            className="bg-background absolute inset-0 z-[60] flex items-center justify-center rounded-md px-4"
+                            style={{
+                                width: frame.breakpoint?.width ?? frame.dimension.width,
+                                height:
+                                    editorEngine.frames.get(frame.id)?.contentHeight ??
+                                    frame.dimension.height,
+                            }}
+                        >
+                            {localSetupError ? (
+                                <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+                                    <p className="text-foreground text-base font-medium">
+                                        {canRecoverLocalSetup
+                                            ? t('localSetupFailedTitle')
+                                            : t('localSetupUnsupportedTitle')}
+                                    </p>
+                                    <p className="text-foreground-secondary text-small">
+                                        {t(localSetupError.key)}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        {canRecoverLocalSetup ? (
+                                            <>
+                                                {recoveryMenu}
+                                                <Button size="sm" variant="ghost" onClick={() => void runLocalSetup()}>
+                                                    {t('localSetupRetry')}
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button size="sm" asChild>
+                                                <a href={Routes.PROJECTS}>{t('localSetupBack')}</a>
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => setShowLocalSetupDetails((v) => !v)}
+                                        >
+                                            {t('localSetupDetails')}
+                                        </Button>
+                                    </div>
+                                    {showLocalSetupDetails && (
+                                        <pre className="text-foreground-tertiary max-h-40 w-full overflow-auto text-left text-xs whitespace-pre-wrap">
+                                            {localSetupError.details}
+                                        </pre>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <Icons.LoadingSpinner className="h-8 w-8 animate-spin" />
+                                    <p className="text-foreground text-base font-medium">
+                                        {t('localSetupTitle')}
+                                    </p>
+                                    <p className="text-foreground-tertiary text-small">
+                                        {localSetupStep === 'installing'
+                                            ? t('localSetupInstalling')
+                                            : localSetupStep === 'preparing'
+                                              ? t('localSetupPreparing')
+                                              : t('localSetupStarting')}
+                                    </p>
+                                    {localSetupSlow && (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <p className="text-foreground-secondary text-small">
+                                                {t('localRecoverySlow')}
+                                            </p>
+                                            {recoveryMenu}
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
 
-                    {(!isFrameReady || sandboxReclaimed || !frame.url) &&
+                    {(!isFrameReady || sandboxReclaimed || !frame.url || cloudPreviewFailed || cloudPreviewDisabled) &&
                         !localPreviewReady &&
                         !shouldTemporarilyUnlockPreview && (
                         <div
@@ -817,7 +964,29 @@ export const FrameView = observer(
                                     frame.dimension.height,
                             }}
                         >
-                            {!frame.url ? (
+                            {durableCloud ? (
+                                <div className="flex max-w-sm flex-col items-center gap-3 px-4 text-center">
+                                    {!cloudPreviewFailed && !cloudPreviewDisabled && (
+                                        <Icons.LoadingSpinner className="text-foreground h-8 w-8 animate-spin" />
+                                    )}
+                                    <p className="text-foreground text-base font-medium">{cloudCopy.previewTitle}</p>
+                                    <p role={cloudPreviewFailed ? 'alert' : 'status'} className="text-foreground-secondary text-small">
+                                        {cloudPreviewRetrying ? cloudCopy.previewStarting : cloudPreviewDisabled ? cloudCopy.paused :
+                                            cloudSource?.state.previewStartErrorCode === 'CLOUD_PREVIEW_ALLOWANCE_REQUIRED' ? cloudCopy.previewAllowanceRequired :
+                                            cloudSource?.state.previewStartErrorCode === 'CLOUD_PREVIEW_PREPARATION_REQUIRED' ? cloudCopy.previewPreparationRequired :
+                                            cloudPreviewExpired ? cloudCopy.previewExpired : cloudPreviewIdle ? cloudCopy.previewStopped : cloudPreviewFailed ? cloudCopy.previewUnavailable :
+                                            cloudSource?.state.loading ? cloudCopy.loadingSource :
+                                            cloudSource?.state.runtime?.status === 'starting' ? cloudCopy.previewStarting : cloudCopy.privatePreview}
+                                    </p>
+                                    {(isPrimaryFrameInBranch || cloudBrowserPreviewFailed) && cloudSource?.canEditContent && cloudPreviewFailed && !cloudPreviewDisabled && (
+                                        <Button size="sm" variant="outline" loading={cloudPreviewRetrying}
+                                            disabled={cloudPreviewRetrying || cloudSource.state.loading || cloudSource.state.pending}
+                                            onClick={() => void retryCloudPreview()}>
+                                            {cloudPreviewIdle ? cloudCopy.startPreview : cloudCopy.retryPreview}
+                                        </Button>
+                                    )}
+                                </div>
+                            ) : !frame.url ? (
                                 // Sandbox not yet provisioned (optimistic-creation path).
                                 // The reload effect above fires when the real URL arrives.
                                 isPrimaryFrameInBranch ? (
@@ -963,7 +1132,7 @@ export const FrameView = observer(
                                                                         onClick={() =>
                                                                             void handleRestartSandbox()
                                                                         }
-                                                                        disabled={isRestarting || isInstallingDependencies}
+                                                                        disabled={isRestarting || isLocalSetupRunning}
                                                                         className="text-foreground hover:text-foreground underline underline-offset-2 disabled:opacity-60"
                                                                     >
                                                                         {isRestarting
@@ -1025,7 +1194,7 @@ export const FrameView = observer(
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={immediateReload}
-                                                            disabled={isRestarting || isInstallingDependencies}
+                                                            disabled={isRestarting || isLocalSetupRunning}
                                                         >
                                                             <Icons.Reload className="h-3.5 w-3.5" />
                                                             Retry preview
@@ -1035,7 +1204,7 @@ export const FrameView = observer(
                                                             onClick={() =>
                                                                 void handleRestartSandbox()
                                                             }
-                                                            disabled={isRestarting || isInstallingDependencies}
+                                                            disabled={isRestarting || isLocalSetupRunning}
                                                         >
                                                             {isRestarting ? (
                                                                 <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
@@ -1073,80 +1242,6 @@ export const FrameView = observer(
                         </div>
                     )}
                 </div>
-                <Dialog open={localReviewOpen} onOpenChange={(open) => {
-                    if (isApplyingLocal) return;
-                    setLocalReviewOpen(open);
-                }}>
-                    <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
-                        <DialogHeader className="border-border border-b px-6 py-5">
-                            <DialogTitle>{t('localPreparationTitle')}</DialogTitle>
-                            <DialogDescription>
-                                {t('localPreparationDescription')}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="min-h-0 flex-1">
-                            {localPlan?.files.length === 0 && !localPlan?.createDirectories?.length ? (
-                                <p className="text-foreground-secondary px-6 py-8 text-sm">
-                                    {t('localPreparationEmpty')}
-                                </p>
-                            ) : (
-                                <div>
-                                    {localPlan?.createDirectories?.map((path) => (
-                                        <p key={path} className="border-border border-b px-6 py-3 font-mono text-xs">
-                                            {t('localPreparationNew')} {path}/
-                                        </p>
-                                    ))}
-                                    <Accordion type="multiple" className="w-full">
-                                        {localPlan?.files.map((file) => (
-                                            <AccordionItem key={file.path} value={file.path}>
-                                                <AccordionTrigger className="px-6 font-mono text-xs">
-                                                    {file.original === null
-                                                        ? t('localPreparationNew')
-                                                        : t('localPreparationEdit')}{' '}{file.path}
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <CodeDiff
-                                                        originalCode={file.original ?? ''}
-                                                        modifiedCode={file.updated}
-                                                    />
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
-                                </div>
-                            )}
-                        </ScrollArea>
-                        {localPreparationError && (
-                            <div role="alert" className="border-destructive/30 bg-destructive/10 border-t px-6 py-3 text-xs">
-                                <p>{localPreparationError.message}</p>
-                                {localPreparationError.remainingPaths.length > 0 && (
-                                    <p className="mt-1 font-mono">
-                                        {t('localPreparationStillChanged', {
-                                            paths: localPreparationError.remainingPaths.join(', '),
-                                        })}
-                                    </p>
-                                )}
-                                {localPreparationError.remainingPaths.length === 0 && (
-                                    <p className="mt-1">{t('localPreparationRestored')}</p>
-                                )}
-                                {localPreparationError.rollbackIssues.map((issue) => (
-                                    <p key={issue} className="mt-1 break-all font-mono">{issue}</p>
-                                ))}
-                            </div>
-                        )}
-                        <div className="border-border flex justify-end gap-2 border-t px-6 py-4">
-                            <Button variant="outline" onClick={() => setLocalReviewOpen(false)} disabled={isApplyingLocal}>
-                                {t('localPreparationClose')}
-                            </Button>
-                            <Button
-                                onClick={() => void handleApplyLocalPreparation()}
-                                disabled={!localPlan || isApplyingLocal || !!localPreparationError}
-                            >
-                                {isApplyingLocal ? t('localPreparationApplying') : t('localPreparationApply')}
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
             </div>
         );
     },

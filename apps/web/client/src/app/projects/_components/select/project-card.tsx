@@ -13,7 +13,7 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 import { timeAgo } from '@weblab/utility';
 
-import type { ProjectListItem } from './project-card-utils';
+import type { ProjectListItem, ProjectOrganizationProps } from './project-card-utils';
 import { env } from '@/env';
 import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { EditAppButton } from '../edit-app';
@@ -37,6 +37,9 @@ export function ProjectCard({
     onSelectionChange,
     onStartMultiSelect,
     isBackfilling = false,
+    folders,
+    onMoveToFolder,
+    onCreateFolder,
 }: {
     project: ProjectListItem;
     refetch: () => void | Promise<unknown>;
@@ -48,7 +51,7 @@ export function ProjectCard({
     /** Enter multi-select mode (used by the card menu's "Select multiple"). */
     onStartMultiSelect?: () => void;
     isBackfilling?: boolean;
-}) {
+} & ProjectOrganizationProps) {
     const t = useTranslations('selectProject') as (
         key: string,
         values?: Record<string, string | number>,
@@ -178,7 +181,10 @@ export function ProjectCard({
             ) : (
                 <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
             )}
-            <span className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current">
+            <span
+                title={project.metadata.runtime?.local?.rootPath ?? undefined}
+                className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current"
+            >
                 {HighlightText ? (
                     <HighlightText text={project.name} searchQuery={searchQuery} />
                 ) : (
@@ -306,6 +312,9 @@ export function ProjectCard({
                                     refetch={() => {
                                         void refetch();
                                     }}
+                                    folders={folders}
+                                    onMoveToFolder={onMoveToFolder}
+                                    onCreateFolder={onCreateFolder}
                                     open={menuOpen}
                                     onOpenChange={setMenuOpen}
                                     onSelect={() => onSelectionChange?.(true)}
@@ -339,9 +348,7 @@ export function ProjectCard({
                             aria-live="polite"
                         >
                             <Icons.LoadingSpinner className="text-foreground/70 h-5 w-5 animate-spin" />
-                            <span className="text-foreground-secondary px-3 text-center text-xs">
-                                {t('opening', { name: project.name })}
-                            </span>
+                            <span className="sr-only">{t('opening', { name: project.name })}</span>
                         </motion.div>
                     )}
                 </div>

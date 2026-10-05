@@ -121,6 +121,7 @@ export const generateTerminalCommand = async ({
         prompt: USER_TEMPLATE({ instruction, context }),
         // One command is short — cap hard to keep it snappy and cheap.
         maxOutputTokens: 256,
+        maxRetries: 1,
         temperature: 0,
         abortSignal,
         experimental_telemetry: {

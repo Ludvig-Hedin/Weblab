@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useMutation, useQuery } from 'convex/react';
 
-import type { CmsSourceType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -105,19 +104,25 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
         try {
             // Rotating creds → test the new ones before persisting. Otherwise
             // re-test the stored creds.
-            const result =
-                rotate && Object.keys(creds).length > 0 && source
-                    ? await testNewAction({
-                          projectId: projectId as Id<'projects'>,
-                          type: source.type as Exclude<CmsSourceType, CmsSourceType.WEBLAB>,
-                          credentials: Object.fromEntries(
-                              Object.entries(creds).filter(([, v]) => v && v.trim() !== ''),
-                          ),
-                      })
-                    : await testExistingAction({
-                          projectId: projectId as Id<'projects'>,
-                          sourceId: sourceId as Id<'cmsSources'>,
-                      });
+            let result;
+            if (rotate && Object.keys(creds).length > 0 && source) {
+                const type = source.type;
+                if (type !== 'payload' && type !== 'strapi' && type !== 'rest') {
+                    throw new Error('Unsupported source type');
+                }
+                result = await testNewAction({
+                    projectId: projectId as Id<'projects'>,
+                    type,
+                    credentials: Object.fromEntries(
+                        Object.entries(creds).filter(([, value]) => value && value.trim() !== ''),
+                    ),
+                });
+            } else {
+                result = await testExistingAction({
+                    projectId: projectId as Id<'projects'>,
+                    sourceId: sourceId as Id<'cmsSources'>,
+                });
+            }
             if (reqId !== testReqRef.current) return; // stale — user edited creds mid-test
             setTestStatus(result);
             if (!result.ok) toast.error(result.reason);

@@ -264,8 +264,15 @@ test('linked worktree gets an independent private Git copy and a guarded patch h
         expect(saved.success).toBe(true);
         backups.push(saved.recoveryPath);
         await recordPrivateWrite(copy.rootPath, 'page.html', saved.hash, base);
+        // Next's dev server writes next-env.d.ts on start; it must not block handoff.
+        await writeFile(join(copy.rootPath, 'next-env.d.ts'), '/// <reference types="next" />\n');
+        await writeFile(join(worktree, 'next-env.d.ts'), '/// <reference types="next" />\n');
+        await writeFile(join(copy.rootPath, 'tsconfig.tsbuildinfo'), '{"version":"5"}\n');
         const plan = await planPrivateHandoff(copy.rootPath, base);
         expect(plan.sourceChanged).toBe(false);
+        expect(plan.unsupportedChanges).toEqual([]);
+        expect(plan.changedFiles.map((file) => file.path)).not.toContain('next-env.d.ts');
+        expect(plan.changedFiles.map((file) => file.path)).not.toContain('tsconfig.tsbuildinfo');
         expect(plan.changedFiles).toContainEqual({
             path: 'page.html', original: '<h1>dirty</h1>\n', updated: '<h1>Weblab edit</h1>\n',
         });

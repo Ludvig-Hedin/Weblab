@@ -17,6 +17,7 @@ import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
+import { CloudContentPanel } from '@/components/cloud-editor/content-panel';
 import { OPEN_CHAT_PANEL_EVENT, OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
@@ -27,6 +28,7 @@ import { ChatControls } from './chat-tab/controls';
 import { FIX_ERRORS_EVENT } from './chat-tab/error';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
+import { useLinkTarget } from './link-tab/use-link-target';
 
 // Style tab is not the default active tab — defer its module load until the
 // user switches to it. Each tab is only rendered when its value is active
@@ -52,12 +54,16 @@ const CommentsTab = dynamic(() => import('./comments-tab').then((m) => m.Comment
 const InteractionsTab = dynamic(() => import('./interactions-tab').then((m) => m.InteractionsTab), {
     ssr: false,
 });
+const LinkTab = dynamic(() => import('./link-tab').then((m) => m.LinkTab), {
+    ssr: false,
+});
 
-type RightPanelTab = 'style' | 'interactions' | 'chat';
+type RightPanelTab = 'style' | 'link' | 'interactions' | 'chat';
 
 /** Tabs outside the local release scope fall back to Style. */
 const isTabEnabled = (tab: RightPanelTab): boolean =>
     tab === 'style' ||
+    tab === 'link' ||
     (tab === 'chat' && EDITOR_SCOPE.aiChat) ||
     (tab === 'interactions' && EDITOR_SCOPE.interactions);
 const enabledTab = (tab: RightPanelTab): RightPanelTab => (isTabEnabled(tab) ? tab : 'style');
@@ -96,7 +102,7 @@ const STORAGE_KEYS = {
 } as const;
 
 const isRightPanelTab = (value: unknown): value is RightPanelTab =>
-    value === 'style' || value === 'interactions' || value === 'chat';
+    value === 'style' || value === 'link' || value === 'interactions' || value === 'chat';
 
 const readStoredWidth = (): number | null => {
     if (typeof window === 'undefined') return null;
@@ -182,12 +188,25 @@ export const RightPanel = observer(() => {
     // entered CODE so they don't land on an empty disabled tab.
     const isCodeMode = editorEngine.state.editorMode === EditorMode.CODE;
     const isCommentMode = editorEngine.state.editorMode === EditorMode.COMMENT;
+    // Link tab: enabled when the selection is, or sits inside, a link or button.
+    const linkTarget = useLinkTarget();
+    const isLinkTabDisabled = isCodeMode || linkTarget.status !== 'found';
 
     useEffect(() => {
-        if (isCodeMode && (activeTab === 'style' || activeTab === 'interactions')) {
+        if (
+            isCodeMode &&
+            (activeTab === 'style' || activeTab === 'link' || activeTab === 'interactions')
+        ) {
             setActiveTab('chat');
         }
     }, [isCodeMode, activeTab]);
+
+    // Leave the Link tab once the selection is no longer a link or button.
+    useEffect(() => {
+        if (activeTab === 'link' && linkTarget.status === 'none' && !isCodeMode) {
+            setActiveTab('style');
+        }
+    }, [activeTab, linkTarget.status, isCodeMode, setActiveTab]);
 
     useEffect(() => {
         if (isCommentMode) {
@@ -240,7 +259,7 @@ export const RightPanel = observer(() => {
     useEffect(() => {
         const gained = hasElementSelection && !prevHasSelection.current;
         prevHasSelection.current = hasElementSelection;
-        if (gained && !isCodeMode && activeTab !== 'style') {
+        if (gained && !isCodeMode && activeTab !== 'style' && activeTab !== 'link') {
             setActiveTab('style');
         }
     }, [hasElementSelection, isCodeMode, activeTab]);
@@ -334,8 +353,11 @@ export const RightPanel = observer(() => {
     // and uncomment the two toggle buttons below.
     const rightCollapsed = editorEngine.state.panelsHidden;
     const styleLabel = t(transKeys.editor.panels.edit.tabs.styles.name);
+    const linkLabel = t(transKeys.editor.panels.edit.tabs.link.name);
     const interactionsLabel = t(transKeys.editor.panels.edit.tabs.interactions.name);
     const chatLabel = t(transKeys.editor.panels.edit.tabs.chat.name);
+
+    if (!editorEngine.canUseDesign) return <aside className="bg-background-chrome h-full w-80 overflow-y-auto border-l"><CloudContentPanel /></aside>;
 
     return (
         <div
@@ -392,6 +414,7 @@ export const RightPanel = observer(() => {
                     className="animate-in fade-in slide-in-from-right-2 overflow-hidden duration-200"
                 >
                     <DropdownManagerProvider>
+                        {editorEngine.activeSandbox.cloudSource && <CloudContentPanel />}
                         {isCommentMode ? (
                             <div className="flex h-full min-w-0 flex-col gap-0">
                                 <div className="flex h-10 w-full flex-row items-center border-b px-2">
@@ -478,6 +501,52 @@ export const RightPanel = observer(() => {
                                                             transKeys.editor.panels.edit.tabs.styles
                                                                 .availableInDesignMode,
                                                         )}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            );
+                                        })()}
+                                        {(() => {
+                                            const showLinkLabel = !isNarrow || activeTab === 'link';
+                                            const linkTrigger = (
+                                                <TabsTrigger
+                                                    value="link"
+                                                    disabled={isLinkTabDisabled}
+                                                    aria-label={linkLabel}
+                                                    title={showLinkLabel ? undefined : linkLabel}
+                                                    className={cn(
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:text-mini relative h-7 gap-1.5 rounded-md',
+                                                        showLinkLabel
+                                                            ? 'px-2.5'
+                                                            : 'w-7 flex-none px-0',
+                                                        isLinkTabDisabled &&
+                                                            'cursor-not-allowed opacity-40',
+                                                    )}
+                                                >
+                                                    <Icons.Link className="h-3 w-3 shrink-0" />
+                                                    {showLinkLabel && linkLabel}
+                                                </TabsTrigger>
+                                            );
+                                            // Same reason as Style above: only wrap in
+                                            // a tooltip while disabled, so the active
+                                            // tab keeps its `data-state`.
+                                            if (!isLinkTabDisabled) return linkTrigger;
+                                            return (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="inline-flex">
+                                                            {linkTrigger}
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom" hideArrow>
+                                                        {isCodeMode
+                                                            ? t(
+                                                                  transKeys.editor.panels.edit.tabs
+                                                                      .styles.availableInDesignMode,
+                                                              )
+                                                            : t(
+                                                                  transKeys.editor.panels.edit.tabs
+                                                                      .link.selectHint,
+                                                              )}
                                                     </TooltipContent>
                                                 </Tooltip>
                                             );
@@ -625,6 +694,13 @@ export const RightPanel = observer(() => {
                                         chunk; gating render avoids paying for the
                                         observer subtree on first paint. */}
                                     {activeTab === 'style' && <StyleTab />}
+                                </TabsContent>
+
+                                <TabsContent
+                                    value="link"
+                                    className="min-h-0 flex-1 overflow-hidden"
+                                >
+                                    {activeTab === 'link' && <LinkTab target={linkTarget} />}
                                 </TabsContent>
 
                                 <TabsContent

@@ -26,6 +26,31 @@ function shouldMirror(path: string): boolean {
     return TEXT_FILENAMES.has(filename) || TEXT_EXTENSIONS.has(filename.split('.').at(-1) ?? '');
 }
 
+/** Read-only disk scan of exactly the text paths mirrored by the local editor. */
+async function readMirroredTextFiles(provider: NodeFsProvider): Promise<Array<{ path: string; content: string; sha256: string }>> {
+    const files: Array<{ path: string; content: string; sha256: string }> = [];
+    const visit = async (directory: string): Promise<void> => {
+        const { files: entries } = await provider.listFiles({ args: { path: directory } });
+        for (const entry of entries) {
+            if (entry.isSymlink) continue;
+            const path = [directory, entry.name].filter(Boolean).join('/');
+            if (entry.type === 'directory') {
+                if (!EXCLUDED_DIRECTORIES.has(entry.name)) await visit(path);
+            } else if (shouldMirror(path)) {
+                files.push({ path, ...await provider.readFileWithHash(path) });
+            }
+        }
+    };
+    await visit('');
+    return files;
+}
+
+export async function readMirroredLocalTextVersion(provider: NodeFsProvider): Promise<string> {
+    const files = await readMirroredTextFiles(provider);
+    return JSON.stringify(files.map(({ path, sha256 }) => [path, sha256] as const).sort(([left], [right]) =>
+        left < right ? -1 : left > right ? 1 : 0));
+}
+
 /** Keeps the disk folder authoritative for a local editor branch. */
 export class LocalMirror {
     // The editor's compare-and-swap baseline changes only after its own save.
@@ -40,6 +65,7 @@ export class LocalMirror {
     private readonly mirrorId = ++nextMirrorId;
     private externalChanges = 0;
     private ownWrites = 0;
+    private refreshes = new Set<Promise<void>>();
 
     constructor(
         private readonly provider: NodeFsProvider,
@@ -65,26 +91,14 @@ export class LocalMirror {
     }
 
     async start(): Promise<void> {
-        const files: Array<{ path: string; content: string }> = [];
-        const visit = async (directory: string): Promise<void> => {
-            const { files: entries } = await this.provider.listFiles({ args: { path: directory } });
-            for (const entry of entries) {
-                if (entry.isSymlink) continue;
-                const path = [directory, entry.name].filter(Boolean).join('/');
-                if (entry.type === 'directory') {
-                    if (!EXCLUDED_DIRECTORIES.has(entry.name)) await visit(path);
-                } else if (shouldMirror(path)) {
-                    const { content, sha256 } = await this.provider.readFileWithHash(path);
-                    files.push({ path, content });
-                    this.editBaselines.set(path, sha256);
-                    this.mirroredHashes.set(path, sha256);
-                }
-            }
-        };
-
-        await visit('');
+        const files = await readMirroredTextFiles(this.provider);
         if (this.disposed) return;
-        await this.fs.replaceLocalSnapshot(files);
+        for (const { path, sha256 } of files) {
+            this.editBaselines.set(path, sha256);
+            this.mirroredHashes.set(path, sha256);
+        }
+        await this.fs.replaceLocalSnapshot(files.map(({ path, content }) => ({ path, content })));
+        if (this.disposed) return;
         this.fs.setLocalWriteHandler((path, content) => this.write(path, content));
         const { watcher } = await this.provider.watchFiles({
             args: { path: '', recursive: true, excludes: Array.from(EXCLUDED_DIRECTORIES) },
@@ -139,7 +153,15 @@ export class LocalMirror {
         }
     }
 
-    private async refreshPath(path: string, eventType: WatchEvent['type']): Promise<void> {
+    private refreshPath(path: string, eventType: WatchEvent['type']): Promise<void> {
+        if (this.disposed) return Promise.resolve();
+        const refresh = this.refreshActivePath(path, eventType);
+        this.refreshes.add(refresh);
+        void refresh.then(() => this.refreshes.delete(refresh), () => this.refreshes.delete(refresh));
+        return refresh;
+    }
+
+    private async refreshActivePath(path: string, eventType: WatchEvent['type']): Promise<void> {
         if (this.disposed) return;
         let current: { content: string; sha256: string } | null = null;
         if (eventType === 'remove') {
@@ -152,6 +174,7 @@ export class LocalMirror {
                     console.error(`[LocalMirror] Could not check removed ${path}:`, error);
                     return;
                 }
+                if (this.disposed) return;
                 if (this.mirroredHashes.delete(path)) this.externalChanges++;
                 this.onSourceChanged?.(path);
                 await this.fs.removeLocalFile(path);
@@ -160,8 +183,10 @@ export class LocalMirror {
         }
         try {
             const { content, sha256 } = current ?? await this.provider.readFileWithHash(path);
+            if (this.disposed) return;
             if (this.mirroredHashes.get(path) === sha256) return;
             await this.fs.replaceLocalFile(path, content);
+            if (this.disposed) return;
             this.mirroredHashes.set(path, sha256);
             this.externalChanges++;
             this.onSourceChanged?.(path);
@@ -173,7 +198,13 @@ export class LocalMirror {
     async stop(): Promise<void> {
         this.disposed = true;
         this.fs.setLocalWriteHandler(() => Promise.reject(new Error('Local project was closed')));
-        await this.watcher?.stop();
-        this.watcher = null;
+        try {
+            await this.watcher?.stop();
+        } finally {
+            this.watcher = null;
+            // A refresh may already be inside an awaited disk read or FS write.
+            // No replacement snapshot starts until every admitted refresh settles.
+            while (this.refreshes.size) await Promise.allSettled([...this.refreshes]);
+        }
     }
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { observer } from 'mobx-react-lite';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useTranslations } from 'next-intl';
 
@@ -15,7 +16,18 @@ import { useEditorEngine } from '@/components/store/editor';
 import { RestartSandboxButton } from './restart-sandbox-button';
 import { TerminalPanel } from './terminal-panel';
 
+// Smooth ease-out (no spring overshoot) shared by the width + height grow.
+const TERMINAL_EASE = { duration: 0.28, ease: [0.32, 0.72, 0, 1] } as const;
+
 export const TerminalArea = observer(({ children }: { children: React.ReactNode }) => {
+    const engine = useEditorEngine();
+    if (engine.branches.hasActiveBranch && isCloudEditorRuntime(engine.branches.activeBranch.runtime)) {
+        return <div className="flex w-full items-center gap-1">{children}</div>;
+    }
+    return <AvailableTerminalArea>{children}</AvailableTerminalArea>;
+});
+
+const AvailableTerminalArea = observer(({ children }: { children: React.ReactNode }) => {
     const t = useTranslations('editor.terminal');
     const editorEngine = useEditorEngine();
     const branches = editorEngine.branches;
@@ -59,6 +71,10 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
     }
 
     const [terminalHidden, setTerminalHidden] = useState(true);
+    const [hasOpened, setHasOpened] = useState(false);
+    useEffect(() => {
+        if (!terminalHidden) setHasOpened(true);
+    }, [terminalHidden]);
 
     useEffect(() => {
         const handleToggle = () => setTerminalHidden((prev) => !prev);
@@ -162,35 +178,38 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
 
     return (
         <>
-            {/* Terminal card — slides up ABOVE the toolbar and grows the pill
-                smoothly (height + fade). Rendered before the toolbar so the
-                toolbar stays pinned at the bottom of the bottom-anchored pill;
-                its icons never shift when the terminal opens. */}
-            <AnimatePresence initial={false}>
-                {!terminalHidden && (
-                    <motion.div
-                        key="terminal-card"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{
-                            height: { type: 'spring', stiffness: 360, damping: 38 },
-                            opacity: { duration: 0.18, ease: 'easeOut' },
-                        }}
-                        className="w-full overflow-hidden"
-                    >
-                        <TerminalPanel
-                            tabs={tabs}
-                            activeKey={activeSessionId}
-                            onSelect={switchToSessionByKey}
-                            onClose={handleClose}
-                            onNew={() => void handleNew()}
-                            onReorder={handleReorder}
-                            projectId={editorEngine.projectId}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Terminal card — grows the pill up and out ABOVE the toolbar.
+                Mounted on first open and then kept mounted: remounting
+                re-attaches xterm and re-fits it, which made every open stutter.
+                Width + height animate together so the pill never snaps wider. */}
+            {hasOpened && (
+                <motion.div
+                    initial={{ height: 0, width: 0, opacity: 0 }}
+                    animate={
+                        terminalHidden
+                            ? { height: 0, width: 0, opacity: 0 }
+                            : { height: 'auto', width: 'auto', opacity: 1 }
+                    }
+                    transition={{
+                        height: TERMINAL_EASE,
+                        width: TERMINAL_EASE,
+                        opacity: { duration: terminalHidden ? 0.12 : 0.2, ease: 'easeOut' },
+                    }}
+                    aria-hidden={terminalHidden}
+                    inert={terminalHidden}
+                    className="self-start overflow-hidden"
+                >
+                    <TerminalPanel
+                        tabs={tabs}
+                        activeKey={activeSessionId}
+                        onSelect={switchToSessionByKey}
+                        onClose={handleClose}
+                        onNew={() => void handleNew()}
+                        onReorder={handleReorder}
+                        projectId={editorEngine.projectId}
+                    />
+                </motion.div>
+            )}
 
             {/* Bottom toolbar row — pinned at the bottom of the pill. Plain div
                 (no layout animation) so opening the terminal never reflows the
@@ -205,9 +224,13 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                                 onClick={() => setTerminalHidden((prev) => !prev)}
                                 aria-label={t('toggleTerminal')}
                                 aria-pressed={!terminalHidden}
-                                className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
+                                className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-colors duration-150"
                             >
-                                {terminalHidden ? <Icons.Terminal /> : <Icons.ChevronDown />}
+                                {terminalHidden ? (
+                                    <Icons.Terminal className="h-4 w-4" />
+                                ) : (
+                                    <Icons.ChevronDown className="h-4 w-4" />
+                                )}
                             </button>
                         </TooltipTrigger>
                         <TooltipContent sideOffset={5} hideArrow>
