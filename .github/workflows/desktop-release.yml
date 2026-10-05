@@ -294,4 +294,7 @@ jobs:
             release-assets/Weblab.AppImage
             release-assets/latest-linux.yml
           overwrite_files: true
+          # weblab.build's Mac download follows releases/latest, which must stay
+          # on the desktop-local line. Team editor builds are never "latest".
+          make_latest: false
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -5,6 +5,24 @@ This doc covers three paths: building locally, sharing with friends, and publish
 
 ## Changelog
 
+### v0.2.7
+
+Team build for invited accounts on weblab.build. Not the public Mac download.
+
+- **Your original folder stays untouched.** Opening an existing Git project
+  now creates a private working copy. Edits go there and come back as a
+  reviewed patch.
+- **Safer saving.** Ordinary text is saved as plain text, edits no longer
+  flatten conditional class names, and token, tag and class changes can be
+  undone. Unsaved code drafts survive leaving the editor.
+- **Simple or Advanced.** First open asks which working level you want. You
+  can switch in Settings.
+- **Publishing review.** You can review what a release would include and build
+  protected previews. Switching the live site from the app is still off.
+- **Sign-in.** The app only accepts a sign-in it started itself.
+- **Release hygiene.** Team builds are never marked as the repository's latest
+  release, so the public Mac download keeps working.
+
 ### v0.2.6
 
 - **Packaged startup fix.** The macOS app now includes `auth-hosts.js` in

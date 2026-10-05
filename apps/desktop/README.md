@@ -1,14 +1,17 @@
-# apps/desktop (paused)
+# apps/desktop (team editor)
 
-> **Paused since 2026-09-28.** This is the old Weblab desktop app: an Electron
-> shell around the hosted web editor, with sign-in and cloud projects
-> (last release `desktop-v0.2.6`). It is kept, not deleted.
+> **Resumed 2026-10-05 for the invited team.** This is the Electron shell
+> around the hosted web editor on weblab.build, with sign-in, private working
+> copies of local Git projects and reviewed handoff. It was paused between
+> 2026-09-28 and 2026-10-05 (last public release `desktop-v0.2.6`).
 >
-> **The current desktop app is [`apps/desktop-local`](../desktop-local/)**:
+> **The public Mac download is still [`apps/desktop-local`](../desktop-local/)**:
 > Weblab for Mac, local-first, no account. weblab.build links to it while the
 > site runs in local-app mode. See
 > [docs/guides/local-app-mode.md](../../docs/guides/local-app-mode.md).
 
-Do not cut new `desktop-v*` releases from this folder unless the cloud app is
-un-paused. Its release workflow is `.github/workflows/desktop-release.yml`
-(release notes in [RELEASES.md](RELEASES.md)).
+`desktop-v*` tags build team installers through
+`.github/workflows/desktop-release.yml` (release notes in
+[RELEASES.md](RELEASES.md)). Those releases are never marked as the
+repository's latest release, because the public download follows
+`releases/latest`. Signing in needs an email on the sign-in allowlists.

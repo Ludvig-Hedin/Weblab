@@ -111,7 +111,7 @@ function fixture(branchIds = ['a']) {
             } },
         } as unknown as BranchData);
     }
-    Object.assign(branches, { editorEngine: engine, branchMap: data, disposalPreparation: null, currentBranchId: branchIds[0],
+    Object.assign(branches, { editorEngine: engine, branchMap: data, initializations: new Map(), disposalPreparation: null, currentBranchId: branchIds[0],
         reactionDisposer: () => { events.push('reaction.dispose'); } });
     return { engine, branches, data, events, code,
         writeWith: (next: typeof write) => { write = next; },

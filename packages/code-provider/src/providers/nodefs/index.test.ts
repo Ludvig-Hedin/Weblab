@@ -166,7 +166,7 @@ describe('NodeFsProvider (local-first)', () => {
         installMockBridge();
         expect(await NodeFsProvider.createPrivateWorkingCopy('/original')).toEqual({
             rootPath: '/private/project', sourceRootPath: '/original', copyId: 'copy-1',
-            reused: false, previewNeedsInstall: true, excludedPaths: ['node_modules'],
+            reused: false, previewNeedsInstall: true, excludedPaths: ['node_modules'], exclusions: [],
         });
     });
 
