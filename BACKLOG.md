@@ -56,14 +56,14 @@ later without re-discovering the context.
 - **Risk if ignored:** On a slow or busy Mac, native AI turns and release snapshots can refuse for no user-visible reason.
 - **Tags:** `#bug` `#desktop` `#flaky`
 
-### Team desktop installers are unsigned
+### Team desktop 0.2.7 has no installer: signing secrets are missing
 
-- **Discovered:** 2026-10-05
-- **Where:** `.github/workflows/desktop-release.yml` (signing step), repository secrets
-- **Symptom:** The repository has no Apple signing or notary secrets, so `desktop-v*` builds are unsigned and macOS refuses to open them without a manual override.
-- **Next step:** Add `CSC_LINK`/certificate and notary secrets (see `apps/desktop/RELEASES.md`, "Code signing & notarization"), then re-tag.
-- **Risk if ignored:** Colleagues cannot install the app the normal way.
-- **Tags:** `#desktop` `#release`
+- **Discovered:** 2026-10-05 (`desktop-v0.2.7` tag build)
+- **Where:** `.github/workflows/desktop-release.yml` ("Stage Apple signing + notary credentials"), repository secrets
+- **Symptom:** The Mac build stops with "A Developer ID Application certificate is required for desktop releases". Windows and Linux built, but nothing was published because the release needs the full set. The repository only has `CONVEX_DEPLOY_KEY`.
+- **Next step:** Add `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD` and one notary set (`APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER`, or `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID`). Steps are in `apps/desktop/RELEASES.md`, "Code signing & notarization". Then re-run the `desktop-v0.2.7` workflow. Do not remove the signing requirement.
+- **Risk if ignored:** The team cannot install the editor that weblab.build now serves.
+- **Tags:** `#release-blocker` `#desktop` `#release`
 
 ### Preview keys are stored unencrypted
 
