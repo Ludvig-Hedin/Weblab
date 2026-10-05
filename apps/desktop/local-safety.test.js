@@ -680,10 +680,14 @@ test('explicit static preview serves site files but denies project secrets and s
         await writeFile(join(project, '.env'), 'SECRET=private');
         await writeFile(join(outside, 'outside.css'), 'outside');
         await symlink(join(outside, 'outside.css'), join(project, 'linked.css'));
-        // A credential file refuses the preview outright; it is never served around.
+        // Credential files and links out of the project refuse the preview
+        // outright; they are never served around.
         const refused = await startDevServer(project, null, null, () => null);
         expect(refused.error).toContain('Live credentials are not allowed');
         await rm(join(project, '.env'));
+        const linked = await startDevServer(project, null, null, () => null);
+        expect(linked.error).toContain('unsafe path');
+        await rm(join(project, 'linked.css'));
         const started = await startDevServer(project, null, null, () => null);
         expect(started.error).toBeUndefined();
         const origin = `http://127.0.0.1:${started.port}`;
