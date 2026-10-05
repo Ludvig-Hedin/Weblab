@@ -1,5 +1,11 @@
 # Current Progress Snapshot
 
+## 2026-10-05 — Team desktop editor released for invited accounts
+
+`apps/desktop` is active again as the team editor (0.2.7): an Electron shell around weblab.build with sign-in, private working copies of local Git projects, reviewed handoff, preview keys and a log file. weblab.build still runs in local-app mode, so the public download stays `apps/desktop-local` and sign-in stays invite only. Switching a live site from the app is disabled server-side. `desktop-v*` releases are never marked latest.
+
+This repository is public. Customer-pinned code and internal readiness notes are gitignored and stay on the owner's machine: see the "stay local" entries in `.gitignore` and `apps/desktop/release/site-engine.js`. Open follow-ups are at the top of `BACKLOG.md`.
+
 ## 2026-09-29 — Weblab for Mac HTML sketches
 
 The standalone `apps/desktop-local` editor now exposes JavaScript-created native select options through a Show/Hide control at the right of Style. Canvas pan/zoom transform writes are coalesced per animation frame. The desktop shell checks `desktop-local-v*` GitHub releases and offers a Mac DMG from its menu and top bar. Version 0.2.1 is the next planned Mac release; see `apps/desktop-local/apps/desktop/CHANGELOG.md` and `docs/guides/local-app-mode.md` for the release flow.
