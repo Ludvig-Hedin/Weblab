@@ -2,6 +2,33 @@
 // See: https://next-intl.dev/docs/workflows/typescript#messages-arguments
 
 declare const messages: {
+  "workingLevel": {
+    "title": "Choose your workspace",
+    "firstOpen": "Can be changed in Settings.",
+    "content": "Simple",
+    "full": "Advanced",
+    "contentAudience": "For everyday content updates",
+    "fullAudience": "For designers and developers",
+    "contentDescription": "Edit blog drafts on supported sites.",
+    "fullDescription": "Design, code and site settings.",
+    "nextOpen": "Changes apply the next time you open a site. Your current editor stays open.",
+    "sessionOnly": "This choice could not be saved on this device. It applies for this signed-in session.",
+    "loading": "Loading your working level…",
+    "choiceRequired": "Choose a working level to open this site.",
+    "contentUnavailableTitle": "Content editing is not available yet",
+    "contentUnavailableBody": "This version cannot safely edit approved content fields, templates or blocks. Choose Advanced in Settings to use the available editor tools, then reopen the site.",
+    "settings": "Settings",
+    "backToSites": "Back to sites",
+    "closing": "Finishing the previous site…",
+    "closeFailed": "The previous site could not finish saving. Keep this window open and try again.",
+    "retry": "Try again",
+    "unsavedCode": "The previous editor could not finish saving. Return to it to keep working, or retry when saving works. Your edits have been kept.",
+    "returnToSite": "Return to previous site"
+  },
+  "desktopSafety": {
+    "isolationUnverified": "Temporarily unavailable. Safe editing could not be verified. Choose another AI provider.",
+    "statusUnverified": "Availability could not be verified. Recheck before using this provider."
+  },
   "promoBanner": {
     "pro60FirstMonth": {
       "message": "Save 60% on your first month of Pro.",
@@ -13,6 +40,65 @@ declare const messages: {
     "dismiss": "Dismiss banner"
   },
   "cms": {
+    "archive": {
+      "archive": "Archive",
+      "archiveTitle": "Archive this item?",
+      "archiveBody": "Keep this item in the archive. It will be left out of the next release. The live site stays as it is until you publish.",
+      "archiveMany": "Archive {count} items",
+      "archived": "Item archived. The live site has not changed.",
+      "archivedCount": "Archived {count} items.",
+      "restoreDraft": "Restore as draft",
+      "restoreTitle": "Restore this item as a draft?",
+      "restoreBody": "Keep the same content and address. Review it before including it in a release.",
+      "restoreMany": "Restore {count} items",
+      "restored": "Restored as a draft. The live site has not changed.",
+      "restoredCount": "Restored {count} items as drafts.",
+      "showArchive": "View archive",
+      "showActive": "View active items",
+      "status": "Archived",
+      "emptyTitle": "The archive is empty",
+      "emptyBody": "Archived items stay here until you restore them.",
+      "editorNotice": "This item is archived. Repair any required fields here, then restore it as a draft. Its address stays the same.",
+      "failed": "The change could not be saved."
+    },
+    "readiness": {
+      "externalReadOnly": "Edit this content in its external CMS. Weblab cannot safely save changes to this source yet.",
+      "conflict": "This item changed elsewhere. Your edits are still here. Reload before saving.",
+      "itemRemoved": "This item was removed. Your unsaved edits are still here, but this item cannot be saved.",
+      "reload": "Reload",
+      "reloadTitle": "Reload this item?",
+      "reloadBody": "Reloading replaces your unsaved edits with the latest saved version.",
+      "discardTitle": "Discard unsaved changes?",
+      "discardBody": "Your edits have not been saved. Close and discard them?",
+      "discard": "Discard changes",
+      "keepEditing": "Keep editing",
+      "draftSaved": "Draft saved. The live site has not changed.",
+      "readySaved": "Saved for review. Publish the reviewed release to update the live site.",
+      "readyForReview": "Ready for review",
+      "draftStatus": "Draft",
+      "imageUrl": "Image URL",
+      "imageAlt": "Image description",
+      "configureOptions": "Set up this field’s options in Edit fields first.",
+      "configureReference": "Choose this field’s collection in Edit fields first.",
+      "chooseValue": "Choose a value",
+      "unavailableSelection": "Saved selection unavailable",
+      "clear": "Clear",
+      "searchLoaded": "Search loaded items…",
+      "loadMore": "Load more",
+      "loadedCount": "{count} loaded",
+      "deleteMany": "Delete {count} items?",
+      "deleteBody": "This removes the saved draft. It cannot be undone here.",
+      "delete": "Delete",
+      "deleteFailed": "Could not delete this item",
+      "deletedCount": "{count} items deleted",
+      "options": "Options, one per line",
+      "multiple": "Allow multiple selections",
+      "referenceCollection": "Collection",
+      "urlFormat": "Use as a link",
+      "invalidOptions": "Use different, non-empty options.",
+      "invalidReference": "Choose a collection from this project.",
+      "removeFieldBody": "This removes the field and its saved values, plus bindings and page routes that use it. This cannot be undone."
+    },
     "topBar": {
       "tooltip": "CMS"
     },
@@ -119,6 +205,7 @@ declare const messages: {
       "payload": "Payload",
       "strapi": "Strapi",
       "rest": "Generic REST",
+      "sanity": "Sanity",
       "mapButton": "Map",
       "refresh": "Refresh",
       "refreshing": "Refreshing…",
@@ -362,8 +449,8 @@ declare const messages: {
       "cloning": "Cloning…",
       "convertToTemplate": "Convert to template",
       "unmarkAsTemplate": "Unmark as template",
-      "removeOfflineCopy": "Remove offline copy",
-      "makeAvailableOffline": "Make available offline"
+      "removeOfflineCopy": "Remove local copy",
+      "makeAvailableOffline": "Keep a local copy"
     },
     "chooser": {
       "orPickStartingPoint": "or pick a starting point",
@@ -373,7 +460,8 @@ declare const messages: {
       },
       "openFolder": {
         "label": "Open folder",
-        "tooltip": "Open a folder from your machine. Edits sync to disk and your code editor, live."
+        "tooltip": "Open a project folder. You edit a private copy, then export your changes as a Git patch.",
+        "limits": "Works with Next.js sites and plain HTML sites, one app per folder. Weblab edits a copy, so your folder stays as it is."
       },
       "uploadFolder": {
         "label": "Upload folder",
@@ -454,10 +542,10 @@ declare const messages: {
         "toastFailed": "Failed to update template tag"
       },
       "offline": {
-        "toastRemoved": "{name} removed from offline access.",
-        "toastPinned": "{name} pinned. Open it once online to finish caching.",
-        "toastMarked": "{name} marked as available offline.",
-        "toastFailed": "Could not update offline availability."
+        "toastRemoved": "Local copy of {name} removed.",
+        "toastPinned": "{name} selected for local recovery. Open it online to save project data.",
+        "toastMarked": "{name} selected for local recovery. Reconnect to open it.",
+        "toastFailed": "Could not update the local project copy."
       }
     },
     "frameworkSelect": {
@@ -699,9 +787,9 @@ declare const messages: {
     "login": {
       "github": "Sign in with GitHub",
       "google": "Sign in with Google",
-      "continueGithub": "Continue with GitHub",
-      "continueGoogle": "Continue with Google",
-      "continueVercel": "Continue with Vercel",
+      "continueGithub": "GitHub",
+      "continueGoogle": "Google",
+      "continueVercel": "Vercel",
       "lastUsed": "You used this last time",
       "loginToEdit": "Sign in to edit",
       "shareProjects": "No credit card required • Get a site in seconds",
@@ -754,6 +842,13 @@ declare const messages: {
     "cachedAt": "Cached {time}"
   },
   "selectProject": {
+    "showDetails": "Show details",
+    "localFolderPath": "Working folder",
+    "copyPath": "Copy path",
+    "pathCopied": "Path copied",
+    "copyPathFailed": "Could not copy path",
+    "detailsCreated": "Created",
+    "projectActions": "Actions for {name}",
     "pendingImportTitle": "Welcome back. Pick the folder you wanted to import?",
     "pendingImportBody": "You tried to open a local folder before signing in. Browsers only allow that picker right after a click, so click below to continue.",
     "chooseFolder": "Choose folder",
@@ -1190,7 +1285,7 @@ declare const messages: {
         },
         "q3": {
           "question": "Where is Weblab based?",
-          "answer": "Weblab is built in Sweden. Our open-source contributors are scattered across the world, bringing their unique perspectives and incredible talent to the project as we continue to push the limits of design and development."
+          "answer": "Weblab is built in Sweden by Ludvig Hedin."
         }
       }
     }
@@ -1665,6 +1760,58 @@ declare const messages: {
               }
             }
           },
+          "link": {
+            "name": "Link",
+            "selectHint": "Select a button or link to choose where it goes.",
+            "loading": "Loading…",
+            "goesTo": "Goes to",
+            "types": {
+              "page": "Page",
+              "url": "Web address",
+              "section": "Section on this page",
+              "email": "Email",
+              "phone": "Phone"
+            },
+            "fields": {
+              "page": "Page",
+              "url": "Address",
+              "section": "Section",
+              "email": "Email address",
+              "phone": "Phone number"
+            },
+            "placeholders": {
+              "url": "example.com",
+              "email": "name@example.com",
+              "phone": "+46 70 123 45 67"
+            },
+            "home": "Home",
+            "choosePage": "Choose page",
+            "noPages": "No pages yet.",
+            "chooseSection": "Choose section",
+            "noSections": "No section on this page has an ID yet. Give one an ID in Styles, then pick it here.",
+            "openInNewTab": "Open in new tab",
+            "text": "Text",
+            "textPlaceholder": "Button text",
+            "textNotEditable": "This text is built from several parts. Edit it on the canvas.",
+            "textBadCharacters": "The text can't contain curly or angle brackets.",
+            "makeLink": "Make it a link",
+            "saveFailed": "Couldn't save this change.",
+            "notes": {
+              "notInCode": "This element can't be found in your code, so it can't be changed here.",
+              "hrefFromCode": "Where this goes is set in code, so it can't be changed here.",
+              "targetFromCode": "Whether it opens in a new tab is set in code.",
+              "buttonNotLink": "This button doesn't go anywhere yet.",
+              "canConvert": "Make it a link to choose where it goes. Check how it looks afterwards.",
+              "cannotConvert": "It can't become a link here without risking what it does when clicked."
+            },
+            "problems": {
+              "emptyValue": "Fill this in first.",
+              "badUrl": "Check the address. It should look like example.com",
+              "badEmail": "Check the email address.",
+              "badPhone": "Check the phone number.",
+              "badSection": "Pick a section from the list."
+            }
+          },
           "comments": {
             "name": "Comments",
             "open": "Open",
@@ -1791,7 +1938,8 @@ declare const messages: {
           "brand": "Brand",
           "branches": "Branches",
           "apps": "Apps",
-          "search": "Search"
+          "search": "Search",
+          "variables": "Variables"
         },
         "rail": {
           "openLeftPanel": "Open left panel",
@@ -1955,6 +2103,30 @@ declare const messages: {
       }
     },
     "git": {
+      "copyCredentialsOmitted": "Original keys and account settings were left out. Preview needs separate test keys before it can use connected services.",
+      "localGitHandoff": "Commit in your Git client",
+      "handoffButton": "Upload",
+      "handoffTitle": "Upload changes",
+      "handoffDescription": "Save your edits as a patch for your Git client. {appName} never changes your original project.",
+      "handoffSourceChanged": "The original project changed since you opened it. Reopen the folder to hand off safely.",
+      "handoffUnsupported": "Can't upload yet. These files changed outside {appName}: {paths}",
+      "handoffNoChanges": "No {appName} edits to hand off yet.",
+      "handoffPendingWrites": "Wait for the current edit to finish, then review again.",
+      "handoffFailed": "Could not prepare the Git handoff.",
+      "handoffExported": "Ready. Apply it in your Git client from the project folder.",
+      "handoffCopyPath": "Copy path",
+      "handoffPathCopied": "Patch path copied",
+      "handoffCopyFailed": "Could not copy the patch path",
+      "handoffRefresh": "Review again",
+      "handoffNewCopy": "{appName} opened a fresh working copy and kept the earlier copy on disk.",
+      "handoffFilesLabel": "Files",
+      "handoffSelectedCount": "{selected} of {total}",
+      "handoffEditFiles": "Edit",
+      "handoffDoneEditing": "Done",
+      "handoffExcluded": "Excluded",
+      "handoffKindStructure": "Layout changed. Check it before you apply.",
+      "handoffClose": "Close",
+      "handoffCancel": "Cancel",
       "toastGitUnavailable": "Git is unavailable until the sandbox is ready",
       "toastNoChanges": "No changes to commit",
       "toastNoBranchName": "This branch does not have a git branch name yet",
@@ -1993,6 +2165,89 @@ declare const messages: {
       "dropdownCreateBranch": "Create branch",
       "toastSwitchFailed": "Failed to switch branch",
       "stagedFilesReady": "{count, plural, one {# staged file ready to commit.} other {# staged files ready to commit.}}"
+    },
+    "publishing": {
+            "content": {
+                "title": "Website content",
+                "saveFirst": "Save or close your current blog draft before preparing content.",
+                "button": "Prepare website",
+                "dialogDescription": "Prepare saved content and images in your private working copy.",
+                "unsupported": "Content preparation supports the approved Sanity test site only.",
+                "recoveryDescription": "If a selected draft changed, you can finish the earlier preparation to recover this copy. Preview stays closed until you select and prepare the current content.",
+                "recover": "Finish earlier preparation",
+                "needsPreparation": "Design changed after preparation. Prepare again to enable preview.",
+                "prepared": "Preparation stopped before the website was changed. Prepare the same content again.",
+                "description": "Choose up to eight saved blog changes. This replaces the previous choice of blog changes in this working copy. Other posts keep their published Sanity content.",
+                "limits": "Only the approved test site is supported. Preparation changes this private copy only. Its preview closes during preparation. The quote form and Studio are disabled. Sanity is unchanged, and publishing is still unavailable.",
+                "noDrafts": "No saved blog drafts yet. Published posts can still be prepared.",
+                "archive": "Remove this archived post from the website version.",
+                "stale": "This draft changed. Untick it, then select it again to use the current version.",
+                "selected": "Selected changes: {count} / 8",
+                "more": "Show more drafts",
+                "complete": "Content and images are prepared. Save later design changes, then prepare again before previewing.",
+                "pending": "Preparation was interrupted. Resume the same content version before previewing.",
+                "resume": "Resume preparation",
+                "prepare": "Prepare content and images"
+            },
+      "sourceOnly": "Source files only. CMS drafts are not included in this release.",
+      "button": "Publish",
+      "title": "Publish your site",
+      "description": "Review a fixed version, check a protected preview, then choose when it goes live.",
+      "scopeChanged": "The project, branch or account changed. Open publishing again.",
+      "unavailable": "Publishing is available in the desktop app.",
+      "failed": "Publishing could not be confirmed. Refresh status before continuing.",
+      "working": "Working…",
+      "pendingSwitch": "The live change is not confirmed yet. Refresh status. Do not send it again.",
+      "pendingBuild": "The build request is not confirmed yet. Refresh status before continuing.",
+      "refresh": "Refresh status",
+      "connectDescription": "Connect your own Vercel account to an existing Next.js project with a live deployment and protected previews.",
+      "token": "Vercel access token",
+      "project": "Vercel project ID",
+      "team": "Team ID (optional)",
+      "connect": "Connect account",
+      "review": "Review current changes",
+      "editing": "Finish the current edit before reviewing a release.",
+      "version": "Saved version",
+      "reviewTitle": "Review changes",
+      "frozenTitle": "Reviewed version",
+      "unchanged": "No source changes after cleaning. This release uses the prepared site as it is.",
+      "reformatted": "Formatting changed",
+      "savedReview": "This saved version is fixed. Create a fresh review to see its full changes and build or publish it.",
+      "freeze": "Save reviewed version",
+      "reviewedFiles": "Changed files ({count})",
+      "includedFiles": "Files included in this release ({count})",
+      "skippedFiles": "Files omitted from this release ({count})",
+      "manifestMissing": "The complete file list is missing for this version. Create a fresh review before building or publishing.",
+      "cancelFailed": "Cancellation could not be confirmed. Refresh status before continuing.",
+      "routingChanged": "The live site or its domains changed outside this app. Review the current Vercel version below before accepting it as the new baseline.",
+      "observedLive": "Current version on Vercel",
+      "acceptLive": "Review current live version",
+      "confirmAcceptLive": "Accept this live version as the new baseline? This clears the saved rollback target. Saved releases stay in history.",
+      "acceptLiveNow": "Accept as baseline",
+      "sharedConfig": "Shared public settings",
+      "sharedConfigDescription": "These public values are used by both preview and production.",
+      "preview": "Protected preview:",
+      "production": "Production build:",
+      "notBuilt": "Not built",
+      "buildPreview": "Build protected preview",
+      "openPreview": "Open protected preview",
+      "openFailed": "The preview could not be opened.",
+      "checkedPreview": "I checked this preview",
+      "buildProduction": "Build production version",
+      "failedBuild": "This build failed. Review the source again to create a new version.",
+      "live": "This version is live.",
+      "publish": "Publish reviewed version",
+      "rollback": "Restore previous live version",
+      "confirmTitle": "Confirm live change",
+      "confirmPublish": "Publish this version to these domains?",
+      "confirmRollback": "Restore the previous live version on these domains?",
+      "publishNow": "Publish now",
+      "rollbackNow": "Restore now",
+      "cancel": "Cancel",
+      "statusNeeded": "The release status changed or could not be confirmed. Refresh status before continuing.",
+      "rollbackCurrentVersion": "Current version",
+      "rollbackPreviousVersion": "Version to restore",
+      "coordinationUnavailable": "Live publication and rollback are unavailable until shared publishing coordination is ready. You can still review files and build a protected preview."
     },
     "publish": {
       "url": {
@@ -2193,7 +2448,56 @@ declare const messages: {
           "buildingYourSite": "Building your site",
           "buildingDesc": "Your preview will appear here once the AI finishes the first version. This usually takes 30–60 seconds.",
           "restarting": "Restarting…",
-          "restartPreview": "Restart preview"
+          "restartPreview": "Restart preview",
+          "localPreparationPlanFailed": "Could not review local source changes",
+          "localPreparationSuccess": "Local source is prepared for visual editing",
+          "localPreparationIntro": "Review source changes before visual editing.",
+          "localPreparationPlanning": "Calculating changes…",
+          "localPreparationReview": "Review preparation",
+          "localPreparationTitle": "Prepare local source",
+          "localPreparationDescription": "Review each file before applying. These changes add element IDs and preview scripts to your private working copy.",
+          "localPreparationEmpty": "No file changes are needed. Apply to enable the editor bridge.",
+          "localPreparationNew": "New:",
+          "localPreparationEdit": "Edit:",
+          "localPreparationStillChanged": "Still changed: {paths}",
+          "localPreparationRestored": "Files changed by this attempt were restored.",
+          "localPreparationClose": "Close",
+          "localPreparationApplying": "Applying…",
+          "localPreparationApply": "Apply reviewed changes",
+          "localPreviewScriptWarning": "Starting preview runs this project's dev script with your account's permissions.",
+          "localInstallDependencies": "Install dependencies",
+          "localInstallingDependencies": "Installing dependencies…",
+          "localCancelInstall": "Cancel install",
+          "localInstallDescription": "Installs packages in the private copy. Package scripts are disabled.",
+          "localInstallSuccess": "Dependencies installed in the private copy",
+          "localInstallFailed": "Could not install dependencies",
+          "localStartPreview": "Start preview",
+          "localStartingPreview": "Starting preview…",
+          "localSetupTitle": "Opening your site",
+          "localSetupInstalling": "Installing what your site needs. The first time can take a few minutes.",
+          "localSetupPreparing": "Getting your site ready for editing…",
+          "localSetupStarting": "Starting your site…",
+          "localSetupFailedTitle": "Your site didn't start",
+          "localSetupMonorepo": "It has several apps in one folder. For now, Weblab works with one app per folder.",
+          "localSetupUnsupportedFramework": "For now, Weblab works with Next.js sites and plain HTML sites.",
+          "localSetupLockfile": "It needs a package lock file so Weblab can set it up safely. Add one from the project's usual install, then open it again.",
+          "localSetupPort": "The site may be listening on a different port or address.",
+          "localSetupNativeBinding": "macOS blocked a package the site needs.",
+          "localSetupDependencies": "A package the site needs could not be loaded.",
+          "localSetupFailed": "Try again or ask a local coding assistant to inspect the startup.",
+          "localSetupRetry": "Try again",
+          "localSetupDetails": "Details",
+          "localRecoveryFix": "Fix startup",
+          "localRecoveryCodex": "Use Codex",
+          "localRecoveryClaude": "Use Claude",
+          "localRecoverySlow": "This is taking longer than usual.",
+          "localRecoverySwitchBranch": "Switch to this branch before fixing its startup.",
+          "localRecoveryUnavailable": "Local coding help is unavailable in this desktop app.",
+          "localRecoveryProviderNotReady": "{provider} is not ready. Sign in to its CLI, then try again.",
+          "localRecoverySendFailed": "Could not start the local startup diagnosis.",
+          "localRecoveryChatBusy": "Finish the current chat messages before diagnosing startup.",
+          "localSetupUnsupportedTitle": "This project isn't supported yet",
+          "localSetupBack": "Back to projects"
         },
         "topBar": {
           "goBack": "Go back",
@@ -2257,6 +2561,18 @@ declare const messages: {
       }
     },
     "code": {
+      "drafts": {
+        "protected": "Unsaved code has local draft protection for this account, site and branch.",
+        "storageFailed": "Draft protection needs attention. New edits are refused if they cannot be stored. Keep this window open and copy your code before leaving.",
+        "sourceChanged": "The source changed or could not be verified. Your draft is kept. Saving refuses to overwrite a different source version.",
+        "recover": "Recover earlier code drafts",
+        "recoverVersion": "Recover this version",
+        "recoverPrevious": "Recover earlier accepted version",
+        "recoveryFailed": "The draft could not be recovered. Save or discard your current draft before choosing another version.",
+        "saveFailed": "The code could not be safely saved. Your draft is kept. Check the source and draft protection before retrying.",
+        "copy": "Copy current code",
+        "copyFailed": "The code could not be copied. Select it and copy manually."
+      },
       "unsavedChanges": {
         "messageSingle": "You have unsaved changes. Are you sure you want to close this file?",
         "messagePlural": "You have unsaved changes. Are you sure you want to close {count} files?",
@@ -2459,8 +2775,7 @@ declare const messages: {
         "forking": "Forking...",
         "delete": "Delete",
         "deleting": "Deleting...",
-        "cancel": "Cancel",
-        "switchAnyway": "Switch anyway"
+        "cancel": "Cancel"
       },
       "brand": {
         "searchTokens": "Search tokens…",
@@ -2583,6 +2898,24 @@ declare const messages: {
         "deleteFileExtra": "This action cannot be undone.",
         "deleteFileOrFolder": "Delete {kind}",
         "areYouSureDelete": "Are you sure you want to delete \"{name}\"?"
+      },
+      "variables": {
+        "collections": "Collections",
+        "all": "All",
+        "search": "Search variables",
+        "name": "Name",
+        "value": "Value",
+        "empty": "No variables in this collection yet.",
+        "noMatch": "No variables match “{query}”.",
+        "createVariable": "Create variable",
+        "edit": "Edit",
+        "collectionNames": {
+          "colors": "Colors",
+          "sizes": "Sizes & spacing",
+          "radius": "Radius",
+          "text-styles": "Text styles",
+          "other": "Other"
+        }
       }
     },
     "stylePanel": {
@@ -3081,7 +3414,14 @@ declare const messages: {
           "alignBottom": "Align bottom"
         },
         "colorRow": {
-          "mixed": "Mixed"
+          "mixed": "Mixed",
+          "editVariable": "Edit variable",
+          "detachVariable": "Detach variable",
+          "connectVariable": "Use a variable",
+          "searchVariables": "Search variables",
+          "noColorVariables": "No color variables yet.",
+          "createVariable": "Create variable",
+          "noMatch": "No match"
         },
         "fontHeroRow": {
           "changeFont": "Change font",
@@ -3156,7 +3496,8 @@ declare const messages: {
           "noKindsYet": "No {kind}s yet",
           "createKind": "Create {kind}",
           "detach": "Detach",
-          "detachKind": "Detach {kind}"
+          "detachKind": "Detach {kind}",
+          "edit": "Edit {kind}"
         },
         "trblGrid": {
           "allSidesLabel": "Edit all sides together",
@@ -3697,6 +4038,7 @@ declare const messages: {
         "deepseek": "Open-weight reasoning at frontier quality",
         "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
         "kimi": "Long-context, fast and capable",
+        "grok": "Strong at coding and long agent tasks",
         "mistral": "Open-weight model tuned for code"
       }
     },
@@ -3832,14 +4174,6 @@ declare const messages: {
         "title": "Start with any Next.js/Tailwind template",
         "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
       }
-    },
-    "contributor": {
-      "headingLine1": "Supported by you &",
-      "headingOtherBuilders": "{count} other builders",
-      "headingLoading": "...",
-      "body": "Join the community building the open source Cursor for Designers",
-      "contributeButton": "Contribute to Weblab",
-      "avatarAlt": "{name}'s avatar"
     },
     "codeOneToOne": {
       "headingLine1": "Truly one-to-one",
@@ -3978,13 +4312,6 @@ declare const messages: {
     },
     "justShipped": {
       "badge": "New in v{version}"
-    },
-    "socialProof": {
-      "title": "Community Stats:",
-      "contributorsCount": "90+",
-      "contributorsLabel": "contributors",
-      "openSource": "Open source",
-      "transparent": "& transparent"
     },
     "terminalSection": {
       "eyebrow": "Your stack, your terminal",
@@ -4741,9 +5068,9 @@ declare const messages: {
       "folderLabel": "Folder",
       "noFolder": "No folder",
       "newFolder": "+ New folder…",
-      "offlineTitle": "Offline",
-      "offlineDesc": "Cache this project so you can open and edit it without a network connection. Edits queue locally and sync when you reconnect.",
-      "availableOffline": "Available offline",
+      "offlineTitle": "Local recovery",
+      "offlineDesc": "Keep project data on this device for recovery. Opening or reloading a project requires a network connection.",
+      "availableOffline": "Keep a local copy",
       "lastCached": "Last cached",
       "notYetCached": "Not yet cached",
       "framesCached": "Frames cached",
@@ -4757,9 +5084,9 @@ declare const messages: {
       "discardChanges": "Discard changes",
       "saving": "Saving...",
       "saveChanges": "Save changes",
-      "toastOfflineOn": "Project marked as available offline.",
-      "toastOfflineOff": "Project removed from offline access.",
-      "toastOfflineFailed": "Could not update offline availability.",
+      "toastOfflineOn": "Project selected for local recovery.",
+      "toastOfflineOff": "Local project copy removed.",
+      "toastOfflineFailed": "Could not update the local project copy.",
       "toastCopyIdFailed": "Could not copy Site ID",
       "toastFolderFailed": "Could not update folder.",
       "toastFolderMoved": "Project moved to folder.",

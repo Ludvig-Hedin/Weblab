@@ -1,6 +1,8 @@
 'use client';
 
-import { ChevronDown, Plus, Sparkles, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
+import { ChevronDown, Pencil, Plus, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
@@ -12,6 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
@@ -52,6 +55,8 @@ export interface StyleChipPickerProps {
      * expander toggle still works so raw controls stay reachable.
      */
     comingSoon?: boolean;
+    /** Popover content for editing the applied style. Shows an edit button on hover. */
+    renderEdit?: (close: () => void) => ReactNode;
 }
 
 /**
@@ -75,11 +80,16 @@ export function StyleChipPicker({
     customOpen,
     onCreate,
     comingSoon = false,
+    renderEdit,
 }: StyleChipPickerProps) {
     const t = useTranslations('editor.stylePanel.controls.styleChipPicker');
     const selected = options.find((option) => option.name === value);
+    const [editOpen, setEditOpen] = useState(false);
+    // Edit and detach show on hover, on keyboard focus, and while their popover is open.
+    const hoverAction =
+        'opacity-0 group-hover/chip:opacity-100 group-focus-within/chip:opacity-100 data-[state=open]:opacity-100';
     return (
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <div className="group/chip flex min-w-0 flex-1 items-center gap-1.5">
             {comingSoon ? (
                 <TooltipProvider delayDuration={400}>
                     <Tooltip>
@@ -175,12 +185,36 @@ export function StyleChipPicker({
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
+            {selected && renderEdit && (
+                <Popover open={editOpen} onOpenChange={setEditOpen}>
+                    <PopoverTrigger asChild>
+                        <button
+                            type="button"
+                            aria-label={t('edit', { kind: kind.toLowerCase() })}
+                            title={t('edit', { kind: kind.toLowerCase() })}
+                            className={cn(
+                                'text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-xs transition-all',
+                                hoverAction,
+                            )}
+                        >
+                            <Pencil className="size-3" />
+                        </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-[280px] p-0">
+                        {renderEdit(() => setEditOpen(false))}
+                    </PopoverContent>
+                </Popover>
+            )}
             {selected && (
                 <button
                     type="button"
                     onClick={onDetach}
                     aria-label={t('detachKind', { kind: kind.toLowerCase() })}
-                    className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-xs transition-colors"
+                    title={t('detachKind', { kind: kind.toLowerCase() })}
+                    className={cn(
+                        'text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-xs transition-all',
+                        hoverAction,
+                    )}
                 >
                     <X className="size-3" />
                 </button>

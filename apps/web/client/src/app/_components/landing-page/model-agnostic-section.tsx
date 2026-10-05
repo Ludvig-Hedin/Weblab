@@ -11,7 +11,7 @@ import {
     ClaudeIcon,
     DeepSeekIcon,
     GeminiIcon,
-    KimiIcon,
+    GrokIcon,
     MistralIcon,
     OpenAIIcon,
 } from './provider-icons';
@@ -26,6 +26,7 @@ type DescriptionKey =
     | 'deepseek'
     | 'deepseekFlash'
     | 'kimi'
+    | 'grok'
     | 'mistral';
 
 interface ModelOption {
@@ -36,34 +37,34 @@ interface ModelOption {
 
 const MODELS: ModelOption[] = [
     {
-        name: 'GPT-5.5',
+        name: 'GPT-6 Astra',
         descriptionKey: 'gpt',
         icon: <OpenAIIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'Claude Sonnet 4.6',
-        descriptionKey: 'sonnet',
-        icon: <ClaudeIcon className="h-3.5 w-3.5" />,
-    },
-    {
-        name: 'Claude Opus 4.8',
+        name: 'Claude Opus 5.5',
         descriptionKey: 'opus',
         icon: <ClaudeIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'Gemini 3.1 Pro Preview',
+        name: 'Gemini 3.1 Pro',
         descriptionKey: 'gemini',
         icon: <GeminiIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'DeepSeek V4',
-        descriptionKey: 'deepseek',
-        icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
+        name: 'Grok 4.7',
+        descriptionKey: 'grok',
+        icon: <GrokIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'Kimi K2.6',
-        descriptionKey: 'kimi',
-        icon: <KimiIcon className="h-3.5 w-3.5" />,
+        name: 'GPT-6 Luna',
+        descriptionKey: 'gptMini',
+        icon: <OpenAIIcon className="h-3.5 w-3.5" />,
+    },
+    {
+        name: 'DeepSeek V4.1',
+        descriptionKey: 'deepseekFlash',
+        icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
     },
 ];
 

@@ -47,7 +47,10 @@ describe('reloadOnceForChunkError', () => {
             getItem: (k: string) => store.get(k) ?? null,
             setItem: (k: string, v: string) => void store.set(k, v),
         };
-        (globalThis as Record<string, unknown>).window = { location: { reload } };
+        (globalThis as Record<string, unknown>).window = {
+            location: { reload },
+            __weblabInitialChunkRecovery: { disarm: () => undefined },
+        };
     });
 
     afterEach(() => {
@@ -55,21 +58,23 @@ describe('reloadOnceForChunkError', () => {
         delete (globalThis as Record<string, unknown>).window;
     });
 
-    it('reloads on the first chunk error', () => {
-        expect(reloadOnceForChunkError()).toBe(true);
-        expect(reload).toHaveBeenCalledTimes(1);
+    it('disarms instead of reloading when an error boundary effect precedes the hydration marker', () => {
+        expect(reloadOnceForChunkError()).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
+        expect((window as unknown as Record<string, unknown>).__weblabChunkRecoveryDisabled).toBe(true);
+        expect(store.size).toBe(0);
     });
 
     it('does not reload again within the guard window (no loop)', () => {
-        expect(reloadOnceForChunkError()).toBe(true);
         expect(reloadOnceForChunkError()).toBe(false);
-        expect(reload).toHaveBeenCalledTimes(1);
+        expect(reloadOnceForChunkError()).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
     });
 
-    it('reloads again once the guard window has elapsed', () => {
+    it('does not reload a hydrated page even after the startup guard window elapsed', () => {
         store.set('weblab:chunk-reload-at', String(Date.now() - 20_000));
-        expect(reloadOnceForChunkError()).toBe(true);
-        expect(reload).toHaveBeenCalledTimes(1);
+        expect(reloadOnceForChunkError()).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
     });
 
     it('bails without reloading when storage throws', () => {
@@ -79,6 +84,19 @@ describe('reloadOnceForChunkError', () => {
             },
             setItem: () => undefined,
         };
+        expect(reloadOnceForChunkError()).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('cannot bypass startup disarm from a hydrated error boundary', () => {
+        Object.assign(window, { __weblabChunkRecoveryDisabled: true });
+        expect(reloadOnceForChunkError()).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
+        expect(store.size).toBe(0);
+    });
+
+    it('does not reload when the initial bootstrap was never installed', () => {
+        (globalThis as Record<string, unknown>).window = { location: { reload } };
         expect(reloadOnceForChunkError()).toBe(false);
         expect(reload).not.toHaveBeenCalled();
     });

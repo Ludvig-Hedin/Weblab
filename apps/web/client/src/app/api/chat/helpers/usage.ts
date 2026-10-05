@@ -8,6 +8,7 @@ import { UsageType } from '@weblab/models';
 
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { getCurrentUser } from '@/utils/auth/current-user';
+import { recordAiSpend } from './ai-guards';
 
 const getConvexToken = async (): Promise<string | undefined> => {
     const { getToken } = await auth();
@@ -58,6 +59,9 @@ export const getSupabaseUser = async (_request: NextRequest) => {
 export type IncrementResult =
     | { usageRecordId: string | undefined; rateLimitId: string | undefined }
     | { limitReached: true }
+    // Transient/infra failure (Convex down, auth hiccup). Callers FAIL CLOSED:
+    // return a retryable 503 instead of streaming an unmetered response.
+    | { incrementFailed: true }
     | null;
 
 export const incrementUsage = async (
@@ -92,13 +96,23 @@ export const incrementUsage = async (
         if (error instanceof Error && error.message.includes('USAGE_LIMIT_REACHED')) {
             return { limitReached: true };
         }
-        // Any other (transient/infra) error keeps the legacy behavior of not
-        // penalizing the user: return null so the caller streams without a
-        // recorded deduction.
+        // Any other (transient/infra) error used to return null and stream for
+        // free — an outage turned into unmetered AI. Fail closed instead: the
+        // caller returns a retryable 503 (see `usageUnavailableResponse`).
         console.error('Error in chat usage increment', error);
+        return { incrementFailed: true };
     }
-    return null;
 };
+
+/** Retryable 503 for `{ incrementFailed: true }` — never stream unmetered. */
+export const usageUnavailableResponse = (): Response =>
+    new Response(
+        JSON.stringify({
+            error: "We couldn't check your credits right now. Please try again in a moment.",
+            code: 503,
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } },
+    );
 
 // Reconcile a reserved credit against the request's REAL token cost. The route
 // reserves a flat 1 credit up front (`incrementUsage`); once generation
@@ -107,15 +121,17 @@ export const incrementUsage = async (
 // amount). Best-effort — token-cost billing must never surface an error or
 // block a response, so a failure here just leaves the conservative 1-credit
 // charge in place.
+//
+// Also records the real cost toward the runaway safeguards (per-user spend
+// caps + fleet daily budget) — always, even when there is no usage record to
+// reconcile (e.g. the credit increment was skipped).
 export const reconcileUsageCost = async (
-    usageRecord:
-        | { usageRecordId: string | undefined; rateLimitId: string | undefined }
-        | { limitReached: true }
-        | null,
+    usageRecord: IncrementResult,
     estimatedCostUsd: number,
 ): Promise<void> => {
+    await recordAiSpend(estimatedCostUsd);
     try {
-        if (!usageRecord || 'limitReached' in usageRecord || !usageRecord.usageRecordId) {
+        if (!usageRecord || !('usageRecordId' in usageRecord) || !usageRecord.usageRecordId) {
             return;
         }
         const token = await getConvexToken();
@@ -134,13 +150,11 @@ export const reconcileUsageCost = async (
 
 export const decrementUsage = async (
     _req: NextRequest,
-    usageRecord: {
-        usageRecordId: string | undefined;
-        rateLimitId: string | undefined;
-    } | null,
+    usageRecord: IncrementResult,
 ): Promise<void> => {
     try {
-        if (!usageRecord) {
+        // Nothing was deducted for limit-reached / failed increments.
+        if (!usageRecord || !('usageRecordId' in usageRecord)) {
             return;
         }
         const { usageRecordId, rateLimitId } = usageRecord;

@@ -86,9 +86,8 @@ export const LayersTab = observer(() => {
             }
 
             const childEl = await view.getElementByDomId(dragNode.data.domId, false);
-            // `getElementByDomId` falls back to <body> for a stale/removed domId
-            // instead of returning null, so the `!childEl` guard alone is dead.
-            // Bail when the resolved element isn't the row we dragged — otherwise
+            // Older pinned preload bundles fall back to <body> for a stale domId.
+            // Bail when the resolved element isn't the row we dragged, otherwise
             // the move action reparents <body> and corrupts the JSX.
             if (!childEl || childEl.domId !== dragNode.data.domId) {
                 console.error('Failed to resolve dragged element (stale layer row)');

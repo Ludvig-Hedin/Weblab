@@ -7,6 +7,7 @@ import { cn } from '@weblab/ui/utils';
 
 import type { ClickRectState } from '@/components/store/editor/overlay/state';
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { CommentPins } from './comment-pins';
 import { CommentPopover } from './comment-popover';
 import { ComponentEditBanner } from './component-edit-banner';
@@ -29,6 +30,8 @@ export const Overlay = observer(() => {
     const overlayState = editorEngine.overlay.state;
     const isSingleSelection = editorEngine.elements.selected.length === 1;
     const isTextEditing = editorEngine.text.isEditing;
+    const showSpacing = editorEngine.state.spacingOverlayVisible;
+    const canDesign = editorEngine.canUseDesign;
 
     const clickRectsElements = useMemo(
         () =>
@@ -41,10 +44,11 @@ export const Overlay = observer(() => {
                     left={rectState.left}
                     isComponent={rectState.isComponent}
                     styles={rectState.styles}
-                    shouldShowResizeHandles={isSingleSelection}
+                    shouldShowResizeHandles={isSingleSelection && canDesign}
+                    showSpacing={showSpacing && canDesign}
                 />
             )),
-        [overlayState.clickRects, isSingleSelection],
+        [overlayState.clickRects, isSingleSelection, showSpacing, canDesign],
     );
 
     return (
@@ -77,15 +81,15 @@ export const Overlay = observer(() => {
                     toRect={overlayState.measurement.toRect}
                 />
             )}
-            {overlayState.clickRects.length > 0 && <OverlayButtons />}
-            {overlayState.clickRects.length > 0 && <OverlayAiMenu />}
-            {overlayState.clickRects.length > 0 && <CmsPill />}
-            {overlayState.clickRects.length > 0 && <ComponentChip />}
-            <ComponentEditBanner />
+            {canDesign && overlayState.clickRects.length > 0 && <OverlayButtons />}
+            {canDesign && EDITOR_SCOPE.aiChat && overlayState.clickRects.length > 0 && <OverlayAiMenu />}
+            {EDITOR_SCOPE.cms && overlayState.clickRects.length > 0 && <CmsPill />}
+            {EDITOR_SCOPE.components && overlayState.clickRects.length > 0 && <ComponentChip />}
+            {EDITOR_SCOPE.components && <ComponentEditBanner />}
             <SnapGuidelines />
-            <CommentPins />
-            <CommentPopover />
-            <RemoteCursors />
+            {EDITOR_SCOPE.comments && <CommentPins />}
+            {EDITOR_SCOPE.comments && <CommentPopover />}
+            {EDITOR_SCOPE.presence && <RemoteCursors />}
         </div>
     );
 });

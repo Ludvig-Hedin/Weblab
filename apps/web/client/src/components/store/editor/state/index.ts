@@ -23,6 +23,12 @@ export class StateManager {
     canvasPanning = false;
     isDragSelecting = false;
     /**
+     * Framer/Webflow-style spacing inspect: true only while the user holds Tab
+     * on the canvas. Gates the padding/margin hatching and numbers on the
+     * selection so a plain selection stays a clean outline + handles.
+     */
+    spacingOverlayVisible = false;
+    /**
      * Webflow-style "Lock canvas": pins the focused frame fit-to-width between
      * the side panels, disables free pan/zoom-roam, and shows gutter resize
      * handles. Composed on top of DESIGN mode (not a separate EditorMode) so all
@@ -76,25 +82,29 @@ export class StateManager {
     pageSettingsPagePath: string | null = null;
     pageSettingsWidth = 420;
 
-    constructor() {
+    constructor(private readonly canUseDesign: () => boolean = () => true) {
         // Exclude the debounced field: makeAutoObservable wraps function-valued
         // fields as actions, stripping lodash's `.cancel` — clear()'s
         // `resetCanvasScrollingDebounced.cancel()` would then throw TypeError
         // (same trap already fixed for saveCanvas / persistDebounced).
-        makeAutoObservable<this, 'resetCanvasScrollingDebounced'>(this, {
+        makeAutoObservable<this, 'resetCanvasScrollingDebounced' | 'canUseDesign'>(this, {
             resetCanvasScrollingDebounced: false,
+            canUseDesign: false,
         });
     }
 
     setEditorMode(mode: EditorMode) {
+        if (!this.canUseDesign() && ![EditorMode.DESIGN, EditorMode.PREVIEW, EditorMode.PAN].includes(mode)) return;
         this.editorMode = mode;
     }
 
     setInsertMode(mode: InsertMode | null) {
+        if (mode !== null && !this.canUseDesign()) return;
         this.insertMode = mode;
     }
 
     setPendingInsertElement(properties: DropElementProperties | null) {
+        if (properties !== null && !this.canUseDesign()) return;
         this.pendingInsertElement = properties;
     }
 
@@ -148,6 +158,10 @@ export class StateManager {
 
     setIsDragSelecting(selecting: boolean) {
         this.isDragSelecting = selecting;
+    }
+
+    setSpacingOverlayVisible(visible: boolean) {
+        this.spacingOverlayVisible = visible;
     }
 
     setBrandTab(tab: BrandTabValue | null) {
@@ -245,6 +259,7 @@ export class StateManager {
     clear() {
         runInAction(() => {
             this.hotkeysOpen = false;
+            this.spacingOverlayVisible = false;
             this.elementPaletteOpen = false;
             this.publishOpen = false;
             this.branchTab = null;

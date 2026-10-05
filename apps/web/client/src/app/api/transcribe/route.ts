@@ -3,8 +3,12 @@ import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { fetchMutation } from 'convex/nextjs';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { env } from '@/env';
-import { getSupabaseUser } from '../chat/helpers';
+import { aiDisabledResponse, enforceAiGuards, getSupabaseUser } from '../chat/helpers';
+import { estimateWhisperCostUsd } from './helpers/cost';
+
+export const maxDuration = 120;
 
 // Whisper accepts files up to 25 MB.
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
@@ -22,6 +26,8 @@ interface TranscriptionResponse {
 }
 
 export async function POST(req: NextRequest) {
+    const paused = aiDisabledResponse();
+    if (paused) return paused;
     try {
         const user = await getSupabaseUser(req);
         if (!user) {
@@ -52,6 +58,11 @@ export async function POST(req: NextRequest) {
                 },
             );
         }
+
+        // Runaway safeguards: kill switch, fleet daily budget, per-user spend
+        // caps. Transcribe keeps its own request limiter above ('none' here).
+        const guard = await enforceAiGuards({ bucket: 'none', token: convexToken });
+        if (!guard.ok) return guard.response;
 
         const form = await req.formData();
         const file = form.get('file');
@@ -123,6 +134,32 @@ export async function POST(req: NextRequest) {
 
         const data = (await response.json()) as TranscriptionResponse;
         const text = (data?.text ?? '').trim();
+
+        // Record the Whisper spend (usage event + per-user/fleet safeguard
+        // counters, which `aiUsageEvents.insert` updates). Awaited because this
+        // non-streaming handler may freeze right after returning; failures are
+        // logged, never surfaced.
+        try {
+            await fetchMutation(
+                api.aiUsageEvents.insert,
+                {
+                    serverSecret: env.AI_GUARD_SECRET,
+                    userId: user.id as Id<'users'>,
+                    provider: useOpenAI ? 'openai' : 'openrouter',
+                    model: useOpenAI ? OPENAI_MODEL : OPENROUTER_MODEL,
+                    chatType: 'transcribe',
+                    resolvedFromAuto: false,
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    cacheCreationTokens: 0,
+                    cacheReadTokens: 0,
+                    estimatedCostUsd: estimateWhisperCostUsd(file.size),
+                },
+                { token: convexToken },
+            );
+        } catch (err) {
+            console.warn('[transcribe] failed to record usage event', err);
+        }
 
         return new Response(JSON.stringify({ text }), {
             status: 200,

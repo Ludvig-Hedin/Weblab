@@ -36,8 +36,7 @@ export function WorkspaceSwitcher() {
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="ghost"
-                                size="compact"
-                                className="text-foreground-secondary -mx-1 max-w-56 gap-1 px-2 text-sm hover:opacity-80 active:opacity-60"
+                                className="text-foreground-secondary max-w-56 gap-1.5"
                             >
                                 <span className="truncate">{active.name}</span>
                                 <Icons.ChevronDown

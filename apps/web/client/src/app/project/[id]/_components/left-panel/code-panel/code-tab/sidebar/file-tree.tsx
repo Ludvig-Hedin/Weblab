@@ -9,7 +9,7 @@ import useResizeObserver from 'use-resize-observer';
 import { type FileEntry } from '@weblab/file-system/hooks';
 import { pathsEqual } from '@weblab/utility';
 
-import { FileTreeNode } from './file-tree-node';
+import { FileTreeNode, TREE_INDENT } from './file-tree-node';
 import { FileTreeRow } from './file-tree-row';
 import { FileTreeSearch } from './file-tree-search';
 
@@ -181,14 +181,14 @@ export const FileTree = ({
 
     const filesTreeDimensions = useMemo(
         () => ({
-            width: filesWidth ?? 224, // Match w-56 container width (224px)
-            height: (filesHeight ?? 300) - 50,
+            width: filesWidth ?? 240,
+            height: filesHeight ?? 300,
         }),
         [filesWidth, filesHeight],
     );
 
     return (
-        <div className="bg-background-chrome border-border-bar flex h-full w-56 flex-col border-r">
+        <div className="bg-background-chrome border-border-bar flex h-full w-64 flex-col border-r">
             <FileTreeSearch
                 ref={inputRef}
                 searchQuery={searchQuery}
@@ -197,7 +197,7 @@ export const FileTree = ({
                 onRefresh={onRefresh}
                 onKeyDown={handleKeyDown}
             />
-            <div ref={resizeObserverRef} className="text-mini min-h-0 w-full flex-1 px-2">
+            <div ref={resizeObserverRef} className="min-h-0 w-full flex-1 px-2 pb-2">
                 {isLoading ? (
                     <div className="text-foreground-tertiary text-small flex h-full flex-col items-center justify-start pt-4">
                         <div className="border-foreground-hover mb-2 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
@@ -219,8 +219,8 @@ export const FileTree = ({
                         onSelect={handleFileTreeSelect}
                         height={filesTreeDimensions.height}
                         width={filesTreeDimensions.width}
-                        indent={8}
-                        rowHeight={24}
+                        indent={TREE_INDENT}
+                        rowHeight={28}
                         openByDefault={false}
                         renderRow={(props: RowRendererProps<FileEntry>) => (
                             <FileTreeRow

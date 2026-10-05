@@ -64,7 +64,10 @@ export async function processGroupedRequests(groupedRequests: FileToRequests): P
     return diffs;
 }
 
-export async function getStyleRequests({ targets }: UpdateStyleAction): Promise<CodeDiffRequest[]> {
+export async function getStyleRequests(
+    { targets }: UpdateStyleAction,
+    prefixForTarget: (target: UpdateStyleAction['targets'][number]) => string = () => '',
+): Promise<CodeDiffRequest[]> {
     const oidToCodeChange = new Map<string, CodeDiffRequest>();
 
     for (const target of targets) {
@@ -77,7 +80,7 @@ export async function getStyleRequests({ targets }: UpdateStyleAction): Promise<
             target.branchId,
             oidToCodeChange,
         );
-        addTailwindToRequest(request, target.change.updated);
+        addTailwindToRequest(request, target.change.updated, prefixForTarget(target));
     }
 
     return Array.from(oidToCodeChange.values());
@@ -136,8 +139,24 @@ export async function getRemoveRequests({
 export async function getEditTextRequests({
     targets,
     newContent,
+    textSlots,
 }: EditTextAction): Promise<CodeDiffRequest[]> {
     const oidToCodeChange = new Map<string, CodeDiffRequest>();
+
+    // Whole-block edit: write only the changed text runs of the block and its
+    // inline children (addressed by their own oids), keeping the elements.
+    if (textSlots !== undefined) {
+        const branchId = targets[0]?.branchId;
+        if (!branchId) {
+            throw new Error('No branch found for text edit');
+        }
+        for (const slot of textSlots) {
+            const request = await getOrCreateCodeDiffRequest(slot.oid, branchId, oidToCodeChange);
+            const { oid: _oid, ...edit } = slot;
+            request.textSlots = [...(request.textSlots ?? []), edit];
+        }
+        return Array.from(oidToCodeChange.values());
+    }
 
     for (const target of targets) {
         if (!target.oid) {

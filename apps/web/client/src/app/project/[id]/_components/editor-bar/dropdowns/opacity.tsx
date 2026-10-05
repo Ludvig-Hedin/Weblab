@@ -43,13 +43,12 @@ const useOpacityControl = () => {
     // Commit a final percentage (0-100) to source as ONE undoable style action.
     // Used by presets and by the input's blur/Enter commit — never per keystroke.
     const handleOpacityChange = (value: number) => {
+        if (editorEngine.history.isTransactionOpen) return;
         const clamped = Math.min(100, Math.max(0, value));
-        setOpacity(clamped);
         const opacityDecimal = clamped / 100;
-        const action = editorEngine.style.getUpdateStyleAction({
-            opacity: opacityDecimal.toString(),
+        void editorEngine.style.update('opacity', opacityDecimal.toString()).then((saved) => {
+            if (saved) setOpacity(clamped);
         });
-        void editorEngine.action.updateStyle(action);
     };
 
     return { opacity, handleOpacityChange };

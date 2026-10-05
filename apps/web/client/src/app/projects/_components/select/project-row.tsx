@@ -12,7 +12,7 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 import { timeAgo } from '@weblab/utility';
 
-import type { ProjectListItem } from './project-card-utils';
+import type { ProjectListItem, ProjectOrganizationProps } from './project-card-utils';
 import { isDesktopLocalAvailable } from '@/hooks/use-open-local-project';
 import { SettingsDropdown } from '../settings';
 import { ProjectCardContextMenu } from './project-card-context-menu';
@@ -24,7 +24,7 @@ import {
 } from './project-card-utils';
 import { formatTechLabel } from './projects-toolbar';
 
-interface ProjectRowProps {
+interface ProjectRowProps extends ProjectOrganizationProps {
     project: ProjectListItem;
     variant: 'list' | 'table';
     refetch: () => void | Promise<unknown>;
@@ -51,6 +51,9 @@ export const ProjectRow = ({
     selected = false,
     onSelectionChange,
     isBackfilling = false,
+    folders,
+    onMoveToFolder,
+    onCreateFolder,
 }: ProjectRowProps) => {
     const tBase = useTranslations('selectProject');
     const t = tBase as (key: string, values?: Record<string, string | number>) => string;
@@ -165,7 +168,10 @@ export const ProjectRow = ({
             ) : (
                 <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
             )}
-            <span className="text-foreground truncate text-sm font-medium">
+            <span
+                title={project.metadata.runtime?.local?.rootPath ?? undefined}
+                className="text-foreground truncate text-sm font-medium"
+            >
                 {HighlightText ? (
                     <HighlightText text={project.name} searchQuery={searchQuery} />
                 ) : (
@@ -246,7 +252,13 @@ export const ProjectRow = ({
                     <Icons.ExternalLink className="h-3.5 w-3.5" />
                 </a>
             )}
-            <SettingsDropdown project={project as Project} refetch={() => void refetch()} />
+            <SettingsDropdown
+                project={project as Project}
+                refetch={() => void refetch()}
+                folders={folders}
+                onMoveToFolder={onMoveToFolder}
+                onCreateFolder={onCreateFolder}
+            />
         </div>
     );
 
@@ -268,15 +280,19 @@ export const ProjectRow = ({
             aria-live="polite"
         >
             <Icons.LoadingSpinner className="text-foreground/70 h-4 w-4 animate-spin" />
-            <span className="text-foreground-secondary text-xs">
-                {t('opening', { name: project.name })}
-            </span>
+            <span className="sr-only">{t('opening', { name: project.name })}</span>
         </motion.div>
     );
 
     if (variant === 'list') {
         return (
-            <ProjectCardContextMenu project={project as Project} refetch={refetch}>
+            <ProjectCardContextMenu
+                project={project as Project}
+                refetch={refetch}
+                folders={folders}
+                onMoveToFolder={onMoveToFolder}
+                onCreateFolder={onCreateFolder}
+            >
                 <motion.div
                     layout
                     initial={{ opacity: 0, y: 4 }}
@@ -323,7 +339,13 @@ export const ProjectRow = ({
     }
 
     return (
-        <ProjectCardContextMenu project={project as Project} refetch={refetch}>
+        <ProjectCardContextMenu
+            project={project as Project}
+            refetch={refetch}
+            folders={folders}
+            onMoveToFolder={onMoveToFolder}
+            onCreateFolder={onCreateFolder}
+        >
             <motion.div
                 layout
                 initial={{ opacity: 0, y: 4 }}

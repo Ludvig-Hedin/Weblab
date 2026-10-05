@@ -6,6 +6,10 @@ import { internalMutation, internalQuery, mutation, query } from './_generated/s
 import { vDeploymentStatus, vDeploymentType, vHostingProvider } from './lib/enums';
 import { requireCap, requireUser } from './lib/permissions';
 
+function requireHostedPublishingRelease(): void {
+    throw new Error('Hosted publishing is unavailable in the local release.');
+}
+
 // Convex port of src/server/api/routers/publish/deployment.ts.
 //
 // DB-only queries + mutations. Long-running deploy/unpublish/redeploy are
@@ -107,6 +111,7 @@ export const create = mutation({
         provider: v.optional(vHostingProvider),
     },
     handler: async (ctx, args) => {
+        requireHostedPublishingRelease();
         await requireCap(ctx, 'project.publish', { projectId: args.projectId });
         const user = await requireUser(ctx);
         await assertNoInflight(ctx, args.projectId, args.type);

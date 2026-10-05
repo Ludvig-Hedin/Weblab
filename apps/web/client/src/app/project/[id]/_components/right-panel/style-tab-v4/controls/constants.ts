@@ -95,3 +95,12 @@ export const INLINE_LABEL_CLASSES = 'text-[11px] text-foreground-secondary';
 /* Legacy (still used by inherited sections during the v4 migration). */
 export const PROPERTY_LABEL_WIDTH = 72;
 export const PROPERTY_LABEL_OFFSET_CLASS = 'pl-[84px]';
+
+/**
+ * True for a bare CSS keyword such as `auto` or `fit-content`. Anything else
+ * that is not a number (`var(--space-2)`, `calc(...)`) is a free-form
+ * expression: show it verbatim (never capitalised) and only once.
+ */
+export function isPlainCssKeyword(value: string): boolean {
+    return /^[a-z-]+$/i.test(value);
+}

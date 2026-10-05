@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -13,6 +13,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { useStateManager } from '@/components/store/state';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 
 /**
  * True when keyboard focus is in a text-entry surface (style-panel input,
@@ -32,6 +33,18 @@ const isEditableTarget = (): boolean => {
         tag === 'SELECT' ||
         el.isContentEditable
     );
+};
+
+/**
+ * True when keyboard focus is on the canvas itself (nothing focused, or focus
+ * inside the canvas viewport) rather than on panel chrome. Tab only acts as
+ * the spacing-inspect key there; elsewhere it keeps moving focus as normal.
+ */
+const canvasOwnsFocus = (): boolean => {
+    const el = document.activeElement;
+    if (!el || el === document.body || el === document.documentElement) return true;
+    const viewport = document.getElementById(EditorAttributes.CANVAS_CONTAINER_ID)?.parentElement;
+    return !!viewport && viewport.contains(el);
 };
 
 export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
@@ -64,6 +77,45 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         editorEngine.state.setLeftPanelTab(tab);
         editorEngine.state.setLeftPanelLocked(true);
     };
+
+    // Hold Tab to show padding/margin spacing on the selection (Framer /
+    // Webflow parity). Raw listeners instead of useHotkeys so keyup and window
+    // blur reliably clear the flag even if focus moved while Tab was held.
+    useEffect(() => {
+        const hide = () => {
+            if (editorEngine.state.spacingOverlayVisible) {
+                editorEngine.state.setSpacingOverlayVisible(false);
+            }
+        };
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Tab') return;
+            if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+            if (isEditableTarget() || !canvasOwnsFocus()) return;
+            if (editorEngine.text.isEditing) return;
+            if (editorEngine.state.editorMode === EditorMode.PREVIEW) return;
+            e.preventDefault();
+            if (!editorEngine.state.spacingOverlayVisible) {
+                editorEngine.state.setSpacingOverlayVisible(true);
+            }
+        };
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Tab') hide();
+        };
+        const onVisibilityChange = () => {
+            if (document.hidden) hide();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        window.addEventListener('blur', hide);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+            window.removeEventListener('blur', hide);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            hide();
+        };
+    }, [editorEngine]);
 
     // Zoom
     useHotkeys(
@@ -200,7 +252,9 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     );
     useHotkeys(
         getKey('COMMENT'),
-        () => editorEngine.state.setEditorMode(EditorMode.COMMENT),
+        () => {
+            if (EDITOR_SCOPE.comments) editorEngine.state.setEditorMode(EditorMode.COMMENT);
+        },
         undefined,
         [getKey('COMMENT')],
     );
@@ -366,7 +420,9 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     );
     useHotkeys(
         getKey('MODE_CMS'),
-        () => editorEngine.state.setEditorMode(EditorMode.CMS),
+        () => {
+            if (EDITOR_SCOPE.cms) editorEngine.state.setEditorMode(EditorMode.CMS);
+        },
         {
             preventDefault: true,
             enableOnFormTags: true,
@@ -419,6 +475,14 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             enableOnContentEditable: true,
         },
         [getKey('TOGGLE_TERMINAL')],
+    );
+
+    // Show/hide the side panels. Bare key, so it stays off while typing.
+    useHotkeys(
+        getKey('TOGGLE_UI'),
+        () => editorEngine.state.togglePanelsHidden(),
+        { preventDefault: true },
+        [getKey('TOGGLE_UI')],
     );
 
     // Open model picker
@@ -573,6 +637,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('CREATE_COMPONENT'),
         () => {
+            if (!EDITOR_SCOPE.components) return;
             const selected = editorEngine.elements.selected[0];
             if (!selected?.oid || selected.instanceId) {
                 toast.error('Select an element (not a component instance) to create a component.');
@@ -586,6 +651,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('EDIT_COMPONENT'),
         () => {
+            if (!EDITOR_SCOPE.components) return;
             const selected = editorEngine.elements.selected[0];
             if (!selected?.instanceId) return;
             void editorEngine.components.enterEditMode(selected).then((entered) => {
@@ -743,6 +809,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('ADD_AI_CHAT'),
         () => {
+            if (!EDITOR_SCOPE.aiChat) return;
             if (editorEngine.state.editorMode === EditorMode.PREVIEW) {
                 editorEngine.state.setEditorMode(EditorMode.DESIGN);
             }
@@ -754,6 +821,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('NEW_AI_CHAT'),
         () => {
+            if (!EDITOR_SCOPE.aiChat) return;
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             editorEngine.chat.conversation.startNewConversation();
         },

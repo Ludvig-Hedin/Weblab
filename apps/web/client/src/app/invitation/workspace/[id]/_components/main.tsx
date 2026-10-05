@@ -52,19 +52,19 @@ export function WorkspaceInvitationMain({ id: _id, token }: WorkspaceInvitationM
     };
 
     if (isLoading) {
-        return <CenteredCard>Loading…</CenteredCard>;
+        return <CenteredContent>Loading…</CenteredContent>;
     }
     if (!token) {
-        return <CenteredCard>Invitation link is missing its token.</CenteredCard>;
+        return <CenteredContent>Invitation link is missing its token.</CenteredContent>;
     }
     if (!invitation) {
-        return <CenteredCard>Invitation not found.</CenteredCard>;
+        return <CenteredContent>Invitation not found.</CenteredContent>;
     }
 
     const workspaceName = workspace?.name ?? 'a workspace';
 
     return (
-        <CenteredCard>
+        <CenteredContent>
             <h1 className="text-foreground text-xl font-medium">
                 Join {workspaceName} on {APP_NAME}
             </h1>
@@ -85,14 +85,14 @@ export function WorkspaceInvitationMain({ id: _id, token }: WorkspaceInvitationM
                     Decline
                 </Button>
             </div>
-        </CenteredCard>
+        </CenteredContent>
     );
 }
 
-function CenteredCard({ children }: { children: React.ReactNode }) {
+function CenteredContent({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen w-screen items-center justify-center p-6">
-            <div className="border-border bg-background-secondary/30 flex w-full max-w-md flex-col gap-4 rounded-md border p-6">
+            <div className="flex w-full max-w-md flex-col gap-4">
                 {children}
             </div>
         </div>

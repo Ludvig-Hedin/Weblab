@@ -8,6 +8,63 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+    // Illustration: /assets/changelog/working-modes.svg
+    {
+        slug: 'v5-2-simple-and-advanced-editing',
+        version: '5.2',
+        title: 'Simple and advanced editing',
+        description:
+            'The desktop beta starts with a full-page choice: Simple for blog drafts on supported sites, or Advanced for design, code and site settings. Clear icons and short descriptions make the choice easier. You can switch later in Settings.',
+        date: '2026-10-03',
+        tags: ['Desktop', 'Beta', 'Getting started'],
+    },
+    // Preview: /assets/changelog/project-organization.svg
+    {
+        slug: 'v5-1-project-folders-and-details',
+        version: '5.1',
+        title: 'Project folders and details',
+        description:
+            'Organize sites into folders from their menu, including creating a folder with the site already inside. Hover a local site name to see its working path, or choose Show details to copy the path and see its folder, framework and dates. Folders are saved on this device.',
+        date: '2026-10-01',
+        tags: ['Projects', 'Desktop'],
+    },
+    // Preview: /assets/changelog/local-startup-help.svg
+    {
+        slug: 'v5-0-local-startup-help',
+        version: '5.0',
+        title: 'Help when a local site will not start',
+        description:
+            'If a local site fails or takes too long to open, Fix startup can ask your signed-in Codex or Claude Code to inspect a private copy. It first shows the cause and proposed files in chat, then waits for your approval before editing. Preview changes stay in the copy until you export them.',
+        date: '2026-09-29',
+        tags: ['Desktop', 'AI', 'Preview'],
+    },
+    {
+        slug: 'v4-9-variables-tab',
+        version: '4.9',
+        title: 'Variables tab',
+        description:
+            'A new Variables tab lists your colors, sizes, radius and text styles by collection, and you can create and edit them in place. In the style panel, a color that uses a variable shows its name, with edit and detach buttons on hover and a button to pick a variable.',
+        date: '2026-09-28',
+        tags: ['Editor', 'Design tokens'],
+    },
+    {
+        slug: 'v4-8-cleaner-git-handoff',
+        version: '4.8',
+        title: 'Cleaner Git handoff',
+        description:
+            'The desktop Git handoff now shows a short summary of your edits instead of code. Each file gets a plain name and line counts, you can leave files out, and Next.js projects no longer get stuck on a generated file.',
+        date: '2026-09-25',
+        tags: ['Desktop', 'Git'],
+    },
+    {
+        slug: 'v4-7-new-ai-models',
+        version: '4.7',
+        title: 'New AI models',
+        description:
+            'The model picker now offers GPT-6 Astra, Sol and Luna, Claude Opus 5.5, Grok 4.7 and 4.6, DeepSeek V4.1, Gemini 3.1 Pro and Auto. Older saved choices switch to Auto automatically.',
+        date: '2026-09-25',
+        tags: ['AI', 'Models'],
+    },
     {
         slug: 'v4-6-desktop-startup-fix',
         version: '4.6',

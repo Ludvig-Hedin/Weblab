@@ -11,7 +11,7 @@ import { Label } from '@weblab/ui/label';
 interface CreateFolderDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onCreateFolder: (name: string) => void | Promise<void>;
+    onCreateFolder: (name: string) => void | boolean | Promise<void | boolean>;
     existingNames: string[];
 }
 
@@ -23,6 +23,7 @@ export const CreateFolderDialog = ({
 }: CreateFolderDialogProps) => {
     const t = useTranslations('projects.createFolderDialog');
     const [folderName, setFolderName] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         if (!open) {
@@ -39,12 +40,16 @@ export const CreateFolderDialog = ({
     const isInvalid = trimmedName.length === 0 || alreadyExists;
 
     const handleCreate = async () => {
-        if (isInvalid) {
+        if (isInvalid || isCreating) {
             return;
         }
 
-        await onCreateFolder(trimmedName);
-        onOpenChange(false);
+        setIsCreating(true);
+        try {
+            if ((await onCreateFolder(trimmedName)) !== false) onOpenChange(false);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     return (
@@ -69,9 +74,7 @@ export const CreateFolderDialog = ({
                         }}
                     />
                     {alreadyExists && (
-                        <p className="text-destructive text-xs">
-                            {t('alreadyExists')}
-                        </p>
+                        <p className="text-destructive text-xs">{t('alreadyExists')}</p>
                     )}
                 </div>
 
@@ -79,7 +82,7 @@ export const CreateFolderDialog = ({
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>
                         {t('cancel')}
                     </Button>
-                    <Button onClick={() => void handleCreate()} disabled={isInvalid}>
+                    <Button onClick={() => void handleCreate()} disabled={isInvalid || isCreating}>
                         {t('createFolder')}
                     </Button>
                 </DialogFooter>

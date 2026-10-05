@@ -4,13 +4,22 @@ import { EditorAttributes } from '@weblab/constants';
 import { getHtmlElement } from '../../helpers';
 import { getDomElement } from './helpers';
 
-export const getElementByDomId = (domId: string, getStyle: boolean): DomElement => {
-    const el = getHtmlElement(domId) || document.body;
+/**
+ * Returns null for a stale or removed domId. It never falls back to <body>:
+ * callers would otherwise select, move, or style the page body. The debug
+ * message is also the marker that local preparation checks in the bundle.
+ */
+export const getElementByDomId = (domId: string, getStyle: boolean): DomElement | null => {
+    const el = getHtmlElement(domId);
+    if (!el) {
+        console.debug(`Weblab stale domId lookup blocked: ${domId}`);
+        return null;
+    }
     return getDomElement(el, getStyle);
 };
 
 /**
- * Look up an element by its source-AST oid (`data-weblab-id`). Used for
+ * Look up an element by its source-AST oid (`data-oid`). Used for
  * cross-iframe operations like the breakpoint fan-out, where the parent only
  * knows the oid and each iframe assigns its own runtime domId.
  *

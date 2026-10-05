@@ -9,6 +9,7 @@ import { NodeFsProvider } from './providers/nodefs';
 export * from './providers';
 export { CodesandboxProvider } from './providers/codesandbox';
 export { NodeFsProvider } from './providers/nodefs';
+export type { LocalHandoffFile, LocalHandoffPlan } from './providers/nodefs';
 // Server-side consumers (Convex actions with `'use node';`) import the
 // Vercel provider class directly to avoid relying on subpath export
 // resolution at deploy time. The browser barrel intentionally omits this

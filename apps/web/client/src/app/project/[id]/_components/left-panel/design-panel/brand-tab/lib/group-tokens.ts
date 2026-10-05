@@ -223,3 +223,17 @@ export function buildTokenSections(input: BuildInput): TokenSectionData[] {
         };
     });
 }
+
+/** Every row in a section tree, grouped rows included. */
+export function sectionRows(section: TokenSectionData): TokenRowData[] {
+    return [...section.rows, ...section.groups.flatMap((g) => g.rows)];
+}
+
+/** Find one token's row by its raw name (CSS var name or text-style name). */
+export function findTokenRow(sections: TokenSectionData[], name: string): TokenRowData | null {
+    for (const section of sections) {
+        const row = sectionRows(section).find((r) => r.name === name);
+        if (row) return row;
+    }
+    return null;
+}

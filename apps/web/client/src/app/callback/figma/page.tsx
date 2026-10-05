@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Button } from '@weblab/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
 
 import { Routes } from '@/utils/constants';
@@ -37,30 +36,28 @@ export default function FigmaOAuthCallbackPage() {
     const message = resolveMessage(searchParams);
 
     return (
-        <div className="from-background-primary via-background to-background-primary flex min-h-screen items-center justify-center bg-gradient-to-br p-6">
+        <div className="bg-background flex min-h-screen items-center justify-center px-6 py-12">
             <div className="w-full max-w-md">
                 <div className="mb-8 flex items-center justify-center gap-4">
-                    <div className="bg-background-secondary rounded-xl p-4">
+                    <div className="p-4">
                         <Icons.WeblabLogo className="text-foreground-primary h-8 w-8" />
                     </div>
                     <Icons.DotsHorizontal className="text-foreground-tertiary h-8 w-8" />
-                    <div className="bg-background-secondary rounded-xl p-4">
+                    <div className="p-4">
                         <Icons.Figma className="text-foreground-primary h-8 w-8" />
                     </div>
                 </div>
 
-                <Card className="border-border bg-background-primary shadow-2xl">
-                    <CardContent className="p-8">
+                <div>
+                    <div>
                         <div className="flex w-full flex-col items-center gap-4 text-center">
-                            <div className="bg-destructive mb-2 flex h-16 w-16 items-center justify-center rounded-full">
-                                <Icons.ExclamationTriangle className="h-8 w-8 text-white" />
+                            <div className="mb-2 flex h-16 w-16 items-center justify-center">
+                                <Icons.ExclamationTriangle className="text-destructive h-8 w-8" />
                             </div>
-                            <CardTitle className="text-foreground-primary text-xl">
+                            <h1 className="text-foreground-primary text-xl leading-none font-semibold">
                                 Something went wrong
-                            </CardTitle>
-                            <CardDescription className="text-foreground-tertiary max-w-sm">
-                                {message}
-                            </CardDescription>
+                            </h1>
+                            <p className="text-foreground-tertiary max-w-sm text-sm">{message}</p>
                             <div className="mt-2 flex w-full flex-col gap-3">
                                 <Button
                                     variant="outline"
@@ -71,8 +68,8 @@ export default function FigmaOAuthCallbackPage() {
                                 </Button>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </div>
     );

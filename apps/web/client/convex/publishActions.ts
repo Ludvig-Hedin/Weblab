@@ -32,6 +32,10 @@ import { PublishManager } from './lib/publishManager';
 const FAILED_STATUS = 'failed' as const;
 const COMPLETED_STATUS = 'completed' as const;
 
+function requireHostedPublishingRelease(): void {
+    throw new Error('Hosted publishing is unavailable in the local release.');
+}
+
 async function requireCaller(ctx: ActionCtx) {
     const me = await ctx.runQuery(api.users.me, {});
     if (!me) throw new Error('UNAUTHORIZED');
@@ -52,6 +56,7 @@ async function loadProjectUrls(
 export const run = action({
     args: { deploymentId: v.id('deployments') },
     handler: async (ctx, { deploymentId }): Promise<void> => {
+        requireHostedPublishingRelease();
         await requireCaller(ctx);
 
         const deployment = await ctx.runQuery(internal.deployments._assertReadyToRun, {
@@ -200,6 +205,7 @@ export const unpublish = action({
         type: vDeploymentType,
     },
     handler: async (ctx, { projectId, type }): Promise<{ deploymentId: string }> => {
+        requireHostedPublishingRelease();
         const me = await requireCaller(ctx);
         await ctx.runQuery(internal.publishActionsDb._requireDeployCap, {
             projectId,
@@ -255,6 +261,7 @@ export const unpublish = action({
 export const redeploy = action({
     args: { deploymentId: v.id('deployments') },
     handler: async (ctx, { deploymentId }): Promise<{ _id: string }> => {
+        requireHostedPublishingRelease();
         const me = await requireCaller(ctx);
         const source = await ctx.runQuery(internal.deployments._get, {
             deploymentId,

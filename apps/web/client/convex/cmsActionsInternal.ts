@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { internalMutation, internalQuery } from './_generated/server';
 import { encodeRemoteRef } from './lib/cmsRemoteRef';
 import { requireCap } from './lib/permissions';
@@ -10,8 +11,15 @@ import { requireCap } from './lib/permissions';
 // these via `internal.cmsActionsInternal.*`.
 //
 // Authentication: these are internalMutation/internalQuery so they can
-// only be invoked from server code. The caller (cmsActions) is responsible
-// for any project-level capability checks before dispatching.
+// only be invoked from server code. Mutations recheck current membership and
+// the source inside the transaction because Node provider calls can take time.
+
+async function requireMappingSource(ctx: MutationCtx, projectId: Id<'projects'>, sourceId: Id<'cmsSources'>) {
+    await requireCap(ctx, 'project.update', { projectId });
+    const source = await ctx.db.get(sourceId);
+    if (!source || source.projectId !== projectId || source.status === 'deleting') throw new Error('NOT_FOUND: CMS source');
+    if (source.type === 'sanity') throw new Error('BAD_REQUEST: Use the reviewed Sanity profile rather than generic collection mapping.');
+}
 
 /**
  * Capability gate for Node ("use node") actions that can't call requireCap
@@ -58,6 +66,7 @@ export const _wizardCreateCollection = internalMutation({
         ),
     },
     handler: async (ctx, { projectId, sourceId, remoteRef, name, slug, fields }) => {
+        await requireMappingSource(ctx, projectId, sourceId);
         // TODO(bug-hunt): unlike cmsCollections.create, this skips slug
         // validation and the duplicate-slug check — two remote types whose
         // names slugify identically (or a collision with an existing
@@ -102,6 +111,7 @@ export const _wizardAttachCollection = internalMutation({
         remoteRef: v.string(),
     },
     handler: async (ctx, { projectId, sourceId, collectionId, remoteRef }) => {
+        await requireMappingSource(ctx, projectId, sourceId);
         const existing = await ctx.db.get(collectionId);
         if (!existing || existing.projectId !== projectId) {
             throw new Error('NOT_FOUND: collection');

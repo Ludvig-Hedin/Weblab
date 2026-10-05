@@ -98,6 +98,7 @@ export const generateTabCompletion = async ({
             : CHAT_USER_TEMPLATE({ filePath, language, prefix, suffix }),
         // Hard cap — completions over ~120 tokens are almost never accepted.
         maxOutputTokens: 128,
+        maxRetries: 1,
         abortSignal,
         experimental_telemetry: {
             isEnabled: true,

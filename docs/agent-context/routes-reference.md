@@ -54,6 +54,7 @@ navigation, or ensuring SEO/sitemap consistency. Last refreshed: 2026-05-27.
 | Route | Path | Purpose |
 |-------|------|---------|
 | `/projects` | `app/projects/` | Project list / dashboard, import flows (`projects/new`, `projects/import/{figma,github,local}`) |
+| `/w/[slug]/cloud-pilot` | `app/w/[slug]/cloud-pilot/page.tsx` | Default-off builder experiment, creates/reopens one fixed-template project per builder/workspace. Pilot projects render separately at `/project/[id]`; no legacy sandbox or publish flow (F-802/803). |
 | `/project/[id]` | `app/project/[id]/` | **Main editor workspace** — see `editor-architecture.md` |
 | `/w/[slug]/settings/general` | `app/w/[slug]/settings/general/page.tsx` | Workspace settings — general |
 | `/w/[slug]/settings/members` | `app/w/[slug]/settings/members/page.tsx` | Workspace settings — members |
@@ -66,6 +67,8 @@ navigation, or ensuring SEO/sitemap consistency. Last refreshed: 2026-05-27.
 
 | Route | Path | Purpose |
 |-------|------|---------|
+| `/api/native/publishing/authorize` | `app/api/native/publishing/authorize/` | Supplied Clerk session token only; fresh project publish access and exact local branch/root binding, CMS dependency and live-switch-disabled capability. Source only, public route not yet deployed. |
+| `/api/native/publishing/content` | `app/api/native/publishing/content/` | Bounded bearer-only selected Sanity draft export, current project.publish and exact connection/draft pins; read-only, source only and not deployed. |
 | `/api/health` | `app/api/health/` | Liveness probe (Railway healthcheck) |
 | `/api/chat` (+ `/api/chat-images`) | `app/api/chat/`, `app/api/chat-images/` | Streaming AI chat |
 | `/api/ai/inline-edit` | `app/api/ai/inline-edit/` | Inline AST edit agent |
@@ -149,3 +152,22 @@ Editor architecture is documented in `editor-architecture.md`.
 - Skipping i18n by hardcoding strings instead of using `messages/*`.
 - Adding webhook routes outside `/webhook/` (breaks security headers and
   request parsing assumptions).
+
+
+### Isolated visual-cloud experiment (2026-10-02)
+
+`/w/[slug]/cloud-pilot` now offers cloud project creation, then enters the existing `/project/[id]` editor for server-enrolled durable-source projects (F-815). Old form projects enter the visual migration entry; `?legacy=1` retains their old form for recovery. `/project/[id]/preview?frame=<id>` uses the authenticated cloud preview wrapper for those projects (F-817); raw temporary runtime URLs are not customer links. These routes are only deployed in the isolated test environment and remain unaccepted for customer use. See T-858 and the cloud roadmap.
+
+## Cloud beta source routes (2026-10-02, not activated)
+
+| Route | Path | Purpose |
+|---|---|---|
+| `/invitation/cloud/[id]` | `app/invitation/cloud/[id]/page.tsx` | Verified-email customer invitation; fragment token kept out of telemetry and removed before sign-in redirect; F-826 |
+| `/api/cloud-editor/images` | `app/api/cloud-editor/images/route.ts` | Authenticated bounded raster decode and signed owned-image preparation; F-825 |
+| `/api/cloud-releases/review/[releaseId]/[[...path]]` | `app/api/cloud-releases/review/[releaseId]/[[...path]]/route.ts` | Exact-release proxy with one-use POST ticket exchange and HttpOnly review cookie, no Clerk app session; root middleware rewrites every path on `<releaseId>.<configured suffix>` here before asset skips; F-828 |
+
+These routes need private deployment and connected acceptance. They are not an active beta. Native publishing remains separate and gated.
+
+### Private release review launcher (2026-10-05)
+
+`/cloud-review/[releaseId]` (F-833) is an authenticated, non-cached app-side opening step. A normal link opens it; a session-bound one-use ticket is then POSTed in the same tab to the isolated review origin. It does not expose a ticket in its URL or host customer code. Local dummy/mounted checks are distinct from live provider acceptance.

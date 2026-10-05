@@ -15,7 +15,6 @@ import { useEditorEngine } from '@/components/store/editor';
 import { getRelativeMousePositionToFrameView } from '@/components/store/editor/overlay/utils';
 import { Frames } from './frames';
 import { HotkeysArea } from './hotkeys';
-import { LOCKED_PADDING, LOCKED_TOP_GAP } from './locked-layout';
 import { Overlay } from './overlay';
 import { DragSelectOverlay } from './overlay/drag-select';
 import { LayoutGuideOverlay } from './overlay/layout-guide';
@@ -27,6 +26,7 @@ import { getFramesInSelection, getSelectedFrameData } from './selection-utils';
 
 const ZOOM_SENSITIVITY = 0.006;
 const PAN_SENSITIVITY = 0.52;
+const LOCK_GLIDE_MS = 280;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 3;
 const MAX_X = 10000;
@@ -262,6 +262,32 @@ export const Canvas = observer(() => {
         [editorEngine.canvas],
     );
 
+    const lockedWheelDeltaRef = useRef({ x: 0, y: 0 });
+    const lockedWheelRafRef = useRef<number | null>(null);
+    // Lock canvas page view: the canvas never moves. The wheel scrolls the page
+    // itself inside the pinned frame (the gesture layer over the frame would
+    // otherwise swallow it), batched to one bridge call per animation frame.
+    const applyLockedWheel = useCallback(() => {
+        lockedWheelRafRef.current = null;
+        const { x, y } = lockedWheelDeltaRef.current;
+        lockedWheelDeltaRef.current = { x: 0, y: 0 };
+        if (!editorEngine.state.canvasLocked) return;
+        const focused = editorEngine.frames.selected[0] ?? editorEngine.frames.getAll()[0];
+        const view = focused ? editorEngine.frames.get(focused.frame.id)?.view : null;
+        void view?.scrollPageBy(x, y).catch(() => {
+            // Bridge not connected yet (page still loading) — drop the tick.
+        });
+    }, [editorEngine]);
+
+    useEffect(
+        () => () => {
+            if (lockedWheelRafRef.current !== null) {
+                cancelAnimationFrame(lockedWheelRafRef.current);
+            }
+        },
+        [],
+    );
+
     const handleWheel = useCallback(
         (event: WheelEvent) => {
             const t = event.target;
@@ -279,32 +305,12 @@ export const Canvas = observer(() => {
             // fit/center layout (useLockedCanvasLayout).
             if (editorEngine.state.canvasLocked) {
                 event.preventDefault();
-                const focused = editorEngine.frames.selected[0] ?? editorEngine.frames.getAll()[0];
-                if (!focused) return;
-                // Read the transform fresh from the engine: several wheel ticks can
-                // fire before React re-renders this callback, so the closure
-                // position/scale would be stale and fast scroll would stutter.
-                const sc = editorEngine.canvas.scale;
-                const pos = editorEngine.canvas.position;
-                const frame = focused.frame;
-                const frameHeight =
-                    editorEngine.frames.get(frame.id)?.contentHeight ?? frame.dimension.height;
-                const frameHeightPx = frameHeight * sc;
-                const availHeight = Math.max(
-                    1,
-                    window.innerHeight - LOCKED_TOP_GAP - LOCKED_PADDING,
-                );
-                // When the page fits, lock the top at LOCKED_TOP_GAP. When taller,
-                // scroll between top-pinned and bottom-pinned.
-                const topY = LOCKED_TOP_GAP - frame.position.y * sc;
-                let y = topY;
-                if (frameHeightPx > availHeight) {
-                    const proposedY = pos.y - event.deltaY * PAN_SENSITIVITY;
-                    const minY =
-                        window.innerHeight - LOCKED_PADDING - (frame.position.y + frameHeight) * sc;
-                    y = Math.min(Math.max(proposedY, minY), topY);
-                }
-                editorEngine.canvas.position = { x: pos.x, y };
+                // Trackpads fire several wheel events per frame. Applying each one
+                // re-renders the canvas that many times, so sum the deltas and
+                // apply them once per animation frame.
+                lockedWheelDeltaRef.current.x += event.deltaX;
+                lockedWheelDeltaRef.current.y += event.deltaY;
+                lockedWheelRafRef.current ??= requestAnimationFrame(applyLockedWheel);
                 return;
             }
             if (event.ctrlKey || event.metaKey) {
@@ -313,10 +319,7 @@ export const Canvas = observer(() => {
                 handlePan(event);
             }
         },
-        // Locked branch reads scale/position fresh from the engine; the
-        // unlocked branch delegates to handleZoom/handlePan (which already
-        // close over scale/position), so neither is needed here directly.
-        [handleZoom, handlePan, editorEngine],
+        [handleZoom, handlePan, applyLockedWheel, editorEngine],
     );
 
     const middleMouseButtonUp = useCallback<(e: MouseEvent) => void>((e) => {
@@ -352,13 +355,28 @@ export const Canvas = observer(() => {
         [middleMouseButtonUp],
     );
 
+    // Glide into / out of the locked layout instead of snapping. Only for the
+    // moment the lock toggles; scroll and zoom stay instant.
+    const canvasLocked = editorEngine.state.canvasLocked;
+    const [lockGlide, setLockGlide] = useState(false);
+    const prevLockedRef = useRef(canvasLocked);
+    useEffect(() => {
+        if (prevLockedRef.current === canvasLocked) return;
+        prevLockedRef.current = canvasLocked;
+        setLockGlide(true);
+        const id = setTimeout(() => setLockGlide(false), LOCK_GLIDE_MS);
+        return () => clearTimeout(id);
+    }, [canvasLocked]);
+
     const transformStyle = useMemo(
         () => ({
-            transition: 'transform ease',
+            transition: lockGlide
+                ? `transform ${LOCK_GLIDE_MS}ms cubic-bezier(0.32, 0.72, 0, 1)`
+                : 'none',
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: '0 0',
         }),
-        [position.x, position.y, scale],
+        [position.x, position.y, scale, lockGlide],
     );
 
     useEffect(() => {

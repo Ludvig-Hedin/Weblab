@@ -16,9 +16,7 @@ import {
     IconButtonSm,
     IconPencil,
     LabeledTextInput,
-    OpenInNewTabCheckbox,
     SelectField,
-    SmartLinkInput,
 } from '../controls';
 import { Section } from './section';
 
@@ -51,7 +49,7 @@ const TAG_OPTIONS = COMMON_TAGS.map((tag) => ({ value: tag, label: tag }));
 
 /**
  * v4 Element section — Tag + ID paired columns, ChipInput classes group
- * with raw-edit popover, and SmartLinkInput link group for anchor elements.
+ * with raw-edit popover. Links are edited in the right panel's Link tab.
  *
  * Commit pipeline and selection-guard (`isStillSelected`) are copied
  * directly from the v3 implementation to preserve correctness.
@@ -64,7 +62,6 @@ export const ElementSection = observer(function ElementSection() {
     const [isLoading, setIsLoading] = useState(false);
     const [rawEditOpen, setRawEditOpen] = useState(false);
     const [rawDraft, setRawDraft] = useState('');
-    const [openInNewTab, setOpenInNewTab] = useState(false);
 
     // Reactive view-readiness signal: reading `.view` here (inside an
     // `observer`) subscribes to the observable FramesManager map, so when
@@ -107,16 +104,8 @@ export const ElementSection = observer(function ElementSection() {
         [actionElement],
     );
     const idValue = useMemo(() => actionElement?.attributes.id ?? '', [actionElement]);
-    const hrefValue = useMemo(() => actionElement?.attributes.href ?? '', [actionElement]);
-    const targetValue = useMemo(() => actionElement?.attributes.target ?? '', [actionElement]);
     const classes = useMemo(() => className.split(/\s+/).filter(Boolean), [className]);
     const tagName = actionElement?.tagName ?? selected?.tagName ?? '';
-    const supportsHref = tagName === 'a';
-
-    // Sync open-in-new-tab toggle from loaded element data
-    useEffect(() => {
-        setOpenInNewTab(targetValue === '_blank');
-    }, [targetValue]);
 
     // setCount removed in v4 — section dot hidden per design brief.
 
@@ -229,90 +218,12 @@ export const ElementSection = observer(function ElementSection() {
         [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
     );
 
-    const commitHref = useCallback(
-        async (next: string) => {
-            if (!selected?.oid) {
-                toast.error("Can't edit this element from here yet.");
-                return;
-            }
-            const targetOid = selected.oid;
-            const targetDomId = selected.domId;
-            try {
-                await editorEngine.code.updateElementMetadata({
-                    oid: targetOid,
-                    branchId: selected.branchId,
-                    attributes: { href: next.trim() },
-                });
-            } catch (error) {
-                console.error('Failed to update href:', error);
-                toast.error(t('component.failedToUpdateProperty'));
-                return;
-            }
-            if (!isStillSelected(targetOid, targetDomId)) return;
-            setActionElement((current) =>
-                current
-                    ? {
-                          ...current,
-                          attributes: { ...current.attributes, href: next.trim() },
-                      }
-                    : current,
-            );
-        },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
-    );
-
-    const commitTarget = useCallback(
-        async (checked: boolean) => {
-            if (!selected?.oid) return;
-            const targetOid = selected.oid;
-            const targetDomId = selected.domId;
-            const newTarget = checked ? '_blank' : '';
-            const newRel = checked ? 'noreferrer' : '';
-            setOpenInNewTab(checked);
-            try {
-                await editorEngine.code.updateElementMetadata({
-                    oid: targetOid,
-                    branchId: selected.branchId,
-                    attributes: { target: newTarget, rel: newRel },
-                });
-            } catch (error) {
-                console.error('Failed to update link target:', error);
-                toast.error(t('component.failedToUpdateProperty'));
-                // Revert the optimistic toggle — the write never landed.
-                if (isStillSelected(targetOid, targetDomId)) setOpenInNewTab(!checked);
-                return;
-            }
-            if (!isStillSelected(targetOid, targetDomId)) return;
-            setActionElement((current) =>
-                current
-                    ? {
-                          ...current,
-                          attributes: {
-                              ...current.attributes,
-                              target: newTarget,
-                              rel: newRel,
-                          },
-                      }
-                    : current,
-            );
-        },
-        [editorEngine.code, selected?.branchId, selected?.domId, selected?.oid, isStillSelected, t],
-    );
-
     if (!selected) return null;
 
     // While the async `getActionElement` read is in flight, non-chip groups
     // are rendered inert via pointer-events-none + opacity reduction.
     // ChipInput supports `readOnly` directly.
     const fieldLoadingClass = isLoading ? 'pointer-events-none opacity-50 select-none' : undefined;
-
-    // Build page list from engine for SmartLinkInput. Gracefully degrade to []
-    // if pages manager or flatPages getter isn't populated yet.
-    const pagesList = (editorEngine.pages?.flatPages ?? []).map((p) => ({
-        id: p.id,
-        title: p.name || p.slug || p.path,
-        path: p.path,
-    }));
 
     return (
         <Section id="element" title={t('section.element')}>
@@ -396,30 +307,6 @@ export const ElementSection = observer(function ElementSection() {
                         readOnly={isLoading}
                     />
                 </GroupShell>
-
-                {/* 3. Link — anchor-only, with smart autocomplete + new-tab toggle */}
-                {supportsHref && (
-                    <GroupShell
-                        label={t('element.link')}
-                        actions={
-                            hrefValue ? (
-                                <OpenInNewTabCheckbox
-                                    checked={openInNewTab}
-                                    onChange={(checked) => void commitTarget(checked)}
-                                />
-                            ) : undefined
-                        }
-                    >
-                        <div className={fieldLoadingClass}>
-                            <SmartLinkInput
-                                value={hrefValue}
-                                pages={pagesList}
-                                files={[]}
-                                onCommit={(href) => void commitHref(href)}
-                            />
-                        </div>
-                    </GroupShell>
-                )}
             </div>
         </Section>
     );

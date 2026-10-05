@@ -13,7 +13,14 @@ import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
 import type { LocalModelOption } from '@weblab/models';
-import { CHAT_MODEL_OPTIONS, DEFAULT_CHAT_MODEL, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
+import {
+    CHAT_MODEL_OPTIONS,
+    DEFAULT_CHAT_MODEL,
+    isProOnlyModel,
+    migrateChatModel,
+    OLLAMA_DEFAULT_BASE_URL,
+} from '@weblab/models';
+import { ProductType } from '@weblab/stripe';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
@@ -41,6 +48,8 @@ type PendingAI = {
 export const AITab = observer(() => {
     const t = useTranslations('settings.ai');
     const userSettings = useQuery(api.users.getMappedSettings, {});
+    const subscription = useQuery(api.subscriptions.get, {});
+    const isPro = subscription?.product?.type === ProductType.PRO;
     const updateMappedSettings = useMutation(api.users.updateMappedSettings);
     const [savedFlash, setSavedFlash] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -216,18 +225,21 @@ export const AITab = observer(() => {
                 <div className="space-y-1.5">
                     <Label className="text-mini">{t('modelLabel')}</Label>
                     <Select
-                        value={ai?.defaultModel ?? DEFAULT_CHAT_MODEL}
+                        value={migrateChatModel(ai?.defaultModel ?? DEFAULT_CHAT_MODEL)}
                         onValueChange={(v) => patch({ defaultModel: v })}
                     >
                         <SelectTrigger className="w-72">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            {CHAT_MODEL_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.model} value={opt.model}>
-                                    {opt.label}
-                                </SelectItem>
-                            ))}
+                            {CHAT_MODEL_OPTIONS.map((opt) => {
+                                const locked = isProOnlyModel(opt.model) && !isPro;
+                                return (
+                                    <SelectItem key={opt.model} value={opt.model} disabled={locked}>
+                                        {locked ? `${opt.label} (Pro)` : opt.label}
+                                    </SelectItem>
+                                );
+                            })}
                             {localModels.length > 0 && (
                                 <>
                                     <SelectSeparator />

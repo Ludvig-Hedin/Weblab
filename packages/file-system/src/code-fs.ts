@@ -1,6 +1,7 @@
 import debounce from 'lodash.debounce';
 
 import {
+    EditorAttributes,
     WEBLAB_CACHE_DIRECTORY,
     WEBLAB_IX_RUNTIME_FILE,
     WEBLAB_PRELOAD_SCRIPT_FILE,
@@ -21,6 +22,8 @@ import {
     injectWeblabBootstrapScripts,
     parseComponentManifest,
     preserveIxIds,
+    t,
+    traverse,
 } from '@weblab/parser';
 import { isRootLayoutFile, pathsEqual } from '@weblab/utility';
 
@@ -34,6 +37,13 @@ import {
 } from './component-index';
 import { FileSystem } from './fs';
 import {
+    applyDurableChanges, cloneDurableContent, DurableCacheError, durableDiff,
+    durablePath, durableRemove, durableSnapshot, durableTransfer, isDurableCachePath,
+    type DurableCommitHandler, type DurableRecoveryHandler, type DurableSourceChange, type DurableSourceFile, type DurableTree,
+} from './durable-source';
+export type { DurableCommitHandler, DurableRecoveryHandler, DurableSourceChange, DurableSourceFile } from './durable-source';
+export { DurableCacheError } from './durable-source';
+import {
     clearIndexCache,
     getIndexFromCache,
     getOrLoadIndex,
@@ -44,23 +54,326 @@ export type { JsxElementMetadata } from './index-cache';
 
 export interface CodeEditorOptions {
     routerType?: RouterType;
+    localProject?: boolean;
+    durableCloud?: boolean;
 }
+
+// Durable instances share storage and indexes by scope. Serialize their work
+// across reopen, while ownership fences a superseded instance's publication.
+const durableOwners = new Map<string, symbol>();
+const durableScopeQueues = new Map<string, Promise<void>>();
 
 export class CodeFileSystem extends FileSystem {
     private projectId: string;
     private branchId: string;
     private options: Required<CodeEditorOptions>;
+    private localWrite: ((path: string, content: string) => Promise<void>) | null = null;
+    private durableCommit: DurableCommitHandler | null = null;
+    private durableRecovery: DurableRecoveryHandler | null = null;
+    private durableTree: DurableTree | null = null;
+    private durableNeedsHydration = false;
+    private readonly durableOwner = Symbol('durable-source');
+    private durableClosed = false;
+    private durableCacheErrorHandler: ((error: DurableCacheError) => void) | null = null;
+    private stagedIndexes: {
+        elements: Record<string, JsxElementMetadata>;
+        components: Record<string, ComponentDef>;
+        rewrites: Array<{ path: string; rewrites: Map<string, string> }>;
+    } | null = null;
     private indexPath = `${WEBLAB_CACHE_DIRECTORY}/index.json`;
     private componentIndexPath = `${WEBLAB_CACHE_DIRECTORY}/components.json`;
     private debouncedRebuild = debounce(() => void this.rebuildIndex(), 2000);
 
     constructor(projectId: string, branchId: string, options: CodeEditorOptions = {}) {
-        super(`/${projectId}/${branchId}`);
+        super(`/${projectId}/${branchId}`, { ephemeral: options.durableCloud === true });
+        if (options.localProject && options.durableCloud) throw new Error('Local and durable cloud modes are exclusive');
         this.projectId = projectId;
         this.branchId = branchId;
         this.options = {
             routerType: options.routerType ?? RouterType.APP,
+            localProject: options.localProject ?? false,
+            durableCloud: options.durableCloud ?? false,
         };
+        if (this.options.durableCloud) durableOwners.set(this.getCacheKey(), this.durableOwner);
+    }
+
+    private assertDurableOwner(): void {
+        if (this.durableClosed || durableOwners.get(this.getCacheKey()) !== this.durableOwner) {
+            throw new Error('This durable source session is closed or superseded.');
+        }
+    }
+
+    setDurableCommitHandler(handler: DurableCommitHandler): void {
+        if (!this.options.durableCloud) throw new Error('Not a durable cloud project');
+        this.assertDurableOwner();
+        this.durableCommit = handler;
+    }
+
+    setDurableRecoveryHandler(handler: DurableRecoveryHandler): void {
+        if (!this.options.durableCloud) throw new Error('Not a durable cloud project');
+        this.assertDurableOwner();
+        this.durableRecovery = handler;
+    }
+
+    setDurableCacheErrorHandler(handler: (error: DurableCacheError) => void): void {
+        if (!this.options.durableCloud) throw new Error('Not a durable cloud project');
+        this.assertDurableOwner();
+        this.durableCacheErrorHandler = handler;
+    }
+
+    private durableCacheFailure(cause: unknown): DurableCacheError {
+        this.durableNeedsHydration = true;
+        const error = new DurableCacheError(cause);
+        try {
+            this.durableCacheErrorHandler?.(error);
+        } catch (observerError) {
+            console.error('Durable cache error observer failed', observerError);
+        }
+        return error;
+    }
+
+    /** Cache-only, verbatim hydration. Never instruments source or echoes writes remotely. */
+    async hydrateDurableSnapshot(files: DurableSourceFile[]): Promise<void> {
+        if (!this.options.durableCloud) throw new Error('Not a durable cloud project');
+        const next = durableSnapshot(files);
+        return this.withWriteLock(async () => {
+            this.durableNeedsHydration = true;
+            // readDirectory propagates IO errors; listAll silently swallows them.
+            const visit = async (directory: string): Promise<void> => {
+                const entries = await super.readDirectory(directory);
+                const removeStale = async (items: typeof entries): Promise<void> => {
+                    for (const item of items) {
+                        const path = durablePath(item.path);
+                        if (isDurableCachePath(path)) continue;
+                        if (item.isDirectory) {
+                            await removeStale(item.children ?? []);
+                            // Keep .weblab itself because it can contain local recovery/index data.
+                            if ((!next.has(path) || !next.get(path)?.directory) && path !== '.weblab') await super.deleteDirectory(path);
+                        } else if (!next.has(path) || next.get(path)?.directory) {
+                            await super.deleteFile(path);
+                        }
+                    }
+                };
+                await removeStale(entries);
+            };
+            await visit('/');
+            for (const file of Array.from(next.values()).sort((a, b) => a.path.length - b.path.length)) {
+                if (file.directory) await super.createDirectory(file.path);
+                else await super.writeFile(file.path, file.content);
+            }
+            await this.rebuildDurableIndexes(next);
+            this.durableTree = next;
+            this.durableNeedsHydration = false;
+        });
+    }
+
+    private requireDurableTree(): DurableTree {
+        this.assertDurableOwner();
+        if (!this.durableTree || this.durableNeedsHydration || !this.durableCommit) {
+            throw new Error('Durable source is not ready. Reload the saved source before editing.');
+        }
+        return this.durableTree;
+    }
+
+    private async rebuildDurableIndexes(tree: DurableTree): Promise<void> {
+        const staged = {
+            elements: {} as Record<string, JsxElementMetadata>,
+            components: {} as Record<string, ComponentDef>,
+            rewrites: [] as Array<{ path: string; rewrites: Map<string, string> }>,
+        };
+        this.stagedIndexes = staged;
+        try {
+            for (const file of tree.values()) {
+                if (typeof file.content === 'string') await this.reindexLocalFile(file.path, file.content);
+            }
+        } finally {
+            this.stagedIndexes = null;
+        }
+        await this.saveIndex(staged.elements);
+        await this.saveComponentIndex(staged.components);
+    }
+
+    /** Caller owns the write lock; all source bytes reach one atomic remote commit. */
+    private async commitDurableChanges(changes: DurableSourceChange[], instrument = true, copied = false, reindexUnchanged: string[] = []): Promise<void> {
+        // Capture raw bytes and recovery identity before any async parser/index work.
+        if (!this.durableRecovery) throw new Error('Durable recovery is not ready');
+        const preserve = this.durableRecovery(changes.map((change) => ({ ...change, content: cloneDurableContent(change.content) })));
+        let before!: DurableTree;
+        let next!: DurableTree;
+        let prepared!: DurableSourceChange[];
+        let staged!: NonNullable<CodeFileSystem['stagedIndexes']>;
+        try {
+            before = this.requireDurableTree();
+            const proposed = applyDurableChanges(before, changes);
+            prepared = durableDiff(before, proposed);
+            if (copied) {
+                const preparedPaths = new Set(prepared.map(change => change.path));
+                prepared.push(...changes.filter(change => typeof change.content === 'string' &&
+                    this.isJsxFile(change.path) && !preparedPaths.has(change.path)).map(change => ({ ...change })));
+            }
+            if (!prepared.length) return;
+            staged = {
+                elements: { ...await this.loadIndex() },
+                components: { ...await this.loadComponentIndex() },
+                rewrites: [],
+            };
+            this.stagedIndexes = staged;
+            for (const change of prepared) {
+                await this.dropFileFromIndexes(change.path);
+            }
+            // Repair the original's metadata when an older duplicate had
+            // claimed its IDs. Stage this too, so a rejected copy changes none.
+            for (const path of reindexUnchanged) {
+                const content = before.get(path)?.content;
+                if (typeof content === 'string') await this.reindexLocalFile(path, content);
+            }
+            for (const change of prepared) {
+                if (typeof change.content !== 'string') continue;
+                if (instrument && this.isJsxFile(change.path)) change.content = await this.processJsxFile(change.path, change.content, copied);
+                else if (instrument && this.isHtmlFile(change.path)) change.content = await this.processHtmlFile(change.path, change.content);
+                else await this.reindexLocalFile(change.path, change.content);
+            }
+            next = applyDurableChanges(before, prepared);
+            prepared = durableDiff(before, next);
+            this.assertDurableOwner();
+        } catch (error) {
+            this.stagedIndexes = null;
+            await this.preserveDurableAttempt(preserve, error);
+            throw error;
+        } finally {
+            this.stagedIndexes = null;
+        }
+        // No staged metadata or source is visible while the network commit is pending.
+        if (!prepared.length) return;
+        // CloudSource owns recovery after transport admission, including preflight rejection.
+        await this.durableCommit!(prepared.map((change) => ({ ...change, content: cloneDurableContent(change.content) })));
+        // The acknowledged revision is authoritative even if the local cache fails next.
+        this.durableTree = next;
+        try {
+            this.assertDurableOwner();
+            for (const change of prepared.filter((change) => change.content === null && !change.directory).sort((a, b) => b.path.length - a.path.length)) {
+                if (before.get(change.path)?.directory) {
+                    if (change.path !== '.weblab') await super.deleteDirectory(change.path);
+                }
+                else await super.deleteFile(change.path);
+            }
+            for (const change of prepared.filter((change) => change.directory).sort((a, b) => a.path.length - b.path.length)) {
+                await super.createDirectory(change.path);
+            }
+            for (const change of prepared) {
+                if (change.content !== null) await super.writeFile(change.path, change.content);
+            }
+            await this.saveIndex(staged.elements);
+            await this.saveComponentIndex(staged.components);
+            this.pendingIxIdRewrites.push(...staged.rewrites);
+        } catch (error) {
+            throw this.durableCacheFailure(error);
+        }
+    }
+
+    private async preserveDurableAttempt(preserve: () => Promise<void>, originalError: unknown): Promise<void> {
+        try {
+            await preserve();
+        } catch (recoveryError) {
+            throw new AggregateError([originalError, recoveryError], 'Source save failed and its recovery copy could not be stored. Keep the editor open and download your changes.');
+        }
+    }
+
+    /**
+     * A local project is backed by the selected disk folder. Opening it must
+     * load source verbatim: the normal writeFile path instruments JSX/HTML and
+     * would change the apparent source before the user chose to edit it.
+     */
+    async replaceLocalSnapshot(files: Array<{ path: string; content: string }>): Promise<void> {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        return this.withWriteLock(async () => {
+            const incoming = new Map(files.map((file) => [file.path.replace(/^\/+/, ''), file.content]));
+            const oldFiles = (await this.listAll()).filter(
+                (entry) => entry.type === 'file' && !entry.path.replace(/^\/+/, '').startsWith(`${WEBLAB_CACHE_DIRECTORY}/`),
+            );
+            for (const old of oldFiles) {
+                const oldPath = old.path.replace(/^\/+/, '');
+                const prior = await this.readFile(old.path);
+                const next = incoming.get(oldPath);
+                if (typeof prior === 'string' && prior !== next) {
+                    await this.saveRecoveryCopy(oldPath, prior);
+                }
+                // The desktop text bridge cannot round-trip binary files yet.
+                // Leave a prior binary cache entry intact until that transport
+                // exists rather than silently discarding a possibly unsynced
+                // asset from an older local session.
+                if (next === undefined && typeof prior === 'string') {
+                    await super.deleteFile(old.path);
+                }
+            }
+            for (const file of files) {
+                await super.writeFile(file.path, file.content);
+            }
+            await this.performRebuildIndex();
+        });
+    }
+
+    async replaceLocalFile(path: string, content: string): Promise<void> {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        return this.withWriteLock(async () => {
+            await super.writeFile(path, content);
+            await this.reindexLocalFile(path, content);
+        });
+    }
+
+    async removeLocalFile(path: string): Promise<void> {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        return this.withWriteLock(async () => {
+            if (await this.fileExists(path)) await super.deleteFile(path);
+            await this.dropFileFromIndexes(path);
+        });
+    }
+
+    /**
+     * Local saves and watcher events touch one file. Re-index only that file:
+     * a full rebuild re-parses every source file on the main thread under the
+     * write lock, which made each style edit in a local project feel laggy.
+     */
+    private async reindexLocalFile(path: string, content: string): Promise<void> {
+        if (this.isJsxFile(path)) {
+            await this.updateMetadataForFile(path, content);
+        } else if (this.isHtmlFile(path)) {
+            await this.updateHtmlMetadataForFile(path, content);
+        }
+    }
+
+    /** Copy-on-write removal of one file's entries from both indexes. */
+    private async dropFileFromIndexes(path: string): Promise<void> {
+        if (!this.isJsxFile(path) && !this.isHtmlFile(path)) return;
+        const index = await this.loadIndex();
+        const nextIndex: Record<string, JsxElementMetadata> = {};
+        let indexChanged = false;
+        for (const [oid, metadata] of Object.entries(index)) {
+            if (pathsEqual(metadata.path, path)) indexChanged = true;
+            else nextIndex[oid] = metadata;
+        }
+        if (indexChanged) await this.saveIndex(nextIndex);
+
+        const componentIndex = await this.loadComponentIndex();
+        const nextComponentIndex: Record<string, ComponentDef> = {};
+        let componentsChanged = false;
+        for (const [key, def] of Object.entries(componentIndex)) {
+            if (pathsEqual(def.filePath, path)) componentsChanged = true;
+            else nextComponentIndex[key] = def;
+        }
+        if (componentsChanged) await this.saveComponentIndex(nextComponentIndex);
+    }
+
+    setLocalWriteHandler(write: (path: string, content: string) => Promise<void>): void {
+        if (!this.options.localProject) throw new Error('Not a local project');
+        this.localWrite = write;
+    }
+
+    private async saveRecoveryCopy(path: string, content: string): Promise<string> {
+        const name = path.split('/').pop()?.replace(/[^a-zA-Z0-9._-]/g, '_') ?? 'source';
+        const recoveryPath = `${WEBLAB_CACHE_DIRECTORY}/recovery/${Date.now()}-${Math.random().toString(36).slice(2)}-${name}.txt`;
+        await super.writeFile(recoveryPath, content);
+        return recoveryPath;
     }
 
     // Serializes every operation that reads-then-writes the shared in-memory
@@ -74,6 +387,22 @@ export class CodeFileSystem extends FileSystem {
     private writeLock: Promise<void> = Promise.resolve();
 
     private withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
+        if (this.options.durableCloud) {
+            this.assertDurableOwner();
+            const key = this.getCacheKey();
+            const preceding = durableScopeQueues.get(key) ?? Promise.resolve();
+            const run = preceding.then(() => {
+                this.assertDurableOwner();
+                return fn();
+            });
+            const settled = run.then(() => undefined, () => undefined);
+            durableScopeQueues.set(key, settled);
+            this.writeLock = settled;
+            void settled.then(() => {
+                if (durableScopeQueues.get(key) === settled) durableScopeQueues.delete(key);
+            });
+            return run;
+        }
         const run = this.writeLock.then(fn);
         // Keep the chain alive past a rejection so one failed op doesn't wedge
         // every later op; the real result/error returns to the caller via `run`.
@@ -85,33 +414,124 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async writeFile(path: string, content: string | Uint8Array): Promise<void> {
+        if (this.options.durableCloud) return this.writeFiles([{ path, content }]);
         return this.withWriteLock(async () => {
-            if (this.isJsxFile(path) && typeof content === 'string') {
-                const processedContent = await this.processJsxFile(path, content);
-                await super.writeFile(path, processedContent);
-            } else if (this.isHtmlFile(path) && typeof content === 'string') {
-                const processedContent = await this.processHtmlFile(path, content);
-                await super.writeFile(path, processedContent);
-            } else {
-                await super.writeFile(path, content);
+            if (this.options.localProject && (!this.localWrite || typeof content !== 'string')) {
+                throw new Error('Local source is not ready for a text write');
             }
+            if (this.options.localProject) {
+                // Local source remains byte-for-byte as the editor supplied it.
+                // The cloud path below stamps OIDs, injects scripts, and formats
+                // whole JSX files. Those broad changes require a separate
+                // reviewed preparation step for an existing Git project.
+                try {
+                    await this.localWrite!(path, content as string);
+                } catch (error) {
+                    const recoveryPath = await this.saveRecoveryCopy(path, content as string);
+                    throw new Error(
+                        `Local write failed for ${path}. Your attempted source is saved in ${recoveryPath}. ${error instanceof Error ? error.message : String(error)}`,
+                    );
+                }
+                await super.writeFile(path, content);
+                await this.reindexLocalFile(path, content as string);
+                return;
+            }
+            let processedContent: string | Uint8Array = content;
+            if (this.isJsxFile(path) && typeof content === 'string') {
+                processedContent = await this.processJsxFile(path, content);
+            } else if (this.isHtmlFile(path) && typeof content === 'string') {
+                processedContent = await this.processHtmlFile(path, content);
+            }
+            await super.writeFile(path, processedContent);
         });
     }
 
     async writeFiles(files: Array<{ path: string; content: string | Uint8Array }>): Promise<void> {
+        if (this.options.durableCloud) {
+            const copies = files.map((file) => ({ path: durablePath(file.path), content: cloneDurableContent(file.content)! }));
+            return this.withWriteLock(async () => {
+                const source = copies.filter((file) => !isDurableCachePath(file.path));
+                if (source.length) await this.commitDurableChanges(source);
+                try {
+                    for (const file of copies.filter((file) => isDurableCachePath(file.path))) await super.writeFile(file.path, file.content);
+                } catch (error) {
+                    if (!source.length) throw error;
+                    throw this.durableCacheFailure(error);
+                }
+            });
+        }
         // Write files sequentially to avoid race conditions to metadata file
         for (const { path, content } of files) {
             await this.writeFile(path, content);
         }
     }
 
-    private async processJsxFile(path: string, content: string): Promise<string> {
+    async createFile(path: string, content = ''): Promise<void> {
+        if (this.options.durableCloud) return this.writeFile(path, content);
+        if (this.options.localProject) {
+            throw new Error('Creating local files from the editor is not ready');
+        }
+        await super.createFile(path, content);
+    }
+
+    async createDirectory(path: string): Promise<void> {
+        if (this.options.durableCloud) {
+            const normalized = durablePath(path);
+            return this.withWriteLock(async () => {
+                if (isDurableCachePath(normalized)) return super.createDirectory(normalized);
+                await this.commitDurableChanges([{ path: normalized, content: null, directory: true }]);
+            });
+        }
+        if (this.options.localProject) throw new Error('Creating local folders from the editor is not ready');
+        await super.createDirectory(path);
+    }
+
+    async copyDirectory(from: string, to: string): Promise<void> {
+        if (this.options.durableCloud) return this.withWriteLock(() => {
+            if (isDurableCachePath(durablePath(from)) && isDurableCachePath(durablePath(to))) return super.copyDirectory(from, to);
+            return this.commitDurableChanges(durableTransfer(this.requireDurableTree(), from, to, true, false), true, true);
+        });
+        if (this.options.localProject) throw new Error('Copying local folders from the editor is not ready');
+        await super.copyDirectory(from, to);
+    }
+
+    async copyFile(from: string, to: string, options: { overwrite?: boolean } = {}): Promise<void> {
+        if (this.options.durableCloud) return this.withWriteLock(async () => {
+            if (isDurableCachePath(durablePath(from)) && isDurableCachePath(durablePath(to))) return super.writeFile(to, await super.readFile(from));
+            const tree = this.requireDurableTree();
+            const fromPath = durablePath(from), toPath = durablePath(to);
+            let transferTree = tree;
+            if (options.overwrite && tree.has(toPath)) {
+                if (fromPath === toPath || toPath.startsWith(`${fromPath}/`) || fromPath.startsWith(`${toPath}/`)) throw new Error('Source and destination overlap');
+                if (tree.get(toPath)?.directory) throw new Error(`Directory exists: ${toPath}`);
+                // Only the proposed transfer ignores the target. The original
+                // source, target and indexes stay intact until the save succeeds.
+                transferTree = new Map(tree);
+                transferTree.delete(toPath);
+            }
+            return this.commitDurableChanges(durableTransfer(transferTree, fromPath, toPath, false, false), true, true, [fromPath]);
+        });
+        if (this.options.localProject) throw new Error('Copying local files from the editor is not ready');
+        await super.copyFile(from, to);
+    }
+
+    private async processJsxFile(path: string, content: string, copied = false): Promise<string> {
         let processedContent = content;
         let ixIdRewrites = new Map<string, string>();
 
         const ast = getAstFromContent(content);
         if (ast) {
-            if (isRootLayoutFile(path, this.options.routerType)) {
+            if (copied) {
+                // addOidsToAst preserves valid IDs by default. Copies need new
+                // identity before indexing, or their nodes replace the original.
+                traverse(ast, {
+                    JSXOpeningElement(nodePath) {
+                        nodePath.node.attributes = nodePath.node.attributes.filter((attribute) =>
+                            !t.isJSXAttribute(attribute) || attribute.name.name !== EditorAttributes.DATA_WEBLAB_ID);
+                    },
+                });
+            }
+            if (!this.options.durableCloud && isRootLayoutFile(path, this.options.routerType)) {
                 injectWeblabBootstrapScripts(ast);
             }
 
@@ -140,7 +560,7 @@ export class CodeFileSystem extends FileSystem {
         await this.updateMetadataForFile(path, formattedContent);
 
         if (ixIdRewrites.size > 0) {
-            this.pendingIxIdRewrites.push({ path, rewrites: ixIdRewrites });
+            (this.stagedIndexes?.rewrites ?? this.pendingIxIdRewrites).push({ path, rewrites: ixIdRewrites });
         }
 
         return formattedContent;
@@ -187,7 +607,10 @@ export class CodeFileSystem extends FileSystem {
         // Re-parse the serialized output: injectOids mutates the tree, so the
         // original parse's source positions are stale.
         const ast = htmlPipeline.parse(content);
-        if (!ast) return;
+        if (!ast) {
+            await this.dropFileFromIndexes(path);
+            return;
+        }
 
         const templateNodeMap = htmlPipeline.buildTemplateNodeMap({
             ast,
@@ -281,7 +704,12 @@ export class CodeFileSystem extends FileSystem {
         }
 
         const ast = getAstFromContent(content);
-        if (!ast) return;
+        if (!ast) {
+            // Match a full rebuild: an unparsable file has no entries.
+            // Keeping the old ones would point edits at stale source ranges.
+            await this.dropFileFromIndexes(path);
+            return;
+        }
 
         const templateNodeMap = createTemplateNodeMap({
             ast,
@@ -335,7 +763,7 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async getJsxElementMetadata(oid: string): Promise<JsxElementMetadata | undefined> {
-        const index = await this.loadIndex();
+        const index = await this.loadIndex(false);
         const metadata = index[oid];
         if (!metadata) {
             console.warn(
@@ -347,7 +775,7 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async getJsxElementMetadataByIxId(ixId: string): Promise<JsxElementMetadata | undefined> {
-        const index = await this.loadIndex();
+        const index = await this.loadIndex(false);
         for (const metadata of Object.values(index)) {
             if (metadata.ixId === ixId) {
                 return metadata;
@@ -359,7 +787,9 @@ export class CodeFileSystem extends FileSystem {
     async rebuildIndex(): Promise<void> {
         // Under the same lock as writeFile/deleteFile/moveFile so a full rebuild
         // can't race a concurrent single-file index update.
-        return this.withWriteLock(() => this.performRebuildIndex());
+        return this.withWriteLock(() => this.options.durableCloud
+            ? this.rebuildDurableIndexes(this.requireDurableTree())
+            : this.performRebuildIndex());
     }
 
     private async performRebuildIndex(): Promise<void> {
@@ -370,7 +800,9 @@ export class CodeFileSystem extends FileSystem {
         const entries = await this.listAll();
         const sourceFiles = entries.filter(
             (entry) =>
-                entry.type === 'file' && (this.isJsxFile(entry.path) || this.isHtmlFile(entry.path)),
+                entry.type === 'file' &&
+                (!this.options.durableCloud || !isDurableCachePath(entry.path.replace(/^\/+/, ''))) &&
+                (this.isJsxFile(entry.path) || this.isHtmlFile(entry.path)),
         );
 
         const BATCH_SIZE = 10;
@@ -453,6 +885,13 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async deleteFile(path: string): Promise<void> {
+        if (this.options.durableCloud) return this.withWriteLock(() => {
+            if (isDurableCachePath(durablePath(path))) return super.deleteFile(path);
+            return this.commitDurableChanges(durableRemove(this.requireDurableTree(), path, false));
+        });
+        if (this.options.localProject) {
+            throw new Error('Deleting local files from the editor is not ready');
+        }
         return this.withWriteLock(async () => {
             await super.deleteFile(path);
 
@@ -492,6 +931,13 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async moveFile(oldPath: string, newPath: string): Promise<void> {
+        if (this.options.durableCloud) return this.withWriteLock(() => {
+            if (isDurableCachePath(durablePath(oldPath)) && isDurableCachePath(durablePath(newPath))) return super.moveFile(oldPath, newPath);
+            return this.commitDurableChanges(durableTransfer(this.requireDurableTree(), oldPath, newPath, false, true), false);
+        });
+        if (this.options.localProject) {
+            throw new Error('Moving local files from the editor is not ready');
+        }
         return this.withWriteLock(async () => {
             await super.moveFile(oldPath, newPath);
 
@@ -568,6 +1014,11 @@ export class CodeFileSystem extends FileSystem {
      * concurrent single-file index update.
      */
     async deleteDirectory(path: string): Promise<void> {
+        if (this.options.durableCloud) return this.withWriteLock(() => {
+            if (isDurableCachePath(durablePath(path))) return super.deleteDirectory(path);
+            return this.commitDurableChanges(durableRemove(this.requireDurableTree(), path, true));
+        });
+        if (this.options.localProject) throw new Error('Deleting local folders from the editor is not ready');
         return this.withWriteLock(async () => {
             await super.deleteDirectory(path);
 
@@ -606,6 +1057,11 @@ export class CodeFileSystem extends FileSystem {
      * and component keys, so edits route to the now-nonexistent old location.
      */
     async moveDirectory(oldPath: string, newPath: string): Promise<void> {
+        if (this.options.durableCloud) return this.withWriteLock(() => {
+            if (isDurableCachePath(durablePath(oldPath)) && isDurableCachePath(durablePath(newPath))) return super.moveDirectory(oldPath, newPath);
+            return this.commitDurableChanges(durableTransfer(this.requireDurableTree(), oldPath, newPath, true, true), false);
+        });
+        if (this.options.localProject) throw new Error('Moving local folders from the editor is not ready');
         return this.withWriteLock(async () => {
             await super.moveDirectory(oldPath, newPath);
 
@@ -655,7 +1111,9 @@ export class CodeFileSystem extends FileSystem {
         });
     }
 
-    private async loadIndex(): Promise<Record<string, JsxElementMetadata>> {
+    private async loadIndex(useStaged = true): Promise<Record<string, JsxElementMetadata>> {
+        if (this.options.durableCloud) this.assertDurableOwner();
+        if (useStaged && this.stagedIndexes) return this.stagedIndexes.elements;
         return getOrLoadIndex(this.getCacheKey(), this.indexPath, (path) => this.readFile(path));
     }
 
@@ -663,12 +1121,12 @@ export class CodeFileSystem extends FileSystem {
 
     /** All component definitions discovered in the project source. */
     async listComponents(): Promise<ComponentDef[]> {
-        const index = await this.loadComponentIndex();
+        const index = await this.loadComponentIndex(false);
         return Object.values(index);
     }
 
     async getComponent(key: string): Promise<ComponentDef | undefined> {
-        const index = await this.loadComponentIndex();
+        const index = await this.loadComponentIndex(false);
         return index[key];
     }
 
@@ -683,7 +1141,7 @@ export class CodeFileSystem extends FileSystem {
      * snippet starts with the component tag.
      */
     async countComponentUsages(componentName: string): Promise<number> {
-        const index = await this.loadIndex();
+        const index = await this.loadIndex(false);
         const usagePattern = new RegExp(`^<${componentName}[\\s/>]`);
         let count = 0;
         for (const metadata of Object.values(index)) {
@@ -692,15 +1150,22 @@ export class CodeFileSystem extends FileSystem {
         return count;
     }
 
-    private async loadComponentIndex(): Promise<Record<string, ComponentDef>> {
+    private async loadComponentIndex(useStaged = true): Promise<Record<string, ComponentDef>> {
+        if (this.options.durableCloud) this.assertDurableOwner();
+        if (useStaged && this.stagedIndexes) return this.stagedIndexes.components;
         return getOrLoadComponentIndex(this.getCacheKey(), this.componentIndexPath, (path) =>
             this.readFile(path),
         );
     }
 
     private async saveComponentIndex(index: Record<string, ComponentDef>): Promise<void> {
+        if (this.options.durableCloud) this.assertDurableOwner();
+        if (this.stagedIndexes) {
+            this.stagedIndexes.components = index;
+            return;
+        }
         saveComponentIndexToCache(this.getCacheKey(), index);
-        void this.debouncedSaveComponentIndexToFile();
+        if (!this.options.durableCloud) void this.debouncedSaveComponentIndexToFile();
     }
 
     private async undebouncedSaveComponentIndexToFile(): Promise<void> {
@@ -708,7 +1173,9 @@ export class CodeFileSystem extends FileSystem {
             return;
         }
         try {
-            await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
+            // In-memory cache folder only. The local-project override blocks
+            // user folder creation, and .weblab is never mirrored to disk.
+            await super.createDirectory(WEBLAB_CACHE_DIRECTORY);
         } catch {
             console.warn(`[CodeEditorApi] Failed to create ${WEBLAB_CACHE_DIRECTORY} directory`);
         }
@@ -724,8 +1191,13 @@ export class CodeFileSystem extends FileSystem {
     );
 
     private async saveIndex(index: Record<string, JsxElementMetadata>): Promise<void> {
+        if (this.options.durableCloud) this.assertDurableOwner();
+        if (this.stagedIndexes) {
+            this.stagedIndexes.elements = index;
+            return;
+        }
         saveIndexToCache(this.getCacheKey(), index);
-        void this.debouncedSaveIndexToFile();
+        if (!this.options.durableCloud) void this.debouncedSaveIndexToFile();
     }
 
     private async undobounceSaveIndexToFile(): Promise<void> {
@@ -733,7 +1205,9 @@ export class CodeFileSystem extends FileSystem {
             return;
         }
         try {
-            await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
+            // In-memory cache folder only. The local-project override blocks
+            // user folder creation, and .weblab is never mirrored to disk.
+            await super.createDirectory(WEBLAB_CACHE_DIRECTORY);
         } catch {
             console.warn(`[CodeEditorApi] Failed to create ${WEBLAB_CACHE_DIRECTORY} directory`);
         }
@@ -763,6 +1237,28 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async cleanup(): Promise<void> {
+        if (this.options.durableCloud) {
+            this.durableClosed = true;
+            this.beginClose();
+            this.debouncedRebuild.cancel();
+            this.debouncedSaveIndexToFile.cancel();
+            this.debouncedSaveComponentIndexToFile.cancel();
+            // Let already-sent commits settle truthfully. Their ownership check
+            // prevents stale cache publication; reopened hydration queues after them.
+            await this.writeLock;
+            this.durableCommit = null;
+            this.durableRecovery = null;
+            this.durableCacheErrorHandler = null;
+            this.durableTree = null;
+            await super.cleanup();
+            const cacheKey = this.getCacheKey();
+            if (durableOwners.get(cacheKey) === this.durableOwner) {
+                durableOwners.delete(cacheKey);
+                clearIndexCache(cacheKey);
+                clearComponentIndexCache(cacheKey);
+            }
+            return;
+        }
         // Tear down the base FileSystem first: it closes all ZenFS watchers and
         // clears pending watcher debounce timeouts. The override previously
         // skipped this, leaking a watcher + timeout per CodeFileSystem instance

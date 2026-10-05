@@ -4,8 +4,9 @@
  * Ollama) running on the user's machine.
  *
  * Two responsibilities:
- *   1. `weblab-cli:provider-status` — probe each provider's binary with a
- *      short `--version` invocation so the picker can show Ready/Install/Sign-in.
+ *   1. `weblab-cli:provider-status` — probe each provider's binary
+ *      (`--version`, then its own sign-in status command) so the picker can
+ *      show Ready/Install/Sign-in.
  *   2. `weblab-cli:start` / `weblab-cli:abort` — spawn the right CLI for a chat
  *      turn and stream events back to the renderer as AI SDK v6
  *      `UIMessageStreamPart` payloads.
@@ -16,207 +17,73 @@
  */
 
 const { ipcMain } = require('electron');
-const { spawn } = require('child_process');
-const { registerStreamingHandlers } = require('./cli/main-bridge');
+const { isTrustedSender } = require('./auth-policy');
+const { registerStreamingHandlers, disposeStreams } = require('./cli/main-bridge');
+const { claudeIsolationStatus } = require('./cli/claude');
+const { cliEnv, resolveOnPath, runCapture } = require('./cli/process');
+const { parseClaudeAuthStatus, parseCodexLoginStatus } = require('./cli/status');
 
 const PROVIDERS = {
-    codex: { binary: 'codex' },
-    'claude-code': { binary: 'claude' },
+    codex: { binary: 'codex', authArgs: ['login', 'status'], parseAuth: parseCodexLoginStatus },
+    'claude-code': { binary: 'claude', authArgs: ['auth', 'status'], parseAuth: parseClaudeAuthStatus },
     gemini: { binary: 'gemini' },
     opencode: { binary: 'opencode' },
     cursor: { binary: 'cursor-agent' },
     ollama: { binary: 'ollama' },
 };
 
-const VERSION_TIMEOUT_MS = 3000;
+const VERSION_TIMEOUT_MS = 8000;
+const AUTH_TIMEOUT_MS = 8000;
 
-// Reject leading `-` so a malicious model name can't masquerade as an Ollama
-// flag (`--help`, `-y`). Allow alnum, dot, colon, slash, dash, underscore.
-const SAFE_OLLAMA_MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$/;
-
-function probeBinary(binary) {
-    return new Promise((resolve) => {
-        let settled = false;
-        let timeoutHandle = null;
-        const finish = (value) => {
-            if (settled) return;
-            settled = true;
-            if (timeoutHandle) clearTimeout(timeoutHandle);
-            resolve(value);
-        };
-        let child;
-        try {
-            child = spawn(binary, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] });
-        } catch {
-            return finish({ installed: false });
-        }
-        let stdout = '';
-        child.stdout.on('data', (b) => {
-            stdout += b.toString();
-        });
-        child.on('error', () => finish({ installed: false }));
-        child.on('exit', (code) => {
-            if (code === 0) {
-                finish({ installed: true, version: stdout.trim().split('\n')[0] });
-            } else {
-                finish({ installed: false });
-            }
-        });
-        timeoutHandle = setTimeout(() => {
-            try {
-                child.kill('SIGKILL');
-            } catch {
-                // ignore
-            }
-            finish({ installed: false });
-        }, VERSION_TIMEOUT_MS);
-    });
+/**
+ * Probe one provider with the user's login-shell PATH (a Finder-launched app
+ * otherwise misses Homebrew / npm-global binaries).
+ *   installed: binary found and `--version` exits 0
+ *   authStatus: 'ready' | 'sign-in' | 'unknown' from the CLI's own status
+ *               command; providers without one report 'ready'.
+ */
+async function probeProvider({ binary, authArgs, parseAuth }, env) {
+    const binaryPath = resolveOnPath(binary, env);
+    if (!binaryPath) return { installed: false, authStatus: 'sign-in' };
+    const version = await runCapture(binaryPath, ['--version'], { env, timeoutMs: VERSION_TIMEOUT_MS });
+    if (version.code !== 0) return { installed: false, authStatus: 'sign-in' };
+    const versionLine = version.stdout.trim().split('\n')[0] || undefined;
+    if (!authArgs) return { installed: true, authStatus: 'ready', version: versionLine };
+    const auth = await runCapture(binaryPath, authArgs, { env, timeoutMs: AUTH_TIMEOUT_MS });
+    return {
+        installed: true,
+        authStatus: auth.timedOut || auth.error ? 'unknown' : parseAuth(auth),
+        version: versionLine,
+    };
 }
 
 /**
- * @returns {Record<string, { installed: boolean; authStatus: 'ready' | 'sign-in'; version?: string }>}
+ * @returns {Record<string, { installed: boolean; authStatus: 'ready' | 'sign-in' | 'unknown'; version?: string }>}
  */
 async function getProviderStatuses() {
+    const env = cliEnv();
     const results = {};
     await Promise.all(
-        Object.entries(PROVIDERS).map(async ([kind, { binary }]) => {
-            const probe = await probeBinary(binary);
-            results[kind] = probe.installed
-                ? { installed: true, authStatus: 'ready', version: probe.version }
-                : { installed: false, authStatus: 'sign-in' };
+        Object.entries(PROVIDERS).map(async ([kind, provider]) => {
+            if (kind === 'claude-code' && !claudeIsolationStatus().available) {
+                results[kind] = { installed: false, authStatus: 'unknown', blockedCode: 'isolation-unverified' };
+                return;
+            }
+            try { results[kind] = await probeProvider(provider, env); }
+            catch { results[kind] = { installed: false, authStatus: 'unknown' }; }
         }),
     );
     return results;
 }
 
-function isFromAllowedOrigin(event, allowedOrigins) {
-    try {
-        const senderUrl =
-            (event.senderFrame && event.senderFrame.url) ||
-            (event.sender && event.sender.getURL && event.sender.getURL());
-        if (!senderUrl) return false;
-        return allowedOrigins.has(new URL(senderUrl).origin);
-    } catch {
-        return false;
-    }
-}
-
-/**
- * Stream `ollama pull <model>` progress to the renderer. modelName is
- * validated against SAFE_OLLAMA_MODEL before reaching argv to block flag
- * injection. shell:false (default) on spawn — argv is never re-parsed.
- */
-async function pullOllamaModel(pullId, modelName, getWebContents) {
-    return new Promise((resolve) => {
-        if (!SAFE_OLLAMA_MODEL.test(modelName)) {
-            return resolve({ ok: false, error: 'invalid_model_name' });
-        }
-        let child;
-        try {
-            // `--` end-of-options sentinel: belt-and-braces in case ollama
-            // ever changes its parser to accept flags after positionals.
-            child = spawn('ollama', ['pull', '--', modelName], {
-                stdio: ['ignore', 'pipe', 'pipe'],
-            });
-        } catch (cause) {
-            return resolve({ ok: false, error: cause.message });
-        }
-
-        const sendProgress = (line) => {
-            const wc = getWebContents();
-            if (!wc) return;
-            try {
-                wc.send('weblab-cli:ollama-pull-progress', { pullId, line });
-            } catch {
-                // window may have closed mid-pull
-            }
-        };
-
-        let stderrTail = '';
-        let stderrAll = '';
-        const handleChunk = (chunk) => {
-            stderrAll += chunk;
-            stderrTail += chunk;
-            const parts = stderrTail.split(/\r\n|\r|\n/);
-            stderrTail = parts.pop() ?? '';
-            for (const line of parts) {
-                if (line.trim().length > 0) sendProgress(line.trim());
-            }
-        };
-        // Some ollama versions write progress to stdout, others to stderr.
-        // Listen on both so we don't miss updates.
-        child.stdout.on('data', (b) => handleChunk(b.toString()));
-        child.stderr.on('data', (b) => handleChunk(b.toString()));
-
-        child.on('error', (cause) => resolve({ ok: false, error: cause.message }));
-        child.on('exit', (code) => {
-            if (stderrTail.trim().length > 0) sendProgress(stderrTail.trim());
-            if (code === 0) resolve({ ok: true });
-            else resolve({ ok: false, error: stderrAll.trim() || `ollama pull exited with ${code}` });
-        });
-    });
-}
-
-/**
- * Stop the local Ollama server. No first-class CLI command across platforms —
- * `ollama stop <model>` only unloads a single model, never the server.
- *
- *   - macOS / Linux: `pkill -x ollama` (exact process name; `-f` was too
- *     greedy and would match shells with `OLLAMA_HOST` exported).
- *   - Windows:       `taskkill /F /IM ollama.exe /T` (`/T` kills child
- *     inference servers like ollama_llama_server.exe).
- */
-async function quitOllama() {
-    return new Promise((resolve) => {
-        const isWindows = process.platform === 'win32';
-        const cmd = isWindows ? 'taskkill' : 'pkill';
-        const args = isWindows
-            ? ['/F', '/IM', 'ollama.exe', '/T']
-            : ['-x', 'ollama'];
-        let child;
-        try {
-            child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-        } catch {
-            return resolve({
-                ok: false,
-                error: 'Could not invoke process killer — quit Ollama manually.',
-            });
-        }
-        let stderr = '';
-        if (child.stderr) {
-            child.stderr.on('data', (b) => {
-                stderr += b.toString();
-            });
-        }
-        child.on('exit', (code) => {
-            // pkill exits 0 on match, 1 on no-match. taskkill exits 0 on
-            // success, 128 if no process. Treat "no process" as success.
-            if (code === 0 || code === 1 || code === 128) {
-                resolve({ ok: true });
-            } else {
-                resolve({
-                    ok: false,
-                    error: stderr.trim() || `${cmd} exited with code ${code}`,
-                });
-            }
-        });
-        child.on('error', () => {
-            resolve({
-                ok: false,
-                error: `${cmd} not available on this system — quit Ollama manually.`,
-            });
-        });
-    });
-}
-
 function registerIpcHandlers({ allowedOrigins, getWebContents }) {
     ipcMain.handle('weblab-cli:provider-status', async (event) => {
-        if (!isFromAllowedOrigin(event, allowedOrigins)) return null;
+        if (!isTrustedSender(event, getWebContents(), allowedOrigins)) return null;
         return getProviderStatuses();
     });
 
     ipcMain.handle('weblab-cli:ollama-pull', async (event, payload) => {
-        if (!isFromAllowedOrigin(event, allowedOrigins)) {
+        if (!isTrustedSender(event, getWebContents(), allowedOrigins)) {
             return { ok: false, error: 'origin_mismatch' };
         }
         const modelName = (payload && payload.model) || '';
@@ -227,17 +94,22 @@ function registerIpcHandlers({ allowedOrigins, getWebContents }) {
         if (typeof pullId !== 'string' || pullId.length === 0) {
             return { ok: false, error: 'invalid_pull_id' };
         }
-        return pullOllamaModel(pullId, modelName, getWebContents);
+        return { ok: false, error: 'Manage Ollama models in Ollama until safe process ownership is available.' };
     });
 
     ipcMain.handle('weblab-cli:ollama-quit', async (event) => {
-        if (!isFromAllowedOrigin(event, allowedOrigins)) {
+        if (!isTrustedSender(event, getWebContents(), allowedOrigins)) {
             return { ok: false, error: 'origin_mismatch' };
         }
-        return quitOllama();
+        return { ok: false, error: 'Quit Ollama in Ollama. Weblab cannot safely stop a process it did not start.' };
     });
 
     registerStreamingHandlers({ ipcMain, allowedOrigins, getWebContents });
 }
 
-module.exports = { registerIpcHandlers, getProviderStatuses };
+/** Stop CLI chat turns and wait (≤5s) for their journaling to finish. */
+function disposeCli() {
+    return disposeStreams(5000);
+}
+
+module.exports = { registerIpcHandlers, getProviderStatuses, disposeCli };

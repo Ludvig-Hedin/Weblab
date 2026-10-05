@@ -28,13 +28,79 @@ const LIST_MARKER_ATTR = 'data-weblab-list';
  *  without progressively mutating the source. */
 const LIST_TEMPLATE_DATASET = 'weblabListTemplate';
 
+type CmsOverlay =
+    | { kind: 'text'; original: Node[]; applied: Node[]; text: string }
+    | { kind: 'src'; original: string | null; applied: string | null }
+    | { kind: 'background'; original: string; priority: string; applied: string; appliedPriority: string };
+
+const overlaysByDocument = new WeakMap<Document, Map<HTMLElement, CmsOverlay>>();
+
+function restoreOverlays(doc: Document, overlays: Map<HTMLElement, CmsOverlay>): Set<HTMLElement> {
+    const conflicts = new Set<HTMLElement>();
+    // Restore an overlaid parent before children it may have detached.
+    const previous = Array.from(overlays.entries()).reverse();
+    overlays.clear();
+    for (const [node, overlay] of previous) {
+        if (!node.isConnected || node.ownerDocument !== doc) continue;
+        if (overlay.kind === 'text') {
+            const children = Array.from(node.childNodes);
+            if (node.textContent !== overlay.text || children.length !== overlay.applied.length ||
+                children.some((child, index) => child !== overlay.applied[index]) ||
+                overlay.original.some((child) => child.parentNode !== null || child.ownerDocument !== doc)) {
+                conflicts.add(node);
+                continue;
+            }
+            node.replaceChildren(...overlay.original);
+        } else if (overlay.kind === 'src') {
+            if (node.getAttribute('src') !== overlay.applied) {
+                conflicts.add(node);
+                continue;
+            }
+            if (overlay.original === null) node.removeAttribute('src');
+            else node.setAttribute('src', overlay.original);
+        } else {
+            if (node.style.getPropertyValue('background-image') !== overlay.applied ||
+                node.style.getPropertyPriority('background-image') !== overlay.appliedPriority) {
+                conflicts.add(node);
+                continue;
+            }
+            if (overlay.original) node.style.setProperty('background-image', overlay.original, overlay.priority);
+            else node.style.removeProperty('background-image');
+        }
+    }
+    return conflicts;
+}
+
+function applyOverlay(node: HTMLElement, value: unknown, kind: CmsBindingKind, overlays: Map<HTMLElement, CmsOverlay>): void {
+    if (value === undefined || value === null) return;
+    if (isImageValue(value)) {
+        if (node.tagName === 'IMG') {
+            const original = node.getAttribute('src');
+            applyValueToNode(node, value, kind);
+            overlays.set(node, { kind: 'src', original, applied: node.getAttribute('src') });
+        } else {
+            const original = node.style.getPropertyValue('background-image');
+            const priority = node.style.getPropertyPriority('background-image');
+            applyValueToNode(node, value, kind);
+            overlays.set(node, { kind: 'background', original, priority,
+                applied: node.style.getPropertyValue('background-image'),
+                appliedPriority: node.style.getPropertyPriority('background-image') });
+        }
+    } else {
+        const original = Array.from(node.childNodes);
+        applyValueToNode(node, value, kind);
+        overlays.set(node, { kind: 'text', original, applied: Array.from(node.childNodes), text: node.textContent ?? '' });
+    }
+}
+
 /**
  * Apply CMS bindings to the DOM. Called from the parent editor whenever
  * bindings or item data change.
  *
  * Three-pass design (v2):
  *
- *   0. Reset every `<div data-weblab-list>` to its saved template (if any).
+ *   0. Restore prior non-list overlays, then reset every
+ *      `<div data-weblab-list>` to its saved template (if any).
  *      This makes every call idempotent — clones from previous pushes don't
  *      pile up.
  *   1. Apply top-level (non-list-descendant) bindings: ITEM_FIELD and
@@ -46,9 +112,8 @@ const LIST_TEMPLATE_DATASET = 'weblabListTemplate';
  * v1 supports ITEM_FIELD + FIRST_FIELD; v2 adds REPEAT + CURRENT_FIELD.
  *
  * Caveats:
- *   - Removing a non-list binding doesn't restore original DOM text within
- *     the iframe lifetime — reload the frame to revert. Source JSX is the
- *     source of truth; we overlay during preview only.
+ *   - Source changes that conflict with an overlay are preserved and skip
+ *     reapplication for that payload. Source JSX remains the source of truth.
  *   - Cloned subtrees inherit the original template's `data-oid` /
  *     `data-weblab-dom-id`, so multiple DOM nodes share the same id.
  *     Acceptable for preview; selection-time behavior may pick the first.
@@ -60,6 +125,9 @@ const LIST_TEMPLATE_DATASET = 'weblabListTemplate';
  */
 export function setCmsData(payload: CmsDataPayload): void {
     if (!document.body) return;
+    const overlays = overlaysByDocument.get(document) ?? new Map<HTMLElement, CmsOverlay>();
+    overlaysByDocument.set(document, overlays);
+    const conflicts = restoreOverlays(document, overlays);
     const { bindings, items, itemsByCollection } = payload;
     const currentItem = payload.currentItem ?? null;
 
@@ -83,15 +151,14 @@ export function setCmsData(payload: CmsDataPayload): void {
         nodes.forEach((node) => {
             // Skip nodes that live inside a list — pass 2 handles them per
             // cloned item.
-            if (node.closest(`[${LIST_MARKER_ATTR}]`)) return;
+            if (node.closest(`[${LIST_MARKER_ATTR}]`) || conflicts.has(node)) return;
             const value = resolveBindingValue(
                 binding,
                 { items, itemsByCollection },
                 undefined,
                 currentItem,
             );
-            if (value === undefined) return;
-            applyValueToNode(node, value, binding.kind);
+            applyOverlay(node, value, binding.kind, overlays);
         });
     }
 

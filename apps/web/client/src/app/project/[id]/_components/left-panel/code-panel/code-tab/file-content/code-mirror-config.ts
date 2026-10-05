@@ -26,375 +26,290 @@ import { errorFixExtensions } from './error-fix';
 import { inlineEditField, inlineEditKeymap, inlineEditTheme } from './inline-edit';
 import { tabCompleteExtensions } from './tab-complete';
 
-// Custom syntax colors — dark theme uses saturated brights on dark surfaces;
-// light theme uses GitHub-light-style darker shades for legibility on white.
-const customColors = {
-    orange: '#FFAC60',
-    purple: '#C478FF',
-    blue: '#3FA4FF',
-    green: '#1AC69C',
-    pink: '#FF32C6',
+// Editor palette — deliberately blue-free. Neutral ink carries most of the
+// text; three warm/cool accents (peach, mint, lilac) mark structure so code
+// reads calm next to the monochrome app chrome. Light mode uses deeper shades
+// of the same hues so both themes feel like one family.
+type SyntaxPalette = {
+    text: string;
+    muted: string;
+    comment: string;
+    keyword: string;
+    fn: string;
+    string: string;
+    number: string;
+    property: string;
+    heading: string;
+    invalid: string;
 };
 
-const customLightColors = {
-    red: '#d73a49', // keywords
-    blue: '#005cc5', // numbers, properties, atoms, attributes
-    deepBlue: '#032f62', // strings, regexps
-    purple: '#6f42c1', // types, classes, function names
-    green: '#22863a', // JSX tags
-    gray: '#6a737d', // comments
-    near: '#24292e', // operators, punctuation, variables
-    orange: '#e36209', // literals
-    error: '#cb2431', // invalid
+const darkSyntax: SyntaxPalette = {
+    text: '#e6e6e6',
+    muted: '#8a8a8a',
+    comment: '#6b6b6b',
+    keyword: '#b4b4b4',
+    fn: '#ffc799',
+    string: '#99e6cf',
+    number: '#ffab85',
+    property: '#cbb8ff',
+    heading: '#ffffff',
+    invalid: '#ff7a7a',
 };
 
-// Basic theme for CodeMirror
-export const basicTheme = {
-    '&': {
-        fontSize: '12px',
-        backgroundColor: 'transparent',
-    },
-    '&.cm-focused .cm-selectionBackground, & .cm-selectionBackground': {
-        backgroundColor: 'rgba(63, 164, 255, 0.2) !important',
-    },
-    '.cm-content': {
-        lineHeight: '1.5',
-    },
+const lightSyntax: SyntaxPalette = {
+    text: '#1f1f1f',
+    muted: '#737373',
+    comment: '#9a9a9a',
+    keyword: '#555555',
+    fn: '#a4520a',
+    string: '#0f7564',
+    number: '#c2410c',
+    property: '#6d3fd1',
+    heading: '#0d0d0d',
+    invalid: '#c62828',
 };
 
-//dark theme for code editor
-export const customDarkTheme = EditorView.theme(
-    {
-        '&': {
-            color: 'var(--foreground)',
-            backgroundColor: 'var(--background-canvas)',
-            fontSize: '12px',
-            userSelect: 'none !important',
-        },
-        '.cm-content': {
-            padding: '10px 0',
-            lineHeight: '1.5',
-            caretColor: customColors.blue,
-            backgroundColor: 'var(--background-canvas)',
-            userSelect: 'text !important',
-        },
-        '.cm-focused': {
-            outline: 'none',
-        },
-        '&.cm-focused .cm-cursor': {
-            borderLeftColor: customColors.blue,
-            borderLeftWidth: '2px',
-        },
-        '&.cm-focused .cm-selectionBackground, ::selection': {
-            backgroundColor: `${customColors.blue}33`,
-        },
-        '&.cm-editor.cm-focused .cm-selectionBackground': {
-            backgroundColor: `${customColors.blue}33 !important`,
-        },
-        '&.cm-editor .cm-selectionBackground': {
-            backgroundColor: `${customColors.blue}33 !important`,
-        },
-        '&.cm-editor .cm-content ::selection': {
-            backgroundColor: `${customColors.blue}33 !important`,
-        },
-        '.cm-line ::selection': {
-            backgroundColor: `${customColors.blue}33 !important`,
-        },
-        '::selection': {
-            backgroundColor: `${customColors.blue}33 !important`,
-        },
-        '.cm-selectionBackground': {
-            backgroundColor: `${customColors.blue}33`,
-        },
-        '.cm-gutters': {
-            backgroundColor: 'var(--background-bar) !important',
-            color: 'var(--foreground-quadranary) !important',
-            border: 'none !important',
-            borderRight: '1px solid var(--border-bar) !important',
-            width: '45px !important',
-        },
-        '.cm-foldGutter': {
-            width: '12px !important',
-        },
-        '.cm-gutterElement': {
-            color: 'var(--foreground-quadranary)',
-            width: '12px !important',
-        },
-        '.cm-lineNumbers .cm-gutterElement': {
-            color: 'var(--foreground-quadranary)',
-            fontSize: '12px',
-        },
-        '.cm-activeLine': {
-            backgroundColor: 'rgba(255, 255, 255, 0.02)',
-        },
-        '.cm-activeLineGutter': {
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        },
-        '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
-            backgroundColor: 'rgba(63, 164, 255, 0.18)',
-            outline: '1px solid rgba(63, 164, 255, 0.35)',
-        },
-        '.cm-foldPlaceholder': {
-            backgroundColor: 'var(--background-secondary)',
-            border: '1px solid var(--border)',
-            color: customColors.blue,
-        },
-        // Scrollbar styling
-        '.cm-scroller::-webkit-scrollbar': {
-            width: '8px',
-            height: '8px',
-        },
-        '.cm-scroller::-webkit-scrollbar-track': {
-            backgroundColor: 'var(--background-bar)',
-        },
-        '.cm-scroller::-webkit-scrollbar-thumb': {
-            backgroundColor: 'var(--border-active)',
-            borderRadius: '4px',
-        },
-        '.cm-scroller::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'var(--border-hover)',
-        },
-        '.cm-scroller': {
-            scrollBehavior: 'smooth',
-        },
-        '.cm-search-highlight': {
-            backgroundColor: 'rgba(138, 194, 255, 0.42)',
-        },
-        '.cm-element-highlight': {
-            backgroundColor: 'rgba(26, 198, 156, 0.2)',
-            padding: '0.1735em 0',
-            boxDecorationBreak: 'clone',
-        },
-    },
-    { dark: true },
-);
+const MONO_FONT =
+    'ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace';
 
-// Custom syntax highlighting with the specified colors
-export const customDarkHighlightStyle = HighlightStyle.define([
-    // Keywords (if, for, function, etc.) - Pink
-    { tag: tags.keyword, color: customColors.pink, fontWeight: 'bold' },
-    { tag: tags.controlKeyword, color: customColors.pink, fontWeight: 'bold' },
-    { tag: tags.operatorKeyword, color: customColors.pink },
+type SurfaceTokens = {
+    selection: string;
+    activeLine: string;
+    lineNumber: string;
+    lineNumberActive: string;
+    bracket: string;
+    searchMatch: string;
+    elementMatch: string;
+    scrollThumb: string;
+    scrollThumbHover: string;
+};
 
-    // Strings - Blue
-    { tag: tags.string, color: customColors.blue },
-    { tag: tags.regexp, color: customColors.blue },
+const darkSurface: SurfaceTokens = {
+    selection: 'rgba(255, 255, 255, 0.13)',
+    activeLine: 'rgba(255, 255, 255, 0.025)',
+    lineNumber: '#4a4a4a',
+    lineNumberActive: '#b2b2b2',
+    bracket: 'rgba(255, 255, 255, 0.28)',
+    searchMatch: 'rgba(255, 199, 153, 0.28)',
+    elementMatch: 'rgba(153, 230, 207, 0.14)',
+    scrollThumb: 'rgba(255, 255, 255, 0.1)',
+    scrollThumbHover: 'rgba(255, 255, 255, 0.18)',
+};
 
-    // Numbers - Pink, bool purple, null pink
-    { tag: tags.number, color: customColors.pink },
-    { tag: tags.bool, color: customColors.purple },
-    { tag: tags.null, color: customColors.pink },
+const lightSurface: SurfaceTokens = {
+    selection: 'rgba(0, 0, 0, 0.09)',
+    activeLine: 'rgba(0, 0, 0, 0.025)',
+    lineNumber: '#c4c4c4',
+    lineNumberActive: '#5c5c5c',
+    bracket: 'rgba(0, 0, 0, 0.3)',
+    searchMatch: 'rgba(234, 150, 60, 0.28)',
+    elementMatch: 'rgba(15, 117, 100, 0.12)',
+    scrollThumb: 'rgba(0, 0, 0, 0.12)',
+    scrollThumbHover: 'rgba(0, 0, 0, 0.22)',
+};
 
-    // Functions - purple and methods - pink
-    { tag: tags.function(tags.variableName), color: customColors.purple },
-    { tag: tags.function(tags.propertyName), color: customColors.pink },
+const buildEditorTheme = (syntax: SyntaxPalette, surface: SurfaceTokens, dark: boolean) =>
+    EditorView.theme(
+        {
+            '&': {
+                color: syntax.text,
+                backgroundColor: 'var(--background-canvas)',
+                fontSize: '13px',
+                height: '100%',
+                userSelect: 'none !important',
+            },
+            '&.cm-focused': {
+                outline: 'none',
+            },
+            '.cm-scroller': {
+                fontFamily: MONO_FONT,
+                lineHeight: '1.7',
+                fontVariantLigatures: 'none',
+            },
+            '.cm-content': {
+                padding: '4px 0 40vh',
+                caretColor: syntax.heading,
+                userSelect: 'text !important',
+            },
+            '.cm-line': {
+                padding: '0 24px 0 12px',
+            },
+            '&.cm-focused .cm-cursor, .cm-cursor': {
+                borderLeftColor: syntax.heading,
+                borderLeftWidth: '2px',
+            },
+            // Selection — one neutral wash for every selection surface.
+            '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':
+                {
+                    backgroundColor: `${surface.selection} !important`,
+                },
+            '.cm-selectionMatch': {
+                backgroundColor: surface.activeLine,
+                outline: `1px solid ${surface.bracket}`,
+                borderRadius: '2px',
+            },
+            '.cm-activeLine': {
+                backgroundColor: surface.activeLine,
+            },
+            '.cm-gutters': {
+                backgroundColor: 'var(--background-canvas) !important',
+                color: `${surface.lineNumber} !important`,
+                border: 'none !important',
+                fontFamily: MONO_FONT,
+            },
+            '.cm-lineNumbers .cm-gutterElement': {
+                minWidth: '44px',
+                padding: '0 4px 0 16px',
+                fontSize: '12px',
+                color: surface.lineNumber,
+            },
+            '.cm-activeLineGutter': {
+                backgroundColor: 'transparent',
+            },
+            '.cm-lineNumbers .cm-activeLineGutter': {
+                color: surface.lineNumberActive,
+            },
+            // Fold arrows stay out of the way until the gutter is hovered.
+            '.cm-foldGutter .cm-gutterElement': {
+                width: '14px',
+                color: surface.lineNumber,
+                opacity: '0',
+                transition: 'opacity 150ms ease',
+                cursor: 'pointer',
+            },
+            '.cm-gutters:hover .cm-foldGutter .cm-gutterElement': {
+                opacity: '1',
+            },
+            '.cm-foldGutter .cm-gutterElement:hover': {
+                color: surface.lineNumberActive,
+            },
+            '.cm-foldPlaceholder': {
+                backgroundColor: surface.activeLine,
+                border: `1px solid ${surface.bracket}`,
+                borderRadius: '4px',
+                color: syntax.muted,
+                padding: '0 6px',
+            },
+            '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
+                backgroundColor: 'transparent',
+                outline: `1px solid ${surface.bracket}`,
+                borderRadius: '2px',
+            },
+            '.cm-nonmatchingBracket': {
+                color: syntax.invalid,
+            },
+            '.cm-tooltip': {
+                backgroundColor: 'var(--background-chrome)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                color: 'var(--foreground)',
+                overflow: 'hidden',
+            },
+            '.cm-tooltip-autocomplete > ul > li': {
+                fontFamily: MONO_FONT,
+                padding: '2px 8px !important',
+            },
+            '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+                backgroundColor: 'var(--background-tertiary)',
+                color: 'var(--foreground)',
+            },
+            '.cm-panels': {
+                backgroundColor: 'var(--background-chrome)',
+                color: 'var(--foreground)',
+            },
+            '.cm-panels.cm-panels-top': {
+                borderBottom: '1px solid var(--border)',
+            },
+            '.cm-searchMatch': {
+                backgroundColor: surface.searchMatch,
+                borderRadius: '2px',
+            },
+            '.cm-searchMatch.cm-searchMatch-selected': {
+                outline: `1px solid ${syntax.fn}`,
+            },
+            '.cm-scroller::-webkit-scrollbar': {
+                width: '10px',
+                height: '10px',
+            },
+            '.cm-scroller::-webkit-scrollbar-track': {
+                backgroundColor: 'transparent',
+            },
+            '.cm-scroller::-webkit-scrollbar-thumb': {
+                backgroundColor: surface.scrollThumb,
+                borderRadius: '10px',
+                border: '3px solid transparent',
+                backgroundClip: 'content-box',
+            },
+            '.cm-scroller::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: surface.scrollThumbHover,
+            },
+            '.cm-search-highlight': {
+                backgroundColor: surface.searchMatch,
+                borderRadius: '2px',
+            },
+            '.cm-element-highlight': {
+                backgroundColor: surface.elementMatch,
+                padding: '0.1735em 0',
+                boxDecorationBreak: 'clone',
+            },
+        },
+        { dark },
+    );
 
-    // Variables-purple and properties - Green
-    { tag: tags.variableName, color: customColors.purple },
-    { tag: tags.propertyName, color: customColors.green },
-    { tag: tags.attributeName, color: customColors.green },
+const buildHighlightStyle = (c: SyntaxPalette) =>
+    HighlightStyle.define([
+        {
+            tag: [tags.keyword, tags.controlKeyword, tags.moduleKeyword],
+            color: c.keyword,
+        },
+        { tag: [tags.operatorKeyword, tags.definitionKeyword], color: c.keyword },
+        {
+            tag: [tags.string, tags.special(tags.string), tags.regexp],
+            color: c.string,
+        },
+        {
+            tag: [tags.number, tags.bool, tags.null, tags.atom, tags.unit],
+            color: c.number,
+        },
+        { tag: tags.literal, color: c.number },
+        {
+            tag: [tags.function(tags.variableName), tags.function(tags.propertyName)],
+            color: c.fn,
+        },
+        { tag: [tags.typeName, tags.className, tags.namespace], color: c.fn },
+        { tag: [tags.tagName, tags.standard(tags.tagName)], color: c.fn },
+        { tag: [tags.propertyName, tags.attributeName], color: c.property },
+        { tag: tags.variableName, color: c.text },
+        { tag: tags.definition(tags.variableName), color: c.text },
+        {
+            tag: [tags.comment, tags.lineComment, tags.blockComment],
+            color: c.comment,
+        },
+        { tag: tags.docComment, color: c.comment },
+        {
+            tag: [tags.operator, tags.punctuation, tags.bracket, tags.angleBracket],
+            color: c.muted,
+        },
+        { tag: tags.separator, color: c.muted },
+        // Markdown / prose
+        { tag: tags.heading, color: c.heading, fontWeight: '600' },
+        { tag: tags.strong, color: c.heading, fontWeight: '600' },
+        { tag: tags.emphasis, fontStyle: 'italic' },
+        { tag: tags.strikethrough, textDecoration: 'line-through' },
+        { tag: tags.link, color: c.string, textDecoration: 'underline' },
+        { tag: tags.url, color: c.string },
+        { tag: tags.monospace, color: c.fn },
+        { tag: tags.quote, color: c.muted, fontStyle: 'italic' },
+        { tag: [tags.list, tags.processingInstruction], color: c.muted },
+        { tag: tags.contentSeparator, color: c.muted },
+        { tag: tags.meta, color: c.muted },
+        { tag: tags.invalid, color: c.invalid, textDecoration: 'underline' },
+    ]);
 
-    // Types and classes - Purple (lighter shade)
-    { tag: tags.typeName, color: '#E879F9' },
-    { tag: tags.className, color: '#E879F9' },
-    { tag: tags.namespace, color: '#E879F9' },
-
-    // Comments - Gray
-    { tag: tags.comment, color: '#6b7280', fontStyle: 'italic' },
-    { tag: tags.lineComment, color: '#6b7280', fontStyle: 'italic' },
-    { tag: tags.blockComment, color: '#6b7280', fontStyle: 'italic' },
-
-    // Operators - White/Light Gray
-    { tag: tags.operator, color: '#d1d5db' },
-    { tag: tags.punctuation, color: '#d1d5db' },
-    { tag: tags.bracket, color: '#d1d5db' },
-
-    // Tags (HTML/JSX) - Pink
-    { tag: tags.tagName, color: customColors.pink },
-    { tag: tags.angleBracket, color: '#d1d5db' },
-
-    // Special tokens
-    { tag: tags.atom, color: customColors.pink },
-    { tag: tags.literal, color: customColors.orange },
-    { tag: tags.unit, color: customColors.pink },
-
-    // Invalid/Error
-    { tag: tags.invalid, color: '#ef4444', textDecoration: 'underline' },
-]);
-
-// Light theme for code editor — surface colors come from CSS variables which
-// are already theme-aware (--background-canvas / --background-bar / --border-bar
-// resolve to white/light in :root). Only theme-specific overrides live here.
-export const customLightTheme = EditorView.theme(
-    {
-        '&': {
-            color: 'var(--foreground)',
-            backgroundColor: 'var(--background-canvas)',
-            fontSize: '12px',
-            userSelect: 'none !important',
-        },
-        '.cm-content': {
-            padding: '10px 0',
-            lineHeight: '1.5',
-            caretColor: customLightColors.blue,
-            backgroundColor: 'var(--background-canvas)',
-            userSelect: 'text !important',
-        },
-        '.cm-focused': {
-            outline: 'none',
-        },
-        '&.cm-focused .cm-cursor': {
-            borderLeftColor: customLightColors.blue,
-            borderLeftWidth: '2px',
-        },
-        '&.cm-focused .cm-selectionBackground, ::selection': {
-            backgroundColor: `${customLightColors.blue}26`,
-        },
-        '&.cm-editor.cm-focused .cm-selectionBackground': {
-            backgroundColor: `${customLightColors.blue}26 !important`,
-        },
-        '&.cm-editor .cm-selectionBackground': {
-            backgroundColor: `${customLightColors.blue}26 !important`,
-        },
-        '&.cm-editor .cm-content ::selection': {
-            backgroundColor: `${customLightColors.blue}26 !important`,
-        },
-        '.cm-line ::selection': {
-            backgroundColor: `${customLightColors.blue}26 !important`,
-        },
-        '::selection': {
-            backgroundColor: `${customLightColors.blue}26 !important`,
-        },
-        '.cm-selectionBackground': {
-            backgroundColor: `${customLightColors.blue}26`,
-        },
-        '.cm-gutters': {
-            backgroundColor: 'var(--background-bar) !important',
-            color: 'var(--foreground-quadranary) !important',
-            border: 'none !important',
-            borderRight: '1px solid var(--border-bar) !important',
-            width: '45px !important',
-        },
-        '.cm-foldGutter': {
-            width: '12px !important',
-        },
-        '.cm-gutterElement': {
-            color: 'var(--foreground-quadranary)',
-            width: '12px !important',
-        },
-        '.cm-lineNumbers .cm-gutterElement': {
-            color: 'var(--foreground-quadranary)',
-            fontSize: '12px',
-        },
-        '.cm-activeLine': {
-            backgroundColor: 'rgba(0, 0, 0, 0.03)',
-        },
-        '.cm-activeLineGutter': {
-            backgroundColor: 'rgba(0, 0, 0, 0.05)',
-        },
-        '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
-            backgroundColor: 'rgba(3, 47, 98, 0.12)',
-            outline: '1px solid rgba(3, 47, 98, 0.25)',
-        },
-        '.cm-foldPlaceholder': {
-            backgroundColor: 'var(--background-secondary)',
-            border: '1px solid var(--border)',
-            color: customLightColors.blue,
-        },
-        // Scrollbar styling — same shape as dark, surfaces come from tokens
-        '.cm-scroller::-webkit-scrollbar': {
-            width: '8px',
-            height: '8px',
-        },
-        '.cm-scroller::-webkit-scrollbar-track': {
-            backgroundColor: 'var(--background-bar)',
-        },
-        '.cm-scroller::-webkit-scrollbar-thumb': {
-            backgroundColor: 'var(--border-active)',
-            borderRadius: '4px',
-        },
-        '.cm-scroller::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'var(--border-hover)',
-        },
-        '.cm-scroller': {
-            scrollBehavior: 'smooth',
-        },
-        '.cm-search-highlight': {
-            backgroundColor: 'rgba(255, 196, 0, 0.35)',
-        },
-        '.cm-element-highlight': {
-            backgroundColor: 'rgba(34, 134, 58, 0.18)',
-            padding: '0.1735em 0',
-            boxDecorationBreak: 'clone',
-        },
-    },
-    { dark: false },
-);
-
-// Light syntax highlighting — GitHub-light-style palette tuned for white bg.
-export const customLightHighlightStyle = HighlightStyle.define([
-    // Keywords
-    { tag: tags.keyword, color: customLightColors.red, fontWeight: 'bold' },
-    {
-        tag: tags.controlKeyword,
-        color: customLightColors.red,
-        fontWeight: 'bold',
-    },
-    { tag: tags.operatorKeyword, color: customLightColors.red },
-
-    // Strings & regexps
-    { tag: tags.string, color: customLightColors.deepBlue },
-    { tag: tags.regexp, color: customLightColors.deepBlue },
-
-    // Numbers / bool / null
-    { tag: tags.number, color: customLightColors.blue },
-    { tag: tags.bool, color: customLightColors.blue },
-    { tag: tags.null, color: customLightColors.blue },
-
-    // Functions
-    { tag: tags.function(tags.variableName), color: customLightColors.purple },
-    { tag: tags.function(tags.propertyName), color: customLightColors.purple },
-
-    // Variables & properties
-    { tag: tags.variableName, color: customLightColors.near },
-    { tag: tags.propertyName, color: customLightColors.blue },
-    { tag: tags.attributeName, color: customLightColors.blue },
-
-    // Types and classes
-    { tag: tags.typeName, color: customLightColors.purple },
-    { tag: tags.className, color: customLightColors.purple },
-    { tag: tags.namespace, color: customLightColors.purple },
-
-    // Comments
-    { tag: tags.comment, color: customLightColors.gray, fontStyle: 'italic' },
-    { tag: tags.lineComment, color: customLightColors.gray, fontStyle: 'italic' },
-    {
-        tag: tags.blockComment,
-        color: customLightColors.gray,
-        fontStyle: 'italic',
-    },
-
-    // Operators / punctuation
-    { tag: tags.operator, color: customLightColors.near },
-    { tag: tags.punctuation, color: customLightColors.near },
-    { tag: tags.bracket, color: customLightColors.near },
-
-    // Tags (HTML/JSX)
-    { tag: tags.tagName, color: customLightColors.green },
-    { tag: tags.angleBracket, color: customLightColors.near },
-
-    // Special tokens
-    { tag: tags.atom, color: customLightColors.blue },
-    { tag: tags.literal, color: customLightColors.orange },
-    { tag: tags.unit, color: customLightColors.blue },
-
-    // Invalid/Error
-    {
-        tag: tags.invalid,
-        color: customLightColors.error,
-        textDecoration: 'underline',
-    },
-]);
+export const customDarkTheme = buildEditorTheme(darkSyntax, darkSurface, true);
+export const customLightTheme = buildEditorTheme(lightSyntax, lightSurface, false);
+export const customDarkHighlightStyle = buildHighlightStyle(darkSyntax);
+export const customLightHighlightStyle = buildHighlightStyle(lightSyntax);
 
 const searchHighlightEffect = StateEffect.define<{ term: string }>();
 const clearHighlightEffect = StateEffect.define();

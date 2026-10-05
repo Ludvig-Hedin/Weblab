@@ -25,6 +25,11 @@ interface MicButtonProps {
     className?: string;
     /** Tailwind size classes for the icon (default `h-3.5 w-3.5`). */
     iconClassName?: string;
+    /**
+     * When set, a click runs this instead of recording. Used to send
+     * signed-out visitors to sign-in before voice input can work.
+     */
+    onBlockedClick?: () => void;
 }
 
 function formatElapsed(ms: number): string {
@@ -40,6 +45,7 @@ export function MicButton({
     disabled,
     className,
     iconClassName,
+    onBlockedClick,
 }: MicButtonProps) {
     const [tooltipOpen, setTooltipOpen] = useState(false);
 
@@ -51,6 +57,10 @@ export function MicButton({
 
     const handleClick = useCallback(async () => {
         setTooltipOpen(false);
+        if (onBlockedClick) {
+            onBlockedClick();
+            return;
+        }
         if (state === 'idle') {
             await start();
             return;
@@ -59,7 +69,7 @@ export function MicButton({
             await stop();
             return;
         }
-    }, [state, start, stop]);
+    }, [state, start, stop, onBlockedClick]);
 
     if (!isSupported) {
         // Hide entirely in unsupported browsers — feels cleaner than a disabled

@@ -90,6 +90,7 @@ export async function summarizeConversation(
         model,
         providerOptions,
         maxOutputTokens: Math.min(1500, maxOutputTokens),
+        maxRetries: 1,
         abortSignal: input.abortSignal,
         system: SUMMARY_PROMPT,
         prompt: flatTranscript,

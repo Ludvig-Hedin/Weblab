@@ -6,6 +6,8 @@ import { z } from 'zod';
 
 import { internal } from './_generated/api';
 import { action } from './_generated/server';
+import { assertAiAllowedForAction, recordActionSpend } from './lib/aiGuardAction';
+import { estimateModelCostUsd } from './lib/aiActionPricing';
 import { vMessageRole } from './lib/enums';
 
 // Convex port of the AI bits from chat/conversation.ts (generateTitle) and
@@ -14,6 +16,8 @@ import { vMessageRole } from './lib/enums';
 // services, then write back via `ctx.runMutation`.
 
 const TITLE_MAX_LENGTH = 50;
+const TITLE_MODEL = 'anthropic/claude-3.5-haiku';
+const SUGGESTIONS_MODEL = 'openai/gpt-5';
 const TITLE_PROMPT_PREFIX =
     'Generate a concise and meaningful conversation title (2-4 words maximum) that reflects the main purpose or theme of the conversation based on the user creation prompt. Generate only the conversation title, nothing else. Keep it short and descriptive. User prompt:';
 
@@ -78,6 +82,9 @@ export const generateTitle = action({
             throw new Error(`BAD_REQUEST: content exceeds ${TITLE_CONTENT_MAX_BYTES} bytes`);
         }
 
+        // Runaway safeguards: kill switch, budgets, per-user rate limit.
+        await assertAiAllowedForAction(ctx);
+
         const openrouter = requireOpenRouter();
         const result = await generateText({
             // `@openrouter/ai-sdk-provider` returns a model built against an
@@ -86,10 +93,12 @@ export const generateTitle = action({
             // provider. Both implement the same runtime contract — cast
             // through `unknown` to bridge the two type trees until the
             // upstream openrouter package bumps its provider peer.
-            model: openrouter('anthropic/claude-3.5-haiku') as unknown as LanguageModel,
+            model: openrouter(TITLE_MODEL) as unknown as LanguageModel,
             prompt: `${TITLE_PROMPT_PREFIX} <prompt>${content}</prompt>`,
             maxOutputTokens: 50,
+            maxRetries: 1,
         });
+        await recordActionSpend(ctx, estimateModelCostUsd(TITLE_MODEL, result.usage));
         const generatedName = result.text.trim();
         if (generatedName.length === 0 || generatedName.length > TITLE_MAX_LENGTH) {
             console.error('Generated title outside size bounds', {
@@ -146,11 +155,14 @@ export const generateSuggestions = action({
             }
         }
 
+        // Runaway safeguards: kill switch, budgets, per-user rate limit.
+        await assertAiAllowedForAction(ctx);
+
         const openrouter = requireOpenRouter();
-        const { object } = await generateObject({
+        const { object, usage } = await generateObject({
             // Same cross-provider type bridge as `generateTitle` above; see
             // that comment for rationale.
-            model: openrouter('openai/gpt-5') as unknown as LanguageModel,
+            model: openrouter(SUGGESTIONS_MODEL) as unknown as LanguageModel,
             schema: ChatSuggestionsSchema,
             messages: [
                 { role: 'system', content: SUGGESTION_SYSTEM_PROMPT },
@@ -167,7 +179,9 @@ export const generateSuggestions = action({
                 },
             ],
             maxOutputTokens: 10000,
+            maxRetries: 1,
         });
+        await recordActionSpend(ctx, estimateModelCostUsd(SUGGESTIONS_MODEL, usage));
         const suggestions = object.suggestions;
         try {
             await ctx.runMutation(internal.conversations._setSuggestions, {

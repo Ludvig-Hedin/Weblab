@@ -9,12 +9,17 @@ import { generateTerminalCommand } from '@weblab/ai';
 
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import {
+    aiDisabledResponse,
     checkMessageLimit,
     decrementUsage,
+    enforceAiGuards,
     getSupabaseUser,
     incrementUsage,
     reconcileUsageCost,
+    usageUnavailableResponse,
 } from '../../chat/helpers';
+
+export const maxDuration = 60;
 
 const MAX_INSTRUCTION_BYTES = 4 * 1024;
 const MAX_CONTEXT_BYTES = 16 * 1024;
@@ -36,6 +41,8 @@ function getStringBytes(value: string): number {
  * try/catch instead of the lazy-stream onError hook.
  */
 export async function POST(req: NextRequest) {
+    const paused = aiDisabledResponse();
+    if (paused) return paused;
     const user = await getSupabaseUser(req);
     if (!user) {
         return new Response(JSON.stringify({ error: 'Unauthorized', code: 401 }), {
@@ -102,13 +109,22 @@ export async function POST(req: NextRequest) {
         }
     }
 
+    // Runaway safeguards (shared LLM bucket): budgets, spend caps, rate limit.
+    const guard = await enforceAiGuards({ bucket: 'llm' });
+    if (!guard.ok) return guard.response;
+
     const traceId = uuidv4();
     const incrementResult = await incrementUsage(req, traceId);
     if (incrementResult && 'limitReached' in incrementResult) {
+        await guard.release();
         return new Response(JSON.stringify({ error: 'Credit limit exceeded.', code: 402 }), {
             status: 402,
             headers: { 'Content-Type': 'application/json' },
         });
+    }
+    if (incrementResult && 'incrementFailed' in incrementResult) {
+        await guard.release();
+        return usageUnavailableResponse();
     }
 
     try {

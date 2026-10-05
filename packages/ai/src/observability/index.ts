@@ -33,29 +33,53 @@ export interface ModelPricing {
  * Cache rates follow Anthropic's published 1.25x (write) / 0.1x (read) multipliers.
  */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
-    [OPENROUTER_MODELS.CLAUDE_OPUS_4_8]: {
-        inputUsdPerMTok: 15,
-        outputUsdPerMTok: 75,
-        cacheCreationUsdPerMTok: 18.75,
-        cacheReadUsdPerMTok: 1.5,
+    [OPENROUTER_MODELS.CLAUDE_OPUS_5_5]: {
+        inputUsdPerMTok: 4,
+        outputUsdPerMTok: 20,
+        cacheCreationUsdPerMTok: 5,
+        cacheReadUsdPerMTok: 0.2,
     },
-    [OPENROUTER_MODELS.CLAUDE_SONNET_4_6]: {
-        inputUsdPerMTok: 3,
-        outputUsdPerMTok: 15,
-        cacheCreationUsdPerMTok: 3.75,
-        cacheReadUsdPerMTok: 0.3,
+    [OPENROUTER_MODELS.OPEN_AI_GPT_6_SOL]: {
+        inputUsdPerMTok: 2,
+        outputUsdPerMTok: 10,
+        cacheCreationUsdPerMTok: 2.5,
+        cacheReadUsdPerMTok: 0.2,
+    },
+    [OPENROUTER_MODELS.OPEN_AI_GPT_6_ASTRA]: {
+        inputUsdPerMTok: 10,
+        outputUsdPerMTok: 50,
+        cacheCreationUsdPerMTok: 12.5,
+        cacheReadUsdPerMTok: 1,
+    },
+    [OPENROUTER_MODELS.OPEN_AI_GPT_6_LUNA]: {
+        inputUsdPerMTok: 0.1,
+        outputUsdPerMTok: 0.5,
+        cacheCreationUsdPerMTok: 0.125,
+        cacheReadUsdPerMTok: 0.01,
+    },
+    [OPENROUTER_MODELS.GROK_4_7]: {
+        inputUsdPerMTok: 1.6,
+        outputUsdPerMTok: 4.8,
+        cacheCreationUsdPerMTok: 0,
+        cacheReadUsdPerMTok: 0.4,
+    },
+    [OPENROUTER_MODELS.GROK_4_6]: {
+        inputUsdPerMTok: 2,
+        outputUsdPerMTok: 6,
+        cacheCreationUsdPerMTok: 0,
+        cacheReadUsdPerMTok: 0.5,
+    },
+    [OPENROUTER_MODELS.DEEPSEEK_V4_1_FLASH]: {
+        inputUsdPerMTok: 0.15,
+        outputUsdPerMTok: 0.6,
+        cacheCreationUsdPerMTok: 0,
+        cacheReadUsdPerMTok: 0.003,
     },
     [OPENROUTER_MODELS.CLAUDE_3_5_HAIKU]: {
         inputUsdPerMTok: 0.8,
         outputUsdPerMTok: 4,
         cacheCreationUsdPerMTok: 1,
         cacheReadUsdPerMTok: 0.08,
-    },
-    [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: {
-        inputUsdPerMTok: 10,
-        outputUsdPerMTok: 30,
-        cacheCreationUsdPerMTok: 0,
-        cacheReadUsdPerMTok: 0,
     },
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI]: {
         inputUsdPerMTok: 0.25,
@@ -69,27 +93,9 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
         cacheCreationUsdPerMTok: 0,
         cacheReadUsdPerMTok: 0,
     },
-    [OPENROUTER_MODELS.KIMI_K2_7_CODE]: {
-        inputUsdPerMTok: 0.74,
-        outputUsdPerMTok: 3.5,
-        cacheCreationUsdPerMTok: 0,
-        cacheReadUsdPerMTok: 0,
-    },
-    [OPENROUTER_MODELS.GLM_5_2]: {
-        inputUsdPerMTok: 1.4,
-        outputUsdPerMTok: 4.4,
-        cacheCreationUsdPerMTok: 0,
-        cacheReadUsdPerMTok: 0,
-    },
     [OPENROUTER_MODELS.MINIMAX_M3]: {
         inputUsdPerMTok: 0.3,
         outputUsdPerMTok: 1.2,
-        cacheCreationUsdPerMTok: 0,
-        cacheReadUsdPerMTok: 0,
-    },
-    [OPENROUTER_MODELS.DEEPSEEK_V4_PRO]: {
-        inputUsdPerMTok: 0.27,
-        outputUsdPerMTok: 1.1,
         cacheCreationUsdPerMTok: 0,
         cacheReadUsdPerMTok: 0,
     },

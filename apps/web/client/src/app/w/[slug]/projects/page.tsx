@@ -6,6 +6,7 @@ import { OfflineProjectsList } from '@/app/projects/_components/offline-projects
 import { ProjectsCommandPalette } from '@/app/projects/_components/projects-command-palette';
 import { SelectProject } from '@/app/projects/_components/select';
 import { TopBar } from '@/app/projects/_components/top-bar';
+import { CloudPilotEntry } from '@/components/cloud-pilot/entry';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { SharedWithMe } from '../_components/shared-with-me';
@@ -22,6 +23,7 @@ export default function WorkspaceProjectsPage() {
             </div>
             <div className="flex h-full w-full flex-col items-center gap-4 overflow-x-visible overflow-y-auto py-4">
                 <OfflineProjectsList />
+                <CloudPilotEntry />
                 <SelectProject workspaceId={workspace.id} />
                 {isPersonal && <SharedWithMe />}
             </div>

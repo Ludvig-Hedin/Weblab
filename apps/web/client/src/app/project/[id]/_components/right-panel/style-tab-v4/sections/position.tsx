@@ -3,6 +3,7 @@
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
     GroupShell,
     IconButtonSm,
@@ -194,6 +195,7 @@ export const PositionSection = observer(function PositionSection() {
                         </PairRow>
 
                         {/* Rotate · Flip */}
+                        {EDITOR_SCOPE.advancedCss && (
                         <PairRow>
                             <GroupShell>
                                 <IconNumberInput
@@ -224,6 +226,7 @@ export const PositionSection = observer(function PositionSection() {
                                 </IconButtonSm>
                             </div>
                         </PairRow>
+                        )}
                     </>
                 )}
             </div>

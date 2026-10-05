@@ -1,5 +1,6 @@
 import type { ConvexHttpClient } from 'convex/browser';
 import { api as convexApi } from '@convex/_generated/api';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { makeAutoObservable, reaction } from 'mobx';
 
 import type { Branch, Frame, RouterType } from '@weblab/models';
@@ -12,8 +13,9 @@ import type { Id } from '@convex/_generated/dataModel';
 import { fromConvexBranch } from '@/app/project/[id]/_adapters/convex-bootstrap';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { ErrorManager } from '../error';
-import { HistoryManager } from '../history';
+import { HistoryManager, type HistoryDisposalLease, type HistoryDisposalCheckpoint } from '../history';
 import { SandboxManager } from '../sandbox';
+import { affectsLocalTailwindStyleWriter, hasLocalTailwindStyleWriter } from '../style/local-style-writer';
 
 // Shape returned by `api.branchActions.fork` / `api.branchActions.createBlank`
 // after they run the internal `_insertBranchWithFrames` mutation. Both fields
@@ -42,6 +44,13 @@ export interface BranchData {
     history: HistoryManager;
     error: ErrorManager;
     codeEditor: CodeFileSystem;
+    localStyleWriter: 'tailwind' | 'none' | null;
+}
+
+export interface BranchDisposalPreparation {
+    readonly branches: ReadonlyMap<string, BranchData>;
+    readonly leases: ReadonlyMap<HistoryManager, HistoryDisposalLease>;
+    getHistoryLease(branchId: string): HistoryDisposalLease | undefined;
 }
 
 export class BranchManager {
@@ -50,29 +59,22 @@ export class BranchManager {
     private branchMap = new Map<string, BranchData>();
     private reactionDisposer: (() => void) | null = null;
     private convex: ConvexHttpClient = getConvexHttpClient();
+    private disposalPreparation: BranchDisposalPreparation | null = null;
+    private initializations = new Map<string, { branch: BranchData; promise: Promise<void> }>();
 
     constructor(editorEngine: EditorEngine) {
         this.editorEngine = editorEngine;
-        makeAutoObservable(this);
+        makeAutoObservable<this, 'disposalPreparation' | 'initializations'>(this, { disposalPreparation: false, initializations: false });
     }
 
     async initBranches(branches: Branch[]): Promise<void> {
-        this.reactionDisposer?.();
-        this.reactionDisposer = null;
-        for (const { sandbox, history, error, codeEditor } of this.branchMap.values()) {
-            sandbox.clear();
-            // dispose(), not clear(): the branch still exists — wiping its
-            // persisted undo history here would defeat hydrate() on re-init.
-            history.dispose();
-            error.clear();
-            void codeEditor.cleanup();
-        }
-        this.branchMap.clear();
+        const prev = this.currentBranchId;
+        await this.clear();
+        this.editorEngine.action.clear();
         for (const branch of branches) {
             this.createBranchData(branch);
         }
         // Preserve previous selection if still present; else default; else first; else null
-        const prev = this.currentBranchId;
         if (prev && this.branchMap.has(prev)) {
             this.currentBranchId = prev;
         } else {
@@ -86,13 +88,44 @@ export class BranchManager {
         // single branch, codeEditor must come before sandbox (sandbox reads
         // the file-system codeEditor sets up).
         await Promise.all(
-            Array.from(this.branchMap.values()).map(async (branchData) => {
-                await branchData.codeEditor.initialize();
-                await branchData.sandbox.init();
-                await branchData.history.hydrate();
+            Array.from(this.branchMap.values()).map((branchData) => {
+                const initialization = (async () => {
+                    await branchData.codeEditor.initialize();
+                    await branchData.sandbox.init();
+                    if (branchData.branch.runtime.type === 'local') {
+                        await this.refreshStyleWriter(branchData.branch.id);
+                        branchData.history.setSourceVersion(() =>
+                            branchData.sandbox.getLocalSourceVersion(),
+                            () => branchData.sandbox.getLocalExternalRevision(),
+                            () => branchData.sandbox.getLocalOwnRevision(),
+                        );
+                    }
+                    if (branchData.branch.runtime.type === 'cloud' && branchData.sandbox.cloudSource) {
+                        const source = branchData.sandbox.cloudSource;
+                        branchData.history.setSourceVersion(
+                            () => source.getSourceVersion(),
+                            () => source.getExternalRevision(),
+                            () => source.getOwnRevision(),
+                        );
+                    }
+                    await branchData.history.hydrate();
+                })();
+                this.initializations.set(branchData.branch.id, { branch: branchData, promise: initialization });
+                return initialization;
             }),
         );
         this.setupActiveFrameReaction();
+    }
+
+    /** Source readiness precedes style/history attachment; preparation waits for all three. */
+    async awaitBranchInitialization(branchId: string): Promise<BranchData> {
+        const branch = this.getBranchDataById(branchId);
+        const initialization = this.initializations.get(branchId);
+        if (!branch || !initialization) throw new Error('The local branch has not started loading.');
+        if (initialization.branch !== branch) throw new Error('The local branch changed while loading.');
+        await initialization.promise;
+        if (this.getBranchDataById(branchId) !== branch) throw new Error('The local branch changed while loading.');
+        return branch;
     }
 
     private setupActiveFrameReaction(): void {
@@ -180,6 +213,40 @@ export class BranchManager {
         return this.branchMap.get(branchId) ?? null;
     }
 
+    /** Setup-file changes invalidate this capability through the local mirror. */
+    getStyleWriterForBranch(branchId: string): 'tailwind' | 'none' | null {
+        const data = this.branchMap.get(branchId);
+        if (!data) return 'none';
+        if (data.branch.runtime.type !== 'local') return null;
+        return data.localStyleWriter;
+    }
+
+    async refreshStyleWriter(branchId: string): Promise<void> {
+        const data = this.branchMap.get(branchId);
+        if (!data || data.branch.runtime.type !== 'local') return;
+        data.localStyleWriter = 'none';
+        const revision = data.sandbox.getLocalExternalRevision();
+        const ownRevision = data.sandbox.getLocalOwnRevision();
+        const supported = this.editorEngine.framework === 'nextjs' &&
+            await hasLocalTailwindStyleWriter((path) => data.codeEditor.readFile(path));
+        if (supported && revision !== null && revision === data.sandbox.getLocalExternalRevision() &&
+            ownRevision === data.sandbox.getLocalOwnRevision()) {
+            data.localStyleWriter = 'tailwind';
+        }
+    }
+
+    invalidateStyleWriterForSourceChange(branchId: string, path: string): void {
+        if (!affectsLocalTailwindStyleWriter(path)) return;
+        const data = this.branchMap.get(branchId);
+        if (data?.branch.runtime.type !== 'local') return;
+        // Weblab's own text/style saves to app/layout.tsx land here too. Re-check
+        // the setup instead of leaving visual styling off for the session.
+        data.localStyleWriter = 'none';
+        void this.refreshStyleWriter(branchId).catch((error: unknown) => {
+            console.error('[BranchManager] Could not re-check local style support:', error);
+        });
+    }
+
     getBranchById(branchId: string): Branch | null {
         return this.getBranchDataById(branchId)?.branch ?? null;
     }
@@ -191,6 +258,8 @@ export class BranchManager {
     private createBranchData(branch: Branch, routerType?: RouterType): BranchData {
         const codeEditorApi = new CodeFileSystem(this.editorEngine.projectId, branch.id, {
             routerType,
+            localProject: branch.runtime.type === 'local',
+            durableCloud: branch.runtime.type === 'cloud' && isCloudEditorRuntime(branch.runtime),
         });
         const errorManager = new ErrorManager(branch);
         const sandboxManager = new SandboxManager(
@@ -207,6 +276,7 @@ export class BranchManager {
             history: historyManager,
             error: errorManager,
             codeEditor: codeEditorApi,
+            localStyleWriter: branch.runtime.type === 'local' ? 'none' : null,
         };
 
         this.branchMap.set(branch.id, branchData);
@@ -432,20 +502,71 @@ export class BranchManager {
         }
     }
 
-    async clear(): Promise<void> {
-        this.reactionDisposer?.();
-        this.reactionDisposer = null;
-        for (const branchData of this.branchMap.values()) {
-            branchData.sandbox.clear();
-            // dispose(), not clear(): engine teardown (route change / project
-            // switch) must keep persisted undo history so reopening the
-            // project restores it. clear() is reserved for branch deletion.
-            branchData.history.dispose();
-            branchData.error.clear();
-            await branchData.codeEditor.cleanup();
+    beginDisposalPreparation(): BranchDisposalPreparation {
+        if (this.disposalPreparation) throw new Error('The branches are already closing.');
+        const branches = new Map(this.branchMap);
+        const leases = new Map<HistoryManager, HistoryDisposalLease>();
+        const preparation: BranchDisposalPreparation = { branches, leases,
+            getHistoryLease: (id) => {
+                const history = branches.get(id)?.history;
+                return history ? leases.get(history) : undefined;
+            } };
+        try {
+            for (const branch of branches.values()) leases.set(branch.history, branch.history.beginDisposalPreparation());
+            this.disposalPreparation = preparation;
+            this.editorEngine.action.beginDisposalPreparation(preparation);
+            return preparation;
+        } catch (error) {
+            for (const [history, lease] of leases) history.cancelDisposalPreparation(lease);
+            this.disposalPreparation = null;
+            throw error;
         }
-        this.branchMap.clear();
-        this.currentBranchId = null;
+    }
+
+    cancelDisposalPreparation(preparation: BranchDisposalPreparation): void {
+        if (this.disposalPreparation !== preparation) throw new Error('The branch preparation owner changed.');
+        this.editorEngine.action.cancelDisposalPreparation(preparation);
+        for (const [history, lease] of preparation.leases) history.cancelDisposalPreparation(lease);
+        this.disposalPreparation = null;
+    }
+
+    async clear(onDisposalStarted?: () => void, owner?: BranchDisposalPreparation): Promise<void> {
+        const preparation = owner ?? this.beginDisposalPreparation();
+        if (this.disposalPreparation !== preparation) throw new Error('The branch preparation owner changed.');
+        let disposalStarted = false;
+        try {
+            await this.editorEngine.text.finalizeForDisposal(preparation.leases);
+            const checkpoints = new Map<HistoryManager, HistoryDisposalCheckpoint>();
+            for (const [history, lease] of preparation.leases) await history.commitForDisposal(lease);
+            // Committing a gesture can schedule a fresh responsive source rebase.
+            await this.editorEngine.action.flushAndWaitForPendingRebases(preparation);
+            for (const [history, lease] of preparation.leases) {
+                checkpoints.set(history, await history.flushForDisposal(lease));
+            }
+            if (this.branchMap.size !== preparation.branches.size ||
+                [...preparation.branches].some(([id, branch]) => this.branchMap.get(id) !== branch)) {
+                throw new Error('The source branches changed while saving. Keep this editor open.');
+            }
+            // No await may separate validation of every branch from release.
+            for (const [history, lease] of preparation.leases) history.assertDisposalCheckpoint(lease, checkpoints.get(history)!);
+            disposalStarted = true;
+            onDisposalStarted?.();
+            this.reactionDisposer?.();
+            this.reactionDisposer = null;
+            for (const [history, lease] of preparation.leases) history.releaseAfterDisposalFlush(lease, checkpoints.get(history)!);
+            for (const branch of preparation.branches.values()) {
+                branch.sandbox.clear();
+                branch.error.clear();
+            }
+            for (const branch of preparation.branches.values()) await branch.codeEditor.cleanup();
+            this.branchMap.clear();
+            this.initializations.clear();
+            this.currentBranchId = null;
+            this.disposalPreparation = null;
+        } catch (error) {
+            if (!disposalStarted && !owner) this.cancelDisposalPreparation(preparation);
+            throw error;
+        }
     }
 
     // Helper methods for error management

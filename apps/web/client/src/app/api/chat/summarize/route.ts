@@ -9,12 +9,17 @@ import { summarizeConversation } from '@weblab/ai';
 
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import {
+    aiDisabledResponse,
     checkMessageLimit,
     decrementUsage,
+    enforceAiGuards,
     getSupabaseUser,
     incrementUsage,
     reconcileUsageCost,
+    usageUnavailableResponse,
 } from '../helpers';
+
+export const maxDuration = 60;
 
 // Caps on client-supplied LLM input. Without these, any signed-in caller
 // could POST a megabyte-sized `messages` array and drive OpenRouter spend
@@ -72,6 +77,8 @@ const getConvexToken = async (): Promise<string | undefined> => {
 };
 
 export async function POST(req: NextRequest) {
+    const paused = aiDisabledResponse();
+    if (paused) return paused;
     const user = await getSupabaseUser(req);
     if (!user) {
         return new Response(JSON.stringify({ error: 'Unauthorized', code: 401 }), {
@@ -218,6 +225,14 @@ export async function POST(req: NextRequest) {
     // SUMMARIZE_COOLDOWN_MS, contradicting the catch comment's retry promise.
     let succeeded = false;
 
+    // Runaway safeguards (shared LLM bucket): budgets, spend caps, rate limit.
+    // Checked after the cheap 204 dedupes so skipped fires don't count.
+    const guard = await enforceAiGuards({ bucket: 'llm', token: ownershipToken });
+    if (!guard.ok) {
+        recentSummaryFires.delete(parsed.conversationId);
+        return guard.response;
+    }
+
     let usageRecord: {
         usageRecordId: string | undefined;
         rateLimitId: string | undefined;
@@ -235,10 +250,15 @@ export async function POST(req: NextRequest) {
             `summary:${parsed.conversationId}:${Date.now()}`,
         );
         if (incrementResult && 'limitReached' in incrementResult) {
+            await guard.release();
             return new Response(JSON.stringify({ error: 'Credit limit exceeded.', code: 402 }), {
                 status: 402,
                 headers: { 'Content-Type': 'application/json' },
             });
+        }
+        if (incrementResult && 'incrementFailed' in incrementResult) {
+            await guard.release();
+            return usageUnavailableResponse();
         }
         usageRecord = incrementResult;
 

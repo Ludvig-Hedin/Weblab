@@ -4,20 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-import type { FrameworkId } from '@weblab/framework';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
-import type { CreateDestination } from './framework-select-dialog';
-import { ProjectCreationLoader } from '@/components/project-creation-loader';
-import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
-import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { useOpenLocalProject } from '@/hooks/use-open-local-project';
-import { transKeys } from '@/i18n/keys';
-import { ExternalRoutes, Routes } from '@/utils/constants';
-import { CloneWebsiteDialog } from './clone-website-dialog';
-import { FrameworkSelectDialog } from './framework-select-dialog';
+import { ExternalRoutes } from '@/utils/constants';
 
 interface ActionButtonProps {
     icon: React.ReactNode;
@@ -28,15 +20,25 @@ interface ActionButtonProps {
     href?: string;
     disabled?: boolean;
     busy?: boolean;
+    variant?: 'default' | 'outline';
 }
 
 /** A compact starting-point action: icon + label, with the detail on hover. */
-function ActionButton({ icon, label, tooltip, onClick, href, disabled, busy }: ActionButtonProps) {
+function ActionButton({
+    icon,
+    label,
+    tooltip,
+    onClick,
+    href,
+    disabled,
+    busy,
+    variant = 'outline',
+}: ActionButtonProps) {
     const inner = busy ? <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" /> : icon;
 
     const trigger =
         href && !disabled && !busy ? (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant={variant} size="sm">
                 <Link href={href}>
                     {inner}
                     {label}
@@ -45,7 +47,7 @@ function ActionButton({ icon, label, tooltip, onClick, href, disabled, busy }: A
         ) : (
             <Button
                 type="button"
-                variant="outline"
+                variant={variant}
                 size="sm"
                 onClick={onClick}
                 disabled={disabled === true || busy === true}
@@ -64,194 +66,59 @@ function ActionButton({ icon, label, tooltip, onClick, href, disabled, busy }: A
 }
 
 interface ProjectChooserCardsProps {
-    /** When the AI prompt is mid-creation; disables the secondary actions. */
+    /** When the AI prompt is mid-creation; disables local actions. */
     aiBusy?: boolean;
-    /** Whether to render the "Want to keep code on your machine?" footer link. */
+    /** Whether to show the desktop download action in the browser. */
     showDesktopFooter?: boolean;
 }
 
-/**
- * Secondary creation paths shown alongside the AI prompt: blank, clone, GitHub,
- * and a folder action (open a local folder on desktop, upload one on web). Used
- * on /projects/new and on the empty-projects state so users get one consistent
- * set of starting points wherever they land.
- */
+/** Local project entry points shared by the new-project and empty-project views. */
 export function ProjectChooserCards({
     aiBusy = false,
     showDesktopFooter = true,
 }: ProjectChooserCardsProps) {
     const t = useTranslations();
-    const [showFrameworkDialog, setShowFrameworkDialog] = useState(false);
-    const [showCloneDialog, setShowCloneDialog] = useState(false);
-
-    const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
-    const { handleImportLocalProject, isImporting, progress, isFsAccessSupported } =
-        useImportLocalProject();
-    const {
-        openLocalFolder,
-        createLocalBlank,
-        isBusy: isOpeningLocal,
-        isDesktop,
-    } = useOpenLocalProject();
+    const { openLocalFolder, isBusy: isOpeningLocal, isDesktop } =
+        useOpenLocalProject();
 
     // Desktop-only flag. Gate on a mounted flag so SSR and the first client
     // render agree (the IPC bridge only exists in the desktop app), avoiding a
     // hydration mismatch when the desktop-only actions appear.
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
-    const isDesktopApp = mounted && isDesktop;
+    const isBusy = aiBusy || isOpeningLocal;
 
-    const isBusy = aiBusy || isCreatingProject || isImporting || isOpeningLocal;
-
-    const onSelectFramework = (framework: FrameworkId, destination: CreateDestination) => {
-        setShowFrameworkDialog(false);
-        // The dialog only offers Next.js / Static HTML under "Local", but guard
-        // here too so a future framework can never reach the disk-scaffold path
-        // it can't handle — anything else falls back to a cloud sandbox.
-        if (destination === 'local' && (framework === 'nextjs' || framework === 'static-html')) {
-            void createLocalBlank(framework);
-        } else {
-            void handleStartBlankProject(framework);
-        }
-    };
-
-    const creationSteps = [
-        {
-            label: t(transKeys.projects.actions.preparingWorkspace),
-            ready: phase === 'creating-project' || phase === 'opening-editor',
-        },
-        {
-            label: t(transKeys.projects.actions.creatingProject),
-            ready: phase === 'opening-editor',
-        },
-        { label: t(transKeys.projects.actions.openingEditor), ready: false },
-    ];
-    const uploadLabel =
-        progress.filesTotal && progress.filesUploaded > 0
-            ? t('projects.actions.uploadingFilesProgress', {
-                  uploaded: String(progress.filesUploaded),
-                  total: String(progress.filesTotal),
-              })
-            : progress.filesUploaded > 0
-              ? t('projects.actions.uploadingFilesCount', { count: String(progress.filesUploaded) })
-              : t('projects.actions.uploadingFilesPlaceholder');
-
-    const importSteps = [
-        {
-            label: t(transKeys.projects.actions.preparingWorkspace),
-            ready: ['uploading', 'creating', 'done'].includes(progress.phase),
-        },
-        {
-            label: uploadLabel,
-            ready: ['creating', 'done'].includes(progress.phase),
-        },
-        {
-            label: t(transKeys.projects.actions.creatingProject),
-            ready: progress.phase === 'done',
-        },
-        { label: t(transKeys.projects.actions.openingEditor), ready: false },
-    ];
+    if (!mounted) return null;
 
     return (
         <div className="w-full">
-            {isCreatingProject && (
-                <ProjectCreationLoader
-                    overlay
-                    heading={t(transKeys.projects.actions.creatingBlankProject)}
-                    caption={t(transKeys.projects.actions.creatingBlankProjectCaption)}
-                    steps={creationSteps}
-                />
-            )}
-            {isImporting && progress.phase !== 'picking' && (
-                <ProjectCreationLoader
-                    overlay
-                    heading={t('projects.actions.importingFolder')}
-                    caption={t('projects.actions.importingFolderCaption')}
-                    steps={importSteps}
-                />
-            )}
-            <div className="flex w-full items-center gap-3">
-                <div className="bg-foreground/10 h-px flex-1" />
-                <span className="text-foreground-tertiary text-xs">
-                    {t('projects.chooser.orPickStartingPoint')}
-                </span>
-                <div className="bg-foreground/10 h-px flex-1" />
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                <ActionButton
-                    icon={<Icons.FilePlus className="h-3.5 w-3.5" />}
-                    label={t('projects.chooser.startBlank.label')}
-                    tooltip={t('projects.chooser.startBlank.tooltip')}
-                    onClick={() => setShowFrameworkDialog(true)}
-                    busy={isCreatingProject}
-                    disabled={isBusy}
-                />
-
-                {isDesktopApp ? (
+            {isDesktop ? (
+                <>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                        <ActionButton
+                            icon={<Icons.Directory className="h-3.5 w-3.5" />}
+                            label={t('projects.chooser.openFolder.label')}
+                            tooltip={t('projects.chooser.openFolder.tooltip')}
+                            onClick={() => void openLocalFolder()}
+                            busy={isOpeningLocal}
+                            disabled={isBusy}
+                            variant="default"
+                        />
+                    </div>
+                    <p className="text-foreground-tertiary mx-auto mt-4 max-w-sm text-center text-sm">
+                        {t('projects.chooser.openFolder.limits')}
+                    </p>
+                </>
+            ) : showDesktopFooter ? (
+                <div className="flex justify-center">
                     <ActionButton
-                        icon={<Icons.Directory className="h-3.5 w-3.5" />}
-                        label={t('projects.chooser.openFolder.label')}
-                        tooltip={t('projects.chooser.openFolder.tooltip')}
-                        onClick={() => void openLocalFolder()}
-                        busy={isOpeningLocal}
-                        disabled={isBusy}
-                    />
-                ) : (
-                    <ActionButton
-                        icon={<Icons.Upload className="h-3.5 w-3.5" />}
-                        label={t('projects.chooser.uploadFolder.label')}
-                        tooltip={
-                            isFsAccessSupported
-                                ? t('projects.chooser.uploadFolder.tooltip')
-                                : t('projects.chooser.uploadFolder.tooltipUnsupported')
-                        }
-                        onClick={() => void handleImportLocalProject()}
-                        busy={isImporting}
-                        disabled={isBusy || !isFsAccessSupported}
-                    />
-                )}
-
-                <ActionButton
-                    icon={<Icons.MagicWand className="h-3.5 w-3.5" />}
-                    label={t('projects.chooser.cloneSite.label')}
-                    tooltip={t('projects.chooser.cloneSite.tooltip')}
-                    onClick={() => setShowCloneDialog(true)}
-                    disabled={isBusy}
-                />
-
-                <ActionButton
-                    icon={<Icons.GitHubLogo className="h-3.5 w-3.5" />}
-                    label={t('projects.chooser.githubRepo.label')}
-                    tooltip={t('projects.chooser.githubRepo.tooltip')}
-                    href={Routes.IMPORT_GITHUB}
-                    disabled={isBusy}
-                />
-            </div>
-
-            {showDesktopFooter && !isDesktopApp && (
-                <p className="text-foreground-tertiary mt-6 text-center text-sm">
-                    {t('projects.chooser.desktopFooter.cta')}{' '}
-                    <Link
+                        icon={<Icons.Download className="h-3.5 w-3.5" />}
+                        label={t('projects.chooser.desktopFooter.link')}
+                        tooltip={t('projects.chooser.desktopFooter.cta')}
                         href={ExternalRoutes.DOWNLOAD_PAGE}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-foreground-secondary hover:text-foreground underline underline-offset-2"
-                    >
-                        {t('projects.chooser.desktopFooter.link')}
-                    </Link>
-                    .
-                </p>
-            )}
-
-            <FrameworkSelectDialog
-                open={showFrameworkDialog}
-                onOpenChange={setShowFrameworkDialog}
-                onSelect={onSelectFramework}
-                localAvailable={isDesktopApp}
-            />
-
-            <CloneWebsiteDialog open={showCloneDialog} onOpenChange={setShowCloneDialog} />
+                    />
+                </div>
+            ) : null}
         </div>
     );
 }

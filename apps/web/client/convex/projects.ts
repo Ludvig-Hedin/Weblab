@@ -13,6 +13,10 @@ import { resolvePersonalWorkspaceId } from './lib/personalWorkspace';
 
 const MAX_PROJECTS_LIMIT = 200;
 
+function requireTrustedCloudProjectCreation(): void {
+    throw new Error('Cloud project creation is unavailable in the local release.');
+}
+
 const PROJECT_ROLE_RANK: Record<Doc<'projectMembers'>['role'], number> = {
     manager: 0,
     editor: 1,
@@ -455,15 +459,8 @@ export const listAccess = query({
  * (projectActions.ts) is responsible for calling the sandbox provider; this
  * mutation only writes the DB graph.
  *
- * TODO(sandbox-trust): `sandboxId` and `sandboxUrl` are accepted from the
- * client. A caller can supply another tenant's sandboxId, causing their new
- * project's branch + frames to iframe-embed (and, via the shared CSB_API_KEY,
- * issue file ops against) that tenant's sandbox. The legitimate flow is
- * /projects/import/* which provisions a new sandbox first, but a hand-crafted
- * client can pass an arbitrary id. Move the mutation behind an internalMutation
- * + an action that derives sandboxId from a freshly provisioned sandbox
- * (matching the branchActions.fork / createBlank pattern). Until then any
- * import path should validate sandbox ownership server-side.
+ * Disabled for the local release because caller-provided sandboxId and
+ * sandboxUrl cannot prove ownership. Kept public for old client type contracts.
  */
 export const create = mutation({
     args: {
@@ -485,6 +482,7 @@ export const create = mutation({
         workspaceId: v.optional(v.id('workspaces')),
     },
     handler: async (ctx, args) => {
+        requireTrustedCloudProjectCreation();
         const user = await requireUser(ctx);
         if (args.sandboxId.length === 0) throw new Error('BAD_REQUEST: sandboxId');
         if (args.sandboxUrl.length === 0) throw new Error('BAD_REQUEST: sandboxUrl');

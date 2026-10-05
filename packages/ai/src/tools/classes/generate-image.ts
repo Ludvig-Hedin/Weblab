@@ -12,7 +12,7 @@ import { ServerTool } from '../models/server';
 
 // Map the server-side limit errors (thrown by Convex `reserveImage` or the
 // per-turn counter) to a concise message the agent can relay to the user.
-function mapImageLimitError(err: unknown): string {
+export function mapImageLimitError(err: unknown): string {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('IMAGE_DAILY_CAP_REACHED')) {
         return 'Daily image limit reached. Try again tomorrow or upgrade your plan.';
@@ -109,6 +109,7 @@ export class GenerateImageTool extends ServerTool {
                     model,
                     prompt: args.prompt,
                     n: 1,
+                    maxRetries: 1,
                     ...sizeParam,
                     ...(args.aspect_ratio
                         ? { aspectRatio: args.aspect_ratio as `${number}:${number}` }

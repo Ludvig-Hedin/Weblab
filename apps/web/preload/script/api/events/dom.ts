@@ -1,63 +1,35 @@
 import { EditorAttributes } from '@weblab/constants';
 
 import { penpalParent } from '../..';
-import { buildLayerTree } from '../dom';
 
 export function listenForDomMutation() {
     const targetNode = document.body;
     const config = { childList: true, subtree: true };
 
     const observer = new MutationObserver((mutationsList) => {
-        let added = new Map();
-        let removed = new Map();
+        // The editor only needs to know that editable nodes changed; it then
+        // refreshes layers itself. Building a layer tree per mutated node was
+        // O(N^2) getComputedStyle work whose payload the editor discarded.
+        let changed = false;
 
         for (const mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                const parent = mutation.target as HTMLElement;
-                // Handle added nodes
-                mutation.addedNodes.forEach((node) => {
-                    const el = node as HTMLElement;
-                    if (
-                        node.nodeType === Node.ELEMENT_NODE &&
-                        el.hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
-                        !shouldIgnoreMutatedNode(el)
-                    ) {
-                        dedupNewElement(el);
-                        if (parent) {
-                            const layerMap = buildLayerTree(parent);
-                            if (layerMap) {
-                                added = new Map([...added, ...layerMap]);
-                            }
-                        }
-                    }
-                });
-
-                // Handle removed nodes
+            if (mutation.type !== 'childList') continue;
+            mutation.addedNodes.forEach((node) => {
+                if (!isEditableElement(node)) return;
+                dedupNewElement(node);
+                changed = true;
+            });
+            if (!changed) {
                 mutation.removedNodes.forEach((node) => {
-                    const el = node as HTMLElement;
-                    if (
-                        node.nodeType === Node.ELEMENT_NODE &&
-                        el.hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
-                        !shouldIgnoreMutatedNode(el)
-                    ) {
-                        if (parent) {
-                            const layerMap = buildLayerTree(parent);
-                            if (layerMap) {
-                                removed = new Map([...removed, ...layerMap]);
-                            }
-                        }
-                    }
+                    if (isEditableElement(node)) changed = true;
                 });
             }
         }
 
-        if (added.size > 0 || removed.size > 0) {
+        if (changed) {
             if (penpalParent) {
                 penpalParent
-                    .onWindowMutated({
-                        added: Object.fromEntries(added),
-                        removed: Object.fromEntries(removed),
-                    })
+                    .onWindowMutated({ added: {}, removed: {} })
                     .catch((error: Error) => {
                         console.error('Failed to send window mutation event:', error);
                     });
@@ -68,6 +40,14 @@ export function listenForDomMutation() {
     });
 
     observer.observe(targetNode, config);
+}
+
+function isEditableElement(node: Node): node is HTMLElement {
+    return (
+        node.nodeType === Node.ELEMENT_NODE &&
+        (node as HTMLElement).hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
+        !shouldIgnoreMutatedNode(node as HTMLElement)
+    );
 }
 
 export function listenForResize() {
@@ -96,12 +76,17 @@ export function reportContentSize() {
     try {
         const docEl = document.documentElement;
         const body = document.body;
-        const height = Math.max(
-            docEl?.scrollHeight ?? 0,
-            docEl?.offsetHeight ?? 0,
-            body?.scrollHeight ?? 0,
-            body?.offsetHeight ?? 0,
-        );
+        // scrollHeight/offsetHeight never drop below the frame's own height,
+        // so a frame that once grew tall could never shrink back. Measure
+        // where the page content actually ends instead.
+        const height =
+            measureContentBottom() ||
+            Math.max(
+                docEl?.scrollHeight ?? 0,
+                docEl?.offsetHeight ?? 0,
+                body?.scrollHeight ?? 0,
+                body?.offsetHeight ?? 0,
+            );
         const width = Math.max(
             docEl?.scrollWidth ?? 0,
             docEl?.offsetWidth ?? 0,
@@ -119,6 +104,25 @@ export function reportContentSize() {
     } catch (error) {
         console.warn('reportContentSize failed:', error);
     }
+}
+
+/** Bottom edge of the body's in-flow content, in page pixels (0 if unknown). */
+function measureContentBottom(): number {
+    const body = document.body;
+    if (!body) return 0;
+    let bottom = 0;
+    for (const child of Array.from(body.children)) {
+        const style = getComputedStyle(child);
+        if (style.position === 'fixed' || style.display === 'none') continue;
+        const rect = child.getBoundingClientRect();
+        if (rect.height === 0 && rect.width === 0) continue;
+        bottom = Math.max(bottom, rect.bottom + window.scrollY + (parseFloat(style.marginBottom) || 0));
+    }
+    if (bottom === 0) return 0;
+    const bodyStyle = getComputedStyle(body);
+    return Math.ceil(
+        bottom + (parseFloat(bodyStyle.paddingBottom) || 0) + (parseFloat(bodyStyle.marginBottom) || 0),
+    );
 }
 
 /**

@@ -20,7 +20,7 @@
     "scripts": {
         "build": "bun --filter @weblab/web build:client",
         "start": "bun --filter @weblab/web start:client",
-        "dev": "bun --filter @weblab/web dev",
+        "dev": "node scripts/dev.mjs",
         "dev:remote": "bun --filter @weblab/web dev",
         "dev:ui": "bun --filter @weblab/web-client dev",
         "dev:prod": "bun --filter @weblab/web-client dev:prod",

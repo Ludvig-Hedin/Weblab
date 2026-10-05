@@ -14,6 +14,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { ActionsGroup } from './actions-group';
+import { asCliToolPart, CliToolCard } from './cli-tool-card';
 import { sanitizeReasoningText } from './sanitize-reasoning';
 import { ToolCallDisplay } from './tool-call-display';
 import { getToolNameFromPart } from './tool-name';
@@ -88,6 +89,9 @@ const ALWAYS_VISIBLE_TOOLS = new Set([
 const isActionPart = (part: Part | undefined): boolean => {
     if (!part) return false;
     if (part.type === 'reasoning') return true;
+    // Actions a local CLI (Claude Code, Codex) took — read-only cards.
+    // (`ChatDataPart` doesn't declare it, hence the string comparison.)
+    if ((part.type as string) === 'data-cli-tool') return true;
     if (!part.type.startsWith('tool-')) return false;
     const toolName = getToolNameFromPart(part);
     return !ALWAYS_VISIBLE_TOOLS.has(toolName);
@@ -133,6 +137,16 @@ const MessageContentComponent = ({
     }
 
     const renderActionPart = (part: Part, idx: number): ReactNode => {
+        const cliTool = asCliToolPart(part);
+        if (cliTool) {
+            return (
+                <CliToolCard
+                    key={cliTool.id ?? `cli-tool-${idx}`}
+                    data={cliTool.data}
+                    isStream={isStream}
+                />
+            );
+        }
         if (part.type.startsWith('tool-')) {
             const toolPart = part as ToolUIPart;
             const isLoadingThisTool = isStream && idx === lastIncompleteToolIndex;

@@ -2,10 +2,12 @@ import type { RefObject } from 'react';
 import { useTranslations } from 'next-intl';
 
 import type { CodeNavigationTarget } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 import { pathsEqual } from '@weblab/utility';
 
 import type { EditorFile } from '../shared/types';
 import type { EditorView } from '@codemirror/view';
+import type { CodeDraftPreflight } from '@/lib/code-drafts';
 import { transKeys } from '@/i18n/keys';
 import { CodeEditor } from './code-editor';
 import { UnsavedChangesDialog } from './unsaved-changes-dialog';
@@ -19,6 +21,8 @@ interface CodeEditorAreaProps {
     onSaveFile: () => Promise<void>;
     onSaveAndCloseFiles: () => Promise<void>;
     onUpdateFileContent: (fileId: string, content: string) => void;
+    onBeforeUpdateFileContent?: CodeDraftPreflight;
+    onDraftDispatchFailed?: () => void;
     onDiscardChanges: () => void;
     onCancelUnsaved: () => void;
     fileCountToClose?: number;
@@ -37,6 +41,8 @@ export const CodeEditorArea = ({
     onSaveFile,
     onSaveAndCloseFiles,
     onUpdateFileContent,
+    onBeforeUpdateFileContent,
+    onDraftDispatchFailed,
     onDiscardChanges,
     onCancelUnsaved,
     fileCountToClose,
@@ -48,11 +54,12 @@ export const CodeEditorArea = ({
     const t = useTranslations();
 
     return (
-        <div className="relative flex-1 overflow-hidden">
+        <div className="bg-background-canvas relative flex-1 overflow-hidden">
             <div className="h-full">
                 {openedFiles.length === 0 || !activeFile ? (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="text-muted-foreground text-regular text-center">
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+                        <Icons.Code className="text-foreground-quadranary h-6 w-6" />
+                        <div className="text-foreground-tertiary text-small max-w-64 text-center">
                             {t(transKeys.editor.panels.code.emptyState)}
                         </div>
                     </div>
@@ -72,6 +79,8 @@ export const CodeEditorArea = ({
                             editorViewsRef={editorViewsRef}
                             onSaveFile={onSaveFile}
                             onUpdateFileContent={onUpdateFileContent}
+                            onBeforeUpdateFileContent={onBeforeUpdateFileContent}
+                            onDraftDispatchFailed={onDraftDispatchFailed}
                             onSelectionChange={
                                 pathsEqual(activeFile?.path, file.path)
                                     ? onSelectionChange

@@ -3,6 +3,7 @@ import { memo, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { InputRadio } from '../../inputs/input-radio';
 import { layoutTypeOptions } from './index';
 
@@ -21,7 +22,9 @@ export const TypeInput = memo(() => {
         <div className="flex items-center gap-0">
             <span className="text-muted-foreground text-small w-20">{t('type')}</span>
             <InputRadio
-                options={Object.values(layoutTypeOptions)}
+                options={Object.values(layoutTypeOptions).filter(
+                    (option) => option.value !== 'grid' || EDITOR_SCOPE.advancedCss,
+                )}
                 value={value}
                 onChange={(newValue) => {
                     setValue(newValue);

@@ -12,16 +12,17 @@ export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434';
 // ---------------------------------------------------------------------------
 export enum OPENROUTER_MODELS {
     // Generate object does not work for Anthropic models https://github.com/OpenRouterTeam/ai-sdk-provider/issues/165
-    OPEN_AI_GPT_5_5 = 'openai/gpt-5.5',
+    OPEN_AI_GPT_6_ASTRA = 'openai/gpt-6-astra',
+    OPEN_AI_GPT_6_SOL = 'openai/gpt-6-sol',
+    OPEN_AI_GPT_6_LUNA = 'openai/gpt-6-luna',
     OPEN_AI_GPT_5_4_MINI = 'openai/gpt-5.4-mini',
     GEMINI_3_1_PRO_PREVIEW = 'google/gemini-3.1-pro-preview',
-    CLAUDE_OPUS_4_8 = 'anthropic/claude-opus-4.8',
-    CLAUDE_SONNET_4_6 = 'anthropic/claude-sonnet-4.6',
+    CLAUDE_OPUS_5_5 = 'anthropic/claude-opus-5.5',
     CLAUDE_3_5_HAIKU = 'anthropic/claude-3.5-haiku',
-    KIMI_K2_7_CODE = 'moonshotai/kimi-k2.7-code',
-    GLM_5_2 = 'z-ai/glm-5.2',
+    GROK_4_7 = 'x-ai/grok-4.7',
+    GROK_4_6 = 'x-ai/grok-4.6',
     MINIMAX_M3 = 'minimax/minimax-m3',
-    DEEPSEEK_V4_PRO = 'deepseek/deepseek-v4-pro',
+    DEEPSEEK_V4_1_FLASH = 'deepseek/deepseek-v4.1-flash',
     DEEPSEEK_V4_FLASH = 'deepseek/deepseek-v4-flash',
     MISTRAL_CODESTRAL = 'mistralai/codestral-2501',
 }
@@ -78,12 +79,15 @@ export type ModelConfig = {
  * be a no-op (e.g. Ollama, non-reasoning Claude variants, Mistral).
  */
 const REASONING_CAPABLE_MODELS: ReadonlySet<string> = new Set<string>([
-    OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
+    OPENROUTER_MODELS.OPEN_AI_GPT_6_SOL,
+    OPENROUTER_MODELS.OPEN_AI_GPT_6_ASTRA,
+    OPENROUTER_MODELS.OPEN_AI_GPT_6_LUNA,
     OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI,
     OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
-    OPENROUTER_MODELS.CLAUDE_OPUS_4_8,
-    OPENROUTER_MODELS.CLAUDE_SONNET_4_6,
-    OPENROUTER_MODELS.DEEPSEEK_V4_PRO,
+    OPENROUTER_MODELS.CLAUDE_OPUS_5_5,
+    OPENROUTER_MODELS.GROK_4_7,
+    OPENROUTER_MODELS.GROK_4_6,
+    OPENROUTER_MODELS.DEEPSEEK_V4_1_FLASH,
 ]);
 
 export function modelSupportsReasoningEffort(model: ChatModel): boolean {
@@ -91,16 +95,17 @@ export function modelSupportsReasoningEffort(model: ChatModel): boolean {
 }
 
 export const MODEL_MAX_TOKENS: Record<string, number> = {
-    [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: 1050000,
+    [OPENROUTER_MODELS.OPEN_AI_GPT_6_SOL]: 1050000,
+    [OPENROUTER_MODELS.OPEN_AI_GPT_6_ASTRA]: 1050000,
+    [OPENROUTER_MODELS.OPEN_AI_GPT_6_LUNA]: 1050000,
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI]: 400000,
     [OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW]: 1048576,
-    [OPENROUTER_MODELS.CLAUDE_OPUS_4_8]: 1000000,
-    [OPENROUTER_MODELS.CLAUDE_SONNET_4_6]: 1000000,
+    [OPENROUTER_MODELS.CLAUDE_OPUS_5_5]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_3_5_HAIKU]: 200000,
-    [OPENROUTER_MODELS.KIMI_K2_7_CODE]: 1000000,
-    [OPENROUTER_MODELS.GLM_5_2]: 128000,
+    [OPENROUTER_MODELS.GROK_4_7]: 500000,
+    [OPENROUTER_MODELS.GROK_4_6]: 500000,
     [OPENROUTER_MODELS.MINIMAX_M3]: 1000000,
-    [OPENROUTER_MODELS.DEEPSEEK_V4_PRO]: 1048576,
+    [OPENROUTER_MODELS.DEEPSEEK_V4_1_FLASH]: 1048576,
     [OPENROUTER_MODELS.DEEPSEEK_V4_FLASH]: 1048576,
     [OPENROUTER_MODELS.MISTRAL_CODESTRAL]: 256000,
 };
@@ -145,36 +150,36 @@ export const CHAT_MODEL_OPTIONS = [
         description: 'Pick the best model per task automatically',
     },
     {
-        label: 'GPT-5.5',
-        model: OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
+        label: 'GPT-6 Astra',
+        model: OPENROUTER_MODELS.OPEN_AI_GPT_6_ASTRA,
     },
     {
-        label: 'Claude Sonnet 4.6',
-        model: OPENROUTER_MODELS.CLAUDE_SONNET_4_6,
+        label: 'GPT-6 Sol',
+        model: OPENROUTER_MODELS.OPEN_AI_GPT_6_SOL,
     },
     {
-        label: 'Claude Opus 4.8',
-        model: OPENROUTER_MODELS.CLAUDE_OPUS_4_8,
+        label: 'GPT-6 Luna',
+        model: OPENROUTER_MODELS.OPEN_AI_GPT_6_LUNA,
+    },
+    {
+        label: 'Claude Opus 5.5',
+        model: OPENROUTER_MODELS.CLAUDE_OPUS_5_5,
     },
     {
         label: 'Gemini 3.1 Pro',
         model: OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
     },
     {
-        label: 'DeepSeek V4 Pro',
-        model: OPENROUTER_MODELS.DEEPSEEK_V4_PRO,
+        label: 'Grok 4.7',
+        model: OPENROUTER_MODELS.GROK_4_7,
     },
     {
-        label: 'Kimi K2.7 Code',
-        model: OPENROUTER_MODELS.KIMI_K2_7_CODE,
+        label: 'Grok 4.6',
+        model: OPENROUTER_MODELS.GROK_4_6,
     },
     {
-        label: 'GLM-5.2',
-        model: OPENROUTER_MODELS.GLM_5_2,
-    },
-    {
-        label: 'MiniMax M3',
-        model: OPENROUTER_MODELS.MINIMAX_M3,
+        label: 'DeepSeek V4.1',
+        model: OPENROUTER_MODELS.DEEPSEEK_V4_1_FLASH,
     },
 ] as const;
 
@@ -192,6 +197,38 @@ export const DEFAULT_CHAT_MODEL: OPENROUTER_MODELS | typeof AUTO_MODEL_ID =
 
 export type ChatModel = OPENROUTER_MODELS | OllamaModelId | typeof AUTO_MODEL_ID;
 
+/**
+ * Cloud models that used to be in the picker. Saved settings and drafts may
+ * still hold these ids; the chat route rejects them, so map them to Auto.
+ */
+const RETIRED_CHAT_MODELS: ReadonlySet<string> = new Set([
+    'openai/gpt-5.5',
+    'anthropic/claude-opus-4.8',
+    'anthropic/claude-sonnet-4.6',
+    'deepseek/deepseek-v4-pro',
+    'moonshotai/kimi-k2.7-code',
+    'z-ai/glm-5.2',
+    'minimax/minimax-m3',
+    'openai/gpt-5.6-sol',
+    'openai/gpt-5.6-terra',
+    'openai/gpt-5.6-luna',
+]);
+
+/** Premium cloud models only Pro subscribers may pick (enforced in /api/chat). */
+export const PRO_ONLY_CHAT_MODELS: ReadonlySet<string> = new Set<string>([
+    OPENROUTER_MODELS.CLAUDE_OPUS_5_5,
+    OPENROUTER_MODELS.OPEN_AI_GPT_6_ASTRA,
+]);
+
+export function isProOnlyModel(model: string): boolean {
+    return PRO_ONLY_CHAT_MODELS.has(model);
+}
+
+/** Replace a retired cloud model id with Auto; pass everything else through. */
+export function migrateChatModel<T extends string>(model: T): T | typeof AUTO_MODEL_ID {
+    return RETIRED_CHAT_MODELS.has(model) ? AUTO_MODEL_ID : model;
+}
+
 // ---------------------------------------------------------------------------
 // Per-provider model lists — edit here to add/remove models everywhere.
 // These feed manifest.ts and the Ollama pull dialog; no IDs live elsewhere.
@@ -199,7 +236,7 @@ export type ChatModel = OPENROUTER_MODELS | OllamaModelId | typeof AUTO_MODEL_ID
 
 /** Claude Code CLI models (direct Anthropic API model IDs). */
 export const CLAUDE_CODE_MODELS = [
-    { id: 'claude-opus-4.8', label: 'Claude Opus 4.8' },
+    { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
     { id: 'claude-sonnet-4.6', label: 'Claude Sonnet 4.6' },
     { id: 'claude-haiku-4.5', label: 'Claude Haiku 4.5' },
 ] as const;
@@ -223,3 +260,25 @@ export const OLLAMA_CURATED_MODELS = [
     },
     { id: 'gemma2:4b', label: 'Gemma 2 4B', size: '~3 GB' },
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Output cap (runaway-spend safeguard)
+//
+// `getMaxTokens` above is the CONTEXT window (up to ~1M tokens) and must stay
+// that way for the summarizer threshold + context meter. It was also being
+// passed as `maxOutputTokens` for chat, which let a single runaway reply bill
+// hundreds of thousands of output tokens. Chat now uses this cap instead.
+// Cheaper surfaces (inline edit, tab complete, terminal, summarizer) keep their
+// own smaller hard-coded caps.
+// ---------------------------------------------------------------------------
+
+/** Default ceiling on output tokens for one chat model call. */
+export const MODEL_MAX_OUTPUT_TOKENS = 32_000;
+
+/**
+ * Max output tokens to request for `model`: the global cap, never more than the
+ * model's own context window (small local models can have < 32k windows).
+ */
+export function getMaxOutputTokens(model: ChatModel): number {
+    return Math.min(MODEL_MAX_OUTPUT_TOKENS, getMaxTokens(model));
+}

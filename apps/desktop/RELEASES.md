@@ -113,6 +113,18 @@ bun install
 
 The build scripts create the workspace `node_modules` link automatically before packaging, so you can run the Bun build commands directly after installing.
 
+Each build script also stages Bun 1.3.10 from its official release archive. It
+checks the published SHA-256 before extraction and verifies the staged binary's
+version. The macOS build combines the Intel and Apple Silicon binaries into one
+universal executable. The packaged runtime lives in `resources/bin` outside
+`app.asar`, so people installing Weblab do not need a separate Bun install.
+The generated `apps/desktop/.runtime/` directory is ignored by Git.
+
+Build on the target OS. Windows and Linux release targets are x64, while the
+Mac target is universal. `bun run build` builds for the current host; use the
+platform-specific commands below when preparing a release. The build stops if
+the host cannot produce the selected target or a checksum fails.
+
 ---
 
 ## 1. Build locally (fastest — great for sharing with friends)
@@ -133,7 +145,7 @@ The output files land in `apps/desktop/dist/`.
 
 ### macOS Gatekeeper warning
 
-Because the app isn't notarized yet, macOS will show *"Weblab can't be opened because it is from an unidentified developer."*
+An unsigned local test build can show *"Weblab can't be opened because it is from an unidentified developer."* Tagged releases require signing and notarization in CI.
 
 Tell your friends to do this **once** to bypass it:
 
@@ -192,8 +204,13 @@ desktop-v0.2.3   ← triggers the build
 v0.1.0           ← does NOT trigger (no "desktop-" prefix)
 ```
 
-No secrets are required for the first release — `GITHUB_TOKEN` is provided automatically.  
-The workflow uploads artifacts via `softprops/action-gh-release`.
+The tagged release workflow requires a Developer ID Application certificate
+and Apple notarization credentials; unsigned local test builds remain possible.
+`GITHUB_TOKEN` is provided automatically. Each platform job saves its installer and updater metadata as a
+workflow artifact after checking its packaged Bun runtime. One final job
+publishes the GitHub release only when all three platform jobs pass and every
+expected file is present. The tag must match `apps/desktop/package.json` as
+`desktop-v<version>`. The builder itself has implicit publishing disabled.
 
 ---
 

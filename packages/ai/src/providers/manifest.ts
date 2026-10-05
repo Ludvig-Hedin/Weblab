@@ -93,9 +93,10 @@ const CODEX_ENTRY: ProviderManifestEntry = {
     installUrl: 'https://github.com/openai/codex',
     authCommand: 'codex login',
     webOAuth: { startPath: '/api/auth/providers/codex/start', provider: 'codex' },
-    // Empty until the Codex adapter probes the account snapshot for the
-    // user's actually-available model list. Picker shows "Detecting…".
-    models: [],
+    // `codex-default` is a sentinel: the desktop adapter passes no `--model`,
+    // so Codex uses the model from the user's own ~/.codex/config.toml.
+    // Account-specific model discovery (`model/list`) can extend this later.
+    models: [{ id: 'codex-default', label: 'Codex (your default model)' }],
 };
 
 const CLAUDE_CODE_ENTRY: ProviderManifestEntry = {
@@ -186,6 +187,13 @@ export const CLI_PROVIDER_KINDS: ReadonlyArray<ProviderKind> = [
     'cursor',
 ];
 
+/**
+ * CLI providers whose desktop adapter can run a full chat turn today. The
+ * others (Gemini, OpenCode, Cursor) still have stub adapters, so the picker
+ * hides them.
+ */
+export const CLI_CHAT_PROVIDER_KINDS: ReadonlyArray<ProviderKind> = ['claude-code', 'codex'];
+
 /** Map a stored model string back to its provider — covers legacy single-string state. */
 export function inferProviderFromModelId(model: string): ProviderKind {
     if (model.startsWith('ollama/')) return 'ollama';
@@ -198,10 +206,11 @@ export function inferProviderFromModelId(model: string): ProviderKind {
     return 'openrouter';
 }
 
-export type ProviderStatusKind = 'ready' | 'install' | 'sign-in' | 'desktop-only' | 'loading';
+export type ProviderStatusKind = 'ready' | 'install' | 'sign-in' | 'desktop-only' | 'loading' | 'unavailable';
 
 export type ProviderStatus = {
     kind: ProviderStatusKind;
+    unavailableReason?: 'isolation-unverified' | 'status-unverified';
     /** Live model list (Ollama tags, OpenCode discovery). Empty when status is not 'ready'. */
     discoveredModels?: ReadonlyArray<ProviderModelEntry>;
     /** Optional human-friendly version string for tooltips. */
@@ -222,4 +231,4 @@ export const DEFAULT_PROVIDER_STATUS: ProviderStatus = { kind: 'loading' };
  * pulling from `@weblab/models` directly.
  */
 export const DEFAULT_PROVIDER: ProviderKind = 'openrouter';
-export const DEFAULT_MODEL_ID: string = OPENROUTER_MODELS.OPEN_AI_GPT_5_5;
+export const DEFAULT_MODEL_ID: string = OPENROUTER_MODELS.OPEN_AI_GPT_6_SOL;

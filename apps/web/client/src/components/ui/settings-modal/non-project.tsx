@@ -23,10 +23,13 @@ import { LanguageTab } from './language-tab';
 import { ShortcutsTab } from './shortcuts-tab';
 import { SkillsTab } from './skills-tab';
 import { SubscriptionTab } from './subscription-tab';
+import { useWorkingLevel } from '@/components/working-level/provider';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 
 export const NonProjectSettingsModal = observer(() => {
     const stateManager = useStateManager();
     const modalRef = useRef<HTMLDivElement>(null);
+    const workingLevel = useWorkingLevel();
 
     useEffect(() => {
         if (!stateManager.isSettingsModalOpen) return;
@@ -39,7 +42,7 @@ export const NonProjectSettingsModal = observer(() => {
 
     useModalFocusTrap(stateManager.isSettingsModalOpen, modalRef);
 
-    const tabs: SettingTab[] = [
+    const allTabs: SettingTab[] = [
         {
             label: SettingsTabValue.ACCOUNT,
             icon: <Icons.Person className="mr-2 h-4 w-4" />,
@@ -91,6 +94,14 @@ export const NonProjectSettingsModal = observer(() => {
             component: <SubscriptionTab />,
         },
     ];
+    const tabs = allTabs.filter((tab) => {
+        if (workingLevel.native === false) return true;
+        if (workingLevel.pending || workingLevel.level !== 'full') {
+            return [SettingsTabValue.ACCOUNT, SettingsTabValue.APPEARANCE, SettingsTabValue.LANGUAGE, SettingsTabValue.EDITOR].includes(tab.label as SettingsTabValue);
+        }
+        return EDITOR_SCOPE.aiChat || (tab.label !== SettingsTabValue.AI && tab.label !== SettingsTabValue.SKILLS);
+    });
+    const activeTab = tabs.find((tab) => tab.label === stateManager.settingsTab) ?? tabs.find((tab) => tab.label === SettingsTabValue.EDITOR) ?? tabs[0];
 
     return (
         <AnimatePresence>
@@ -144,7 +155,7 @@ export const NonProjectSettingsModal = observer(() => {
                                                 variant="ghost"
                                                 className={cn(
                                                     'w-full justify-start px-2.5',
-                                                    stateManager.settingsTab === tab.label
+                                                    activeTab?.label === tab.label
                                                         ? 'bg-background-secondary text-foreground hover:bg-background-secondary hover:text-foreground'
                                                         : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
                                                 )}
@@ -161,8 +172,7 @@ export const NonProjectSettingsModal = observer(() => {
                                 {/* Content */}
                                 <div className="flex-1 overflow-y-auto">
                                     {
-                                        tabs.find((tab) => tab.label === stateManager.settingsTab)
-                                            ?.component
+                                        activeTab?.component
                                     }
                                 </div>
                             </div>

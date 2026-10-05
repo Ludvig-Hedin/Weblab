@@ -28,46 +28,34 @@ describe('addClassToNode', () => {
         expect(out).not.toContain('p-2');
     });
 
-    test('pushes argument when className is a CallExpression (e.g. cn(...))', async () => {
-        const node = parseJsx('<div className={cn("p-2", isActive && "bg-red")}>x</div>');
-        addClassToNode(node, 'extra');
-        const out = await generate(node);
-        expect(out).toContain('"extra"');
-        // original args are preserved
-        expect(out).toContain('"p-2"');
-        expect(out).toContain('isActive && "bg-red"');
+    test.each([
+        '<div className={cn("p-2", isActive && "bg-red")}>x</div>',
+        '<div className={`p-2 ${size}`}>x</div>',
+        '<div className={isActive ? "a" : "b"}>x</div>',
+        '<div className={cls}>x</div>',
+        '<div className={"a " + b}>x</div>',
+        '<div className="p-2" {...props}>x</div>',
+        '<div {...props}>x</div>',
+        '<div className="p-2" className="p-3">x</div>',
+    ])('refuses an additive change when classes cannot be proved static: %s', async (source) => {
+        const node = parseJsx(source);
+        const before = await generate(node);
+        expect(() => addClassToNode(node, 'p-4')).toThrow('Dynamic classes');
+        expect(await generate(node)).toBe(before);
     });
 
-    test('wraps a TemplateLiteral className with binary `+ " " + new`', async () => {
-        const node = parseJsx('<div className={`p-2 ${size}`}>x</div>');
-        addClassToNode(node, 'extra');
+    test.each([
+        '<div className={"p-2 text-sm"}>x</div>',
+        '<div className={`p-2 text-sm`}>x</div>',
+        '<div {...props} className="p-2 text-sm">x</div>',
+    ])('preserves supported static classes and props: %s', async (source) => {
+        const node = parseJsx(source);
+        addClassToNode(node, 'p-4');
         const out = await generate(node);
-        // Expression should be (`p-2 ${size}` + " ") + "extra"
-        expect(out).toContain('+ " " + "extra"');
-        expect(out).toContain('`p-2 ${size}`');
-    });
-
-    test('wraps a ConditionalExpression className with binary concat', async () => {
-        const node = parseJsx('<div className={isActive ? "a" : "b"}>x</div>');
-        addClassToNode(node, 'extra');
-        const out = await generate(node);
-        expect(out).toContain('+ " " + "extra"');
-        expect(out).toContain('isActive ? "a" : "b"');
-    });
-
-    test('wraps an Identifier className with binary concat', async () => {
-        const node = parseJsx('<div className={cls}>x</div>');
-        addClassToNode(node, 'extra');
-        const out = await generate(node);
-        expect(out).toContain('cls + " " + "extra"');
-    });
-
-    test('wraps a BinaryExpression className with binary concat', async () => {
-        const node = parseJsx('<div className={"a " + b}>x</div>');
-        addClassToNode(node, 'extra');
-        const out = await generate(node);
-        // Result should include the existing concat plus " " plus "extra"
-        expect(out).toContain('"a " + b + " " + "extra"');
+        expect(out).toContain('p-4');
+        expect(out).toContain('text-sm');
+        expect(out).not.toContain('p-2');
+        if (source.includes('...props')) expect(out).toContain('{...props}');
     });
 
     test('inserts a className attribute when one is missing', async () => {

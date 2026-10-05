@@ -13,6 +13,7 @@ import { env } from '@/env';
 
 interface RedeemClientProps {
     ticket: string | null;
+    state: string | null;
 }
 
 type RedeemState =
@@ -38,7 +39,7 @@ type RedeemState =
  * If the user already has a stale session in this partition, `signOut`
  * runs first so the ticket exchange isn't rejected as "already signed in".
  */
-export function RedeemClient({ ticket }: RedeemClientProps) {
+export function RedeemClient({ ticket, state: handoffState }: RedeemClientProps) {
     const router = useRouter();
     const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
     const { signOut } = useClerk();
@@ -72,12 +73,19 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
         void (async () => {
             setState({ status: 'redeeming' });
             try {
+                const native = window.weblabNative;
+                if (native?.target !== 'desktop' || !native.claimLoginHandoff || !handoffState ||
+                    !await native.claimLoginHandoff(ticket, handoffState)) {
+                    throw new Error('Start sign-in from the desktop app to continue.');
+                }
+                // Authorization is consumed. Keep the ticket out of history.
+                window.history.replaceState(null, '', '/sign-in/redeem?native=1');
                 // Clear any leftover session in this partition first. Clerk
                 // surfaces "you're already signed in" when a session already
                 // exists; redeeming a ticket on top of one is unsafe anyway
                 // because we want the ticket's identity to win.
                 try {
-                    await signOut();
+                    await signOut(() => undefined);
                 } catch {
                     // Best-effort — a missing session is the happy path.
                 }
@@ -127,7 +135,7 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
                 setState({ status: 'error', message });
             }
         })();
-    }, [isSignInLoaded, signIn, setActive, signOut, ticket]);
+    }, [isSignInLoaded, signIn, setActive, signOut, ticket, handoffState]);
 
     // Navigate to /projects only once the ticket exchange succeeded AND the
     // session is live (`isSignedIn`). A 4s fallback covers the rare case where

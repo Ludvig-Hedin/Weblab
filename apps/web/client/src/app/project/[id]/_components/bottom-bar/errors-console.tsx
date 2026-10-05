@@ -14,6 +14,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { FIX_ERRORS_EVENT } from '../right-panel/chat-tab/error';
 
 type Severity = 'error' | 'warning' | 'log';
@@ -192,15 +193,17 @@ export const ErrorsConsole = observer(() => {
                     {errorCount > 0 && (
                         <div className="flex items-center gap-1">
                             <CopyButton onClick={handleCopyAll} label="Copy all" />
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2"
-                                onClick={handleFix}
-                            >
-                                <Icons.MagicWand className="mr-1.5 h-3.5 w-3.5" />
-                                {t(transKeys.editor.panels.edit.tabs.chat.errors.fixWithAi)}
-                            </Button>
+                            {EDITOR_SCOPE.aiChat && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2"
+                                    onClick={handleFix}
+                                >
+                                    <Icons.MagicWand className="mr-1.5 h-3.5 w-3.5" />
+                                    {t(transKeys.editor.panels.edit.tabs.chat.errors.fixWithAi)}
+                                </Button>
+                            )}
                         </div>
                     )}
                 </div>

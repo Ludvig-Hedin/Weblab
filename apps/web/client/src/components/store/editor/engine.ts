@@ -1,5 +1,6 @@
 import type { PostHog } from 'posthog-js/react';
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 
 import type { CodeFileSystem } from '@weblab/file-system';
 import type { FrameworkId } from '@weblab/framework';
@@ -42,6 +43,8 @@ import { ThemeManager } from './theme';
 import { TokensManager } from './tokens';
 
 export class EditorEngine {
+    private clearPromise: Promise<void> | null = null;
+    isClosing = false;
     readonly projectId: string;
     readonly posthog: PostHog;
     /**
@@ -66,7 +69,7 @@ export class EditorEngine {
         return this.branches.activeCodeEditor;
     }
 
-    readonly state: StateManager = new StateManager();
+    readonly state: StateManager = new StateManager(() => this.canUseDesign);
     readonly canvas: CanvasManager = new CanvasManager(this);
     readonly breakpoints: BreakpointsManager = new BreakpointsManager(this);
     readonly text: TextEditingManager = new TextEditingManager(this);
@@ -104,10 +107,11 @@ export class EditorEngine {
         this.projectId = projectId;
         this.posthog = posthog;
         this.framework = framework;
-        makeAutoObservable(this);
+        makeAutoObservable<this, 'clearPromise'>(this, { clearPromise: false });
     }
 
     async init() {
+        if (this.isClosing) throw new Error('The previous editor has not finished closing.');
         this.overlay.init();
         this.image.init();
         this.frameEvent.init();
@@ -118,9 +122,20 @@ export class EditorEngine {
         this.presence.init();
     }
 
+    /** Cloud roles come from the server; local working preferences cannot widen them. */
+    get canUseDesign(): boolean {
+        if (!this.branches.hasActiveBranch || !isCloudEditorRuntime(this.branches.activeBranch.runtime)) return true;
+        const source = this.activeSandbox.cloudSource;
+        return source?.canDesign === true && !source.isContentMode;
+    }
+
     async initBranches(branches: Branch[]) {
+        if (this.isClosing) throw new Error('The previous editor has not finished closing.');
         await this.branches.initBranches(branches);
         await this.branches.init();
+        if (this.branches.hasActiveBranch && isCloudEditorRuntime(this.branches.activeBranch.runtime)) {
+            await this.pages.scanPages();
+        }
         await this.interactions.init();
         this.components.init();
     }
@@ -131,13 +146,49 @@ export class EditorEngine {
     // prunes server-deleted frames. Real-time push (tRPC subscriptions on
     // the existing Fastify+ws server) is a future improvement.
 
-    clear() {
+    clear(): Promise<void> {
+        if (!this.clearPromise) {
+            this.isClosing = true;
+            let disposalStarted = false;
+            const operation = this.clearAsync(() => { disposalStarted = true; }).catch((error: unknown) => {
+                if (!disposalStarted && this.clearPromise === operation) {
+                    this.clearPromise = null;
+                    runInAction(() => { this.isClosing = false; });
+                }
+                throw error;
+            });
+            this.clearPromise = operation;
+        }
+        return this.clearPromise;
+    }
+
+    private async clearAsync(onDisposalStarted: () => void): Promise<void> {
+        const preparation = this.branches.beginDisposalPreparation();
+        let disposalStarted = false;
+        try {
+            await this.text.finalizeForDisposal(preparation.leases);
+            // Rebases must finish while their captured branch is still alive.
+            await this.action.flushAndWaitForPendingRebases(preparation);
+            // History disposal persists pending edits and waits for code writes.
+            // Keep the beforeunload guard attached until both have finished.
+            await this.branches.clear(() => {
+                disposalStarted = true;
+                onDisposalStarted();
+            }, preparation);
+        } catch (error) {
+            if (!disposalStarted) this.branches.cancelDisposalPreparation(preparation);
+            throw error;
+        } finally {
+            if (disposalStarted) this.clearDisposedManagers();
+        }
+    }
+
+    private clearDisposedManagers(): void {
         this.elements.clear();
         this.frames.clear();
         this.action.clear();
         this.overlay.clear();
         this.ast.clear();
-        this.text.clean();
         this.insert.clear();
         this.move.clear();
         this.style.clear();
@@ -156,7 +207,6 @@ export class EditorEngine {
         this.interactions.clear();
         this.code.clear();
         this.components.clear();
-        this.branches.clear();
         this.frameEvent.clear();
         this.screenshot.clear();
         this.comment.clear();

@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
 
-import { FIELD_BASE_CLASSES, UNIT_PILL_CLASSES } from './constants';
+import { FIELD_BASE_CLASSES, isPlainCssKeyword, UNIT_PILL_CLASSES } from './constants';
 
 const DEFAULT_UNITS = ['px', 'rem', 'em', '%', 'vh', 'vw'] as const;
 
@@ -272,7 +272,10 @@ export function IconNumberInput({
     // Radix popovers stay open on option click).
     const [pillOpen, setPillOpen] = React.useState(false);
     const showPill = !hidePill && pillOptions.length > 0;
-    const pillLabel = keyword ?? unit ?? '—';
+    // A free-form value (`var(--x)`, `calc(...)`) already shows in the value
+    // area, so the pill drops its label instead of repeating it.
+    const freeForm = keyword !== null && !keywords.includes(keyword);
+    const pillLabel = freeForm ? null : (keyword ?? unit ?? '—');
     const activePillValue = keyword ?? unit;
 
     return (
@@ -296,9 +299,13 @@ export function IconNumberInput({
                         // re-focus input for immediate typing
                         window.setTimeout(() => inputRef.current?.focus(), 0);
                     }}
-                    className="text-foreground-primary text-mini min-w-0 flex-1 cursor-text bg-transparent text-left capitalize outline-none"
+                    title={keyword}
+                    className={cn(
+                        'text-foreground-primary text-mini min-w-0 flex-1 cursor-text overflow-hidden bg-transparent text-left outline-none',
+                        isPlainCssKeyword(keyword) && 'capitalize',
+                    )}
                 >
-                    {keyword}
+                    <span className="block truncate">{keyword}</span>
                 </button>
             ) : (
                 <input
@@ -338,7 +345,7 @@ export function IconNumberInput({
                             aria-label={t('changeUnit')}
                             title={t('changeUnit')}
                         >
-                            <span>{pillLabel}</span>
+                            {pillLabel !== null && <span>{pillLabel}</span>}
                             <ChevronDown className="size-2.5" />
                         </button>
                     </PopoverTrigger>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { HostingProvider } from '@weblab/models';
@@ -11,6 +11,12 @@ import { PublishDropdown } from './dropdown';
 import { SelectedProviderContext } from './dropdown/selected-provider';
 import { HostingIntegrationsDialog } from './hosting-integrations-dialog';
 import { TriggerButton } from './trigger-button';
+import { LocalPublishing } from '../local-publishing';
+import { useSafeClerkAuth } from '@/utils/auth/safe-clerk';
+
+function hostedPublishingEnabled(): boolean {
+    return false;
+}
 
 export const PublishButton = observer(() => {
     const editorEngine = useEditorEngine();
@@ -20,10 +26,17 @@ export const PublishButton = observer(() => {
         HostingProvider.FREESTYLE,
     );
     const { canPublish, isLoading: capsLoading } = useProjectCapabilitiesContext();
+    const auth = useSafeClerkAuth();
+    const [nativePublishing, setNativePublishing] = useState(false);
+    useEffect(() => { setNativePublishing(!!window.weblabNative?.publishing); }, []);
+    if (nativePublishing && !capsLoading && canPublish && auth.isLoaded && auth.isSignedIn &&
+        editorEngine.branches.hasActiveBranch && editorEngine.branches.activeBranch.runtime?.type === 'local') {
+        return <LocalPublishing />;
+    }
     // Hide the publish dropdown entirely when the caller lacks publish cap.
     // While caps load we hide too — server is the trust boundary so flashing
     // a button only to refuse on click is worse than waiting.
-    if (capsLoading || !canPublish) {
+    if (!hostedPublishingEnabled() || capsLoading || !canPublish) {
         return null;
     }
 

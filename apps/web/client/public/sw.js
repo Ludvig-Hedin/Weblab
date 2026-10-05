@@ -1,254 +1,158 @@
 /* eslint-disable */
-// Weblab service worker — offline app shell + navigation fallback.
-// Strategy:
-//   - precache shell + critical assets on install
-//   - /api/*  -> network only (failures surface so the client switches to offline mode)
-//   - navigations -> network-first with cache fallback, then /offline
-//   - /_next/static/chunks/* -> network-first with runtime fallback
-//   - other /_next/static/* and GET assets -> cache-first with runtime cache
-//   - /_next/data/* -> stale-while-revalidate
-//   - non-GET -> bypass
-
-// Bump on any change to caching strategy or cache shape. `activate` deletes
-// every cache whose key doesn't match the current VERSION, so bumping this is
-// what flushes stale entries (including poisoned ones) off existing installs.
-//
-// v3 (2026-06-16): flush installs that had cached a build-versioned document
-// (or a chunk under the runtime cache) from a previous deploy. After a deploy
-// the old `/_next/static/*` chunks 404, so `cacheFirstAsset` returns
-// `Response.error()` ("FetchEvent … resulted in a network error response") and
-// the stale document hydrates against a newer bundle → React error #418 on
-// prod (seen on /sign-in). Bumping the VERSION purges every prior cache.
-//
-// v4 (2026-06-23): Turbopack chunk URLs can be stable across adjacent deploys.
-// Cache-first chunk handling can therefore serve old JS/CSS against fresh HTML,
-// which reproduces React #418 for returning users with an active SW. Purge v3
-// caches and fetch chunks network-first, with cached fallback for offline use.
-const VERSION = 'v4';
+// Cache only anonymous offline HTML and explicitly public static assets.
+// Private documents, API/data responses and RSC payloads always use the network.
+// v5 removes private entries stored by earlier workers without touching drafts
+// in IndexedDB or caches belonging to another application.
+const VERSION = 'v5';
 const SHELL_CACHE = `weblab-shell-${VERSION}`;
 const RUNTIME_CACHE = `weblab-runtime-${VERSION}`;
-const DATA_CACHE = `weblab-next-data-${VERSION}`;
-
-// `/projects` is intentionally NOT precached: it redirects per auth state
-// (workspace when signed in, /sign-in when not), so a cached copy is a
-// stale, wrong-state document — the exact hazard the navigation handler's
-// comment warns about. Only the genuinely static shell + the self-contained
-// `/offline` fallback are safe to keep.
-const SHELL_URLS = [
-    '/',
-    '/offline',
+const OWNED_CACHE = /^weblab-(shell|runtime|next-data)-v\d+$/;
+const STATIC_URLS = [
     '/manifest.webmanifest',
     '/favicon.svg',
     '/favicon.png',
     '/weblab-preload-script.js',
 ];
 
+function isRsc(request, url) {
+    return url.searchParams.has('_rsc') ||
+        (request.headers.get('accept') || '').toLowerCase().includes('text/x-component') ||
+        request.headers.get('rsc') === '1';
+}
+
+function isPublicRequest(request) {
+    const url = new URL(request.url);
+    return request.method === 'GET' && url.origin === self.location.origin &&
+        !url.username && !url.password && !url.search && !url.hash &&
+        !request.headers.has('authorization') && !isRsc(request, url) &&
+        (url.pathname === '/offline' || STATIC_URLS.includes(url.pathname) ||
+            url.pathname.startsWith('/_next/static/'));
+}
+
+function isPublicResponse(response, request) {
+    if (!response || !response.ok || response.redirected ||
+        response.type === 'opaque' || response.type === 'opaqueredirect') return false;
+    const control = response.headers.get('cache-control') || '';
+    if (/(?:^|,)\s*(?:private|no-store)(?:\s|=|,|$)/i.test(control)) return false;
+    if (response.headers.has('set-cookie')) return false;
+    if ((response.headers.get('content-type') || '').toLowerCase().includes('text/x-component')) return false;
+    // A followed redirect must never become an offline HTML or asset entry.
+    return !response.url || response.url === request.url;
+}
+
+function publicRequest(url) {
+    return new Request(new URL(url, self.location.origin), {
+        credentials: 'omit', cache: 'no-store', redirect: 'error',
+    });
+}
+
+function publicCache(request) {
+    return caches.open(new URL(request.url).pathname.startsWith('/_next/static/')
+        ? RUNTIME_CACHE : SHELL_CACHE);
+}
+
+async function readPublic(cache, request) {
+    if (!isPublicRequest(request)) return undefined;
+    const cached = await cache.match(request);
+    if (isPublicResponse(cached, request)) return cached;
+    return undefined;
+}
+
+async function writePublic(cache, request, response) {
+    if (isPublicRequest(request) && isPublicResponse(response, request)) {
+        await cache.put(request, response.clone()).catch(() => {});
+    }
+}
+
+async function precacheUrls(urls) {
+    await Promise.all(urls.map(async (url) => {
+        try {
+            if (typeof url !== 'string') return;
+            const request = publicRequest(url);
+            // Filter before fetch, including URLs sent by older project clients.
+            if (!isPublicRequest(request)) return;
+            const response = await fetch(request);
+            const cache = await publicCache(request);
+            await writePublic(cache, request, response);
+        } catch {
+            /* Optional public assets may be missing or unavailable. */
+        }
+    }));
+}
+
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        (async () => {
-            const cache = await caches.open(SHELL_CACHE);
-            await Promise.all(
-                SHELL_URLS.map(async (url) => {
-                    try {
-                        await cache.add(new Request(url, { cache: 'reload' }));
-                    } catch {
-                        /* tolerate missing optional shell entries */
-                    }
-                }),
-            );
-            await self.skipWaiting();
-        })(),
-    );
+    event.waitUntil((async () => {
+        // '/' uses the authenticated root layout and is deliberately excluded.
+        await precacheUrls(['/offline', ...STATIC_URLS]);
+        await self.skipWaiting();
+    })());
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        (async () => {
-            const keys = await caches.keys();
-            await Promise.all(
-                keys
-                    .filter((k) => ![SHELL_CACHE, RUNTIME_CACHE, DATA_CACHE].includes(k))
-                    .map((k) => caches.delete(k)),
-            );
-            await self.clients.claim();
-        })(),
-    );
+    event.waitUntil((async () => {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter((key) => OWNED_CACHE.test(key) &&
+            ![SHELL_CACHE, RUNTIME_CACHE].includes(key)).map((key) => caches.delete(key)));
+        await self.clients.claim();
+    })());
 });
 
 self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') {
         self.skipWaiting();
-        return;
-    }
-    if (event.data && event.data.type === 'WEBLAB_PRECACHE_URLS' && Array.isArray(event.data.urls)) {
+    } else if (event.data?.type === 'WEBLAB_PRECACHE_URLS' && Array.isArray(event.data.urls)) {
         event.waitUntil(precacheUrls(event.data.urls));
     }
 });
 
-async function precacheUrls(urls) {
+async function offlineFallback() {
     const cache = await caches.open(SHELL_CACHE);
-    await Promise.all(
-        urls.map(async (url) => {
-            try {
-                const request = new Request(url, { cache: 'reload', credentials: 'include' });
-                const response = await fetch(request);
-                if (response.ok) {
-                    await cache.put(request, response.clone());
-                }
-            } catch {
-                /* swallow — best effort */
-            }
-        }),
-    );
+    const offline = await readPublic(cache, publicRequest('/offline'));
+    return offline || new Response('Offline', { status: 503, statusText: 'Offline' });
 }
 
-function isApi(url) {
-    return url.pathname.startsWith('/api/');
-}
-
-function isNextStatic(url) {
-    return url.pathname.startsWith('/_next/static/');
-}
-
-function isNextChunk(url) {
-    return url.pathname.startsWith('/_next/static/chunks/');
-}
-
-function isNextData(url) {
-    return url.pathname.startsWith('/_next/data/');
-}
-
-function isRsc(request, url) {
-    if (url.searchParams.has('_rsc')) return true;
-    const accept = request.headers.get('accept') || '';
-    if (accept.includes('text/x-component')) return true;
-    return false;
-}
-
-function isNavigation(request) {
-    return (
-        request.mode === 'navigate' ||
-        (request.method === 'GET' &&
-            request.headers.get('accept')?.includes('text/html'))
-    );
-}
-
-async function networkFirstNavigation(request) {
-    const cache = await caches.open(SHELL_CACHE);
-    const url = new URL(request.url);
-    // Only the static app shell is safe to cache. Auth and per-user pages
-    // (/login, /profile-setup, /auth/*, anything with a query string) render
-    // differently per session — caching them serves a stale, wrong-state HTML
-    // document on the next slow navigation, and that stale HTML can reference
-    // build chunks that no longer exist after a deploy, which breaks hydration
-    // (React error #418).
-    const isCacheable = url.search === '' && SHELL_URLS.includes(url.pathname);
+async function networkNavigation(request) {
     try {
-        const fresh = await fetch(request);
-        if (fresh && fresh.ok && isCacheable) {
-            cache.put(request, fresh.clone()).catch(() => {});
-        }
-        return fresh;
+        return await fetch(request);
     } catch {
-        const cached = await cache.match(request);
+        // Never look up the requested private document, even if an old cache
+        // entry exists. Only the separately fetched anonymous fallback is safe.
+        return offlineFallback();
+    }
+}
+
+async function publicAsset(request, networkFirst) {
+    const anonymousRequest = publicRequest(request.url);
+    const cache = await publicCache(request);
+    if (!networkFirst) {
+        const cached = await readPublic(cache, anonymousRequest);
         if (cached) return cached;
-        const offline = await cache.match('/offline');
-        if (offline) return offline;
-        return new Response('Offline', { status: 503, statusText: 'Offline' });
     }
-}
-
-async function cacheFirstAsset(request) {
-    const cache = await caches.open(RUNTIME_CACHE);
-    const cached = await cache.match(request);
-    if (cached) return cached;
     try {
-        const fresh = await fetch(request);
-        if (fresh && fresh.ok && request.url.startsWith(self.location.origin)) {
-            cache.put(request, fresh.clone()).catch(() => {});
-        }
+        const fresh = await fetch(anonymousRequest);
+        await writePublic(cache, anonymousRequest, fresh);
         return fresh;
     } catch {
-        // Never throw out of a fetch handler. A rejected respondWith() is
-        // surfaced to the page as a hard network error — it breaks chunk
-        // loading and triggers React hydration failures (#418) plus a tight
-        // retry/postMessage loop. Response.error() resolves the handler so the
-        // browser treats this exactly as it would a normal failed request.
-        return Response.error();
+        const cached = await readPublic(cache, anonymousRequest);
+        return cached || Response.error();
     }
-}
-
-async function networkFirstAsset(request) {
-    const cache = await caches.open(RUNTIME_CACHE);
-    try {
-        const fresh = await fetch(new Request(request, { cache: 'no-store' }));
-        if (fresh && fresh.ok && request.url.startsWith(self.location.origin)) {
-            cache.put(request, fresh.clone()).catch(() => {});
-        }
-        return fresh;
-    } catch {
-        const cached = await cache.match(request);
-        if (cached) return cached;
-        return Response.error();
-    }
-}
-
-async function staleWhileRevalidate(request) {
-    const cache = await caches.open(DATA_CACHE);
-    const cached = await cache.match(request);
-    const fetchPromise = fetch(request)
-        .then((response) => {
-            if (response && response.ok) {
-                cache.put(request, response.clone()).catch(() => {});
-            }
-            return response;
-        })
-        .catch(() => undefined);
-    return cached || (await fetchPromise) || new Response('Offline', { status: 503 });
 }
 
 self.addEventListener('fetch', (event) => {
     const { request } = event;
-    if (request.method !== 'GET') return;
+    const url = new URL(request.url);
+    if (request.method !== 'GET' || url.origin !== self.location.origin ||
+        request.headers.has('authorization') || isRsc(request, url) ||
+        url.pathname === '/api' || url.pathname.startsWith('/api/')) return;
 
-    let url;
-    try {
-        url = new URL(request.url);
-    } catch {
+    if (isPublicRequest(request)) {
+        // Stable chunk URLs can change between deployments; keep them fresh.
+        event.respondWith(publicAsset(request,
+            url.pathname === '/offline' || url.pathname.startsWith('/_next/static/chunks/')));
         return;
     }
-
-    if (url.origin !== self.location.origin) return;
-
-    if (isApi(url)) return; // network-only: let it fail so client triggers offline mode
-
-    // RSC payload requests are dynamic per-render and must not be runtime-
-    // cached. Letting the SW serve stale RSC poisons subsequent navigations
-    // (Next.js merges them into the route tree). Skip the SW entirely so
-    // the network handles them; failures bubble to the page-level offline
-    // bootstrap fallback.
-    if (isRsc(request, url)) return;
-
-    if (isNavigation(request)) {
-        event.respondWith(networkFirstNavigation(request));
-        return;
+    if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+        event.respondWith(networkNavigation(request));
     }
-
-    if (isNextChunk(url)) {
-        event.respondWith(networkFirstAsset(request));
-        return;
-    }
-
-    if (isNextStatic(url)) {
-        event.respondWith(cacheFirstAsset(request));
-        return;
-    }
-
-    if (isNextData(url)) {
-        event.respondWith(staleWhileRevalidate(request));
-        return;
-    }
-
-    // Other same-origin GETs (manifest, favicons, preload script, fonts, images served by Next).
-    event.respondWith(cacheFirstAsset(request));
+    // All other same-origin GETs, including /_next/data, bypass CacheStorage.
 });

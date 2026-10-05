@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Pencil, Sun } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -46,6 +47,7 @@ export interface TokenRowProps {
  * light and dark; right-click for rename / duplicate / move-to-group / delete.
  */
 export function TokenRow({ row, expanded, onToggle, confirm, groupLabels }: TokenRowProps) {
+    const t = useTranslations('editor.leftPanel.variables');
     const hasDark = row.darkValue != null;
     const [showDark, setShowDark] = useState(false);
     const isDark = showDark && hasDark;
@@ -88,6 +90,21 @@ export function TokenRow({ row, expanded, onToggle, confirm, groupLabels }: Toke
                                 {trailing}
                             </span>
                         )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        aria-label={t('edit')}
+                        title={t('edit')}
+                        aria-pressed={expanded}
+                        className={cn(
+                            'text-foreground-tertiary hover:bg-foreground/10 hover:text-foreground-primary flex size-5 shrink-0 items-center justify-center rounded transition-all',
+                            expanded
+                                ? 'opacity-100'
+                                : 'opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100',
+                        )}
+                    >
+                        <Pencil className="size-3" />
                     </button>
                     {hasDark && (
                         <button

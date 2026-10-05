@@ -2,7 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { Provider } from '@weblab/code-provider';
 import type { Branch } from '@weblab/models';
-import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
+import { CodeProvider, NodeFsProvider, createCodeProviderClient } from '@weblab/code-provider';
 import { toast } from '@weblab/ui/sonner';
 
 import type { ErrorManager } from '../error';
@@ -10,6 +10,7 @@ import type { CLISession, TerminalSession } from './terminal';
 import { isOnline } from '@/services/offline/online-status';
 import { isSandboxGoneError, isShellStartupError } from './errors';
 import { OfflineProvider } from './offline-provider';
+import { CloudProvider } from './cloud-provider';
 import { CLISessionImpl, CLISessionType } from './terminal';
 import { VercelBrowserProvider } from './vercel-browser-provider';
 
@@ -71,12 +72,26 @@ export class SessionManager {
     // Vercel may assign a new sandbox ID each session (and update the DB), so
     // this stays current even when the caller passes a stale branch.sandbox.id.
     private activeSandboxId: string | null = null;
+    private localPreviewStarted = false;
+
+    get isLocalPreviewStarted(): boolean {
+        return this.localPreviewStarted;
+    }
 
     constructor(
         private readonly branch: Branch,
         private readonly errorManager: ErrorManager,
     ) {
         makeAutoObservable(this);
+    }
+
+    installCloudProvider(provider: CloudProvider): void {
+        if (this.disposed) { void provider.destroy(); return; }
+        this.provider = provider;
+        this.isOffline = false;
+        this.isConnecting = false;
+        this.connectionError = null;
+        this.sandboxGone = false;
     }
 
     async start(sandboxId: string, _userId?: string): Promise<void> {
@@ -168,8 +183,9 @@ export class SessionManager {
             runInAction(() => {
                 this.provider = provider;
                 this.isOffline = false;
+                if (this.branch.runtime.type === 'local') this.localPreviewStarted = false;
             });
-            await this.createTerminalSessions(provider);
+            await this.createTerminalSessions(provider, this.branch.runtime.type !== 'local');
         };
 
         let lastError: Error | null = null;
@@ -276,6 +292,15 @@ export class SessionManager {
             });
             if (task) {
                 await task.restart();
+                if (this.branch.runtime.type === 'local') {
+                    this.localPreviewStarted = true;
+                    const serverSession = [...this.terminalSessions.values()].find(
+                        (session) => session.type === CLISessionType.TASK,
+                    );
+                    if (serverSession instanceof CLISessionImpl) {
+                        await serverSession.initTask();
+                    }
+                }
                 return true;
             }
             return false;
@@ -297,6 +322,9 @@ export class SessionManager {
     async readDevServerLogs(): Promise<string> {
         if (this.sandboxGone || !this.provider) {
             return 'Dev server not found';
+        }
+        if (this.branch.runtime.type === 'local' && !this.localPreviewStarted) {
+            return 'Local preview has not been started';
         }
         try {
             const result = await this.provider.getTask({ args: { id: 'dev' } });
@@ -323,7 +351,7 @@ export class SessionManager {
         return this.terminalSessions.get(id) as TerminalSession | undefined;
     }
 
-    async createTerminalSessions(provider: Provider) {
+    async createTerminalSessions(provider: Provider, startDevTask = true) {
         const task = new CLISessionImpl('server', CLISessionType.TASK, provider, this.errorManager);
         this.terminalSessions.set(task.id, task);
         const terminal = new CLISessionImpl(
@@ -340,9 +368,14 @@ export class SessionManager {
         // somewhere to type immediately instead of staring at a read-only log.
         this.activeTerminalSessionId = terminal.id;
 
-        // Initialize the sessions after creation
+        // Local folders open without starting a process or installing packages.
+        // The explicit Restart preview action starts the dev task later.
         try {
-            await Promise.all([task.initTask(), terminal.initTerminal()]);
+            if (startDevTask) {
+                await Promise.all([task.initTask(), terminal.initTerminal()]);
+            } else {
+                await terminal.initTerminal();
+            }
         } catch (error) {
             if (isSandboxGoneError(error)) {
                 runInAction(() => {
@@ -490,6 +523,10 @@ export class SessionManager {
     }
 
     async restartProvider(sandboxId: string, userId?: string) {
+        if (this.provider instanceof CloudProvider) {
+            await this.provider.reconnect();
+            return;
+        }
         if (!this.provider) {
             return;
         }
@@ -545,6 +582,9 @@ export class SessionManager {
         if (this.sandboxGone) return false;
         if (!this.provider) return false;
         try {
+            if (this.provider instanceof NodeFsProvider || this.provider instanceof CloudProvider) {
+                return await this.provider.ping();
+            }
             await this.provider.runCommand({ args: { command: 'echo "ping"' } });
             return true;
         } catch (error) {
@@ -656,6 +696,7 @@ export class SessionManager {
             this.connectionError = null;
             this.activeSandboxId = null;
             this.sandboxGone = false;
+            this.localPreviewStarted = false;
         });
         this.terminalSessions.clear();
     }

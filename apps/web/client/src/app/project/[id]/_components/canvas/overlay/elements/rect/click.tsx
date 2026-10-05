@@ -94,6 +94,8 @@ interface ClickRectProps extends RectDimensions {
     isComponent?: boolean;
     styles: DomElementStyles | null;
     shouldShowResizeHandles: boolean;
+    /** Padding/margin hatching + numbers. Only while Tab is held (see hotkeys). */
+    showSpacing: boolean;
 }
 
 export const ClickRect = ({
@@ -104,6 +106,7 @@ export const ClickRect = ({
     isComponent,
     styles,
     shouldShowResizeHandles,
+    showSpacing,
 }: ClickRectProps) => {
     const uid = useId();
     const renderMarginLabels = () => {
@@ -315,6 +318,11 @@ export const ClickRect = ({
     };
     const isBodyTag = styles?.computed?.display === 'contents' && width === 0 && height === 0;
     const shouldShowHandles = shouldShowResizeHandles && !isBodyTag;
+    // Canvas-space padding, so the corner-radius handle can stay inside the
+    // padding box instead of sitting on top of the element's content/text.
+    const paddingInset = styles?.computed.padding
+        ? parseCssBoxValues(styles.computed.padding).adjusted
+        : { top: 0, right: 0, bottom: 0, left: 0 };
 
     return (
         <BaseRect
@@ -325,8 +333,8 @@ export const ClickRect = ({
             isComponent={isComponent}
             strokeWidth={2}
         >
-            {renderMarginLabels()}
-            {renderPaddingLabels()}
+            {showSpacing && renderMarginLabels()}
+            {showSpacing && renderPaddingLabels()}
             {shouldShowHandles && (
                 <ResizeHandles
                     width={width}
@@ -336,6 +344,8 @@ export const ClickRect = ({
                     borderRadius={parseInt(styles?.computed.borderRadius ?? '0')}
                     isComponent={isComponent}
                     styles={styles?.computed ?? {}}
+                    paddingInset={paddingInset}
+                    forceShowRadius={showSpacing}
                 />
             )}
         </BaseRect>
