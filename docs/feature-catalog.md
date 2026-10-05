@@ -907,6 +907,15 @@ See F-151 to F-160. Plus:
 
 ---
 
+## 31. Site mode (local-app mode)
+
+> One build-time switch that turns weblab.build into a download page for the Mac app. Guide: [docs/guides/local-app-mode.md](docs/guides/local-app-mode.md).
+
+| ID | Tags | Path | Purpose |
+|---|---|---|---|
+| F-840 | `#public` `#auth-gated` `#convex` | [src/lib/site-mode.ts](apps/web/client/src/lib/site-mode.ts) + [convex/lib/signInAllowlist.ts](apps/web/client/convex/lib/signInAllowlist.ts) | `NEXT_PUBLIC_SITE_MODE=local`: hero becomes centered title + Download for Mac, sign-up/sign-in CTAs, pricing, CMS, publish, collaboration and cloud-only pages are hidden or redirected; sign-in limited to `WEBLAB_SIGN_IN_ALLOWLIST` (Next `getCurrentUser`, Convex `getOptionalUser`/`requireUserJIT`, invite-only panel on `/sign-in`). Default `cloud` changes nothing. |
+| F-841 | `#desktop` | [apps/desktop-local](apps/desktop-local/) | Weblab for Mac: local-first Electron app (canvas editor on your running site, driven by Claude Code; components, images, pages, multi-window). Imported HTML sketches expose native dropdown options for selection and styling in Edit mode. The app checks GitHub releases on launch and offers a manual update check. Own pnpm workspace, released as `desktop-local-v*` in this repo. Replaces the paused `apps/desktop`. |
+
 ## Change Protocol
 
 When you ship a feature, follow this protocol **before** opening a PR:
@@ -955,6 +964,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 | 2026-09-23 | F-786 | Explicit private-copy dependency install uses a frozen Bun lockfile with scripts disabled. Live project proof remains a release gate. |
 | 2026-09-23 | F-786, F-796 | Standard linked Git worktrees now get independent private copies and guarded patch handoff. A single npm v2/v3, Yarn v1, or pnpm v9 lock can be migrated only inside the private dependency setup. Focused native tests pass; packaged desktop proof remains open. |
 | 2026-09-23 | F-786 | Local visual styling is gated on a wired Tailwind v4 App Router source in the active private branch, with source-change invalidation. Other local CSS systems remain open for code/text edits. Focused web checks and live proof remain open. |
+| 2026-09-29 | F-841 | Mac editor adds Show/Hide for native dropdown options in Style, frame-coalesced canvas painting, and in-app checks for `desktop-local-v*` Mac releases. T-852. `#desktop`. |
 | 2026-07-07 | F-476 | Transcribe anti-spam cap moved from a per-process in-memory helper to a Convex-backed fleet-wide rolling-window limiter with bounded timestamp storage and daily stale-row cleanup. |
 | 2026-06-23 | F-081 | Production hydration fix: `clerk-auth-form` now normalizes blank `NEXT_PUBLIC_AUTH_PROVIDERS` to the documented `github,google` default so SSR and client render the same OAuth button list. |
 | 2026-06-23 | F-057, F-753 | Service worker v4: purge prior runtime caches and fetch Next build chunks network-first with cached fallback so returning users do not hydrate fresh HTML against stale Turbopack JS/CSS after deploys. |
@@ -1000,3 +1010,5 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 | 2026-10-03 | F-828 | Corrected inherited app cache/CSP in both review middleware branches. Actual private HTML/JS/CSS and denied/replayed/revoked/expired ticket proof passed. Customer popup and publication acceptance remain open; evening resources closed. |
 
 | 2026-10-05 | F-833, F-828, F-057, F-753, F-039 | Added direct private-review launch and public-only service-worker caching. Local browser/mounted proof passed with dummy issuance, production and real customer flow not yet accepted. Offline copy now requires connection to reopen projects. |
+| 2026-09-28 | F-840 | **Local-app mode**: `NEXT_PUBLIC_SITE_MODE=local` makes weblab.build promote only the Mac app (weblab-local): direct `.dmg` downloads, no sign-up, invite-only sign-in via `WEBLAB_SIGN_IN_ALLOWLIST`, cloud-only claims hidden, cloud pages redirected home. Nothing deleted; unset the var to restore. T-850. `#public` `#auth-gated`. |
+| 2026-09-28 | F-841 | **Weblab for Mac moved in**: `weblab-local` imported with history as `apps/desktop-local` (excluded from Bun workspaces, CI unit tests, Docker). `apps/desktop` marked paused. Mac app 0.2.0 released from this repo. `#desktop`. |

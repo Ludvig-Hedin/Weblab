@@ -97,6 +97,11 @@ The local runtime now copies an existing Git project into a private Weblab worki
 The opacity and layer visibility controls now use the source-backed action path. Static HTML style actions reject before history or preview changes. Queued style actions wait for their preview dispatch before transaction commit; responsive rebase starts after a successful commit, while a failed commit restores the preview. Local visual styling checks each private branch for wired Tailwind v4 App Router source and invalidates its capability when setup files change. Unsupported responsive font stacks and named tokens reject before source writes. Static HTML's CSS writer is deferred beyond the Tailwind Next.js first release. A focused web test was attempted through the machine guard, but the checkout lacks installed workspace dependencies. Live desktop QA has not run.
 
 The desktop release workflow now waits for matching version tags, all three platform builds, packaged Bun checks, Mac signing/notarization, and a complete DMG/ZIP/EXE/AppImage artifact set before publishing. These changes passed source review and light syntax checks, but CI has not run.
+## 2026-09-29 — Weblab for Mac HTML sketches
+
+The standalone `apps/desktop-local` editor now exposes JavaScript-created native select options through a Show/Hide control at the right of Style. Canvas pan/zoom transform writes are coalesced per animation frame. The desktop shell checks `desktop-local-v*` GitHub releases and offers a Mac DMG from its menu and top bar. Version 0.2.1 is the next planned Mac release; see `apps/desktop-local/apps/desktop/CHANGELOG.md` and `docs/guides/local-app-mode.md` for the release flow.
+
+Last updated: 2026-07-09.
 
 > **TL;DR for fresh sessions:** Weblab is on Clerk + Convex (not Supabase + tRPC) and
 > Vercel Sandbox (not CodeSandbox). Read [`agents-onboarding.md`](./agents-onboarding.md) for the

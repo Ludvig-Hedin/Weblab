@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 
 import { env } from '@/env';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { getCurrentUser } from '@/utils/auth/current-user';
 import { sanitizeReturnUrl } from '@/utils/auth/sanitize-return-url';
 import { Routes } from '@/utils/constants';
@@ -64,6 +66,15 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     // happens to render on `/sign-in` itself — can't trap the user in a
     // redirect loop.
     const user = await getCurrentUser();
+    // Local-app mode: a Clerk session whose email is not on the allowlist
+    // resolves to no user above. Show the invite-only panel instead of the
+    // form (Clerk would refuse a second sign-in while a session exists).
+    if (!user && IS_LOCAL_APP_MODE) {
+        const { userId } = await auth();
+        if (userId) {
+            return <SignInClient returnUrl={null} initialEmail={null} blocked />;
+        }
+    }
     if (user) {
         // Reject the sign-in/sign-up surfaces AND their sub-paths (e.g.
         // `/sign-in/verify`, `/sign-in/sso-callback`) — the old exact-match-only

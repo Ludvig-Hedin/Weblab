@@ -18,6 +18,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { LocalForageKeys } from '@/utils/constants';
 
 // Per-tab key used to hand the email off to /sign-in/verify without putting
@@ -261,13 +262,15 @@ export function ClerkAuthForm({
         return () => clearInterval(id);
     }, [cooldownSecondsRemaining]);
 
-    const showGithub = AUTH_PROVIDERS.has('github');
-    const showGoogle = AUTH_PROVIDERS.has('google');
+    // Local-app mode hides OAuth: it can create accounts without the
+    // email-code gate below. The owner signs in with an email code.
+    const showGithub = !IS_LOCAL_APP_MODE && AUTH_PROVIDERS.has('github');
+    const showGoogle = !IS_LOCAL_APP_MODE && AUTH_PROVIDERS.has('google');
     // Vercel is shown unconditionally — env-gating it requires touching
     // `NEXT_PUBLIC_AUTH_PROVIDERS` (other agent's WIP). Clerk must have
     // Vercel OAuth configured in its dashboard for the redirect to succeed;
     // if it isn't, the click surfaces the API error to `oauthError` below.
-    const showVercel = true;
+    const showVercel = !IS_LOCAL_APP_MODE;
     const hasOAuthProvider = showGithub || showGoogle || showVercel;
 
     // Desktop bridge surface — only present when running inside the Electron
@@ -486,6 +489,10 @@ export function ClerkAuthForm({
                 // email" error. Anything else (network, rate limit, identifier
                 // invalid) we propagate so the outer catch shows it.
                 if (code !== 'form_identifier_not_found') throw flowError;
+                // Local-app mode is invite-only: never create new accounts.
+                if (IS_LOCAL_APP_MODE) {
+                    throw { errors: [{ message: t('localApp.signIn.inviteOnly') }] };
+                }
                 await signUpResource.create({ emailAddress: normalizedEmail });
                 await signUpResource.prepareEmailAddressVerification({
                     strategy: 'email_code',

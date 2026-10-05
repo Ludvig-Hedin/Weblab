@@ -48,3 +48,6 @@ template-sources
 # Misc assets
 assets
 .vercel
+
+# Weblab for Mac: its own pnpm workspace, never part of the web image
+apps/desktop-local

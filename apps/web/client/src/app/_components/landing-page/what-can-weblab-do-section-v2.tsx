@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { Routes } from '@/utils/constants';
 import { DirectEditingInteractive } from '../shared/mockups/direct-editing-interactive';
 import { FeatureBackdrop } from './feature-backdrop';
@@ -1173,10 +1174,14 @@ const FEATURES: {
     },
 ];
 
-const VISIBLE_FEATURES = FEATURES.filter((f) => !f.v2);
+// Local-app mode also hides features the Mac app does not have yet (CMS).
+const VISIBLE_FEATURES = FEATURES.filter(
+    (f) => !f.v2 && !(IS_LOCAL_APP_MODE && f.key === 'cms'),
+);
 
 export function WhatCanWeblabDoSectionV2() {
     const t = useTranslations('landing.whatCanWeblabDoV2') as (key: string) => string;
+    const tLocal = useTranslations('localApp.nav');
     return (
         <section className="mx-auto w-full max-w-[1400px] px-4 py-32 sm:px-6 md:px-8">
             <motion.div
@@ -1196,10 +1201,10 @@ export function WhatCanWeblabDoSectionV2() {
                         {t('subhead')}
                     </p>
                     <Link
-                        href={Routes.PROJECTS}
+                        href={IS_LOCAL_APP_MODE ? LOCAL_APP_DOWNLOAD_URL : Routes.PROJECTS}
                         className="border-foreground/20 text-foreground hover:bg-background-secondary focus-visible:ring-foreground/40 focus-visible:ring-offset-background inline-flex h-9 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
-                        {t('cta')}
+                        {IS_LOCAL_APP_MODE ? tLocal('download') : t('cta')}
                         <Icons.ArrowRight className="h-4 w-4" />
                     </Link>
                 </div>

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
 import { CreateManagerProvider } from '@/components/store/create';
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { Routes } from '@/utils/constants';
 import { HeroV2 } from './hero-v2';
 import { ResponsiveMockupSection } from './landing-page/responsive-mockup-section';
@@ -60,11 +61,16 @@ export function HomePageClient() {
                 root layout (gated to public routes), so no per-page provider. */}
             <WebsiteLayout showFooter={true}>
                 {/* Crawlable internal links to primary keyword landing pages */}
-                <nav className="sr-only" aria-label="Solutions">
-                    <Link href="/website-builder">Website builder for React and Next.js teams</Link>
-                    <Link href="/visual-site-builder">Visual site builder for React</Link>
-                    <Link href="/ai-website-builder">AI website builder for your codebase</Link>
-                </nav>
+                {/* Local-app mode redirects these cloud pages home (next.config). */}
+                {!IS_LOCAL_APP_MODE && (
+                    <nav className="sr-only" aria-label="Solutions">
+                        <Link href="/website-builder">
+                            Website builder for React and Next.js teams
+                        </Link>
+                        <Link href="/visual-site-builder">Visual site builder for React</Link>
+                        <Link href="/ai-website-builder">AI website builder for your codebase</Link>
+                    </nav>
+                )}
                 <div className="flex w-full items-center justify-center pt-24" id="hero">
                     <HeroV2 />
                 </div>

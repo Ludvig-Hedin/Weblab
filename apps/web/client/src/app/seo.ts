@@ -1,5 +1,7 @@
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
+
 const baseUrl = `https://${APP_DOMAIN}`;
 
 export function absoluteUrl(path: string) {
@@ -92,7 +94,7 @@ export const websiteSchema = {
     },
 };
 
-export const softwareApplicationSchema = {
+const cloudSoftwareApplicationSchema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     '@id': `${baseUrl}/#software`,
@@ -138,6 +140,31 @@ export const softwareApplicationSchema = {
         '@id': `${baseUrl}/#organization`,
     },
 };
+
+// Local-app mode (docs/guides/local-app-mode.md): free Mac app, no plans.
+const localAppSoftwareApplicationSchema = {
+    ...cloudSoftwareApplicationSchema,
+    operatingSystem: 'macOS',
+    offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: `${baseUrl}/download`,
+    },
+    featureList: [
+        'Visual editor for your running website',
+        'Infinite canvas with device frames',
+        'Works with Claude Code, Codex and OpenCode',
+        'Edits your real source files',
+        'Free and open source',
+        'Local-first, no account needed',
+    ],
+};
+
+export const softwareApplicationSchema = IS_LOCAL_APP_MODE
+    ? localAppSoftwareApplicationSchema
+    : cloudSoftwareApplicationSchema;
 
 export function blogPostingSchema(post: {
     slug: string;

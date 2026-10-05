@@ -1,7 +1,9 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
+import { IS_LOCAL_APP_MODE, LOCAL_APP_DOWNLOAD_URL } from '@/lib/site-mode';
 import { ExternalRoutes } from '@/utils/constants';
 import { WebsiteLayout } from '../_components/website-layout';
 
@@ -31,6 +33,51 @@ function AppIcon() {
 }
 
 export default function DownloadPage() {
+    return IS_LOCAL_APP_MODE ? <LocalAppDownload /> : <CloudAppDownload />;
+}
+
+/** Local-app mode: one Apple Silicon Mac build (docs/guides/local-app-mode.md). */
+function LocalAppDownload() {
+    const t = useTranslations('localApp.downloadPage');
+    return (
+        <WebsiteLayout>
+            <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-6 pt-20 pb-20">
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                    className="flex flex-col items-center gap-6 text-center"
+                >
+                    <AppIcon />
+                    <div className="flex flex-col items-center gap-3">
+                        <h1 className="heading-style-h1 text-foreground-primary">{t('title')}</h1>
+                        <p className="text-foreground-secondary max-w-md text-base leading-relaxed">
+                            {t('description')}
+                        </p>
+                    </div>
+                    <div className="mt-1 flex flex-col items-center gap-3">
+                        <a
+                            href={LOCAL_APP_DOWNLOAD_URL}
+                            className="bg-foreground-primary text-background-primary hover:bg-foreground-primary/90 inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold transition-opacity"
+                        >
+                            {t('button')}
+                        </a>
+                    </div>
+                </motion.div>
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.35 }}
+                    className="text-foreground-tertiary absolute bottom-10 text-[11px]"
+                >
+                    {t('requirements')}
+                </motion.p>
+            </div>
+        </WebsiteLayout>
+    );
+}
+
+function CloudAppDownload() {
     return (
         <WebsiteLayout>
             <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-6 pt-20 pb-20">

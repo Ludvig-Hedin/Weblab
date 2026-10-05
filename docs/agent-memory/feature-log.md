@@ -101,6 +101,12 @@ Files: `apps/desktop/weblab-local.js`, `apps/desktop/preload.js`, `apps/desktop/
 Links: commit `69dda2e2a`; `docs/superpowers/plans/2026-09-23-paid-local-editing.md`
 
 ---
+## 2026-09-29 — Weblab for Mac HTML dropdowns and update checks (F-811)
+Author: Codex
+Area: `apps/desktop-local` editor and Mac shell
+Summary: Imported HTML sketches can show JavaScript-created native dropdown options in Edit mode and select one for Style edits. Canvas transform writes now happen once per frame. The Mac shell checks tagged releases at launch, shows an available-update notice, and offers a manual check in the app menu. Version 0.2.1; see T-852.
+Files: `apps/desktop-local/packages/overlay/src/inspector`, `apps/desktop-local/packages/overlay/src/canvas/viewport.ts`, `apps/desktop-local/apps/desktop`
+Links: `apps/desktop-local/apps/desktop/CHANGELOG.md`, `docs/guides/local-app-mode.md`
 
 ## 2026-07-09 — Editor quality audit: ~50 fixes across undo pipeline, text safety, recovery, panels
 Author: Claude (Fable 5)
@@ -1271,3 +1277,12 @@ Notable in-flight work as of this log's creation (see
 ## 2026-10-02 — Native customer readiness preparation, source only
 
 Private customer-copy proof, known-Sanity publication refusal, bounded owner/site/branch/writer code drafts, two-phase history/text close and failed responsive-intention retention are implemented and source-reviewed. Native CMS immutable snapshot v2 retains only validated public choice/reference/link rules; legacy v1 stays unchanged. Latest draft19, teardown19, text8, rebase9, CMS27 and policy/service/snapshot36 focused cases passed; final web-client typecheck passed. Focused lint has0 errors with warnings. No push/deploy/new installer/provider-write acceptance. Content UI, frozen customer runtime/assets and shared live coordinator remain blockers. Links: F-804–814, T-846–854, [comparison](../audits/desktop-client-readiness-2026-10-01.md), [next boundaries](../notes/2026-10-02-native-cms-publishing-next.md). No public release announcement yet.
+## 2026-09-28 — Local-app mode (F-810)
+
+- `NEXT_PUBLIC_SITE_MODE=local` turns weblab.build into a download page for the
+  new Mac app (weblab-local, repo `Ludvig-Hedin/airship`). Cloud app paused,
+  not removed. Default `cloud` changes nothing.
+- Invite-only sign-in via `WEBLAB_SIGN_IN_ALLOWLIST` (Railway + Convex env),
+  Clerk prod sign-up set to Restricted. Guide: `docs/guides/local-app-mode.md`.
+- Follow-ups: backlog 178 (move weblab-local into `apps/desktop-local`),
+  179 (SEO metadata still cloud-flavoured).

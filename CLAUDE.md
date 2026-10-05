@@ -281,6 +281,8 @@ Bun workspaces monorepo with four workspace directories:
 | Directory | Key Contents |
 |-----------|-------------|
 | `apps/web/client` | Next.js App Router frontend (primary app) |
+| `apps/desktop-local` | Weblab for Mac, the current desktop app. Its own pnpm/turbo workspace (not a Bun workspace); see `docs/guides/local-app-mode.md` |
+| `apps/desktop` | Paused old Electron shell around the cloud app |
 | `apps/web/server` | Fastify + tRPC WebSocket server (Bun runtime) |
 | `apps/backend` | Supabase CLI wrapper, Deno Edge Functions, DB migrations |
 | `docs/` | Fumadocs documentation site |

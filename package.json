@@ -14,7 +14,8 @@
         "packages/*",
         "apps/*",
         "tooling/*",
-        "apps/web/*"
+        "apps/web/*",
+        "!apps/desktop-local"
     ],
     "scripts": {
         "build": "bun --filter @weblab/web build:client",
