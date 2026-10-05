@@ -1,4 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
+import type { CodeFileSystem } from '@weblab/file-system';
 
 import type {
     ColorStyle,
@@ -10,6 +11,9 @@ import type {
 } from '@weblab/models/style';
 
 import type { EditorEngine } from '../engine';
+import { readProjectStylesheet } from '../code/project-breakpoints';
+import type { ColorClassBinding } from './color-binding';
+import { findColorClassBinding, replaceColorClass } from './color-binding';
 import { DEFAULT_GLOBALS_TOKENS_SCAFFOLD } from './scaffold';
 import {
     parseTokensFromGlobalsCss,
@@ -98,6 +102,13 @@ const TYPOGRAPHY_PROPERTIES = new Set([
 
 const VAR_REGEX = /var\(--([a-zA-Z0-9_-]+)\)/;
 
+interface CssSource {
+    content: string;
+    path: string;
+    branchId: string;
+    codeEditor: CodeFileSystem;
+}
+
 /**
  * Single owner of design-token state for the editor.
  *
@@ -116,6 +127,7 @@ export class TokensManager {
     /** Bumped on clear() so an in-flight scan can detect it was cancelled and
      * skip writing back stale registries. */
     private _scanGeneration = 0;
+    private _compatibilityAliases: Record<string, string> = {};
     /** Last scan error surfaced to UI (e.g. a banner above the tokens panel). */
     scanError: string | null = null;
 
@@ -150,19 +162,23 @@ export class TokensManager {
 
     private async runScan(): Promise<void> {
         const generation = this._scanGeneration;
-        const isCurrent = () => generation === this._scanGeneration;
+        const branchData = this.editorEngine.branches.activeBranchData;
+        const branchId = branchData.branch.id;
+        const isCurrent = () => generation === this._scanGeneration &&
+            this.editorEngine.branches.activeBranch.id === branchId;
         const resetState = () => {
             this.variables = [];
             this.colorStyles = [];
             this.textStyles = [];
             this._hasThemeBlock = false;
             this._hasDarkBlock = false;
+            this._compatibilityAliases = {};
         };
         try {
-            const path = await this.findGlobalsCssPath();
+            const path = await this.findGlobalsCssPath(branchId, branchData.codeEditor);
             if (!isCurrent()) return;
             const content =
-                path === null ? null : await this.editorEngine.activeSandbox.readFile(path);
+                path === null ? null : await branchData.codeEditor.readFile(path);
             if (!isCurrent()) return;
             runInAction(() => {
                 this._cssPath = path;
@@ -183,6 +199,7 @@ export class TokensManager {
                 this.textStyles = snap.textStyles;
                 this._hasThemeBlock = snap.hasThemeBlock;
                 this._hasDarkBlock = snap.hasDarkBlock;
+                this._compatibilityAliases = scan.compatibilityAliases;
                 this.scanError = null;
             });
         } catch (error) {
@@ -196,74 +213,57 @@ export class TokensManager {
         }
     }
 
-    private async findGlobalsCssPath(): Promise<string | null> {
-        try {
-            const list = await this.editorEngine.activeSandbox.listAllFiles();
-            const match = list.find((f) => f.path.endsWith('globals.css'));
-            return match?.path ?? null;
-        } catch {
-            return null;
-        }
+    private async findGlobalsCssPath(branchId = this.editorEngine.branches.activeBranch.id, capturedEditor?: CodeFileSystem): Promise<string | null> {
+        const codeEditor = capturedEditor ?? this.editorEngine.branches.getBranchDataById(branchId)?.codeEditor;
+        if (!codeEditor) return null;
+        return (await readProjectStylesheet((path) => codeEditor.readFile(path)))?.path ?? null;
     }
 
-    private async readCss(): Promise<string | null> {
-        if (!this._cssPath) await this.scan();
-        if (!this._cssPath) {
-            console.warn(
-                'TokensManager: globals.css not found — call scaffoldDefault() first or skip the token mutation',
-            );
-            return null;
-        }
-        const content = await this.editorEngine.activeSandbox.readFile(this._cssPath);
+    private async readCss(): Promise<CssSource | null> {
+        const branchData = this.editorEngine.branches.activeBranchData;
+        const branchId = branchData.branch.id;
+        const codeEditor = branchData.codeEditor;
+        await branchData.history.commitTransaction();
+        await branchData.history.waitForCommit();
+        const path = await this.findGlobalsCssPath(branchId, codeEditor);
+        if (!path) return null;
+        const content = await codeEditor.readFile(path);
         if (typeof content !== 'string') {
-            console.warn(`TokensManager: failed to read ${this._cssPath}`);
+            console.warn(`TokensManager: failed to read ${path}`);
             return null;
         }
-        return content;
+        return { content, path, branchId, codeEditor };
     }
 
-    private async writeCss(content: string): Promise<void> {
-        if (!this._cssPath) {
-            console.warn('TokensManager.writeCss: no _cssPath set — write skipped');
-            return;
-        }
-        await this.editorEngine.activeSandbox.writeFile(this._cssPath, content);
+    private async writeCss(content: string, source: CssSource): Promise<void> {
+        await this.editorEngine.code.saveSourceDiffs(source.branchId, [{
+            path: source.path, original: source.content, generated: content,
+        }], true, source.codeEditor);
     }
 
     /** Prepend the default token scaffold to globals.css if no `@theme` block exists. */
     async scaffoldDefault(): Promise<void> {
-        const path = await this.findGlobalsCssPath();
-        if (!path) {
-            console.warn('TokensManager.scaffoldDefault: no globals.css found');
-            return;
-        }
-        this._cssPath = path;
-        const existing = await this.editorEngine.activeSandbox.readFile(path);
-        // Bail if sandbox returned bytes — overwriting binary CSS with the
-        // scaffold + empty string would silently destroy the user's content.
-        if (existing != null && typeof existing !== 'string') {
-            console.warn(
-                `TokensManager.scaffoldDefault: ${path} returned non-string content, refusing to overwrite`,
-            );
-            return;
-        }
-        const existingStr = existing ?? '';
+        const source = await this.readCss();
+        if (!source) return;
+        const existing = source.content;
+        const existingStr = existing;
         if (existingStr.includes('@theme')) {
             await this.scan();
             return;
         }
         const next = `${DEFAULT_GLOBALS_TOKENS_SCAFFOLD}\n${existingStr}`;
-        await this.editorEngine.activeSandbox.writeFile(path, next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
     // ── Variables CRUD ───────────────────────────────────────────────────────
     async addVariable(input: { name: string; light: string; dark?: string | null }): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         let next = await setThemeVariable(css, input.name, input.light);
         if (input.dark != null) next = await setDarkVariable(next, input.name, input.dark);
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
@@ -271,8 +271,9 @@ export class TokensManager {
         name: string,
         update: { light?: string; dark?: string | null },
     ): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         let next = css;
         if (update.light !== undefined) {
             next = await setThemeVariable(next, name, update.light);
@@ -280,23 +281,25 @@ export class TokensManager {
         if (update.dark !== undefined) {
             next = await setDarkVariable(next, name, update.dark);
         }
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
     async renameVariable(oldName: string, newName: string): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         const next = await renameThemeVariable(css, oldName, newName);
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
     async deleteVariable(name: string): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         const next = await removeThemeVariable(css, name);
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
@@ -347,10 +350,11 @@ export class TokensManager {
 
     // ── Text Styles CRUD ─────────────────────────────────────────────────────
     async addTextStyle(input: { name: string; applyClasses: string[] }): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         const next = await setTextStyleUtility(css, input.name, input.applyClasses);
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
@@ -359,21 +363,23 @@ export class TokensManager {
     }
 
     async renameTextStyle(oldName: string, newName: string): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         const existing = this.textStyles.find((t) => t.name === oldName);
         if (!existing) return;
         let next = await removeTextStyleUtility(css, oldName);
         next = await setTextStyleUtility(next, newName, existing.applyClasses);
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
     async deleteTextStyle(name: string): Promise<void> {
-        const css = await this.readCss();
-        if (css == null) return;
+        const source = await this.readCss();
+        if (!source) return;
+        const css = source.content;
         const next = await removeTextStyleUtility(css, name);
-        await this.writeCss(next);
+        await this.writeCss(next, source);
         await this.scan();
     }
 
@@ -410,21 +416,42 @@ export class TokensManager {
         let current: string | null = varName;
         while (current && !seen.has(current)) {
             seen.add(current);
+            const alias: string | undefined = this._compatibilityAliases[current];
+            if (alias) {
+                current = alias;
+                continue;
+            }
             const v = this.variables.find((x) => x.name === current);
-            if (!v) return null;
-            const m = VAR_REGEX.exec(v.light.trim());
-            if (!m?.[1]) return v.light;
+            const style = this.colorStyles.find((x) => x.name === current);
+            const value = v?.light ?? (style?.refLight.type === 'var'
+                ? `var(--${style.refLight.var})`
+                : style?.refLight.value);
+            if (value === undefined) return null;
+            const m = VAR_REGEX.exec(value.trim());
+            if (!m?.[1]) return value;
             current = m[1];
         }
         return null;
     }
 
     resolveVariableByName(name: string): VariableToken | null {
-        return this.variables.find((v) => v.name === name) ?? null;
+        const canonical = this.canonicalVariableName(name);
+        return this.variables.find((v) => v.name === canonical) ?? null;
     }
 
     resolveColorStyleByName(name: string): ColorStyle | null {
-        return this.colorStyles.find((s) => s.name === name) ?? null;
+        const canonical = this.canonicalVariableName(name);
+        return this.colorStyles.find((s) => s.name === canonical) ?? null;
+    }
+
+    private canonicalVariableName(name: string): string {
+        const seen = new Set<string>();
+        let current = name;
+        while (this._compatibilityAliases[current] && !seen.has(current)) {
+            seen.add(current);
+            current = this._compatibilityAliases[current]!;
+        }
+        return current;
     }
 
     /** Detect a `var(--…)` reference inside any value (inline or arbitrary class). */
@@ -433,7 +460,7 @@ export class TokensManager {
         const m = VAR_REGEX.exec(value);
         if (!m?.[1]) return null;
         const resolved = this.resolveVariableValue(m[1]);
-        return { varName: m[1], resolved: resolved ?? value };
+        return { varName: this.canonicalVariableName(m[1]), resolved: resolved ?? value };
     }
 
     /** Detect a known `text-style-*` class name in a className string. */
@@ -523,6 +550,43 @@ export class TokensManager {
         };
     }
 
+    /** Names of every color token in globals.css: plain colors and aliases. */
+    get colorVariableNames(): Set<string> {
+        return new Set([
+            ...this.variables.filter((v) => v.group === 'color').map((v) => v.name),
+            ...this.colorStyles.map((s) => s.name),
+            ...Object.keys(this._compatibilityAliases).filter((name) => name.startsWith('color-')),
+        ]);
+    }
+
+    /** The color variable a Tailwind class binds `property` to, if any. */
+    detectColorClassBinding(property: string, className: string): ColorClassBinding | null {
+        return findColorClassBinding(property, className, this.colorVariableNames);
+    }
+
+    /**
+     * Swap the base color class for `property` on every selected element.
+     * `nextClass` null just removes it. Used to bind a variable (`bg-brand`)
+     * and to detach one (`bg-[#FF0000]`).
+     */
+    async setColorClassOnSelected(property: string, nextClass: string | null): Promise<void> {
+        const names = this.colorVariableNames;
+        const selected = this.editorEngine.elements.selected.filter((el) => !!el.oid);
+        const updates = selected.map((el) => ({
+            el,
+            nextClassName: replaceColorClass(property, el.className ?? '', nextClass, names).trim(),
+        }));
+        await this.editorEngine.code.updateElementsMetadata(updates.map(({ el, nextClassName }) => ({
+                    oid: el.oid!,
+                    branchId: el.branchId,
+                    attributes: { className: nextClassName },
+                    overrideClasses: true,
+        })));
+        runInAction(() => {
+            for (const { el, nextClassName } of updates) el.className = nextClassName;
+        });
+    }
+
     /**
      * Apply (or unbind) a Text Style to every selected element.
      *
@@ -549,18 +613,17 @@ export class TokensManager {
                     nextClassName: filtered.join(' ').trim(),
                 };
             });
-        // Run in parallel — any failure rejects the whole call so callers can
-        // surface a single error rather than silently leaving partial state.
-        await Promise.all(
-            updates.map(({ el, nextClassName }) =>
-                this.editorEngine.code.updateElementMetadata({
+        await this.editorEngine.code.updateElementsMetadata(
+            updates.map(({ el, nextClassName }) => ({
                     oid: el.oid!,
                     branchId: el.branchId,
                     attributes: { className: nextClassName },
                     overrideClasses: true,
-                }),
-            ),
+            })),
         );
+        runInAction(() => {
+            for (const { el, nextClassName } of updates) el.className = nextClassName;
+        });
     }
 
     /**
@@ -579,8 +642,9 @@ export class TokensManager {
         const groups = theme.colorGroups;
         if (!this._hasThemeBlock) await this.scaffoldDefault();
         else await this.scan();
-        let css = await this.readCss();
-        if (css == null) return { migrated: 0, skipped: 0 };
+        const source = await this.readCss();
+        if (!source) return { migrated: 0, skipped: 0 };
+        let css = source.content;
 
         const existing = new Set<string>([
             ...this.variables.map((v) => v.name),
@@ -604,7 +668,7 @@ export class TokensManager {
             }
         }
         if (migrated > 0) {
-            await this.writeCss(css);
+            await this.writeCss(css, source);
             await this.scan();
         }
         return { migrated, skipped };
@@ -619,6 +683,7 @@ export class TokensManager {
         this._hasThemeBlock = false;
         this._hasDarkBlock = false;
         this._cssPath = null;
+        this._compatibilityAliases = {};
         this.scanError = null;
     }
 }

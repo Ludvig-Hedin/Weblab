@@ -29,9 +29,16 @@ import { mapSandboxProvisionError } from './lib/sandboxErrors';
 // navigates into the standard editor at /project/<newId>.
 // =============================================================================
 
+function requireCloudWireframeRelease(): void {
+    throw new ConvexError('Cloud wireframe export is unavailable in the local release.');
+}
+
 export const emitToCloud = action({
     args: { docId: v.id('wireframeDocs') },
     handler: async (ctx, { docId }): Promise<{ projectId: string }> => {
+        // Local handoff cannot atomically emit this multi-file project yet.
+        // Do not provision a paid sandbox as a fallback.
+        requireCloudWireframeRelease();
         const me = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 

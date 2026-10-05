@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 
 import { Icons } from '@weblab/ui/icons';
 import { NodeIcon } from '@weblab/ui/node-icon';
@@ -3470,7 +3471,7 @@ export function WeblabInterfaceMockup() {
                                                 aria-label="Send"
                                                 className="bg-foreground text-background hover:bg-foreground/90 flex h-6 w-6 items-center justify-center rounded-full"
                                             >
-                                                <Icons.ArrowRight className="h-3 w-3" />
+                                                <ArrowRight className="h-3 w-3" strokeWidth={2} />
                                             </button>
                                         </div>
                                     </div>

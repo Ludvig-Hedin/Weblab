@@ -7,16 +7,24 @@ import { z } from 'zod';
 
 import type { ChatModel } from '@weblab/models';
 import { createInlineEditStream, inferProviderFromModelId } from '@weblab/ai';
+import { AUTO_MODEL_ID, DEFAULT_INLINE_EDIT_MODEL } from '@weblab/models';
 
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { env } from '@/env';
 import {
+    aiDisabledResponse,
     checkMessageLimit,
     decrementUsage,
+    enforceAiGuards,
     getSupabaseUser,
     incrementUsage,
+    isAllowedHostedEditorModel,
     reconcileUsageCost,
+    unsupportedModelResponse,
+    usageUnavailableResponse,
 } from '../../chat/helpers';
+
+export const maxDuration = 60;
 
 const ALLOWED_OLLAMA_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
@@ -91,6 +99,8 @@ function validateInlineEditPayload(body: InlineEditBody): string | null {
 }
 
 export async function POST(req: NextRequest) {
+    const paused = aiDisabledResponse();
+    if (paused) return paused;
     const user = await getSupabaseUser(req);
     if (!user) {
         return new Response(JSON.stringify({ error: 'Unauthorized', code: 401 }), {
@@ -175,8 +185,12 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    if (body.model) {
-        const provider = inferProviderFromModelId(body.model);
+    // `auto` / unset → the default inline-edit model (OpenRouter's own `auto`
+    // router is unpriced, so it must never reach the provider).
+    const effectiveModel: ChatModel =
+        !body.model || body.model === AUTO_MODEL_ID ? DEFAULT_INLINE_EDIT_MODEL : body.model;
+    {
+        const provider = inferProviderFromModelId(effectiveModel);
         if (provider !== 'openrouter' && provider !== 'ollama') {
             return new Response(
                 JSON.stringify({
@@ -186,9 +200,18 @@ export async function POST(req: NextRequest) {
                 { status: 501, headers: { 'Content-Type': 'application/json' } },
             );
         }
+        // Same curated, priced line-up as /api/chat (no unpriced slugs).
+        if (provider === 'openrouter' && !isAllowedHostedEditorModel(effectiveModel)) {
+            return unsupportedModelResponse();
+        }
     }
 
-    const isLocalModel = typeof body.model === 'string' && body.model.startsWith('ollama/');
+    // Runaway safeguards (shared LLM bucket): budgets, spend caps, rate limit,
+    // and the Pro-only model rule (403 `pro_model_required`).
+    const guard = await enforceAiGuards({ bucket: 'llm', model: effectiveModel });
+    if (!guard.ok) return guard.response;
+
+    const isLocalModel = effectiveModel.startsWith('ollama/');
     const traceId = uuidv4();
 
     let usageRecord: {
@@ -216,10 +239,15 @@ export async function POST(req: NextRequest) {
             if (incrementResult && 'limitReached' in incrementResult) {
                 // PRO bucket exhausted under concurrency — refuse before
                 // streaming. The increment mutation rolled back, nothing to refund.
+                await guard.release();
                 return new Response(
                     JSON.stringify({ error: 'Credit limit exceeded.', code: 402 }),
                     { status: 402, headers: { 'Content-Type': 'application/json' } },
                 );
+            }
+            if (incrementResult && 'incrementFailed' in incrementResult) {
+                await guard.release();
+                return usageUnavailableResponse();
             }
             usageRecord = incrementResult;
         }
@@ -231,7 +259,7 @@ export async function POST(req: NextRequest) {
             selection: body.selection,
             after: body.after ?? '',
             instruction: body.instruction,
-            model: body.model,
+            model: effectiveModel,
             ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
             userId: user.id,
             projectId: body.projectId,

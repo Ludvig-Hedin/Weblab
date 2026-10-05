@@ -8,6 +8,7 @@ import { ScrollArea } from '@weblab/ui/scroll-area';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { PropertySearch } from './controls';
 import { useResetHotkey } from './hooks/use-reset-hotkey';
 import { useSectionState } from './hooks/use-section-state';
@@ -81,7 +82,7 @@ export const StyleTabV4 = observer(function StyleTabV4() {
     // hosts Layout guide controls. Mirrors Figma: selecting a frame swaps the
     // right panel from element-style to frame-style without unmounting the
     // whole tab.
-    if (!selected && selectedFrame) {
+    if (!selected && selectedFrame && EDITOR_SCOPE.layoutGuides) {
         return <FrameSettingsPanel frame={selectedFrame.frame} />;
     }
 
@@ -111,8 +112,8 @@ export const StyleTabV4 = observer(function StyleTabV4() {
                     onValueChange={setOpen}
                     className="w-full max-w-full min-w-0 px-0 pb-6"
                 >
-                    <ComponentInstanceSection />
-                    <ComponentMasterSection />
+                    {EDITOR_SCOPE.components && <ComponentInstanceSection />}
+                    {EDITOR_SCOPE.components && <ComponentMasterSection />}
                     <ElementSection />
                     <PositionSection />
                     <LayoutSection />
@@ -120,12 +121,12 @@ export const StyleTabV4 = observer(function StyleTabV4() {
                     <TextSection />
                     <BackgroundSection />
                     <BorderSection />
-                    <EffectsSection />
-                    <TransitionsSection />
-                    <TransformsSection />
-                    <CursorSection />
+                    {EDITOR_SCOPE.advancedCss && <EffectsSection />}
+                    {EDITOR_SCOPE.advancedCss && <TransitionsSection />}
+                    {EDITOR_SCOPE.advancedCss && <TransformsSection />}
+                    {EDITOR_SCOPE.advancedCss && <CursorSection />}
                     <StylesSection />
-                    <AdvancedSection />
+                    {EDITOR_SCOPE.advancedCss && <AdvancedSection />}
                 </Accordion>
             </ScrollArea>
         </div>

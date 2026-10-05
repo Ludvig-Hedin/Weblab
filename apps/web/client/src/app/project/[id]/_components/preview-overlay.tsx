@@ -21,6 +21,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
+import { authenticatedPreviewUrl } from '@/lib/cloud-editor/preview-url';
 import { openPreviewWindow, toPreviewableUrl } from './canvas/frame/preview-url';
 import { FIX_ERRORS_EVENT } from './right-panel/chat-tab/error';
 import { PublishButton } from './top-bar/publish';
@@ -215,7 +217,7 @@ function BuildErrorPanel({
                         Retry
                     </Button>
                     <div className="flex-1" />
-                    <Button
+                    {EDITOR_SCOPE.aiChat && <Button
                         size="sm"
                         variant="ghost"
                         onClick={onFixWithAI}
@@ -223,7 +225,7 @@ function BuildErrorPanel({
                     >
                         <Icons.MagicWand className="h-3 w-3" />
                         Fix with AI
-                    </Button>
+                    </Button>}
                 </div>
             </div>
         </div>
@@ -371,6 +373,8 @@ function DragHandle({
 export const PreviewOverlay = observer(() => {
     const editorEngine = useEditorEngine();
     const [reloadKey, setReloadKey] = useState(0);
+    // Fade the site in once it has loaded instead of flashing a blank frame.
+    const [iframeLoaded, setIframeLoaded] = useState(false);
     const [size, setSize] = useState<PreviewSize | null>(null);
     const [fullscreen, setFullscreen] = useState(false);
     const previewAreaRef = useRef<HTMLDivElement>(null);
@@ -388,7 +392,13 @@ export const PreviewOverlay = observer(() => {
         allFrames.find((data) => data?.selected)?.frame ?? allFrames[0]?.frame ?? null;
     // Dynamic-route segments (`[slug]`) aren't real URLs — same substitution as
     // the per-frame "open in new tab" link uses.
-    const previewUrl = sourceFrame ? toPreviewableUrl(sourceFrame.url) : null;
+    const rawPreviewUrl = sourceFrame ? toPreviewableUrl(sourceFrame.url) : null;
+    const cloudSource = sourceFrame
+        ? editorEngine.branches.getSandboxById(sourceFrame.branchId)?.cloudSource
+        : null;
+    const previewUrl = cloudSource
+        ? authenticatedPreviewUrl(rawPreviewUrl, cloudSource.state.runtime)
+        : rawPreviewUrl;
 
     const groupBreakpoints: GroupBreakpoint[] = sourceFrame
         ? editorEngine.frames.getByGroupId(sourceFrame.groupId).map((data) => ({
@@ -465,7 +475,10 @@ export const PreviewOverlay = observer(() => {
     }, [size]);
 
     const handleClose = () => editorEngine.state.setEditorMode(EditorMode.DESIGN);
-    const handleReload = () => setReloadKey((k) => k + 1);
+    const handleReload = () => {
+        setIframeLoaded(false);
+        setReloadKey((k) => k + 1);
+    };
     const handleToggleFullscreen = () => setFullscreen((v) => !v);
     const handlePopOut = () => {
         if (sourceFrame) openPreviewWindow(editorEngine.projectId, sourceFrame.url, 'window');
@@ -622,7 +635,10 @@ export const PreviewOverlay = observer(() => {
         <div className="bg-background-canvas fixed inset-0 z-[60] flex flex-col">
             {/* Preview chrome: matches bottom-bar styling so the preview reads as
                 a tool surface, not a website chrome. */}
-            <header className="bg-background-chrome border-border-bar flex h-14 items-center gap-2 border-b px-4">
+            {/* desktop-drag-region: in the desktop app this clears the macOS
+                window buttons (so they no longer cover Close) and lets the
+                bar drag the window. */}
+            <header className="bg-background-chrome border-border-bar desktop-drag-region flex h-14 items-center gap-2 border-b px-4">
                 <div className="flex flex-1 items-center gap-1">
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -845,7 +861,11 @@ export const PreviewOverlay = observer(() => {
                             key={reloadKey}
                             title="Site preview"
                             src={previewUrl}
-                            className="h-full w-full border-0"
+                            onLoad={() => setIframeLoaded(true)}
+                            className={cn(
+                                'h-full w-full border-0 transition-opacity duration-200 ease-out',
+                                iframeLoaded ? 'opacity-100' : 'opacity-0',
+                            )}
                         />
                         {!fullscreen && (
                             <DragHandle

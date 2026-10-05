@@ -57,7 +57,10 @@ interface CssScanResult {
     hasThemeBlock: boolean;
     hasRootBlock: boolean;
     hasDarkBlock: boolean;
+    compatibilityAliases: Record<string, string>;
 }
+
+const COMPATIBILITY_ALIAS_MARKER = 'weblab-compat-alias';
 
 /**
  * Walk a `globals.css` file and extract:
@@ -75,6 +78,7 @@ export function parseTokensFromGlobalsCss(cssContent: string): CssScanResult {
         hasThemeBlock: false,
         hasRootBlock: false,
         hasDarkBlock: false,
+        compatibilityAliases: {},
     };
 
     let root: Root;
@@ -84,6 +88,18 @@ export function parseTokensFromGlobalsCss(cssContent: string): CssScanResult {
         console.error('parseTokensFromGlobalsCss: failed to parse css', error);
         return result;
     }
+
+    root.walkDecls(VAR_PREFIX, (decl) => {
+        const marker = decl.prev();
+        if (marker?.type !== 'comment') return;
+        const match = /^weblab-compat-alias --([\w-]+) -> --([\w-]+)( inline)?$/.exec(marker.text.trim());
+        let targetValue: string | undefined;
+        decl.parent?.walkDecls(`--${match?.[2] ?? ''}`, (target) => { targetValue = target.value; });
+        if (match?.[1] && match[2] && decl.prop === `--${match[1]}` &&
+            (match[3] ? targetValue === decl.value : decl.value.trim() === `var(--${match[2]})`)) {
+            result.compatibilityAliases[match[1]] = match[2];
+        }
+    });
 
     root.walkAtRules('theme', (atRule: AtRule) => {
         result.hasThemeBlock = true;
@@ -243,14 +259,16 @@ export function snapshotFromScan(scan: CssScanResult): TokensSnapshot {
     const colorStyles: ColorStyle[] = [];
 
     const merged = new Map<string, { source: 'theme-block' | 'root'; light: string }>();
-    for (const [name, entry] of Object.entries(scan.rootBlock)) {
-        merged.set(name, { source: 'root', light: entry.value });
-    }
     for (const [name, entry] of Object.entries(scan.themeBlock)) {
         merged.set(name, { source: 'theme-block', light: entry.value });
     }
+    // Authored :root values override Tailwind's generated theme-layer defaults.
+    for (const [name, entry] of Object.entries(scan.rootBlock)) {
+        merged.set(name, { source: 'root', light: entry.value });
+    }
 
     for (const [name, info] of merged) {
+        if (scan.compatibilityAliases[name]) continue;
         const dark = scan.darkBlock[name]?.value ?? null;
         // A theme entry whose light value is `var(--foo)` is treated as a
         // Color Style (semantic alias) rather than a raw Variable.
@@ -341,19 +359,33 @@ function ensureBlock(root: Root, kind: 'theme-block' | 'root' | 'dark'): AtRule 
 }
 
 function setVarOnNode(node: AtRule | Rule, name: string, value: string) {
-    // Update the first declaration; remove any later duplicates so we don't
-    // leave stale shadow values that the cascade would prefer.
-    let firstSeen = false;
+    // Keep author ordering, comments and !important while ensuring no later
+    // declaration in this same scope shadows the newly chosen value.
+    let found = false;
     node.walkDecls(`--${name}`, (decl) => {
-        if (!firstSeen) {
-            decl.value = value;
-            firstSeen = true;
-            return;
-        }
-        decl.remove();
+        decl.value = value;
+        found = true;
     });
-    if (!firstSeen) {
+    if (!found) {
         node.append({ prop: `--${name}`, value });
+    }
+    // @theme inline emits the declaration's value directly into utilities.
+    // Its compatibility aliases retain that value instead of introducing a
+    // root-resolved var() indirection that would break dark descendant scopes.
+    const updatedNames = new Set([name]);
+    let added = true;
+    while (added) {
+        added = false;
+        node.walkDecls(VAR_PREFIX, (decl) => {
+            const marker = decl.prev();
+            if (marker?.type !== 'comment') return;
+            const match = /^weblab-compat-alias --([\w-]+) -> --([\w-]+) inline$/.exec(marker.text.trim());
+            if (match?.[1] && match[2] && updatedNames.has(match[2]) && !updatedNames.has(match[1])) {
+                decl.value = value;
+                updatedNames.add(match[1]);
+                added = true;
+            }
+        });
     }
 }
 
@@ -363,7 +395,7 @@ function removeVarFromNode(node: AtRule | Rule, name: string) {
     });
 }
 
-/** Adds or updates a `--name` declaration inside `@theme { ... }`, creating the block if needed. */
+/** Update existing light declarations in their authored scopes; new tokens go in @theme. */
 export async function setThemeVariable(
     cssContent: string,
     name: string,
@@ -373,8 +405,19 @@ export async function setThemeVariable(
         {
             postcssPlugin: 'set-theme-var',
             Once(root: Root) {
-                const block = ensureBlock(root, 'theme-block');
-                setVarOnNode(block, name, light);
+                const blocks = new Set<AtRule | Rule>();
+                root.walkDecls(`--${name}`, (decl) => {
+                    const parent = decl.parent;
+                    if (parent?.type === 'atrule' && parent.name === 'theme') blocks.add(parent);
+                    if (parent?.type === 'rule' && ruleHasSelector(parent, ':root')) {
+                        if (ruleHasSelector(parent, '.dark')) {
+                            throw new Error('This variable shares a light and dark declaration. Edit it in code.');
+                        }
+                        blocks.add(parent);
+                    }
+                });
+                if (blocks.size === 0) blocks.add(ensureBlock(root, 'theme-block'));
+                for (const block of blocks) setVarOnNode(block, name, light);
             },
         },
     ]);
@@ -390,14 +433,23 @@ export async function setDarkVariable(
         {
             postcssPlugin: 'set-dark-var',
             Once(root: Root) {
+                const blocks = new Set<Rule>();
+                root.walkRules((rule) => {
+                    if (!ruleHasSelector(rule, '.dark')) return;
+                    let contains = false;
+                    rule.walkDecls(`--${name}`, () => { contains = true; });
+                    if (!contains) return;
+                    if (ruleHasSelector(rule, ':root')) {
+                        throw new Error('This variable shares a light and dark declaration. Edit it in code.');
+                    }
+                    blocks.add(rule);
+                });
                 if (dark == null) {
-                    root.walkRules((rule) => {
-                        if (ruleHasSelector(rule, '.dark')) removeVarFromNode(rule, name);
-                    });
+                    for (const block of blocks) removeVarFromNode(block, name);
                     return;
                 }
-                const block = ensureBlock(root, 'dark') as Rule;
-                setVarOnNode(block, name, dark);
+                if (blocks.size === 0) blocks.add(ensureBlock(root, 'dark') as Rule);
+                for (const block of blocks) setVarOnNode(block, name, dark);
             },
         },
     ]);
@@ -420,53 +472,80 @@ export async function removeThemeVariable(cssContent: string, name: string): Pro
     ]);
 }
 
-/**
- * Renames a token across `@theme`, `:root`, `.dark` AND any `var(--<old>)`
- * usages and `@apply -<old>` references inside the same stylesheet.
- */
+/** Keep existing source and computed Tailwind references working after rename. */
 export async function renameThemeVariable(
     cssContent: string,
     oldName: string,
     newName: string,
 ): Promise<string> {
     if (oldName === newName) return cssContent;
+    const validName = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+    if (!validName.test(oldName) || !validName.test(newName)) {
+        throw new Error('Use a variable name made of letters, numbers, underscores and hyphens.');
+    }
     return processCss(cssContent, [
         {
             postcssPlugin: 'rename-theme-var',
             Once(root: Root) {
-                const renameDecl = (node: AtRule | Rule) => {
-                    node.walkDecls(`--${oldName}`, (decl) => {
-                        decl.prop = `--${newName}`;
-                    });
-                };
-                root.walkAtRules('theme', renameDecl);
+                let collision = false;
+                root.walkDecls(`--${newName}`, () => { collision = true; });
+                if (collision) throw new Error('A variable with that name already exists.');
+
+                const blocks: Array<AtRule | Rule> = [];
+                root.walkAtRules('theme', (at) => { blocks.push(at); });
                 root.walkRules((r) => {
                     if (ruleHasSelector(r, ':root') || ruleHasSelector(r, '.dark')) {
-                        renameDecl(r);
+                        blocks.push(r);
                     }
                 });
+                const declarations: Declaration[] = [];
+                for (const block of blocks) {
+                    block.walkDecls(`--${oldName}`, (decl) => { declarations.push(decl); });
+                }
+                if (declarations.length === 0) throw new Error('The variable no longer exists.');
+                for (const decl of new Set(declarations)) {
+                    const inline = decl.parent?.type === 'atrule' && decl.parent.name === 'theme' &&
+                        /(?:^|\s)inline(?:\s|$)/.test(decl.parent.params);
+                    decl.cloneBefore({ prop: `--${newName}` });
+                    decl.before(postcss.comment({
+                        text: `${COMPATIBILITY_ALIAS_MARKER} --${oldName} -> --${newName}${inline ? ' inline' : ''}`,
+                    }));
+                    if (!inline) decl.value = `var(--${newName})`;
+                }
 
-                const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const oldVar = new RegExp(`var\\(--${escaped}\\)`, 'g');
-                root.walkDecls((decl) => {
-                    if (decl.value.includes(`var(--${oldName})`)) {
-                        decl.value = decl.value.replace(oldVar, `var(--${newName})`);
+                // Validate each light/dark graph. An alias through another
+                // variable may otherwise introduce a cycle even without a
+                // direct var(--oldName) in the renamed declaration.
+                const light = new Map<string, string>();
+                const dark: Array<AtRule | Rule> = [];
+                for (const block of blocks) {
+                    if (block.type === 'rule' && ruleHasSelector(block, '.dark')) {
+                        dark.push(block);
+                    } else {
+                        block.walkDecls(VAR_PREFIX, (decl) => { light.set(decl.prop.slice(2), decl.value); });
                     }
-                });
-
-                // Match each whitespace-separated token whole, then rewrite
-                // only its trailing `-<oldName>` suffix. Prevents partial
-                // matches like `bg-red-500` becoming `bg-<new>-500` when
-                // renaming `red`.
-                root.walkAtRules('apply', (apply) => {
-                    const suffix = `-${oldName}`;
-                    apply.params = apply.params
-                        .split(/\s+/)
-                        .map((t) =>
-                            t.endsWith(suffix) ? `${t.slice(0, -suffix.length)}-${newName}` : t,
-                        )
-                        .join(' ');
-                });
+                }
+                const assertNoCycle = (values: Map<string, string>) => {
+                    const visiting = new Set<string>();
+                    const visited = new Set<string>();
+                    const visit = (name: string) => {
+                        if (visiting.has(name)) throw new Error('This rename would create a variable cycle.');
+                        if (visited.has(name)) return;
+                        visiting.add(name);
+                        for (const match of (values.get(name) ?? '').matchAll(/var\(\s*--([\w-]+)/g)) {
+                            if (match[1]) visit(match[1]);
+                        }
+                        visiting.delete(name);
+                        visited.add(name);
+                    };
+                    visit(newName);
+                };
+                assertNoCycle(light);
+                for (const block of dark) {
+                    const values = new Map(light);
+                    block.walkDecls(VAR_PREFIX, (decl) => { values.set(decl.prop.slice(2), decl.value); });
+                    assertNoCycle(values);
+                }
             },
         },
     ]);

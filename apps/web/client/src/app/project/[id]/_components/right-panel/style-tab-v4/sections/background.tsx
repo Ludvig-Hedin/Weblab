@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
-    ColorPickerInline,
-    ColorRow,
+    BoundColorRow,
     FlowSegment,
     GroupShell,
     IconBgGradient,
@@ -60,7 +60,9 @@ export const BackgroundSection = observer(function BackgroundSection() {
 
     const BG_TYPE_OPTIONS = [
         { value: 'solid', label: t('background.solid'), icon: <IconBgSolid /> },
-        { value: 'gradient', label: t('background.gradient'), icon: <IconBgGradient /> },
+        ...(EDITOR_SCOPE.advancedCss
+            ? [{ value: 'gradient', label: t('background.gradient'), icon: <IconBgGradient /> }]
+            : []),
         { value: 'image', label: t('background.image'), icon: <IconBgImage /> },
         { value: 'none', label: t('background.none'), icon: <IconBgNone /> },
     ] as const;
@@ -190,15 +192,11 @@ export const BackgroundSection = observer(function BackgroundSection() {
                 {/* Solid — color row */}
                 {type === 'solid' && (
                     <GroupShell label={t('background.color')}>
-                        <ColorRow
+                        <BoundColorRow
+                            property="background-color"
                             value={bgColor.value}
                             onCommit={handleColorCommit}
-                            pickerContent={
-                                <ColorPickerInline
-                                    value={bgColor.value}
-                                    onCommit={handleColorCommit}
-                                />
-                            }
+                            mixed={bgColor.mixed}
                         />
                     </GroupShell>
                 )}

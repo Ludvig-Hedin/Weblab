@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
 
-import { FIELD_BASE_CLASSES, UNIT_PILL_CLASSES } from './constants';
+import { FIELD_BASE_CLASSES, isPlainCssKeyword, UNIT_PILL_CLASSES } from './constants';
 
 const NUMERIC_UNITS = ['px', '%', 'rem', 'em', 'vh', 'vw'] as const;
 
@@ -183,7 +183,14 @@ export function ModeNumberCell({
     );
 
     const isKeyword = parsed.keyword !== null;
-    const modePillLabel = isKeyword ? parsed.keyword! : parsed.unit || defaultUnit;
+    // A free-form value (`var(--x)`, `calc(...)`) already shows in the value
+    // area, so the pill drops its label instead of repeating it.
+    const freeForm = isKeyword && !keywords.includes(parsed.keyword!);
+    const modePillLabel = freeForm
+        ? null
+        : isKeyword
+          ? parsed.keyword!
+          : parsed.unit || defaultUnit;
     // Controlled so a unit/keyword pick closes the popover (uncontrolled
     // Radix popovers stay open on option click).
     const [pillOpen, setPillOpen] = React.useState(false);
@@ -191,7 +198,7 @@ export function ModeNumberCell({
     return (
         <div
             className={cn(FIELD_BASE_CLASSES, 'grid min-w-0 items-center gap-0 px-0', className)}
-            style={{ gridTemplateColumns: '30px 1fr auto' }}
+            style={{ gridTemplateColumns: '30px minmax(0, 1fr) auto' }}
         >
             <span
                 className="text-foreground-tertiary border-foreground/[0.04] inline-flex h-full items-center justify-center border-r text-[12px] font-medium [&_svg]:h-[14px] [&_svg]:w-[14px]"
@@ -207,9 +214,13 @@ export function ModeNumberCell({
                         setDraft('');
                         inputRef.current?.focus();
                     }}
-                    className="text-foreground-primary text-mini flex h-full min-w-0 cursor-text items-center bg-transparent px-[10px] capitalize outline-none"
+                    title={parsed.keyword ?? undefined}
+                    className={cn(
+                        'text-foreground-primary text-mini flex h-full min-w-0 cursor-text items-center overflow-hidden bg-transparent px-[10px] outline-none',
+                        isPlainCssKeyword(parsed.keyword!) && 'capitalize',
+                    )}
                 >
-                    {parsed.keyword}
+                    <span className="min-w-0 truncate">{parsed.keyword}</span>
                 </button>
             ) : (
                 <input

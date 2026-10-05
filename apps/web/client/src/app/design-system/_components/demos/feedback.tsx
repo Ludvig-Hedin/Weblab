@@ -13,6 +13,26 @@ import { Section } from '../section';
 export function FeedbackDemo() {
     return (
         <div id="feedback">
+            <Section title="Full-page status" tag="feedback">
+                <p className="text-foreground-secondary mb-4 text-sm">
+                    Place status content directly on the page background, without cards, borders, or
+                    shadows.
+                </p>
+                <div className="bg-background flex w-full items-center justify-center px-6 py-12">
+                    <div className="w-full max-w-md text-center">
+                        <h2 className="text-foreground text-3xl font-semibold">
+                            Something went wrong
+                        </h2>
+                        <p className="text-foreground-secondary mt-4 text-sm leading-6">
+                            Try again or return to your projects.
+                        </p>
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                            <Button>Try again</Button>
+                            <Button variant="outline">Back to projects</Button>
+                        </div>
+                    </div>
+                </div>
+            </Section>
             <Section
                 title="Alert"
                 tag="feedback"

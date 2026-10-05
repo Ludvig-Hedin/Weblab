@@ -2,6 +2,7 @@ import type { Change, DomElement, StyleChange } from '@weblab/models';
 import type { BreakpointActionContext } from '@weblab/models/actions';
 import { EditorAttributes } from '@weblab/constants';
 
+import { getHtmlElement } from '../../helpers';
 import { getElementByDomId } from '../elements';
 import { cssManager } from './css-manager';
 
@@ -26,9 +27,12 @@ export function updateStyle(
 ): DomElement | null {
     let resolvedDomId = domId;
 
-    // If the provided domId doesn't resolve in this iframe, fall back to oid.
-    const directHit = document.querySelector(`[${EditorAttributes.DATA_WEBLAB_DOM_ID}="${domId}"]`);
-    if (!directHit && oid) {
+    // A domId can be stale or can resolve to a different element in another
+    // iframe. Resolve by oid in either case before applying preview CSS.
+    const directHit = getHtmlElement(domId);
+    const directMatchesOid =
+        !oid || directHit?.getAttribute(EditorAttributes.DATA_WEBLAB_ID) === oid;
+    if ((!directHit || !directMatchesOid) && oid) {
         const byOid = document.querySelector<HTMLElement>(
             `[${EditorAttributes.DATA_WEBLAB_ID}="${CSS.escape(oid)}"]`,
         );
@@ -40,6 +44,18 @@ export function updateStyle(
             // injecting CSS for a domId that doesn't exist here.
             return null;
         }
+    } else if (!directHit) {
+        return null;
+    }
+
+    // The resolved element may have disappeared during an iframe update.
+    // Never leave a CSS rule behind for a missing domId.
+    const resolvedElement = getHtmlElement(resolvedDomId);
+    if (
+        !resolvedElement ||
+        (oid && resolvedElement.getAttribute(EditorAttributes.DATA_WEBLAB_ID) !== oid)
+    ) {
+        return null;
     }
 
     cssManager.updateStyle(resolvedDomId, change.updated, breakpoint);

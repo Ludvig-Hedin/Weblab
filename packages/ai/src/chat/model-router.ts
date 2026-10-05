@@ -71,14 +71,14 @@ const DEFAULTS: Record<ChatType, Models> = {
  * Everything else routes around them to keep cost predictable.
  */
 const PREMIUM_MODELS = new Set<Models>([
-    OPENROUTER_MODELS.CLAUDE_OPUS_4_8,
-    OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
+    OPENROUTER_MODELS.CLAUDE_OPUS_5_5,
+    OPENROUTER_MODELS.OPEN_AI_GPT_6_ASTRA,
 ]);
 
 /**
  * Single source of truth. Each function returns a model id given the inputs.
  * Functions, not nested maps, so we can express e.g. "pro + small + EDIT
- * gets Sonnet 4.6, everything else stays on default" cleanly.
+ * gets GPT-6 Sol, everything else stays on default" cleanly.
  */
 export const MODEL_ROUTER_CONFIG = {
     /**
@@ -109,19 +109,19 @@ export const MODEL_ROUTER_CONFIG = {
     },
 
     /**
-     * Pro users: small EDIT/FIX requests get Sonnet 4.6 (strong code,
+     * Pro users: small EDIT/FIX requests get GPT-6 Sol (strong code,
      * cached-input is cheap). UI still goes to Gemini for taste. Big
-     * requests stay on default to avoid Opus/GPT-5.5 surprise bills.
+     * requests stay on default to avoid Opus surprise bills.
      */
     proOverride(chatType: ChatType, size: SizeBucket): Models {
         if (size === 'small' && (chatType === ChatTypeEnum.EDIT || chatType === ChatTypeEnum.FIX)) {
-            return OPENROUTER_MODELS.CLAUDE_SONNET_4_6;
+            return OPENROUTER_MODELS.OPEN_AI_GPT_6_SOL;
         }
         if (chatType === ChatTypeEnum.CREATE || chatType === ChatTypeEnum.PLAN) {
             return OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW;
         }
         // EDIT / FIX / ASK with non-small payload → MiniMax M3 (1M context,
-        // cheap, strong reasoning). Avoids paying Sonnet input rates on huge
+        // cheap, strong reasoning). Avoids paying Sol input rates on huge
         // file contexts when the marginal quality gain is small.
         return OPENROUTER_MODELS.MINIMAX_M3;
     },

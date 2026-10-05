@@ -112,6 +112,7 @@ export const createInlineEditStream = ({
         prompt: USER_TEMPLATE({ filePath, language, before, selection, after, instruction }),
         // Cap output — inline edits should not be enormous.
         maxOutputTokens: Math.min(modelConfig.maxOutputTokens, 4096),
+        maxRetries: 1,
         abortSignal,
         onError: onError ? (event) => onError(event.error) : undefined,
         onAbort: onAbort ? () => onAbort() : undefined,

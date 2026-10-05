@@ -3,14 +3,17 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { v4 as uuidv4 } from 'uuid';
 
-import { inferProviderFromModelId } from '@weblab/ai/client';
+import { getProviderManifest, inferProviderFromModelId } from '@weblab/ai/client';
+
+import { canResumeCliSession, loadCliSession, saveCliSession } from '@/lib/cli-chat/session';
+import { startupDiagnosisBranch } from '@/lib/local-startup-recovery';
 
 /**
  * Bridge from Vercel AI SDK's ChatTransport contract to the Electron main
  * process IPC channels exposed by `apps/desktop/cli/main-bridge.js`. The main
- * process spawns the right CLI per provider and emits AI SDK v6
- * UIMessageStreamPart payloads via `weblab-cli:event`. We splice those
- * straight into the SDK by yielding them as-is from the ReadableStream.
+ * process runs the user's own CLI (Claude Code, Codex) inside the project's
+ * private working copy and emits AI SDK UIMessageStreamPart payloads via
+ * `weblab-cli:event`. We splice those straight into the SDK.
  *
  * Only used when `window.weblabNative.cli` is present (desktop runtime). On
  * hosted web the RoutingTransport falls back to DefaultChatTransport pointing
@@ -24,7 +27,8 @@ type CliEvent =
           kind: 'error';
           payload: { message: string; code?: string };
       }
-    | { streamId: string; kind: 'finish' };
+    | { streamId: string; kind: 'finish' }
+    | { streamId: string; kind: 'session'; payload: { provider: string; sessionId: string } };
 
 type CliBridge = {
     startStream: (req: {
@@ -33,6 +37,8 @@ type CliBridge = {
         model: string;
         messages: ReadonlyArray<{ role: string; content: string }>;
         workingDirectory?: string;
+        resumeSessionId?: string;
+        readOnly?: boolean;
     }) => Promise<{ ok: boolean; error?: string }>;
     abort: (streamId: string) => void;
     onEvent: (listener: (event: CliEvent) => void) => () => void;
@@ -64,8 +70,18 @@ function flattenContent(message: UIMessage): string {
         .join('\n');
 }
 
+export type CliTransportContext = {
+    /** Private working copy root of the active local branch; null for cloud projects. */
+    getWorkingDirectory: () => string | null;
+    getActiveBranchId: () => string | null;
+    getConversationId: () => string;
+};
+
 export class WeblabCliTransport implements ChatTransport<UIMessage> {
-    constructor(private readonly getModel?: () => string | undefined) {}
+    constructor(
+        private readonly getModel?: () => string | undefined,
+        private readonly context?: CliTransportContext,
+    ) {}
 
     async sendMessages(
         options: Parameters<ChatTransport<UIMessage>['sendMessages']>[0],
@@ -79,12 +95,44 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
         if (!model) throw new Error('Missing model in chat request body');
         const provider = inferProviderFromModelId(model);
 
-        const cliMessages = options.messages.map((m) => ({
+        const workingDirectory = this.context?.getWorkingDirectory() ?? null;
+        if (!workingDirectory) {
+            // TODO(i18n): move to messages/* with the other chat errors.
+            throw new Error(
+                `Open a local folder to use ${getProviderManifest(provider).label}. Cloud projects can't run CLI models.`,
+            );
+        }
+
+        const latestUserMessage = [...options.messages].reverse().find((m) => m.role === 'user');
+        const diagnosisBranchId = startupDiagnosisBranch(
+            latestUserMessage ? flattenContent(latestUserMessage) : '',
+        );
+        if (diagnosisBranchId && this.context?.getActiveBranchId() !== diagnosisBranchId) {
+            throw new Error(
+                'The active branch changed. Start the diagnosis again from its preview.',
+            );
+        }
+        const conversationId = this.context?.getConversationId() ?? null;
+        const stored = conversationId ? loadCliSession(conversationId) : null;
+        const resumeSessionId =
+            !diagnosisBranchId &&
+            canResumeCliSession(stored, {
+                provider,
+                workingDirectory,
+                messages: options.messages,
+            })
+                ? stored?.sessionId
+                : undefined;
+
+        const cliMessages = (
+            diagnosisBranchId && latestUserMessage ? [latestUserMessage] : options.messages
+        ).map((m) => ({
             role: m.role,
             content: flattenContent(m),
         }));
 
         let unsubscribe: (() => void) | null = null;
+        let assistantMessageId: string | null = null;
         // Single-fire terminal guard. Adapters can emit duplicate terminal
         // events (spawn 'error' then readline 'close' → both fire). Without
         // this, calling controller.error()/close() after termination throws
@@ -113,10 +161,24 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
                     if (event.streamId !== streamId) return;
                     if (event.kind === 'part') {
                         if (terminated) return;
+                        if (event.payload.type === 'start' && event.payload.messageId) {
+                            assistantMessageId = event.payload.messageId;
+                        }
                         try {
                             controller.enqueue(event.payload);
                         } catch {
                             // stream may have closed mid-flight
+                        }
+                    } else if (event.kind === 'session') {
+                        // Remember the CLI session so the next turn resumes it
+                        // instead of replaying the whole conversation.
+                        if (conversationId && assistantMessageId) {
+                            saveCliSession(conversationId, {
+                                provider,
+                                sessionId: event.payload.sessionId,
+                                workingDirectory,
+                                lastAssistantMessageId: assistantMessageId,
+                            });
                         }
                     } else if (event.kind === 'error') {
                         terminate(() => controller.error(new Error(event.payload.message)));
@@ -135,7 +197,15 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
                 );
 
                 void bridge
-                    .startStream({ streamId, provider, model, messages: cliMessages })
+                    .startStream({
+                        streamId,
+                        provider,
+                        model,
+                        messages: cliMessages,
+                        workingDirectory,
+                        resumeSessionId,
+                        readOnly: diagnosisBranchId !== null,
+                    })
                     .then((result) => {
                         if (!result.ok) {
                             terminate(() =>

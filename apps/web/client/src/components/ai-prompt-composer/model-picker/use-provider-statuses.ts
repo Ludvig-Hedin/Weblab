@@ -12,6 +12,7 @@ import {
     getProviderManifest,
 } from '@weblab/ai/client';
 
+import { cliProviderStatus } from '@/lib/cli-provider-status';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 
 type StatusMap = Record<ProviderKind, ProviderStatus>;
@@ -85,11 +86,7 @@ export function useProviderStatuses({
                 for (const kind of CLI_PROVIDER_KINDS) {
                     const r = result[kind];
                     if (!r) continue;
-                    next[kind] = !r.installed
-                        ? { kind: 'install' }
-                        : r.authStatus === 'sign-in'
-                          ? { kind: 'sign-in' }
-                          : { kind: 'ready', version: r.version };
+                    next[kind] = cliProviderStatus(r);
                 }
                 setDesktopStatuses(next);
             })
@@ -132,7 +129,7 @@ export function useProviderStatuses({
                 continue;
             }
             if (hasNativeBridge && desktopStatuses) {
-                map[kind] = desktopStatuses[kind] ?? { kind: 'install' };
+                map[kind] = desktopStatuses[kind] ?? { kind: 'unavailable', unavailableReason: 'status-unverified' };
                 continue;
             }
             // Hosted web. If the provider supports OAuth and the user has

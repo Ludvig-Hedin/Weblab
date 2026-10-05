@@ -29,6 +29,11 @@ export type ModelSelectorProps = {
     onReasoningEffortChange?: (effort: ReasoningEffort) => void;
     /** Show the search/filter box atop the model list (V2 only). Default: false. */
     showSearch?: boolean;
+    /**
+     * Why CLI models (Claude Code, Codex) can't run here, e.g. a cloud
+     * project with no local folder. Null/undefined when they can (V2 only).
+     */
+    cliUnavailableReason?: string | null;
 };
 
 export const ModelSelector = (props: ModelSelectorProps) => {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { PanelLeft } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -16,6 +17,8 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 // HelpButton hidden per request — the "?" feedback button did nothing useful.
 // Import kept commented so it can be restored without re-wiring.
 // import { HelpButton } from './help-button';
@@ -33,6 +36,9 @@ const SearchTab = dynamic(() => import('./search-tab').then((m) => m.SearchTab),
 const BrandTab = dynamic(() => import('./brand-tab').then((m) => m.BrandTab), {
     ssr: false,
 });
+const VariablesTab = dynamic(() => import('./variables-tab').then((m) => m.VariablesTab), {
+    ssr: false,
+});
 const PagesTab = dynamic(() => import('./page-tab').then((m) => m.PagesTab), {
     ssr: false,
 });
@@ -45,10 +51,28 @@ const PANEL_DEFAULT_WIDTH = 300;
 const PANEL_MIN_WIDTH = 240;
 const PANEL_MAX_WIDTH = 560;
 
-const tabs: {
+/** Tabs outside the local release scope are not shown or rendered. */
+const isLeftTabEnabled = (tab: LeftPanelTabValue, cloud = false): boolean => {
+    switch (tab) {
+        case LeftPanelTabValue.COMPONENTS:
+            return EDITOR_SCOPE.components;
+        case LeftPanelTabValue.BRAND:
+            return EDITOR_SCOPE.brand;
+        case LeftPanelTabValue.VARIABLES:
+            return EDITOR_SCOPE.variables;
+        case LeftPanelTabValue.IMAGES:
+            return cloud || EDITOR_SCOPE.imageUpload;
+        case LeftPanelTabValue.BRANCHES:
+            return EDITOR_SCOPE.branches;
+        default:
+            return true;
+    }
+};
+
+const allTabs: {
     value: LeftPanelTabValue;
     icon: ReactNode;
-    hotkey: Hotkey;
+    hotkey?: Hotkey;
     disabled?: boolean;
 }[] = [
     {
@@ -77,6 +101,10 @@ const tabs: {
         hotkey: Hotkey.SIDEBAR_BRAND,
     },
     {
+        value: LeftPanelTabValue.VARIABLES,
+        icon: <Icons.Tokens className="h-5 w-5" />,
+    },
+    {
         value: LeftPanelTabValue.PAGES,
         icon: <Icons.File className="h-5 w-5" />,
         hotkey: Hotkey.SIDEBAR_PAGES,
@@ -93,11 +121,17 @@ const tabs: {
     },
 ];
 
+
 export const DesignPanel = observer(() => {
     const editorEngine = useEditorEngine();
+    const cloud = editorEngine.branches.hasActiveBranch && isCloudEditorRuntime(editorEngine.branches.activeBranch.runtime);
+    const tabs = allTabs.filter(tab => isLeftTabEnabled(tab.value, cloud));
     const t = useTranslations();
     const isLocked = editorEngine.state.leftPanelLocked;
-    const selectedTab = editorEngine.state.leftPanelTab;
+    const storedTab = editorEngine.state.leftPanelTab;
+    // A persisted or hotkey-selected tab may be out of scope; show Layers.
+    const selectedTab =
+        storedTab && !isLeftTabEnabled(storedTab, cloud) ? LeftPanelTabValue.LAYERS : storedTab;
     const [isCollapsed, setIsCollapsed] = useState(false);
     const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -162,6 +196,8 @@ export const DesignPanel = observer(() => {
                 return t(transKeys.editor.panels.layers.tabs.search);
             case LeftPanelTabValue.BRAND:
                 return t(transKeys.editor.panels.layers.tabs.brand);
+            case LeftPanelTabValue.VARIABLES:
+                return t(transKeys.editor.panels.layers.tabs.variables);
             case LeftPanelTabValue.PAGES:
                 return t(transKeys.editor.panels.layers.tabs.pages);
             case LeftPanelTabValue.IMAGES:
@@ -196,11 +232,17 @@ export const DesignPanel = observer(() => {
                             {/* size-5 (not h-5 w-5) so the Button icon-size rule
                                 doesn't shrink it to 16px — matches the open-state
                                 rail collapse button's 20px icon exactly. */}
-                            <Icons.SidebarLeftExpand className="size-5" />
+                            <PanelLeft className="size-5" strokeWidth={1.5} />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="right" hideArrow>
-                        {t(transKeys.editor.panels.layers.rail.openLeftPanel)}
+                        <HotkeyLabel
+                            hotkey={{
+                                command: Hotkey.TOGGLE_UI.command,
+                                description: t(transKeys.editor.panels.layers.rail.openLeftPanel),
+                                readableCommand: Hotkey.TOGGLE_UI.readableCommand,
+                            }}
+                        />
                     </TooltipContent>
                 </Tooltip>
             </div>
@@ -254,6 +296,7 @@ export const DesignPanel = observer(() => {
                 {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}
                 {selectedTab === LeftPanelTabValue.SEARCH && <SearchTab />}
                 {selectedTab === LeftPanelTabValue.BRAND && <BrandTab />}
+                {selectedTab === LeftPanelTabValue.VARIABLES && <VariablesTab />}
                 {selectedTab === LeftPanelTabValue.PAGES && <PagesTab />}
                 {selectedTab === LeftPanelTabValue.IMAGES && <AssetsTab />}
                 {selectedTab === LeftPanelTabValue.BRANCHES && <BranchesTab />}
@@ -287,11 +330,17 @@ export const DesignPanel = observer(() => {
                             // toggle is hidden). Revert → `onClick={() => setIsCollapsed(true)}`.
                             onClick={() => editorEngine.state.togglePanelsHidden()}
                         >
-                            <Icons.SidebarLeftCollapse className="h-5 w-5" />
+                            <PanelLeft className="size-5" strokeWidth={1.5} />
                         </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" hideArrow>
-                        {t(transKeys.editor.panels.layers.rail.collapsePanel)}
+                        <HotkeyLabel
+                            hotkey={{
+                                command: Hotkey.TOGGLE_UI.command,
+                                description: t(transKeys.editor.panels.layers.rail.collapsePanel),
+                                readableCommand: Hotkey.TOGGLE_UI.readableCommand,
+                            }}
+                        />
                     </TooltipContent>
                 </Tooltip>
                 <div className="bg-border-bar/60 my-1 h-px w-6" />
@@ -321,13 +370,17 @@ export const DesignPanel = observer(() => {
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="right" hideArrow>
-                                <HotkeyLabel
-                                    hotkey={{
-                                        command: tab.hotkey.command,
-                                        description: label,
-                                        readableCommand: tab.hotkey.readableCommand,
-                                    }}
-                                />
+                                {tab.hotkey ? (
+                                    <HotkeyLabel
+                                        hotkey={{
+                                            command: tab.hotkey.command,
+                                            description: label,
+                                            readableCommand: tab.hotkey.readableCommand,
+                                        }}
+                                    />
+                                ) : (
+                                    label
+                                )}
                             </TooltipContent>
                         </Tooltip>
                     );

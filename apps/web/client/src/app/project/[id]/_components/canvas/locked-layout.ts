@@ -11,10 +11,10 @@
 const DEFAULT_MAX_SCALE = 1; // never upscale a frame past 100% when fitting
 const DEFAULT_MIN_SCALE = 0.1;
 
-/** Screen-y the pinned frame's top rests at — clears the top bar (~56) + editor bar. */
-export const LOCKED_TOP_GAP = 96;
-/** Breathing room around the pinned frame, in screen px. */
-export const LOCKED_PADDING = 24;
+/** Screen-y the pinned frame's top rests at — flush under the 56px top bar. */
+export const LOCKED_TOP_GAP = 56;
+/** Room around the pinned frame, in screen px. 0 = edge to edge between the panels. */
+export const LOCKED_PADDING = 0;
 
 export interface LockedFitParams {
     /** Frame responsive width in world px (breakpoint.width ?? dimension.width). */

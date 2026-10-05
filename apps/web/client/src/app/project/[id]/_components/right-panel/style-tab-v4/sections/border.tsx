@@ -5,8 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
 import {
-    ColorPickerInline,
-    ColorRow,
+    BoundColorRow,
     GroupShell,
     IconNumberInput,
     IconPerCorner,
@@ -249,17 +248,12 @@ export const BorderSection = observer(function BorderSection() {
                     }
                 >
                     {/* Color row */}
-                    <ColorRow
+                    <BoundColorRow
+                        property="border-color"
                         value={borderColor.value}
                         onCommit={borderColorSetter.set}
                         visible={isBorderSet}
                         onToggleVisible={handleToggleVisible}
-                        pickerContent={
-                            <ColorPickerInline
-                                value={borderColor.value}
-                                onCommit={borderColorSetter.set}
-                            />
-                        }
                         mixed={borderColor.mixed}
                     />
 

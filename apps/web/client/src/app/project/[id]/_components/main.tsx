@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { observer } from 'mobx-react-lite';
+import { AnimatePresence, motion } from 'motion/react';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
@@ -14,6 +15,7 @@ import type { EditorBootstrapData } from '../_hooks/use-start-project';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { ProjectCapabilitiesProvider } from '@/hooks/use-project-capabilities-context';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
 import { useLockedCanvasLayout } from '../_hooks/use-locked-canvas-layout';
 import { usePanelMeasurements } from '../_hooks/use-panel-measure';
@@ -101,6 +103,10 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     );
     // Webflow-style "Lock canvas": pin + fit the focused frame between panels.
     useLockedCanvasLayout(editorEngine, toolbarLeft, toolbarRight);
+    // Lets the "Back to website" check ignore frames hidden behind the panels.
+    useEffect(() => {
+        editorEngine.frameEvent.setVisibleBounds(toolbarLeft, toolbarRight);
+    }, [editorEngine, toolbarLeft, toolbarRight]);
     // Initialize false (SSR-safe) so SSR and client hydration output the same
     // markup. useLayoutEffect then sets the correct value synchronously before
     // the browser paints, eliminating the hydration mismatch that arose when
@@ -243,7 +249,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         );
     }
 
-    if (isMobile) {
+    if (isMobile && editorEngine.canUseDesign) {
         return (
             <ProjectCapabilitiesProvider projectId={editorEngine.projectId}>
                 <TooltipProvider>
@@ -264,8 +270,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     // CODE mode is full-bleed: stretch the left-panel container to the AI
     // panel's left edge so the code editor takes the full viewport width minus
     // the (resizable, collapsible) right panel — VS-Code-like split.
-    const isCode = editorEngine.state.editorMode === EditorMode.CODE;
-    const isCms = editorEngine.state.editorMode === EditorMode.CMS;
+    const canDesign = editorEngine.canUseDesign;
+    const isCode = canDesign && editorEngine.state.editorMode === EditorMode.CODE;
+    const isCms = canDesign && editorEngine.state.editorMode === EditorMode.CMS;
 
     return (
         <ProjectCapabilitiesProvider projectId={editorEngine.projectId}>
@@ -273,7 +280,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                 {/* First-run tour. Suppressed during the prompt-driven creation
                 flow — the user is busy watching the AI scaffold their site,
                 not in a normal editor session yet. */}
-                <OnboardingTour suppressed={hasPendingCreation} />
+                {EDITOR_SCOPE.onboardingTour && (
+                    <OnboardingTour suppressed={hasPendingCreation} />
+                )}
                 <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
                     <CanvasErrorBoundary label="Canvas">
                         <Canvas />
@@ -293,7 +302,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                         ref={leftPanelRef}
                         className={cn(
                             'absolute top-14 left-0 z-50 h-[calc(100%-49px)]',
-                            (isPreview || isCms) && 'hidden',
+                            (isPreview || isCms || !canDesign) && 'hidden',
                         )}
                         style={isCode ? { right: toolbarRight } : undefined}
                     >
@@ -307,7 +316,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                             'absolute top-14 z-49',
                             isPanelToggling &&
                                 'transition-[left,right,max-width] duration-200 ease-out',
-                            (isPreview || isCms) && 'hidden',
+                            (isPreview || isCms || !canDesign) && 'hidden',
                         )}
                         style={{
                             left: toolbarLeft,
@@ -344,7 +353,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     {/* Per-page settings drawer — opened from the Pages tab cog.
                     Anchored to the right of the left panel via toolbarLeft.
                     Hidden in preview/CMS/code modes where the layout differs. */}
-                    {!isPreview && !isCms && !isCode && (
+                    {canDesign && !isPreview && !isCms && !isCode && (
                         <PageSettingsDrawer toolbarLeft={toolbarLeft} />
                     )}
 
@@ -369,7 +378,20 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     when in PREVIEW mode (the chrome is also hidden via the
                     isPreview guards above so background interactions can't
                     leak through). */}
-                    {isPreview && <PreviewOverlay />}
+                    <AnimatePresence>
+                        {isPreview && (
+                            <motion.div
+                                key="preview-overlay"
+                                className="fixed inset-0 z-[60]"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                            >
+                                <PreviewOverlay />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Offline / sync banner — floating chip, 12px below top bar, 12px from right edge. */}
                     {!isPreview && !isCms && (
@@ -383,18 +405,18 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
 
                     {/* CMS workspace — sits below the top bar (top-14) and replaces
                     the canvas/side panels while in CMS mode. */}
-                    {isCms && <CmsWorkspace />}
+                    {EDITOR_SCOPE.cms && isCms && <CmsWorkspace />}
                 </div>
-                <SettingsModalWithProjects />
+                {canDesign && <SettingsModalWithProjects />}
                 <SubscriptionModal />
                 <KeyboardShortcutsModal />
-                <ElementPalette />
-                <CommandPalette />
-                <FileFinder />
-                <ProjectSearch />
-                <CmsBindDialog />
-                <CreateComponentDialog />
-                <CmsDataPusher />
+                {canDesign && <ElementPalette />}
+                {canDesign && <CommandPalette />}
+                {canDesign && <FileFinder />}
+                {canDesign && <ProjectSearch />}
+                {EDITOR_SCOPE.cms && <CmsBindDialog />}
+                {EDITOR_SCOPE.components && <CreateComponentDialog />}
+                {EDITOR_SCOPE.cms && <CmsDataPusher />}
             </TooltipProvider>
         </ProjectCapabilitiesProvider>
     );

@@ -4,14 +4,20 @@ import type { CodeDiffRequest } from '@weblab/models/code';
 import type { StyleChange } from '@weblab/models/style';
 import type { BreakpointEntry } from '@weblab/parser';
 import { StyleChangeType } from '@weblab/models/style';
-import { rebaseToMobileFirst, removeUtilityClasses, tailwindPrefixForWidth } from '@weblab/parser';
+import { rebaseToMobileFirst, removeMatchingClasses, tailwindPrefixForWidth } from '@weblab/parser';
 import { CssToTailwindTranslator, propertyMap } from '@weblab/utility';
 
+/**
+ * `prefix` scopes the classes to a breakpoint (e.g. `lg:`). The preview
+ * applies a breakpoint edit with `@media (min-width)`, so source must too;
+ * an unprefixed write at Desktop would leak into Phone after reload.
+ */
 export function addTailwindToRequest(
     request: CodeDiffRequest,
     styles: Record<string, StyleChange>,
+    prefix = '',
 ): void {
-    const newClasses = getTailwindClasses(request.oid, styles);
+    const newClasses = getTailwindClasses(request.oid, styles).map((cls) => `${prefix}${cls}`);
     request.attributes.className = twMerge(request.attributes.className || '', newClasses);
 }
 
@@ -75,9 +81,19 @@ export function addResponsiveTailwindToRequest(
     request: CodeDiffRequest,
     property: string,
     breakpointEntries: BreakpointEntry[],
+    removedEntries: BreakpointEntry[] = [],
+    options: { tailwindPrefixes?: Record<string, number>; exactThresholds?: boolean } = {},
 ): void {
-    const rebased = rebaseToMobileFirst(breakpointEntries);
-    if (rebased.length === 0) return;
+    const rebased = rebaseToMobileFirst(breakpointEntries, options);
+    const removals: { prefix: string; probeClass: string }[] = [];
+    for (const entry of removedEntries) {
+        if (entry.value === undefined) continue;
+        const classes = getTailwindClasses(request.oid, {
+            [property]: { type: StyleChangeType.Value, value: entry.value },
+        });
+        const prefix = !options.exactThresholds && entry.id === 'phone' ? '' : tailwindPrefixForWidth(entry.minWidth, options.tailwindPrefixes, options.exactThresholds);
+        for (const cls of classes) removals.push({ prefix, probeClass: cls });
+    }
 
     const additions: string[] = [];
     for (const entry of rebased) {
@@ -89,13 +105,15 @@ export function addResponsiveTailwindToRequest(
             additions.push(entry.tailwindPrefix ? `${entry.tailwindPrefix}${cls}` : cls);
         }
     }
-    if (additions.length === 0) return;
+    if (additions.length === 0 && removals.length === 0) return;
+    request.classRemovals = [...(request.classRemovals ?? []), ...removals];
 
     // Strip any stale responsive variants for this property family before merging.
     // We don't have a reliable Tailwind utility prefix for every CSS property
     // (translator output varies), so we use twMerge's existing conflict-resolution
     // semantics — the additions go last so they win.
-    request.attributes.className = twMerge(request.attributes.className || '', additions.join(' '));
+    const existing = removeMatchingClasses(request.attributes.className || '', removals);
+    request.attributes.className = twMerge(existing, additions.join(' '));
 }
 
 export { tailwindPrefixForWidth };

@@ -1,15 +1,16 @@
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { makeAutoObservable } from 'mobx';
 
 import type { CodeFileSystem } from '@weblab/file-system';
 import type { BreakpointId } from '@weblab/models';
 import type { BreakpointEntry } from '@weblab/parser';
-import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
-import { getAstFromContent, selectPipeline } from '@weblab/parser';
+import { type Action, type CodeDiff, type CodeDiffRequest, type FileToRequests, type UpdateStyleAction } from '@weblab/models';
+import { assertStaticClassName, getAstFromCodeblock, getAstFromContent, selectPipeline } from '@weblab/parser';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
 import { type EditorEngine } from '@/components/store/editor/engine';
-import { keyedDebounce } from '@/utils/keyed-debounce';
+import type { HistoryDisposalLease } from '../history';
 import { getOrCreateCodeDiffRequest } from './helpers';
 import {
     getEditTextRequests,
@@ -24,15 +25,21 @@ import {
     getWriteCodeRequests,
     processGroupedRequests,
 } from './requests';
-import { addResponsiveTailwindToRequest } from './tailwind';
+import { addResponsiveTailwindToRequest, getTailwindClasses, tailwindPrefixForWidth } from './tailwind';
+import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
+import { breakpointMinWidth, readProjectBreakpoints } from './project-breakpoints';
+
+interface ElementMetadataUpdate {
+    oid: string;
+    branchId: string;
+    attributes?: Record<string, string>;
+    tagName?: string | null;
+    overrideClasses?: boolean | null;
+}
 
 export class CodeManager {
     constructor(private editorEngine: EditorEngine) {
-        // Exclude `writeResponsiveStyle`: it's a function-valued field holding a
-        // keyed debounce with a `.cancel` helper. makeAutoObservable would wrap
-        // it as an action and strip `.cancel` (the same trap as `saveCanvas`),
-        // making `clear()`'s teardown-cancel a silent no-op.
-        makeAutoObservable(this, { writeResponsiveStyle: false });
+        makeAutoObservable(this);
         this.attachBeforeUnload();
     }
 
@@ -49,6 +56,10 @@ export class CodeManager {
         return this.pendingWrites > 0;
     }
 
+    async waitForPendingWrites(): Promise<void> {
+        await this.writeChain;
+    }
+
     private beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
 
     private attachBeforeUnload() {
@@ -58,7 +69,7 @@ export class CodeManager {
             // Fire any debounced source rebases NOW so they at least enqueue
             // before the page goes away (best effort — unload won't await).
             this.editorEngine.action.flushPendingRebases();
-            if (!this.hasPendingWrites) return;
+            if (!this.hasPendingWrites && !this.editorEngine.action.hasPendingRebases && !this.editorEngine.action.hasPendingStylePreflights) return;
             // In-flight source write: ask the browser to confirm leaving.
             // An aborted write can persist a truncated, unparseable file.
             e.preventDefault();
@@ -82,15 +93,41 @@ export class CodeManager {
      * from the undo stack when its write fails so a later undo can't emit the
      * inverse of an edit that never landed.
      */
-    async write(action: Action): Promise<boolean> {
+    async write(action: Action, sourceContext?: { branchId: string; codeEditor: CodeFileSystem }): Promise<boolean> {
         try {
+            if (action.type === 'update-style' && this.editorEngine.framework === 'static-html') {
+                throw new Error('Visual style editing of static HTML requires a CSS source writer. No project file was changed.');
+            }
+            if (action.type === 'update-style' && action.targets.some((target) =>
+                this.editorEngine.branches.getStyleWriterForBranch(target.branchId) === 'none')) {
+                throw new Error('Visual style editing requires a wired Tailwind v4 App Router stylesheet. No project file was changed.');
+            }
+            if (action.type === 'update-style' && hasUnsupportedResponsiveStyleValue(
+                action.targets, this.editorEngine.frames?.getAll() ?? [])) {
+                throw new Error('Breakpoint font stacks are not supported yet. No project file was changed.');
+            }
             // TODO: This is a hack to write code, we should refactor this
             if (action.type === 'write-code') {
+                // Capture both branch and filesystem before entering the queue.
+                // Switching projects while an earlier save runs cannot redirect
+                // this save or its Undo/Redo to the newly active project.
+                const branchId = action.branchId ?? sourceContext?.branchId ?? this.editorEngine.branches.activeBranch.id;
+                const branchData = this.editorEngine.branches.getBranchDataById(branchId);
+                if (!branchData) throw new Error('The source branch is no longer available.');
+                const codeEditor = sourceContext?.codeEditor ?? branchData.codeEditor;
+                if (sourceContext && sourceContext.branchId !== branchId) {
+                    throw new Error('The edit belongs to a different source branch.');
+                }
                 if (action.diffs.length === 0) {
                     throw new Error('write-code action has no diffs');
                 }
-                // Write-code actions don't have branch context, use active
-                // editor. Apply EVERY diff — reverseWriteCodeAction reverses all
+                if (
+                    branchData.branch.runtime.type === 'local' &&
+                    action.diffs.length > 1
+                ) {
+                    throw new Error('Multi-file local edits need a transaction and are unavailable');
+                }
+                // Apply EVERY diff using the captured source context — reverseWriteCodeAction reverses all
                 // of them, so writing only diffs[0] would make the inverse
                 // asymmetric (undo restores files the redo never wrote) and
                 // silently drop every file after the first on a multi-diff write.
@@ -104,10 +141,27 @@ export class CodeManager {
                 // whole-file AI-apply outputs that may target non-JSX files
                 // (css, json, md, …) the JSX re-parse would falsely reject.
                 await this.enqueueWrite(async () => {
+                    // Check EVERY expected original before touching ANY file.
+                    // The same path runs for initial saves, Undo and Redo.
                     for (const diff of action.diffs) {
-                        await this.editorEngine.fileSystem.writeFile(diff.path, diff.generated);
+                        const current = await codeEditor.readFile(diff.path);
+                        if (current !== diff.original) {
+                            throw new Error(`File changed on disk: ${diff.path}. Reload before retrying this edit.`);
+                        }
+                    }
+                    const durableCloud = isCloudEditorRuntime(branchData.branch.runtime);
+                    if (durableCloud) await codeEditor.writeFiles(action.diffs.map(diff => ({ path: diff.path, content: diff.generated })));
+                    for (const diff of action.diffs) {
+                        if (!durableCloud) await codeEditor.writeFile(diff.path, diff.generated);
+                        // Cloud writers may format/instrument source. The
+                        // next replay must compare with what actually landed.
+                        const saved = await codeEditor.readFile(diff.path);
+                        if (typeof saved === 'string') diff.generated = saved;
                     }
                 });
+                if (action.refreshTokens && this.editorEngine.branches.activeBranch.id === branchId) {
+                    await this.editorEngine.tokens.scan();
+                }
             } else if (
                 action.type === 'add-interaction' ||
                 action.type === 'update-interaction' ||
@@ -115,20 +169,34 @@ export class CodeManager {
             ) {
                 await this.editorEngine.interactions.applyHistoryAction(action);
             } else {
-                const requests = await this.collectRequests(action);
-                await this.writeRequest(requests);
+                const branchIds = 'parent' in action ? [action.parent.branchId]
+                    : 'targets' in action ? action.targets.map((target) => target.branchId) : [];
+                const editors = new Map<string, CodeFileSystem>();
+                for (const branchId of branchIds) {
+                    const branchData = this.editorEngine.branches.getBranchDataById(branchId);
+                    if (!branchData) throw new Error('The source branch is no longer available.');
+                    editors.set(branchId, branchData.codeEditor);
+                }
+                await this.enqueueWrite(async () => {
+                    const requests = await this.collectRequests(action, editors);
+                    await this.processWriteRequest(requests, editors);
+                });
             }
             return true;
         } catch (error) {
             console.error('Error writing requests:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
             // Stable id: rapid repeat failures (e.g. arrow-key nudges while the
             // sandbox is broken) update one toast instead of stacking dozens.
             toast.error("Couldn't save this edit", {
                 id: 'code-write-error',
-                description: error instanceof Error ? error.message : 'Unknown error',
+                description: message,
+                action: message.includes('File changed on disk:') && typeof window !== 'undefined'
+                    ? { label: 'Reload from disk', onClick: () => window.location.reload() }
+                    : undefined,
             });
             this.editorEngine.branches.activeError.addCodeApplicationError(
-                error instanceof Error ? error.message : 'Unknown error',
+                message,
                 action,
             );
             return false;
@@ -146,7 +214,63 @@ export class CodeManager {
     private writeChain: Promise<void> = Promise.resolve();
 
     async writeRequest(requests: CodeDiffRequest[]): Promise<void> {
-        return this.enqueueWrite(() => this.processWriteRequest(requests));
+        const editors = new Map<string, CodeFileSystem>();
+        for (const request of requests) {
+            const data = this.editorEngine.branches.getBranchDataById(request.branchId);
+            if (!data) throw new Error('The source branch is no longer available.');
+            editors.set(request.branchId, data.codeEditor);
+        }
+        return this.enqueueWrite(() => this.processWriteRequest(requests, editors));
+    }
+
+    /** Record an exact single-file source change through the normal Undo stack. */
+    async saveSourceDiffs(
+        branchId: string,
+        diffs: CodeDiff[],
+        refreshTokens = false,
+        capturedEditor?: CodeFileSystem,
+        previewStyle?: UpdateStyleAction,
+    ): Promise<void> {
+        const branchData = this.editorEngine.branches.getBranchDataById(branchId);
+        if (!branchData) throw new Error('The source branch is no longer available.');
+        const codeEditor = capturedEditor ?? branchData.codeEditor;
+        if (!previewStyle && diffs.every((diff) => diff.original === diff.generated)) return;
+        const action: Action = { type: 'write-code', branchId, diffs, refreshTokens, previewStyle };
+        const saved = await branchData.history.pushImmediate(action, (entry) =>
+            this.write(entry, { branchId, codeEditor }));
+        if (!saved) throw new Error('The edit could not be saved. Your source was not changed.');
+        if (previewStyle) await this.editorEngine.action.applySourcePreview(previewStyle);
+    }
+
+    async resetResponsiveStyle(previewStyle: UpdateStyleAction): Promise<void> {
+        const target = previewStyle.targets[0];
+        if (!target?.oid) throw new Error('The element source could not be identified.');
+        const branchData = this.editorEngine.branches.getBranchDataById(target.branchId);
+        if (!branchData) throw new Error('The source branch is no longer available.');
+        const codeEditor = branchData.codeEditor;
+        await branchData.history.commitTransaction();
+        await branchData.history.waitForCommit();
+        const requests = new Map<string, CodeDiffRequest>();
+        const request = await getOrCreateCodeDiffRequest(target.oid, target.branchId, requests);
+        const prefixes = await readProjectBreakpoints((path) => codeEditor.readFile(path));
+        const prefix = this.responsivePrefixFor(target.branchId, target.breakpoint?.minWidth, prefixes);
+        const width = target.breakpoint?.minWidth ?? 0;
+        const equivalentPrefixes = new Set([prefix]);
+        if (width > 0) {
+            equivalentPrefixes.add(tailwindPrefixForWidth(width, {}, true));
+            for (const [name, minWidth] of Object.entries(prefixes)) {
+                if (minWidth === width) equivalentPrefixes.add(`${name}:`);
+            }
+        }
+        request.classRemovals = Object.entries(target.change.original).flatMap(([property, style]) =>
+            getTailwindClasses(target.oid!, { [property]: style }).flatMap((probeClass) =>
+                [...equivalentPrefixes].map((prefix) => ({ prefix, probeClass }))));
+        request.requireClassRemoval = true;
+        if (request.classRemovals.length === 0) throw new Error('This property cannot be reset safely in source yet.');
+        const grouped = await this.groupRequestByFile([request], new Map([[target.branchId, codeEditor]]));
+        const diffs = await processGroupedRequests(grouped);
+        for (const diff of diffs) diff.original = grouped.get(diff.path)!.content;
+        await this.saveSourceDiffs(target.branchId, diffs, false, codeEditor, previewStyle);
     }
 
     /**
@@ -171,8 +295,8 @@ export class CodeManager {
         return run;
     }
 
-    private async processWriteRequest(requests: CodeDiffRequest[]) {
-        const groupedRequests = await this.groupRequestByFile(requests);
+    private async processWriteRequest(requests: CodeDiffRequest[], editors: Map<string, CodeFileSystem>) {
+        const groupedRequests = await this.groupRequestByFile(requests, editors);
         const codeDiffs = await processGroupedRequests(groupedRequests);
 
         // Validate EVERY diff before writing ANY file. A multi-file action
@@ -180,7 +304,7 @@ export class CodeManager {
         // file 2 used to leave file 1 already written — and history then
         // dropped the whole action, so the landed half was un-undoable and
         // the UI diverged from disk. All-or-nothing: reject up front.
-        const validated: { codeEditor: CodeFileSystem; path: string; generated: string }[] = [];
+        const validated: { codeEditor: CodeFileSystem; path: string; original: string; generated: string }[] = [];
         for (const diff of codeDiffs) {
             const fileGroup = groupedRequests.get(diff.path);
             if (!fileGroup) {
@@ -222,21 +346,50 @@ export class CodeManager {
             }
 
             validated.push({
-                codeEditor: branchData.codeEditor,
+                codeEditor: editors.get(firstRequest.branchId) ?? branchData.codeEditor,
                 path: diff.path,
+                original: fileGroup.content,
                 generated: diff.generated,
             });
         }
 
-        for (const { codeEditor, path, generated } of validated) {
-            await codeEditor.writeFile(path, generated);
+        if (
+            validated.length > 1 &&
+            requests.some(
+                (request) =>
+                    this.editorEngine.branches.getBranchById(request.branchId)?.runtime.type ===
+                    'local',
+            )
+        ) {
+            throw new Error('Multi-file local edits need a transaction and are unavailable');
+        }
+        for (const { codeEditor, path, original } of validated) {
+            if (await codeEditor.readFile(path) !== original) {
+                throw new Error(`File changed on disk: ${path}. Reload before retrying this edit.`);
+            }
+        }
+        const cloudBranches = new Set(requests.filter(request => isCloudEditorRuntime(this.editorEngine.branches.getBranchById(request.branchId)?.runtime)).map(request => request.branchId));
+        if (cloudBranches.size) {
+            const destinations = new Set(validated.map(diff => diff.codeEditor));
+            if (destinations.size !== 1) throw new Error('An edit across cloud branches cannot be saved atomically.');
+            const destination = validated[0]?.codeEditor;
+            if (destination) await destination.writeFiles(validated.map(diff => ({ path: diff.path, content: diff.generated })));
+        } else {
+            for (const { codeEditor, path, generated } of validated) await codeEditor.writeFile(path, generated);
         }
     }
 
-    private async collectRequests(action: Action): Promise<CodeDiffRequest[]> {
+    private async collectRequests(action: Action, editors?: Map<string, CodeFileSystem>): Promise<CodeDiffRequest[]> {
         switch (action.type) {
             case 'update-style':
-                return await getStyleRequests(action);
+                const prefixes = new Map<string, Record<string, number>>();
+                for (const branchId of new Set(action.targets.map((target) => target.branchId))) {
+                    const editor = editors?.get(branchId) ?? this.editorEngine.branches.getBranchDataById(branchId)?.codeEditor;
+                    if (!editor) throw new Error('The source branch is no longer available.');
+                    prefixes.set(branchId, await readProjectBreakpoints((path) => editor.readFile(path)));
+                }
+                return await getStyleRequests(action, (target) =>
+                    this.responsivePrefixFor(target.branchId, target.breakpoint?.minWidth, prefixes.get(target.branchId)));
             case 'insert-element':
                 return await getInsertRequests(action);
             case 'move-element':
@@ -267,12 +420,13 @@ export class CodeManager {
         }
     }
 
-    async groupRequestByFile(requests: CodeDiffRequest[]): Promise<FileToRequests> {
+    async groupRequestByFile(requests: CodeDiffRequest[], editors?: Map<string, CodeFileSystem>): Promise<FileToRequests> {
         const requestByFile: FileToRequests = new Map();
 
         for (const request of requests) {
             const branchData = this.editorEngine.branches.getBranchDataById(request.branchId);
-            const codeEditor = branchData?.codeEditor ?? this.editorEngine.fileSystem;
+            const codeEditor = editors?.get(request.branchId) ?? branchData?.codeEditor;
+            if (!codeEditor) throw new Error('The source branch is no longer available.');
 
             const metadata = await codeEditor.getJsxElementMetadata(request.oid);
             if (!metadata) {
@@ -300,123 +454,190 @@ export class CodeManager {
      * first, and let the existing tailwind/CodeDiffRequest pipeline write the
      * resulting className tokens (`p-4 md:p-2 lg:p-6`) into the JSX source.
      *
-     * For non-Tailwind projects we currently fall back to the iframe-only
-     * injection layer (no source write) — extending the writer to a
-     * project-level overrides.css is a follow-up the parser modules already
-     * have the rebase math for.
+     * Static HTML has no Tailwind build step, so reject that path until a
+     * CSS source writer can persist its breakpoint rules.
      *
-     * Debounced per `(oid, property)` (600ms). A previous version used a single
-     * shared `lodash.debounce`, so two different keys firing within the window
-     * cancelled each other — editing two properties quickly on a non-default
-     * breakpoint silently dropped the first property's responsive write. Keying
-     * the debounce makes each `(oid, property)` independent. (The action
-     * pipeline also debounces per key upstream in `scheduleSourceRebase`; that
-     * stays — double-debouncing the same key is harmless, just delayed.)
-     */
-    writeResponsiveStyle = keyedDebounce(
-        (args: {
-            oid: string;
-            property: string;
-            valuesByBreakpoint: Record<BreakpointId, string>;
-        }) => void this.undebouncedWriteResponsiveStyle(args),
-        600,
-        (args) => `${args.oid}::${args.property}`,
-    );
-
-    /**
-     * Immediate (non-debounced) variant for callers that already debounced
-     * upstream — the ActionManager's per-key `scheduleSourceRebase` — and for
-     * the beforeunload flush path. `flushPendingRebases` previously routed
-     * through the debounced field above, which re-armed a fresh 600ms timer
-     * that never fired once the page unloaded, silently dropping the write.
+     * The ActionManager owns one cancellable debounce per `(oid, property)`.
      */
     writeResponsiveStyleNow(args: {
+        branchId?: string;
         oid: string;
         property: string;
-        valuesByBreakpoint: Record<BreakpointId, string>;
-    }): Promise<void> {
+        valuesByBreakpoint: Partial<Record<BreakpointId, string>>;
+        removedByBreakpoint?: Partial<Record<BreakpointId, string>>;
+        getHistoryLease?: () => HistoryDisposalLease | undefined;
+    }): Promise<'applied' | 'no-source'> {
+        if (this.editorEngine.framework === 'static-html') {
+            return Promise.reject(new Error('Responsive style editing of static HTML requires a CSS source writer.'));
+        }
         return this.undebouncedWriteResponsiveStyle(args);
     }
 
     private async undebouncedWriteResponsiveStyle({
+        branchId = this.editorEngine.branches.activeBranch.id,
         oid,
         property,
         valuesByBreakpoint,
+        removedByBreakpoint = {},
+        getHistoryLease,
     }: {
+        branchId?: string;
         oid: string;
         property: string;
-        valuesByBreakpoint: Record<BreakpointId, string>;
-    }): Promise<void> {
+        valuesByBreakpoint: Partial<Record<BreakpointId, string>>;
+        removedByBreakpoint?: Partial<Record<BreakpointId, string>>;
+        getHistoryLease?: () => HistoryDisposalLease | undefined;
+    }): Promise<'applied' | 'no-source'> {
         // Resolve breakpoint widths (and active branch) from the canvas.
-        const allFrames = this.editorEngine.frames.getAll();
-        if (allFrames.length === 0) return;
+        const branchData = this.editorEngine.branches.getBranchDataById(branchId);
+        if (!branchData) throw new Error('The source branch is no longer available.');
+        const codeEditor = branchData.codeEditor;
+        const allFrames = this.editorEngine.frames.getAll().filter((frame) => frame.frame.branchId === branchId);
+        if (allFrames.length === 0) return 'no-source';
 
         const widthById = new Map<string, number>();
-        let branchIdForOid: string | null = null;
+        const branchIdForOid = branchId;
         for (const f of allFrames) {
             const id = f.frame.breakpoint?.id;
             if (!id) continue;
             if (!widthById.has(id)) widthById.set(id, f.frame.breakpoint.width);
-            if (!branchIdForOid && f.selected) branchIdForOid = f.frame.branchId;
         }
-        branchIdForOid ??= allFrames[0]!.frame.branchId;
+        if (this.editorEngine.branches.getStyleWriterForBranch(branchIdForOid) === 'none') {
+            throw new Error('Responsive style editing requires a wired Tailwind v4 App Router stylesheet.');
+        }
 
+        // The smallest frame is the unprefixed base, matching the main style
+        // write (see responsivePrefixFor). Its width maps to 0 for the rebase.
+        const base = this.baseFrameWidth(branchIdForOid);
+        const rebaseWidth = (width: number) => breakpointMinWidth(width, base);
         const entries: BreakpointEntry[] = [];
         for (const [id, value] of Object.entries(valuesByBreakpoint)) {
+            if (value === undefined) continue;
             // Skip ids that don't map to a frame breakpoint, but keep
             // ids whose width is legitimately 0 (mobile-first base).
             const minWidth = widthById.get(id);
             if (minWidth === undefined) continue;
-            entries.push({ id, minWidth, value });
+            entries.push({ id, minWidth: rebaseWidth(minWidth), value });
         }
-        if (entries.length === 0) return;
+        const removals: BreakpointEntry[] = [];
+        for (const [id, value] of Object.entries(removedByBreakpoint)) {
+            if (value === undefined) continue;
+            const minWidth = widthById.get(id);
+            if (minWidth === undefined) continue;
+            removals.push({ id, minWidth: rebaseWidth(minWidth), value });
+        }
+        if (entries.length === 0 && removals.length === 0) return 'no-source';
 
         const requests = new Map<string, CodeDiffRequest>();
         const request = await getOrCreateCodeDiffRequest(oid, branchIdForOid, requests);
-        addResponsiveTailwindToRequest(request, property, entries);
+        const prefixes = await readProjectBreakpoints((path) => codeEditor.readFile(path));
+        addResponsiveTailwindToRequest(request, property, entries, removals, {
+            tailwindPrefixes: prefixes, exactThresholds: true,
+        });
 
         try {
-            await this.writeRequest(Array.from(requests.values()));
+            await this.enqueueWrite(() => this.processWriteRequest(Array.from(requests.values()), new Map([[branchId, codeEditor]])));
+            await branchData.history.noteOwnSourceWrite(getHistoryLease?.());
+            return 'applied';
         } catch (error) {
             console.error('writeResponsiveStyle failed', { oid, property, error });
+            toast.error("Couldn't save the responsive style", {
+                id: 'code-write-error',
+                description: error instanceof Error ? error.message : 'Unknown error',
+            });
+            throw error;
         }
+    }
+
+    /** Smallest frame width in the branch; edits there are the unprefixed base. */
+    private baseFrameWidth(branchId: string): number | null {
+        const widths = (this.editorEngine.frames?.getAll() ?? [])
+            .filter((f) => f.frame.branchId === branchId)
+            .map((f) => f.frame.breakpoint?.width)
+            .filter((width): width is number => width !== undefined);
+        return widths.length > 0 ? Math.min(...widths) : null;
+    }
+
+    /** Tailwind prefix matching the preview's `@media (min-width)` scope. */
+    private responsivePrefixFor(_branchId: string, minWidth: number | undefined, prefixes: Record<string, number> = {}): string {
+        if (minWidth === undefined) return '';
+        return tailwindPrefixForWidth(minWidth, prefixes, true);
+    }
+
+    /** Validate the whole selection before any optimistic paint or binding update. */
+    async preflightStyleAction(action: UpdateStyleAction): Promise<void> {
+        if (new Set(action.targets.map((target) => target.branchId)).size > 1) {
+            throw new Error('A style edit must belong to one source branch.');
+        }
+        const targets = new Map<string, { oid: string; codeEditor: CodeFileSystem }>();
+        for (const target of action.targets) {
+            if (!target.oid) throw new Error('The selected element has no editable source.');
+            const branch = this.editorEngine.branches.getBranchDataById(target.branchId);
+            if (!branch) throw new Error('The source branch is no longer available.');
+            targets.set(`${target.branchId}:${target.oid}`, { oid: target.oid, codeEditor: branch.codeEditor });
+        }
+        if (targets.size === 0) throw new Error('No editable source was selected.');
+        for (const { oid, codeEditor } of targets.values()) {
+            const metadata = await codeEditor.getJsxElementMetadata(oid);
+            const node = metadata && getAstFromCodeblock(metadata.code);
+            if (!node) throw new Error('The selected source could not be checked safely.');
+            assertStaticClassName(node);
+        }
+    }
+
+    /** Normalize preview scope once, before this action enters history. */
+    prepareStyleAction(action: UpdateStyleAction): UpdateStyleAction {
+        return { ...action, targets: action.targets.map((target) => ({
+            ...target,
+            ...(target.breakpoint ? { breakpoint: {
+                ...target.breakpoint,
+                minWidth: breakpointMinWidth(target.breakpoint.minWidth, this.baseFrameWidth(target.branchId)),
+            } } : {}),
+        })) };
     }
 
     clear() {
-        // Guard `.cancel()` because the debounced field can be reassigned or
-        // shadowed by a subclass / hot-reload boundary, which strips the
-        // lodash wrapper and turns this into `undefined.cancel()`.
-        if (typeof this.writeResponsiveStyle?.cancel === 'function') {
-            this.writeResponsiveStyle.cancel();
-        }
         this.detachBeforeUnload();
     }
 
-    async updateElementMetadata({
-        oid,
-        branchId,
-        attributes,
-        tagName = null,
-        overrideClasses = null,
-    }: {
-        oid: string;
-        branchId: string;
-        attributes?: Record<string, string>;
-        tagName?: string | null;
-        overrideClasses?: boolean | null;
-    }) {
-        const requests = new Map<string, CodeDiffRequest>();
-        const request = await getOrCreateCodeDiffRequest(oid, branchId, requests);
+    async updateElementMetadata(update: ElementMetadataUpdate): Promise<void> {
+        await this.updateElementsMetadata([update]);
+    }
 
-        if (attributes) {
-            request.attributes = {
-                ...request.attributes,
-                ...attributes,
-            };
+    /** Validate a selection together so one dynamic element cannot leave a partial binding. */
+    async updateElementsMetadata(updates: ElementMetadataUpdate[]): Promise<void> {
+        const branchId = updates[0]?.branchId;
+        if (!branchId) return;
+        if (updates.some((update) => update.branchId !== branchId)) {
+            throw new Error('A property edit must belong to one source branch.');
         }
-        request.tagName = tagName;
-        request.overrideClasses = overrideClasses;
+        const branchData = this.editorEngine.branches.getBranchDataById(branchId);
+        if (!branchData) throw new Error('The source branch is no longer available.');
+        const codeEditor = branchData.codeEditor;
+        await branchData.history.commitTransaction();
+        await branchData.history.waitForCommit();
+        const requests = new Map<string, CodeDiffRequest>();
+        for (const { oid, attributes, tagName = null, overrideClasses = null } of updates) {
+            const request = await getOrCreateCodeDiffRequest(oid, branchId, requests);
+            if (attributes) {
+                request.attributes = { ...request.attributes, ...attributes };
+            }
+            request.tagName = tagName;
+            request.overrideClasses = overrideClasses;
+        }
 
-        await this.writeRequest(Array.from(requests.values()));
+        const grouped = await this.groupRequestByFile(Array.from(requests.values()), new Map([[branchId, codeEditor]]));
+        const diffs = await processGroupedRequests(grouped);
+        for (const diff of diffs) {
+            const pipeline = selectPipeline(diff.path);
+            const reparses = pipeline && pipeline.id !== 'jsx'
+                ? pipeline.parse(diff.generated) !== null
+                : getAstFromContent(diff.generated) !== null;
+            if (!reparses) throw new Error('The property edit could not be saved safely.');
+            const source = grouped.get(diff.path);
+            if (!source) throw new Error('The property source is no longer available.');
+            diff.original = source.content;
+        }
+        await this.saveSourceDiffs(branchId, diffs, false, codeEditor);
     }
 }

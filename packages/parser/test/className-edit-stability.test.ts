@@ -1,7 +1,8 @@
 import type { T } from 'src/packages';
 import { describe, expect, test } from 'bun:test';
 import { getAstFromContent, getContentFromAst } from 'src';
-import { addClassToNode } from 'src/code-edit/style';
+import { addClassToNode, replaceNodeClasses } from 'src/code-edit/style';
+import { getAstFromCodeblock } from 'src/parse';
 import { t, traverse } from 'src/packages';
 
 // Realistic shape: one oid (ep_tx99) rendered N times via .map() with an
@@ -65,4 +66,32 @@ describe('regression: className edits keep source parseable (.map structure)', (
         }
         expect(getAstFromContent(content)).not.toBeNull();
     });
+});
+
+describe('full class replacement preserves source behavior', () => {
+    test.each([
+        '<div className={active ? "bg-brand" : "bg-muted"} />',
+        '<div className={cn("p-2", active && "bg-brand")} />',
+        '<div className={`p-2 ${variant}`} />',
+        '<div className={classes} />',
+    ])('refuses dynamic source without changing it: %s', async (source) => {
+        const node = getAstFromCodeblock(source);
+        if (!node) throw new Error('Fixture must parse');
+        const file = t.file(t.program([t.expressionStatement(node)]));
+        const before = await getContentFromAst(file, '');
+        expect(() => replaceNodeClasses(node, 'bg-new')).toThrow('Dynamic classes');
+        expect(await getContentFromAst(file, '')).toBe(before);
+    });
+
+    test.each(['<div className="p-2" title="kept" />', '<div className={"p-2"} title="kept" />'])
+        ('replaces static classes without changing other props: %s', (source) => {
+            const node = getAstFromCodeblock(source);
+            if (!node) throw new Error('Fixture must parse');
+            replaceNodeClasses(node, 'p-4 md:bg-brand');
+            const attributes = node.openingElement.attributes.filter((attr): attr is T.JSXAttribute => t.isJSXAttribute(attr));
+            const classAttr = attributes.find((attr) => attr.name.name === 'className');
+            const titleAttr = attributes.find((attr) => attr.name.name === 'title');
+            expect(t.isStringLiteral(classAttr?.value) && classAttr.value.value).toBe('p-4 md:bg-brand');
+            expect(t.isStringLiteral(titleAttr?.value) && titleAttr.value.value).toBe('kept');
+        });
 });

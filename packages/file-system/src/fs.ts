@@ -9,26 +9,36 @@
 import path from 'path';
 
 import type ZenFS from '@zenfs/core';
-import { getFS } from './config';
+import { createMemoryFS, getFS } from './config';
 import { type FileChangeEvent, type FileEntry, type FileInfo } from './types';
 
 export class FileSystem {
-    private fs: typeof ZenFS | null = null;
+    private backend: typeof ZenFS | null = null;
+    private closed = false;
+    private initialization: Promise<void> | null = null;
+    private disposal: Promise<void> | null = null;
+    private releaseMount: (() => void) | null = null;
+    private readonly logicalPath: string;
+    private get fs(): typeof ZenFS | null {
+        if (this.closed) throw new Error('File system is closed');
+        return this.backend;
+    }
     private basePath: string;
     private watchers = new Map<string, any[]>();
     private watcherTimeouts = new Map<string, NodeJS.Timeout>();
     private isInitialized = false;
 
-    constructor(rootDir: string) {
+    constructor(rootDir: string, private readonly storageOptions: { ephemeral?: boolean } = {}) {
         this.basePath = path.resolve('/', rootDir);
+        this.logicalPath = this.basePath;
     }
 
     get rootPath(): string {
-        return this.basePath;
+        return this.logicalPath;
     }
 
     protected get initialized(): boolean {
-        return this.isInitialized && this.fs !== null;
+        return !this.closed && this.isInitialized && this.backend !== null;
     }
 
     /**
@@ -47,23 +57,49 @@ export class FileSystem {
         throw new Error(`Path escapes basePath: ${inputPath}`);
     }
 
-    async initialize(): Promise<void> {
-        if (this.isInitialized) {
-            return;
-        }
+    initialize(): Promise<void> {
+        if (this.closed) return Promise.reject(new Error('File system is closed'));
+        if (this.isInitialized) return Promise.resolve();
+        this.initialization ??= this.initializeStorage().catch((error) => {
+            this.initialization = null;
+            throw error;
+        });
+        return this.initialization;
+    }
 
-        this.fs = await getFS();
-
-        // Ensure base directory exists
-        try {
-            await this.fs.promises.mkdir(this.basePath, { recursive: true });
-        } catch (error) {
-            if ((error as any)?.code !== 'EEXIST') {
-                throw error;
+    private async initializeStorage(): Promise<void> {
+        if (this.storageOptions.ephemeral) {
+            const mounted = await createMemoryFS();
+            if (this.closed) {
+                mounted.dispose();
+                throw new Error('File system is closed');
+            }
+            this.backend = mounted.fs;
+            this.basePath = mounted.rootPath;
+            this.releaseMount = mounted.dispose;
+        } else {
+            this.backend = await getFS();
+            try {
+                await this.backend.promises.mkdir(this.basePath, { recursive: true });
+            } catch (error) {
+                if ((error as { code?: string })?.code !== 'EEXIST') throw error;
             }
         }
+        try {
+            if (!(await this.backend.promises.stat(this.basePath)).isDirectory())
+                throw new Error('File system root is not a directory');
+            if (this.closed) throw new Error('File system is closed');
+            this.isInitialized = true;
+        } catch (error) {
+            this.releaseMount?.();
+            this.releaseMount = null;
+            throw error;
+        }
+    }
 
-        this.isInitialized = true;
+    /** Close admission synchronously; subclasses drain their writes before disposal. */
+    protected beginClose(): void {
+        if (this.storageOptions.ephemeral) this.closed = true;
     }
 
     private isTextContent(buffer: Uint8Array): boolean {
@@ -97,6 +133,17 @@ export class FileSystem {
         return true;
     }
 
+    private async assertFileTarget(fullPath: string): Promise<void> {
+        if (!this.storageOptions.ephemeral) return;
+        const stats = await this.fs!.promises.stat(fullPath).catch((error: unknown) => {
+            if ((error as { code?: string })?.code === 'ENOENT') return null;
+            throw error;
+        });
+        // The installed ZenFS accepts writing a directory's data buffer. Never
+        // let a cloud cache write corrupt its directory listing.
+        if (stats?.isDirectory()) throw new Error('Cannot replace a directory with a file');
+    }
+
     /**
      * Create a new file with content
      */
@@ -104,6 +151,7 @@ export class FileSystem {
         if (!this.fs) throw new Error('File system not initialized');
 
         const fullPath = this.resolveSafe(inputPath);
+        await this.assertFileTarget(fullPath);
 
         // Ensure parent directory exists
         const dir = path.dirname(fullPath);
@@ -151,6 +199,7 @@ export class FileSystem {
         if (!this.fs) throw new Error('File system not initialized');
 
         const fullPath = this.resolveSafe(inputPath);
+        await this.assertFileTarget(fullPath);
 
         // Ensure parent directory exists
         const dir = path.dirname(fullPath);
@@ -171,7 +220,7 @@ export class FileSystem {
             // POSIX `O_TRUNC|O_CREAT` semantics that the underlying call
             // is supposed to provide.
             const message = err instanceof Error ? err.message : String(err);
-            if (/file exists|EEXIST/i.test(message)) {
+            if (!this.storageOptions.ephemeral && /file exists|EEXIST/i.test(message)) {
                 try {
                     await this.fs.promises.unlink(fullPath);
                 } catch {
@@ -245,6 +294,8 @@ export class FileSystem {
 
         const fullPath = this.resolveSafe(inputPath);
         await this.fs.promises.mkdir(fullPath, { recursive: true });
+        if (this.storageOptions.ephemeral && !(await this.fs.promises.stat(fullPath)).isDirectory())
+            throw new Error('A file blocks the requested directory');
     }
 
     async readDirectory(inputPath = '/'): Promise<FileEntry[]> {
@@ -337,6 +388,7 @@ export class FileSystem {
                 }
             } else {
                 const content = await this.fs!.promises.readFile(src);
+                await this.assertFileTarget(dest);
                 await this.fs!.promises.writeFile(dest, content);
             }
         };
@@ -644,7 +696,8 @@ export class FileSystem {
         return allPaths;
     }
 
-    cleanup(): void {
+    cleanup(): Promise<void> {
+        this.beginClose();
         // Clear all watchers
         for (const watchers of this.watchers.values()) {
             watchers.forEach((w) => w.close());
@@ -656,5 +709,14 @@ export class FileSystem {
             clearTimeout(timeout);
         }
         this.watcherTimeouts.clear();
+        this.disposal ??= (async () => {
+            if (!this.storageOptions.ephemeral) return;
+            await this.initialization?.catch(() => undefined);
+            this.releaseMount?.();
+            this.releaseMount = null;
+            this.backend = null;
+            this.isInitialized = false;
+        })();
+        return this.disposal;
     }
 }

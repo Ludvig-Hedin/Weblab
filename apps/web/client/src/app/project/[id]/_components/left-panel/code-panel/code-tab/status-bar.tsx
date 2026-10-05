@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
+import { Icons } from '@weblab/ui/icons';
+
 import type { EditorFile } from './shared/types';
 
 interface StatusBarProps {
@@ -11,6 +13,22 @@ interface StatusBarProps {
     hasUnsavedChanges: boolean;
     lastSavedAt: number | null;
 }
+
+const LANGUAGE_LABELS: Record<string, string> = {
+    ts: 'TypeScript',
+    tsx: 'TypeScript JSX',
+    mts: 'TypeScript',
+    cts: 'TypeScript',
+    js: 'JavaScript',
+    jsx: 'JavaScript JSX',
+    mjs: 'JavaScript',
+    cjs: 'JavaScript',
+    css: 'CSS',
+    html: 'HTML',
+    json: 'JSON',
+    md: 'Markdown',
+    mdx: 'MDX',
+};
 
 const formatRelative = (ts: number, now: number): string => {
     const delta = Math.max(0, now - ts);
@@ -37,23 +55,33 @@ export const StatusBar = ({
 
     if (!activeFile) return null;
 
+    const baseName = activeFile.path.split('/').pop() ?? '';
+    const extension = baseName.includes('.')
+        ? (baseName.split('.').pop()?.toLowerCase() ?? '')
+        : '';
     const language =
-        activeFile.path.split('.').pop()?.toUpperCase() ??
-        (activeFile.type === 'binary' ? 'BIN' : 'TXT');
+        activeFile.type === 'binary'
+            ? 'Binary'
+            : (LANGUAGE_LABELS[extension] ?? (extension ? extension.toUpperCase() : 'Plain text'));
 
     const savedLabel = lastSavedAt && !hasUnsavedChanges ? formatRelative(lastSavedAt, now) : null;
 
     return (
-        <div className="bg-background-bar border-border-bar text-mini text-foreground-tertiary flex h-6 flex-shrink-0 items-center justify-between gap-3 border-t px-3 select-none">
+        <div className="bg-background-chrome border-border-bar text-mini text-foreground-tertiary flex h-7 flex-shrink-0 items-center justify-between gap-3 border-t px-4 select-none">
             <div className="flex min-w-0 items-center gap-3 truncate">
-                <span className="truncate">{activeFile.path}</span>
-                {hasUnsavedChanges && (
-                    <span className="text-foreground-brand flex items-center gap-1">
+                {hasUnsavedChanges ? (
+                    <span className="text-foreground-secondary flex items-center gap-1.5">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
                         {t('unsaved')}
                     </span>
+                ) : (
+                    savedLabel && (
+                        <span className="flex items-center gap-1.5">
+                            <Icons.Check className="h-3 w-3" />
+                            {savedLabel}
+                        </span>
+                    )
                 )}
-                {savedLabel && <span>{savedLabel}</span>}
             </div>
             <div className="flex items-center gap-3">
                 {cursorInfo && (

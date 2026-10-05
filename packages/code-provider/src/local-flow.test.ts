@@ -1,14 +1,13 @@
 import {
-    cp,
     mkdir,
     mkdtemp,
     readdir,
     readFile,
-    rename,
     rm,
     stat,
     writeFile,
 } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -21,7 +20,7 @@ import { getStaticHtmlScaffoldFiles } from './scaffold-templates';
 /**
  * End-to-end test of the local-first user flow:
  *   create (scaffold) → edit (restyle an element) → save → close → reopen →
- *   persists, plus the file CRUD + session the editor relies on.
+ *   persists, plus guarded writes and read-only browsing.
  *
  * Runs the REAL NodeFsProvider + REAL parser + REAL static-HTML scaffold against
  * a REAL temp directory through a real-fs bridge that mirrors what
@@ -30,19 +29,35 @@ import { getStaticHtmlScaffoldFiles } from './scaffold-templates';
  */
 function installRealFsBridge(root: string) {
     const resolve = (rel: string) => join(root, rel === '' ? '.' : rel);
+    const hash = (content: string) => createHash('sha256').update(content).digest('hex');
     const bridge = {
         localfs: {
             async read(_r: string, p: string) {
                 try {
-                    return { content: await readFile(resolve(p), 'utf8') };
+                    const content = await readFile(resolve(p), 'utf8');
+                    return { content, sha256: hash(content) };
                 } catch {
                     return { error: 'not_found', notFound: true };
                 }
             },
-            async write(_r: string, p: string, c: string | Uint8Array) {
+            async writeIfUnchanged(
+                _r: string,
+                p: string,
+                content: string,
+                expectedSha256: string | null,
+            ) {
+                let currentHash: string | null = null;
+                try {
+                    currentHash = hash(await readFile(resolve(p), 'utf8'));
+                } catch {
+                    // Expected for a new file.
+                }
+                if (currentHash !== expectedSha256) {
+                    return { conflict: true, hash: currentHash };
+                }
                 await mkdir(dirname(resolve(p)), { recursive: true });
-                await writeFile(resolve(p), c instanceof Uint8Array ? Buffer.from(c) : String(c));
-                return { success: true };
+                await writeFile(resolve(p), content);
+                return { success: true, hash: hash(content) };
             },
             async list(_r: string, p: string) {
                 const entries = await readdir(resolve(p), { withFileTypes: true });
@@ -65,23 +80,6 @@ function installRealFsBridge(root: string) {
                     return { error: 'not_found', notFound: true };
                 }
             },
-            async mkdir(_r: string, p: string) {
-                await mkdir(resolve(p), { recursive: true });
-                return { success: true };
-            },
-            async remove(_r: string, p: string) {
-                await rm(resolve(p), { recursive: true, force: true });
-                return { success: true };
-            },
-            async rename(_r: string, oldPath: string, newPath: string) {
-                await mkdir(dirname(resolve(newPath)), { recursive: true });
-                await rename(resolve(oldPath), resolve(newPath));
-                return { success: true };
-            },
-            async copy(_r: string, s: string, d: string) {
-                await cp(resolve(s), resolve(d), { recursive: true });
-                return { success: true };
-            },
             async watchStart() {
                 return { watchId: 'w1' };
             },
@@ -102,8 +100,11 @@ function installRealFsBridge(root: string) {
             async status() {
                 return { running: false };
             },
-            async run() {
-                return { output: '', exitCode: 0 };
+            async gitInfo() {
+                return { isRepositoryRoot: false };
+            },
+            async gitStatus() {
+                return { changedFiles: [] };
             },
             onOutput() {
                 return () => undefined;
@@ -115,12 +116,13 @@ function installRealFsBridge(root: string) {
 }
 
 async function restyle(provider: NodeFsProvider, path: string, className: string): Promise<void> {
-    const src = String((await provider.readFile({ args: { path } })).file.content).trim();
+    const { content, sha256 } = await provider.readFileWithHash(path);
+    const src = content.trim();
     const node = getAstFromCodeblock(src);
     if (!node) throw new Error('failed to parse element');
     addClassToNode(node, className);
     const edited = await getContentFromAst(t.file(t.program([t.expressionStatement(node)])), '');
-    await provider.writeFile({ args: { path, content: edited } });
+    await provider.writeFileIfUnchanged(path, edited, sha256);
 }
 
 describe('local-first user flow (create → edit → save → reopen)', () => {
@@ -140,7 +142,7 @@ describe('local-first user flow (create → edit → save → reopen)', () => {
         const provider = new NodeFsProvider({ rootPath: root });
 
         for (const file of getStaticHtmlScaffoldFiles()) {
-            await provider.writeFile({ args: { path: file.path, content: file.content } });
+            await provider.writeFileIfUnchanged(file.path, file.content, null);
         }
 
         // Through the provider…
@@ -156,12 +158,11 @@ describe('local-first user flow (create → edit → save → reopen)', () => {
         root = await mkdtemp(join(tmpdir(), 'wl-flow2-'));
         installRealFsBridge(root);
         const provider = new NodeFsProvider({ rootPath: root });
-        await provider.writeFile({
-            args: {
-                path: 'src/Button.tsx',
-                content: '<button className="p-2 text-sm">Go</button>\n',
-            },
-        });
+        await provider.writeFileIfUnchanged(
+            'src/Button.tsx',
+            '<button className="p-2 text-sm">Go</button>\n',
+            null,
+        );
 
         // The canvas restyle: add a class to the element + write it back.
         await restyle(provider, 'src/Button.tsx', 'bg-blue-500');
@@ -173,24 +174,35 @@ describe('local-first user flow (create → edit → save → reopen)', () => {
         expect(after).toContain('text-sm'); // existing styles preserved
     });
 
-    test('file CRUD the editor relies on (list / stat / rename / delete)', async () => {
+    test('read-only browsing works while direct file CRUD is blocked', async () => {
         root = await mkdtemp(join(tmpdir(), 'wl-flow3-'));
         installRealFsBridge(root);
         const provider = new NodeFsProvider({ rootPath: root });
 
-        await provider.writeFile({ args: { path: 'a.txt', content: 'x' } });
+        await provider.writeFileIfUnchanged('a.txt', 'x', null);
         expect(
             (await provider.listFiles({ args: { path: '.' } })).files.map((f) => f.name),
         ).toContain('a.txt');
         expect((await provider.statFile({ args: { path: 'a.txt' } })).type).toBe('file');
 
-        await provider.renameFile({ args: { oldPath: 'a.txt', newPath: 'sub/b.txt' } });
-        expect((await provider.readFile({ args: { path: 'sub/b.txt' } })).file.content).toBe('x');
+        await expect(
+            provider.renameFile({ args: { oldPath: 'a.txt', newPath: 'sub/b.txt' } }),
+        ).rejects.toThrow(/Direct local file mutations are unavailable/);
+        expect((await provider.readFile({ args: { path: 'a.txt' } })).file.content).toBe('x');
+    });
 
-        await provider.deleteFiles({ args: { path: 'sub/b.txt' } });
-        await expect(provider.readFile({ args: { path: 'sub/b.txt' } })).rejects.toThrow(
-            /not found/i,
+    test('external disk changes reject a stale editor write', async () => {
+        root = await mkdtemp(join(tmpdir(), 'wl-flow-conflict-'));
+        installRealFsBridge(root);
+        const provider = new NodeFsProvider({ rootPath: root });
+        await provider.writeFileIfUnchanged('a.txt', 'first', null);
+        const original = await provider.readFileWithHash('a.txt');
+        await writeFile(join(root, 'a.txt'), 'external');
+
+        await expect(provider.writeFileIfUnchanged('a.txt', 'editor', original.sha256)).rejects.toThrow(
+            /File changed on disk/,
         );
+        expect(await readFile(join(root, 'a.txt'), 'utf8')).toBe('external');
     });
 
     test('createSession returns the local preview URL for the canvas', async () => {

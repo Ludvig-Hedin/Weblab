@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Pencil, Unlink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
@@ -21,8 +22,14 @@ export interface ColorRowProps {
     onToggleVisible?: () => void;
     /** Open the color picker popover content (passes the existing v3 ColorField popover if available). */
     pickerContent?: React.ReactNode;
-    /** Optional connect-to-token slot — if provided, renders the connect button which calls this on click. */
-    onConnect?: () => void;
+    /** Variable the value is bound to. Replaces the hex + alpha inputs with a chip. */
+    variable?: { label: string; editable: boolean } | null;
+    /** Detach the bound variable (keeps the current color as a literal). */
+    onDetachVariable?: () => void;
+    /** Popover content for editing the bound variable. */
+    renderEditVariable?: (close: () => void) => React.ReactNode;
+    /** Popover content for picking a variable. Renders the connect button when set. */
+    renderConnectVariable?: (close: () => void) => React.ReactNode;
     /** Optional eyedropper handler. */
     onEyedropper?: () => void;
     /** When true, multiple selected elements have different color values. */
@@ -157,7 +164,10 @@ export function ColorRow({
     visible = true,
     onToggleVisible,
     pickerContent,
-    onConnect,
+    variable,
+    onDetachVariable,
+    renderEditVariable,
+    renderConnectVariable,
     onEyedropper,
     mixed,
     className,
@@ -175,6 +185,12 @@ export function ColorRow({
     // the blur handler would re-commit the stale draft. This ref lets the blur
     // skip its commit exactly once after an Escape/Enter already handled it.
     const skipHexBlurCommitRef = React.useRef(false);
+    const [editOpen, setEditOpen] = React.useState(false);
+    const [connectOpen, setConnectOpen] = React.useState(false);
+    const bound = variable != null && !mixed;
+    // Hover-only actions stay reachable by keyboard and while their popover is open.
+    const hoverAction =
+        'opacity-0 group-hover/color:opacity-100 group-focus-within/color:opacity-100 data-[state=open]:opacity-100';
 
     React.useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -224,7 +240,7 @@ export function ColorRow({
         <div
             className={cn(
                 FIELD_BASE_CLASSES,
-                'flex h-[28px] min-w-0 items-center gap-2 pr-[6px] pl-[6px]',
+                'group/color flex h-[28px] min-w-0 items-center gap-2 pr-[6px] pl-[6px]',
                 className,
             )}
         >
@@ -268,85 +284,119 @@ export function ColorRow({
                 )}
             </Popover>
 
-            {/* Hex input — tabular */}
-            <input
-                type="text"
-                value={hexDraft}
-                spellCheck={false}
-                placeholder={mixed ? tCtrl('mixed') : undefined}
-                onChange={(e) => {
-                    // Only uppercase when the input still looks hex-shaped.
-                    // Raw `var(--token)` / named-color values are case-sensitive
-                    // (`--accent` ≠ `--ACCENT`), so blanket uppercase would
-                    // silently break them on commit.
-                    const v = e.target.value.replace(/^#/, '');
-                    setHexDraft(/^[0-9a-fA-F]{0,8}$/.test(v) ? v.toUpperCase() : v);
-                }}
-                onBlur={() => {
-                    if (skipHexBlurCommitRef.current) {
-                        skipHexBlurCommitRef.current = false;
-                        return;
-                    }
-                    commitHex(hexDraft);
-                }}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        commitHex(hexDraft);
-                        skipHexBlurCommitRef.current = true;
-                        e.currentTarget.blur();
-                    } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        // Restore the same value the draft was seeded with —
-                        // for raw `var(--token)` / named colors `hex` is '',
-                        // so falling through to `raw` keeps the original.
-                        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-                        setHexDraft(hex || raw || '');
-                        skipHexBlurCommitRef.current = true;
-                        e.currentTarget.blur();
-                    }
-                }}
-                aria-label={tc('hexValue')}
-                className={cn(
-                    'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase tabular-nums outline-none',
-                    mixed &&
-                        'placeholder:text-foreground-tertiary/70 placeholder:normal-case placeholder:italic',
-                )}
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-            />
+            {bound && variable ? (
+                <>
+                    <span
+                        className="text-foreground-primary text-mini min-w-0 flex-1 truncate"
+                        title={variable.label}
+                    >
+                        {variable.label}
+                    </span>
+                    {variable.editable && renderEditVariable && (
+                        <Popover open={editOpen} onOpenChange={setEditOpen}>
+                            <PopoverTrigger asChild>
+                                <IconButtonSm label={tCtrl('editVariable')} className={hoverAction}>
+                                    <Pencil className="size-3" />
+                                </IconButtonSm>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-[260px] p-0">
+                                {renderEditVariable(() => setEditOpen(false))}
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                    {onDetachVariable && (
+                        <IconButtonSm
+                            label={tCtrl('detachVariable')}
+                            className={hoverAction}
+                            onClick={onDetachVariable}
+                        >
+                            <Unlink className="size-3" />
+                        </IconButtonSm>
+                    )}
+                </>
+            ) : (
+                <>
+                    {/* Hex input — tabular */}
+                    <input
+                        type="text"
+                        value={hexDraft}
+                        spellCheck={false}
+                        placeholder={mixed ? tCtrl('mixed') : undefined}
+                        onChange={(e) => {
+                            // Only uppercase when the input still looks hex-shaped.
+                            // Raw `var(--token)` / named-color values are case-sensitive
+                            // (`--accent` ≠ `--ACCENT`), so blanket uppercase would
+                            // silently break them on commit.
+                            const v = e.target.value.replace(/^#/, '');
+                            setHexDraft(/^[0-9a-fA-F]{0,8}$/.test(v) ? v.toUpperCase() : v);
+                        }}
+                        onBlur={() => {
+                            if (skipHexBlurCommitRef.current) {
+                                skipHexBlurCommitRef.current = false;
+                                return;
+                            }
+                            commitHex(hexDraft);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                commitHex(hexDraft);
+                                skipHexBlurCommitRef.current = true;
+                                e.currentTarget.blur();
+                            } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                // Restore the same value the draft was seeded with —
+                                // for raw `var(--token)` / named colors `hex` is '',
+                                // so falling through to `raw` keeps the original.
+                                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+                                setHexDraft(hex || raw || '');
+                                skipHexBlurCommitRef.current = true;
+                                e.currentTarget.blur();
+                            }
+                        }}
+                        aria-label={tc('hexValue')}
+                        className={cn(
+                            'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase tabular-nums outline-none',
+                            mixed &&
+                                'placeholder:text-foreground-tertiary/70 placeholder:normal-case placeholder:italic',
+                        )}
+                        style={{ fontVariantNumeric: 'tabular-nums' }}
+                    />
 
-            {/* Alpha — fixed width, divider left */}
-            <div className="border-foreground/[0.05] flex h-full shrink-0 items-center border-l pl-2">
-                <input
-                    type="text"
-                    inputMode="numeric"
-                    value={alphaDraft}
-                    onChange={(e) => {
-                        const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                        if (cleaned === '') {
-                            // Empty input on blur would commit alpha 0
-                            // (fully transparent) — treat field-clear as
-                            // "no change" instead of snapping to 0.
-                            setAlphaDraft(alpha);
-                            return;
-                        }
-                        const n = Number.parseInt(cleaned, 10);
-                        setAlphaDraft(Number.isNaN(n) ? alpha : n);
-                    }}
-                    onBlur={() => commitAlpha(alphaDraft)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            commitAlpha(alphaDraft);
-                            e.currentTarget.blur();
-                        }
-                    }}
-                    aria-label={tc('alpha')}
-                    className="text-foreground-secondary w-[28px] cursor-text bg-transparent text-right text-[12px] tabular-nums outline-none"
-                    style={{ fontVariantNumeric: 'tabular-nums' }}
-                />
-                <span className="text-muted-foreground ml-0.5 text-[11px]">%</span>
-            </div>
+                    {/* Alpha — fixed width, divider left */}
+                    <div className="border-foreground/[0.05] flex h-full shrink-0 items-center border-l pl-2">
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            value={alphaDraft}
+                            onChange={(e) => {
+                                const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                                if (cleaned === '') {
+                                    // Empty input on blur would commit alpha 0
+                                    // (fully transparent) — treat field-clear as
+                                    // "no change" instead of snapping to 0.
+                                    setAlphaDraft(alpha);
+                                    return;
+                                }
+                                const n = Number.parseInt(cleaned, 10);
+                                setAlphaDraft(Number.isNaN(n) ? alpha : n);
+                            }}
+                            onBlur={() => commitAlpha(alphaDraft)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    commitAlpha(alphaDraft);
+                                    e.currentTarget.blur();
+                                }
+                            }}
+                            aria-label={tc('alpha')}
+                            className="text-foreground-secondary w-[28px] cursor-text bg-transparent text-right text-[12px] tabular-nums outline-none"
+                            style={{ fontVariantNumeric: 'tabular-nums' }}
+                        />
+                        <span className="text-muted-foreground ml-0.5 text-[11px]">%</span>
+                    </div>
+                </>
+            )}
 
             {/* Visibility eye */}
             {onToggleVisible && (
@@ -362,12 +412,29 @@ export function ColorRow({
                 </IconButtonSm>
             )}
 
-            {/* Connect to token */}
-            {onConnect && (
-                <IconButtonSm label={tc('connectToColorToken')} onClick={onConnect}>
-                    <IconConnectToken size={13} />
-                </IconButtonSm>
+            {/* Connect to a variable */}
+            {renderConnectVariable && !mixed && (
+                <Popover open={connectOpen} onOpenChange={setConnectOpen}>
+                    <PopoverTrigger asChild>
+                        <IconButtonSm
+                            label={tCtrl('connectVariable')}
+                            className={bound ? undefined : hoverAction}
+                        >
+                            <IconConnectToken size={13} />
+                        </IconButtonSm>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-[232px] p-0">
+                        {renderConnectVariable(() => setConnectOpen(false))}
+                    </PopoverContent>
+                </Popover>
             )}
         </div>
     );
+}
+
+/** Any CSS color as a literal (`#RRGGBB` / `#RRGGBBAA`) for detaching a variable. */
+export function colorToLiteral(value: string): string {
+    const { hex, alpha, raw } = parseHex(value);
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    return buildHexWithAlpha(hex, alpha) || raw || value;
 }

@@ -15,6 +15,8 @@ dist
 dist-ssr
 dist-electron
 release
+# Desktop publishing source, not generated release output
+!/apps/desktop/release/
 *.local
 
 # Editor directories and files
@@ -86,3 +88,14 @@ agent-temp-input/
 
 # Local MCP server config (may reference local secrets via env interpolation)
 .mcp.json
+
+# Customer-pinned whole-site engine and its tests stay local
+# (loaded through apps/desktop/release/site-engine.js when present)
+apps/desktop/release/sanity-site/
+apps/desktop/release/sanity-content.test.js
+apps/desktop/sanity-site-install.test.js
+
+# Internal customer-readiness audits and working notes stay local (this repo is public)
+docs/audits/desktop-client-readiness-*.md
+docs/notes/2026-10-*.md
+docs/internal/

@@ -5,23 +5,31 @@ import {
     memo,
     useCallback,
     useEffect,
+    useLayoutEffect,
     useImperativeHandle,
     useRef,
     useState,
 } from 'react';
 import { motion } from 'motion/react';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { useTranslations } from 'next-intl';
 
 import { useDirectory, useFile } from '@weblab/file-system/hooks';
 import { EditorMode, MessageContextType } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
+import { Button } from '@weblab/ui/button';
 import { pathsEqual } from '@weblab/utility';
 
 import type { BinaryEditorFile, EditorFile, TextEditorFile } from './shared/types';
 import type { EditorView } from '@codemirror/view';
 import { useEditorEngine } from '@/components/store/editor';
+import { useWorkingLevelLifecycle } from '@/components/working-level/editor-gate';
+import { useWorkingLevel } from '@/components/working-level/provider';
+import { CodeDraftSession, listCodeDrafts, type CodeDraftRecord, type CodeDraftFile } from '@/lib/code-drafts';
 import { hashContent } from '@/services/sync-engine/sync-engine';
 import { CodeEditorArea } from './file-content';
 import { scrollToFirstMatch } from './file-content/code-mirror-config';
+import { FileBreadcrumb } from './file-breadcrumb';
 import { FileTabs } from './file-tabs';
 import { CodeControls } from './header-controls';
 import { useCodeNavigation } from './hooks/use-code-navigation';
@@ -72,9 +80,34 @@ const createEditorFile = async (
     }
 };
 
-export const CodeTab = memo(
-    forwardRef<CodeTabRef, CodeTabProps>(({ projectId, branchId }, ref) => {
+const BufferedCodeTab = memo(
+    forwardRef<CodeTabRef, CodeTabProps & { draftOwner: string | null }>(({ projectId, branchId, draftOwner }, ref) => {
         const editorEngine = useEditorEngine();
+        const lifecycle = useWorkingLevelLifecycle();
+        const workingLevel = useWorkingLevel();
+        const currentOwner = useRef(workingLevel.userId);
+        currentOwner.current = workingLevel.userId;
+        const tDraft = useTranslations('editor.code.drafts');
+        const [protection] = useState(() => {
+            if (!draftOwner) return { session: null, records: [] as CodeDraftRecord[], error: false };
+            try {
+                const scope = { userId: draftOwner, projectId, branchId };
+                const recovery = listCodeDrafts(window.localStorage, scope);
+                return { session: new CodeDraftSession(window.localStorage, scope, crypto.randomUUID()), records: recovery.records, error: recovery.unreadable };
+            } catch { return { session: null, records: [] as CodeDraftRecord[], error: true }; }
+        });
+        const [draftError, setDraftError] = useState(protection.error);
+        const [draftConflict, setDraftConflict] = useState(false);
+        const approvedContent = useRef(new Map<string, string>());
+        const pendingSaves = useRef(new Map<string, Promise<boolean>>());
+        const live = useRef(true);
+        useEffect(() => {
+            live.current = true;
+            return () => { live.current = false; };
+        }, []);
+        const assertDraftOwner = () => {
+            if (draftOwner && currentOwner.current !== draftOwner) throw new Error('Draft owner changed');
+        };
         const editorViewsRef = useRef<Map<string, EditorView>>(new Map());
         // Pending scroll-to-search-term request from the file-tree search.
         // Resolved by the effect below once the EditorView for the file mounts.
@@ -89,6 +122,49 @@ export const CodeTab = memo(
         const [openedEditorFiles, setOpenedEditorFiles] = useState<EditorFile[]>([]);
         const openedEditorFilesRef = useRef<EditorFile[]>([]);
         openedEditorFilesRef.current = openedEditorFiles;
+        const cloudSource = editorEngine.branches.getBranchDataById(branchId)?.sandbox.cloudSource;
+        useLayoutEffect(() => cloudSource?.registerLocalWork(() =>
+            openedEditorFilesRef.current.some((file) => !!protection.session?.file(file.path))
+        ), [cloudSource, protection]);
+        const draftsVerified = () => {
+            if (!draftOwner || !protection.session?.verified(draftOwner)) return false;
+            return openedEditorFilesRef.current.every((file) => {
+                if (file.type !== 'text') return true;
+                const content = editorViewsRef.current.get(file.path)?.state.doc.toString() ?? file.content;
+                const savedDraft = protection.session?.file(file.path);
+                return savedDraft ? savedDraft.content === content && savedDraft.originalHash === file.originalHash
+                    : approvedContent.current.get(file.path) === content;
+            });
+        };
+        useLayoutEffect(() => lifecycle?.prepare(async () => {
+            if (draftOwner) {
+                await Promise.all([...pendingSaves.current.values()]);
+                if (!draftsVerified()) throw new Error('Code draft recovery could not be verified');
+                return;
+            }
+            // Saving here would overwrite outside changes: the existing manual
+            // save path has no raw-byte CAS. Refuse before any engine disposal.
+            for (const file of openedEditorFilesRef.current) {
+                const view = editorViewsRef.current.get(file.path);
+                const buffered = file.type === 'text' && view
+                    ? { ...file, content: view.state.doc.toString() } : file;
+                if (await isDirty(buffered)) throw new Error('Unsaved code buffer');
+            }
+        }), [lifecycle]);
+        useEffect(() => {
+            if (!draftOwner) return;
+            const warn = (event: BeforeUnloadEvent) => {
+                let verified = false;
+                try { verified = draftsVerified(); } catch { /* Refuse unverified exit. */ }
+                // A past failed dispatch can leave the error visible after the
+                // current bytes are safe. Match the lifecycle check above.
+                if (verified) return;
+                event.preventDefault();
+                event.returnValue = '';
+            };
+            window.addEventListener('beforeunload', warn);
+            return () => window.removeEventListener('beforeunload', warn);
+        }, [draftOwner, protection]);
         // Monotonic id assigned to each loadedContent processing pass so a
         // slow load can't overwrite state set by a faster, later load.
         const processFileSeqRef = useRef(0);
@@ -96,6 +172,7 @@ export const CodeTab = memo(
         const recentlyClosedRef = useRef<string[]>([]);
         const [showLocalUnsavedDialog, setShowLocalUnsavedDialog] = useState(false);
         const [filesToClose, setFilesToClose] = useState<string[]>([]);
+        const discardRevisions = useRef(new Map<string, number>());
         const [isSidebarOpen, setIsSidebarOpen] = useState(true);
         const [editorSelection, setEditorSelection] = useState<{
             from: number;
@@ -120,6 +197,59 @@ export const CodeTab = memo(
 
         const { content: loadedContent } = useFile(projectId, branchId, selectedFilePath || '');
 
+        const recoverFile = async (record: CodeDraftRecord, path: string, previous = false) => {
+            try {
+                assertDraftOwner();
+                const session = protection.session;
+                if (!session || !branchData) throw new Error('Recovery unavailable');
+                const existing = openedEditorFilesRef.current.find((file) => pathsEqual(file.path, path));
+                if (existing && await isDirty(existing)) throw new Error('Current buffer has unsaved edits');
+                assertDraftOwner();
+                const recovered = session.recover(currentOwner.current, record, path, previous);
+                const restored: TextEditorFile = { type: 'text', path, content: recovered.content, originalHash: recovered.originalHash };
+                const next = [...openedEditorFilesRef.current.filter((file) => !pathsEqual(file.path, path)), restored];
+                openedEditorFilesRef.current = next;
+                approvedContent.current.set(path, restored.content);
+                setOpenedEditorFiles(next);
+                setActiveEditorFile(restored);
+                setSelectedFilePath(path);
+                const capturedEditor = branchData.codeEditor;
+                let sourceConflict: CodeDraftFile['sourceConflict'] = 'unknown';
+                try {
+                    const source = await capturedEditor.readFile(path);
+                    sourceConflict = typeof source !== 'string' ? 'missing' : await hashContent(source) === recovered.originalHash ? null : 'changed';
+                } catch { sourceConflict = 'missing'; }
+                if (!live.current || currentOwner.current !== draftOwner || session.file(path)?.revision !== recovered.revision) return;
+                session.checkpoint(currentOwner.current, { ...recovered, sourceConflict });
+                setDraftConflict(sourceConflict !== null);
+            } catch {
+                setDraftError(true);
+                toast.error(tDraft('recoveryFailed'));
+            }
+        };
+
+        const acceptDraftChange = (path: string, content: string, external: boolean, previousContent: string, apply: () => void, applied: () => boolean): boolean => {
+            if (!draftOwner) { apply(); return true; }
+            try {
+                assertDraftOwner();
+                const file = openedEditorFilesRef.current.find((file) => pathsEqual(file.path, path));
+                if (!file || file.type !== 'text' || !file.originalHash || !protection.session) throw new Error('Draft baseline unavailable');
+                const own = protection.session.file(path);
+                if (external) {
+                    if (content !== file.content || approvedContent.current.get(path) !== content
+                        || (own && (own.content !== content || own.originalHash !== file.originalHash))) return false;
+                    apply();
+                    return true;
+                }
+                protection.session.applyDocument(currentOwner.current, { path, content, originalHash: file.originalHash, sourceConflict: own?.sourceConflict ?? null }, previousContent, apply, applied);
+                cloudSource?.setLocalDraftChanges(true);
+                setDraftError(protection.error);
+                // This receipt is pinned to a successful synchronous storage write.
+                approvedContent.current.set(path, content);
+                return true;
+            } catch (error) { setDraftError(true); if (applied()) throw error; return false; }
+        };
+
         // React to loadedContent changes - build local EditorFile and manage opened files
         useEffect(() => {
             // `useFile` returns `content: null` while loading/error and the real
@@ -132,7 +262,8 @@ export const CodeTab = memo(
             const targetPath = selectedFilePath;
 
             const isStale = () =>
-                seq !== processFileSeqRef.current || !pathsEqual(targetPath, selectedFilePath);
+                !live.current || seq !== processFileSeqRef.current || !pathsEqual(targetPath, selectedFilePath)
+                || (draftOwner !== null && currentOwner.current !== draftOwner);
 
             const processFile = async () => {
                 const newLocalFile = await createEditorFile(targetPath, loadedContent);
@@ -164,9 +295,12 @@ export const CodeTab = memo(
 
                 const updatedFile = createUpdatedFile(existingFile, newFile, existingDirty);
                 if (isStale()) return;
-                const updatedFiles = [...currentFiles];
+                const latest = openedEditorFilesRef.current;
+                if (latest[index] !== existingFile) return;
+                const updatedFiles = [...latest];
                 updatedFiles[index] = updatedFile;
-
+                approvedContent.current.set(updatedFile.path, typeof updatedFile.content === 'string' ? updatedFile.content : '');
+                openedEditorFilesRef.current = updatedFiles;
                 setOpenedEditorFiles(updatedFiles);
                 setActiveEditorFile(updatedFile);
             };
@@ -193,11 +327,11 @@ export const CodeTab = memo(
                 }
 
                 if (isStale()) return;
-                setOpenedEditorFiles((prev) => {
-                    // Re-check inside updater to handle concurrent inserts.
-                    if (prev.some((f) => pathsEqual(f.path, newFile.path))) return prev;
-                    return [...prev, newFile];
-                });
+                if (openedEditorFilesRef.current.some((f) => pathsEqual(f.path, newFile.path))) return;
+                const next = [...openedEditorFilesRef.current, newFile];
+                openedEditorFilesRef.current = next;
+                approvedContent.current.set(newFile.path, typeof newFile.content === 'string' ? newFile.content : '');
+                setOpenedEditorFiles(next);
                 setActiveEditorFile(newFile);
             };
 
@@ -221,7 +355,15 @@ export const CodeTab = memo(
                 // so the file stays dirty; they can save (last write wins) or
                 // close the file to take the new version. Without this guard the
                 // edits vanished with no signal.
-                if (diskContentChanged && existingDirty) {
+                if (diskContentChanged && (existingDirty || (draftOwner && protection.session?.file(existing.path)))) {
+                    if (draftOwner) {
+                        const protectedFile = protection.session?.file(existing.path);
+                        try {
+                            if (protectedFile) protection.session?.checkpoint(currentOwner.current, { ...protectedFile, sourceConflict: 'changed' });
+                        } catch { setDraftError(true); }
+                        setDraftConflict(true);
+                        return { ...existingText };
+                    }
                     toast.warning(
                         'This file changed on disk. Your unsaved edits were kept — save to overwrite, or close the file to take the new version.',
                     );
@@ -255,7 +397,7 @@ export const CodeTab = memo(
             let cancelled = false;
             const checkDirtyState = async () => {
                 if (openedEditorFiles.length === 0) {
-                    if (!cancelled) setHasUnsavedChanges(false);
+                    if (!cancelled) { setHasUnsavedChanges(false); cloudSource?.setLocalDraftChanges(false); }
                     return;
                 }
 
@@ -263,7 +405,9 @@ export const CodeTab = memo(
                     openedEditorFiles.map((file) => isDirty(file)),
                 );
                 if (cancelled) return;
-                setHasUnsavedChanges(dirtyChecks.some((dirty) => dirty));
+                const dirty = dirtyChecks.some((value) => value);
+                setHasUnsavedChanges(dirty);
+                cloudSource?.setLocalDraftChanges(dirty);
             };
 
             void checkDirtyState();
@@ -350,7 +494,66 @@ export const CodeTab = memo(
             return file;
         };
 
+        const saveProtectedFile = (path: string): Promise<boolean> => {
+            const pending = pendingSaves.current.get(path);
+            if (pending) return pending;
+            const operation = (async () => {
+                try {
+                    assertDraftOwner();
+                    const session = protection.session;
+                    const current = openedEditorFilesRef.current.find((file) => pathsEqual(file.path, path));
+                    if (!session || !branchData || !current || current.type !== 'text' || !current.originalHash) throw new Error('Draft baseline unavailable');
+                    const content = editorViewsRef.current.get(path)?.state.doc.toString() ?? current.content;
+                    if (typeof content !== 'string') throw new Error('Only text drafts can be saved');
+                    const prior = session.file(path);
+                    const snapshot = prior?.content === content && prior.originalHash === current.originalHash ? prior
+                        : session.checkpoint(currentOwner.current, { path, content, originalHash: current.originalHash, sourceConflict: prior?.sourceConflict ?? null });
+                    const capturedEditor = branchData.codeEditor;
+                    const source = await capturedEditor.readFile(path);
+                    if (typeof source !== 'string') throw new Error('Source file missing');
+                    const sourceHash = await hashContent(source);
+                    assertDraftOwner();
+                    if (sourceHash !== snapshot.originalHash) {
+                        const latest = session.file(path);
+                        if (latest) session.checkpoint(currentOwner.current, { ...latest, sourceConflict: 'changed' });
+                        setDraftConflict(true);
+                        throw new Error('Source changed');
+                    }
+                    const diffs = [{ path, original: source, generated: snapshot.content }];
+                    await editorEngine.code.saveSourceDiffs(branchId, diffs, false, capturedEditor);
+                    // The write closure mutates this original diff with its confirmed
+                    // bytes. Cloud formatting must not be confused with a later read.
+                    const savedContent = diffs[0]!.generated;
+                    if (branchData.branch.runtime.type === 'local' && savedContent !== snapshot.content) throw new Error('Local source receipt changed');
+                    const savedHash = await hashContent(savedContent);
+                    assertDraftOwner();
+                    const newer = session.confirmSave(currentOwner.current, snapshot, savedHash);
+                    if (!live.current) return !newer;
+                    const next = openedEditorFilesRef.current.map((file) => pathsEqual(file.path, path)
+                        ? { ...file, content: newer?.content ?? savedContent, originalHash: savedHash } : file);
+                    openedEditorFilesRef.current = next;
+                    approvedContent.current.set(path, newer?.content ?? savedContent);
+                    setOpenedEditorFiles(next);
+                    setActiveEditorFile((file) => file && pathsEqual(file.path, path) ? next.find((candidate) => pathsEqual(candidate.path, path)) ?? file : file);
+                    setLastSavedAt(Date.now());
+                    setDraftError(protection.error);
+                    setDraftConflict(false);
+                    return !newer;
+                } catch {
+                    if (live.current) { setDraftError(true); toast.error(tDraft('saveFailed')); }
+                    return false;
+                }
+            })();
+            pendingSaves.current.set(path, operation);
+            void operation.then(() => { if (pendingSaves.current.get(path) === operation) pendingSaves.current.delete(path); });
+            return operation;
+        };
+
         const handleSaveFile = async () => {
+            if (draftOwner) {
+                if (selectedFilePath) await saveProtectedFile(selectedFilePath);
+                return;
+            }
             if (!selectedFilePath || !activeEditorFile || !branchData) return;
             try {
                 // Preserve scroll position and cursor before save
@@ -408,6 +611,20 @@ export const CodeTab = memo(
         };
 
         const handleSaveAndCloseFiles = async () => {
+            if (draftOwner) {
+                // Sequential saves retain every refused or concurrently edited buffer.
+                for (const path of filesToClose) {
+                    if (await saveProtectedFile(path)) {
+                        const current = openedEditorFilesRef.current.find((file) => pathsEqual(file.path, path));
+                        if (current && !await isDirty(current) && openedEditorFilesRef.current.find((file) => pathsEqual(file.path, path)) === current
+                            && editorViewsRef.current.get(path)?.state.doc.toString() === current.content
+                            && !protection.session?.file(path) && currentOwner.current === draftOwner) closeFileInternal(path);
+                    }
+                }
+                setFilesToClose([]);
+                setShowLocalUnsavedDialog(false);
+                return;
+            }
             try {
                 // Save all files in filesToClose
                 await Promise.all(
@@ -433,18 +650,22 @@ export const CodeTab = memo(
             }
         };
 
-        // TODO(bug-hunt-deep): `isDirty` is async (hashes file content). If the
-        // user rapid-fire closes the same file twice, or the component unmounts
-        // before resolution, the late `.then` callback can still drive
-        // `closeFileInternal` / open the unsaved dialog against state that has
-        // already moved on. Suggested fix: store a "closing" set in a ref so we
-        // ignore late resolutions for paths already closed/dismissed.
+        const canCloseSnapshot = (file: EditorFile, revision: number | undefined) => {
+            if (!live.current || (draftOwner && currentOwner.current !== draftOwner)
+                || openedEditorFilesRef.current.find((current) => pathsEqual(current.path, file.path)) !== file
+                || protection.session?.file(file.path)?.revision !== revision) return false;
+            return (editorViewsRef.current.get(file.path)?.state.doc.toString() ?? file.content) === file.content;
+        };
+
         const closeLocalFile = useCallback(
             (filePath: string) => {
-                const fileToClose = openedEditorFiles.find((f) => pathsEqual(f.path, filePath));
+                const fileToClose = openedEditorFilesRef.current.find((f) => pathsEqual(f.path, filePath));
                 if (fileToClose) {
+                    const capturedRevision = protection.session?.file(filePath)?.revision;
                     isDirty(fileToClose).then((dirty) => {
+                        if (!canCloseSnapshot(fileToClose, capturedRevision)) return;
                         if (dirty) {
+                            if (capturedRevision !== undefined) discardRevisions.current.set(filePath, capturedRevision);
                             setFilesToClose([filePath]);
                             setShowLocalUnsavedDialog(true);
                             return;
@@ -454,23 +675,28 @@ export const CodeTab = memo(
                     });
                 }
             },
-            [openedEditorFiles],
+            [openedEditorFiles, canCloseSnapshot, protection.session],
         );
 
         const closeAllLocalFiles = () => {
             Promise.all(
-                openedEditorFiles.map(async (file) => ({
+                openedEditorFilesRef.current.map(async (file) => ({
                     file,
+                    revision: protection.session?.file(file.path)?.revision,
                     dirty: await isDirty(file),
                 })),
             ).then((fileStatuses) => {
+                const currentStatuses = fileStatuses.filter(({ file, revision }) => canCloseSnapshot(file, revision));
                 // Close clean files immediately
-                const cleanFiles = fileStatuses.filter((status) => !status.dirty);
+                const cleanFiles = currentStatuses.filter((status) => !status.dirty);
                 cleanFiles.forEach((status) => closeFileInternal(status.file.path));
 
                 // Check if any dirty files remain
-                const dirtyFiles = fileStatuses.filter((status) => status.dirty);
+                const dirtyFiles = currentStatuses.filter((status) => status.dirty);
                 if (dirtyFiles.length > 0) {
+                    for (const { file, revision } of dirtyFiles) {
+                        if (revision !== undefined) discardRevisions.current.set(file.path, revision);
+                    }
                     setFilesToClose(dirtyFiles.map((status) => status.file.path));
                     setShowLocalUnsavedDialog(true);
                     return;
@@ -484,9 +710,12 @@ export const CodeTab = memo(
         };
 
         const updateLocalFileContent = (filePath: string, content: string) => {
-            const updatedFiles = openedEditorFiles.map((file) =>
+            if (draftOwner && currentOwner.current !== draftOwner) return;
+            const updatedFiles = openedEditorFilesRef.current.map((file) =>
                 pathsEqual(file.path, filePath) ? { ...file, content } : file,
             );
+            openedEditorFilesRef.current = updatedFiles;
+            approvedContent.current.set(filePath, content);
             setOpenedEditorFiles(updatedFiles);
 
             // Update active file if it's the one being updated
@@ -510,20 +739,16 @@ export const CodeTab = memo(
                 ...recentlyClosedRef.current.filter((p) => !pathsEqual(p, filePath)),
             ].slice(0, 10);
 
-            setOpenedEditorFiles((prev) => {
-                const updatedFiles = prev.filter((f) => !pathsEqual(f.path, filePath));
+            const updatedFiles = openedEditorFilesRef.current.filter((f) => !pathsEqual(f.path, filePath));
+            openedEditorFilesRef.current = updatedFiles;
+            setOpenedEditorFiles(updatedFiles);
 
-                // Update active file if we're closing it
-                setActiveEditorFile((currentActive) => {
-                    if (currentActive && pathsEqual(currentActive.path, filePath)) {
-                        return updatedFiles.length > 0
-                            ? (updatedFiles[updatedFiles.length - 1] ?? null)
-                            : null;
-                    }
-                    return currentActive;
-                });
-
-                return updatedFiles;
+            // Update active file if we're closing it.
+            setActiveEditorFile((currentActive) => {
+                if (currentActive && pathsEqual(currentActive.path, filePath)) {
+                    return updatedFiles.length > 0 ? (updatedFiles[updatedFiles.length - 1] ?? null) : null;
+                }
+                return currentActive;
             });
 
             // Clear selected file path if the closed file was selected
@@ -534,7 +759,16 @@ export const CodeTab = memo(
         };
 
         const discardLocalFileChanges = () => {
-            filesToClose.forEach((filePath) => closeFileInternal(filePath));
+            filesToClose.forEach((filePath) => {
+                if (draftOwner) {
+                    try {
+                        assertDraftOwner();
+                        const revision = discardRevisions.current.get(filePath);
+                        if (revision === undefined || !protection.session?.discard(currentOwner.current, filePath, revision)) return;
+                    } catch { setDraftError(true); return; }
+                }
+                closeFileInternal(filePath);
+            });
             setFilesToClose([]);
             setShowLocalUnsavedDialog(false);
         };
@@ -846,6 +1080,27 @@ export const CodeTab = memo(
 
         return (
             <div className="flex size-full flex-col">
+                {draftOwner && <div className="border-b border-border px-3 py-2 text-xs">
+                    <p role={draftError || draftConflict ? 'alert' : 'status'} className="text-foreground-secondary">
+                        {draftError ? tDraft('storageFailed') : draftConflict ? tDraft('sourceChanged') : tDraft('protected')}
+                    </p>
+                    {protection.records.length > 0 && <details className="mt-1">
+                        <summary className="cursor-pointer">{tDraft('recover')}</summary>
+                        <div className="mt-2 max-h-32 space-y-1 overflow-auto">
+                            {protection.records.map((record) => record.files.map((file) => <div key={`${record.writerId}:${file.path}`} className="flex items-center justify-between gap-2">
+                                <span className="min-w-0 truncate">{file.path} · {new Date(record.updatedAt).toLocaleString()}</span>
+                                <div className="flex gap-1">
+                                    <Button size="sm" variant="outline" onClick={() => void recoverFile(record, file.path)}>{tDraft('recoverVersion')}</Button>
+                                    {file.previous && <Button size="sm" variant="outline" onClick={() => void recoverFile(record, file.path, true)}>{tDraft('recoverPrevious')}</Button>}
+                                </div>
+                            </div>))}
+                        </div>
+                    </details>}
+                    {(draftConflict || draftError) && activeEditorFile?.type === 'text' && <Button size="sm" variant="ghost" onClick={() => {
+                        const content = editorViewsRef.current.get(activeEditorFile.path)?.state.doc.toString() ?? activeEditorFile.content;
+                        if (typeof content === 'string') void navigator.clipboard.writeText(content).catch(() => toast.error(tDraft('copyFailed')));
+                    }}>{tDraft('copy')}</Button>}
+                </div>}
                 <CodeControls
                     isDirty={hasUnsavedChanges}
                     currentPath={getCurrentPath()}
@@ -891,6 +1146,7 @@ export const CodeTab = memo(
                             onCloseFile={closeLocalFile}
                             onCloseAllFiles={closeAllLocalFiles}
                         />
+                        <FileBreadcrumb activeFile={activeEditorFile} />
                         <CodeEditorArea
                             editorViewsRef={editorViewsRef}
                             openedFiles={openedEditorFiles}
@@ -900,6 +1156,8 @@ export const CodeTab = memo(
                             onSaveFile={handleSaveFile}
                             onSaveAndCloseFiles={handleSaveAndCloseFiles}
                             onUpdateFileContent={updateLocalFileContent}
+                            onBeforeUpdateFileContent={acceptDraftChange}
+                            onDraftDispatchFailed={() => setDraftError(true)}
                             onDiscardChanges={discardLocalFileChanges}
                             onCancelUnsaved={() => {
                                 setFilesToClose([]);
@@ -923,3 +1181,13 @@ export const CodeTab = memo(
         );
     }),
 );
+
+export const CodeTab = memo(forwardRef<CodeTabRef, CodeTabProps>((props, ref) => {
+    const level = useWorkingLevel();
+    // A retained old editor never adopts the next signed-in user's storage key.
+    const engine = useEditorEngine();
+    const cloud = isCloudEditorRuntime(engine.branches.getBranchDataById(props.branchId)?.branch.runtime);
+    const owner = useRef(level.native || cloud ? level.userId : null);
+    return <BufferedCodeTab {...props} ref={ref} draftOwner={owner.current}
+        key={owner.current ? JSON.stringify([owner.current, props.projectId, props.branchId]) : 'hosted'} />;
+}));

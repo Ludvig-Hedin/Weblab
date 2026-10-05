@@ -2,7 +2,6 @@ import { forwardRef } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
-import { Input } from '@weblab/ui/input';
 
 interface FileTreeSearchProps {
     searchQuery: string;
@@ -23,25 +22,30 @@ export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
         };
 
         return (
-            <div className="relative flex h-10 flex-shrink-0 flex-row items-center justify-between">
-                <Input
-                    ref={ref}
-                    className="text-small m-2 h-8 pr-8"
-                    placeholder={t('searchFiles')}
-                    value={searchQuery}
-                    disabled={isLoading}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    onKeyDown={onKeyDown}
-                />
-                {searchQuery && (
-                    <button
-                        className="hover:bg-background-bar-active group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] transition-opacity active:bg-transparent"
-                        onClick={clearSearch}
-                        aria-label={t('clearSearch')}
-                    >
-                        <Icons.CrossS className="text-foreground-primary/50 group-hover:text-foreground-primary h-3 w-3" />
-                    </button>
-                )}
+            <div className="flex-shrink-0 p-2">
+                <label className="bg-foreground/[0.045] focus-within:bg-foreground/[0.07] focus-within:ring-foreground/15 relative flex h-8 items-center gap-2 rounded-md px-2.5 transition-colors focus-within:ring-1">
+                    <Icons.MagnifyingGlass className="text-foreground-tertiary h-3.5 w-3.5 flex-none" />
+                    <input
+                        ref={ref}
+                        className="text-small text-foreground-primary placeholder:text-foreground-tertiary min-w-0 flex-1 bg-transparent outline-none disabled:opacity-50"
+                        placeholder={t('searchFiles')}
+                        value={searchQuery}
+                        disabled={isLoading}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        onKeyDown={onKeyDown}
+                        spellCheck={false}
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            className="text-foreground-tertiary hover:text-foreground-primary -mr-1 flex h-5 w-5 flex-none items-center justify-center rounded"
+                            onClick={clearSearch}
+                            aria-label={t('clearSearch')}
+                        >
+                            <Icons.CrossS className="h-3 w-3" />
+                        </button>
+                    )}
+                </label>
             </div>
         );
     },

@@ -77,30 +77,11 @@ export function HeroV2() {
                         Use your own codebase or build in the cloud. Import your design system, work
                         locally, or start from scratch.
                     </motion.p>
-                </div>
-
-                <div className="flex w-full max-w-[450px] flex-col items-center gap-4 lg:justify-self-center">
                     <motion.div
-                        className="relative z-20 w-full"
+                        className="flex w-full flex-wrap items-center justify-start gap-2 pt-3"
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
-                    >
-                        <Create
-                            cardKey={0}
-                            isCreatingProject={isCreatingProject}
-                            setIsCreatingProject={setIsCreatingProject}
-                            user={user ?? null}
-                            variant="hero"
-                            suggestions={PROJECT_SUGGESTIONS}
-                        />
-                    </motion.div>
-
-                    <motion.div
-                        className="flex w-full flex-wrap items-center justify-start gap-2"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.45, ease: 'easeOut' }}
                     >
                         {user?._id ? (
                             <>
@@ -141,6 +122,24 @@ export function HeroV2() {
                                 </AnimatedButton>
                             </>
                         )}
+                    </motion.div>
+                </div>
+
+                <div className="flex w-full max-w-[450px] flex-col items-center gap-4 lg:justify-self-center">
+                    <motion.div
+                        className="relative z-20 w-full"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+                    >
+                        <Create
+                            cardKey={0}
+                            isCreatingProject={isCreatingProject}
+                            setIsCreatingProject={setIsCreatingProject}
+                            user={user ?? null}
+                            variant="hero"
+                            suggestions={PROJECT_SUGGESTIONS}
+                        />
                     </motion.div>
 
                     <HighDemand />

@@ -6,6 +6,8 @@ import type {
     UngroupElementsAction,
 } from '@weblab/models/actions';
 import { createDomId, createOid } from '@weblab/utility';
+import { assertGroupSelectionSafe, assertUngroupContainerSafe, getAstFromCodeblock, getOidFromJsxElement, t } from '@weblab/parser';
+import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '../engine';
 
@@ -20,7 +22,15 @@ export class GroupManager {
             return;
         }
         const { frameId, parentDomId } = groupTarget;
-        const groupAction = await this.getGroupAction(frameId, parentDomId, selectedEls);
+        let groupAction: GroupElementsAction | null;
+        try {
+            groupAction = await this.getGroupAction(frameId, parentDomId, selectedEls);
+        } catch (error) {
+            toast.error('These elements cannot be grouped safely', {
+                description: error instanceof Error ? error.message : 'Source could not be checked.',
+            });
+            return;
+        }
 
         if (!groupAction) {
             console.error('Failed to get group action');
@@ -42,7 +52,15 @@ export class GroupManager {
             return;
         }
 
-        const ungroupAction = await this.getUngroupAction(selectedEl);
+        let ungroupAction: UngroupElementsAction | null;
+        try {
+            ungroupAction = await this.getUngroupAction(selectedEl);
+        } catch (error) {
+            toast.error('This element cannot be ungrouped safely', {
+                description: error instanceof Error ? error.message : 'Source could not be checked.',
+            });
+            return;
+        }
         if (!ungroupAction) {
             console.error('Failed to get ungroup action');
             return;
@@ -137,6 +155,14 @@ export class GroupManager {
             domId: el.domId,
             oid: el.oid,
         }));
+        if (!parentTarget.oid) throw new Error('The source parent could not be identified.');
+        const branchData = this.editorEngine.branches.getBranchDataById(parentTarget.branchId);
+        const metadata = await branchData?.codeEditor.getJsxElementMetadata(parentTarget.oid);
+        const sourceParent = metadata && getAstFromCodeblock(metadata.code);
+        if (!sourceParent) throw new Error('The source parent could not be checked.');
+        const sourceOrder = assertGroupSelectionSafe(sourceParent, children.map((child) => child.oid))
+            .map((child) => getOidFromJsxElement(child.openingElement));
+        children.sort((a, b) => sourceOrder.indexOf(a.oid) - sourceOrder.indexOf(b.oid));
 
         const container: GroupContainer = {
             domId: createDomId(),
@@ -154,6 +180,7 @@ export class GroupManager {
     }
 
     async getUngroupAction(selectedEl: DomElement): Promise<UngroupElementsAction | null> {
+        if (!selectedEl.oid) throw new Error('The selected wrapper has no editable source.');
         const frame = this.editorEngine.frames.get(selectedEl.frameId);
         if (!frame) {
             console.error('Failed to get frame');
@@ -178,11 +205,25 @@ export class GroupManager {
             return null;
         }
 
+        const branchData = this.editorEngine.branches.getBranchDataById(selectedEl.branchId);
+        const metadata = await branchData?.codeEditor.getJsxElementMetadata(selectedEl.oid);
+        const sourceCode = metadata?.code;
+        const sourceContainer = sourceCode && getAstFromCodeblock(sourceCode);
+        if (!sourceContainer || !sourceCode) throw new Error('The source wrapper could not be checked.');
+        assertUngroupContainerSafe(sourceContainer);
+        const sourceOids = sourceContainer.children.filter((child) => t.isJSXElement(child))
+            .map((child) => t.isJSXElement(child) ? getOidFromJsxElement(child.openingElement) : null);
+        if (sourceOids.length !== actionContainer.children.length || new Set(sourceOids).size !== sourceOids.length ||
+            sourceOids.some((oid) => !oid || !actionContainer.children.some((child) => child.oid === oid))) {
+            throw new Error('The rendered children do not match direct source children.');
+        }
+
         const container: GroupContainer = {
             domId: actionContainer.domId,
             oid: actionContainer.oid,
             tagName: actionContainer.tagName,
             attributes: actionContainer.attributes,
+            sourceCode,
         };
 
         const parent: ActionTarget = {

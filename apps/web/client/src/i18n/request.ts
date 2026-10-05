@@ -41,13 +41,19 @@ const intlBehaviorConfig = {
 
 export default getRequestConfig(async () => {
     const locale = await getLanguage();
-    const enMessages = (await import(`../../messages/en.json`)).default;
+    const enMessages = {
+        ...(await import(`../../messages/en.json`)).default,
+        ...(await import('../../messages/sanity-blog/en.json')).default,
+    };
 
     if (locale === Language.English) {
         return { locale, messages: enMessages, ...intlBehaviorConfig };
     }
 
-    const localeMessages = (await import(`../../messages/${locale}.json`)).default;
+    const localeMessages = {
+        ...(await import(`../../messages/${locale}.json`)).default,
+        ...(locale === Language.Swedish ? (await import('../../messages/sanity-blog/sv.json')).default : {}),
+    };
     return {
         locale,
         messages: mergeMessages(enMessages, localeMessages),

@@ -218,7 +218,7 @@ const nextConfig: NextConfig = {
             },
             {
                 source:
-                    '/:path((?!api|auth|login|sign-in|sign-up|projects|project|settings|w/|admin|profile-setup|invitation|callback/|dev/|sw\\.js|manifest\\.webmanifest|_next).*)',
+                    '/:path((?!api|auth|login|sign-in|sign-up|cloud-review|projects|project|settings|w/|admin|profile-setup|invitation|callback/|dev/|sw\\.js|manifest\\.webmanifest|_next).*)',
                 headers: [
                     {
                         key: 'Cache-Control',

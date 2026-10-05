@@ -2,7 +2,7 @@ import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, keymap } from '@codemirror/view';
 import { api } from '@convex/_generated/api';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { ExternalChange } from '@uiw/react-codemirror';
 import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from 'next-themes';
@@ -24,6 +24,7 @@ import type { BinaryEditorFile, EditorFile } from '../shared/types';
 import type { InlineEditSession } from './inline-edit';
 import type { ViewUpdate } from '@codemirror/view';
 import { useEditorEngine } from '@/components/store/editor';
+import { installCodeDraftDispatch, type CodeDraftPreflight } from '@/lib/code-drafts';
 import {
     getBasicSetup,
     getExtensions,
@@ -50,6 +51,8 @@ interface CodeEditorProps {
     editorViewsRef: RefObject<Map<string, EditorView>>;
     onSaveFile: () => Promise<void>;
     onUpdateFileContent: (fileId: string, content: string) => void;
+    onBeforeUpdateFileContent?: CodeDraftPreflight;
+    onDraftDispatchFailed?: () => void;
     onSelectionChange?: (selection: { from: number; to: number; text: string } | null) => void;
     onCursorChange?: (info: { line: number; column: number; selectionLength: number }) => void;
     onAddSelectionToChat?: (selection: { from: number; to: number; text: string }) => void;
@@ -64,6 +67,8 @@ export const CodeEditor = observer(
         editorViewsRef,
         onSaveFile,
         onUpdateFileContent,
+        onBeforeUpdateFileContent,
+        onDraftDispatchFailed,
         onSelectionChange,
         onCursorChange,
         onAddSelectionToChat,
@@ -87,6 +92,12 @@ export const CodeEditor = observer(
         const [showButton, setShowButton] = useState(false);
         const lastNavigationTargetRef = useRef<CodeNavigationTarget | null>(null);
         const [inlineEditSession, setInlineEditSession] = useState<InlineEditSession | null>(null);
+        const beforeUpdate = useRef(onBeforeUpdateFileContent);
+        beforeUpdate.current = onBeforeUpdateFileContent;
+        const dispatchFailed = useRef(onDraftDispatchFailed);
+        dispatchFailed.current = onDraftDispatchFailed;
+        const acceptedUpdate = useRef(onUpdateFileContent);
+        acceptedUpdate.current = onUpdateFileContent;
 
         const getFileUrl = (file: BinaryEditorFile) => {
             const mime = getMimeType(file.path.toLowerCase());
@@ -179,6 +190,13 @@ export const CodeEditor = observer(
 
         const onCreateEditor = (editor: EditorView) => {
             editorViewsRef.current?.set(file.path, editor);
+            installCodeDraftDispatch(editor, file.path, {
+                isCurrent: () => editorViewsRef.current?.get(file.path) === editor,
+                isExternal: (transaction) => transaction.annotation(ExternalChange) === true,
+                preflight: (...args) => beforeUpdate.current ? beforeUpdate.current(...args) : (args[4](), true),
+                accepted: (content) => acceptedUpdate.current(file.path, content),
+                failed: () => dispatchFailed.current?.(),
+            });
 
             // Seed tab-complete context so the extension knows what file/project it's in.
             const language = getLanguageFromFileName(file.path);
@@ -393,7 +411,9 @@ export const CodeEditor = observer(
                                     key={`${file.path}::${isDarkTheme ? 'dark' : 'light'}`}
                                     value={file.content}
                                     height="100%"
-                                    theme={isDarkTheme ? 'dark' : 'light'}
+                                    // Our own theme + highlight style live in getBasicSetup;
+                                    // 'none' stops @uiw from layering One Dark on top.
+                                    theme="none"
                                     extensions={[
                                         ...getBasicSetup(onSaveFile, isDarkTheme),
                                         ...getExtensions(getLanguageFromFileName(file.path)),

@@ -20,7 +20,7 @@ interface Props {
     /**
      * When `null`, render nothing on crash — useful for absolutely-positioned
      * chrome (TopBar / RightPanel / BottomBar) where a visible fallback would
-     * stack on top of the canvas. The default fallback is a centered card,
+     * stack on top of the canvas. The default fallback is centered content,
      * appropriate for the canvas viewport itself.
      */
     fallback?: ReactNode;
@@ -47,8 +47,8 @@ export class CanvasErrorBoundary extends Component<Props, State> {
                 return this.props.fallback;
             }
             return (
-                <div className="bg-background-canvas flex h-full w-full items-center justify-center">
-                    <div className="border-border max-w-md rounded-lg border p-6 text-center">
+                <div className="bg-background-canvas flex h-full w-full items-center justify-center p-6">
+                    <div className="max-w-md text-center">
                         <p className="text-foreground-tertiary text-xs tracking-wide uppercase">
                             {this.props.label ?? 'Canvas'} unavailable
                         </p>

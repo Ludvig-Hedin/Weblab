@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
+import { isCloudPilotProject } from '@convex/lib/cloudPilot';
 import { fetchQuery } from 'convex/nextjs';
 
 import { APP_NAME } from '@weblab/constants';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { CloudProjectEntry } from '@/components/cloud-editor/entry';
+import { CloudPilotEditor } from '@/components/cloud-pilot/editor';
+import { WorkingLevelEditorGate } from '@/components/working-level/editor-gate';
 import { env } from '@/env';
 import { classifyProjectLoadError } from './_adapters/classify-load-error';
 import {
@@ -64,7 +68,7 @@ function collectFramePreconnectOrigins(
     return Array.from(origins);
 }
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ legacy?: string }> }) {
     const resolved = await params;
     const projectId = resolved.id;
     // Dev-only: this runs server-side on every project open. Guard it so it
@@ -87,6 +91,21 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
         if (!bootstrap?.project) {
             return <ProjectLoadError variant="not-found" />;
+        }
+
+        // A pilot (including damaged/unknown versions) never enters the legacy editor.
+        if (isCloudPilotProject(bootstrap.project)) {
+            if ((await searchParams).legacy !== '1' && bootstrap.project.workspaceId) {
+                const workspace = await fetchQuery(api.workspaces.get, { workspaceId: bootstrap.project.workspaceId }, { token: token ?? undefined });
+                return <WorkingLevelEditorGate siteId={bootstrap.project._id}>
+                    <CloudProjectEntry workspaceId={bootstrap.project.workspaceId} workspaceSlug={workspace.slug ?? ''} sourcePilotId={bootstrap.project._id} projectName={bootstrap.project.name} />
+                </WorkingLevelEditorGate>;
+            }
+            return (
+                <WorkingLevelEditorGate siteId={bootstrap.project._id}>
+                    <CloudPilotEditor projectId={bootstrap.project._id} />
+                </WorkingLevelEditorGate>
+            );
         }
 
         const preconnectOrigins = collectFramePreconnectOrigins(bootstrap.canvas?.frames);

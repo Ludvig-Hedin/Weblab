@@ -16,66 +16,164 @@ function isTextRunLineBreak(child: T.JSXElement['children'][number]): boolean {
 }
 
 export function updateNodeTextContent(node: T.JSXElement, textContent: string): void {
-    // TODO(bug-hunt): user text is written verbatim into a JSXText node, so
-    // characters significant in JSX — `{`, `}`, `<`, `>` — are not escaped:
-    // typing `{x}` becomes a JSX expression container (`x` is evaluated as an
-    // identifier at runtime → ReferenceError) instead of being shown literally.
-    // A JSX-aware text encoder is still needed here. (The separate child-wipe
-    // bug — multi-line edits erasing nested <strong>/<a>/<span> markup — is
-    // fixed below: only JSXText children are replaced; element / expression /
-    // fragment children are preserved.)
+    const isText = (child: T.JSXElement['children'][number]) =>
+        t.isJSXText(child) ||
+        isTextRunLineBreak(child) ||
+        (t.isJSXExpressionContainer(child) && t.isStringLiteral(child.expression));
+    // Replace the whole old run, including our literal string containers and
+    // line breaks. Re-editing encoded text must not leave its old value behind.
+    const firstTextIndex = node.children.findIndex(
+        (child) => isText(child) && !(t.isJSXText(child) && getRenderedJsxText(child.value) === ''),
+    );
+    const anchor = firstTextIndex === -1
+        ? 0
+        : node.children.slice(0, firstTextIndex).filter((child) => !isText(child)).length;
+    const preserved: T.JSXElement['children'] = node.children.filter((child) => !isText(child));
+    preserved.splice(anchor, 0, ...buildTextRun(textContent));
+    node.children = preserved;
+}
 
-    // Split the text content by newlines
-    const parts = textContent.split('\n');
-
-    // Single line: update the first NON-whitespace JSXText node. Whitespace-only
-    // nodes (e.g. the "\n  " indentation that sits between tags in formatted
-    // JSX) are skipped — editing one of those would leave the real visible text
-    // run stale while silently mangling the source's formatting.
-    if (parts.length === 1) {
-        const textNode = node.children.find(
-            (child): child is T.JSXText => t.isJSXText(child) && child.value.trim() !== '',
-        );
-        if (textNode) {
-            textNode.value = textContent;
-        } else {
-            node.children.unshift(t.jsxText(textContent));
+/**
+ * The text a JSXText child renders, per the JSX whitespace rules (same as
+ * Babel's `cleanJSXElementLiteralChild`): lines are trimmed at their inner
+ * edges, whitespace-only lines are dropped and the rest joined with a space.
+ */
+export function getRenderedJsxText(value: string): string {
+    const lines = value.split(/\r\n|\n|\r/);
+    let lastNonEmptyLine = 0;
+    lines.forEach((line, i) => {
+        if (/[^ \t]/.test(line)) {
+            lastNonEmptyLine = i;
         }
+    });
+    let str = '';
+    lines.forEach((line, i) => {
+        let trimmed = line.replace(/\t/g, ' ');
+        if (i !== 0) {
+            trimmed = trimmed.replace(/^[ ]+/, '');
+        }
+        if (i !== lines.length - 1) {
+            trimmed = trimmed.replace(/[ ]+$/, '');
+        }
+        if (trimmed) {
+            if (i !== lastNonEmptyLine) {
+                trimmed += ' ';
+            }
+            str += trimmed;
+        }
+    });
+    return str;
+}
+
+interface JsxTextGap {
+    /** Child indices (into node.children) that make up this gap. */
+    childIndices: number[];
+    text: string;
+    /** Index of the element child that closes this gap; null for the last gap. */
+    closingIndex: number | null;
+}
+
+/**
+ * Split an element's children into "gaps": the text/<br> runs before, between
+ * and after its non-<br> element children. Mirrors the DOM-side model of the
+ * inline text editor. Returns null when a child renders text the model can't
+ * see (e.g. `{expression}`), so callers refuse the edit.
+ */
+export function getJsxTextGaps(node: T.JSXElement): JsxTextGap[] | null {
+    const gaps: JsxTextGap[] = [{ childIndices: [], text: '', closingIndex: null }];
+    for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i]!;
+        const gap = gaps[gaps.length - 1]!;
+        if (t.isJSXText(child)) {
+            gap.childIndices.push(i);
+            gap.text += getRenderedJsxText(child.value);
+        } else if (isTextRunLineBreak(child)) {
+            gap.childIndices.push(i);
+            gap.text += '\n';
+        } else if (t.isJSXElement(child)) {
+            gap.closingIndex = i;
+            gaps.push({ childIndices: [], text: '', closingIndex: null });
+        } else if (t.isJSXExpressionContainer(child)) {
+            const expression = child.expression;
+            if (t.isJSXEmptyExpression(expression)) {
+                gap.childIndices.push(i);
+            } else if (t.isStringLiteral(expression)) {
+                gap.childIndices.push(i);
+                gap.text += expression.value;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+    return gaps;
+}
+
+function buildTextRun(text: string): T.JSXElement['children'] {
+    const run: T.JSXElement['children'] = [];
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+        if (line) {
+            // JSX-significant characters would turn typed text into markup
+            // or an expression; a string container keeps them literal.
+            run.push(
+                /[&{}<>]/.test(line) || line.trim() !== line || line.includes('\t')
+                    ? t.jsxExpressionContainer(t.stringLiteral(line))
+                    : t.jsxText(line),
+            );
+        }
+        if (index < lines.length - 1) {
+            run.push(t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('br'), [], true), null, [], true));
+        }
+    });
+    return run;
+}
+
+/**
+ * Apply whole-block text edits: rewrite only the listed gaps, keeping every
+ * element child (spans, <strong>, …) in place. Each gap must still render
+ * exactly `oldText`; otherwise the source changed under the editor and the
+ * write is refused (throws) rather than guessing.
+ */
+export function updateNodeTextSlots(
+    node: T.JSXElement,
+    slots: { index: number; oldText: string; newText: string }[],
+): void {
+    const gaps = getJsxTextGaps(node);
+    if (!gaps) {
+        throw new Error('Inline text edit refused: element has dynamic children');
+    }
+    const replacements = new Map<number, T.JSXElement['children']>();
+    for (const slot of slots) {
+        const gap = gaps[slot.index];
+        if (!gap || gap.text !== slot.oldText) {
+            throw new Error('Inline text edit refused: source text no longer matches the canvas');
+        }
+        // Keep {/* comments */} of the gap; everything else is the text run.
+        const comments = gap.childIndices
+            .map((i) => node.children[i]!)
+            .filter(
+                (child) =>
+                    t.isJSXExpressionContainer(child) && t.isJSXEmptyExpression(child.expression),
+            );
+        replacements.set(slot.index, [...buildTextRun(slot.newText), ...comments]);
+    }
+    if (replacements.size === 0) {
         return;
     }
 
-    // Multi-line: rebuild the text as JSXText segments separated by <br/>, then
-    // splice that run back in WITHOUT discarding nested markup. We remove only
-    // JSXText children; JSXElement / JSXExpressionContainer / JSXFragment / etc.
-    // survive in their original relative order.
-    const newTextRun: T.JSXElement['children'] = [];
-    parts.forEach((part, index) => {
-        if (part) {
-            newTextRun.push(t.jsxText(part));
+    const next: T.JSXElement['children'] = [];
+    gaps.forEach((gap, gapIndex) => {
+        const replacement = replacements.get(gapIndex);
+        if (replacement) {
+            next.push(...replacement);
+        } else {
+            next.push(...gap.childIndices.map((i) => node.children[i]!));
         }
-        if (index < parts.length - 1) {
-            newTextRun.push(
-                t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('br'), [], true), null, [], true),
-            );
+        if (gap.closingIndex !== null) {
+            next.push(node.children[gap.closingIndex]!);
         }
     });
-
-    // Anchor the rebuilt run where the element's text originally lived relative
-    // to its preserved siblings: at the first JSXText position (all children
-    // before it are non-text, so its index also indexes into the preserved
-    // array). With no text node at all, prepend — matching the single-line
-    // no-text-node branch above. Distributing text between multiple preserved
-    // elements isn't recoverable once mixed content is flattened to one string,
-    // so a single anchor point is the faithful reconstruction.
-    const firstTextIndex = node.children.findIndex(
-        (child) => t.isJSXText(child) || isTextRunLineBreak(child),
-    );
-    const anchor = firstTextIndex === -1 ? 0 : firstTextIndex;
-    // Explicit type: TS 5.5 infers `!isJSXText` as a negated type predicate and
-    // would narrow this to exclude JSXText, rejecting the spliced-in text run.
-    const preserved: T.JSXElement['children'] = node.children.filter(
-        (child) => !(t.isJSXText(child) || isTextRunLineBreak(child)),
-    );
-    preserved.splice(anchor, 0, ...newTextRun);
-    node.children = preserved;
+    node.children = next;
 }

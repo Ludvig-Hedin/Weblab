@@ -38,6 +38,42 @@ later without re-discovering the context.
 
 ## Open
 
+### Team desktop 0.2.7 needs packaged acceptance on real copied sites
+
+- **Discovered:** 2026-10-05 (team release integration)
+- **Where:** `apps/desktop/`, F-829, F-842, T-883
+- **Symptom:** The combined line passes typecheck and unit tests, but no installed 0.2.7 build has been taken through sign-in, private copy, install, preview with preview keys, edit, save, reopen, undo and handoff on copied customer sites.
+- **Next step:** Install the `desktop-v0.2.7` build on a clean Mac and run that journey on three copied Next.js + Tailwind sites. Log each failure as its own entry.
+- **Risk if ignored:** Source-level safeguards are mistaken for a working team tool.
+- **Tags:** `#release-blocker` `#desktop` `#test-gap`
+
+### Native CLI process-identity checks lose races on loaded machines
+
+- **Discovered:** 2026-10-05 (macOS CI and one local run)
+- **Where:** `apps/desktop/cli/process.js:79,165,182` (`cleanup_unconfirmed`), `cli/cli-lifecycle.test.js:262`, `release-snapshot.test.js:121`
+- **Symptom:** A process that exits before its identity is read is reported as "The CLI exited before its process identity could be verified" (exit 125). `very fast probes retain proven identity` and several release-snapshot cases fail at random on macOS CI runners (2 to 3 per run) and occasionally on a developer Mac. CI runs `release-snapshot.test.js` and `cli/cli-lifecycle.test.js` as a non-blocking step.
+- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Any relaxation must keep refusing when an unobserved descendant could still be running. Then make the CI step blocking again.
+- **Risk if ignored:** On a slow or busy Mac, native AI turns and release snapshots can refuse for no user-visible reason.
+- **Tags:** `#bug` `#desktop` `#flaky`
+
+### Team desktop installers are unsigned
+
+- **Discovered:** 2026-10-05
+- **Where:** `.github/workflows/desktop-release.yml` (signing step), repository secrets
+- **Symptom:** The repository has no Apple signing or notary secrets, so `desktop-v*` builds are unsigned and macOS refuses to open them without a manual override.
+- **Next step:** Add `CSC_LINK`/certificate and notary secrets (see `apps/desktop/RELEASES.md`, "Code signing & notarization"), then re-tag.
+- **Risk if ignored:** Colleagues cannot install the app the normal way.
+- **Tags:** `#desktop` `#release`
+
+### Preview keys are stored unencrypted
+
+- **Discovered:** 2026-10-05 (F-842)
+- **Where:** `apps/desktop/weblab-local.js` `updatePreviewEnv`
+- **Symptom:** Preview keys are written as a `0600` JSON file beside the private copy in the app's user data folder, not through the OS keychain.
+- **Next step:** Encrypt with Electron `safeStorage` the way `release/store.js` does, with a migration for existing files.
+- **Risk if ignored:** Another process running as the same user can read test keys. Live keys must not be entered there.
+- **Tags:** `#security` `#desktop`
+
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.

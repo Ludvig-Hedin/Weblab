@@ -32,7 +32,7 @@ export const DiffButton = observer(() => {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8"
+                        aria-label={Hotkey.OPEN_DIFF.description}
                         onClick={() => handleOpenChange(true)}
                     >
                         <Icons.Code className="h-4 w-4" />

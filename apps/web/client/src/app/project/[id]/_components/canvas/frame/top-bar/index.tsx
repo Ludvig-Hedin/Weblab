@@ -5,16 +5,6 @@ import { useTranslations } from 'next-intl';
 
 import type { Frame } from '@weblab/models';
 import { DEFAULT_BREAKPOINT_PRESETS } from '@weblab/db';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -29,10 +19,8 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { HoverOnlyTooltip } from '../../../editor-bar/hover-tooltip';
-import { toPreviewableUrl } from '../preview-url';
-import { BranchDisplay } from './branch';
+import { getPopoutRoute, toPreviewableUrl } from '../preview-url';
 import { createMouseMoveHandler } from './helpers';
-import { PageSelector } from './page-selector';
 
 export const TopBar = observer(
     ({ frame, isInDragSelection = false }: { frame: Frame; isInDragSelection?: boolean }) => {
@@ -43,7 +31,6 @@ export const TopBar = observer(
         const toolBarRef = useRef<HTMLDivElement>(null);
         const [customWidthInput, setCustomWidthInput] = useState('');
         const [addBreakpointMenuOpen, setAddBreakpointMenuOpen] = useState(false);
-        const [deleteBreakpointDialogOpen, setDeleteBreakpointDialogOpen] = useState(false);
         const [shouldShowExternalLink, setShouldShowExternalLink] = useState(true);
         const mouseDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
@@ -116,18 +103,6 @@ export const TopBar = observer(
             editorEngine.overlay.clearUI();
         };
 
-        const handleReload = () => {
-            editorEngine.frames.reloadView(frame.id);
-        };
-
-        const handleGoBack = async () => {
-            await editorEngine.frames.goBack(frame.id);
-        };
-
-        const handleGoForward = async () => {
-            await editorEngine.frames.goForward(frame.id);
-        };
-
         // Sibling frames in the same group, ordered by `breakpoint.order`. Used to
         // know whether this is the rightmost frame (where the "+" lives) and to
         // detect width drift from the original preset.
@@ -163,17 +138,17 @@ export const TopBar = observer(
             setTimeout(() => editorEngine.frames.repackGroup(frame.groupId), 0);
         };
 
+        const breakpointLabel = (
+            <>
+                <span className="font-medium">{frame.breakpoint?.name ?? 'Frame'}</span>
+                <span className="text-foreground-tertiary">
+                    {frame.breakpoint?.width ?? frame.dimension.width}
+                </span>
+            </>
+        );
+
         const handleAddBreakpoint = (preset: { id: string; name: string; width: number }) => {
             void editorEngine.frames.addBreakpoint(frame.groupId, preset);
-        };
-
-        const handleDeleteBreakpoint = () => {
-            if (groupSiblings.length <= 1) return;
-            setDeleteBreakpointDialogOpen(true);
-        };
-
-        const confirmDeleteBreakpoint = () => {
-            void editorEngine.frames.delete(frame.id);
         };
 
         const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -233,136 +208,56 @@ export const TopBar = observer(
                         }}
                         ref={toolBarRef}
                     >
-                        <HoverOnlyTooltip content={t('goBack')} side="top" className="mb-1" hideArrow>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
-                                    !editorEngine.frames.navigation.canGoBack(frame.id) &&
-                                        'pointer-events-none opacity-30',
-                                    !isSelected && 'hidden',
-                                )}
-                                onClick={handleGoBack}
-                                disabled={!editorEngine.frames.navigation.canGoBack(frame.id)}
-                            >
-                                <Icons.ArrowLeft />
-                            </Button>
-                        </HoverOnlyTooltip>
-                        <HoverOnlyTooltip
-                            content={t('goForward')}
-                            side="top"
-                            className="mb-1"
-                            hideArrow
-                        >
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
-                                    !editorEngine.frames.navigation.canGoForward(frame.id) &&
-                                        'pointer-events-none opacity-30',
-                                    !isSelected && 'hidden',
-                                )}
-                                onClick={handleGoForward}
-                                disabled={!editorEngine.frames.navigation.canGoForward(frame.id)}
-                            >
-                                <Icons.ArrowRight />
-                            </Button>
-                        </HoverOnlyTooltip>
-                        <HoverOnlyTooltip
-                            content={t('refreshPage')}
-                            side="top"
-                            className="mb-2"
-                            hideArrow
-                        >
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md',
-                                    !isSelected && 'hidden',
-                                )}
-                                onClick={handleReload}
-                            >
-                                <Icons.Reload />
-                            </Button>
-                        </HoverOnlyTooltip>
-                        <BranchDisplay frame={frame} />
-                        <span
-                            className={cn(
-                                'mb-0.5 ml-1.25',
-                                isSelected
-                                    ? 'text-foreground-secondary'
-                                    : 'text-foreground-secondary/50',
-                            )}
-                        >
-                            ·
-                        </span>
-                        <PageSelector frame={frame} />
-                        <span
-                            className={cn(
-                                'mx-1.5',
-                                isSelected
-                                    ? 'text-foreground-secondary'
-                                    : 'text-foreground-secondary/50',
-                            )}
-                        >
-                            ·
-                        </span>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="compact"
-                                    className={cn(
-                                        'gap-1 rounded-md text-xs',
-                                        isSelected
-                                            ? 'text-foreground-primary'
-                                            : 'text-foreground-secondary',
-                                    )}
-                                    title={
-                                        driftedFromPreset
-                                            ? t('driftedPreset', { name: frame.breakpoint?.name ?? '', width: String(presetWidth ?? 0) })
-                                            : t('breakpointLabel', { name: frame.breakpoint?.name ?? '' })
-                                    }
+                        {/* The badge only opens a menu when there is something to do:
+                         * restoring a drifted preset. Breakpoints can be added but not
+                         * removed from the frame bar. */}
+                        {driftedFromPreset ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="compact"
+                                        className={cn(
+                                            'gap-1 rounded-md text-xs',
+                                            isSelected
+                                                ? 'text-foreground-primary'
+                                                : 'text-foreground-secondary',
+                                        )}
+                                        title={t('driftedPreset', {
+                                            name: frame.breakpoint?.name ?? '',
+                                            width: String(presetWidth ?? 0),
+                                        })}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {breakpointLabel}
+                                        <span className="bg-foreground-warning/80 inline-block h-1.5 w-1.5 rounded-full" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="start"
+                                    className="min-w-44"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <span className="font-medium">
-                                        {frame.breakpoint?.name ?? 'Frame'}
-                                    </span>
-                                    <span className="text-foreground-tertiary">
-                                        {frame.breakpoint?.width ?? frame.dimension.width}
-                                    </span>
-                                    {driftedFromPreset && (
-                                        <span
-                                            className="bg-foreground-warning/80 inline-block h-1.5 w-1.5 rounded-full"
-                                            title={`Drifted from ${presetWidth}px`}
-                                        />
-                                    )}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="start"
-                                className="min-w-44"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <DropdownMenuLabel>{t('breakpoint')}</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {driftedFromPreset && (
+                                    <DropdownMenuLabel>{t('breakpoint')}</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onSelect={handleRestorePreset}>
                                         {t('restorePreset', { width: String(presetWidth ?? 0) })}
                                     </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            <span
+                                className={cn(
+                                    'flex items-center gap-1 px-2 text-xs',
+                                    isSelected
+                                        ? 'text-foreground-primary'
+                                        : 'text-foreground-secondary',
                                 )}
-                                <DropdownMenuItem
-                                    onSelect={handleDeleteBreakpoint}
-                                    disabled={groupSiblings.length <= 1}
-                                    className="text-destructive"
-                                >
-                                    {t('removeFromGroup')}
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                title={t('breakpointLabel', { name: frame.breakpoint?.name ?? '' })}
+                            >
+                                {breakpointLabel}
+                            </span>
+                        )}
                         {isRightmostInGroup && isSelected && (
                             <DropdownMenu
                                 open={addBreakpointMenuOpen}
@@ -529,7 +424,9 @@ export const TopBar = observer(
                             className={cn(
                                 'absolute top-1/2 right-1 -translate-y-1/2 transition-opacity duration-300',
                             )}
-                            href={toPreviewableUrl(frame.url)} // Dynamic routes are not supported so we replace them with a temporary value
+                            href={editorEngine.branches.getSandboxById(frame.branchId)?.cloudSource
+                                ? `${getPopoutRoute(editorEngine.projectId)}?frame=${encodeURIComponent(frame.id)}`
+                                : toPreviewableUrl(frame.url)}
                             target="_blank"
                             style={{
                                 transform: `scale(${1 / editorEngine.canvas.scale})`,
@@ -549,26 +446,6 @@ export const TopBar = observer(
                     </HoverOnlyTooltip>
                 </div>
 
-                <AlertDialog
-                    open={deleteBreakpointDialogOpen}
-                    onOpenChange={setDeleteBreakpointDialogOpen}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>{t('removeBreakpointTitle')}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Remove &ldquo;{frame.breakpoint?.name ?? 'this breakpoint'}&rdquo;
-                                from the group?
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmDeleteBreakpoint}>
-                                {t('remove')}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </>
         );
     },

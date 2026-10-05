@@ -59,8 +59,17 @@ export const FileTabs = ({
     }, [activeFile?.path]);
 
     return (
-        <div className="bg-background-chrome border-border-bar relative flex h-10 flex-shrink-0 items-center justify-between border-b pl-0">
-            <div className="flex h-full w-full items-center overflow-x-auto" ref={ref}>
+        <div className="bg-background-chrome border-border-bar relative flex h-9 flex-shrink-0 items-center justify-between border-b pl-0">
+            <div
+                className="flex h-full w-full items-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                ref={ref}
+                onWheel={(event) => {
+                    // Let a vertical trackpad/mouse wheel scroll the tab strip.
+                    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+                        event.currentTarget.scrollLeft += event.deltaY;
+                    }
+                }}
+            >
                 {openedFiles.map((file) => (
                     <FileTab
                         key={file.path}
@@ -72,11 +81,11 @@ export const FileTabs = ({
                     />
                 ))}
             </div>
-            <div className="bg-background-chrome border-border-bar flex h-full w-11 items-center border-l p-1">
+            <div className="flex h-full flex-none items-center px-1">
                 <DropdownMenu>
                     <DropdownMenuTrigger
                         aria-label="File tab options"
-                        className="text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex h-full w-full items-center justify-center rounded p-1 px-2.5"
+                        className="text-foreground-tertiary hover:text-foreground-primary hover:bg-foreground/[0.06] flex h-7 w-7 items-center justify-center rounded-md"
                     >
                         <Icons.DotsHorizontal className="h-4 w-4" />
                     </DropdownMenuTrigger>

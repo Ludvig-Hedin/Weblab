@@ -1,4 +1,5 @@
 import type { ProviderKind } from '@weblab/ai/client';
+import type { NativePublishingBridge } from '@/lib/local-publishing';
 
 /**
  * Shape of the desktop Electron preload bridge exposed via
@@ -11,6 +12,9 @@ export type WeblabNativeBridge = {
     target?: 'desktop';
     version?: string;
     openOAuth?: (url: string) => Promise<boolean>;
+    openExternal?: (url: string) => Promise<boolean>;
+    claimLoginHandoff?: (ticket: string, state: string) => Promise<boolean>;
+    publishing?: NativePublishingBridge;
     cli?: {
         providerStatus?: () => Promise<
             Partial<
@@ -18,8 +22,10 @@ export type WeblabNativeBridge = {
                     ProviderKind,
                     {
                         installed: boolean;
-                        authStatus: 'ready' | 'sign-in';
+                        /** 'unknown': the CLI's own status check could not tell. */
+                        authStatus: 'ready' | 'sign-in' | 'unknown';
                         version?: string;
+                        blockedCode?: 'isolation-unverified';
                     }
                 >
             >

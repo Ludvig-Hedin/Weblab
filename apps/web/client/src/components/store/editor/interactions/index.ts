@@ -190,6 +190,7 @@ export class InteractionsManager {
         });
 
         // Fresh and AI-generated projects can miss the publicly-served mirror,
+        if (this.editorEngine.canUseDesign === false) return;
         // which makes every preview iframe report 404s while the runtime looks
         // for interactions. Recreate the mirror from the cache on load.
         // Best-effort — a write failure is harmless because the runtime treats
@@ -428,6 +429,7 @@ export class InteractionsManager {
     }
 
     async flushNow(): Promise<void> {
+        if (this.editorEngine.canUseDesign === false) return;
         if (this.flushTimer) {
             clearTimeout(this.flushTimer);
             this.flushTimer = null;

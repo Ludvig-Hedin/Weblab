@@ -17,6 +17,8 @@ import {
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { action } from './_generated/server';
+import { assertAiAllowedForAction, recordActionSpend } from './lib/aiGuardAction';
+import { estimateModelCostUsd } from './lib/aiActionPricing';
 
 // =============================================================================
 // AI generation for the wireframes feature. Mirrors the convex/chatActions.ts
@@ -231,9 +233,11 @@ export const generateSitemap = action({
         const doc = await ctx.runQuery(internal.wireframes._getDocForAction, { docId });
         if (!doc) throw new Error('NOT_FOUND: wireframeDoc');
 
+        // Runaway safeguards: kill switch, budgets, per-user rate limit.
+        await assertAiAllowedForAction(ctx);
         const openrouter = requireOpenRouter();
         const pageCount = Math.min(Math.max(doc.brief.pageCount ?? 4, 1), MAX_PAGES);
-        const { object } = await runWithRetry(() =>
+        const { object, usage } = await runWithRetry(() =>
             generateObject({
                 model: openrouter(MODEL) as unknown as LanguageModel,
                 schema: SitemapSchema,
@@ -242,8 +246,11 @@ export const generateSitemap = action({
                     { role: 'user', content: buildSitemapPrompt(doc.brief, pageCount) },
                 ],
                 maxOutputTokens: 8000,
+                // runWithRetry already retries once; don't stack SDK retries.
+                maxRetries: 0,
             }),
         );
+        await recordActionSpend(ctx, estimateModelCostUsd(MODEL, usage));
 
         await ctx.runMutation(internal.wireframes._replaceSitemap, {
             docId,
@@ -272,8 +279,10 @@ export const generateWireframe = action({
         const doc = await ctx.runQuery(internal.wireframes._getDocForAction, { docId });
         if (!doc) throw new Error('NOT_FOUND: wireframeDoc');
 
+        // Runaway safeguards: kill switch, budgets, per-user rate limit.
+        await assertAiAllowedForAction(ctx);
         const openrouter = requireOpenRouter();
-        const { object } = await runWithRetry(() =>
+        const { object, usage } = await runWithRetry(() =>
             generateObject({
                 model: openrouter(MODEL) as unknown as LanguageModel,
                 schema: WireframeSchema,
@@ -282,8 +291,11 @@ export const generateWireframe = action({
                     { role: 'user', content: buildWireframePrompt(doc.brief, pages, sections) },
                 ],
                 maxOutputTokens: 16000,
+                // runWithRetry already retries once; don't stack SDK retries.
+                maxRetries: 0,
             }),
         );
+        await recordActionSpend(ctx, estimateModelCostUsd(MODEL, usage));
 
         // Lookup the model's choice per sitemap section (by id).
         const aiBySection = new Map<string, { blockId: string; content: unknown }>();
@@ -336,8 +348,10 @@ export const generateStyleGuide = action({
         const doc = await ctx.runQuery(internal.wireframes._getDocForAction, { docId });
         if (!doc) throw new Error('NOT_FOUND: wireframeDoc');
 
+        // Runaway safeguards: kill switch, budgets, per-user rate limit.
+        await assertAiAllowedForAction(ctx);
         const openrouter = requireOpenRouter();
-        const { object } = await runWithRetry(() =>
+        const { object, usage } = await runWithRetry(() =>
             generateObject({
                 model: openrouter(MODEL) as unknown as LanguageModel,
                 schema: StyleGuideSchema,
@@ -346,8 +360,11 @@ export const generateStyleGuide = action({
                     { role: 'user', content: buildStyleGuidePrompt(doc.brief) },
                 ],
                 maxOutputTokens: 4000,
+                // runWithRetry already retries once; don't stack SDK retries.
+                maxRetries: 0,
             }),
         );
+        await recordActionSpend(ctx, estimateModelCostUsd(MODEL, usage));
 
         await ctx.runMutation(internal.wireframes._insertStyleGuide, {
             docId,

@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatModel, ImageMessageContext } from '@weblab/models';
-import { ChatType, DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
+import { ChatType, DEFAULT_CHAT_MODEL, MessageContextType, migrateChatModel } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
@@ -193,7 +193,7 @@ export const Create = observer(
                     // without typing anything).
                     const restoredModel = await loadAiPromptCreateModel();
                     if (restoredModel) {
-                        setSelectedModel(restoredModel as ChatModel);
+                        setSelectedModel(migrateChatModel(restoredModel) as ChatModel);
                     }
                 } catch (error) {
                     console.error('Error restoring draft:', error);
@@ -458,6 +458,7 @@ export const Create = observer(
                     imageButtonDisabled={isHandlingFile}
                     showMicButton
                     onTranscript={handleTranscript}
+                    onMicBlockedClick={userId ? undefined : () => setIsAuthModalOpen(true)}
                     onImageFiles={handleFileSelect}
                     onDrop={handleDrop}
                     onDragStateChange={handleDragStateChange}
@@ -515,7 +516,12 @@ export const Create = observer(
                     }
                     suggestionsSlot={
                         suggestions && suggestions.length > 0 ? (
-                            <div className="flex flex-wrap justify-center gap-2">
+                            <div
+                                className={cn(
+                                    'flex flex-wrap gap-2',
+                                    variant === 'hero' ? 'justify-start' : 'justify-center',
+                                )}
+                            >
                                 {suggestions.map((suggestion) => (
                                     <Button
                                         key={suggestion.label}

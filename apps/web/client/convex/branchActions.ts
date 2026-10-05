@@ -32,6 +32,10 @@ function generateUniqueBranchName(base: string, existing: string[]): string {
     return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function requireCloudSandboxRelease(): void {
+    throw new Error('Cloud sandbox branches are unavailable in the local release.');
+}
+
 // ─── fork ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -88,6 +92,7 @@ export const createBlank = action({
         ),
     },
     handler: async (ctx, args): Promise<unknown> => {
+        requireCloudSandboxRelease();
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 

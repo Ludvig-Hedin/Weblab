@@ -10,7 +10,7 @@ import { useOpenLocalProject } from '@/hooks/use-open-local-project';
 // Subset of the desktop preload bridge (apps/desktop/preload.js) this component
 // uses. Present only in the Weblab desktop app on an app origin.
 interface DropBridge {
-    getPathForDroppedFile?: (file: File) => string | null;
+    getPathForDroppedFile?: (file: File) => Promise<string | null>;
     onOpenFolder?: (listener: (payload: { rootPath: string }) => void) => () => void;
     signalReady?: () => void;
 }
@@ -103,7 +103,7 @@ export function DesktopFolderDrop() {
 
     if (!isDesktop) return null;
 
-    const handleOverlayDrop = (e: React.DragEvent) => {
+    const handleOverlayDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         setDragging(false);
 
@@ -129,7 +129,7 @@ export function DesktopFolderDrop() {
             toast.error('Drop a folder, not a file.');
             return;
         }
-        const rootPath = bridge.getPathForDroppedFile(dirFile);
+        const rootPath = await bridge.getPathForDroppedFile(dirFile);
         if (!rootPath) {
             toast.error('Could not read that folder.');
             return;

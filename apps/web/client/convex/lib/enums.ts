@@ -71,6 +71,7 @@ export const vCmsSourceType = v.union(
     v.literal('payload'),
     v.literal('strapi'),
     v.literal('rest'),
+    v.literal('sanity'),
 );
 
 // ─── Domain / hosting ────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 
 import React, { memo } from 'react';
 
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { Border } from './dropdowns/border';
 import { BorderColor } from './dropdowns/border-color';
 import { ColorBackground } from './dropdowns/color-background';
@@ -29,7 +30,13 @@ export const DIV_SELECTED_GROUPS = [
     {
         key: 'base',
         label: 'Base',
-        components: [<ColorBackground />, <InputImage />, <Border />, <BorderColor />, <Radius />],
+        components: [
+            <ColorBackground />,
+            ...(EDITOR_SCOPE.imageUpload ? [<InputImage />] : []),
+            <Border />,
+            <BorderColor />,
+            <Radius />,
+        ],
     },
     {
         key: 'layout',

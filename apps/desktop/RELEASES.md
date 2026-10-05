@@ -5,6 +5,28 @@ This doc covers three paths: building locally, sharing with friends, and publish
 
 ## Changelog
 
+### v0.2.7
+
+Team build for invited accounts on weblab.build. Not the public Mac download.
+
+- **Your original folder stays untouched.** Opening an existing Git project
+  now creates a private working copy. Edits go there and come back as a
+  reviewed patch.
+- **Safer saving.** Ordinary text is saved as plain text, edits no longer
+  flatten conditional class names, and token, tag and class changes can be
+  undone. Unsaved code drafts survive leaving the editor.
+- **Simple or Advanced.** First open asks which working level you want. You
+  can switch in Settings.
+- **Publishing review.** You can review what a release would include and build
+  protected previews. Switching the live site from the app is still off.
+- **Sign-in.** The app only accepts a sign-in it started itself.
+- **Preview keys.** Settings, Project, Preview keys holds test keys for the
+  local preview. They stay outside the site's code.
+- **Log file.** Help, Show Log File opens what the app recorded, so a failure
+  can be looked at afterwards. Sign-in tickets are not written to it.
+- **Release hygiene.** Team builds are never marked as the repository's latest
+  release, so the public Mac download keeps working.
+
 ### v0.2.6
 
 - **Packaged startup fix.** The macOS app now includes `auth-hosts.js` in
@@ -113,6 +135,18 @@ bun install
 
 The build scripts create the workspace `node_modules` link automatically before packaging, so you can run the Bun build commands directly after installing.
 
+Each build script also stages Bun 1.3.10 from its official release archive. It
+checks the published SHA-256 before extraction and verifies the staged binary's
+version. The macOS build combines the Intel and Apple Silicon binaries into one
+universal executable. The packaged runtime lives in `resources/bin` outside
+`app.asar`, so people installing Weblab do not need a separate Bun install.
+The generated `apps/desktop/.runtime/` directory is ignored by Git.
+
+Build on the target OS. Windows and Linux release targets are x64, while the
+Mac target is universal. `bun run build` builds for the current host; use the
+platform-specific commands below when preparing a release. The build stops if
+the host cannot produce the selected target or a checksum fails.
+
 ---
 
 ## 1. Build locally (fastest — great for sharing with friends)
@@ -133,7 +167,7 @@ The output files land in `apps/desktop/dist/`.
 
 ### macOS Gatekeeper warning
 
-Because the app isn't notarized yet, macOS will show *"Weblab can't be opened because it is from an unidentified developer."*
+An unsigned local test build can show *"Weblab can't be opened because it is from an unidentified developer."* Tagged releases require signing and notarization in CI.
 
 Tell your friends to do this **once** to bypass it:
 
@@ -192,8 +226,13 @@ desktop-v0.2.3   ← triggers the build
 v0.1.0           ← does NOT trigger (no "desktop-" prefix)
 ```
 
-No secrets are required for the first release — `GITHUB_TOKEN` is provided automatically.  
-The workflow uploads artifacts via `softprops/action-gh-release`.
+The tagged release workflow requires a Developer ID Application certificate
+and Apple notarization credentials; unsigned local test builds remain possible.
+`GITHUB_TOKEN` is provided automatically. Each platform job saves its installer and updater metadata as a
+workflow artifact after checking its packaged Bun runtime. One final job
+publishes the GitHub release only when all three platform jobs pass and every
+expected file is present. The tag must match `apps/desktop/package.json` as
+`desktop-v<version>`. The builder itself has implicit publishing disabled.
 
 ---
 

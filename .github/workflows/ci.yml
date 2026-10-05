@@ -78,8 +78,36 @@ jobs:
 
       - name: Run tests
         run: |
-          git ls-files '*test.*' ':!apps/desktop-local/**' | xargs bun test --timeout 30000 --coverage > /tmp/bun-test.log 2>&1 || {
+          git ls-files '*test.*' ':!apps/desktop-local/**' ':!apps/desktop/**' ':!examples/sanity-pilot/**' | xargs bun test --timeout 30000 --coverage > /tmp/bun-test.log 2>&1 || {
             cat /tmp/bun-test.log
             exit 1
           }
           tail -n 80 /tmp/bun-test.log
+
+  # The team desktop shell is Mac-only: its tests call macOS git/ps paths and
+  # fail on Linux runners, so they run here instead of in the Unit Test job.
+  desktop-test:
+    name: Desktop Test (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Run desktop tests
+        run: git ls-files 'apps/desktop/**/*test.*' 'apps/desktop/*test.*' ':!apps/desktop/release-snapshot.test.js' ':!apps/desktop/cli/cli-lifecycle.test.js' | xargs bun test --timeout 30000
+
+      # These two files race real process start and exit against a process
+      # table sample. A loaded runner loses that race at random (BACKLOG:
+      # "Native CLI process-identity checks lose races on loaded machines"),
+      # so they report here without blocking. Run them on a Mac before a
+      # desktop release.
+      - name: Run timing-sensitive desktop tests (non-blocking)
+        continue-on-error: true
+        run: bun test --timeout 30000 apps/desktop/release-snapshot.test.js apps/desktop/cli/cli-lifecycle.test.js

@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react';
+import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import type { Frame } from '@weblab/models';
@@ -22,6 +23,16 @@ export const ResizeHandles = observer(
     ({ frame, setIsResizing }: { frame: Frame; setIsResizing: (isResizing: boolean) => void }) => {
         const editorEngine = useEditorEngine();
 
+        // A drag cut short by unmount (frame deleted, mode change) must not
+        // leave window listeners writing this frame's width forever.
+        const activeResizeCleanupRef = useRef<(() => void) | null>(null);
+        useEffect(
+            () => () => {
+                activeResizeCleanupRef.current?.();
+            },
+            [],
+        );
+
         const startResize = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
@@ -31,9 +42,9 @@ export const ResizeHandles = observer(
             const startWidth = frame.breakpoint?.width ?? frame.dimension.width;
             const minWidth = parseInt(DefaultSettings.MIN_DIMENSIONS.width);
 
-            const resize = (ev: globalThis.MouseEvent) => {
+            const applyWidth = (clientX: number) => {
                 const scale = editorEngine.canvas.scale;
-                const widthDelta = (ev.clientX - startX) / scale;
+                const widthDelta = (clientX - startX) / scale;
                 const newWidth = Math.max(minWidth, Math.round(startWidth + widthDelta));
 
                 editorEngine.frames.updateAndSaveToStorage(frame.id, {
@@ -49,18 +60,45 @@ export const ResizeHandles = observer(
                 editorEngine.overlay.undebouncedRefresh();
             };
 
+            // Apply at most one width per frame. Raw mousemove fires far
+            // more often and each apply refreshes the overlay over RPC.
+            let latestX = startX;
+            let rafId: number | null = null;
+            const resize = (ev: globalThis.MouseEvent) => {
+                // Button released outside the window: mouseup never fired.
+                if (ev.buttons === 0) {
+                    stopResize(ev);
+                    return;
+                }
+                latestX = ev.clientX;
+                rafId ??= requestAnimationFrame(() => {
+                    rafId = null;
+                    applyWidth(latestX);
+                });
+            };
+
+            const removeListeners = () => {
+                if (rafId !== null) cancelAnimationFrame(rafId);
+                rafId = null;
+                window.removeEventListener('mousemove', resize);
+                window.removeEventListener('mouseup', stopResize);
+                activeResizeCleanupRef.current = null;
+                setIsResizing(false);
+            };
+
             const stopResize = (ev: globalThis.MouseEvent) => {
                 ev.preventDefault();
                 ev.stopPropagation();
-                setIsResizing(false);
-                window.removeEventListener('mousemove', resize);
-                window.removeEventListener('mouseup', stopResize);
+                const pending = rafId !== null;
+                removeListeners();
+                if (pending) applyWidth(latestX);
                 // Repack siblings to the right of this frame after the drag settles.
                 editorEngine.frames.repackGroup(frame.groupId);
             };
 
             window.addEventListener('mousemove', resize);
             window.addEventListener('mouseup', stopResize);
+            activeResizeCleanupRef.current = removeListeners;
         };
 
         return (

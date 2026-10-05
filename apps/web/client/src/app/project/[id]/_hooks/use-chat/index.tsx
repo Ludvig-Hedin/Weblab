@@ -19,12 +19,14 @@ import type {
     ReasoningEffort,
 } from '@weblab/models';
 import { ChatType } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 import { jsonClone } from '@weblab/utility';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { handleToolCall } from '@/components/tools';
 import { WeblabCliTransport } from './cli-transport';
+import { CONTINUATION_CAP_MESSAGE, decideAutoContinuation } from './continuation-cap';
 import { OllamaWebTransport } from './ollama-web-transport';
 import {
     clearPendingTurn,
@@ -110,6 +112,24 @@ export function useChat({
     }, [model, ollamaBaseUrl, reasoningEffort]);
     const getModel = useCallback(() => modelRef.current, []);
     const getOllamaBaseUrl = useCallback(() => ollamaBaseUrlRef.current, []);
+    // CLI models (Claude Code, Codex) run inside the active branch's private
+    // local working copy. Cloud branches have none, and the CLI transport
+    // turns that into a clear "open a local folder" error.
+    const getCliWorkingDirectory = useCallback((): string | null => {
+        try {
+            const runtime = editorEngine.branches.activeBranch.runtime;
+            return runtime.type === 'local' ? (runtime.local?.rootPath ?? null) : null;
+        } catch {
+            return null;
+        }
+    }, [editorEngine]);
+    const getCliActiveBranchId = useCallback((): string | null => {
+        try {
+            return editorEngine.branches.activeBranch.id;
+        } catch {
+            return null;
+        }
+    }, [editorEngine]);
 
     const transport = useMemo(
         () =>
@@ -132,9 +152,11 @@ export function useChat({
                         },
                     }),
                 }) as unknown as ConstructorParameters<typeof RoutingChatTransport>[0],
-                new WeblabCliTransport(getModel) as unknown as ConstructorParameters<
-                    typeof RoutingChatTransport
-                >[1],
+                new WeblabCliTransport(getModel, {
+                    getWorkingDirectory: getCliWorkingDirectory,
+                    getActiveBranchId: getCliActiveBranchId,
+                    getConversationId: () => conversationId,
+                }) as unknown as ConstructorParameters<typeof RoutingChatTransport>[1],
                 getModel,
                 new OllamaWebTransport(
                     getModel,
@@ -143,7 +165,14 @@ export function useChat({
             ),
         // Intentionally NOT depending on `model` or `ollamaBaseUrl` — the
         // refs above keep them fresh without forcing a transport rebuild.
-        [conversationId, projectId, getModel, getOllamaBaseUrl],
+        [
+            conversationId,
+            projectId,
+            getModel,
+            getOllamaBaseUrl,
+            getCliWorkingDirectory,
+            getCliActiveBranchId,
+        ],
     );
 
     // Set when the user explicitly hits Stop. The AI SDK's `stop()` only
@@ -154,12 +183,36 @@ export function useChat({
     // and is cleared on the next user-initiated send.
     const userStoppedRef = useRef(false);
 
+    // Runaway-loop guard: consecutive auto-continuations in the current user
+    // turn (see continuation-cap.ts; the server enforces the same cap). Reset
+    // by every user-initiated send via `resetTurnGuards`.
+    const autoContinuationsRef = useRef(0);
+    const continuationCapNotifiedRef = useRef(false);
+    const resetTurnGuards = useCallback(() => {
+        userStoppedRef.current = false;
+        autoContinuationsRef.current = 0;
+        continuationCapNotifiedRef.current = false;
+    }, []);
+
     const { addToolResult, messages, error, stop, setMessages, regenerate, status } =
         useAiChat<ChatMessage>({
             id: 'user-chat',
             messages: initialMessages,
-            sendAutomaticallyWhen: (options) =>
-                !userStoppedRef.current && lastAssistantMessageIsCompleteWithToolCalls(options),
+            sendAutomaticallyWhen: (options) => {
+                if (
+                    userStoppedRef.current ||
+                    !lastAssistantMessageIsCompleteWithToolCalls(options)
+                ) {
+                    return false;
+                }
+                const decision = decideAutoContinuation(autoContinuationsRef.current);
+                autoContinuationsRef.current = decision.nextCount;
+                if (!decision.allow && !continuationCapNotifiedRef.current) {
+                    continuationCapNotifiedRef.current = true;
+                    toast.info(CONTINUATION_CAP_MESSAGE);
+                }
+                return decision.allow;
+            },
             transport: transport as unknown as DefaultChatTransport<ChatMessage>,
             onToolCall: async (toolCall) => {
                 // Track every concurrent invocation so the spinner stays up
@@ -227,6 +280,10 @@ export function useChat({
         editorEngine.chat.setIsStreaming(isStreaming);
     }, [editorEngine.chat, isStreaming]);
 
+    useEffect(() => {
+        editorEngine.chat.setQueuedMessageCount(queuedMessages.length);
+    }, [editorEngine.chat, queuedMessages.length]);
+
     // Background summarizer: when history exceeds 50% of the model's context
     // window, fire a request to /api/chat/summarize so the next turn ships a
     // compact summary instead of the full transcript. Trigger keys on message
@@ -270,7 +327,7 @@ export function useChat({
 
     const processMessage = useCallback(
         async (content: string, type: ChatType, context?: MessageContext[]) => {
-            userStoppedRef.current = false;
+            resetTurnGuards();
             // Persist the turn before streaming starts: if the page unloads
             // mid-stream the route never saves it (abort → refund + return),
             // so recovery needs the content to re-send. Cleared on settle by
@@ -313,6 +370,7 @@ export function useChat({
             model,
             ollamaBaseUrl,
             reasoningEffort,
+            resetTurnGuards,
         ],
     );
 
@@ -388,7 +446,7 @@ export function useChat({
             };
             message.parts = [{ type: 'text', text: newContent }];
 
-            userStoppedRef.current = false;
+            resetTurnGuards();
             setMessages(jsonClone([...updatedMessages, message]));
 
             void regenerate({
@@ -411,6 +469,7 @@ export function useChat({
             model,
             ollamaBaseUrl,
             reasoningEffort,
+            resetTurnGuards,
         ],
     );
 
@@ -518,7 +577,7 @@ export function useChat({
     const regenerateLastAssistant = useCallback(async () => {
         if (isStreaming) return;
         posthog.capture('user_regenerate_last_assistant');
-        userStoppedRef.current = false;
+        resetTurnGuards();
         await regenerate({
             body: {
                 chatType: ChatType.EDIT,
@@ -528,7 +587,16 @@ export function useChat({
                 reasoningEffort,
             },
         });
-    }, [isStreaming, posthog, regenerate, conversationId, model, ollamaBaseUrl, reasoningEffort]);
+    }, [
+        isStreaming,
+        posthog,
+        regenerate,
+        conversationId,
+        model,
+        ollamaBaseUrl,
+        reasoningEffort,
+        resetTurnGuards,
+    ]);
 
     // Auto-regenerate on mount if the stream was interrupted by a page reload.
     // Runs once after the first render; the flag is already cleared by the

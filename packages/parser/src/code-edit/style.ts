@@ -4,49 +4,103 @@ import type { T } from '../packages';
 import { t } from '../packages';
 import { getAstFromContent } from '../parse';
 
+/** Only a proven static class value can be edited from a rendered element. */
+export function assertStaticClassName(node: T.JSXElement): void {
+    const attributes = node.openingElement.attributes;
+    const classAttributes = attributes.filter((attr): attr is T.JSXAttribute =>
+        t.isJSXAttribute(attr) && attr.name.name === 'className');
+    const attribute = classAttributes[0];
+    const index = attribute ? attributes.indexOf(attribute) : -1;
+    const expression = attribute && t.isJSXExpressionContainer(attribute.value)
+        ? attribute.value.expression : null;
+    const staticValue = !attribute || t.isStringLiteral(attribute.value) ||
+        t.isStringLiteral(expression) ||
+        (t.isTemplateLiteral(expression) && expression.expressions.length === 0 &&
+            expression.quasis.every((part) => typeof part.value.cooked === 'string'));
+    if (classAttributes.length > 1 || !staticValue ||
+        attributes.some((attr, position) => t.isJSXSpreadAttribute(attr) && (index === -1 || position > index))) {
+        throw new Error('Dynamic classes must be edited in code. Your source was not changed.');
+    }
+}
+
+function staticClassValue(attribute: T.JSXAttribute): string {
+    if (t.isStringLiteral(attribute.value)) return attribute.value.value;
+    if (t.isJSXExpressionContainer(attribute.value)) {
+        const expression = attribute.value.expression;
+        if (t.isStringLiteral(expression)) return expression.value;
+        if (t.isTemplateLiteral(expression) && expression.expressions.length === 0) {
+            return expression.quasis.map((part) => part.value.cooked ?? '').join('');
+        }
+    }
+    throw new Error('Dynamic classes must be edited in code. Your source was not changed.');
+}
+
+/** Split variants only outside arbitrary media/value brackets. */
+function classVariant(token: string): { prefix: string; utility: string } {
+    let depth = 0;
+    let separator = -1;
+    for (let i = 0; i < token.length; i++) {
+        if (token[i] === '\\') { i++; continue; }
+        if (token[i] === '[' || token[i] === '(') depth++;
+        else if (token[i] === ']' || token[i] === ')') depth--;
+        else if (token[i] === ':' && depth === 0) separator = i;
+    }
+    return { prefix: token.slice(0, separator + 1), utility: token.slice(separator + 1) };
+}
+
+export function removeMatchingClasses(
+    className: string,
+    removals: { prefix: string; probeClass: string }[],
+): string {
+    return className.split(/\s+/).filter((token) => {
+        if (!token) return false;
+        const { prefix, utility } = classVariant(token);
+        // Important syntax changes priority, not the CSS property family.
+        const plain = utility.replace(/^!|!$/g, '');
+        return !removals.some((removal) => prefix === removal.prefix &&
+            customTwMerge(plain, removal.probeClass).trim() === removal.probeClass.trim());
+    }).join(' ');
+}
+
+export function removeClassesFromNode(
+    node: T.JSXElement,
+    removals: { prefix: string; probeClass: string }[],
+    requireMatch = false,
+): void {
+    assertStaticClassName(node);
+    const attribute = node.openingElement.attributes.find((attr): attr is T.JSXAttribute =>
+        t.isJSXAttribute(attr) && attr.name.name === 'className');
+    if (!attribute) {
+        if (requireMatch) throw new Error('No matching source override could be reset safely.');
+        return;
+    }
+    const original = staticClassValue(attribute);
+    const next = removeMatchingClasses(original, removals);
+    if (requireMatch && next.split(/\s+/).filter(Boolean).length === original.split(/\s+/).filter(Boolean).length) {
+        throw new Error('No matching source override could be reset safely.');
+    }
+    attribute.value = t.isJSXExpressionContainer(attribute.value)
+        ? t.jsxExpressionContainer(t.stringLiteral(next)) : t.stringLiteral(next);
+}
+
 export function addClassToNode(node: T.JSXElement, className: string): void {
+    assertStaticClassName(node);
     const openingElement = node.openingElement;
     const classNameAttr = openingElement.attributes.find(
         (attr) => t.isJSXAttribute(attr) && attr.name.name === 'className',
     ) as T.JSXAttribute | undefined;
 
     if (classNameAttr) {
-        if (t.isStringLiteral(classNameAttr.value)) {
-            classNameAttr.value.value = customTwMerge(classNameAttr.value.value, className);
-        } else if (t.isJSXExpressionContainer(classNameAttr.value)) {
-            const expr = classNameAttr.value.expression;
-            if (t.isCallExpression(expr)) {
-                // TODO(bug-hunt): this cn()/clsx() branch dedupes only on EXACT
-                // string-arg match, so conflicting Tailwind utilities of the
-                // same family (existing `p-2` + new `p-4`, or `text-sm` +
-                // `text-lg`) both get appended and accumulate instead of the
-                // later one winning. The static-string branch above avoids this
-                // via customTwMerge; here it's bypassed because the classes are
-                // call arguments. Fix: merge the new class against the existing
-                // static string args through customTwMerge rather than a raw
-                // exact-match `some()`.
-                const alreadyPresent = expr.arguments.some(
-                    (arg) => t.isStringLiteral(arg) && arg.value === className,
-                );
-                if (!alreadyPresent) {
-                    expr.arguments.push(t.stringLiteral(className));
-                }
-            } else if (!t.isJSXEmptyExpression(expr)) {
-                // Dynamic expressions cannot be statically deduplicated —
-                // skip customTwMerge here since the value is only known at runtime.
-                classNameAttr.value.expression = t.binaryExpression(
-                    '+',
-                    t.binaryExpression('+', expr as T.Expression, t.stringLiteral(' ')),
-                    t.stringLiteral(className),
-                );
-            }
-        }
+        const merged = customTwMerge(staticClassValue(classNameAttr), className);
+        classNameAttr.value = t.isJSXExpressionContainer(classNameAttr.value)
+            ? t.jsxExpressionContainer(t.stringLiteral(merged)) : t.stringLiteral(merged);
     } else {
         insertAttribute(openingElement, 'className', className);
     }
 }
 
 export function replaceNodeClasses(node: T.JSXElement, className: string): void {
+    assertStaticClassName(node);
     const openingElement = node.openingElement;
     const classNameAttr = openingElement.attributes.find(
         (attr) => t.isJSXAttribute(attr) && attr.name.name === 'className',

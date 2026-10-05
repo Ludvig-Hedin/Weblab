@@ -1,8 +1,11 @@
 import { v } from 'convex/values';
+import { makeFunctionReference } from 'convex/server';
 
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { internalMutation } from '../_generated/server';
+import { assertSanitySourceRemovable } from '../cmsSanityState';
+import { deleteCloudEditorBranch } from '../cloudEditorCleanup';
 
 // Manual cascade helpers — Convex has no FK constraints. Every
 // `onDelete: 'cascade'` from Drizzle is owned by code here. Call these from
@@ -31,12 +34,15 @@ async function deleteCanvasInternal(ctx: MutationCtx, canvasId: Id<'canvases'>) 
 }
 
 async function deleteBranchInternal(ctx: MutationCtx, branchId: Id<'branches'>) {
+    const branch = await ctx.db.get(branchId);
+    if (branch) await deleteCloudEditorBranch(ctx, { projectId: branch.projectId, branchId });
     const frames = await ctx.db
         .query('frames')
         .withIndex('by_branch', (q) => q.eq('branchId', branchId))
         .collect();
     for (const f of frames) await ctx.db.delete(f._id);
     await ctx.db.delete(branchId);
+    await ctx.scheduler.runAfter(0, makeFunctionReference<'mutation', { branchId: Id<'branches'> }, null>('cmsSanityBlog:cleanupBranch'), { branchId });
 }
 
 async function deleteConversationInternal(ctx: MutationCtx, conversationId: Id<'conversations'>) {
@@ -80,12 +86,22 @@ async function deleteCmsCollectionInternal(ctx: MutationCtx, collectionId: Id<'c
 }
 
 async function deleteCmsSourceInternal(ctx: MutationCtx, sourceId: Id<'cmsSources'>) {
+    const source = await ctx.db.get(sourceId);
+    if (!source) return;
+    if (source.type === 'sanity') await assertSanitySourceRemovable(ctx, source.projectId, sourceId);
     const collections = await ctx.db
         .query('cmsCollections')
         .withIndex('by_source', (q) => q.eq('sourceId', sourceId))
         .collect();
     for (const c of collections) await deleteCmsCollectionInternal(ctx, c._id);
-    await ctx.db.delete(sourceId);
+    if (source.type === 'sanity') {
+        await ctx.db.patch(sourceId, { status: 'deleting', updatedAt: Date.now() });
+        await ctx.scheduler.runAfter(0, makeFunctionReference<'mutation', {
+            projectId: Id<'projects'>; sourceId: Id<'cmsSources'>;
+        }>('cmsSanityState:finalizeSourceRemoval'), { projectId: source.projectId, sourceId });
+    } else {
+        await ctx.db.delete(sourceId);
+    }
 }
 
 async function deleteCustomDomainInternal(ctx: MutationCtx, customDomainId: Id<'customDomains'>) {
@@ -114,6 +130,11 @@ async function deleteSubscriptionInternal(ctx: MutationCtx, subscriptionId: Id<'
 }
 
 async function deleteProjectInternal(ctx: MutationCtx, projectId: Id<'projects'>) {
+    // Check pending provider writes before deleting any dependent records.
+    const sanitySources = await ctx.db.query('cmsSources').withIndex('by_project', (q) => q.eq('projectId', projectId)).collect();
+    for (const source of sanitySources) {
+        if (source.type === 'sanity') await assertSanitySourceRemovable(ctx, projectId, source._id);
+    }
     // Project-scoped fan-outs (order: leaf-first where possible).
 
     // Canvas (→ frames + userCanvases)
@@ -205,6 +226,11 @@ async function deleteProjectInternal(ctx: MutationCtx, projectId: Id<'projects'>
         .withIndex('by_project', (q) => q.eq('projectId', projectId))
         .collect();
     for (const p of collPages) await ctx.db.delete(p._id);
+
+    // Large immutable content records are removed in small transactions after
+    // this transaction deletes the project. They are inaccessible immediately.
+    await ctx.scheduler.runAfter(0, makeFunctionReference<'mutation', { projectId: Id<'projects'> }>(
+        'cmsReleases:_removeForDeletedProject'), { projectId });
 
     // Project custom domains + verifications
     const pcds = await ctx.db

@@ -1,14 +1,37 @@
-const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog, session } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
-const { registerIpcHandlers: registerCliIpc } = require('./weblab-cli');
-const { registerLocalIpc, disposeLocal } = require('./weblab-local');
+const { safeStorage } = require('electron');
+const { ReleaseStore } = require('./release/store');
+const { PublishingService } = require('./release/service');
+const { createPublishAuthorizer } = require('./release/authorize');
+const { registerPublishingIpc } = require('./release/ipc');
+const { hasSiteEngine } = require('./release/site-engine');
+const { registerIpcHandlers: registerCliIpc, disposeCli } = require('./weblab-cli');
+const { registerLocalIpc, grantLocalRoot, disposeLocal } = require('./weblab-local');
 const { isOAuthHost } = require('./auth-hosts');
+const { createLoginHandoff, externalHttpUrl, isTrustedSender } = require('./auth-policy');
+const { resolveDesktopProfile, desktopBootstrapArgument } = require('./desktop-profile');
+const { installDesktopLog } = require('./desktop-log');
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Weblab';
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || `https://${APP_DOMAIN}`;
+const DESKTOP_PROFILE = resolveDesktopProfile({
+    packaged: app.isPackaged,
+    metadata: require('./package.json').weblabDesktopProfile,
+    environment: process.env,
+});
+const APP_NAME = DESKTOP_PROFILE.name;
+const APP_URL = DESKTOP_PROFILE.siteUrl;
 const APP_ORIGIN = new URL(APP_URL).origin;
+const SESSION_PARTITION = DESKTOP_PROFILE.partition;
+const BOOTSTRAP_ARGUMENT = desktopBootstrapArgument(DESKTOP_PROFILE);
+app.setName(APP_NAME);
+// Cookie partitions, folder grants, private copies and the single-instance
+// lock must all be isolated before any of them are opened.
+if (DESKTOP_PROFILE.userDataName) {
+    app.setPath('userData', path.join(app.getPath('appData'), DESKTOP_PROFILE.userDataName));
+}
+// Packaged apps have no terminal, so keep what the shell prints in a small file.
+const DESKTOP_LOG_FILE = installDesktopLog(app.getPath('logs'));
 
 // Boot the desktop shell straight into the auth flow instead of the marketing
 // landing. /sign-in server-redirects already-signed-in users to /projects, so
@@ -25,22 +48,11 @@ const DEFAULT_LAUNCH_URL = (() => {
     return u.toString();
 })();
 
-// Origins the IPC layer accepts requests from. Mirrors the preload's allow-list
-// so dev (localhost:3000) and production (the configured site URL) both work.
-// The CLI bridge handlers re-check senderFrame.url against this set on every
-// call — preload's check alone isn't enough because the renderer can navigate.
-// CR-109: localhost entries are gated to non-production so release builds don't
-// accept IPC from http://localhost.
-const ALLOWED_IPC_ORIGINS = new Set([
-    APP_ORIGIN,
-    `https://${APP_DOMAIN}`,
-    ...(!app.isPackaged
-        ? ['http://localhost:3000', 'http://127.0.0.1:3000']
-        : []),
-]);
+// The main process and sandboxed preload receive the same one resolved origin.
+const ALLOWED_IPC_ORIGINS = new Set([APP_ORIGIN]);
 
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...
-const PROTOCOL = 'weblab';
+const PROTOCOL = DESKTOP_PROFILE.protocol;
 
 // Which hosts get bounced to the real browser vs. allowed in-window lives in
 // ./auth-hosts.js (unit-tested). Summary: third-party OAuth provider sign-in
@@ -51,6 +63,9 @@ const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
 
 let mainWindow;
+let readyForWindows = false;
+let pendingDeepLink = null;
+const loginHandoff = createLoginHandoff({ origin: APP_ORIGIN });
 
 ipcMain.on('weblab:get-version', (event) => {
     event.returnValue = app.getVersion();
@@ -63,37 +78,28 @@ ipcMain.on('weblab:get-version', (event) => {
 // The browser-side flow finishes via a `weblab://auth/handoff?ticket=...`
 // deep link that hands a Clerk sign-in token to the desktop session (see
 // `handleDeepLink`). Returns true if Electron handed the URL off to the OS.
-function openInExternalBrowser(url) {
+function openInExternalBrowser(url, trusted) {
+    if (!trusted) return false;
+    const safe = externalHttpUrl(url);
+    if (!safe) return false;
+    const login = loginHandoff.begin(safe);
     try {
-        const parsed = new URL(url);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+        shell.openExternal(login?.url ?? safe).catch(() => {
+            if (login) loginHandoff.cancel(login.state);
+        });
+        return true;
     } catch {
+        if (login) loginHandoff.cancel(login.state);
         return false;
     }
-    // `shell.openExternal` resolves true on macOS / Windows when the URL was
-    // handed off to the OS, even before the browser actually paints — that's
-    // the right signal: the desktop's job is done once the URL is dispatched.
-    shell.openExternal(url).catch(() => {
-        // Errors from `openExternal` mean no default handler is registered or
-        // the OS refused to launch it. Non-fatal here — the renderer already
-        // shows a "Continue in browser" UI; the user can retry.
-    });
-    return true;
 }
 
-// Renderer-side bridge: `window.weblabNative.openExternal(url)` →
-// `weblab:open-external`. The legacy `weblab:open-oauth` channel is aliased
-// to the same handler in `preload.js` so any in-flight code that still
-// references it keeps working.
-//
-// TODO(bug-hunt): defense-in-depth — validate `event.senderFrame.url` against
-// ALLOWED_IPC_ORIGINS before opening. A renderer that has navigated off-origin
-// (XSS escape, escaped iframe) can otherwise drive the user's default browser
-// to any https:// URL via `weblabNative.openExternal('https://phish.example')`.
-// See CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 — Desktop auth".
-ipcMain.handle('weblab:open-external', async (_event, url) => {
-    if (typeof url !== 'string') return false;
-    return openInExternalBrowser(url);
+ipcMain.handle('weblab:open-external', async (event, url) =>
+    openInExternalBrowser(url, isTrustedSender(event, mainWindow?.webContents, ALLOWED_IPC_ORIGINS)));
+
+ipcMain.handle('weblab:claim-login-handoff', (event, args) => {
+    if (!isTrustedSender(event, mainWindow?.webContents, ALLOWED_IPC_ORIGINS)) return false;
+    return loginHandoff.claim(args?.ticket, args?.state, event.senderFrame.url);
 });
 
 // --- Open a folder dropped on the dock icon / "Open With Weblab" (macOS) -------
@@ -104,10 +110,13 @@ ipcMain.handle('weblab:open-external', async (_event, url) => {
 let rendererReady = false;
 let pendingOpenFolderPath = null;
 
-function deliverOpenFolder(folderPath) {
+async function deliverOpenFolder(folderPath) {
     if (!folderPath || typeof folderPath !== 'string') return;
     if (rendererReady && mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('weblab:open-folder', { rootPath: folderPath });
+        let rootPath;
+        try { rootPath = await grantLocalRoot(folderPath); }
+        catch { return; }
+        mainWindow.webContents.send('weblab:open-folder', { rootPath });
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
     } else {
@@ -119,15 +128,20 @@ function deliverOpenFolder(folderPath) {
 // Register as early as possible — macOS may emit this before `whenReady`.
 app.on('open-file', (event, folderPath) => {
     event.preventDefault();
-    deliverOpenFolder(folderPath);
+    void deliverOpenFolder(folderPath);
 });
 
-ipcMain.on('weblab:renderer-ready', () => {
+ipcMain.on('weblab:renderer-ready', (event) => {
+    try {
+        if (event.sender !== mainWindow?.webContents ||
+            event.senderFrame !== event.sender.mainFrame ||
+            !ALLOWED_IPC_ORIGINS.has(new URL(event.senderFrame.url).origin)) return;
+    } catch { return; }
     rendererReady = true;
     if (pendingOpenFolderPath) {
         const p = pendingOpenFolderPath;
         pendingOpenFolderPath = null;
-        deliverOpenFolder(p);
+        void deliverOpenFolder(p);
     }
 });
 
@@ -142,13 +156,23 @@ registerLocalIpc({
     getWebContents: () => mainWindow?.webContents ?? null,
 });
 
-// Tear down any spawned local dev servers + file watchers on shutdown.
-app.on('before-quit', () => {
-    try {
-        disposeLocal();
-    } catch {
-        // best-effort cleanup
-    }
+// Wait for the desktop-owned preview/install children to stop before the
+// Electron process exits, especially on Windows where descendants survive a
+// parent exit unless their process tree is terminated explicitly.
+let localShutdownStarted = false;
+app.on('before-quit', (event) => {
+    if (localShutdownStarted) return;
+    event.preventDefault();
+    localShutdownStarted = true;
+    // Stop CLI chat turns (Claude Code / Codex) first and wait briefly so
+    // their handoff journaling finishes and no journal lock is left behind.
+    Promise.resolve().then(() => disposeCli()).then(() => disposeLocal()).then(() => {
+        app.quit();
+    }).catch(() => {
+        localShutdownStarted = false;
+        dialog.showErrorBox('Cleanup is still pending',
+            'Weblab could not confirm that its AI or preview processes stopped. Keep the app open and try again.');
+    });
 });
 
 // --- Single-instance + custom protocol registration ---------------------------
@@ -203,13 +227,17 @@ app.on('open-url', (event, url) => {
  *    desktop-specific UI.
  */
 function handleDeepLink(rawUrl) {
+    if (!readyForWindows) {
+        pendingDeepLink = rawUrl;
+        return false;
+    }
     let parsed;
     try {
         parsed = new URL(rawUrl);
     } catch {
-        return;
+        return false;
     }
-    if (parsed.protocol !== `${PROTOCOL}:`) return;
+    if (parsed.protocol !== `${PROTOCOL}:` || parsed.username || parsed.password || parsed.port) return false;
 
     // weblab://<host>/<path?> — the "host" is actually the first path segment
     // because there's no real host in a custom-protocol URL.
@@ -217,29 +245,21 @@ function handleDeepLink(rawUrl) {
 
     // New: browser handoff with a Clerk sign-in ticket.
     if (pathname === '/auth/handoff') {
-        const ticket = parsed.searchParams.get('ticket');
-        // Drop malformed deep-link launches outright — we never want the
-        // desktop to navigate to a redeem URL with an empty / non-string
-        // ticket (Clerk would surface a noisy error in the renderer).
-        if (!ticket || typeof ticket !== 'string') return;
-        // TODO(bug-hunt): CSRF gap — any process that can launch a `weblab://`
-        // URL can deliver a ticket here and sign the user into the attacker's
-        // Clerk account. Mitigation requires a per-launch nonce: persist a
-        // random value when openExternal first fires, require the handoff
-        // deep link to echo the same nonce, reject otherwise. See
-        // CODE_REVIEW_BACKLOG.md → "Bug Hunt 2026-05-28 — Desktop auth".
-        const target = new URL('/sign-in/redeem', APP_URL);
-        target.searchParams.set('ticket', ticket);
-        target.searchParams.set('native', '1');
+        const target = loginHandoff.accept(
+            parsed.searchParams.get('ticket'), parsed.searchParams.get('state'));
+        if (!target) return false;
         if (!mainWindow) {
-            createWindow(target.toString());
+            createWindow(target);
         } else {
-            mainWindow.loadURL(target.toString());
+            mainWindow.loadURL(target);
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();
         }
-        return;
+        return true;
     }
+
+    // Legacy links must never bypass the authenticated handoff route.
+    if (pathname === '/sign-in/redeem' || pathname.startsWith('/sign-in/redeem/')) return false;
 
     // Legacy: rewrite to same-origin URL on APP_URL and load.
     const target = new URL(pathname, APP_URL);
@@ -255,6 +275,7 @@ function handleDeepLink(rawUrl) {
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
     }
+    return true;
 }
 
 function createWindow(initialURL) {
@@ -268,6 +289,11 @@ function createWindow(initialURL) {
         backgroundColor: '#0a0a0a',
         title: APP_NAME,
         titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+        // Center the traffic lights in the 56px (h-14) editor top bar, with the
+        // same visual gap on the left as on top (~20px). Tuned against a
+        // screenshot: y=20 sat ~3px low, so y=17 centers the dots and x=18
+        // matches the left gap to the top gap.
+        ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 18, y: 17 } } : {}),
         // macOS vibrancy gives the chrome a native blurred-material feel that
         // also visually anchors the hidden title bar drag region even before
         // the renderer mounts its CSS drag strip.
@@ -281,7 +307,8 @@ function createWindow(initialURL) {
             // Use a partition so cookies persist across launches under a
             // predictable name. (Default would also persist, but being
             // explicit makes the intent clear.)
-            partition: 'persist:weblab',
+            partition: SESSION_PARTITION,
+            additionalArguments: [BOOTSTRAP_ARGUMENT],
         },
         icon: path.join(__dirname, 'assets', 'icon.png'),
         show: false,
@@ -342,50 +369,34 @@ function createWindow(initialURL) {
     // browser instead — provider sign-in pages refuse to run inside the
     // embedded Chromium (Google blocks it outright, others mis-construct the
     // OAuth `client_id` when not in a real browser context).
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        try {
-            const parsed = new URL(url);
-            if (parsed.origin === APP_ORIGIN) {
-                return { action: 'allow' };
-            }
-            if (isOAuthHost(parsed.hostname)) {
-                openInExternalBrowser(url);
-                return { action: 'deny' };
-            }
-        } catch {
-            // Invalid URL — fall through to deny.
-        }
-        shell.openExternal(url);
-        return { action: 'deny' };
+    const webContents = mainWindow.webContents;
+    webContents.setWindowOpenHandler(({ url }) => {
+        // This callback cannot prove which frame initiated a popup.
+        // External popups are denied; app controls use top-frame native IPC.
+        const safe = externalHttpUrl(url);
+        return safe && new URL(safe).origin === APP_ORIGIN
+            ? { action: 'allow', overrideBrowserWindowOptions: { webPreferences: {
+                preload: path.join(__dirname, 'preload.js'), nodeIntegration: false,
+                contextIsolation: true, partition: SESSION_PARTITION,
+                additionalArguments: [BOOTSTRAP_ARGUMENT],
+            } } } : { action: 'deny' };
     });
 
-    mainWindow.webContents.on('will-navigate', (event, url) => {
+    const guardOAuthNavigation = (event, url) => {
         try {
             const parsed = new URL(url);
-            if (isOAuthHost(parsed.hostname)) {
+            if (!externalHttpUrl(url) || isOAuthHost(parsed.hostname)) {
                 event.preventDefault();
-                openInExternalBrowser(url);
+                const trusted = webContents === mainWindow?.webContents &&
+                    event.isMainFrame === true && event.frame === webContents.mainFrame &&
+                    (!event.initiator || event.initiator === webContents.mainFrame) &&
+                    ALLOWED_IPC_ORIGINS.has(new URL(webContents.mainFrame.url).origin);
+                if (isOAuthHost(parsed.hostname)) openInExternalBrowser(url, trusted);
             }
-        } catch {
-            // ignore
-        }
-    });
-
-    // HTTP redirects (e.g. a 302 from the in-app callback into an OAuth
-    // provider) do NOT fire `will-navigate` — Electron fires `will-redirect`
-    // instead. Without this listener a provider reached via a redirect would
-    // render inside the BrowserWindow and the provider would reject it.
-    mainWindow.webContents.on('will-redirect', (event, url) => {
-        try {
-            const parsed = new URL(url);
-            if (isOAuthHost(parsed.hostname)) {
-                event.preventDefault();
-                openInExternalBrowser(url);
-            }
-        } catch {
-            // ignore
-        }
-    });
+        } catch { event.preventDefault(); }
+    };
+    webContents.on('will-navigate', guardOAuthNavigation);
+    webContents.on('will-redirect', guardOAuthNavigation);
 
     // A fresh document load means the renderer's folder-drop listener is gone
     // until it re-mounts and re-signals. Reset the flag so a folder dropped on
@@ -444,10 +455,16 @@ function createWindow(initialURL) {
                 // builds the OS drag region in paint order, so any interactive
                 // element — including ones portaled outside .top-bar — must
                 // punch its own hole or a drag surface painted near it eats
-                // the click as window-drag. Matches the web app's layout.tsx.
-                `[data-desktop="true"]` +
+                // the click as window-drag. Descendants (icons, labels) are
+                // carved out too, with a :root prefix to beat the drag rule's
+                // specificity — else an svg inside a button re-adds drag and
+                // only the padding around it is clickable. Matches layout.tsx.
+                `:root[data-desktop="true"]` +
                     ` :is(a,button,[role="button"],[role="menuitem"],[role="tab"],[role="switch"],[role="link"],[role="combobox"],input,select,textarea,[contenteditable="true"],[contenteditable=""]),` +
-                `[data-desktop="true"] .desktop-no-drag{-webkit-app-region:no-drag;}`,
+                `:root[data-desktop="true"]` +
+                    ` :is(a,button,[role="button"],[role="menuitem"],[role="tab"],[role="switch"],[role="link"],[role="combobox"]) *,` +
+                `:root[data-desktop="true"] .desktop-no-drag,` +
+                `:root[data-desktop="true"] .desktop-no-drag *{-webkit-app-region:no-drag;}`,
             )
             .catch(() => {});
     });
@@ -592,24 +609,83 @@ function buildMenu() {
                     : [{ role: 'close' }]),
             ],
         },
+        ...(DESKTOP_LOG_FILE
+            ? [{
+                  role: 'help',
+                  submenu: [
+                      { label: 'Show Log File', click: () => shell.showItemInFolder(DESKTOP_LOG_FILE) },
+                  ],
+              }]
+            : []),
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+// Local previews run on http://localhost:<port>. The web app's CSP only
+// allows https frames and fetches, which suits browsers but blocks the
+// desktop canvas from showing or probing a local dev server. Widen it here,
+// for the app origin only, so browser visitors keep the strict policy.
+const LOCAL_PREVIEW_SOURCES = 'http://localhost:* http://127.0.0.1:*';
+function allowLocalPreviewsInCsp(policy) {
+    return policy.split(';').map((part) => {
+        const directive = part.trim().split(/\s+/)[0];
+        return directive === 'connect-src' || directive === 'frame-src'
+            ? `${part.trimEnd()} ${LOCAL_PREVIEW_SOURCES}`
+            : part;
+    }).join(';');
 }
 
 app.whenReady().then(() => {
     app.setName(APP_NAME);
     buildMenu();
 
-    // Pick up a deep link that launched the app on Windows/Linux.
-    const launchUrl = process.argv.find((a) => a.startsWith(`${PROTOCOL}://`));
-    if (launchUrl) {
-        handleDeepLink(launchUrl);
-    } else {
-        createWindow();
-    }
+    const local = require('./weblab-local');
+    const publishingStore = new ReleaseStore(path.join(app.getPath('userData'), 'publishing'), safeStorage);
+    const publishing = new PublishingService({
+        store: publishingStore,
+        authorize: createPublishAuthorizer(APP_URL),
+        requirePrivateRoot: local.requirePrivateWorkingRoot,
+        snapshot: local.createPrivateReleaseSnapshot,
+        validateSnapshot: local.validatePrivateReleaseSnapshot,
+    });
+    registerPublishingIpc({ ipcMain, service: publishing,
+        // Builds without the private website engine keep content preparation off.
+        content: hasSiteEngine()
+            ? new (require('./release/sanity-content').SanityContentCoordinator)({ appUrl: APP_URL, store: publishingStore, local })
+            : null,
+        allowedOrigins: ALLOWED_IPC_ORIGINS,
+        getWebContents: () => mainWindow?.webContents ?? null,
+        plan: async (root) => {
+            const result = await local.planPrivateRelease(root);
+            const { sourceRootPath: _privateSource, ...review } = result;
+            return review;
+        },
+    });
 
-    autoUpdater.checkForUpdatesAndNotify();
+    // Same partition as the BrowserWindow below.
+    session.fromPartition(SESSION_PARTITION).webRequest.onHeadersReceived((details, callback) => {
+        let origin = null;
+        try { origin = new URL(details.url).origin; } catch { /* ignore */ }
+        if (origin !== APP_ORIGIN || details.resourceType !== 'mainFrame') {
+            return callback({ responseHeaders: details.responseHeaders });
+        }
+        const responseHeaders = { ...details.responseHeaders };
+        for (const key of Object.keys(responseHeaders)) {
+            if (key.toLowerCase() !== 'content-security-policy') continue;
+            responseHeaders[key] = responseHeaders[key].map(allowLocalPreviewsInCsp);
+        }
+        callback({ responseHeaders });
+    });
+
+    // Pick up a deep link that launched the app on Windows/Linux.
+    readyForWindows = true;
+    const launchUrl = pendingDeepLink ?? process.argv.find((a) => a.startsWith(`${PROTOCOL}://`));
+    pendingDeepLink = null;
+    const handled = launchUrl ? handleDeepLink(launchUrl) : false;
+    if (!handled && !mainWindow) createWindow();
+
+    if (DESKTOP_PROFILE.updates) autoUpdater.checkForUpdatesAndNotify();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

@@ -21,11 +21,10 @@
 *** I'm using markdown "reference style" links for readability.
 *** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
 *** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** for forks-url, stars-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-<!-- [![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
+<!-- [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Apache License][license-shield]][license-url] -->
@@ -104,6 +103,14 @@ proposed features (and known issues) to collaborate with other builders.
 
 Use our [hosted app](https://weblab.build) or
 [run locally](https://docs.weblab.build/developers/running-locally).
+
+### Mac installers
+
+- [Weblab for Mac 0.2.0, Apple Silicon (.dmg)](https://github.com/Ludvig-Hedin/Weblab/releases/download/desktop-local-v0.2.0/Weblab-mac-arm64.dmg)
+- [Weblab Mini 0.1.0 test build, Apple Silicon (.dmg)](https://github.com/Ludvig-Hedin/Weblab/releases/download/weblab-mini-v0.1.0-20260928/Weblab-Mini-0.1.0-arm64.dmg)
+- [Older Mac installers](https://github.com/Ludvig-Hedin/Weblab/releases)
+
+The installers are release downloads. They are not stored in the Git checkout.
 
 ### Usage
 
@@ -223,8 +230,6 @@ information.
 
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors-shield]: https://img.shields.io/github/contributors/Ludvig-Hedin/Weblab.svg?style=for-the-badge
-[contributors-url]: https://github.com/Ludvig-Hedin/Weblab/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/Ludvig-Hedin/Weblab.svg?style=for-the-badge
 [forks-url]: https://github.com/Ludvig-Hedin/Weblab/network/members
 [stars-shield]: https://img.shields.io/github/stars/Ludvig-Hedin/Weblab.svg?style=for-the-badge

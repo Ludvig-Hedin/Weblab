@@ -659,28 +659,12 @@ export class FramesManager {
         }
     }
 
+    /**
+     * Frames on the canvas are breakpoints. Users can add breakpoints but not
+     * remove them, so every UI delete path (menu, hotkey, editor bar) is off.
+     */
     canDelete() {
-        const selectedFrames = this.selected;
-
-        if (selectedFrames.length > 0) {
-            for (const selectedFrame of selectedFrames) {
-                const branchId = selectedFrame.frame.branchId;
-                const framesInBranch = this.getAll().filter(
-                    (frameData) => frameData.frame.branchId === branchId,
-                );
-                if (framesInBranch.length <= 1) {
-                    return false;
-                }
-                const groupId = selectedFrame.frame.groupId;
-                const groupSize = this.getByGroupId(groupId).length;
-                if (groupSize <= 1) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        return this.getAll().length > 1;
+        return false;
     }
 
     canDuplicate() {

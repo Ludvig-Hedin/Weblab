@@ -23,6 +23,8 @@ export async function register() {
 
     registerOTel({
         serviceName: `${APP_NAME} Web`,
+        // Keep Next.js/manual spans without OTel's fetch wrapper cloning response bodies.
+        instrumentations: [],
         ...(hasLangfuseConfig && { traceExporter: new LangfuseExporter() }),
     });
 }

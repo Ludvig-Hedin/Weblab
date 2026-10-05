@@ -29,6 +29,13 @@ function flattenPages(pages: PageNode[]): PageNode[] {
     }, []);
 }
 
+function concretePages(pages: PageNode[]): PageNode[] {
+    return pages.filter(page => !/[\[\]]/.test(page.path)).map(page => ({
+        ...page,
+        ...(page.children ? { children: concretePages(page.children) } : {}),
+    }));
+}
+
 interface PageSelectorProps {
     frame: Frame;
     className?: string;
@@ -48,6 +55,7 @@ export const PageSelector = observer(
         buttonClassName,
     }: PageSelectorProps) => {
         const editorEngine = useEditorEngine();
+        const canManagePages = editorEngine.canUseDesign;
         const t = useTranslations('editor.canvas.frame.pageSelector');
         const [showCreateModal, setShowCreateModal] = useState(false);
         const [isOpen, setIsOpen] = useState(false);
@@ -59,9 +67,9 @@ export const PageSelector = observer(
             [frame.url],
         );
 
-        const allPages = useMemo(() => {
-            return flattenPages(editorEngine.pages.tree);
-        }, [editorEngine.pages.tree]);
+        const pageTree = useMemo(() => canManagePages ? editorEngine.pages.tree : concretePages(editorEngine.pages.tree),
+            [editorEngine.pages.tree, canManagePages]);
+        const allPages = useMemo(() => flattenPages(pageTree), [pageTree]);
 
         const currentPage = useMemo(() => {
             let framePathname: string;
@@ -110,6 +118,7 @@ export const PageSelector = observer(
         };
 
         const handleManagePages = () => {
+            if (!editorEngine.canUseDesign) return;
             editorEngine.state.setLeftPanelTab(LeftPanelTabValue.PAGES);
             editorEngine.state.setLeftPanelLocked(true);
             setIsOpen(false);
@@ -220,9 +229,10 @@ export const PageSelector = observer(
                             <span className="text-foreground-tertiary text-xs font-medium">
                                 {t('currentPage')}
                             </span>
-                            <Button
+                            {canManagePages && <Button
                                 variant="ghost"
                                 size="icon"
+                                disabled={!editorEngine.canUseDesign}
                                 className="text-foreground-tertiary hover:text-foreground-primary h-5 w-5 rounded"
                                 onClick={() => {
                                     setShowCreateModal(true);
@@ -231,7 +241,7 @@ export const PageSelector = observer(
                                 title={t('newPage')}
                             >
                                 <Icons.Plus className="h-3.5 w-3.5" />
-                            </Button>
+                            </Button>}
                         </div>
 
                         {/* Current page row */}
@@ -240,15 +250,16 @@ export const PageSelector = observer(
                             <span className="text-foreground-primary min-w-0 flex-1 truncate text-sm">
                                 {displayCurrentPage.name}
                             </span>
-                            <Button
+                            {canManagePages && <Button
                                 variant="ghost"
                                 size="icon"
                                 className="text-foreground-tertiary hover:text-foreground-primary h-5 w-5 shrink-0 rounded"
                                 onClick={handleManagePages}
+                                disabled={!editorEngine.canUseDesign}
                                 title={t('pageSettings')}
                             >
                                 <Icons.Gear className="h-3 w-3" />
-                            </Button>
+                            </Button>}
                         </div>
 
                         {/* Search */}
@@ -326,10 +337,11 @@ export const PageSelector = observer(
                                     <span>{t('scanningPages')}</span>
                                 </div>
                             ) : (
-                                renderTreeItems(editorEngine.pages.tree)
+                                renderTreeItems(pageTree)
                             )}
                         </div>
 
+                        {canManagePages && <>
                         <Separator className="mt-1 opacity-30" />
 
                         {/* Footer */}
@@ -337,16 +349,18 @@ export const PageSelector = observer(
                             <button
                                 type="button"
                                 onClick={handleManagePages}
+                                disabled={!editorEngine.canUseDesign}
                                 className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
                             >
                                 <Icons.Gear className="h-3.5 w-3.5 shrink-0 opacity-60" />
                                 <span>{t('manageAllPages')}</span>
                             </button>
                         </div>
+                        </>}
                     </PopoverContent>
                 </Popover>
 
-                <PageModal mode="create" open={showCreateModal} onOpenChange={setShowCreateModal} />
+                {canManagePages && <PageModal mode="create" open={showCreateModal} onOpenChange={setShowCreateModal} />}
             </>
         );
     },

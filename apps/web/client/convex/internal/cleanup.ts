@@ -95,3 +95,38 @@ export const purgeStaleTranscribeRateLimits = internalMutation({
         return { deleted, hadMore: stale.length === PURGE_BATCH_LIMIT };
     },
 });
+
+// AI safeguard rows (aiGuards). `aiRateLimits` windows are at most an hour and
+// `aiUserSpend` only matters for the current UTC day + rolling hour, so rows
+// untouched for two days are never read again. `aiFleetSpend` is one row per
+// day and kept as a small history.
+const AI_GUARD_ROW_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+
+export const purgeStaleAiGuardRows = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const cutoff = Date.now() - AI_GUARD_ROW_TTL_MS;
+        const staleRates = await ctx.db
+            .query('aiRateLimits')
+            .withIndex('by_updated_at', (q) => q.lt('updatedAt', cutoff))
+            .take(PURGE_BATCH_LIMIT);
+        const staleSpend = await ctx.db
+            .query('aiUserSpend')
+            .withIndex('by_updated_at', (q) => q.lt('updatedAt', cutoff))
+            .take(PURGE_BATCH_LIMIT);
+        let deleted = 0;
+        for (const row of [...staleRates, ...staleSpend]) {
+            try {
+                await ctx.db.delete(row._id);
+                deleted++;
+            } catch (err) {
+                console.warn('[purgeStaleAiGuardRows] delete failed', row._id, err);
+            }
+        }
+        return {
+            deleted,
+            hadMore:
+                staleRates.length === PURGE_BATCH_LIMIT || staleSpend.length === PURGE_BATCH_LIMIT,
+        };
+    },
+});
