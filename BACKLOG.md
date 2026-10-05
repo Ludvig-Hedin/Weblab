@@ -51,8 +51,8 @@ later without re-discovering the context.
 
 - **Discovered:** 2026-10-05 (macOS CI and one local run)
 - **Where:** `apps/desktop/cli/process.js:79,165,182` (`cleanup_unconfirmed`), `cli/cli-lifecycle.test.js:262`, `release-snapshot.test.js:121`
-- **Symptom:** A process that exits before its identity is read is reported as "The CLI exited before its process identity could be verified" (exit 125). `very fast probes retain proven identity` and one release-snapshot case fail intermittently. CI retries the desktop tests once.
-- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Then remove the CI retry.
+- **Symptom:** A process that exits before its identity is read is reported as "The CLI exited before its process identity could be verified" (exit 125). `very fast probes retain proven identity` and several release-snapshot cases fail at random on macOS CI runners (2 to 3 per run) and occasionally on a developer Mac. CI runs `release-snapshot.test.js` and `cli/cli-lifecycle.test.js` as a non-blocking step.
+- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Any relaxation must keep refusing when an unobserved descendant could still be running. Then make the CI step blocking again.
 - **Risk if ignored:** On a slow or busy Mac, native AI turns and release snapshots can refuse for no user-visible reason.
 - **Tags:** `#bug` `#desktop` `#flaky`
 
