@@ -20,6 +20,10 @@ Team build for invited accounts on weblab.build. Not the public Mac download.
 - **Publishing review.** You can review what a release would include and build
   protected previews. Switching the live site from the app is still off.
 - **Sign-in.** The app only accepts a sign-in it started itself.
+- **Preview keys.** Settings, Project, Preview keys holds test keys for the
+  local preview. They stay outside the site's code.
+- **Log file.** Help, Show Log File opens what the app recorded, so a failure
+  can be looked at afterwards. Sign-in tickets are not written to it.
 - **Release hygiene.** Team builds are never marked as the repository's latest
   release, so the public Mac download keeps working.
 

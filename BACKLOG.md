@@ -65,15 +65,6 @@ later without re-discovering the context.
 - **Risk if ignored:** Another process running as the same user can read test keys. Live keys must not be entered there.
 - **Tags:** `#security` `#desktop`
 
-### Desktop shell keeps no log file
-
-- **Discovered:** 2026-10-05 (beta project-load failure could not be diagnosed afterwards)
-- **Where:** `apps/desktop/main.js` (`console-message`, `did-fail-load`, `render-process-gone` handlers)
-- **Symptom:** Renderer errors and load failures are only printed to stdout, so a packaged app leaves no trace. The 2026-10-03 beta "project failed to load" report coincided with the temporary test host being shut down, but that could not be confirmed.
-- **Next step:** Append these events to a rotating file under the app's logs folder and add a Help menu item that reveals it.
-- **Risk if ignored:** Field failures from colleagues cannot be diagnosed.
-- **Tags:** `#desktop` `#observability`
-
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.

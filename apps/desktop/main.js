@@ -12,6 +12,7 @@ const { registerLocalIpc, grantLocalRoot, disposeLocal } = require('./weblab-loc
 const { isOAuthHost } = require('./auth-hosts');
 const { createLoginHandoff, externalHttpUrl, isTrustedSender } = require('./auth-policy');
 const { resolveDesktopProfile, desktopBootstrapArgument } = require('./desktop-profile');
+const { installDesktopLog } = require('./desktop-log');
 
 const DESKTOP_PROFILE = resolveDesktopProfile({
     packaged: app.isPackaged,
@@ -29,6 +30,8 @@ app.setName(APP_NAME);
 if (DESKTOP_PROFILE.userDataName) {
     app.setPath('userData', path.join(app.getPath('appData'), DESKTOP_PROFILE.userDataName));
 }
+// Packaged apps have no terminal, so keep what the shell prints in a small file.
+const DESKTOP_LOG_FILE = installDesktopLog(app.getPath('logs'));
 
 // Boot the desktop shell straight into the auth flow instead of the marketing
 // landing. /sign-in server-redirects already-signed-in users to /projects, so
@@ -606,6 +609,14 @@ function buildMenu() {
                     : [{ role: 'close' }]),
             ],
         },
+        ...(DESKTOP_LOG_FILE
+            ? [{
+                  role: 'help',
+                  submenu: [
+                      { label: 'Show Log File', click: () => shell.showItemInFolder(DESKTOP_LOG_FILE) },
+                  ],
+              }]
+            : []),
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));

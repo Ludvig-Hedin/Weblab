@@ -78,6 +78,7 @@ function mainHarness({ profile = metadata, packaged = true, environment = {}, ar
         './auth-policy': require('./auth-policy'), './auth-hosts': { isOAuthHost: () => false },
         './weblab-local': local, './weblab-cli': { registerIpcHandlers() {}, disposeCli: () => Promise.resolve() },
         './release/store': { ReleaseStore: class {} }, './release/service': { PublishingService: class {} },
+        './desktop-log': { installDesktopLog: () => null },
         './release/site-engine': { hasSiteEngine: () => true },
         './release/sanity-content': { SanityContentCoordinator: class {} },
         './release/authorize': { createPublishAuthorizer: () => () => {} }, './release/ipc': { registerPublishingIpc() {} },

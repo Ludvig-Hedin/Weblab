@@ -48,6 +48,7 @@
             "main.js",
             "preload.js",
             "desktop-profile.js",
+            "desktop-log.js",
             "auth-hosts.js",
             "auth-policy.js",
             "private-path-policy.js",
