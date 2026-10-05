@@ -571,7 +571,53 @@ function syncedEnv() {
 
 // A project script is user code. Give it a usable toolchain and temporary
 // directory without forwarding the editor's service credentials to the child.
-function projectDevEnvironment(root, port, bunPath = null) {
+// Preview-only settings live beside the private copy, never inside the project,
+// so they cannot reach a handoff patch or a release. Values stay in the main
+// process; the renderer only ever sees the names.
+const PREVIEW_ENV_NAME = 'preview-env.json';
+const PREVIEW_ENV_MAX_ENTRIES = 64;
+const PREVIEW_ENV_MAX_VALUE = 4096;
+const PREVIEW_ENV_RESERVED = /^(?:PATH|PORT|HOME|USER|LOGNAME|SHELL|PWD|TMPDIR|TMP|TEMP|(?:NODE|BUN|NPM|ELECTRON|DYLD|LD|GIT|WEBLAB)_.*|NODE_OPTIONS)$/i;
+
+function normalizePreviewEnv(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Preview settings are invalid.');
+    const entries = Object.entries(value);
+    if (entries.length > PREVIEW_ENV_MAX_ENTRIES) throw new Error(`Preview settings allow at most ${PREVIEW_ENV_MAX_ENTRIES} keys.`);
+    const result = {};
+    for (const [name, text] of entries) {
+        if (!/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(name)) throw new Error(`"${String(name).slice(0, 40)}" is not a valid key name.`);
+        if (PREVIEW_ENV_RESERVED.test(name)) throw new Error(`${name} is managed by the app and cannot be set.`);
+        if (typeof text !== 'string' || text.length > PREVIEW_ENV_MAX_VALUE || /[\0\r\n]/.test(text)) {
+            throw new Error(`The value for ${name} must be one line of at most ${PREVIEW_ENV_MAX_VALUE} characters.`);
+        }
+        result[name] = text;
+    }
+    return result;
+}
+
+async function readPreviewEnv(container) {
+    const file = path.join(container, PREVIEW_ENV_NAME);
+    try {
+        const st = await fsp.lstat(file);
+        if (!st.isFile() || st.isSymbolicLink() || (st.mode & 0o077) || st.size > 512 * 1024) {
+            throw new Error('Preview settings file is unsafe.');
+        }
+        return normalizePreviewEnv(JSON.parse(await fsp.readFile(file, 'utf8')));
+    } catch (err) {
+        if (err.code === 'ENOENT') return {};
+        throw err;
+    }
+}
+
+async function updatePreviewEnv(container, { set = {}, remove = [] } = {}) {
+    if (!Array.isArray(remove) || remove.some((name) => typeof name !== 'string')) throw new Error('Preview settings are invalid.');
+    const next = { ...(await readPreviewEnv(container)), ...normalizePreviewEnv(set) };
+    for (const name of remove) delete next[name];
+    await writePrivateJsonFile(container, PREVIEW_ENV_NAME, normalizePreviewEnv(next));
+    return Object.keys(next).sort();
+}
+
+function projectDevEnvironment(root, port, bunPath = null, previewEnv = {}) {
     const source = syncedEnv();
     const allowed = [
         'HOME', 'TMPDIR', 'TMP', 'TEMP', 'USER', 'LOGNAME', 'SHELL',
@@ -579,7 +625,8 @@ function projectDevEnvironment(root, port, bunPath = null) {
         'SystemRoot', 'WINDIR', 'ComSpec', 'PATHEXT', 'APPDATA',
         'LOCALAPPDATA', 'USERPROFILE',
     ];
-    const env = {};
+    // Preview settings go first so they can never replace an app-managed value.
+    const env = { ...normalizePreviewEnv(previewEnv) };
     for (const key of allowed) {
         if (typeof source[key] === 'string') env[key] = source[key];
     }
@@ -1466,13 +1513,15 @@ async function startDevServerUnlocked(root, command, requestedPort, getWebConten
     try {
         const bunExecutable = app?.isPackaged ? await localBunExecutable() : null;
         if (localShuttingDown) return { error: 'Weblab is closing.' };
+        const previewContainer = privateWorkingCopyRecords.get(root)?.container;
+        const previewEnv = previewContainer ? await readPreviewEnv(previewContainer) : {};
         child = spawn(bunExecutable || devScript, bunExecutable ? ['run', '--bun', '--no-install', 'dev'] : [], {
             cwd: root,
             // Pass PORT so frameworks that honor it (Next.js) bind the port the
             // editor's frame URL was built from. Scripts with an explicit flag
             // (the static-HTML scaffold's `serve -l <port>`) override it. Keeps
             // localhost:<port> on the canvas matching the actual dev server.
-            env: projectDevEnvironment(root, port, bunExecutable),
+            env: projectDevEnvironment(root, port, bunExecutable, previewEnv),
             shell: !bunExecutable, // Bun runs the packaged script without an outer shell
             // New process group (POSIX) so stopDevServer can kill the shell AND
             // the dev server it spawns. Without this, shell:true leaves the real
@@ -4097,6 +4146,27 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
         }
     });
 
+    // Names only: values never travel back to the renderer.
+    ipcMain.handle('weblab:localdev:previewEnvNames', async (event, { root } = {}) => {
+        try {
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            const container = privateWorkingCopyRecords.get(root)?.container;
+            if (!container) return { error: 'Private working copy registration is missing.' };
+            return { names: Object.keys(await readPreviewEnv(container)).sort() };
+        } catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localdev:previewEnvUpdate', async (event, { root, set, remove } = {}) => {
+        try {
+            if (localShuttingDown) return { error: 'Weblab is closing.' };
+            root = await requirePrivateWorkingRoot(await granted(event, root));
+            const container = privateWorkingCopyRecords.get(root)?.container;
+            if (!container) return { error: 'Private working copy registration is missing.' };
+            const names = await updatePreviewEnv(container, { set, remove });
+            return { names, restartNeeded: isDevServerRunning(devServers.get(root)) };
+        } catch (err) { return { error: err.message }; }
+    });
+
     ipcMain.handle('weblab:localdev:stop', async (event, { root } = {}) => {
         try { return await stopDevServer(await granted(event, root)); }
         catch (err) { return { error: err.message }; }
@@ -4239,6 +4309,9 @@ module.exports = {
     deletePreparationPublicDirectory,
     startDevServer,
     projectDevEnvironment,
+    normalizePreviewEnv,
+    readPreviewEnv,
+    updatePreviewEnv,
     installDependencies,
     privateDependencyInstallIsCurrent,
     verifyDependencyLinks,

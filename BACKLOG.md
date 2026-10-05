@@ -38,6 +38,42 @@ later without re-discovering the context.
 
 ## Open
 
+### Team desktop 0.2.7 needs packaged acceptance on real copied sites
+
+- **Discovered:** 2026-10-05 (team release integration)
+- **Where:** `apps/desktop/`, F-829, F-842, T-883
+- **Symptom:** The combined line passes typecheck and unit tests, but no installed 0.2.7 build has been taken through sign-in, private copy, install, preview with preview keys, edit, save, reopen, undo and handoff on copied customer sites.
+- **Next step:** Install the `desktop-v0.2.7` build on a clean Mac and run that journey on three copied Next.js + Tailwind sites. Log each failure as its own entry.
+- **Risk if ignored:** Source-level safeguards are mistaken for a working team tool.
+- **Tags:** `#release-blocker` `#desktop` `#test-gap`
+
+### Team desktop installers are unsigned
+
+- **Discovered:** 2026-10-05
+- **Where:** `.github/workflows/desktop-release.yml` (signing step), repository secrets
+- **Symptom:** The repository has no Apple signing or notary secrets, so `desktop-v*` builds are unsigned and macOS refuses to open them without a manual override.
+- **Next step:** Add `CSC_LINK`/certificate and notary secrets (see `apps/desktop/RELEASES.md`, "Code signing & notarization"), then re-tag.
+- **Risk if ignored:** Colleagues cannot install the app the normal way.
+- **Tags:** `#desktop` `#release`
+
+### Preview keys are stored unencrypted
+
+- **Discovered:** 2026-10-05 (F-842)
+- **Where:** `apps/desktop/weblab-local.js` `updatePreviewEnv`
+- **Symptom:** Preview keys are written as a `0600` JSON file beside the private copy in the app's user data folder, not through the OS keychain.
+- **Next step:** Encrypt with Electron `safeStorage` the way `release/store.js` does, with a migration for existing files.
+- **Risk if ignored:** Another process running as the same user can read test keys. Live keys must not be entered there.
+- **Tags:** `#security` `#desktop`
+
+### Desktop shell keeps no log file
+
+- **Discovered:** 2026-10-05 (beta project-load failure could not be diagnosed afterwards)
+- **Where:** `apps/desktop/main.js` (`console-message`, `did-fail-load`, `render-process-gone` handlers)
+- **Symptom:** Renderer errors and load failures are only printed to stdout, so a packaged app leaves no trace. The 2026-10-03 beta "project failed to load" report coincided with the temporary test host being shut down, but that could not be confirmed.
+- **Next step:** Append these events to a rotating file under the app's logs folder and add a Help menu item that reveals it.
+- **Risk if ignored:** Field failures from colleagues cannot be diagnosed.
+- **Tags:** `#desktop` `#observability`
+
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.

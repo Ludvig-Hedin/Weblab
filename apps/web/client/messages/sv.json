@@ -2099,7 +2099,7 @@
       }
     },
     "git": {
-      "copyCredentialsOmitted": "Originalets nycklar och kontoinställningar lämnades kvar. Förhandsvisningen behöver egna testnycklar för anslutna tjänster.",
+      "copyCredentialsOmitted": "Originalets nycklar och kontoinställningar lämnades kvar. Lägg in testnycklar under Inställningar, Projekt, Nycklar för förhandsvisning så kan förhandsvisningen använda anslutna tjänster.",
       "localGitHandoff": "Gör commit i din Git-klient",
       "handoffButton": "Ladda upp",
       "handoffTitle": "Ladda upp ändringar",
@@ -5072,6 +5072,20 @@
       "framesCached": "Cachade ramar",
       "framesCount": "{count, plural, one {# ram} other {# ramar}}",
       "noSnapshot": "Ingen canvas-ögonblicksbild ännu",
+      "previewKeys": {
+        "title": "Nycklar för förhandsvisning",
+        "description": "Testnycklar för förhandsvisningen på den här Macen. De ligger utanför sajtens kod och följer aldrig med i en överlämning. Använd testvärden, inte skarpa.",
+        "nameLabel": "Nyckelns namn",
+        "namePlaceholder": "NEXT_PUBLIC_API_URL",
+        "valueLabel": "Värde",
+        "valuePlaceholder": "Värde",
+        "add": "Lägg till",
+        "remove": "Ta bort {name}",
+        "saved": "Nycklarna är sparade",
+        "restarted": "Förhandsvisningen startade om med de nya nycklarna",
+        "restartFailed": "Nycklarna är sparade. Starta om förhandsvisningen för att använda dem.",
+        "saveFailed": "Det gick inte att spara nyckeln"
+      },
       "commandsTitle": "Kommandon",
       "commandsWarning": "Uppdatera bara dessa om du vet vad du gör\\!",
       "installLabel": "Installera",
