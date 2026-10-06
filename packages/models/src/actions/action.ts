@@ -52,6 +52,38 @@ export interface MoveElementAction {
     location: IndexActionLocation;
 }
 
+export interface CloudImageAsset {
+    readonly path: string;
+    readonly hash: string;
+    readonly bytes: number;
+}
+/** The full agency policy stays with history, not just the currently selected image. */
+export interface CloudImageBinding {
+    readonly bindingId: string;
+    readonly target: Readonly<{ kind: 'object-image'; exportName: string; srcProperty: 'imageSrc'; altProperty: 'imageAlt' }>;
+    readonly fields: ReadonlyArray<'src' | 'alt'>;
+    readonly allowImageUploads: boolean;
+    readonly originalAsset: CloudImageAsset;
+    readonly aspectRatio: Readonly<{ width: number; height: number }>;
+    readonly allowedAssets: ReadonlyArray<CloudImageAsset>;
+    readonly renderMapping: Readonly<{
+        version: 1; kind: 'object-prop-image'; mappingId: string;
+        callsite: Readonly<{ path: string; exportName: string; oid: string }>;
+        renderer: Readonly<{ path: string; exportName: string; oid: string }>;
+    }>;
+}
+export interface CloudImageApproval {
+    readonly version: 2;
+    readonly projectId: string;
+    readonly branchId: string;
+    readonly actorId: string;
+    readonly path: string;
+    readonly generation: number;
+    readonly designRevision: number;
+    readonly fingerprint: string;
+    readonly binding: CloudImageBinding;
+}
+
 export interface EditTextAction {
     type: 'edit-text';
     targets: ActionTarget[];
@@ -89,6 +121,8 @@ export interface UngroupElementsAction extends BaseGroupAction {
 export interface WriteCodeAction {
     type: 'write-code';
     diffs: CodeDiff[];
+    /** Exact image approval and field survive undo/redo and selection changes. */
+    cloudImage?: { readonly pin: CloudImageApproval; readonly field: 'src' | 'alt' };
 }
 
 export interface ImageContentData {
