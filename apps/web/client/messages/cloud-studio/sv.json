@@ -43,6 +43,7 @@
   "markReady": "Markera som redo",
   "restore": "Återställ som utkast",
   "close": "Stäng inlägg",
+  "closeDialog": "Stäng",
   "emptyJournal": "Inga inlägg ännu.",
   "newTitle": "Inlägg utan rubrik",
   "draftConflict": "Åtkomst eller godkännande ändrades medan inlägget var öppet. Ditt utkast finns kvar här.",

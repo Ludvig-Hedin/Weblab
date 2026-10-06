@@ -40,8 +40,9 @@ function DialogOverlay({
 function DialogContent({
     className,
     children,
+    closeLabel = 'Close',
     ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { closeLabel?: string }) {
     return (
         <DialogPortal data-slot="dialog-portal" data-oid="9834637c20">
             <DialogOverlay data-oid="c4ad3dcb7a" />
@@ -61,7 +62,7 @@ function DialogContent({
                 >
                     <XIcon data-oid="6e39bcc3ae" />
                     <span className="sr-only" data-oid="9d51abe5a9">
-                        Close
+                        {closeLabel}
                     </span>
                 </DialogPrimitive.Close>
             </DialogPrimitive.Content>

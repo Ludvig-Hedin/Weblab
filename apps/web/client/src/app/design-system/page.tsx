@@ -192,7 +192,7 @@ const GROUPS: (GroupSpec & { Demo: React.ComponentType })[] = [
         label: 'Overlays',
         eyebrow: 'Layers',
         title: 'Overlays',
-        description: 'Dialogs, sheets, drawers, popovers, hover cards, and tooltips.',
+        description: 'Dialogs with localizable close labels, sheets, drawers, popovers, hover cards, and tooltips.',
         filePath: 'packages/ui/src/components/dialog.tsx',
         Demo: OverlaysDemo,
     },

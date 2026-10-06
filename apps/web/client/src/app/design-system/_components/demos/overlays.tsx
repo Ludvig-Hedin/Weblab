@@ -85,7 +85,7 @@ export function OverlaysDemo() {
                         <DialogTrigger asChild>
                             <Button variant="outline">Open dialog</Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent closeLabel="Close create project dialog">
                             <DialogHeader>
                                 <DialogTitle>Create project</DialogTitle>
                                 <DialogDescription>

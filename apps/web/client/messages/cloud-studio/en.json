@@ -43,6 +43,7 @@
   "markReady": "Mark ready",
   "restore": "Restore as draft",
   "close": "Close entry",
+  "closeDialog": "Close",
   "emptyJournal": "No entries yet.",
   "newTitle": "Untitled entry",
   "draftConflict": "Access or approval changed while this entry was open. Your draft is kept here.",
