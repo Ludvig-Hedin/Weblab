@@ -1,0 +1,23 @@
+{
+  "link": "Länkdestination",
+  "tone": "Huvudsektionens utseende",
+  "shared": "Gäller överallt där komponenten används.",
+  "page": "Gäller på den här sidan.",
+  "light": "Ljus",
+  "dark": "Mörk",
+  "current": "Nuvarande destination",
+  "label": "Alternativets namn",
+  "destination": "Destination",
+  "add": "Lägg till destination",
+  "remove": "Ta bort alternativ",
+  "approve": "Tillåt dessa val",
+  "revoke": "Ta bort behörighet",
+  "locked": "Din designer bestämmer vilka val du får göra.",
+  "stale": "Gå tillbaka till elementet för att fortsätta. Om behörigheten har ändrats behöver du kasta valen och börja om.",
+  "failed": "Kunde inte spara. Dina val finns kvar.",
+  "savedReload": "Sparat. Ladda om innan du ändrar mer.",
+  "unknownReload": "Behörighetsändringen kunde inte bekräftas. Kopiera valen du vill behålla och ladda sedan om för att kontrollera den sparade behörigheten.",
+  "copy": "Kopiera val",
+  "discard": "Kasta val",
+  "keepCurrent": "Behåll det nuvarande värdet bland de tillåtna valen."
+}
