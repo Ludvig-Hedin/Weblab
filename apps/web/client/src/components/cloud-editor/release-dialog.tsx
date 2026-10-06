@@ -16,7 +16,7 @@ export const CloudReleaseDialog = observer(({ source }: { source: CloudSource })
     const locale = useLocale(), copy = locale.startsWith('sv') ? sv : en;
     const imported = source.state.profile === 'imported-next-v1';
     const title = imported ? copy.importedVersionsTitle : copy.title;
-    if (!source.state.accessReady || source.state.loading || (!sourceProfileCapabilities(source.state.profile).release && !(imported && source.canDesign))) return null;
+    if (!source.state.accessReady || source.state.loading || (!sourceProfileCapabilities(source.state.profile).release && !(imported && source.state.access?.role))) return null;
     return <Dialog open={open} onOpenChange={setOpen}>
         <Button size="sm" variant="outline" onClick={() => setOpen(true)}>{title}</Button>
         <DialogContent closeLabel={copy.closeRemoval} className="max-h-[85vh] max-w-2xl overflow-y-auto">

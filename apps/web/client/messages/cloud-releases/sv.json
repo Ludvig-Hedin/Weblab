@@ -102,5 +102,19 @@
     "privateVersionRemoved": "Den sparade versionen har tagits bort. Den återskapas inte av den här begäran.",
     "privateCreatorRequired": "Den som sparade ögonblicksbilden behöver slutföra förberedelsen.",
     "checkPrivateBuild": "Kontrollera byggbegäran",
-    "privateUnverified": "Privat bygge inte verifierat"
+    "privateUnverified": "Privat bygge inte verifierat",
+    "savePublicationVersion": "Spara publiceringsversion",
+    "confirmPublicationSource": "Spara version {revision} för publicering? Bekräfta att innehållet och materialet får användas på den publika webbplatsen. Detta publicerar inte versionen.",
+    "publicationSource": "Publiceringsunderlag",
+    "publicationVersion": "Publiceringsversion",
+    "preparePublicationReview": "Förbered publiceringsgranskning",
+    "confirmPublicPublish": "Publicera version {revision}? Nyare ändringar i redigeraren ingår inte.",
+    "confirmPublicRollback": "Återgå till version {revision}? Nyare ändringar i redigeraren ingår inte.",
+    "publicConfirmationChanged": "Den här versionen eller den publika webbplatsen har ändrats. Avbryt och granska den aktuella versionen innan du bekräftar igen.",
+    "publicPreviousRequest": "En tidigare begäran om granskning eller publicering behöver kontrolleras innan du börjar med en ny.",
+    "publicRequestChanged": "Begäran godkändes inte eftersom den publika versionen ändrades. Granska de aktuella versionerna innan du bekräftar en ny åtgärd.",
+    "publicRequestFailed": "Publiceringsbegäran misslyckades. Granska de aktuella versionerna innan du bekräftar en ny åtgärd.",
+    "publicCaptureChanged": "Versionen hann inte sparas innan källan ändrades. Bekräfta en ny publiceringsversion när dina ändringar är sparade.",
+    "publicNotConfigured": "Publicering kräver en verifierad webbplatsdestination.",
+    "publicPaused": "Publicering är pausad. Sparade versioner finns kvar."
 }

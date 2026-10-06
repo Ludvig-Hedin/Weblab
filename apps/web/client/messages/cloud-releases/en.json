@@ -102,5 +102,19 @@
     "privateVersionRemoved": "That saved version was removed. It will not be recreated by this request.",
     "privateCreatorRequired": "The person who saved this snapshot needs to finish preparing it.",
     "checkPrivateBuild": "Check build request",
-    "privateUnverified": "Private build unverified"
+    "privateUnverified": "Private build unverified",
+    "savePublicationVersion": "Save publication version",
+    "confirmPublicationSource": "Save version {revision} for publication? Confirm that its content and assets are suitable for the public site. This does not publish it.",
+    "publicationSource": "Publication source",
+    "publicationVersion": "Publication version",
+    "preparePublicationReview": "Prepare publication review",
+    "confirmPublicPublish": "Publish version {revision}? Newer editor changes are not included.",
+    "confirmPublicRollback": "Roll back to version {revision}? Newer editor changes are not included.",
+    "publicConfirmationChanged": "This version or the live site changed. Cancel and review the current version before confirming again.",
+    "publicPreviousRequest": "An earlier review or publication request needs checking before starting another.",
+    "publicRequestChanged": "That request was not admitted because the live version changed. Review the current versions before confirming a new action.",
+    "publicRequestFailed": "That publication request failed. Review the current versions before confirming another action.",
+    "publicCaptureChanged": "That capture did not complete before the source changed. Confirm a new publication version when your changes are saved.",
+    "publicNotConfigured": "Publication needs a verified hosting destination.",
+    "publicPaused": "Publication is paused. Saved versions are retained."
 }

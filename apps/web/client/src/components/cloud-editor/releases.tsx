@@ -10,8 +10,8 @@ import { zipSync, strToU8 } from 'fflate';
 import type { Id } from '@convex/_generated/dataModel';
 import { Button } from '@weblab/ui/button';
 import { env } from '@/env';
-import { readImportedPreparation, preparationPending, saveImportedReviewSource, resumeImportedPreparation, prepareImportedPrivateReview, readImportedBuild, privateBuildIntent, requestImportedPrivateBuild, reconcileImportedPrivateBuild } from '@/lib/cloud-releases/imported-hosting-flow';
-import type { ImportedHostingIO, ImportedHostingOwner, ImportedPreparation, ImportedBuild, PrivateBuildIntent } from '@/lib/cloud-releases/imported-hosting-flow';
+import { readImportedPreparation, preparationPending, saveImportedReviewSource, resumeImportedPreparation, prepareImportedPrivateReview, readImportedBuild, privateBuildIntent, requestImportedPrivateBuild, reconcileImportedPrivateBuild, saveImportedPublicationSource, prepareImportedPublicationReview, readImportedPublication, publicationPending, importedReviewIntent, importedPublicationIntent, requestImportedPublication, reconcileImportedPublication } from '@/lib/cloud-releases/imported-hosting-flow';
+import type { ImportedHostingIO, ImportedHostingOwner, ImportedPreparation, ImportedBuild, PrivateBuildIntent, ImportedPublication, ImportedPublicationIntent } from '@/lib/cloud-releases/imported-hosting-flow';
 import { cloudReleaseApi } from '@/lib/cloud-releases/api';
 import { restoreBackupCopy } from '@/lib/cloud-releases/backup-restore';
 import { useReleaseSession } from '@/lib/cloud-releases/use-release-session';
@@ -37,6 +37,9 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
     const [restoredId, setRestoredId] = useState<Id<'projects'> | null>(null);
     const [confirmation, setConfirmation] = useState<ReleaseIntent | null>(null);
     const [privateConfirmation, setPrivateConfirmation] = useState<{ request: PrivateBuildIntent; hash: string } | null>(null);
+    const [publication, setPublication] = useState<ImportedPublication | null>(null);
+    const [publicationConfirmation, setPublicationConfirmation] = useState<{ intent: ImportedPublicationIntent; revision: number } | null>(null);
+    const [sourceConfirmation, setSourceConfirmation] = useState<number | null>(null);
     const [preparation, setPreparation] = useState<ImportedPreparation | null>(null);
     const [buildRequests, setBuildRequests] = useState<Record<string, ImportedBuild>>({});
     const [storageFailed, setStorageFailed] = useState(false), [storageEpoch, setStorageEpoch] = useState(0);
@@ -46,7 +49,7 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
     const currentIdentity = useRef(identity); currentIdentity.current = identity;
     useEffect(() => {
         running.current = null; operationKeys.current.clear();
-        setPending(false); setError(null); setRestoredId(null); setConfirmation(null); setPrivateConfirmation(null);
+        setPending(false); setError(null); setRestoredId(null); setConfirmation(null); setPrivateConfirmation(null); setPublicationConfirmation(null); setSourceConfirmation(null);
     }, [identity]);
     const owner: ImportedHostingOwner | null = status && clerkSession && env.NEXT_PUBLIC_CONVEX_URL ? {
         workspaceId: status.workspaceId, projectId, branchId, actorId: status.actorId,
@@ -55,11 +58,12 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
     const ownerKey = owner ? JSON.stringify(owner) : '';
     const releaseIds = status?.releases.map(row => row.id).join('/') ?? '';
     useEffect(() => {
-        setPreparation(null); setBuildRequests({}); setStorageFailed(false);
+        setPreparation(null); setBuildRequests({}); setPublication(null); setStorageFailed(false);
         if (!ownerKey || status?.profile !== 'imported-next-v1') return;
         try {
             const captured = JSON.parse(ownerKey) as ImportedHostingOwner;
             setPreparation(readImportedPreparation(window.sessionStorage, captured));
+            setPublication(readImportedPublication(window.sessionStorage, captured));
             const saved: Record<string, ImportedBuild> = {};
             for (const releaseId of releaseIds.split('/').filter(Boolean)) {
                 const record = readImportedBuild(window.sessionStorage, captured, releaseId as Id<'cloudReleases'>);
@@ -72,7 +76,7 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
         if (!owner) throw new Error('CLOUD_RELEASE_SESSION_CHANGED');
         const captured = Object.freeze({ ...owner });
         return { owner: captured, storage: window.sessionStorage, session,
-            status: () => session.call(client => client.query(cloudReleaseApi.status, { projectId: captured.projectId, branchId: captured.branchId })),
+            status: recovery => session.call(client => client.query(cloudReleaseApi.status, { projectId: captured.projectId, branchId: captured.branchId, ...recovery })),
             capture: args => session.call(client => {
                 // Saved requests reconcile at their original revision even if today's source is dirty.
                 if (freshCapture && captureBlocked.current) throw new Error('CLOUD_CONFLICT');
@@ -81,6 +85,7 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
             prepare: args => session.call(client => client.action(cloudReleaseApi.prepare, args)),
             prepareHosting: args => session.call(client => client.action(cloudReleaseApi.prepareHosting, args)),
             request: args => session.call(client => client.mutation(cloudReleaseApi.request, args)),
+            review: args => session.call(client => client.mutation(cloudReleaseApi.review, args)),
         };
     }
     const key = (purpose: string) => {
@@ -103,7 +108,7 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
         catch (cause) {
             if (currentIdentity.current !== startedIdentity || (session && !session.current)) return;
             const code = String(cause);
-            setError(code.includes('CLOUD_RELEASE_REMOVED') ? copy.privateVersionRemoved : code.includes('CLOUD_HOSTING_RECOVERY_UNAVAILABLE') ? copy.privateRecoveryUnavailable : code.includes('CLOUD_HOSTING_PREVIOUS_REQUEST') ? copy.privatePreviousRequest : cause instanceof ConvexError && cause.data === 'CLOUD_BACKUP_RESTORE_REMOVED' ? copy.restoreRemoved : code.includes('RESTORE_STORAGE_FAILED') ? copy.restoreStorageFailed : code.includes('REVIEW_POPUP_BLOCKED') ? copy.popupBlocked : code.includes('RETENTION_LIMIT') ? copy.limit : code.includes('LIVE_CHANGED') ? copy.liveChanged : code.includes('CONFLICT') ? copy.conflict
+            setError(code.includes('CLOUD_RELEASE_REMOVED') ? copy.privateVersionRemoved : code.includes('CLOUD_HOSTING_RECOVERY_UNAVAILABLE') ? copy.privateRecoveryUnavailable : code.includes('CLOUD_HOSTING_PREVIOUS_REQUEST') ? copy.privatePreviousRequest : cause instanceof ConvexError && cause.data === 'CLOUD_BACKUP_RESTORE_REMOVED' ? copy.restoreRemoved : code.includes('RESTORE_STORAGE_FAILED') ? copy.restoreStorageFailed : code.includes('REVIEW_POPUP_BLOCKED') ? copy.popupBlocked : code.includes('RETENTION_LIMIT') ? copy.limit : code.includes('LIVE_CHANGED') ? copy.liveChanged : code.includes('CONFLICT') || code.includes('CLOUD_RELEASE_CHANGED') ? copy.conflict
                 : code.includes('SESSION_CHANGED') || code.includes('ACTOR_CHANGED') || code.includes('NOT_ALLOWED') || code.includes('FORBIDDEN') ? copy.noAccess : copy.failed);
         } finally {
             if (running.current === runId) running.current = null;
@@ -151,6 +156,15 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
     const liveChanged = confirmation !== null && releaseConfirmationChanged(confirmation, status.liveReleaseId);
     const publicationBlocked = status.busy || uncertain;
     const preparingPrivate = preparationPending(preparation);
+    const publicPending = publicationPending(publication);
+    const publicActivity = status.operations.some(op => op.kind !== 'build' && ['queued', 'sending', 'observing', 'unknown'].includes(op.stage));
+    const publicReasons = { 'not-configured': copy.publicNotConfigured, paused: copy.publicPaused, busy: copy.busy, unknown: copy.unknown };
+    const selectedPublication = publicationConfirmation && releases.find(row => row.id === publicationConfirmation.intent.request.releaseId);
+    const publicConfirmationChanged = !!publicationConfirmation && (publicationConfirmation.intent.action === 'review' || !selectedPublication ||
+        selectedPublication.hash !== publicationConfirmation.intent.request.expectedHash ||
+        selectedPublication.deploymentId !== publicationConfirmation.intent.request.expectedTargetDeploymentId ||
+        status.liveReleaseId !== publicationConfirmation.intent.request.expectedLiveReleaseId ||
+        !(publicationConfirmation.intent.action === 'publish' ? selectedPublication.canPublish : selectedPublication.canRollback));
     const privateReasons = { 'not-configured': copy.privateNotConfigured, paused: copy.privatePaused, 'no-builds': copy.privateNoBuilds, busy: copy.privateBusy, unknown: copy.privateUnknown };
     const privateReason = status.privateBuildReason;
     return <section className="space-y-4 text-sm" aria-label={title}>
@@ -159,19 +173,44 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
             {status.liveUrl && <a href={status.liveUrl} target="_blank" rel="noreferrer" className="underline">{uncertain ? copy.openSite : copy.openLive}</a>}</div>}
         {!imported && !status.enabled && <p className="text-muted-foreground">{copy.paused}</p>}
         {imported && !status.canBackup && !status.canRestoreBackup && releases.some(row => row.kind === 'backup') && <p className="text-muted-foreground">{copy.backupsPaused}</p>}
-        {!imported && status.drifted && <p role="alert">{copy.drifted}</p>}
+        {status.drifted && <p role="alert">{copy.drifted}</p>}
         {!imported && (uncertain ? <p role="alert">{copy.unknown}</p> : status.busy && <p role="status">{copy.busy}</p>)}
-        {imported && privateReason && <p role={privateReason === 'unknown' ? 'alert' : 'status'}>{privateReasons[privateReason]}</p>}
+        {imported && privateReason && (status.canBackup || publicActivity) && <p role={privateReason === 'unknown' ? 'alert' : 'status'}>{publicActivity ? privateReason === 'unknown' ? copy.unknown : copy.busy : privateReasons[privateReason]}</p>}
+        {imported && status.publicationReason && !publicActivity && releases.some(row => row.visibility === 'publishable') && <p className="text-muted-foreground">{publicReasons[status.publicationReason]}</p>}
         <div className="flex flex-wrap gap-2">
             {imported && status.canFreezePrivateArtifact && <Button size="sm" variant="outline" disabled={pending || captureDisabled || preparingPrivate || storageFailed} onClick={() => void run(async session => { if (captureBlocked.current) throw new Error('CLOUD_CONFLICT'); await saveImportedReviewSource(hostingIO(session, true), status.revision); })}>{copy.saveReviewVersion}</Button>}
+            {imported && status.canSavePublicationVersion && <Button size="sm" variant="outline" disabled={pending || captureDisabled || preparingPrivate || storageFailed} onClick={() => setSourceConfirmation(status.revision)}>{copy.savePublicationVersion}</Button>}
             {status.canPublish && <Button size="sm" variant="outline" disabled={pending || publicationBlocked || captureDisabled} onClick={() => void run(session => snapshot(session, 'release'))}>{copy.prepare}</Button>}
             {status.canBackup && <Button size="sm" variant="outline" disabled={pending || publicationBlocked || captureDisabled} onClick={() => void run(session => snapshot(session, 'backup'))}>{copy.backup}</Button>}
         </div>
-        {(status.buildEnabled || imported) && <p className="text-muted-foreground">{copy.buildsLeft}: {status.remainingBuilds}</p>}
+        {(status.buildEnabled || imported && status.canBackup) && <p className="text-muted-foreground">{copy.buildsLeft}: {status.remainingBuilds}</p>}
         {imported && storageFailed && <p role="alert">{copy.privateRecoveryUnavailable}</p>}
-        {imported && preparingPrivate && <div className="space-y-2"><p>{copy.privatePreviousRequest}</p><Button size="sm" variant="outline" disabled={pending || storageFailed} onClick={() => void run(async session => { await resumeImportedPreparation(hostingIO(session)); })}>{copy.checkPreviousRemoval}</Button></div>}
-        {imported && preparation?.stage === 'refused' && <p role="status">{copy.privateCaptureChanged}</p>}
+        {imported && preparingPrivate && <div className="space-y-2"><p>{copy.privatePreviousRequest}</p><Button size="sm" variant="outline" disabled={pending || storageFailed} onClick={() => void run(async session => { await resumeImportedPreparation(hostingIO(session)); session.guard(); setSourceConfirmation(null); })}>{copy.checkPreviousRemoval}</Button></div>}
+        {imported && preparation?.stage === 'refused' && <p role="status">{preparation.version === 2 ? copy.publicCaptureChanged : copy.privateCaptureChanged}</p>}
         {imported && preparation?.stage === 'removed' && <p role="status">{copy.privateVersionRemoved}</p>}
+        {imported && publicPending && <div className="space-y-2"><p>{copy.publicPreviousRequest}</p><Button size="sm" variant="outline" disabled={pending || storageFailed} onClick={() => void run(async session => { await reconcileImportedPublication(hostingIO(session)); })}>{copy.checkPreviousRemoval}</Button></div>}
+        {imported && publication?.outcome === 'removed' && <p role="status">{copy.privateVersionRemoved}</p>}
+        {imported && publication?.outcome === 'refused' && <p role="status">{copy.publicRequestChanged}</p>}
+        {imported && publication?.outcome === 'failed' && <p role="status">{copy.publicRequestFailed}</p>}
+        {imported && sourceConfirmation !== null && <div className="space-y-2" role="group" aria-label={copy.savePublicationVersion}>
+            <p>{copy.confirmPublicationSource.replace('{revision}', String(sourceConfirmation))}</p>
+            {sourceConfirmation !== status.revision && <p role="alert">{copy.conflict}</p>}
+            <div className="flex gap-2"><Button size="sm" disabled={pending || captureDisabled || preparingPrivate || storageFailed || !status.canSavePublicationVersion || sourceConfirmation !== status.revision}
+                onClick={() => void run(async session => {
+                    if (captureBlocked.current) throw new Error('CLOUD_CONFLICT');
+                    await saveImportedPublicationSource(hostingIO(session, true), sourceConfirmation);
+                    session.guard(); setSourceConfirmation(null);
+                })}>{copy.confirm}</Button><Button size="sm" variant="ghost" disabled={pending} onClick={() => setSourceConfirmation(null)}>{copy.cancel}</Button></div>
+        </div>}
+        {imported && publicationConfirmation && <div className="space-y-2" role="group" aria-label={copy.confirm}>
+            <p>{(publicationConfirmation.intent.action === 'rollback' ? copy.confirmPublicRollback : copy.confirmPublicPublish).replace('{revision}', String(publicationConfirmation.revision))}</p>
+            {publicConfirmationChanged && <p role="alert">{copy.publicConfirmationChanged}</p>}
+            <div className="flex gap-2"><Button size="sm" disabled={pending || publicPending || storageFailed || publicConfirmationChanged || !status.publicationEnabled}
+                onClick={() => void run(async session => {
+                    await requestImportedPublication(hostingIO(session), publicationConfirmation.intent);
+                    session.guard(); setPublicationConfirmation(null);
+                })}>{copy.confirm}</Button><Button size="sm" variant="ghost" disabled={pending} onClick={() => setPublicationConfirmation(null)}>{copy.cancel}</Button></div>
+        </div>}
         {error && !(imported && storageFailed && error === copy.privateRecoveryUnavailable) && <p role="alert">{error}</p>}
         {pending && <p role="status">{copy.preparing}</p>}
         {restoredId && <Link href={`/project/${restoredId}`} className="underline">{copy.openRestored}</Link>}
@@ -193,17 +232,23 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
         {!releases.length && <p className="text-muted-foreground">{copy.empty}</p>}
         <ol className="divide-y divide-border">
             {releases.map(release => <li key={release.id} className="space-y-2 py-3">
-                <div className="flex flex-wrap justify-between gap-2"><span>{release.kind === 'backup' ? copy.backupLabel : release.kind === 'private-artifact' ? copy.savedReviewSource : release.kind === 'protected-version' ? copy.privateReview : copy.version} {release.revision}</span>
-                    <span className="text-muted-foreground">{release.removal ? copy.removalPaused : status.operations.some(op => op.releaseId === release.id && op.stage === 'unknown') ? imported ? copy.privateUnverified : copy.unverified
+                <div className="flex flex-wrap justify-between gap-2"><span>{release.publicationSource ? copy.publicationSource : release.kind === 'protected-version' && release.visibility === 'publishable' ? copy.publicationVersion : release.kind === 'backup' ? copy.backupLabel : release.kind === 'private-artifact' ? copy.savedReviewSource : release.kind === 'protected-version' ? copy.privateReview : copy.version} {release.revision}</span>
+                    <span className="text-muted-foreground">{release.removal ? copy.removalPaused : status.operations.some(op => op.releaseId === release.id && op.stage === 'unknown') ? imported && !status.operations.some(op => op.releaseId === release.id && op.kind !== 'build' && op.stage === 'unknown') ? copy.privateUnverified : copy.unverified
                         : status.liveReleaseId === release.id ? uncertain ? copy.lastConfirmed : copy.live
-                        : imported && release.kind === 'private-artifact' && release.status === 'frozen' ? copy.savedReviewSource : release.purpose === 'backup' && release.status === 'frozen' ? copy.backupReady : copy[release.status]}</span></div>
+                        : imported && release.publicationSource && release.status === 'frozen' ? copy.publicationSource : imported && release.kind === 'private-artifact' && release.status === 'frozen' ? copy.savedReviewSource : release.purpose === 'backup' && release.status === 'frozen' ? copy.backupReady : copy[release.status]}</span></div>
                 <p className="text-xs text-muted-foreground">{new Date(release.createdAt).toLocaleString(locale)}</p>
                 <div className="flex flex-wrap gap-2">
                     {imported && release.preparationOwnerRequired && <span className="text-muted-foreground">{copy.privateCreatorRequired}</span>}
-                    {imported && release.canFinishPreparing && <Button size="sm" variant="outline" disabled={pending || preparingPrivate || storageFailed} onClick={() => void run(async session => {
+                    {imported && !release.publicationSource && release.canFinishPreparing && <Button size="sm" variant="outline" disabled={pending || preparingPrivate || storageFailed} onClick={() => void run(async session => {
                         await saveImportedReviewSource(hostingIO(session), release.revision, release.id);
                     })}>{copy.finishPrivatePreparing}</Button>}
-                    {imported && release.canPreparePrivateReview && <Button size="sm" variant="outline" disabled={pending || preparingPrivate || storageFailed} onClick={() => void run(async session => {
+                    {imported && release.publicationSource && release.canFinishPublicationPreparing && <Button size="sm" variant="outline" disabled={pending || preparingPrivate || storageFailed} onClick={() => void run(async session => {
+                        await saveImportedPublicationSource(hostingIO(session), release.revision, release.id);
+                    })}>{copy.finishPrivatePreparing}</Button>}
+                    {imported && release.publicationSource && release.canPreparePublicationReview && <Button size="sm" variant="outline" disabled={pending || preparingPrivate || storageFailed} onClick={() => void run(async session => {
+                        await prepareImportedPublicationReview(hostingIO(session), { releaseId: release.id, hash: release.hash! }, status.liveReleaseId);
+                    })}>{copy.preparePublicationReview}</Button>}
+                    {imported && !release.publicationSource && release.canPreparePrivateReview && <Button size="sm" variant="outline" disabled={pending || preparingPrivate || storageFailed} onClick={() => void run(async session => {
                         await prepareImportedPrivateReview(hostingIO(session), { releaseId: release.id, hash: release.hash! }, status.liveReleaseId);
                     })}>{copy.preparePrivateReview}</Button>}
                     {imported && release.canBuildPrivateReview && !buildRequests[release.id] && <Button size="sm" variant="outline" disabled={pending || storageFailed || !owner} onClick={() => {
@@ -213,7 +258,16 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
                         await reconcileImportedPrivateBuild(hostingIO(session), release.id);
                     })}>{copy.checkPrivateBuild}</Button>}
                     {imported && release.kind === 'protected-version' && !release.removal && release.reviewUrl && <Button size="sm" variant="outline" asChild><a href={`/cloud-review/${release.id}`} target="_blank" rel="noopener noreferrer">{copy.openReview}</a></Button>}
-                    {!release.removal && release.purpose !== 'private-artifact' && release.kind !== 'protected-version' && release.status === 'captured' && <Button size="sm" variant="outline" disabled={pending} onClick={() => void run(async session => { await session.call(client => client.action(cloudReleaseApi.prepare, { releaseId: release.id, expectedActorId: status.actorId })); })}>{copy.resume}</Button>}
+                    {imported && release.visibility === 'publishable' && !release.removal && release.hash && release.deploymentId && <>
+                        {release.canAcknowledge && !release.reviewed && <Button size="sm" variant="outline" disabled={pending || publicPending || storageFailed || !owner} onClick={() => void run(async session => {
+                            if (!owner) throw new Error('CLOUD_RELEASE_SESSION_CHANGED');
+                            await requestImportedPublication(hostingIO(session), importedReviewIntent(owner, release.id, release.hash!, release.deploymentId!));
+                        })}>{copy.reviewed}</Button>}
+                        {(release.canPublish || release.canRollback) && <Button size="sm" disabled={pending || publicPending || storageFailed || !owner} onClick={() => {
+                            if (owner) setPublicationConfirmation({ intent: importedPublicationIntent(owner, release.id, release.hash!, release.deploymentId!, release.canRollback ? 'rollback' : 'publish', status.liveReleaseId), revision: release.revision });
+                        }}>{release.canRollback ? copy.rollback : copy.publish}</Button>}
+                    </>}
+                    {!release.removal && !release.publicationSource && release.purpose !== 'private-artifact' && release.kind !== 'protected-version' && release.status === 'captured' && <Button size="sm" variant="outline" disabled={pending} onClick={() => void run(async session => { await session.call(client => client.action(cloudReleaseApi.prepare, { releaseId: release.id, expectedActorId: status.actorId })); })}>{copy.resume}</Button>}
                     {!release.removal && release.purpose === 'backup' && release.status === 'frozen' && (imported || status.canRestoreBackup || release.canDownload) && <>
                         {release.canDownload ? <Button size="sm" variant="outline" disabled={pending} onClick={() => void run(session => download(session, release.id))}>{copy.download}</Button> : imported ? <span className="text-muted-foreground">{copy.downloadUnavailable}</span> : null}
                         <Button size="sm" variant="outline" disabled={pending || !status.canRestoreBackup} onClick={() => void run(async session => {
@@ -229,7 +283,7 @@ function ReleaseList({ projectId, branchId, captureDisabled = false, hideTitle =
                         {release.reviewUrl ? <Button size="sm" variant="outline" asChild><a href={`/cloud-review/${release.id}`} target="_blank" rel="noopener noreferrer">{copy.openReview}</a></Button> : <span className="text-muted-foreground">{copy.reviewUnavailable}</span>}
                         {status.canPublish && release.reviewUrl && !release.reviewed && <Button size="sm" variant="outline" disabled={pending} onClick={() => void run(async session => { await session.call(client => client.mutation(cloudReleaseApi.review, { releaseId: release.id, hash: release.hash! })); })}>{copy.reviewed}</Button>}
                         {status.canPublish && release.reviewed && status.liveReleaseId !== release.id && <Button size="sm" disabled={pending || publicationBlocked || !status.enabled} onClick={() => setConfirmation(createReleaseIntent(release.id,
-                            status.operations.some(op => op.releaseId === release.id && op.kind !== 'build' && op.stage === 'confirmed') ? 'rollback' : 'publish', status.liveReleaseId, key))}>{status.operations.some(op => op.releaseId === release.id && op.kind !== 'build' && op.stage === 'confirmed') ? copy.rollback : copy.publish}</Button>}
+                            release.canRollback ? 'rollback' : 'publish', status.liveReleaseId, key))}>{release.canRollback ? copy.rollback : copy.publish}</Button>}
                     </>}
                     {release.canManageVersions && <CloudVersionRemoval releaseId={release.id} actorId={status.actorId} scope={`${projectId}/${branchId}`} removing={!!release.removal} disabled={pending} />}
                 </div>
