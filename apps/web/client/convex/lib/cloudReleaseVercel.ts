@@ -5,7 +5,7 @@ import { aliasReceiptMatches } from './cloudReleasePolicy';
 import { importSourcePath, MAX_IMPORT_ASSET_BYTES, MAX_IMPORT_BYTES } from './cloudImportManifest';
 import { MAX_CLOUD_FILES } from './cloudEditor';
 import { manifestHash } from './cloudReleaseArtifact';
-import { hostingHash, IMPORTED_HOSTING_PROFILE } from './cloudImportedHostingState';
+import { hostingHash, IMPORTED_HOSTING_PROFILE, serializeImportedHostingCandidate, type ImportedHostingCandidate } from './cloudImportedHostingState';
 
 /** Required provider configuration, not evidence of an executed build or function runtime. */
 export const IMPORTED_VERCEL_PROJECT_SETTINGS = Object.freeze({
@@ -19,6 +19,10 @@ export type ImportedVercelCreate = ImportedVercelPins & {
     manifest: readonly ImportedVercelFile[];
     files: AsyncIterable<{ path: string; bytes: Uint8Array }>;
 };
+export type ImportedVercelAssign = {
+    deploymentId: string; expectedPrevious: string | null; pins: ImportedVercelPins;
+    candidate: ImportedHostingCandidate; beforeSend: () => Promise<void>;
+};
 
 type Json = Record<string, unknown>;
 function object(value: unknown): Json {
@@ -28,6 +32,10 @@ function object(value: unknown): Json {
 function id(value: unknown): string {
     if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,120}$/.test(value)) throw new Error('CLOUD_RELEASE_PROVIDER_ID');
     return value;
+}
+function aliasReceipt(result: Json): { previous: string | null; hostname: string } {
+    id(result.uid);
+    return { previous: result.oldDeploymentId == null ? null : id(result.oldDeploymentId), hostname: String(result.alias) };
 }
 export function providerUrl(value: unknown): string {
     if (typeof value !== 'string' || !/^[a-z0-9-]+\.vercel\.app$/.test(value)) throw new Error('CLOUD_RELEASE_PROVIDER_URL');
@@ -300,10 +308,42 @@ export class CloudReleaseVercel {
         await this.verifyProject();
         const result = await this.request(`/v2/deployments/${encodeURIComponent(id(deploymentId))}/aliases`, { method: 'POST',
             headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alias: this.input.hostname }) });
-        id(result.uid);
-        const previous = result.oldDeploymentId === undefined ? null : id(result.oldDeploymentId);
+        const { previous, hostname } = aliasReceipt(result);
         const actual = await this.aliasTarget();
-        if (!aliasReceiptMatches({ expectedPrevious, observedPrevious: previous, expectedTarget: deploymentId, observedTarget: actual ?? '', expectedHostname: this.input.hostname, observedHostname: String(result.alias) })) throw new Error('CLOUD_RELEASE_ALIAS_CHANGED');
+        if (!aliasReceiptMatches({ expectedPrevious, observedPrevious: previous, expectedTarget: deploymentId, observedTarget: actual ?? '', expectedHostname: this.input.hostname, observedHostname: hostname })) throw new Error('CLOUD_RELEASE_ALIAS_CHANGED');
         await this.verifyServed(`https://${this.input.hostname}`, false);
+    }
+
+    /** External alias changes cannot be made atomic with our lock. Never retry an uncertain POST. */
+    async assignImported(input: ImportedVercelAssign): Promise<void> {
+        this.requireImported(true);
+        const candidate = structuredClone(input.candidate), pins = { ...input.pins };
+        const deploymentId = id(input.deploymentId), expectedPrevious = input.expectedPrevious === null ? null : id(input.expectedPrevious);
+        const beforeSend = input.beforeSend;
+        importedPins(pins);
+        if (/[^A-Za-z0-9_-]/.test(deploymentId) || expectedPrevious !== null && /[^A-Za-z0-9_-]/.test(expectedPrevious)) throw new Error('CLOUD_RELEASE_PROVIDER_ID');
+        const candidateJson = serializeImportedHostingCandidate(candidate);
+        if (candidate.importedHosting.visibility !== 'publishable' || typeof beforeSend !== 'function' ||
+            candidate.importedHosting.deployHash !== pins.deployHash || candidate.importedHosting.buildPolicyHash !== pins.buildPolicyHash ||
+            createHash('sha256').update(candidateJson).digest('hex') !== pins.candidateHash) throw new Error('CLOUD_RELEASE_HASH_MISMATCH');
+        this.signal.throwIfAborted();
+        await this.verifyProject();
+        const deployment = await this.deploymentImported(deploymentId, pins);
+        if (!deployment.ready || deployment.failed) throw new Error('CLOUD_RELEASE_BUILD_CHANGED');
+        await this.verifyProtected(deployment.url);
+        await this.verifyServed(deployment.url, true);
+        if (await this.aliasTarget() !== expectedPrevious) throw new Error('CLOUD_RELEASE_ALIAS_CHANGED');
+        this.signal.throwIfAborted();
+        await beforeSend();
+        // The worker owns uncertainty from this point, including cancellation before fetch starts.
+        this.signal.throwIfAborted();
+        const result = await this.request(`/v2/deployments/${encodeURIComponent(deploymentId)}/aliases`, { method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alias: this.input.hostname }) });
+        const { previous, hostname } = aliasReceipt(result);
+        const actual = await this.aliasTarget();
+        if (!aliasReceiptMatches({ expectedPrevious, observedPrevious: previous, expectedTarget: deploymentId, observedTarget: actual ?? '',
+            expectedHostname: this.input.hostname, observedHostname: hostname })) throw new Error('CLOUD_RELEASE_ALIAS_CHANGED');
+        await this.verifyServed(`https://${this.input.hostname}`, false);
+        await this.verifyProtected(deployment.url);
     }
 }

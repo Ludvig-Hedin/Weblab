@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { CloudReleaseVercel, IMPORTED_VERCEL_PROJECT_SETTINGS, validateImportedHostingManifest, type ImportedVercelFile, type ImportedVercelPins } from './cloudReleaseVercel';
 import { manifestHash } from './cloudReleaseArtifact';
-import { IMPORTED_HOSTING_PROFILE } from './cloudImportedHostingState';
+import { IMPORTED_HOSTING_PROFILE, serializeImportedHostingCandidate, type ImportedHostingCandidate } from './cloudImportedHostingState';
 import { MAX_IMPORT_ASSET_BYTES, MAX_IMPORT_BYTES } from './cloudImportManifest';
 
 const originalFetch = globalThis.fetch;
@@ -34,6 +34,14 @@ function mockVerifiedFetch(handler: (url: Parameters<typeof fetch>[0], init?: Pa
     });
 }
 describe('cloud hosting transport', () => {
+    it('accepts explicit null on the first starter alias assignment', async () => {
+        mockVerifiedFetch(async (url, init) => init?.method === 'POST'
+            ? json({ alias: options.hostname, uid: 'alias_id', oldDeploymentId: null })
+            : String(url).startsWith('https://api.vercel.com/')
+                ? json({ alias: options.hostname, projectId: options.projectId, deploymentId: 'dpl_new' })
+                : new Response('<main/>', { headers: { 'Content-Type': 'text/html' } }));
+        await client().assign('dpl_new', null);
+    });
     it('sends the immutable files as a staged production build without assigning the stable alias', async () => {
         const calls: Array<{ url: string; body: unknown; headers: Headers }> = [];
         mockVerifiedFetch(async (url, init) => {
@@ -74,6 +82,123 @@ describe('cloud hosting transport', () => {
         expect(headers[0]!.get('x-vercel-protection-bypass')).toBe(options.bypass);
         expect(headers[1]!.get('authorization')).toBeNull();
         expect(headers[1]!.get('x-vercel-protection-bypass')).toBeNull();
+    });
+});
+
+function importedAssignFixture() {
+    const { pins } = importedFixture();
+    const candidate: ImportedHostingCandidate = { version: 1, profile: IMPORTED_HOSTING_PROFILE,
+        projectId: 'project', branchId: 'branch', workspaceId: 'workspace', actorId: 'actor', revision: 2,
+        importedHosting: { version: 1, profile: IMPORTED_HOSTING_PROFILE, artifactId: 'public_artifact', artifactHash: 'c'.repeat(64),
+            deployHash: pins.deployHash, buildPolicyHash: pins.buildPolicyHash, visibility: 'publishable' } };
+    pins.candidateHash = createHash('sha256').update(serializeImportedHostingCandidate(candidate)).digest('hex');
+    return { candidate, pins, deploymentId: 'dpl_imported', expectedPrevious: null as string | null };
+}
+function aliasProvider(pins: ImportedVercelPins, options: {
+    previous?: string | null; receipt?: Record<string, unknown>; readback?: string; losePost?: boolean;
+    beforeRead?: () => void; publicRawAfter?: boolean; readyState?: string;
+} = {}) {
+    const events: string[] = []; let sent = false;
+    mockImportedFetch(async (url, init) => {
+        const parsed = new URL(String(url));
+        if (parsed.pathname === '/v13/deployments/dpl_imported') {
+            events.push('deployment'); options.beforeRead?.();
+            return json({ ...importedDeployment(), readyState: options.readyState ?? 'READY',
+                meta: { ...importedDeployment().meta, weblabCloudReleaseHash: pins.candidateHash } });
+        }
+        if (init?.method === 'POST') {
+            events.push('post'); sent = true;
+            if (options.losePost) throw Error('lost alias reply');
+            return json({ uid: 'alias_id', alias: 'beta-live.vercel.app', oldDeploymentId: options.previous ?? null, ...options.receipt });
+        }
+        if (parsed.pathname.startsWith('/v4/aliases/')) {
+            events.push(sent ? 'readback' : 'baseline');
+            const deploymentId = sent ? options.readback ?? 'dpl_imported' : options.previous;
+            return deploymentId ? json({ alias: 'beta-live.vercel.app', projectId: 'prj_test', deploymentId }) : new Response(null, { status: 404 });
+        }
+        const authenticated = new Headers(init?.headers).has('x-vercel-protection-bypass');
+        if (parsed.hostname === 'frozen.vercel.app' && !authenticated) {
+            events.push(sent ? 'raw-after' : 'raw-before');
+            return new Response(null, { status: sent && options.publicRawAfter ? 200 : 401 });
+        }
+        events.push(authenticated ? 'private-serving' : 'public-serving');
+        expect(new Headers(init?.headers).get('authorization')).toBeNull();
+        return new Response('<main/>', { headers: { 'Content-Type': 'text/html' } });
+    });
+    return events;
+}
+describe('imported public alias assignment', () => {
+    it('finishes all preflight before one callback and one first-assignment POST', async () => {
+        const input = importedAssignFixture(), events = aliasProvider(input.pins);
+        await importedClient().assignImported({ ...input, beforeSend: async () => { events.push('begin'); } });
+        expect(events).toEqual(['deployment', 'raw-before', 'private-serving', 'baseline', 'begin', 'post', 'readback', 'public-serving', 'raw-after']);
+    });
+    it('rejects private, malformed and mismatched candidates before provider reads', async () => {
+        for (const change of ['private', 'hash', 'deploy', 'policy', 'scope', 'extra']) {
+            const input = importedAssignFixture();
+            if (change === 'private') {
+                input.candidate.importedHosting.visibility = 'protected-only';
+                input.pins.candidateHash = createHash('sha256').update(serializeImportedHostingCandidate(input.candidate)).digest('hex');
+            }
+            if (change === 'hash') input.pins.candidateHash = 'd'.repeat(64);
+            if (change === 'deploy') input.pins.deployHash = 'd'.repeat(64);
+            if (change === 'policy') input.pins.buildPolicyHash = 'd'.repeat(64);
+            if (change === 'scope') input.candidate.projectId = 'other';
+            if (change === 'extra') Object.assign(input.candidate, { extra: true });
+            let reads = 0, begins = 0;
+            mockFetch(async () => { reads++; throw Error('no provider read'); });
+            await expect(importedClient().assignImported({ ...input, beforeSend: async () => { begins++; } })).rejects.toThrow();
+            expect(reads).toBe(0); expect(begins).toBe(0);
+        }
+    });
+    it('refuses changed alias baseline and declined send authority with no POST', async () => {
+        const input = importedAssignFixture(); let begins = 0;
+        let events = aliasProvider(input.pins, { previous: 'outside' });
+        await expect(importedClient().assignImported({ ...input, beforeSend: async () => { begins++; } })).rejects.toThrow('CLOUD_RELEASE_ALIAS_CHANGED');
+        expect(begins).toBe(0); expect(events).not.toContain('post');
+        events = aliasProvider(input.pins);
+        await expect(importedClient().assignImported({ ...input, beforeSend: async () => { begins++; throw Error('grant revoked'); } })).rejects.toThrow('grant revoked');
+        expect(begins).toBe(1); expect(events).not.toContain('post');
+    });
+    it('checks cancellation immediately after acquiring send authority', async () => {
+        const input = importedAssignFixture(), controller = new AbortController(), events = aliasProvider(input.pins); let begins = 0;
+        await expect(importedClient(controller.signal).assignImported({ ...input, beforeSend: async () => { begins++; controller.abort(); } })).rejects.toThrow();
+        expect(begins).toBe(1); expect(events).not.toContain('post');
+    });
+    it('does not acquire send authority for an unfinished target', async () => {
+        const input = importedAssignFixture(), events = aliasProvider(input.pins, { readyState: 'BUILDING' }); let begins = 0;
+        await expect(importedClient().assignImported({ ...input, beforeSend: async () => { begins++; } })).rejects.toThrow('CLOUD_RELEASE_BUILD_CHANGED');
+        expect(begins).toBe(0); expect(events).toEqual(['deployment']);
+    });
+    it('holds the POST until the asynchronous backend callback acknowledges authority', async () => {
+        const input = importedAssignFixture(), events = aliasProvider(input.pins);
+        let enter!: () => void, release!: () => void;
+        const entered = new Promise<void>(resolve => { enter = resolve; });
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const pending = importedClient().assignImported({ ...input, beforeSend: async () => { enter(); await gate; } });
+        await entered; expect(events).not.toContain('post'); release(); await pending;
+        expect(events.filter(event => event === 'post')).toHaveLength(1);
+    });
+    it('captures candidate, pins, target and callback before asynchronous reads', async () => {
+        const input = importedAssignFixture(); let begins = 0;
+        const captured = { ...input, beforeSend: async () => { begins++; } };
+        const events = aliasProvider({ ...input.pins }, { beforeRead: () => {
+            captured.deploymentId = 'different'; captured.expectedPrevious = 'different';
+            captured.candidate.importedHosting.visibility = 'protected-only'; captured.pins.candidateHash = 'd'.repeat(64);
+            captured.beforeSend = async () => { throw Error('replacement callback'); };
+        } });
+        await importedClient().assignImported(captured);
+        expect(begins).toBe(1); expect(events.filter(event => event === 'post')).toHaveLength(1);
+    });
+    for (const options of [
+        { losePost: true }, { receipt: { uid: null } }, { receipt: { alias: 'outside.vercel.app' } },
+        { receipt: { oldDeploymentId: 'outside' } }, { readback: 'outside' }, { publicRawAfter: true },
+        { previous: 'dpl_old', receipt: { oldDeploymentId: null } },
+    ]) it(`never retries or confirms a post-send failure ${JSON.stringify(options)}`, async () => {
+        const input = importedAssignFixture(), events = aliasProvider(input.pins, options); let begins = 0;
+        input.expectedPrevious = options.previous ?? null;
+        await expect(importedClient().assignImported({ ...input, beforeSend: async () => { begins++; } })).rejects.toThrow();
+        expect(begins).toBe(1); expect(events.filter(event => event === 'post')).toHaveLength(1);
     });
 });
 
