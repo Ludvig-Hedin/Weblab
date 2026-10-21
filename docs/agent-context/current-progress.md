@@ -1,5 +1,16 @@
 # Current Progress Snapshot
 
+## 2026-10-21 — Local desktop client editing draft
+
+`feature/2026-10-21-local-client-editor` prepares the public Mac app in
+`apps/desktop-local` for native text drafts and reviewed publishing. This is
+a release candidate with direct page text input, native Save/Discard and local
+Undo/Redo. The Content panel and shared font edits have local acceptance evidence;
+provider write/promotion/restore, signing and clean-Mac acceptance remain open.
+Continue from [local client editor](../features/local-client-editor.md). Client
+source patches and private acceptance notes are kept in a separate private
+handoff repository, not this public repo. No production site was changed.
+
 ## 2026-10-05 — Team desktop editor released for invited accounts
 
 `apps/desktop` is active again as the team editor (0.2.7): an Electron shell around weblab.build with sign-in, private working copies of local Git projects, reviewed handoff, preview keys and a log file. weblab.build still runs in local-app mode, so the public download stays `apps/desktop-local` and sign-in stays invite only. Switching a live site from the app is disabled server-side. `desktop-v*` releases are never marked latest.

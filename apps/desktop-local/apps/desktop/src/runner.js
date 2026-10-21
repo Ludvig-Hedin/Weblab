@@ -4,6 +4,7 @@
 
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
+const http = require("node:http");
 const net = require("node:net");
 const { join } = require("node:path");
 const { cliEntry, bunBinary, childEnv } = require("./runtime");
@@ -12,6 +13,7 @@ const auth = require("./auth");
 const { createStaticSite } = require("./static-site");
 
 const LOG_LIMIT = 400;
+const START_TIMEOUT_MS = 120_000;
 const reservedPorts = new Set();
 let portQueue = Promise.resolve();
 const LINE_BREAK = /\r?\n/;
@@ -34,6 +36,7 @@ class SiteRunner {
     this.token = 0;
     this.port = null;
     this.staticServer = null;
+    this.startup = null;
   }
 
   appendLog(text) {
@@ -98,19 +101,28 @@ class SiteRunner {
       if (!current()) {
         return;
       }
-      if (!(err instanceof Friendly)) {
-        this.appendLog(err?.stack ? err.stack : String(err));
-      }
-      await this.stop();
-      this.onEvent({
-        details: this.logTail(),
-        message:
-          err instanceof Friendly
-            ? err.message
-            : "Something went wrong while starting your site.",
-        type: "error",
-      });
+      await this.failStartup(err);
     }
+  }
+
+  async failStartup(err) {
+    if (!(err instanceof Friendly)) {
+      this.appendLog(err?.stack ? err.stack : String(err));
+    }
+    const cleanup = this.stop();
+    const cleanupToken = this.token;
+    await cleanup;
+    if (this.token !== cleanupToken) {
+      return;
+    }
+    this.onEvent({
+      details: this.logTail(),
+      message:
+        err instanceof Friendly
+          ? err.message
+          : "Something went wrong while starting your site.",
+      type: "error",
+    });
   }
 
   runInstall(cwd) {
@@ -168,11 +180,17 @@ class SiteRunner {
         staticServer.listen(port, "127.0.0.1", resolve);
       });
     }
+    if (!current()) {
+      return null;
+    }
     // The site's own dev server, without the editor on top.
     this.siteUrl = `http://localhost:${port}/`;
     const env = childEnv({
       ELECTRON_RUN_AS_NODE: "1",
       PORT: String(port),
+      ...(fs.existsSync(join(cwd, ".weblab/content/manifest.json"))
+        ? { WEBLAB_LOCAL_EDITING: "1" }
+        : {}),
     });
     const key = auth.readApiKey();
     if (key) {
@@ -210,15 +228,38 @@ class SiteRunner {
     return new Promise((resolve, reject) => {
       let stdout = "";
       let settled = false;
+      let checking = false;
+      const startup = new AbortController();
+      this.startup = startup;
+      const timeout = setTimeout(() => {
+        startup.abort(
+          new Friendly(
+            "Your site did not load within 2 minutes. Check the site log, fix the startup error, then try again."
+          )
+        );
+      }, START_TIMEOUT_MS);
+      const cancelled = () => finish(reject, startup.signal.reason);
+
       const finish = (fn, value) => {
         if (settled) {
           return;
         }
         settled = true;
+        clearTimeout(timeout);
+        startup.signal.removeEventListener("abort", cancelled);
+        startup.abort();
+        if (this.startup === startup) {
+          this.startup = null;
+        }
         fn(value);
       };
+      startup.signal.addEventListener("abort", cancelled, { once: true });
       child.stdout.on("data", (chunk) => {
-        stdout += chunk.toString();
+        this.appendLog(chunk.toString());
+        if (checking || settled) {
+          return;
+        }
+        stdout = (stdout + chunk.toString()).slice(-65_536);
         const start = stdout.indexOf("{");
         const end = stdout.lastIndexOf("}");
         if (start === -1 || end <= start) {
@@ -226,9 +267,25 @@ class SiteRunner {
         }
         try {
           const info = JSON.parse(stdout.slice(start, end + 1));
-          if (info.url) {
-            this.appendLog(`Editor ready at ${info.url}`);
-            finish(resolve, info.url);
+          if (typeof info.url === "string" && info.url) {
+            checking = true;
+            this.appendLog(
+              `Editor proxy started at ${info.url}; waiting for the site`
+            );
+            this.onEvent({
+              step: "Waiting for your site to load…",
+              type: "progress",
+            });
+            waitForSite(this.siteUrl, startup.signal, (line) =>
+              this.appendLog(line)
+            )
+              .then(() => {
+                if (current()) {
+                  this.appendLog(`Site ready at ${this.siteUrl}`);
+                  finish(resolve, info.url);
+                }
+              })
+              .catch((err) => finish(reject, err));
           }
         } catch {
           // Not complete yet.
@@ -252,7 +309,9 @@ class SiteRunner {
         if (!settled) {
           finish(
             reject,
-            new Friendly("Something in the site stopped it from starting.")
+            new Friendly(
+              "Your site stopped before it loaded. Check the site log, fix the startup error, then try again."
+            )
           );
         } else if (current()) {
           clearInterval(this.watch);
@@ -269,7 +328,9 @@ class SiteRunner {
 
   async stop() {
     this.token += 1;
-    const { install, child, groups, staticServer } = this;
+    this.startup?.abort(new Friendly("Opening the site was cancelled."));
+    const { install, child, groups, staticServer, port } = this;
+    this.port = null;
     this.staticServer = null;
     clearInterval(this.watch);
     if (child?.pid && child.exitCode === null) {
@@ -285,9 +346,67 @@ class SiteRunner {
       await staticServer.stopStaticSite();
     }
     await stopGroups(groups);
-    releasePort(this.port);
-    this.port = null;
+    releasePort(port);
   }
+}
+
+// Probe the actual page, not the proxy's listening socket. Next can accept TCP
+// connections before compilation succeeds, and can die while the proxy lives.
+function probeSite(url, signal) {
+  return new Promise((resolve, reject) => {
+    const request = http.get(url, { signal }, (response) => {
+      response.resume();
+      resolve(response.statusCode);
+    });
+    request.setTimeout(5000, () =>
+      request.destroy(new Error("Site request timed out"))
+    );
+    request.on("error", reject);
+  });
+}
+
+function waitForRetry(signal) {
+  return new Promise((resolve, reject) => {
+    const cancel = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", cancel);
+      resolve();
+    }, 500);
+    signal.addEventListener("abort", cancel, { once: true });
+    if (signal.aborted) {
+      signal.removeEventListener("abort", cancel);
+      cancel();
+    }
+  });
+}
+
+async function waitForSite(url, signal, appendLog) {
+  let lastFailure = "";
+  while (!signal.aborted) {
+    let failure;
+    try {
+      // biome-ignore lint/performance/noAwaitInLoops: sequential readiness polling
+      const status = await probeSite(url, signal);
+      if (status >= 200 && status < 400) {
+        return;
+      }
+      failure = `Site returned HTTP ${status}`;
+    } catch (err) {
+      failure = `Site request failed: ${err.message}`;
+    }
+    if (signal.aborted) {
+      throw signal.reason;
+    }
+    if (failure !== lastFailure) {
+      appendLog(failure);
+      lastFailure = failure;
+    }
+    await waitForRetry(signal);
+  }
+  throw signal.reason;
 }
 
 function releasePort(port) {

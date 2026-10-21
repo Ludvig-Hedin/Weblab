@@ -10,7 +10,8 @@ const { canUseGit, childEnv } = require("./runtime");
 const github = require("./github");
 
 const GIT = "/usr/bin/git";
-const SECRET = /(^|\/)(\.env(\..*)?|.*\.pem|.*\.key|id_rsa.*|\.npmrc)$/i;
+const SECRET =
+  /(^|\/)((\.weblab|\.vercel|\.airship|\.claude|\.codex)(\/|$)|(\.env(\..*)?|.*\.pem|.*\.key|id_rsa.*|\.npmrc)$)/i;
 const IMAGE = /\.(png|jpe?g|gif|webp|avif|svg|ico)$/i;
 const LOCKFILES = new Set([
   "bun.lock",
@@ -144,6 +145,7 @@ function parseStatus(raw) {
     if (file && entry.startsWith("2 ")) {
       // A rename's original path follows as its own field.
       file.from = fields.next().value || "";
+      file.secret ||= SECRET.test(file.from);
     }
   }
   return { files, head };
@@ -229,9 +231,25 @@ async function status(cwd) {
 
 /** A few lines of each change, for the note writer. */
 async function changeSummary(cwd, paths) {
+  const rawStatus = await git(cwd, [
+    "status",
+    "--porcelain=2",
+    "-z",
+    "--untracked-files=all",
+  ]);
+  if (rawStatus.code !== 0) {
+    return "";
+  }
+  const safe = new Set(
+    parseStatus(rawStatus.stdout)
+      .files.filter((file) => !file.secret)
+      .map((file) => file.path)
+  );
   const parts = [];
   let budget = 4000;
-  for (const path of paths.slice(0, 12)) {
+  for (const path of paths
+    .filter((candidate) => safe.has(candidate))
+    .slice(0, 12)) {
     // biome-ignore lint/performance/noAwaitInLoops: bounded, and the budget is shared
     const diff = await git(cwd, [
       "--literal-pathspecs",
@@ -432,6 +450,15 @@ async function upload(cwd, { paths = [], note = "", newBranch = false } = {}) {
       ok: false,
     };
   }
+  const byPath = new Map(now.files.map((file) => [file.path, file]));
+  if (paths.some((path) => SECRET.test(path) || byPath.get(path)?.secret)) {
+    return {
+      code: "private-files",
+      message:
+        "Private files cannot be uploaded. Leave them out and try again.",
+      ok: false,
+    };
+  }
   if (newBranch) {
     const base = `${now.login || "weblab"}/${branchSlug(note)}`;
     branch = await freeBranchName(cwd, base);
@@ -440,7 +467,6 @@ async function upload(cwd, { paths = [], note = "", newBranch = false } = {}) {
       return { message: "Weblab couldn’t make a new branch.", ok: false };
     }
   }
-  const byPath = new Map(now.files.map((file) => [file.path, file]));
   const chosen = paths.filter((path) => byPath.has(path));
   // A moved file is two paths: the new one and the one it left.
   const picked = chosen.flatMap((path) => {

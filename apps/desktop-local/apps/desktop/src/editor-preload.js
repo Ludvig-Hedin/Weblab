@@ -38,6 +38,25 @@ document.addEventListener(
 // mode the editor is in. The window's top bar holds the Edit and Preview
 // buttons; this carries the choice both ways.
 contextBridge.exposeInMainWorld("weblabHost", {
+  content: {
+    abandonInline: (editId) =>
+      ipcRenderer.invoke("content:abandonInline", editId),
+    beginInline: (binding) =>
+      ipcRenderer.invoke("content:beginInline", binding),
+    edit: (binding) => ipcRenderer.invoke("content:select", binding),
+    onChanged: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on("content:changed", listener);
+      return () => ipcRenderer.removeListener("content:changed", listener);
+    },
+    onInlineEnd: (callback) => {
+      const listener = (_event, result) => callback(result);
+      ipcRenderer.on("content:inlineEnd", listener);
+      return () => ipcRenderer.removeListener("content:inlineEnd", listener);
+    },
+    stageInline: (proposal) =>
+      ipcRenderer.invoke("content:stageInline", proposal),
+  },
   // Upload in the top bar replaces the chat's own commit and push rows.
   hostsGit: true,
   // The top bar's Upload and branch buttons wait while an AI job writes files.

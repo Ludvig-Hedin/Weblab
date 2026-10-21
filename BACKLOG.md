@@ -38,6 +38,18 @@ later without re-discovering the context.
 
 ## Open
 
+### Local Mac client publishing needs provider and signed-package acceptance
+
+- **Discovered:** 2026-10-21 (F-843 local client integration)
+- **Where:** `apps/desktop-local`, F-843, T-884
+- **State:** Native local text and font edits and the provider-independent release checks pass. Real provider write/promotion/restore acceptance and clean-Mac signed-package acceptance are still open. This Mac has no valid Apple code-signing identity.
+- **Local-copy update:** A fully independent loopback-only site copy now opens without a password in native desktop/mobile frames. Direct page heading/body typing now bypasses nested CMS component drill-in. Native Save, Undo/Redo, Discard and unsaved-quit protection were checked in the packaged app. The Content panel remains available for other fields.
+- **Next step:** Connect an authorized CMS write credential in the native panel, verify a reviewed text publish/restore and Vercel preview/staged-live/promotion/restore in an agreed release window, then sign/notarize and test the package on a clean Mac.
+- **Risk if ignored:** An unsigned local candidate or unit pass is mistaken for a supported client release.
+- **Tags:** `#release-blocker` `#desktop` `#test-gap`
+
+
+
 ### Team desktop 0.2.7 needs packaged acceptance on real copied sites
 
 - **Discovered:** 2026-10-05 (team release integration)
@@ -2319,6 +2331,15 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Public Mac saved Undo can overwrite later file changes
+
+- **Discovered:** 2026-10-21 (client-readiness audit)
+- **Resolved:** 2026-10-21, local candidate; no commit or release yet.
+- **Where:** `apps/desktop-local/packages/git/src/index.ts`, F-843
+- **Fix:** Preflight every saved file against captured post-edit bytes before restoring anything. Refuse later edits, unsafe links, missing snapshots and path overlaps. Preserve all files on a known conflict.
+- **Validation:** All 45 Git package tests pass, including the original later-edit loss case and newly created files. Signed-package client acceptance remains a separate gate above.
+
 ### 2026-07-09 — Editor quality audit (docs/audits/editor-quality-audit.md)
 
 - **`isChildTextEditable` stub returning `true` (P1)** — resolved `acbd9b0df`: source-AST gate in `TextEditingManager` (`text/editable.ts`, 16 unit tests); preload stub intentionally retained (prod SHA pin).

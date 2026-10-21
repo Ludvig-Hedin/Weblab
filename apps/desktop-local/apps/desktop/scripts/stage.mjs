@@ -7,7 +7,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import {
   chmod,
   copyFile,
@@ -18,11 +18,11 @@ import {
 } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertRuntimeTree, stageRuntime } from "./stage-runtime.mjs";
 
 const DESKTOP = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = resolve(DESKTOP, "../..");
 const RUNTIME = join(DESKTOP, ".runtime");
-const PNPM = ["corepack", ["pnpm@11.9.0"]];
 
 const BUN_VERSION = "1.3.10";
 const BUN_ASSET = "bun-darwin-aarch64";
@@ -35,61 +35,35 @@ const PRUNE = [
   "@openai/codex",
   "@openai/codex-darwin-arm64",
   "@openai/codex-darwin-x64",
-  ".bin",
 ];
 
 function run(cmd, args, opts = {}) {
   execFileSync(cmd, args, { stdio: "inherit", ...opts });
 }
 
-function assertNoSymlinks(dir) {
-  for (const name of readdirSync(dir)) {
-    const path = join(dir, name);
-    const info = lstatSync(path);
-    if (info.isSymbolicLink()) {
-      throw new Error(`Symlink in staged runtime: ${path}`);
-    }
-    if (info.isDirectory()) {
-      assertNoSymlinks(path);
-    }
-  }
-}
-
 async function stageCli() {
   if (process.env.WEBLAB_SKIP_CLI_BUILD !== "1") {
-    run(
-      PNPM[0],
-      [...PNPM[1], "turbo", "run", "build", "--filter=@airshiplabs/cli"],
-      { cwd: REPO }
-    );
+    run("bun", ["run", "turbo", "run", "build", "--filter=@airshiplabs/cli"], {
+      cwd: REPO,
+    });
   }
   if (!existsSync(join(REPO, "apps/cli/dist/index.js"))) {
     throw new Error("apps/cli/dist/index.js is missing. Build the CLI first.");
   }
   const staging = join(RUNTIME, ".cli-stage");
   await rm(staging, { force: true, recursive: true });
-  run(
-    PNPM[0],
-    [
-      ...PNPM[1],
-      "--filter",
-      "@airshiplabs/cli",
-      "deploy",
-      "--legacy",
-      "--prod",
-      "--config.node-linker=hoisted",
-      staging,
-    ],
-    { cwd: REPO }
+  const workspaceRoots = ["packages", "apps"].flatMap((folder) =>
+    readdirSync(join(REPO, folder))
+      .map((name) => join(REPO, folder, name))
+      .filter((path) => existsSync(join(path, "package.json")))
   );
-  for (const entry of PRUNE) {
-    // biome-ignore lint/performance/noAwaitInLoops: a handful of deletes, order irrelevant but kept simple
-    await rm(join(staging, "node_modules", entry), {
-      force: true,
-      recursive: true,
-    });
-  }
-  assertNoSymlinks(staging);
+  stageRuntime({
+    destination: staging,
+    entry: join(REPO, "apps/cli"),
+    exclude: PRUNE,
+    workspaceRoots,
+  });
+  assertRuntimeTree(staging);
   const claude = join(
     staging,
     "node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"

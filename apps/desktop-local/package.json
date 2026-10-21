@@ -4,6 +4,10 @@
   "private": true,
   "description": "Airship — a visual editor for your running web app, driven by Claude Code, Codex or OpenCode",
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "build:web": "turbo run build --filter=@airship/web",
@@ -33,7 +37,7 @@
     "ultracite": "^7.10.3",
     "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@11.9.0",
+  "packageManager": "bun@1.3.10",
   "engines": {
     "node": ">=22.13.0"
   }

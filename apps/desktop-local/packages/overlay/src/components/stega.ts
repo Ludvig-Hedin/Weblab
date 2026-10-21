@@ -22,6 +22,8 @@ export interface StegaInfo {
   href: string | null;
   /** The payload's origin, e.g. `sanity.io`. */
   origin: string | null;
+  /** Explicit local content binding. Never treated as write permission. */
+  weblab?: unknown;
 }
 
 /** Whether a string carries a hidden content-source marker. */
@@ -78,6 +80,7 @@ export function decodeStega(value: string): StegaInfo | null {
       return {
         href: typeof payload.href === "string" ? payload.href : null,
         origin: typeof payload.origin === "string" ? payload.origin : null,
+        weblab: payload.weblab,
       };
     } catch {
       // Try the next alignment.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 candidate (unreleased)
+
+- Type supported CMS text directly on the page, including split headings. Save or discard from the app header.
+- Keep local Undo/Redo available after reopening the site. Protect unsaved text during reload, quit and site errors.
+- Review text and source publications in the native app. Provider and signed-package acceptance remain open.
+
 ## 0.2.1 (2026-09-29)
 
 - Show and hide native dropdown options from the Style panel, then select an option to edit its look while the sketch stays in Edit mode.

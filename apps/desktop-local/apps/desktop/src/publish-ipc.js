@@ -25,7 +25,10 @@ function register(ctx) {
   };
   const fromWindow = (event) => {
     const session = ctx.sessionFor(event);
-    return event.sender === session?.win.webContents ? session : null;
+    return event.sender === session?.win.webContents &&
+      (!event.senderFrame || event.senderFrame === event.sender.mainFrame)
+      ? session
+      : null;
   };
   /**
    * Wraps a handler: only the window may call, only with a site open, and a
@@ -41,8 +44,11 @@ function register(ctx) {
       }
       try {
         return await fn(session, open, ...args);
-      } catch {
-        return { message: "Something went wrong. Try again.", ok: false };
+      } catch (error) {
+        return {
+          message: error.message || "Something went wrong. Try again.",
+          ok: false,
+        };
       }
     });
   };
@@ -160,6 +166,20 @@ function register(ctx) {
       }
     })
   );
+  for (const action of [
+    "review",
+    "publish",
+    "rollback",
+    "reconcile",
+    "abandonBuild",
+  ]) {
+    handle(
+      `deploy:${action}`,
+      whenIdle((_session, open, input) =>
+        deploy.releaseAction(open.path, action, input)
+      )
+    );
+  }
   ipcMain.handle("deploy:cancel", (event) => {
     if (fromWindow(event) === deployOwner) {
       deploy.cancelDeploy();
@@ -197,6 +217,9 @@ function register(ctx) {
   // shows a still picture of the editor and the live view steps aside.
   ipcMain.handle("editor:freeze", async (event, frozen) => {
     const session = fromWindow(event);
+    if (session) {
+      session.editorFrozen = Boolean(frozen);
+    }
     const view = session?.editorView;
     if (!view) {
       return null;
