@@ -686,3 +686,51 @@
   flex: none;
   white-space: nowrap;
 }
+
+/* Content rows contain multiline copy, unlike the single-line branch menu. */
+#content-panel .pub-head,
+#content-panel .pub-body,
+#content-panel > .pub-foot {
+  flex: none;
+}
+#content-panel .pub-mi {
+  flex: none;
+  align-items: flex-start;
+  min-height: 64px;
+  padding: 8px;
+}
+#content-panel .pub-mi-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+  overflow: hidden;
+}
+#content-panel .pub-mi-main > span:not(.pub-faint) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+#content-panel .pub-mi-main .pub-faint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#content-panel textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+}
+#content-panel input[type="password"] {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 6px;
+}
+#content-panel details {
+  overflow-wrap: anywhere;
+}

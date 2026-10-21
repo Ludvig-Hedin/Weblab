@@ -127,6 +127,7 @@ test("Finder opens a second site in its own window and closing it stops only tha
       state: async () => ({ connected: true }),
     },
     "./clone": {},
+    "./content-ipc": { register: () => undefined },
     "./env-settings": {},
     "./favicon": { read: async () => null },
     "./github": { account: () => null },

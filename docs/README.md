@@ -140,3 +140,5 @@ Quick rules of thumb:
 - **New package / router / route?** → update `agent-context/packages-reference.md` / `trpc-routers-reference.md` / `routes-reference.md`.
 - **In-flight working notes?** → drop a `notes/YYYY-MM-DD-<topic>.md`.
 - **User-facing docs change?** → edit `apps/docs/content/docs/**`.
+
+- [Local desktop text editing and publishing](features/local-client-editor.md) — native app contracts, test commands and client release gates.

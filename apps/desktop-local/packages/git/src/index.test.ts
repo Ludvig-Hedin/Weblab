@@ -15,10 +15,12 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -326,10 +328,17 @@ describe("restoreFiles", () => {
   it("rewrites a file from its before content", () => {
     write("committed.txt", "edited\n");
     const result = restoreFiles(repo, [
-      diff({ before: "one\ntwo\nthree\n", file: "committed.txt" }),
+      diff({
+        after: "edited\n",
+        before: "one\ntwo\nthree\n",
+        file: "committed.txt",
+      }),
     ]);
     expect(result.restored).toEqual(["committed.txt"]);
     expect(result.skipped).toEqual([]);
+    expect(readFileSync(join(repo, "committed.txt"), "utf8")).toBe(
+      "one\ntwo\nthree\n"
+    );
     expect(fileAtHead(repo, join(repo, "committed.txt"))).toEqual({
       kind: "content",
       text: "one\ntwo\nthree\n",
@@ -339,7 +348,7 @@ describe("restoreFiles", () => {
   it("deletes a file the edit created", () => {
     write("added.txt", "new\n");
     const result = restoreFiles(repo, [
-      diff({ file: "added.txt", isNew: true }),
+      diff({ after: "new\n", before: null, file: "added.txt", isNew: true }),
     ]);
     expect(result.restored).toEqual(["added.txt"]);
     expect(existsSync(join(repo, "added.txt"))).toBe(false);
@@ -366,7 +375,7 @@ describe("restoreFiles", () => {
     );
   });
 
-  it("reports a write failure instead of throwing", () => {
+  it("reports an invalid filesystem target instead of throwing", () => {
     // `undo` is called straight out of the WebSocket message handler with no
     // try/catch of its own, so a throw here takes the whole daemon down with it.
     //
@@ -380,6 +389,182 @@ describe("restoreFiles", () => {
     expect(result.restored).toEqual([]);
     expect(result.skipped).toHaveLength(1);
     expect(result.skipped[0].file).toBe("blocked.txt");
+  });
+
+  it("leaves the entire saved edit alone when one file has later work", () => {
+    write("first.txt", "saved first");
+    write("second.txt", "later edit");
+    const result = restoreFiles(repo, [
+      diff({
+        after: "saved first",
+        before: "original first",
+        file: "first.txt",
+      }),
+      diff({
+        after: "saved second",
+        before: "original second",
+        file: "second.txt",
+      }),
+    ]);
+    expect(result.restored).toEqual([]);
+    expect(result.skipped[0].reason).toContain("later work was kept");
+    expect(readFileSync(join(repo, "first.txt"), "utf8")).toBe("saved first");
+    expect(readFileSync(join(repo, "second.txt"), "utf8")).toBe("later edit");
+  });
+
+  it("does not delete a created file that was later changed", () => {
+    write("added.txt", "later edit");
+    const result = restoreFiles(repo, [
+      diff({ after: "created", before: null, file: "added.txt", isNew: true }),
+    ]);
+    expect(result.restored).toEqual([]);
+    expect(readFileSync(join(repo, "added.txt"), "utf8")).toBe("later edit");
+  });
+
+  it("restores a deleted file only while it is still absent", () => {
+    const deleted = diff({
+      after: null,
+      before: "original",
+      file: "nested/deleted.txt",
+      isDeleted: true,
+    });
+    expect(restoreFiles(repo, [deleted]).restored).toEqual([deleted.file]);
+    expect(readFileSync(join(repo, deleted.file), "utf8")).toBe("original");
+    write(deleted.file, "replacement");
+    expect(restoreFiles(repo, [deleted]).restored).toEqual([]);
+    expect(readFileSync(join(repo, deleted.file), "utf8")).toBe("replacement");
+  });
+
+  it("compares exact bytes instead of normalizing line endings", () => {
+    write("lines.txt", "saved\r\n");
+    expect(
+      restoreFiles(repo, [
+        diff({ after: "saved\n", before: "old", file: "lines.txt" }),
+      ]).restored
+    ).toEqual([]);
+    expect(readFileSync(join(repo, "lines.txt"), "utf8")).toBe("saved\r\n");
+  });
+
+  it("fails closed for missing capture data and inconsistent create/delete flags", () => {
+    write("first.txt", "saved");
+    for (const invalid of [
+      { before: "old" },
+      { after: "saved" },
+      { after: "saved", before: null },
+      { after: "saved", before: "old", isNew: true },
+      { after: "saved", before: "old", isDeleted: true },
+      { after: null, before: "old" },
+      { after: "saved", before: null, isNew: true, noBaseline: true },
+    ]) {
+      const result = restoreFiles(repo, [
+        diff({ file: "first.txt", ...invalid }),
+      ]);
+      expect(result.restored).toEqual([]);
+      expect(result.skipped).toHaveLength(1);
+      expect(readFileSync(join(repo, "first.txt"), "utf8")).toBe("saved");
+    }
+  });
+
+  it("refuses missing edited files instead of recreating them", () => {
+    expect(
+      restoreFiles(repo, [
+        diff({ after: "saved", before: "old", file: "gone.txt" }),
+      ]).restored
+    ).toEqual([]);
+    expect(existsSync(join(repo, "gone.txt"))).toBe(false);
+  });
+
+  it("rejects traversal and absolute paths before any restoration", () => {
+    const outside = join(empty, "outside.txt");
+    writeFileSync(outside, "saved");
+    for (const file of [
+      outside,
+      "../outside.txt",
+      "a/../../outside.txt",
+      "a/../committed.txt",
+      "C:/outside.txt",
+      "file:stream",
+      "a\\outside.txt",
+      "",
+      ".",
+    ]) {
+      const result = restoreFiles(repo, [
+        diff({ after: "saved", before: "old", file }),
+      ]);
+      expect(result.restored).toEqual([]);
+      expect(result.skipped).toHaveLength(1);
+    }
+    expect(readFileSync(outside, "utf8")).toBe("saved");
+  });
+
+  it("rejects parent and dangling symlinks without changing their targets", () => {
+    writeFileSync(join(empty, "outside.txt"), "saved");
+    symlinkSync(
+      empty,
+      join(repo, "linked"),
+      process.platform === "win32" ? "junction" : "dir"
+    );
+    expect(
+      restoreFiles(repo, [
+        diff({ after: "saved", before: "old", file: "linked/outside.txt" }),
+      ]).restored
+    ).toEqual([]);
+    expect(readFileSync(join(empty, "outside.txt"), "utf8")).toBe("saved");
+    if (process.platform !== "win32") {
+      symlinkSync(join(empty, "outside.txt"), join(repo, "file-link.txt"));
+      expect(
+        restoreFiles(repo, [
+          diff({ after: "saved", before: "old", file: "file-link.txt" }),
+        ]).restored
+      ).toEqual([]);
+      symlinkSync(join(empty, "missing.txt"), join(repo, "dangling.txt"));
+      expect(
+        restoreFiles(repo, [
+          diff({
+            after: null,
+            before: "old",
+            file: "dangling.txt",
+            isDeleted: true,
+          }),
+        ]).restored
+      ).toEqual([]);
+      expect(existsSync(join(empty, "missing.txt"))).toBe(false);
+    }
+  });
+
+  it("refuses hard-linked files so undo cannot change another path", () => {
+    writeFileSync(join(empty, "outside.txt"), "saved");
+    linkSync(join(empty, "outside.txt"), join(repo, "hard-link.txt"));
+    expect(
+      restoreFiles(repo, [
+        diff({ after: "saved", before: "old", file: "hard-link.txt" }),
+      ]).restored
+    ).toEqual([]);
+    expect(readFileSync(join(empty, "outside.txt"), "utf8")).toBe("saved");
+  });
+
+  it("refuses overlapping restore targets as one bundle", () => {
+    const result = restoreFiles(repo, [
+      diff({ after: null, before: "old", file: "missing", isDeleted: true }),
+      diff({
+        after: null,
+        before: "old child",
+        file: "missing/child",
+        isDeleted: true,
+      }),
+    ]);
+    expect(result.restored).toEqual([]);
+    expect(existsSync(join(repo, "missing"))).toBe(false);
+  });
+
+  it("refuses duplicate targets before restoring either entry", () => {
+    write("same.txt", "saved");
+    const result = restoreFiles(repo, [
+      diff({ after: "saved", before: "old", file: "same.txt" }),
+      diff({ after: "saved", before: "other", file: "same.txt" }),
+    ]);
+    expect(result.restored).toEqual([]);
+    expect(readFileSync(join(repo, "same.txt"), "utf8")).toBe("saved");
   });
 });
 

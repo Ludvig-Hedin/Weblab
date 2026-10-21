@@ -10,6 +10,7 @@ import { cls, el } from "../dom";
 import { createSegmented } from "../inspector/controls/segmented";
 import { createSelect } from "../inspector/controls/select";
 import { enumDescriptor } from "../inspector/sections/row";
+import { canEditLocalContent, editLocalContent } from "./local-content";
 import { cleanStega, decodeStega, hasStega } from "./stega";
 
 /** Props a designer never edits from here. */
@@ -189,7 +190,11 @@ function originHint(
 function cmsRow(label: string, value: string, raw: string): HTMLElement {
   const info = decodeStega(raw);
   const hint = el("div", { class: cls("cmp-hint") });
-  if (info?.href) {
+  if (canEditLocalContent(raw)) {
+    const button = el("button", { text: "Edit text", type: "button" });
+    button.addEventListener("click", () => editLocalContent(raw));
+    hint.append(button);
+  } else if (info?.href) {
     hint.append(
       "Edit it in the CMS. ",
       el("a", {

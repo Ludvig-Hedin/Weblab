@@ -18,6 +18,7 @@ const cloner = require("./clone");
 const envSettings = require("./env-settings");
 const github = require("./github");
 const publish = require("./publish-ipc");
+const content = require("./content-ipc");
 const previews = require("./previews");
 const favicon = require("./favicon");
 const updates = require("./updates");
@@ -213,7 +214,7 @@ function showEditor(session, url, onShown) {
       return;
     }
     shown = true;
-    view.setVisible(true);
+    view.setVisible(!session.editorFrozen);
     onShown();
   };
   view.webContents.once("did-finish-load", reveal);
@@ -468,6 +469,7 @@ function registerIpc() {
     send,
     sessionFor,
   });
+  content.register({ send, sessionFor });
   ipcMain.handle("nav:ready", (event) => {
     const session = sessionFor(event);
     if (!session || event.sender !== session.win.webContents) {

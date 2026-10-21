@@ -61,6 +61,7 @@ import {
 import { ChromeLayer } from "./chrome-layer";
 import { CommentSet } from "./comment-set";
 import { ComponentLayer } from "./components/layer";
+import { editLocalContent } from "./components/local-content";
 import { selectedLineRange } from "./diff-view";
 import {
   DND,
@@ -538,6 +539,7 @@ type EditorMode = "edit" | "view";
 
 /** What the desktop app's editor preload exposes. Absent in a browser. */
 interface DesktopHost {
+  content?: { onChanged: (cb: () => void) => () => void };
   /** The window's top bar has Upload, so the chat hides commit and push. */
   hostsGit?: boolean;
   /** Tells the top bar an AI job started or ended. Absent on older builds. */
@@ -1517,10 +1519,21 @@ export class AirshipApp {
       this.useFollowUp(text);
       this.submit();
     });
+    const offContent = host.content?.onChanged(() => {
+      const request = this.buildRequest();
+      if (this.awaiting || (request && hasVisualDeltas(request))) {
+        toast(
+          "Text draft saved. Save your design changes, then reload to see it."
+        );
+      } else {
+        window.location.reload();
+      }
+    });
     this.disposers.push(() => {
       off();
       offCommand?.();
       offAsk?.();
+      offContent?.();
       root.removeAttribute(`data-${PREFIX}-hosted`);
     });
   }
@@ -4382,6 +4395,9 @@ export class AirshipApp {
     }
     // One word of an animated, split heading means the whole heading.
     const node = textEditTarget(hitNode);
+    if (editLocalContent(node.textContent ?? "")) {
+      return true;
+    }
     this.panel.endTextEdit();
     if (this.selected?.node === node) {
       return this.panel.beginTextEdit(node, caret);

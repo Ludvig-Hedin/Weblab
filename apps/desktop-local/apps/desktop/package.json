@@ -1,6 +1,6 @@
 {
   "name": "@weblab/desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Weblab: edit your website visually",
   "license": "MIT",
@@ -9,7 +9,8 @@
   "scripts": {
     "build:mac": "node scripts/stage.mjs && node scripts/build-mac.cjs",
     "dev": "node scripts/ensure-electron.cjs && electron .",
-    "stage": "node scripts/stage.mjs"
+    "stage": "node scripts/stage.mjs",
+    "test": "vitest run src renderer scripts"
   },
   "devDependencies": {
     "@electron/notarize": "^3.1.0",

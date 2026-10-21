@@ -122,6 +122,15 @@
       </div>
       <div class="topbar-title" id="title">Weblab</div>
       <div class="topbar-right">
+        <button
+          class="link"
+          hidden
+          id="topbar-connect"
+          title="Text and shared fonts in Variables save without AI. Per-element Save needs Claude."
+          type="button"
+        >
+          Connect Claude
+        </button>
         <button class="update-link" hidden id="update-available" type="button">
           Update available
         </button>
@@ -161,7 +170,11 @@
             width="36"
           >
           <h1>Connect Claude</h1>
-          <p class="muted">Weblab uses Claude to make changes to your sites.</p>
+          <p class="muted">
+            Claude is optional. Edit text, save shared fonts in Variables, and
+            publish without AI. Save for a single element's design changes needs
+            Claude.
+          </p>
 
           <div class="stack-tight" data-connect="start">
             <button class="btn primary wide" id="signin" type="button">
@@ -169,6 +182,9 @@
             </button>
             <button class="link" id="use-key" type="button">
               Use an API key instead
+            </button>
+            <button class="btn wide" id="continue-without-ai" type="button">
+              Continue without AI
             </button>
           </div>
 
@@ -197,6 +213,10 @@
           </div>
 
           <form class="stack-tight" data-connect="key" hidden id="key-form">
+            <p class="muted" hidden id="connect-key-note">
+              After saving a key, reopen this site to use AI. Your current edits
+              stay open until you choose to leave.
+            </p>
             <input
               autocomplete="off"
               id="key-input"
@@ -469,5 +489,6 @@
 
     <script defer src="app.js"></script>
     <script defer src="publish.js"></script>
+    <script defer src="content.js"></script>
   </body>
 </html>

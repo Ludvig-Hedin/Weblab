@@ -18,6 +18,7 @@ import type { Selection } from "../picker";
 import type { MenuEntry } from "../popover-host";
 import type { SurfaceResolver } from "../surface";
 import { toast } from "../toast";
+import { editLocalContent } from "./local-content";
 import { PropSet } from "./prop-set";
 import { ComponentRegistry } from "./registry";
 import { ComponentScope } from "./scope";
@@ -383,6 +384,9 @@ export class ComponentLayer {
   ): Promise<void> {
     const detail = await this.registry.detail(hit.link);
     const origin = detail?.origins[prop];
+    if (editLocalContent(String(hit.link.props?.[prop] ?? ""))) {
+      return;
+    }
     if (origin?.kind === "cms") {
       toast("This text comes from the CMS. Change it there.");
       return;
