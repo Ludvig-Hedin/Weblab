@@ -1,0 +1,21 @@
+{
+  "loading": "Loading sign-in…",
+  "existingAccount": "Sign in with your existing account. New account setup is not available here yet.",
+  "email": "Email address",
+  "send": "Email a sign-in code",
+  "code": "Six-digit sign-in code",
+  "verify": "Sign in",
+  "working": "Please wait…",
+  "resend": "Send another code",
+  "resendWait": "Send again in {seconds}s",
+  "changeEmail": "Change email",
+  "switchAccount": "Use another account",
+  "tryAnother": "Try another account",
+  "secondFactor": "This account needs another security check that this invitation page does not support yet. Contact the agency that invited you.",
+  "unsupported": "This account needs a sign-in step that is not available here. Contact the agency that invited you.",
+  "sessionBlocked": "Your account needs a setup or security step that this invitation page cannot complete yet. Contact the agency that invited you.",
+  "failed": "Sign-in could not be completed. Check your details and try again. If it keeps failing, contact the agency that invited you.",
+  "projectTitle": "Open your site",
+  "projectDenied": "This account cannot open this site. Use the invited account or ask your agency for access.",
+  "projectOpen": "Open site"
+}

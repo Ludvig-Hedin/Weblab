@@ -1,4 +1,10 @@
 # .coderabbit.yaml
 reviews:
+  # Owner directive, 2026-10-21: local verification only.
+  auto_review:
+    enabled: false
+    auto_incremental_review: false
+  slop_detection:
+    enabled: false
   path_filters:
     - "!apps/web/client/src/app/**"  # exclude that entire dir from all reviews

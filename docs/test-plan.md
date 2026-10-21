@@ -653,6 +653,8 @@ Per package (F-680 … F-705) at least one smoke test.
 
 | T-886 | F-841, F-843, F-844 | U + packaged M | Focused CLI key isolation, settings/import, selected Upload, queued Undo and deployment-key tests | Project scripts never receive the injected desktop key; failed saves preserve settings; imports reject linked sources; selected Upload preserves peer index/worktree; finished failed/cancelled edits have complete-data Undo; queued Undo rechecks source identity; deployment setup rechecks missing keys without overwriting remote values. Source fixtures are separate from packaged/provider acceptance. | `[~]` 227 focused source cases, types and lint passed locally; installed/provider acceptance remains open |
 
+| T-887 | F-845, F-818, F-826 | U + connected invited-account M | Scoped entry/admission/invitation tests; isolated HTTP-client queue, mounted boundary and engine lifecycle tests; starter source owner and cancelled hydration cases | Exact invitation scope and canonical issuer identity, stale token/queued mutation refusal, account/session/project-switch teardown, personal viewport only, no scoped legacy-cache reuse; ordinary/local routes remain available. Real claim/reopen/sign-out/reconnect acceptance remains required. | `[x]` 198 focused cases, web/file-system types, focused lint (0 errors, 444 warnings); `[ ]` real invited-account journey |
+
 ---
 
 ## Open Questions

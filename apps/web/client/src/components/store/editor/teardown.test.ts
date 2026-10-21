@@ -1,6 +1,10 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { act, createElement, StrictMode } from 'react';
+import { Window } from 'happy-dom';
+
 import type { Action, DomElement } from '@weblab/models';
 import { StyleChangeType } from '@weblab/models/style';
+
 import type { BranchData } from './branch/manager';
 import type { EditorEngine as Engine } from './engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
@@ -15,39 +19,59 @@ void mock.module('./history/storage', () => ({
     loadHistory: async () => null,
     saveHistory: async (branchId: string, undo: Action[], redo: Action[], version?: string) => {
         const hold = branchSaveHolds.get(branchId);
-        if (hold) { hold.entered(); await hold.wait; }
+        if (hold) {
+            hold.entered();
+            await hold.wait;
+        }
         if (holdSave) await holdSave;
         if (refusedSaves.has(branchId)) throw new Error(`save refused: ${branchId}`);
         saved.push({ branchId, undo: [...undo], redo: [...redo], version });
     },
-    clearHistory: async () => { clearCalls++; },
+    clearHistory: async () => {
+        clearCalls++;
+    },
 }));
 
 // These fixtures supply each branch's editor directly. Do not initialize the
 // unrelated ZenFS singleton while loading the real engine/branch prototypes.
 void mock.module('@weblab/file-system', () => ({
     CodeFileSystem: class {
-        constructor() { throw new Error('Teardown fixtures must supply their own source editor.'); }
+        constructor() {
+            throw new Error('Teardown fixtures must supply their own source editor.');
+        }
     },
 }));
 
 // Prototype fixtures never contact the backend. Loading its singleton would
 // validate unrelated application secrets before teardown assertions can run.
 void mock.module('@/components/store/lib/convex-http-client', () => ({
-    getConvexHttpClient: () => { throw new Error('Teardown fixtures must not contact the backend.'); },
+    getConvexHttpClient: () => {
+        throw new Error('Teardown fixtures must not contact the backend.');
+    },
     whenConvexAuthReady: async () => undefined,
+    captureConvexAuthOwner: () => null,
+    getConvexHttpClientForOwner: () => {
+        throw new Error('Fixture must not create a cloud client');
+    },
 }));
 
 // Branch imports the sandbox session/provider, whose transport also loads env.
 // No transport is needed when testing branch teardown with supplied editors.
 void mock.module('@/lib/sandbox-server-client', () => ({
-    getSandboxServerClient: () => { throw new Error('Teardown fixtures must not open a sandbox transport.'); },
-    setSandboxServerAuthFetcher: () => { throw new Error('Teardown fixtures must not configure sandbox authentication.'); },
+    getSandboxServerClient: () => {
+        throw new Error('Teardown fixtures must not open a sandbox transport.');
+    },
+    setSandboxServerAuthFetcher: () => {
+        throw new Error('Teardown fixtures must not configure sandbox authentication.');
+    },
 }));
 
 // Geometry is outside the source-saving contract of the text overlap fixture.
 const geometry = await import('./overlay/utils');
-void mock.module('./overlay/utils', () => ({ ...geometry, adaptRectToCanvas: (rect: unknown) => rect }));
+void mock.module('./overlay/utils', () => ({
+    ...geometry,
+    adaptRectToCanvas: (rect: unknown) => rect,
+}));
 
 const { HistoryManager } = await import('./history');
 const { BranchManager } = await import('./branch/manager');
@@ -57,11 +81,18 @@ const { TextEditingManager } = await import('./text');
 
 function deferred() {
     let resolve!: () => void;
-    const promise = new Promise<void>((done) => { resolve = done; });
+    const promise = new Promise<void>((done) => {
+        resolve = done;
+    });
     return { promise, resolve };
 }
 
-const edit = (): Action => ({ type: 'edit-text', targets: [], originalContent: 'before', newContent: 'after' });
+const edit = (): Action => ({
+    type: 'edit-text',
+    targets: [],
+    originalContent: 'before',
+    newContent: 'after',
+});
 
 function fixture(branchIds = ['a']) {
     const events: string[] = [];
@@ -74,12 +105,31 @@ function fixture(branchIds = ['a']) {
     const engine = Object.create(EditorEngine.prototype) as InstanceType<typeof EditorEngine>;
     const branches = Object.create(BranchManager.prototype) as InstanceType<typeof BranchManager>;
     const data = new Map<string, BranchData>();
-    const code = { hasPendingWrites: false, write: (action: Action) => write(action),
-        waitForPendingWrites: () => pending, clear: () => { events.push('code.clear'); } };
-    Object.assign(engine, { clearPromise: null, isClosing: false, branches, code,
+    const code = {
+        hasPendingWrites: false,
+        write: (action: Action) => write(action),
+        waitForPendingWrites: () => pending,
+        clear: () => {
+            events.push('code.clear');
+        },
+    };
+    Object.assign(engine, {
+        clearPromise: null,
+        isClosing: false,
+        branches,
+        code,
         posthog: { capture: () => undefined },
-        text: { finalizeForDisposal: async () => { events.push('text.finalize'); await finalText; } },
-        action: { clear: () => { actionOwner = null; events.push('action.clear'); },
+        text: {
+            finalizeForDisposal: async () => {
+                events.push('text.finalize');
+                await finalText;
+            },
+        },
+        action: {
+            clear: () => {
+                actionOwner = null;
+                events.push('action.clear');
+            },
             beginDisposalPreparation: (owner: object) => {
                 expect(actionOwner).toBeNull();
                 actionOwner = owner;
@@ -90,35 +140,106 @@ function fixture(branchIds = ['a']) {
                 actionOwner = null;
                 events.push('action.resume');
             },
-            flushAndWaitForPendingRebases: async () => { events.push('rebases.flush'); await rebases; } },
-        snap: { hideSnapLines: () => { events.push('snap.clear'); } },
+            flushAndWaitForPendingRebases: async () => {
+                events.push('rebases.flush');
+                await rebases;
+            },
+        },
+        snap: {
+            hideSnapLines: () => {
+                events.push('snap.clear');
+            },
+        },
     });
-    for (const name of ['elements', 'frames', 'overlay', 'ast', 'insert', 'move', 'style',
-        'stylePreferences', 'propertiesClipboard', 'copy', 'group', 'canvas', 'breakpoints',
-        'image', 'theme', 'tokens', 'font', 'pages', 'chat', 'interactions', 'components',
-        'frameEvent', 'screenshot', 'comment', 'presence', 'state']) {
-        Object.assign(engine, { [name]: { clear: () => { events.push(`${name}.clear`); } } });
+    for (const name of [
+        'elements',
+        'frames',
+        'overlay',
+        'ast',
+        'insert',
+        'move',
+        'style',
+        'stylePreferences',
+        'propertiesClipboard',
+        'copy',
+        'group',
+        'canvas',
+        'breakpoints',
+        'image',
+        'theme',
+        'tokens',
+        'font',
+        'pages',
+        'chat',
+        'interactions',
+        'components',
+        'frameEvent',
+        'screenshot',
+        'comment',
+        'presence',
+        'state',
+    ]) {
+        Object.assign(engine, {
+            [name]: {
+                clear: () => {
+                    events.push(`${name}.clear`);
+                },
+            },
+        });
     }
     for (const id of branchIds) {
         data.set(id, {
             branch: { id },
             history: new HistoryManager(engine, id, [edit()], [edit()]),
-            sandbox: { clear: () => { events.push(`${id}.sandbox.clear`); } },
-            error: { clear: () => { events.push(`${id}.error.clear`); } },
-            codeEditor: { cleanup: async () => {
-                events.push(`${id}.editor.cleanup`);
-                if (cleanupFailure === id) throw new Error('index cleanup failed');
-            } },
+            sandbox: {
+                clear: () => {
+                    events.push(`${id}.sandbox.clear`);
+                },
+            },
+            error: {
+                clear: () => {
+                    events.push(`${id}.error.clear`);
+                },
+            },
+            codeEditor: {
+                cleanup: async () => {
+                    events.push(`${id}.editor.cleanup`);
+                    if (cleanupFailure === id) throw new Error('index cleanup failed');
+                },
+            },
         } as unknown as BranchData);
     }
-    Object.assign(branches, { editorEngine: engine, branchMap: data, initializations: new Map(), disposalPreparation: null, currentBranchId: branchIds[0],
-        reactionDisposer: () => { events.push('reaction.dispose'); } });
-    return { engine, branches, data, events, code,
-        writeWith: (next: typeof write) => { write = next; },
-        waitWrites: (wait: Promise<void>) => { pending = wait; },
-        failCleanup: (id: string) => { cleanupFailure = id; },
-        waitText: (wait: Promise<void>) => { finalText = wait; },
-        failRebases: () => { rebases = Promise.reject(new Error('rebase refused')); },
+    Object.assign(branches, {
+        editorEngine: engine,
+        branchMap: data,
+        initializations: new Map(),
+        disposalPreparation: null,
+        currentBranchId: branchIds[0],
+        reactionDisposer: () => {
+            events.push('reaction.dispose');
+        },
+    });
+    return {
+        engine,
+        branches,
+        data,
+        events,
+        code,
+        writeWith: (next: typeof write) => {
+            write = next;
+        },
+        waitWrites: (wait: Promise<void>) => {
+            pending = wait;
+        },
+        failCleanup: (id: string) => {
+            cleanupFailure = id;
+        },
+        waitText: (wait: Promise<void>) => {
+            finalText = wait;
+        },
+        failRebases: () => {
+            rebases = Promise.reject(new Error('rebase refused'));
+        },
     };
 }
 
@@ -130,36 +251,82 @@ function textRebaseFixture() {
     const started = deferred();
     const stopping = deferred();
     const writes: Array<Parameters<Engine['code']['writeResponsiveStyleNow']>[0]> = [];
-    history.setSourceVersion(() => `source-${own}`, () => 'external-1', () => `own-${own}`);
-    f.writeWith(async () => { own++; return true; });
-    Object.assign(f.engine.code, { writeResponsiveStyleNow: async (args: Parameters<Engine['code']['writeResponsiveStyleNow']>[0]) => {
-        writes.push(args);
-        started.resolve();
-        await waiting;
+    history.setSourceVersion(
+        () => `source-${own}`,
+        () => 'external-1',
+        () => `own-${own}`,
+    );
+    f.writeWith(async () => {
         own++;
-        await history.noteOwnSourceWrite(args.getHistoryLease?.());
-        return 'applied' as const;
-    } });
-    Object.assign(f.engine.style, { breakpointMapFor: () => ({ mobile: 'red' }), removedBreakpointMapFor: () => ({}) });
-    const target = { domId: 'heading', oid: 'heading', branchId: 'a', frameId: 'frame', instanceId: null, rect: {} } as DomElement;
-    const view = { id: 'frame',
+        return true;
+    });
+    Object.assign(f.engine.code, {
+        writeResponsiveStyleNow: async (
+            args: Parameters<Engine['code']['writeResponsiveStyleNow']>[0],
+        ) => {
+            writes.push(args);
+            started.resolve();
+            await waiting;
+            own++;
+            await history.noteOwnSourceWrite(args.getHistoryLease?.());
+            return 'applied' as const;
+        },
+    });
+    Object.assign(f.engine.style, {
+        breakpointMapFor: () => ({ mobile: 'red' }),
+        removedBreakpointMapFor: () => ({}),
+    });
+    const target = {
+        domId: 'heading',
+        oid: 'heading',
+        branchId: 'a',
+        frameId: 'frame',
+        instanceId: null,
+        rect: {},
+    } as DomElement;
+    const view = {
+        id: 'frame',
         startEditingText: async () => ({ domEl: target, originalContent: 'Hello', rich: true }),
         getComputedStyleByDomId: async () => ({}),
-        stopEditingText: async () => { stopping.resolve(); return { domEl: target, newContent: 'Final' }; },
+        stopEditingText: async () => {
+            stopping.resolve();
+            return { domEl: target, newContent: 'Final' };
+        },
     } as unknown as IFrameView;
     Object.assign(f.engine.frames, { get: () => ({ view }) });
-    Object.assign(f.engine.overlay, { clearUI: () => undefined,
-        state: { addTextEditor: () => undefined, removeTextEditor: () => undefined } });
+    Object.assign(f.engine.overlay, {
+        clearUI: () => undefined,
+        state: { addTextEditor: () => undefined, removeTextEditor: () => undefined },
+    });
     const action = new ActionManager(f.engine);
     Object.assign(f.engine, { action });
     const text = new TextEditingManager(f.engine);
     text.isChildTextEditable = async () => true;
     Object.assign(f.engine, { text });
-    return { ...f, action, text, history, view, target, writes, started, stopping,
-        holdResponsive: (wait: Promise<void>) => { waiting = wait; }, currentVersion: () => `source-${own}` };
+    return {
+        ...f,
+        action,
+        text,
+        history,
+        view,
+        target,
+        writes,
+        started,
+        stopping,
+        holdResponsive: (wait: Promise<void>) => {
+            waiting = wait;
+        },
+        currentVersion: () => `source-${own}`,
+    };
 }
 
-beforeEach(() => { saved.length = 0; refusedSaves.clear(); branchSaveHolds.clear(); holdSave = null; clearCalls = 0; });
+beforeEach(() => {
+    saved.length = 0;
+    refusedSaves.clear();
+    branchSaveHolds.clear();
+    holdSave = null;
+    clearCalls = 0;
+});
 
 describe('recoverable editor teardown', () => {
     test('storage failure preserves both stacks, and retry saves before release', async () => {
@@ -182,7 +349,10 @@ describe('recoverable editor teardown', () => {
         const f = fixture();
         const history = f.data.get('a')!.history;
         let writes = 0;
-        f.writeWith(async () => { writes++; return writes > 1; });
+        f.writeWith(async () => {
+            writes++;
+            return writes > 1;
+        });
         await history.startTransaction();
         await history.push(edit());
         await expect(history.flushForDisposal()).rejects.toThrow('unfinished edit');
@@ -201,7 +371,12 @@ describe('recoverable editor teardown', () => {
         const wait = deferred();
         f.waitWrites(wait.promise);
         let finished = false;
-        const disposing = f.data.get('a')!.history.dispose().then(() => { finished = true; });
+        const disposing = f.data
+            .get('a')!
+            .history.dispose()
+            .then(() => {
+                finished = true;
+            });
         await Promise.resolve();
         expect(finished).toBe(false);
         expect(saved).toEqual([]);
@@ -234,7 +409,11 @@ describe('recoverable editor teardown', () => {
         const f = fixture();
         const history = f.data.get('a')!.history;
         let external = 'external-1';
-        history.setSourceVersion(() => 'source-hash', () => external, () => 'own-1');
+        history.setSourceVersion(
+            () => 'source-hash',
+            () => external,
+            () => 'own-1',
+        );
         external = 'external-2';
         await expect(history.flushForDisposal()).rejects.toThrow('source changed');
         expect(history.canUndo).toBe(true);
@@ -249,16 +428,23 @@ describe('recoverable editor teardown', () => {
         let own = 'own-1';
         let external = 'external-1';
         let version = 'source-1';
-        history.setSourceVersion(() => version, () => external, () => own);
+        history.setSourceVersion(
+            () => version,
+            () => external,
+            () => own,
+        );
         const lease = history.beginDisposalPreparation();
         const expected = history.getExternalRevisionForDisposal(lease);
-        own = 'own-2'; version = 'source-2';
+        own = 'own-2';
+        version = 'source-2';
         history.acknowledgeDisposalSourceWrite(lease, expected);
         const checkpoint = await history.flushForDisposal(lease);
         expect(saved.at(-1)?.version).toBe('source-2');
         history.assertDisposalCheckpoint(lease, checkpoint);
         external = 'external-2';
-        expect(() => history.acknowledgeDisposalSourceWrite(lease, expected)).toThrow('source changed');
+        expect(() => history.acknowledgeDisposalSourceWrite(lease, expected)).toThrow(
+            'source changed',
+        );
         expect(history.canUndo).toBe(true);
         expect(clearCalls).toBe(0);
         history.cancelDisposalPreparation(lease);
@@ -269,7 +455,11 @@ describe('recoverable editor teardown', () => {
         const history = f.data.get('a')!.history;
         expect(await history.confirmSourceReplay('external-1')).toBe(false);
         let own = 'own-1';
-        history.setSourceVersion(() => 'source-1', () => 'external-1', () => own);
+        history.setSourceVersion(
+            () => 'source-1',
+            () => 'external-1',
+            () => own,
+        );
         own = 'own-2';
         refusedSaves.add('a');
         await expect(history.confirmSourceReplay('external-1')).rejects.toThrow('save refused');
@@ -283,7 +473,14 @@ describe('recoverable editor teardown', () => {
         const f = fixture(['a', 'b']);
         refusedSaves.add('b');
         await expect(f.branches.clear()).rejects.toThrow('save refused: b');
-        expect(f.events.filter((event) => event.endsWith('.clear') || event.endsWith('.cleanup') || event.endsWith('.dispose'))).toEqual([]);
+        expect(
+            f.events.filter(
+                (event) =>
+                    event.endsWith('.clear') ||
+                    event.endsWith('.cleanup') ||
+                    event.endsWith('.dispose'),
+            ),
+        ).toEqual([]);
         expect(f.data.size).toBe(2);
         expect(f.data.get('a')!.history.canUndo).toBe(true);
         expect(f.data.get('b')!.history.canUndo).toBe(true);
@@ -301,7 +498,10 @@ describe('recoverable editor teardown', () => {
         const entered = deferred();
         branchSaveHolds.set('b', { wait: wait.promise, entered: entered.resolve });
         let writes = 0;
-        f.writeWith(async () => { writes++; return true; });
+        f.writeWith(async () => {
+            writes++;
+            return true;
+        });
         const clearing = f.branches.clear();
         await entered.promise;
         const a = f.data.get('a')!.history;
@@ -325,16 +525,28 @@ describe('recoverable editor teardown', () => {
         let version = 'source-1';
         let own = 'own-1';
         const a = f.data.get('a')!.history;
-        a.setSourceVersion(() => version, () => 'external-1', () => own);
+        a.setSourceVersion(
+            () => version,
+            () => 'external-1',
+            () => own,
+        );
         const preparation = f.branches.beginDisposalPreparation();
         const clearing = f.branches.clear(undefined, preparation);
         await entered.promise;
-        version = 'source-2'; own = 'own-2';
+        version = 'source-2';
+        own = 'own-2';
         await expect(a.noteOwnSourceWrite()).rejects.toThrow('preparation owner');
         await a.noteOwnSourceWrite(preparation.getHistoryLease('a'));
         wait.resolve();
         await expect(clearing).rejects.toThrow('editor changed while saving');
-        expect(f.events.filter((event) => event.endsWith('.clear') || event.endsWith('.cleanup') || event.endsWith('.dispose'))).toEqual([]);
+        expect(
+            f.events.filter(
+                (event) =>
+                    event.endsWith('.clear') ||
+                    event.endsWith('.cleanup') ||
+                    event.endsWith('.dispose'),
+            ),
+        ).toEqual([]);
         expect(a.canUndo).toBe(true);
         expect(f.data.size).toBe(2);
         f.branches.cancelDisposalPreparation(preparation);
@@ -347,14 +559,24 @@ describe('recoverable editor teardown', () => {
         const f = fixture();
         const wait = deferred();
         const a = f.data.get('a')!.history;
-        f.writeWith(async () => { await wait.promise; return false; });
+        f.writeWith(async () => {
+            await wait.promise;
+            return false;
+        });
         const pushing = a.push(edit());
         const clearing = f.branches.clear();
         wait.resolve();
         expect(await pushing).toBe(false);
         await expect(clearing).rejects.toThrow('admitted edit could not be saved');
         expect(f.data.size).toBe(1);
-        expect(f.events.filter((event) => event.endsWith('.clear') || event.endsWith('.cleanup') || event.endsWith('.dispose'))).toEqual([]);
+        expect(
+            f.events.filter(
+                (event) =>
+                    event.endsWith('.clear') ||
+                    event.endsWith('.cleanup') ||
+                    event.endsWith('.dispose'),
+            ),
+        ).toEqual([]);
         await a.startTransaction();
     });
 
@@ -362,7 +584,14 @@ describe('recoverable editor teardown', () => {
         const f = fixture(['a', 'b']);
         refusedSaves.add('b');
         await expect(f.branches.initBranches([])).rejects.toThrow('save refused: b');
-        expect(f.events.filter((event) => event.endsWith('.clear') || event.endsWith('.cleanup') || event.endsWith('.dispose'))).toEqual([]);
+        expect(
+            f.events.filter(
+                (event) =>
+                    event.endsWith('.clear') ||
+                    event.endsWith('.cleanup') ||
+                    event.endsWith('.dispose'),
+            ),
+        ).toEqual([]);
         expect(f.data.size).toBe(2);
         expect(f.branches.activeBranch.id).toBe('a');
     });
@@ -382,7 +611,9 @@ describe('recoverable editor teardown', () => {
         let drained = false;
         Object.assign(f.engine.action, {
             waitForQueuedStyleDispatches: async () => undefined,
-            finishQueuedStyleAction: async () => { committed = true; },
+            finishQueuedStyleAction: async () => {
+                committed = true;
+            },
             flushAndWaitForPendingRebases: async () => {
                 expect(committed).toBe(true);
                 drained = true;
@@ -403,7 +634,14 @@ describe('recoverable editor teardown', () => {
         const first = f.engine.clear();
         expect(f.engine.clear()).toBe(first);
         await expect(first).rejects.toThrow('save refused');
-        expect(f.events.filter((event) => event.endsWith('.clear') || event.endsWith('.cleanup') || event.endsWith('.dispose'))).toEqual([]);
+        expect(
+            f.events.filter(
+                (event) =>
+                    event.endsWith('.clear') ||
+                    event.endsWith('.cleanup') ||
+                    event.endsWith('.dispose'),
+            ),
+        ).toEqual([]);
         expect(f.engine.isClosing).toBe(false);
         expect(f.data.get('a')!.history.canUndo).toBe(true);
         refusedSaves.clear();
@@ -455,25 +693,41 @@ describe('recoverable editor teardown', () => {
         await f.stopping.promise;
         expect(f.history.isPreparingForDisposal).toBe(true);
         expect(f.writes[0]!.getHistoryLease?.()).toBeDefined();
-        expect(() => f.action.requestSourceRebase('late', 'color')).toThrow('Keep this editor open');
+        expect(() => f.action.requestSourceRebase('late', 'color')).toThrow(
+            'Keep this editor open',
+        );
         wait.resolve();
         await ending;
         expect(f.text.isEditing).toBe(false);
         expect(f.history.isPreparingForDisposal).toBe(false);
         expect(f.action.hasPendingRebases).toBe(false);
         expect(saved.at(-1)?.version).toBe(f.currentVersion());
-        expect(saved.at(-1)?.undo.some((entry) => entry.type === 'edit-text' && entry.newContent === 'Final')).toBe(true);
+        expect(
+            saved
+                .at(-1)
+                ?.undo.some((entry) => entry.type === 'edit-text' && entry.newContent === 'Final'),
+        ).toBe(true);
         f.action.clear();
     });
 
     test('normal text finalization drains the responsive rebase created by its strict gesture commit', async () => {
         const f = textRebaseFixture();
         await f.text.start(f.target, f.view);
-        await f.history.push({ type: 'update-style', targets: [{
-            oid: 'heading', branchId: 'a', domId: 'heading', frameId: 'frame',
-            change: { original: { color: { value: 'black', type: StyleChangeType.Value } },
-                updated: { color: { value: 'red', type: StyleChangeType.Value } } },
-        }] });
+        await f.history.push({
+            type: 'update-style',
+            targets: [
+                {
+                    oid: 'heading',
+                    branchId: 'a',
+                    domId: 'heading',
+                    frameId: 'frame',
+                    change: {
+                        original: { color: { value: 'black', type: StyleChangeType.Value } },
+                        updated: { color: { value: 'red', type: StyleChangeType.Value } },
+                    },
+                },
+            ],
+        });
         expect(f.writes).toEqual([]);
         await f.text.end();
         expect(f.writes).toHaveLength(1);
@@ -483,5 +737,195 @@ describe('recoverable editor teardown', () => {
         expect(saved.at(-1)?.version).toBe(f.currentVersion());
         expect(saved.at(-1)?.undo.some((entry) => entry.type === 'update-style')).toBe(true);
         f.action.clear();
+    });
+});
+
+// Run this file alone: the prototype tests above retain the real engine class,
+// while these mounted lifecycle tests substitute only the provider's engine.
+describe('mounted editor engine lifetime', () => {
+    const events: string[] = [];
+    const pending = new Map<string, ReturnType<typeof deferred>>();
+    const failures = new Set<string>();
+    const started: MountedEngine[] = [];
+    let dom: InstanceType<typeof Window>;
+    let root: import('react-dom/client').Root | null = null;
+    let createRoot: (typeof import('react-dom/client'))['createRoot'];
+    let Provider: (typeof import('./index'))['EditorEngineProvider'];
+    let useEngine: (typeof import('./index'))['useEditorEngine'];
+    const globals = new Map<string, PropertyDescriptor | undefined>();
+
+    class MountedEngine {
+        readonly screenshot = { lastScreenshotAt: null as number | null };
+        isClosing = false;
+        constructor(
+            readonly projectId: string,
+            _posthog: unknown,
+            _framework: unknown,
+            readonly scopedProject?: import('./engine').ScopedEditorProject,
+        ) {}
+        async initBranches() {
+            events.push(`${this.projectId}.branches`);
+            started.push(this);
+            await pending.get(this.projectId)?.promise;
+            if (failures.has(this.projectId)) throw new Error('Fixture startup failed');
+        }
+        async init() {
+            events.push(`${this.projectId}.init`);
+        }
+        async clear() {
+            this.isClosing = true;
+            events.push(`${this.projectId}.clear`);
+        }
+    }
+
+    beforeAll(async () => {
+        dom = new Window({ url: 'https://weblab.test/project/a' });
+        const values: Record<string, unknown> = {
+            window: dom,
+            document: dom.document,
+            navigator: dom.navigator,
+            HTMLElement: dom.HTMLElement,
+            Node: dom.Node,
+            IS_REACT_ACT_ENVIRONMENT: true,
+        };
+        for (const [name, value] of Object.entries(values)) {
+            globals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+            Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
+        }
+        void mock.module('./engine', () => ({ EditorEngine: MountedEngine }));
+        void mock.module('posthog-js/react', () => ({ usePostHog: () => ({}) }));
+        void mock.module('@/components/working-level/editor-gate', () => ({
+            useWorkingLevelLifecycle: () => null,
+        }));
+        void mock.module('@/app/project/[id]/_components/project-load-error', () => ({
+            ProjectLoadError: () => createElement('div', { 'data-startup-error': true }),
+        }));
+        ({ createRoot } = await import('react-dom/client'));
+        ({ EditorEngineProvider: Provider, useEditorEngine: useEngine } = await import('./index'));
+    });
+
+    afterAll(async () => {
+        await dom.happyDOM.close();
+        for (const [name, descriptor] of globals) {
+            if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+            else Reflect.deleteProperty(globalThis, name);
+        }
+    });
+
+    beforeEach(() => {
+        events.length = 0;
+        started.length = 0;
+        pending.clear();
+        failures.clear();
+    });
+
+    afterEach(async () => {
+        for (const wait of pending.values()) wait.resolve();
+        if (root) {
+            await act(async () => {
+                root?.unmount();
+            });
+            root = null;
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, 5));
+        dom.document.body.replaceChildren();
+    });
+
+    function CurrentProject() {
+        return createElement('span', { 'data-project': useEngine().projectId });
+    }
+
+    async function render(projectId: string, strict = false) {
+        if (!root) {
+            const container = dom.document.createElement('div');
+            dom.document.body.append(container);
+            root = createRoot(container as unknown as HTMLElement);
+        }
+        const editor = createElement(Provider, {
+            project: { id: projectId } as import('@weblab/models').Project,
+            branches: [],
+            children: createElement(CurrentProject),
+            scopedProject: {
+                actorId: 'actor',
+                clerkUserId: 'clerk-user',
+                sessionId: 'session',
+                isCurrent: () => true,
+            },
+        });
+        await act(async () => {
+            root?.render(strict ? createElement(StrictMode, null, editor) : editor);
+        });
+    }
+
+    test('StrictMode initializes once and publishes only a fully ready engine', async () => {
+        const wait = deferred();
+        pending.set('a', wait);
+        await render('a', true);
+        expect(events).toEqual(['a.branches']);
+        expect(dom.document.querySelector('[data-project]')).toBeNull();
+        await act(async () => {
+            wait.resolve();
+        });
+        expect(events).toEqual(['a.branches', 'a.init']);
+        expect(started).toHaveLength(1);
+        expect(started[0]?.scopedProject?.sessionId).toBe('session');
+        expect(dom.document.querySelector('[data-project]')?.getAttribute('data-project')).toBe(
+            'a',
+        );
+        await act(async () => {
+            root?.unmount();
+        });
+        root = null;
+        await new Promise<void>((resolve) => setTimeout(resolve, 5));
+        expect(events.filter((event) => event === 'a.clear')).toHaveLength(1);
+    });
+
+    test('serializes rapid project handoffs and disposes the losing engine before starting its replacement', async () => {
+        const wait = deferred();
+        pending.set('a', wait);
+        await render('a');
+        await render('b');
+        await render('c');
+        expect(events).toEqual(['a.branches']);
+        await act(async () => {
+            wait.resolve();
+        });
+        expect(events).toEqual(['a.branches', 'a.init', 'a.clear', 'c.branches', 'c.init']);
+        expect(started.map((engine) => engine.projectId)).toEqual(['a', 'c']);
+        expect(started[1]?.scopedProject?.clerkUserId).toBe('clerk-user');
+        expect(dom.document.querySelector('[data-project]')?.getAttribute('data-project')).toBe(
+            'c',
+        );
+    });
+
+    test('retains failed startup for disposal and never exposes its unfinished children', async () => {
+        failures.add('a');
+        await render('a');
+        expect(dom.document.querySelector('[data-project]')).toBeNull();
+        expect(dom.document.querySelector('[data-startup-error]')).not.toBeNull();
+        await render('b');
+        expect(events).toEqual(['a.branches', 'a.clear', 'b.branches', 'b.init']);
+        expect(dom.document.querySelector('[data-project]')?.getAttribute('data-project')).toBe(
+            'b',
+        );
+        expect(dom.document.querySelector('[data-startup-error]')).toBeNull();
+    });
+
+    test('waits for pending initialization before unmount disposal without publishing its children', async () => {
+        const wait = deferred();
+        pending.set('a', wait);
+        await render('a');
+        await act(async () => {
+            root?.unmount();
+        });
+        root = null;
+        await new Promise<void>((resolve) => setTimeout(resolve, 5));
+        expect(events).toEqual(['a.branches']);
+        await act(async () => {
+            wait.resolve();
+        });
+        await new Promise<void>((resolve) => setTimeout(resolve, 5));
+        expect(events).toEqual(['a.branches', 'a.init', 'a.clear']);
+        expect(dom.document.querySelector('[data-project]')).toBeNull();
     });
 });

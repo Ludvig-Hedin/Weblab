@@ -6,7 +6,7 @@ import { mutation, query } from './_generated/server';
 import { cloudEditorRole } from './cloudEditorAccessSchema';
 import { can } from './lib/auth';
 import { cloudError, cloudScope } from './lib/cloudEditor';
-import { requireCap } from './lib/permissions';
+import { requireCloudProjectCapability } from './lib/cloudProjectAdmission';
 
 export type CloudEditorRole = 'responsible' | 'designer' | 'content';
 type Scope = { projectId: Id<'projects'>; branchId: Id<'branches'> };
@@ -18,9 +18,9 @@ function requireEnabled() {
     if (process.env.WEBLAB_CLOUD_EDITOR_ENABLED !== 'true') cloudError('CLOUD_DISABLED');
 }
 
-/** A stored cloud grant never substitutes for current ordinary project access. */
+/** Cloud grants require current ordinary access or exact scoped project admission. */
 export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: CloudEditorRole) {
-    const legacy = await requireCap(ctx, 'project.view', { projectId: scope.projectId });
+    const legacy = await requireCloudProjectCapability(ctx, scope);
     const branch = await ctx.db.get(scope.branchId);
     const state = await ctx.db
         .query('cloudEditorStates')
@@ -74,11 +74,9 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
 export const access = query({
     args: cloudScope,
     handler: async (ctx, scope) => {
-        const { role, canDesign, canEditContent, canPublish, canManage } = await requireCloudAccess(
-            ctx,
-            scope,
-        );
-        return { role, canDesign, canEditContent, canPublish, canManage };
+        const { user, role, canDesign, canEditContent, canPublish, canManage } =
+            await requireCloudAccess(ctx, scope);
+        return { actorId: user._id, role, canDesign, canEditContent, canPublish, canManage };
     },
 });
 
@@ -269,16 +267,33 @@ export const removeMember = mutation({
     handler: async (ctx, args) => {
         const { state } = await requireManager(ctx, args, true);
         if (args.userId === state.createdByUserId) return cloudError('CLOUD_CREATOR_PROTECTED');
-        const removal = await ctx.db.query('cloudEditorMemberRemovals')
-            .withIndex('by_projectId_userId', q => q.eq('projectId', args.projectId).eq('userId', args.userId)).unique();
+        const removal = await ctx.db
+            .query('cloudEditorMemberRemovals')
+            .withIndex('by_projectId_userId', (q) =>
+                q.eq('projectId', args.projectId).eq('userId', args.userId),
+            )
+            .unique();
         if (removal) await ctx.db.patch(removal._id, { removedAt: Date.now() });
-        else await ctx.db.insert('cloudEditorMemberRemovals', { projectId: args.projectId, userId: args.userId, removedAt: Date.now() });
+        else
+            await ctx.db.insert('cloudEditorMemberRemovals', {
+                projectId: args.projectId,
+                userId: args.userId,
+                removedAt: Date.now(),
+            });
         const removedUser = await ctx.db.get(args.userId);
         if (removedUser?.email) {
-            const pendingInvites = await ctx.db.query('cloudEditorInvitations')
-                .withIndex('by_projectId_email', q => q.eq('projectId', args.projectId).eq('email', removedUser.email!.trim().toLowerCase())).take(501);
+            const pendingInvites = await ctx.db
+                .query('cloudEditorInvitations')
+                .withIndex('by_projectId_email', (q) =>
+                    q
+                        .eq('projectId', args.projectId)
+                        .eq('email', removedUser.email!.trim().toLowerCase()),
+                )
+                .take(501);
             if (pendingInvites.length > 500) return cloudError('CLOUD_INVITATION_LIMIT');
-            for (const invite of pendingInvites) if (invite.status === 'pending') await ctx.db.patch(invite._id, { status: 'revoked' });
+            for (const invite of pendingInvites)
+                if (invite.status === 'pending')
+                    await ctx.db.patch(invite._id, { status: 'revoked' });
         }
         const grant = await ctx.db
             .query('cloudEditorGrants')
@@ -292,8 +307,12 @@ export const removeMember = mutation({
                 q.eq('projectId', args.projectId).eq('userId', args.userId),
             )
             .unique();
-        const ticket = await ctx.db.query('cloudPreviewTickets')
-            .withIndex('by_branchId_and_userId', q => q.eq('branchId', args.branchId).eq('userId', args.userId)).unique();
+        const ticket = await ctx.db
+            .query('cloudPreviewTickets')
+            .withIndex('by_branchId_and_userId', (q) =>
+                q.eq('branchId', args.branchId).eq('userId', args.userId),
+            )
+            .unique();
         if (ticket?.projectId === args.projectId) await ctx.db.delete(ticket._id);
         if (grant) await ctx.db.delete(grant._id);
         if (membership) await ctx.db.delete(membership._id);
@@ -318,8 +337,7 @@ export async function authorizeCloudPreviewStart(
         !state ||
         state.projectId !== scope.projectId ||
         state.version !== 1 ||
-        !request ||
-        request.generation !== requestGeneration ||
+        request?.generation !== requestGeneration ||
         request.expiresAt <= Date.now() ||
         (request.reservedToken !== undefined && request.reservedToken !== token)
     )

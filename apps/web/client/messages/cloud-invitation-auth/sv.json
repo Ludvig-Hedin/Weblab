@@ -1,0 +1,21 @@
+{
+  "loading": "Laddar inloggning…",
+  "existingAccount": "Logga in med ditt befintliga konto. Det går inte att skapa ett nytt konto här ännu.",
+  "email": "E-postadress",
+  "send": "Skicka en inloggningskod",
+  "code": "Sexsiffrig inloggningskod",
+  "verify": "Logga in",
+  "working": "Vänta…",
+  "resend": "Skicka en ny kod",
+  "resendWait": "Skicka igen om {seconds} s",
+  "changeEmail": "Byt e-postadress",
+  "switchAccount": "Använd ett annat konto",
+  "tryAnother": "Prova ett annat konto",
+  "secondFactor": "Kontot behöver ytterligare en säkerhetskontroll som den här sidan inte stöder än. Kontakta byrån som bjöd in dig.",
+  "unsupported": "Kontot behöver ett inloggningssteg som inte finns här. Kontakta byrån som bjöd in dig.",
+  "sessionBlocked": "Kontot behöver ett inställnings- eller säkerhetssteg som den här sidan inte kan slutföra än. Kontakta byrån som bjöd in dig.",
+  "failed": "Det gick inte att logga in. Kontrollera uppgifterna och försök igen. Kontakta byrån som bjöd in dig om problemet kvarstår.",
+  "projectTitle": "Öppna din sajt",
+  "projectDenied": "Det här kontot har inte tillgång till sajten. Använd det inbjudna kontot eller be din byrå om åtkomst.",
+  "projectOpen": "Öppna sajten"
+}

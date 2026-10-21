@@ -64,7 +64,15 @@ const COPY: Record<
 };
 
 export const ProjectLoadError = observer(
-    ({ variant, message }: { variant: Variant; message?: string }) => {
+    ({
+        variant,
+        message,
+        onRetry,
+    }: {
+        variant: Variant;
+        message?: string;
+        onRetry?: () => void;
+    }) => {
         const router = useRouter();
         const copy = COPY[variant];
         // `ProjectLoadError` can render BEFORE `EditorEngineProvider` mounts
@@ -79,6 +87,10 @@ export const ProjectLoadError = observer(
         const [isRetrying, setIsRetrying] = useState(false);
 
         const handleRetry = async () => {
+            if (onRetry) {
+                onRetry();
+                return;
+            }
             // No engine available → fall back to a plain server refresh.
             // This is the path taken when the error was thrown from the
             // page Server Component before providers mounted.

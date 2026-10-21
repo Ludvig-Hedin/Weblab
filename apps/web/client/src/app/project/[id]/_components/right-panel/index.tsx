@@ -16,8 +16,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
-import { useEditorEngine } from '@/components/store/editor';
 import { CloudContentPanel } from '@/components/cloud-editor/content-panel';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
+import { useEditorEngine } from '@/components/store/editor';
 import { OPEN_CHAT_PANEL_EVENT, OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
@@ -61,12 +62,13 @@ const LinkTab = dynamic(() => import('./link-tab').then((m) => m.LinkTab), {
 type RightPanelTab = 'style' | 'link' | 'interactions' | 'chat';
 
 /** Tabs outside the local release scope fall back to Style. */
-const isTabEnabled = (tab: RightPanelTab): boolean =>
+const isTabEnabled = (tab: RightPanelTab, scoped = false): boolean =>
     tab === 'style' ||
     tab === 'link' ||
-    (tab === 'chat' && EDITOR_SCOPE.aiChat) ||
+    (tab === 'chat' && !scoped && EDITOR_SCOPE.aiChat) ||
     (tab === 'interactions' && EDITOR_SCOPE.interactions);
-const enabledTab = (tab: RightPanelTab): RightPanelTab => (isTabEnabled(tab) ? tab : 'style');
+const enabledTab = (tab: RightPanelTab, scoped = false): RightPanelTab =>
+    isTabEnabled(tab, scoped) ? tab : 'style';
 
 const DEFAULT_PANEL_WIDTH = 352;
 // While the project is being scaffolded from a prompt the chat is the primary
@@ -150,13 +152,16 @@ const writeStored = (key: string, value: string): void => {
 
 export const RightPanel = observer(() => {
     const editorEngine = useEditorEngine();
+    const scoped = !!useScopedProject();
     const t = useTranslations();
     // Guard the empty-projectId boot window: `useQuery` with a blank id cast
     // to `Id<'projects'>` would fire an invalid query during engine init.
     // 'skip' until the engine has a real projectId (Convex 'skip' sentinel).
     const creationRequest = useQuery(
         api.projectCreateRequests.getPendingRequest,
-        editorEngine.projectId ? { projectId: editorEngine.projectId as Id<'projects'> } : 'skip',
+        !scoped && editorEngine.projectId
+            ? { projectId: editorEngine.projectId as Id<'projects'> }
+            : 'skip',
     );
     const isFirstCreation = !!creationRequest;
     const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
@@ -168,10 +173,10 @@ export const RightPanel = observer(() => {
     const [panelWidth, setPanelWidth] = useState(
         isFirstCreation ? FIRST_CREATION_PANEL_WIDTH : DEFAULT_PANEL_WIDTH,
     );
-    const [activeTab, setActiveTabState] = useState<RightPanelTab>(enabledTab('chat'));
+    const [activeTab, setActiveTabState] = useState<RightPanelTab>(enabledTab('chat', scoped));
     const setActiveTab = useCallback(
-        (tab: RightPanelTab) => setActiveTabState(enabledTab(tab)),
-        [],
+        (tab: RightPanelTab) => setActiveTabState(enabledTab(tab, scoped)),
+        [scoped],
     );
     // `ResizablePanel` only reads `defaultWidth` at mount; to apply a restored
     // width after hydration we push it through `forceWidth` once. Left
@@ -187,7 +192,7 @@ export const RightPanel = observer(() => {
     // mode and bounce the user off it if it was the active tab when they
     // entered CODE so they don't land on an empty disabled tab.
     const isCodeMode = editorEngine.state.editorMode === EditorMode.CODE;
-    const isCommentMode = editorEngine.state.editorMode === EditorMode.COMMENT;
+    const isCommentMode = !scoped && editorEngine.state.editorMode === EditorMode.COMMENT;
     // Link tab: enabled when the selection is, or sits inside, a link or button.
     const linkTarget = useLinkTarget();
     const isLinkTabDisabled = isCodeMode || linkTarget.status !== 'found';
@@ -357,7 +362,12 @@ export const RightPanel = observer(() => {
     const interactionsLabel = t(transKeys.editor.panels.edit.tabs.interactions.name);
     const chatLabel = t(transKeys.editor.panels.edit.tabs.chat.name);
 
-    if (!editorEngine.canUseDesign) return <aside className="bg-background-chrome h-full w-80 overflow-y-auto border-l"><CloudContentPanel /></aside>;
+    if (!editorEngine.canUseDesign)
+        return (
+            <aside className="bg-background-chrome h-full w-80 overflow-y-auto border-l">
+                <CloudContentPanel />
+            </aside>
+        );
 
     return (
         <div
@@ -551,73 +561,76 @@ export const RightPanel = observer(() => {
                                                 </Tooltip>
                                             );
                                         })()}
-                                        {EDITOR_SCOPE.interactions && (() => {
-                                            const showInteractionsLabel =
-                                                !isNarrow || activeTab === 'interactions';
-                                            const interactionsTrigger = (
+                                        {EDITOR_SCOPE.interactions &&
+                                            (() => {
+                                                const showInteractionsLabel =
+                                                    !isNarrow || activeTab === 'interactions';
+                                                const interactionsTrigger = (
+                                                    <TabsTrigger
+                                                        value="interactions"
+                                                        disabled={isCodeMode}
+                                                        aria-label={interactionsLabel}
+                                                        title={
+                                                            showInteractionsLabel
+                                                                ? undefined
+                                                                : interactionsLabel
+                                                        }
+                                                        className={cn(
+                                                            'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent',
+                                                            showInteractionsLabel
+                                                                ? 'px-2.5'
+                                                                : 'w-7 flex-none px-0',
+                                                            isCodeMode &&
+                                                                'cursor-not-allowed opacity-40',
+                                                        )}
+                                                    >
+                                                        <Icons.CursorArrow className="h-3 w-3 shrink-0" />
+                                                        {showInteractionsLabel && interactionsLabel}
+                                                    </TabsTrigger>
+                                                );
+                                                if (!isCodeMode) return interactionsTrigger;
+                                                return (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            {interactionsTrigger}
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="bottom" hideArrow>
+                                                            {t(
+                                                                transKeys.editor.panels.edit.tabs
+                                                                    .interactions
+                                                                    .availableInDesignMode,
+                                                            )}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                );
+                                            })()}
+                                        {!scoped && EDITOR_SCOPE.aiChat && (
+                                            <>
+                                                <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                                 <TabsTrigger
-                                                    value="interactions"
-                                                    disabled={isCodeMode}
-                                                    aria-label={interactionsLabel}
+                                                    value="chat"
+                                                    aria-label={chatLabel}
                                                     title={
-                                                        showInteractionsLabel
+                                                        !isNarrow || activeTab === 'chat'
                                                             ? undefined
-                                                            : interactionsLabel
+                                                            : chatLabel
                                                     }
                                                     className={cn(
-                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent',
-                                                        showInteractionsLabel
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent',
+                                                        !isNarrow || activeTab === 'chat'
                                                             ? 'px-2.5'
                                                             : 'w-7 flex-none px-0',
-                                                        isCodeMode &&
-                                                            'cursor-not-allowed opacity-40',
                                                     )}
                                                 >
-                                                    <Icons.CursorArrow className="h-3 w-3 shrink-0" />
-                                                    {showInteractionsLabel && interactionsLabel}
+                                                    <Icons.Sparkles className="h-3 w-3 shrink-0" />
+                                                    {(!isNarrow || activeTab === 'chat') &&
+                                                        chatLabel}
                                                 </TabsTrigger>
-                                            );
-                                            if (!isCodeMode) return interactionsTrigger;
-                                            return (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        {interactionsTrigger}
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="bottom" hideArrow>
-                                                        {t(
-                                                            transKeys.editor.panels.edit.tabs
-                                                                .interactions.availableInDesignMode,
-                                                        )}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            );
-                                        })()}
-                                        {EDITOR_SCOPE.aiChat && (
-                                        <>
-                                        <div className="bg-border-tab-divider h-3.5 w-px self-center" />
-                                        <TabsTrigger
-                                            value="chat"
-                                            aria-label={chatLabel}
-                                            title={
-                                                !isNarrow || activeTab === 'chat'
-                                                    ? undefined
-                                                    : chatLabel
-                                            }
-                                            className={cn(
-                                                'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent',
-                                                !isNarrow || activeTab === 'chat'
-                                                    ? 'px-2.5'
-                                                    : 'w-7 flex-none px-0',
-                                            )}
-                                        >
-                                            <Icons.Sparkles className="h-3 w-3 shrink-0" />
-                                            {(!isNarrow || activeTab === 'chat') && chatLabel}
-                                        </TabsTrigger>
-                                        </>
+                                            </>
                                         )}
                                     </TabsList>
                                     <div className="ml-auto flex shrink-0 items-center gap-0.5">
-                                        {activeTab === 'chat' && (
+                                        {!scoped && activeTab === 'chat' && (
                                             <>
                                                 <ChatControls
                                                     compact={isChatControlsCompact}
@@ -680,10 +693,12 @@ export const RightPanel = observer(() => {
                                         */}
                                     </div>
                                 </div>
-                                <ChatHistory
-                                    isOpen={isChatHistoryOpen}
-                                    onOpenChange={setIsChatHistoryOpen}
-                                />
+                                {!scoped && (
+                                    <ChatHistory
+                                        isOpen={isChatHistoryOpen}
+                                        onOpenChange={setIsChatHistoryOpen}
+                                    />
+                                )}
 
                                 <TabsContent
                                     value="style"
@@ -715,33 +730,34 @@ export const RightPanel = observer(() => {
                                     className="min-h-0 flex-1 overflow-hidden"
                                 >
                                     <div className="flex h-full flex-col overflow-y-auto">
-                                        {currentConversation ? (
-                                            <ChatTab
-                                                conversationId={currentConversation.id}
-                                                projectId={editorEngine.projectId}
-                                            />
-                                        ) : (
-                                            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                                                <p className="text-foreground-secondary text-small">
-                                                    {t(
-                                                        transKeys.editor.panels.edit.tabs.chat
-                                                            .noActiveConversation,
-                                                    )}
-                                                </p>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        void editorEngine.chat.conversation.startNewConversation();
-                                                    }}
-                                                >
-                                                    {t(
-                                                        transKeys.editor.panels.edit.tabs.chat
-                                                            .startNewConversation,
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        )}
+                                        {!scoped &&
+                                            (currentConversation ? (
+                                                <ChatTab
+                                                    conversationId={currentConversation.id}
+                                                    projectId={editorEngine.projectId}
+                                                />
+                                            ) : (
+                                                <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                                                    <p className="text-foreground-secondary text-small">
+                                                        {t(
+                                                            transKeys.editor.panels.edit.tabs.chat
+                                                                .noActiveConversation,
+                                                        )}
+                                                    </p>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            void editorEngine.chat.conversation.startNewConversation();
+                                                        }}
+                                                    >
+                                                        {t(
+                                                            transKeys.editor.panels.edit.tabs.chat
+                                                                .startNewConversation,
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            ))}
                                     </div>
                                 </TabsContent>
                             </Tabs>

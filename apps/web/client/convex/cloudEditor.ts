@@ -1,4 +1,3 @@
-import { getCloudPreviewTicket } from './cloudPreviewAccess';
 import { makeFunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -11,6 +10,7 @@ import {
     requireCloudAccess,
 } from './cloudEditorAccess';
 import { commitCloudEditorUploads } from './cloudEditorUploads';
+import { getCloudPreviewTicket } from './cloudPreviewAccess';
 import {
     assertCloudRevision,
     assertOperationId,
@@ -25,6 +25,7 @@ import {
     MAX_CLOUD_TEXT_BYTES,
 } from './lib/cloudEditor';
 import { isCloudPilotProject, readPilotMetadata, validatePilotContent } from './lib/cloudPilot';
+import { requireCloudProjectCapability } from './lib/cloudProjectAdmission';
 import { getCapabilities, requireCap } from './lib/permissions';
 
 const syncRef = makeFunctionReference<
@@ -56,9 +57,7 @@ async function enrolled(
     write = false,
 ) {
     if (write) return requireCloudAccess(ctx, scope, 'designer');
-    const access = await requireCap(ctx, write ? 'project.update' : 'project.view', {
-        projectId: scope.projectId,
-    });
+    const access = await requireCloudProjectCapability(ctx, scope);
     const branch = await ctx.db.get(scope.branchId);
     const state = await ctx.db
         .query('cloudEditorStates')
@@ -190,7 +189,7 @@ export const prepare = query({
         await requireCap(ctx, 'project.create', { workspaceId });
         if (!sourcePilotId) return null;
         const { project } = await requireCap(ctx, 'project.update', { projectId: sourcePilotId });
-        if (!project || project.workspaceId !== workspaceId || !isCloudPilotProject(project))
+        if (project?.workspaceId !== workspaceId || !isCloudPilotProject(project))
             return cloudError('CLOUD_INVALID_MIGRATION');
         const { itemId } = readPilotMetadata(project.runtimeMetadata);
         const id = ctx.db.normalizeId('cmsItems', itemId);
@@ -482,7 +481,8 @@ export const ensurePreview = mutation({
         const { state, canDesign, user } = await requireCloudAccess(ctx, scope, 'content');
         if (
             (state.leaseUntil ?? 0) > Date.now() ||
-            (state.status === 'ready' && state.previewGatewayVersion === 2 &&
+            (state.status === 'ready' &&
+                state.previewGatewayVersion === 2 &&
                 state.appliedRevision === state.revision &&
                 (state.expiresAt ?? 0) > Date.now() + 60_000)
         )
@@ -498,7 +498,8 @@ export const ensurePreview = mutation({
             return cloudError('CLOUD_INVALID_PREVIEW_ALLOWANCE');
         if (!canDesign) {
             if (
-                state.status === 'ready' && state.previewGatewayVersion === 2 &&
+                state.status === 'ready' &&
+                state.previewGatewayVersion === 2 &&
                 state.sandboxId &&
                 (state.expiresAt ?? 0) > Date.now() + 60_000
             ) {
@@ -580,13 +581,15 @@ export const _lease = internalMutation({
             return null;
         if (state.leaseUntil && state.leaseUntil > Date.now()) return null;
         if (
-            state.status === 'ready' && state.previewGatewayVersion === 2 &&
+            state.status === 'ready' &&
+            state.previewGatewayVersion === 2 &&
             state.appliedRevision === state.revision &&
             (state.expiresAt ?? 0) > Date.now() + 60_000
         )
             return null;
         const reuse =
-            state.status === 'ready' && state.previewGatewayVersion === 2 &&
+            state.status === 'ready' &&
+            state.previewGatewayVersion === 2 &&
             !!state.sandboxId &&
             (state.expiresAt ?? 0) > Date.now() + 60_000;
         const starts = (state.runtimeStarts ?? []).filter((time) => time > Date.now() - 3_600_000);
