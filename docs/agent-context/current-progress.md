@@ -1,5 +1,13 @@
 # Current Progress Snapshot
 
+## 2026-10-21 — Local preservation and PR cleanup
+
+The original local checkout is preserved on `recovery/local-work-2026-10-21`, including its 39 unpublished commits and unchanged unfinished files. Verified private local backups cover all five dirty checkouts/repositories. A separate `../weblab-main` checkout tracks remote main cleanly; do not reset the recovery checkout to it.
+
+PR #12 is merged as source, with provider publishing, signing and clean-Mac acceptance still open. PRs #1 and #7 are closed as superseded; useful pilot CI and historical test guidance were recovered in `de0f33ced`. The idle Sanity release worktree was retired with its full branch retained. PR #2 is on hold for runner availability. PR #8 remains draft: its older folder guards must cover the newer Content actions before integration. The exact source and verification blocker is recorded in `BACKLOG.md`.
+
+This cleanup reused recorded app validation and added independent source review; no fresh local app suite, dependency install or installer release ran. Backup preservation, clean-main synchronization, workflow syntax and the unchanged pilot source were checked.
+
 ## 2026-10-21 — Local desktop client editing draft
 
 `feature/2026-10-21-local-client-editor` prepares the public Mac app in
