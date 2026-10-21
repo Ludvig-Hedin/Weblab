@@ -1,3 +1,6 @@
+import { sourceProfileCapabilities } from './lib/cloudImportManifest';
+import { getPreparedImport } from './lib/cloudImportedState';
+import { importedTextAuthority } from './lib/cloudImportedAccess';
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
@@ -25,8 +28,8 @@ function equalSecret(left: string, right: string): boolean {
     for (let index = 0; index < 64; index++) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
     return difference === 0;
 }
-function live(state: { status: string; sandboxId?: string; expiresAt?: number; previewToken?: string; previewGatewayVersion?: number }): state is typeof state & { sandboxId: string; expiresAt: number; previewToken: string } {
-    return process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true' &&
+function live(state: { profile?: string; status: string; sandboxId?: string; expiresAt?: number; previewToken?: string; previewGatewayVersion?: number }): state is typeof state & { sandboxId: string; expiresAt: number; previewToken: string } {
+    return process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true' && sourceProfileCapabilities(state.profile).preview &&
         state.previewGatewayVersion === 2 &&
         (state.status === 'ready' || state.status === 'starting') && !!state.sandboxId &&
         Number.isSafeInteger(state.expiresAt) && state.expiresAt! > Date.now() && validSecret(state.previewToken ?? '');
@@ -38,7 +41,7 @@ async function deriveTicket(key: string, row: Scope & { userId: Id<'users'>; san
 /** Status may expose only this actor-bound capability, never state.previewToken. */
 export async function getCloudPreviewTicket(ctx: Context, scope: Scope): Promise<string | null> {
     const access = await requireCloudAccess(ctx, scope);
-    if (!access.role || !live(access.state)) return null;
+    if (!access.canPreview || !live(access.state)) return null;
     const row = await ctx.db.query('cloudPreviewTickets')
         .withIndex('by_branchId_and_userId', q => q.eq('branchId', scope.branchId).eq('userId', access.user._id)).unique();
     if (!row || row.projectId !== scope.projectId || row.sandboxId !== access.state.sandboxId || row.expiresAt !== access.state.expiresAt) return null;
@@ -50,8 +53,8 @@ export async function getCloudPreviewTicket(ctx: Context, scope: Scope): Promise
 export const issue = mutation({
     args: cloudScope,
     handler: async (ctx, scope) => {
-        const { state, user, role } = await requireCloudAccess(ctx, scope);
-        if (!role) return cloudError('CLOUD_ROLE_REQUIRED');
+        const { state, user, canPreview } = await requireCloudAccess(ctx, scope);
+        if (!canPreview) return cloudError('CLOUD_ROLE_REQUIRED');
         if (!live(state)) return cloudError('CLOUD_PREVIEW_UNAVAILABLE');
         const prior = await ctx.db.query('cloudPreviewTickets')
             .withIndex('by_branchId_and_userId', q => q.eq('branchId', scope.branchId).eq('userId', user._id)).unique();
@@ -95,6 +98,10 @@ export const authorize = query({
         if (!validSecret(args.verifier) || !validSecret(args.ticket)) return denied;
         const state = await ctx.db.query('cloudEditorStates').withIndex('by_branchId', q => q.eq('branchId', args.branchId)).unique();
         if (!state || state.projectId !== args.projectId || state.version !== 1 || !live(state) || state.sandboxId !== args.sandboxId) return denied;
+        try {
+            const preparation = await getPreparedImport(ctx, state);
+            if (sourceProfileCapabilities(state.profile).imported && !importedTextAuthority(state, preparation)) return denied;
+        } catch { return denied; }
         if (!equalSecret(args.verifier, await mac(state.previewToken, 'weblab-preview-verifier-v1'))) return denied;
         const ticketHash = await digest(args.ticket);
         const ticket = await ctx.db.query('cloudPreviewTickets').withIndex('by_ticketHash', q => q.eq('ticketHash', ticketHash)).unique();
@@ -110,10 +117,14 @@ export const authorize = query({
             ctx.db.query('cloudEditorGrants').withIndex('by_projectId_userId', q => q.eq('projectId', project._id).eq('userId', user._id)).unique(),
         ]);
         if (!grant && state.createdByUserId !== user._id) return denied;
-        if (!can('project.view', {
+        const resource = {
             workspace: { id: workspace._id, createdByUserId: workspace.createdByUserId }, workspaceRole: workspaceMember?.role ?? null,
             project: { id: project._id, accessMode: project.accessMode, workspaceId: workspace._id }, projectRole: projectMember?.role ?? null,
-        })) return denied;
+        };
+        if (!can('project.view', resource)) return denied;
+        const role = grant?.role ?? (state.createdByUserId === user._id ? 'responsible' : null);
+        if (sourceProfileCapabilities(state.profile).imported &&
+            !((role === 'responsible' || role === 'designer') && can('project.update', resource))) return denied;
         return { allowed: true, expiresAt: state.expiresAt };
     },
 });

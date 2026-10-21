@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import type { FunctionReference } from 'convex/server';
 import { getFunctionName } from 'convex/server';
 
@@ -23,6 +23,8 @@ import type {
     CloudEditorCommit,
     CloudEditorCommitResult,
     CloudEditorContracts,
+    CloudEditorImportPreparation,
+    CloudEditorImportPreparationResult,
     CloudEditorRuntimeStatus,
     CloudEditorSnapshot,
 } from '@/lib/cloud-editor/api';
@@ -85,11 +87,18 @@ async function fixture(
         recovery?: MemoryRecoveryStore;
         role?: CloudEditorAccess['role'];
         path?: string;
+        profile?: CloudEditorSnapshot['profile'];
     } = {},
 ) {
     const original = binary ?? new TextEncoder().encode('before');
     const path = options.path ?? (binary ? 'public/sample.bin' : 'notes.txt');
+    const profile = options.profile ?? 'starter-v1';
+    const importedAuthority = profile === 'starter-v1' ? undefined : {
+        preparationId: profile === 'imported-next-v1' ? 'preparation' as CloudEditorImportPreparationResult['preparationId'] : null,
+        designRevision: profile === 'imported-next-v1' ? 1 : null,
+    };
     let snapshot: CloudEditorSnapshot = {
+        profile, importedAuthority,
         actorId: (options.actorId ?? 'actor') as CloudEditorSnapshot['actorId'],
         revision: 1,
         files: [
@@ -97,7 +106,7 @@ async function fixture(
                 path,
                 kind: 'file',
                 text: binary ? null : 'before',
-                storageId: binary
+                storageId: binary && profile === 'starter-v1'
                     ? ('asset' as NonNullable<CloudEditorSnapshot['files'][number]['storageId']>)
                     : null,
                 hash: await hash(original),
@@ -106,14 +115,16 @@ async function fixture(
         ],
     };
     let runtime: CloudEditorRuntimeStatus = {
+        actorId: snapshot.actorId, importedAuthority, profile,
+        capabilities: { sourceWrite: profile !== 'imported-source-v1', contentWrite: profile === 'starter-v1', preview: profile !== 'imported-source-v1', release: profile === 'starter-v1', imported: profile !== 'starter-v1' },
         revision: 1,
         appliedRevision: 1,
-        status: 'ready',
+        status: profile === 'starter-v1' ? 'ready' : 'stopped',
         previewUrl: 'https://preview.example.com',
         previewToken: null,
         expiresAt: Date.now() + 900_000,
         error: null,
-        enabled: true,
+        enabled: profile !== 'imported-source-v1',
     };
     let commit!: DurableCommitHandler;
     let cacheFailure!: () => void;
@@ -142,8 +153,10 @@ async function fixture(
     let access: CloudEditorAccess = {
         actorId: snapshot.actorId,
         role,
-        canDesign: role === 'designer' || role === 'responsible',
-        canEditContent: role !== null,
+        canPrepareImport: profile === 'imported-source-v1' && (role === 'designer' || role === 'responsible'),
+        canDesign: profile !== 'imported-source-v1' && (role === 'designer' || role === 'responsible'),
+        canPreview: profile !== 'imported-source-v1' && role !== null,
+        canEditContent: profile === 'starter-v1' && role !== null,
         canPublish: false,
         canManage: role === 'responsible',
     };
@@ -162,11 +175,24 @@ async function fixture(
     };
     let readAccess = async () => {};
     let readAsset = async () => {};
+    let readSnapshot = async () => {};
+    let readStatus = async () => {};
     const recovery = options.recovery ?? new MemoryRecoveryStore();
     let snapshotFailures = 0;
     let previewRequests = 0;
     let statusQueries = 0;
     let preparePreview = () => {};
+    const preparations: CloudEditorImportPreparation[] = [];
+    const completePreparation = async (): Promise<CloudEditorImportPreparationResult> => {
+        snapshot = { ...snapshot, profile: 'imported-next-v1', revision: 2,
+            importedAuthority: { preparationId: 'preparation' as CloudEditorImportPreparationResult['preparationId'], designRevision: 2 }, files: [{ ...snapshot.files[0]!,
+            text: 'prepared', hash: await hash(new TextEncoder().encode('prepared')), bytes: 8 }] };
+        runtime = { ...runtime, profile: 'imported-next-v1', importedAuthority: snapshot.importedAuthority, revision: 2, status: 'stopped', enabled: true,
+            capabilities: { sourceWrite: true, contentWrite: false, preview: true, release: false, imported: true } };
+        access = { ...access, canPrepareImport: false, canDesign: true, canPreview: true, canEditContent: false };
+        return { profile: 'imported-next-v1', revision: 2, preparationId: 'preparation' as CloudEditorImportPreparationResult['preparationId'] };
+    };
+    let prepare: (args: CloudEditorImportPreparation) => Promise<CloudEditorImportPreparationResult> = completePreparation;
     let save = async (_args: CloudEditorCommit): Promise<CloudEditorCommitResult> => ({
         revision: 2,
         currentRevision: 2,
@@ -180,10 +206,12 @@ async function fixture(
             if (getFunctionName(ref) === 'cloudEditorContent:contracts')
                 return structuredClone(contracts);
             if (getFunctionName(ref) === 'cloudEditor:snapshot') {
+                await readSnapshot();
                 if (snapshotFailures-- > 0) throw new Error('Source temporarily unavailable');
                 return snapshot;
             }
             statusQueries++;
+            await readStatus();
             return runtime;
         },
         async mutation(ref: FunctionReference<'mutation'>) {
@@ -199,14 +227,18 @@ async function fixture(
             preparePreview();
             return null;
         },
-        async action(ref: FunctionReference<'action'>, args: CloudEditorCommit) {
+        async action(ref: FunctionReference<'action'>, args: CloudEditorCommit | CloudEditorImportPreparation) {
             if (getFunctionName(ref) === 'cloudEditorActions:readAsset') {
                 await readAsset();
                 return Uint8Array.from(original).buffer;
             }
-            submitted.push(args);
+            if (getFunctionName(ref) === 'cloudEditorImportPreparationActions:prepare') {
+                preparations.push(structuredClone(args as CloudEditorImportPreparation));
+                return prepare(args as CloudEditorImportPreparation);
+            }
+            submitted.push(args as CloudEditorCommit);
             endpoints.push(getFunctionName(ref));
-            return save(args);
+            return save(args as CloudEditorCommit);
         },
     } as unknown as CloudEditorClient;
     let navigations = 0;
@@ -240,6 +272,9 @@ async function fixture(
     }
     return {
         source,
+        preparations, completePreparation, onPrepare: (handler: typeof prepare) => { prepare = handler; },
+        onSnapshot: (handler: typeof readSnapshot) => { readSnapshot = handler; },
+        onStatus: (handler: typeof readStatus) => { readStatus = handler; },
         submitted,
         endpoints,
         recovery,
@@ -303,6 +338,161 @@ async function fixture(
         counts: () => ({ previewRequests, statusQueries }),
     };
 }
+
+describe('explicit imported-site preparation and preview', () => {
+    it('opens either imported profile without starting a paid preview', async () => {
+        for (const profile of ['imported-source-v1', 'imported-next-v1'] as const) {
+            const f = await fixture(undefined, { profile });
+            try {
+                expect(f.counts().previewRequests).toBe(0);
+                expect(f.preparations).toHaveLength(0);
+                if (profile === 'imported-next-v1') {
+                    await f.source.retryPreview();
+                    expect(f.counts().previewRequests).toBe(1);
+                }
+            } finally { await f.source.stop(); }
+        }
+    });
+
+    it('prepares, reloads saved source and refreshes capabilities without starting preview', async () => {
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            expect(f.source.canPrepareImport).toBe(true);
+            expect(f.source.state.runtime?.enabled).toBe(false);
+            expect(f.source.canWrite).toBe(false);
+            await f.source.prepareImportedSource();
+            expect(f.source.state.profile).toBe('imported-next-v1');
+            expect(f.source.state.savedRevision).toBe(2);
+            expect(f.hydrated()[0]?.content).toBe('prepared');
+            expect(f.source.canPrepareImport).toBe(false);
+            expect(f.source.canWrite).toBe(true);
+            expect(f.source.canPreview).toBe(true);
+            expect(f.source.canEditContent).toBe(false);
+            expect(f.counts().previewRequests).toBe(0);
+            expect(f.preparations[0]).toMatchObject({ projectId: 'project', branchId: 'branch', expectedRevision: 1 });
+            expect(f.preparations[0]!.operationKey).toMatch(/^prepare_[a-f0-9]{64}$/);
+        } finally { await f.source.stop(); }
+    });
+
+    it('keeps the same preparation key after timeout and a browser restart', async () => {
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        let operationKey: string;
+        try {
+            f.onPrepare(async () => { throw Error('Connection lost'); });
+            await expect(f.source.prepareImportedSource()).rejects.toThrow('Connection lost');
+            await expect(f.source.prepareImportedSource()).rejects.toThrow('Connection lost');
+            expect(f.preparations[0]).toEqual(f.preparations[1]);
+            operationKey = f.preparations[0]!.operationKey;
+            expect(f.source.state.preparationError).toBe(true);
+            expect(f.source.state.savedRevision).toBe(1);
+            expect(f.counts().previewRequests).toBe(0);
+        } finally { await f.source.stop(); }
+        const reopened = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            await reopened.source.prepareImportedSource();
+            expect(reopened.preparations[0]!.operationKey).toBe(operationKey!);
+            expect(reopened.counts().previewRequests).toBe(0);
+        } finally { await reopened.source.stop(); }
+    });
+
+    it('reads the saved result when preparation committed but its response was lost', async () => {
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            let calls = 0;
+            f.onPrepare(async () => {
+                const receipt = await f.completePreparation();
+                if (++calls === 1) throw Error('Response lost');
+                return receipt;
+            });
+            await expect(f.source.prepareImportedSource()).rejects.toThrow('Response lost');
+            await f.source.prepareImportedSource();
+            expect(f.preparations).toHaveLength(1);
+            expect(f.source.state.savedRevision).toBe(2);
+            expect(f.counts().previewRequests).toBe(0);
+        } finally { await f.source.stop(); }
+    });
+
+    it('coalesces double clicks and keeps source writes frozen while preparation is in flight', async () => {
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        let release!: () => void;
+        let arrived!: () => void;
+        const waiting = new Promise<void>(resolve => { release = resolve; });
+        const started = new Promise<void>(resolve => { arrived = resolve; });
+        try {
+            f.onPrepare(async () => { arrived(); await waiting; return f.completePreparation(); });
+            const first = f.source.prepareImportedSource();
+            await started;
+            expect(f.source.prepareImportedSource()).toBe(first);
+            expect(f.source.state.preparingImport).toBe(true);
+            expect(f.source.canWrite).toBe(false);
+            await expect(f.source.reloadSavedSource()).rejects.toThrow('Wait for preparation');
+            release(); await first;
+            expect(f.preparations).toHaveLength(1);
+            expect(f.source.state.preparingImport).toBe(false);
+        } finally { release(); await f.source.stop(); }
+    });
+
+    it('preserves existing edits and recovery text and refuses content/viewer preparation', async () => {
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            f.localWork(true);
+            await expect(f.source.prepareImportedSource()).rejects.toThrow('Finish or recover');
+            f.localWork(false); f.editingText('Keep my text');
+            await expect(f.source.prepareImportedSource()).rejects.toThrow('Finish or recover');
+            expect(f.source.pendingChangesBackup().editingText).toBe('Keep my text');
+            expect(f.preparations).toHaveLength(0);
+        } finally { await f.source.stop(); }
+        for (const role of ['content', null] as const) {
+            const denied = await fixture(undefined, { profile: 'imported-source-v1', role });
+            try {
+                expect(denied.source.canPrepareImport).toBe(false);
+                await expect(denied.source.prepareImportedSource()).rejects.toThrow();
+                expect(denied.preparations).toHaveLength(0);
+            } finally { await denied.source.stop(); }
+        }
+    });
+
+    it('rechecks role before sending and retains local work that appears while reloading prepared source', async () => {
+        const revoked = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            revoked.access({ role: 'content', canPrepareImport: false, canDesign: false, canPreview: false });
+            await expect(revoked.source.prepareImportedSource()).rejects.toThrow('unavailable');
+            expect(revoked.preparations).toHaveLength(0);
+        } finally { await revoked.source.stop(); }
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            const before = f.hydrated();
+            f.onSnapshot(async () => { f.localWork(true); });
+            await expect(f.source.prepareImportedSource()).rejects.toThrow('Finish or copy');
+            expect(f.hydrated()).toBe(before);
+            expect(f.source.hasLocalWork).toBe(true);
+            expect(f.source.state.needsReload).toBe(true);
+            expect(f.source.canWrite).toBe(false);
+            expect(f.counts().previewRequests).toBe(0);
+        } finally { await f.source.stop(); }
+    });
+
+    it('retains pending recovery and handles server revocation after the permission refresh', async () => {
+        const pending = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            await pending.prepareRecovery([{ path: 'notes.txt', content: 'Keep this draft' }])();
+            await expect(pending.source.prepareImportedSource()).rejects.toThrow('Finish or recover');
+            expect(pending.preparations).toHaveLength(0);
+            expect(pending.source.pendingChangesBackup().changes[0]?.content).toBe('Keep this draft');
+        } finally { await pending.source.stop(); }
+        const revoked = await fixture(undefined, { profile: 'imported-source-v1' });
+        try {
+            const before = revoked.hydrated();
+            revoked.onPrepare(async () => { throw Object.assign(new Error('Access revoked'), { data: 'CLOUD_ROLE_REQUIRED' }); });
+            await expect(revoked.source.prepareImportedSource()).rejects.toThrow('Access revoked');
+            expect(revoked.source.state.savedRevision).toBe(1);
+            expect(revoked.hydrated()).toBe(before);
+            expect(revoked.source.state.preparationError).toBe(true);
+            expect(revoked.source.canWrite).toBe(false);
+            expect(revoked.counts().previewRequests).toBe(0);
+        } finally { await revoked.source.stop(); }
+    });
+});
 
 describe('durable cloud source adapter', () => {
     it('does not install capabilities or hydrate after its account changes during admission', async () => {
@@ -1627,5 +1817,99 @@ describe('cloud semantic operation recovery', () => {
         expect(f.recovery.records.size).toBe(0);
         expect(f.source.state.needsReload).toBe(true);
         f.source.stop();
+    });
+});
+
+
+describe('private imported source hydration lifetime', () => {
+    it('aborts private media loading on account change before source disposal', async () => {
+        const bytes = new Uint8Array([1, 2, 3]);
+        const f = await fixture(bytes, { profile: 'imported-next-v1', role: 'designer', start: false });
+        const entered = Promise.withResolvers<void>();
+        const response = Promise.withResolvers<Response>();
+        let signal: AbortSignal | null | undefined;
+        const implementation = Object.assign(async (...[_input, init]: Parameters<typeof globalThis.fetch>) => {
+            signal = init?.signal; entered.resolve(); return response.promise;
+        }, { preconnect: globalThis.fetch.preconnect });
+        const fetch = spyOn(globalThis, 'fetch').mockImplementation(implementation);
+        try {
+            const starting = f.source.start();
+            // Bun's promise matcher can wait immediately. Capture settlement here
+            // and assert only after the test has released the blocked fetch.
+            const settled = starting.then(() => null, (error: unknown) => error);
+            await Promise.race([entered.promise, settled.then(error => {
+                throw error ?? new Error('Source finished before requesting private media');
+            })]);
+            f.changeAccount(); // No explicit source.stop or owner disposal has run.
+            expect(signal?.aborted).toBe(true);
+            response.resolve(new Response(bytes));
+            expect(await settled).toBeInstanceOf(Error);
+            expect(f.hydrated()).toEqual([]);
+            expect(f.source.canWrite).toBe(false);
+            expect(f.source.state.runtime).toBeNull();
+            expect(f.submitted).toEqual([]);
+        } finally { fetch.mockRestore(); await f.source.stop(); }
+    });
+
+    it('rejects a changed actor, design epoch or revision after media decoding and before installation', async () => {
+        for (const changed of ['actor', 'epoch', 'preparation', 'profile', 'revision', 'revoked'] as const) {
+            const f = await fixture(undefined, { profile: 'imported-next-v1', role: 'designer', start: false });
+                f.onStatus(async () => {
+                if (changed === 'actor') f.runtime({ actorId: 'other' as CloudEditorSnapshot['actorId'] });
+                if (changed === 'epoch') f.runtime({ importedAuthority: { preparationId: 'preparation' as CloudEditorImportPreparationResult['preparationId'], designRevision: 2 } });
+                if (changed === 'preparation') f.runtime({ importedAuthority: { preparationId: 'other-preparation' as CloudEditorImportPreparationResult['preparationId'], designRevision: 1 } });
+                if (changed === 'profile') f.runtime({ profile: 'imported-source-v1' });
+                if (changed === 'revision') f.runtime({ revision: 2 });
+                if (changed === 'revoked') throw new Error('CLOUD_ROLE_REQUIRED');
+            });
+            try {
+                await expect(f.source.start()).rejects.toThrow();
+                expect(f.hydrated()).toEqual([]);
+                expect(f.submitted).toEqual([]);
+                expect(f.counts().previewRequests).toBe(0);
+            } finally { await f.source.stop(); }
+        }
+    });
+    it('loads private imported media without a storage ID or legacy asset endpoint', async () => {
+        const bytes = new Uint8Array([4, 5, 6]);
+        const f = await fixture(bytes, { profile: 'imported-source-v1', start: false });
+        const calls: Array<{ input: string; init?: RequestInit }> = [];
+        const implementation = Object.assign(async (...[input, init]: Parameters<typeof globalThis.fetch>) => {
+            calls.push({ input: String(input), init });
+            return new Response(bytes);
+        }, { preconnect: globalThis.fetch.preconnect });
+        const fetch = spyOn(globalThis, 'fetch').mockImplementation(implementation);
+        try {
+            await f.source.start();
+            expect(calls).toHaveLength(1);
+            expect(calls[0]!.input).toStartWith('/api/cloud-imports/asset?');
+            expect(calls[0]!.init).toMatchObject({ credentials: 'same-origin', redirect: 'error', cache: 'no-store' });
+            expect(f.hydrated()[0]?.content).toEqual(bytes);
+            expect(f.counts().previewRequests).toBe(0);
+            expect(f.source.canWrite).toBe(false);
+            expect(f.source.canPreview).toBe(false);
+            await expect(f.commit()).rejects.toThrow();
+            expect(f.submitted).toEqual([]);
+        } finally { fetch.mockRestore(); await f.source.stop(); }
+    });
+
+    it('never installs a prepared result after the initiating account is replaced', async () => {
+        const f = await fixture(undefined, { profile: 'imported-source-v1' });
+        const entered = Promise.withResolvers<void>();
+        const release = Promise.withResolvers<void>();
+        f.onPrepare(async () => { entered.resolve(); await release.promise; return f.completePreparation(); });
+        try {
+            const before = f.hydrated();
+            const preparing = f.source.prepareImportedSource();
+            const settled = preparing.then(() => null, (error: unknown) => error);
+            await entered.promise;
+            f.changeAccount();
+            release.resolve();
+            expect(await settled).toBeInstanceOf(Error);
+            expect(f.hydrated()).toBe(before);
+            expect(f.source.state.access).toBeNull();
+            expect(f.source.state.runtime).toBeNull();
+            expect(f.counts().previewRequests).toBe(0);
+        } finally { release.resolve(); await f.source.stop(); }
     });
 });

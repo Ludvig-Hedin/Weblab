@@ -13,8 +13,8 @@ import { clerkMiddleware } from '@clerk/nextjs/server';
 // gone. WEBLAB_AUTH_PROVIDER env flag is retained in env.ts for emergency
 // rollback only; this file no longer reads it.
 
-// path-to-regexp v8 (Next.js 15.2+) forbids lookaheads and capturing groups in
-// matcher config, so exclusions are handled here instead.
+// Ordinary lightweight routes still pass through Clerk middleware. Import
+// transport authenticates in its Node route to avoid pre-admission body cloning.
 const SKIP_PREFIXES = [
     '/api/trpc',
     '/api/chat',
@@ -87,5 +87,5 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
 }
 
 export const config = {
-    matcher: ['/:path*'],
+    matcher: ['/((?!api/cloud-imports(?:/|$)).*)'],
 };

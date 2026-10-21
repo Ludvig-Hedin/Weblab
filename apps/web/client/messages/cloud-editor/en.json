@@ -117,5 +117,11 @@
     "contentDiscardDraft": "Discard draft",
     "discardReloadPending": "Reload requested",
     "discardReloadRetained": "The recovery copy was discarded. If this page stays open, download the text still in this tab or load the saved version again.",
-    "discardReloadFailed": "Reload did not finish. Your text is still in this tab. Download it or try again."
+    "discardReloadFailed": "Reload did not finish. Your text is still in this tab. Download it or try again.",
+    "importSourceSaved": "Imported source saved",
+    "importSourceOnly": "The source and assets are saved. Editing and preview are not yet available for this imported site.",
+    "prepareImport": "Prepare for editing",
+    "preparingImport": "Preparing for editing…",
+    "prepareImportFailed": "Preparation could not be confirmed. Try again to check the same request.",
+    "openPreview": "Open preview"
 }

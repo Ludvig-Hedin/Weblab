@@ -1,3 +1,5 @@
+import { isImportedCloudProfile, MAX_IMPORT_BYTES, sourceProfileCapabilities } from './lib/cloudImportManifest';
+import { assertImportedTextChanges, getPreparedImport } from './lib/cloudImportedState';
 import { makeFunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -15,6 +17,7 @@ import {
     assertCloudRevision,
     assertOperationId,
     CLOUD_EDITOR_TAG,
+    cloudChange,
     cloudError,
     cloudPath,
     cloudScope,
@@ -71,6 +74,10 @@ async function enrolled(
         state.version !== 1
     )
         return cloudError('CLOUD_NOT_ENROLLED');
+    if (isImportedCloudProfile(state.profile)) {
+        const importedAccess = await requireCloudAccess(ctx, scope);
+        if (!importedAccess.canReadSource) return cloudError('CLOUD_ROLE_REQUIRED');
+    }
     return { ...access, branch, state };
 }
 
@@ -90,6 +97,7 @@ export const _operation = internalQuery({
         expectedRevision: v.number(),
         operationId: v.string(),
         fingerprint: v.string(),
+        changes: v.optional(v.array(cloudChange)),
     },
     handler: async (ctx, args) => {
         requireEnabled();
@@ -111,6 +119,17 @@ export const _operation = internalQuery({
             };
         }
         if (state.revision !== args.expectedRevision) return cloudError('CLOUD_CONFLICT');
+        if (state.profile === 'imported-next-v1') {
+            const preparation = await getPreparedImport(ctx, state);
+            if (!preparation || !args.changes) return cloudError('CLOUD_IMPORT_PREPARATION_REQUIRED');
+            const changes = await Promise.all(args.changes.map(async change => {
+                const text = typeof change.content === 'string' ? change.content : undefined;
+                const bytes = text === undefined ? 0 : new TextEncoder().encode(text).byteLength;
+                const hash = text === undefined ? '' : Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))), byte => byte.toString(16).padStart(2, '0')).join('');
+                return { path: change.path, kind: change.directory ? 'directory' as const : change.content === null ? 'delete' as const : 'file' as const, text, bytes, hash };
+            }));
+            await assertImportedTextChanges(await filesFor(ctx, args.branchId), changes, preparation.policy);
+        }
         return null;
     },
 });
@@ -120,15 +139,21 @@ export const snapshot = query({
     handler: async (ctx, scope) => {
         const { state, user } = await enrolled(ctx, scope);
         const files = await filesFor(ctx, scope.branchId);
+        if (files.some(file => file.projectId !== scope.projectId || file.branchId !== scope.branchId))
+            return cloudError('CLOUD_NOT_ENROLLED');
         return {
+            ...(isImportedCloudProfile(state.profile) ? { importedAuthority: {
+                preparationId: state.preparationId ?? null, designRevision: state.designRevision ?? null,
+            } } : {}),
             actorId: user._id,
+            profile: state.profile ?? 'starter-v1',
             revision: state.revision,
             files: await Promise.all(
                 files.map(async (f) => ({
                     path: f.path,
                     kind: f.kind,
                     text: f.text ?? null,
-                    storageId: f.storageId ?? null,
+                    storageId: isImportedCloudProfile(state.profile) ? null : f.storageId ?? null,
                     hash: f.hash,
                     bytes: f.bytes,
                 })),
@@ -140,8 +165,14 @@ export const snapshot = query({
 export const status = query({
     args: cloudScope,
     handler: async (ctx, scope) => {
-        const { state } = await enrolled(ctx, scope);
+        const { state, user } = await enrolled(ctx, scope);
         return {
+            actorId: user._id,
+            ...(isImportedCloudProfile(state.profile) ? { importedAuthority: {
+                preparationId: state.preparationId ?? null, designRevision: state.designRevision ?? null,
+            } } : {}),
+            profile: state.profile ?? 'starter-v1',
+            capabilities: sourceProfileCapabilities(state.profile),
             revision: state.revision,
             appliedRevision: state.appliedRevision ?? null,
             status: state.status,
@@ -149,7 +180,7 @@ export const status = query({
             error: state.error ?? null,
             previewToken: await getCloudPreviewTicket(ctx, scope),
             expiresAt: state.expiresAt ?? null,
-            enabled: process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true',
+            enabled: process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true' && sourceProfileCapabilities(state.profile).preview,
         };
     },
 });
@@ -399,12 +430,17 @@ export const _commit = internalMutation({
         if (!args.changes.length || args.changes.length > MAX_CLOUD_FILES)
             return cloudError('CLOUD_INVALID_CHANGES');
         const files = await filesFor(ctx, args.branchId);
+        if (state.profile === 'imported-next-v1') {
+            const preparation = await getPreparedImport(ctx, state);
+            if (!preparation) return cloudError('CLOUD_IMPORT_PREPARATION_REQUIRED');
+            await assertImportedTextChanges(files, args.changes, preparation.policy);
+        }
         const next = new Map<string, { kind: 'file' | 'directory'; bytes: number; text?: string }>(
             files.map((f) => [f.path, f]),
         );
         const oldByPath = new Map(files.map((f) => [f.path, f]));
         const changedPaths = new Set<string>();
-        let total = state.bytes;
+        let total = state.profile === 'imported-next-v1' ? files.reduce((sum, file) => sum + file.bytes, 0) : state.bytes;
         for (const change of args.changes) {
             cloudPath(change.path);
             if (change.path === '.weblab' && change.kind === 'file')
@@ -431,7 +467,7 @@ export const _commit = internalMutation({
         }
         if (
             next.size > MAX_CLOUD_FILES ||
-            total > MAX_CLOUD_PROJECT_BYTES ||
+            total > (isImportedCloudProfile(state.profile) ? MAX_IMPORT_BYTES : MAX_CLOUD_PROJECT_BYTES) ||
             inlineSourceBytes(next.values()) > MAX_CLOUD_INLINE_BYTES
         )
             return cloudError('CLOUD_PROJECT_TOO_LARGE');
@@ -449,8 +485,10 @@ export const _commit = internalMutation({
         );
         await commitCloudEditorUploads(ctx, { ...args, userId: user._id, storageIds });
         const revision = state.revision + 1;
+        assertCloudRevision(revision);
         await ctx.db.patch(state._id, {
             revision,
+            ...(isImportedCloudProfile(state.profile) ? { designRevision: revision } : {}),
             bytes: total,
             fileCount: next.size,
             updatedAt: Date.now(),
@@ -478,7 +516,8 @@ export const ensurePreview = mutation({
     args: cloudScope,
     handler: async (ctx, scope) => {
         requireEnabled();
-        const { state, canDesign, user } = await requireCloudAccess(ctx, scope, 'content');
+        const { state, canDesign, canPreview, user } = await requireCloudAccess(ctx, scope);
+        if (!canPreview) return cloudError('CLOUD_ROLE_REQUIRED');
         if (
             (state.leaseUntil ?? 0) > Date.now() ||
             (state.status === 'ready' &&
@@ -554,11 +593,14 @@ export const _runtimeInput = internalQuery({
             .query('cloudEditorStates')
             .withIndex('by_branchId', (q) => q.eq('branchId', scope.branchId))
             .unique();
-        if (!state || state.projectId !== scope.projectId || !(await ctx.db.get(scope.projectId)))
+        if (!state || state.projectId !== scope.projectId || !sourceProfileCapabilities(state.profile).preview || !(await ctx.db.get(scope.projectId)))
             return null;
         const files = await filesFor(ctx, scope.branchId);
+        const preparation = await getPreparedImport(ctx, state);
+        if (files.some(file => file.projectId !== scope.projectId || file.branchId !== scope.branchId)) return cloudError('CLOUD_NOT_ENROLLED');
         return {
             state,
+            policy: preparation?.policy ?? null,
             files: await Promise.all(
                 files.map(async (f) => ({
                     ...f,
@@ -577,19 +619,18 @@ export const _lease = internalMutation({
             .query('cloudEditorStates')
             .withIndex('by_branchId', (q) => q.eq('branchId', scope.branchId))
             .unique();
-        if (!state || state.projectId !== scope.projectId || !(await ctx.db.get(scope.projectId)))
+        if (!state || state.projectId !== scope.projectId || !sourceProfileCapabilities(state.profile).preview || !(await ctx.db.get(scope.projectId)))
             return null;
+        await getPreparedImport(ctx, state);
         if (state.leaseUntil && state.leaseUntil > Date.now()) return null;
         if (
-            state.status === 'ready' &&
-            state.previewGatewayVersion === 2 &&
+            state.status === 'ready' && state.previewGatewayVersion === 2 &&
             state.appliedRevision === state.revision &&
             (state.expiresAt ?? 0) > Date.now() + 60_000
         )
             return null;
         const reuse =
-            state.status === 'ready' &&
-            state.previewGatewayVersion === 2 &&
+            state.status === 'ready' && state.previewGatewayVersion === 2 &&
             !!state.sandboxId &&
             (state.expiresAt ?? 0) > Date.now() + 60_000;
         const starts = (state.runtimeStarts ?? []).filter((time) => time > Date.now() - 3_600_000);
@@ -632,10 +673,24 @@ export const _runtimeReady = internalMutation({
         if (
             !state ||
             state.projectId !== args.projectId ||
+            !sourceProfileCapabilities(state.profile).preview ||
             state.leaseToken !== args.token ||
             (state.leaseUntil ?? 0) <= Date.now()
         )
             return false;
+        const preparation = await getPreparedImport(ctx, state);
+        if (preparation) {
+            const policy = preparation.policy;
+            const body = JSON.stringify({ profile: 'imported-next-v1', profileVersion: 1, preparationVersion: 1,
+                policyHash: policy.policyHash, node: policy.node, bun: policy.bun, archive: policy.bunArchiveSha256, pins: policy.pinnedFiles });
+            const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body))), byte => byte.toString(16).padStart(2, '0')).join('');
+            if (args.dependencyHash !== hash || !Number.isSafeInteger(args.revision) ||
+                args.revision < preparation.preparedRevision || args.revision > state.revision) return false;
+            const files = await filesFor(ctx, args.branchId);
+            const paths = new Set(args.paths);
+            if (paths.size !== args.paths.length || paths.size !== files.length ||
+                files.some(file => file.projectId !== args.projectId || !paths.has(file.path))) return false;
+        }
         if (
             args.requestGeneration !== undefined &&
             !(await authorizeCloudPreviewStart(ctx, args, args.requestGeneration, args.token))
@@ -733,14 +788,17 @@ export const _runtimeFailed = internalMutation({
 export const _asset = internalQuery({
     args: { ...cloudScope, path: v.string(), expectedHash: v.string() },
     handler: async (ctx, args) => {
-        await enrolled(ctx, args);
+        const { state } = await enrolled(ctx, args);
+        // Imported media must use the authenticated, bounded import proxy.
+        if (isImportedCloudProfile(state.profile)) return cloudError('CLOUD_CONTENT_PROFILE_UNSUPPORTED');
         const file = await ctx.db
             .query('cloudEditorFiles')
             .withIndex('by_branchId_path', (q) =>
                 q.eq('branchId', args.branchId).eq('path', args.path),
             )
             .unique();
-        if (!file?.storageId || file.hash !== args.expectedHash)
+        if (!file?.storageId || file.projectId !== args.projectId || file.branchId !== args.branchId ||
+            file.kind !== 'file' || file.hash !== args.expectedHash)
             return cloudError('CLOUD_CONFLICT');
         return { storageId: file.storageId, bytes: file.bytes, hash: file.hash };
     },
@@ -760,9 +818,11 @@ export const _sealDependencies = internalMutation({
             .query('cloudEditorStates')
             .withIndex('by_branchId', (q) => q.eq('branchId', args.branchId))
             .unique();
+        if (state?.profile === 'imported-next-v1') return cloudError('CLOUD_IMPORT_PINNED_FILE');
         if (
             !state ||
             state.projectId !== args.projectId ||
+            !sourceProfileCapabilities(state.profile).preview ||
             state.leaseToken !== args.token ||
             (state.leaseUntil ?? 0) <= Date.now() ||
             state.revision !== args.revision
@@ -827,10 +887,12 @@ export const _reserveRuntime = internalMutation({
         if (
             !state ||
             state.projectId !== args.projectId ||
+            !sourceProfileCapabilities(state.profile).preview ||
             state.leaseToken !== args.token ||
             (state.leaseUntil ?? 0) <= Date.now()
         )
             return false;
+        await getPreparedImport(ctx, state);
         if (
             !state.previewStartRequest ||
             state.previewStartRequest.reservedToken !== undefined ||

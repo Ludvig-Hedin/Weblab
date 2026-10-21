@@ -40,14 +40,16 @@ export const CloudModeSwitch = observer(() => {
             >
                 {copy.contentDesignMode}
             </Button>
-            <Button
-                size="sm"
-                variant={source.isContentMode ? 'secondary' : 'ghost'}
-                disabled={busy}
-                onClick={() => select(true)}
-            >
-                {copy.contentBuildMode}
-            </Button>
+            {source.canEditContent && (
+                <Button
+                    size="sm"
+                    variant={source.isContentMode ? 'secondary' : 'ghost'}
+                    disabled={busy}
+                    onClick={() => select(true)}
+                >
+                    {copy.contentBuildMode}
+                </Button>
+            )}
             <Button
                 size="sm"
                 variant={engine.state.editorMode === EditorMode.CODE ? 'secondary' : 'ghost'}
