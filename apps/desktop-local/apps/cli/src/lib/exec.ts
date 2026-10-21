@@ -78,9 +78,20 @@ export async function startDevServer(opts: {
     );
   }
 
+  // The desktop gives its AI key to the editor, not to project scripts.
+  const stripDesktopKey =
+    process.env.WEBLAB_PREVIEW_STRIP_ANTHROPIC_KEY === "1";
+  const previewEnv = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) =>
+        key !== "WEBLAB_PREVIEW_STRIP_ANTHROPIC_KEY" &&
+        !(stripDesktopKey && key === "ANTHROPIC_API_KEY")
+    )
+  );
   const child = spawn(opts.command, {
     cwd: opts.cwd,
     detached: process.platform !== "win32",
+    env: previewEnv,
     shell: true,
     // The child's output is passed through — including the errors that explain
     // a failure to start — but *both* its streams go to our stderr (fd 2), not

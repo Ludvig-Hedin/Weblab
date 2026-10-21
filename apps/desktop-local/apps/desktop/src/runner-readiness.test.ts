@@ -29,7 +29,7 @@ class Child extends EventEmitter {
     this.emit("exit", code, null);
   }
 }
-function harness() {
+function harness(apiKey: string | null = null) {
   const events: RunnerEvent[] = [];
   const children: Child[] = [];
   const requests: {
@@ -53,7 +53,7 @@ function harness() {
   const rootMatches = vi.fn(() => true);
   const verified = vi.fn(async () => ({ id: "site", path: "/site" }));
   const modules: Record<string, unknown> = {
-    "./auth": { readApiKey: () => null },
+    "./auth": { readApiKey: () => apiKey },
     "./procs": {
       snapshotTree: () => ({ groups: [123] }),
       stopGroups,
@@ -145,6 +145,24 @@ function harness() {
 }
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
+
+test.each([null, "fixture-desktop-key"])(
+  "the editor CLI receives a key and stripping marker only for an injected key: %s",
+  async (apiKey) => {
+    const h = harness(apiKey);
+    const { child, opening } = await h.start();
+    const cliEnv = h.spawn.mock.calls[0][2].env;
+    expect(cliEnv.ANTHROPIC_API_KEY).toBe(apiKey ?? undefined);
+    expect(cliEnv.WEBLAB_PREVIEW_STRIP_ANTHROPIC_KEY).toBe(
+      apiKey ? "1" : undefined
+    );
+    await h.proxyReady(child);
+    h.requests[0].reply(200);
+    await opening;
+    await h.runner.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  }
+);
 
 test("proxy JSON stays pending until the target returns a successful page", async () => {
   const h = harness();

@@ -474,6 +474,46 @@ describe("restoreFiles", () => {
     expect(existsSync(join(repo, "gone.txt"))).toBe(false);
   });
 
+  it.each([
+    ".git/config",
+    "nested/.git/config",
+    ".GIT/config",
+    "nested/.GiT",
+    ".git",
+  ])(
+    "refuses Git administrative target %s before restoring the bundle",
+    (file) => {
+      write("safe.txt", "saved");
+      const config = readFileSync(join(repo, ".git/config"), "utf8");
+      const result = restoreFiles(repo, [
+        diff({ after: "saved", before: "old", file: "safe.txt" }),
+        diff({ after: config, before: "replacement", file }),
+      ]);
+      expect(result.restored).toEqual([]);
+      expect(result.skipped).toEqual([
+        { file, reason: "undo cannot change Git metadata" },
+      ]);
+      expect(readFileSync(join(repo, "safe.txt"), "utf8")).toBe("saved");
+      expect(readFileSync(join(repo, ".git/config"), "utf8")).toBe(config);
+    }
+  );
+
+  it("keeps a root worktree pointer unchanged", () => {
+    const root = join(empty, "worktree");
+    mkdirSync(root);
+    const pointer = "gitdir: /private/worktree-admin\n";
+    writeFileSync(join(root, ".git"), pointer);
+    expect(
+      restoreFiles(root, [
+        diff({ after: pointer, before: "changed", file: ".git" }),
+      ])
+    ).toEqual({
+      restored: [],
+      skipped: [{ file: ".git", reason: "undo cannot change Git metadata" }],
+    });
+    expect(readFileSync(join(root, ".git"), "utf8")).toBe(pointer);
+  });
+
   it("rejects traversal and absolute paths before any restoration", () => {
     const outside = join(empty, "outside.txt");
     writeFileSync(outside, "saved");

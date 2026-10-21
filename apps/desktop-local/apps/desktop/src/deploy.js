@@ -380,7 +380,13 @@ async function remoteKeyNames(cwd, link) {
     cwd,
     `/v10/projects/${link.projectId}/env?${scope(link)}`
   );
-  if (!(found.ok && Array.isArray(found.data?.envs))) {
+  if (
+    !(
+      found.ok &&
+      Array.isArray(found.data?.envs) &&
+      found.data.envs.every((env) => env && typeof env.key === "string")
+    )
+  ) {
     throw new Error("Vercel settings could not be checked.");
   }
   return new Set(found.data.envs.map((env) => env.key));
@@ -409,8 +415,8 @@ function writeMarker(cwd, patch) {
 }
 
 /**
- * Before a deploy: link the folder, then list local keys Vercel lacks, once
- * per project. Returns { ok, missingKeys, projectName }.
+ * Before each deploy: link the folder, then list local keys Vercel lacks.
+ * Returns { ok, missingKeys, projectName }.
  */
 const RESERVED_KEY =
   /^(?:VERCEL_|WEBLAB_|ANTHROPIC_|OPENAI_|CLAUDE_|GITHUB_|GH_|AWS_|NODE_OPTIONS$|PATH$|HOME$|SANITY_API_WRITE_TOKEN$)/;
@@ -424,14 +430,12 @@ async function prepare(cwd, site) {
   }
   const { link } = linked;
   let missingKeys = [];
-  if (!readMarker(cwd).keysAsked) {
-    const local = localKeys(cwd);
-    if (local.size > 0) {
-      const remote = await remoteKeyNames(cwd, link);
-      missingKeys = [...local.keys()].filter(
-        (key) => !(RESERVED_KEY.test(key) || remote.has(key))
-      );
-    }
+  const local = localKeys(cwd);
+  if (local.size > 0) {
+    const remote = await remoteKeyNames(cwd, link);
+    missingKeys = [...local.keys()].filter(
+      (key) => !(RESERVED_KEY.test(key) || remote.has(key))
+    );
   }
   return { missingKeys, ok: true, projectName: link.projectName || "" };
 }

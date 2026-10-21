@@ -42,7 +42,7 @@ later without re-discovering the context.
 
 - **Discovered:** 2026-10-21 (F-843 local client integration)
 - **Where:** `apps/desktop-local`, F-843, T-884
-- **State:** Native local text and font edits and the provider-independent release checks pass. Real provider write/promotion/restore acceptance and clean-Mac signed-package acceptance are still open. This Mac has no valid Apple code-signing identity.
+- **State:** Native local text and font edits and the provider-independent release checks pass. Real provider write/promotion/restore acceptance and clean-Mac signed-package acceptance are still open. A valid local Developer ID identity and the `weblab` notary profile were confirmed on 2026-10-21. The 0.2.2 package has not yet been signed or submitted.
 - **Local-copy update:** A fully independent loopback-only site copy now opens without a password in native desktop/mobile frames. Direct page heading/body typing now bypasses nested CMS component drill-in. Native Save, Undo/Redo, Discard and unsaved-quit protection were checked in the packaged app. The Content panel remains available for other fields.
 - **Next step:** Connect an authorized CMS write credential in the native panel, verify a reviewed text publish/restore and Vercel preview/staged-live/promotion/restore in an agreed release window, then sign/notarize and test the package on a clean Mac.
 - **Risk if ignored:** An unsigned local candidate or unit pass is mistaken for a supported client release.
@@ -64,7 +64,7 @@ later without re-discovering the context.
 - **Discovered:** 2026-10-05 (macOS CI and one local run)
 - **Where:** `apps/desktop/cli/process.js:79,165,182` (`cleanup_unconfirmed`), `cli/cli-lifecycle.test.js:262`, `release-snapshot.test.js:121`
 - **Symptom:** A process that exits before its identity is read is reported as "The CLI exited before its process identity could be verified" (exit 125). `very fast probes retain proven identity` and several release-snapshot cases fail at random on macOS CI runners (2 to 3 per run) and occasionally on a developer Mac. CI runs `release-snapshot.test.js` and `cli/cli-lifecycle.test.js` as a non-blocking step.
-- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Any relaxation must keep refusing when an unobserved descendant could still be running. Then make the CI step blocking again.
+- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Any relaxation must keep refusing when an unobserved descendant could still be running. Verify the focused regression locally through the installed guard; remote CI remains disabled under the 2026-10-21 owner directive.
 - **Risk if ignored:** On a slow or busy Mac, native AI turns and release snapshots can refuse for no user-visible reason.
 - **Tags:** `#bug` `#desktop` `#flaky`
 
@@ -73,7 +73,7 @@ later without re-discovering the context.
 - **Discovered:** 2026-10-05 (`desktop-v0.2.7` tag build)
 - **Where:** `.github/workflows/desktop-release.yml` ("Stage Apple signing + notary credentials"), repository secrets
 - **Symptom:** The Mac build stops with "A Developer ID Application certificate is required for desktop releases". Windows and Linux built, but nothing was published because the release needs the full set. The repository only has `CONVEX_DEPLOY_KEY`.
-- **Next step:** Add `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD` and one notary set (`APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER`, or `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID`). Steps are in `apps/desktop/RELEASES.md`, "Code signing & notarization". Then re-run the `desktop-v0.2.7` workflow. Do not remove the signing requirement.
+- **Next step:** Add `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD` and one notary set (`APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER`, or `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID`). Steps are in `apps/desktop/RELEASES.md`, "Code signing & notarization". Historical hosted release instructions are superseded by the 2026-10-21 local-only directive. Prepare and verify the signed package locally through a reviewed exact release operation. Do not re-enable Actions or remove the signing requirement.
 - **Risk if ignored:** The team cannot install the editor that weblab.build now serves.
 - **Tags:** `#release-blocker` `#desktop` `#release`
 
