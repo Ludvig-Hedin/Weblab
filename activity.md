@@ -13,3 +13,11 @@ Owner requested a fully independent local client copy. Replaced the acceptance a
 Independent copy validation passed: lint, types, 231 tests, build and runtime checks. Native desktop and mobile preview frames show the homepage without a password. Original checkout diff and status match the pre-copy snapshot. No deployment or CMS write ran.
 
 Prepared a draft PR for cross-computer handoff. Recorded the confirmed CMS component-selection defect and the missing direct on-page text input. Kept client-specific source changes in a separate private handoff; excluded secrets, snapshots and generated apps.
+
+Implemented direct page text editing before component drill-in. The website can only read known fields and stage bounded proposals; native Save owns revision-checked local writes. Added header Save/Discard/history, split-heading DOM restoration, race guards and unsaved-text protection for competing Content actions, reload, quit and site failure. Packaged tests verified real heading/body typing, Save into both frames, Undo/Redo, Discard and Keep editing on quit. Final restart and validation evidence follows.
+
+Final direct-edit gate: 2,229 desktop tests passed (including 172 native-shell tests), plus lint and 20 typecheck tasks. Rebuilt unsigned acceptance app. Heading Save persisted across a full app restart; restored header Undo returned the original in both frames. Body typing, Discard and Keep editing on quit worked. Native automation reported input conflicts; state was checked again before further actions. Original client diff/status still match the pre-copy snapshots. No remote publish, CMS write, dependency or signing change ran.
+
+Fixed empty-field reentry and retained a temporary one-line hit area without persisting style changes. Scoped regressions cover prior style values, priority and newer external styles. Final source passes all 2,229 desktop tests, lint and types.
+
+Final packaged empty-field acceptance passed: clear body text, Escape, double-click the retained target, type new text, Save into both frames, then Undo back to the exact original. Chromium placeholder line breaks no longer block reentry. Original hero/body text is visible in both frames and the local draft has no content overrides.

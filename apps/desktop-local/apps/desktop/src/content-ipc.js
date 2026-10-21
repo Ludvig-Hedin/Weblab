@@ -1,5 +1,7 @@
-// Content credentials stay in main. The website can only select known fields.
+// Content credentials stay in main. The website can select and propose known
+// text fields; only the native window can save, undo or publish them.
 const { ipcMain } = require("electron");
+const { randomUUID } = require("node:crypto");
 const fs = require("node:fs");
 const { join } = require("node:path");
 const sites = require("./sites");
@@ -82,6 +84,7 @@ async function publishedDocuments(
 function register(ctx) {
   const { exclusive } = require("./site-operation");
   const stores = new Map();
+  const inline = new WeakMap();
   function bound(event, editor = false) {
     const session = ctx.sessionFor(event);
     const sender = editor
@@ -191,6 +194,12 @@ function register(ctx) {
     ipcMain.handle(`content:${name}`, async (event, input) => {
       try {
         const { session, site } = bound(event);
+        if (
+          !["status", "read", "commitInline", "cancelInline"].includes(name) &&
+          hasPending(session)
+        ) {
+          throw new Error("Save or discard the page text first.");
+        }
         const perform = () => operation(session, site, input);
         const result = ["status", "read"].includes(name)
           ? await perform()
@@ -204,6 +213,138 @@ function register(ctx) {
       }
     });
   }
+  function inlineState(session, pending, phase, summary = {}) {
+    ctx.send(session, "content:inline", {
+      ...summary,
+      dirty: Boolean(pending.invalid || pending.value !== pending.original),
+      editId: pending.editId,
+      phase,
+      revision: summary.revision ?? pending.revision,
+      siteId: pending.siteId,
+    });
+  }
+  function endInline(session, phase = "cancelled", summary = {}) {
+    const pending = inline.get(session);
+    if (!pending) {
+      return;
+    }
+    inline.delete(session);
+    session.editorView?.webContents.send("content:inlineEnd", {
+      editId: pending.editId,
+    });
+    inlineState(
+      session,
+      { ...pending, invalid: false, value: pending.original },
+      phase,
+      summary
+    );
+    ctx.inlineSettled?.(session);
+  }
+  function hasPending(session) {
+    const pending = inline.get(session);
+    return Boolean(
+      pending && (pending.invalid || pending.value !== pending.original)
+    );
+  }
+  function pendingInline(session, site, editId) {
+    const pending = inline.get(session);
+    if (
+      !pending ||
+      pending.editId !== editId ||
+      pending.siteId !== site.id ||
+      pending.root !== site.path ||
+      pending.sender !== session.editorView?.webContents
+    ) {
+      throw new Error("This text edit has ended. Select the text again.");
+    }
+    return pending;
+  }
+  function editorHandle(name, operation) {
+    ipcMain.handle(`content:${name}`, (event, input) => {
+      try {
+        const { session, site } = bound(event, true);
+        return { ok: true, ...operation(session, site, input) };
+      } catch (error) {
+        return {
+          message: error.message || "This text could not be edited.",
+          ok: false,
+        };
+      }
+    });
+  }
+  editorHandle("beginInline", (session, site, input) => {
+    if (localPublisher(site.path).status().pending) {
+      throw new Error("Check the pending text publish before editing again.");
+    }
+    const existing = inline.get(session);
+    if (
+      existing &&
+      (existing.invalid || existing.value !== existing.original)
+    ) {
+      throw new Error(
+        "Save or discard the current text before editing another field."
+      );
+    }
+    const field = store(site.path).read(input);
+    endInline(session);
+    const pending = {
+      documentId: input.documentId,
+      editId: randomUUID(),
+      original: field.value,
+      path: input.path,
+      revision: field.revision,
+      root: site.path,
+      sender: session.editorView.webContents,
+      siteId: site.id,
+      value: field.value,
+    };
+    inline.set(session, pending);
+    inlineState(session, pending, "editing");
+    return { editId: pending.editId, ...field };
+  });
+  editorHandle("stageInline", (session, site, input) => {
+    const pending = pendingInline(session, site, input?.editId);
+    if (typeof input.value !== "string" || input.value.length > 64 * 1024) {
+      pending.invalid = true;
+      inlineState(session, pending, "staged");
+      throw new Error("Text must be shorter than 64,000 characters.");
+    }
+    // Synchronous: every input proposal reaches main before a later Save click.
+    // This never writes a file or contacts the content provider.
+    pending.value = input.value;
+    pending.invalid = false;
+    inlineState(session, pending, "staged");
+    return {};
+  });
+  editorHandle("abandonInline", (session, site, editId) => {
+    const pending = pendingInline(session, site, editId);
+    if (pending.invalid || pending.value !== pending.original) {
+      throw new Error("Save or discard the text in the app first.");
+    }
+    endInline(session);
+    return {};
+  });
+  handle("commitInline", (session, site, editId) => {
+    const pending = pendingInline(session, site, editId);
+    if (pending.invalid) {
+      throw new Error(
+        "The latest text is not valid. Fix it on the page or discard it."
+      );
+    }
+    if (localPublisher(site.path).status().pending) {
+      throw new Error("Check the pending text publish before editing again.");
+    }
+    const result = store(site.path).save(pending);
+    endInline(session, "saved", result);
+    session.editorView?.webContents.send("content:changed");
+    return result;
+  });
+  handle("cancelInline", (session, site, editId) => {
+    pendingInline(session, site, editId);
+    endInline(session);
+    session.editorView?.webContents.send("content:changed");
+    return {};
+  });
   handle("status", (_session, site) => status(site.path));
   handle("prepare", async (session, site) => {
     if (!fs.existsSync(join(site.path, "src/sanity/weblab.ts"))) {
@@ -264,6 +405,9 @@ function register(ctx) {
   ipcMain.handle("content:select", (event, input) => {
     try {
       const { session, site } = bound(event, true);
+      if (hasPending(session)) {
+        throw new Error("Save or discard the page text first.");
+      }
       store(site.path).read(input);
       ctx.send(session, "content:selected", {
         documentId: input.documentId,
@@ -278,6 +422,10 @@ function register(ctx) {
       };
     }
   });
+  return {
+    hasPending,
+    reset: endInline,
+  };
 }
 
 module.exports = { connection, publishedDocuments, register };

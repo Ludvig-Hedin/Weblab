@@ -60,8 +60,8 @@ import {
 } from "./chat/transcript";
 import { ChromeLayer } from "./chrome-layer";
 import { CommentSet } from "./comment-set";
+import { InlineContentEditor } from "./components/inline-content";
 import { ComponentLayer } from "./components/layer";
-import { editLocalContent } from "./components/local-content";
 import { selectedLineRange } from "./diff-view";
 import {
   DND,
@@ -621,6 +621,7 @@ export class AirshipApp {
   private readonly attrSet = new AttrSet();
   /** Shared components: instances, their props, and entering one. */
   private readonly components: ComponentLayer;
+  private readonly inlineContent: InlineContentEditor;
   /** Where the component bar mounts; placed into the root in `mount`. */
   private readonly componentHost = el("div");
   /** A right-click waiting for its node's selection to land; see `requestContextMenu`. */
@@ -1027,6 +1028,12 @@ export class AirshipApp {
       onTextOwner: (node) => stage.setTextOwner?.(node),
       resolver: stage.resolver,
       structureSet: this.structureSet,
+    });
+    this.inlineContent = new InlineContentEditor({
+      setTextOwner: (node) => {
+        this.controller.setTextOwner(node);
+        stage.setTextOwner?.(node);
+      },
     });
     this.structure = new StructureEditor({
       controller: this.controller,
@@ -1673,6 +1680,7 @@ export class AirshipApp {
    * by a subsystem that forgot to hand its disposer over.
    */
   destroy(): void {
+    this.inlineContent.dispose();
     for (const off of this.disposers.splice(0)) {
       off();
     }
@@ -3343,6 +3351,7 @@ export class AirshipApp {
     // ends any live edit — the mode exists to read specs off a hover, and a
     // caret blinking in the page while it is on is a contradiction.
     if (tool === "inspect") {
+      this.inlineContent.finish();
       this.panel.endTextEdit();
     }
     this.panel.setInspecting(tool === "inspect");
@@ -3536,6 +3545,7 @@ export class AirshipApp {
     // leak — a mode switch mid-edit used to leave `contenteditable` and the
     // editor's marker attribute on the page permanently, with the guard and the
     // picker already detached.
+    this.inlineContent.finish();
     this.panel.endTextEdit();
     this.drawTool.disarm();
     this.pendingTextEdit = null;
@@ -4390,14 +4400,19 @@ export class AirshipApp {
     surface: Surface,
     caret: Point | null
   ): boolean {
+    // A known inline session may be temporarily empty after Select All/Delete.
+    if (
+      this.inlineContent.begin(hitNode, caret ? surface.toLocal(caret) : null)
+    ) {
+      this.panel.endTextEdit();
+      this.controller.deselect();
+      return true;
+    }
     if (!isEditableText(hitNode)) {
       return false;
     }
     // One word of an animated, split heading means the whole heading.
     const node = textEditTarget(hitNode);
-    if (editLocalContent(node.textContent ?? "")) {
-      return true;
-    }
     this.panel.endTextEdit();
     if (this.selected?.node === node) {
       return this.panel.beginTextEdit(node, caret);
@@ -4436,10 +4451,17 @@ export class AirshipApp {
    * The `T` command toasts instead, because it was asked for by name.
    */
   private onTextEnter(hit: Hit, at: Point): void {
+    // A CMS field is the user's exact text target, even inside a shared page
+    // component. Let it take the caret before entering component scope.
+    const target = textTargetIn(hit.node);
+    if (this.inlineContent.begin(target ?? hit.node, hit.surface.toLocal(at))) {
+      this.panel.endTextEdit();
+      this.controller.deselect();
+      return;
+    }
     if (this.components.onDoubleClick(hit.node, at)) {
       return;
     }
-    const target = textTargetIn(hit.node);
     if (target) {
       this.enterTextEdit(target, hit.surface, at);
       return;
@@ -4632,6 +4654,7 @@ export class AirshipApp {
    * a card start editing its caption.
    */
   private onTextClickAway(hit: Hit | null, at: Point, mods: Mods): void {
+    this.inlineContent.finish();
     this.panel.endTextEdit();
     if (!hit) {
       this.controller.deselect();

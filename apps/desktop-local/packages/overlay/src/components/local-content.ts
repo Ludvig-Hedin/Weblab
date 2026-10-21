@@ -2,6 +2,7 @@ import { toast } from "../toast";
 import { decodeStega } from "./stega";
 
 const DOCUMENT_ID = /^[\w.-]{1,128}$/;
+const MARKERS = /(?:\u200B|\u200C|\u200D|\uFEFF){8,}/g;
 
 export interface ContentBinding {
   documentId: string;
@@ -9,7 +10,7 @@ export interface ContentBinding {
 }
 
 /** Markers select a field; the native store still validates every request. */
-export function contentBinding(raw: string): ContentBinding | null {
+function markerBinding(raw: string): ContentBinding | null {
   const binding = decodeStega(raw)?.weblab;
   if (!binding || typeof binding !== "object") {
     return null;
@@ -25,6 +26,24 @@ export function contentBinding(raw: string): ContentBinding | null {
     return null;
   }
   return { documentId, path };
+}
+
+/** A container with two distinct fields must never choose its first marker. */
+export function contentBinding(raw: string): ContentBinding | null {
+  let found: ContentBinding | null = null;
+  for (const marker of raw.match(MARKERS) ?? []) {
+    const candidate = markerBinding(marker);
+    if (
+      !candidate ||
+      (found &&
+        (found.documentId !== candidate.documentId ||
+          found.path !== candidate.path))
+    ) {
+      return null;
+    }
+    found = candidate;
+  }
+  return found;
 }
 
 function bridge() {

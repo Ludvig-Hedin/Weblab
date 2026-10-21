@@ -59,7 +59,12 @@ contextBridge.exposeInMainWorld("weblab", {
     start: (link, name) => ipcRenderer.invoke("clone:start", link, name),
   },
   content: {
+    cancelInline: (editId) =>
+      ipcRenderer.invoke("content:cancelInline", editId),
+    commitInline: (editId) =>
+      ipcRenderer.invoke("content:commitInline", editId),
     connect: (token) => ipcRenderer.invoke("content:connect", token),
+    onInline: on("content:inline"),
     onSelect: on("content:selected"),
     prepare: () => ipcRenderer.invoke("content:prepare"),
     publish: (reviewId) => ipcRenderer.invoke("content:publish", reviewId),

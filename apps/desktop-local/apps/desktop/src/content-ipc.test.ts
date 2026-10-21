@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
@@ -26,6 +27,7 @@ interface Event {
   senderFrame?: object;
 }
 interface Reply {
+  editId?: string;
   fields?: { documentId: string; path: string; value: string }[];
   message?: string;
   ok: boolean;
@@ -170,6 +172,7 @@ function setup() {
           handlers.set(name, fn),
       },
     },
+    "node:crypto": { randomUUID },
     "node:fs": fs,
     "node:path": path,
   };
@@ -584,4 +587,186 @@ test("credential presence validates encrypted files without opening the keychain
   expect(() =>
     exports.exports.has({ dataset: "production", projectId: "../outside" })
   ).toThrow("identity");
+});
+
+test("inline proposals never write; only the native window can save and undo the exact field", async () => {
+  const app = setup();
+  const begun = await app.invoke("beginInline", app.site, field);
+  expect(begun?.ok).toBe(true);
+  expect(begun?.value).toBe("Original");
+  const editId = begun?.editId;
+  expect(typeof editId).toBe("string");
+  expect(
+    await app.invoke("stageInline", app.site, {
+      editId,
+      value: "Typed on page",
+    })
+  ).toEqual({ ok: true });
+  expect(app.content.read(field).value).toBe("Original");
+  expect(app.content.status().revision).toBe(begun?.revision);
+  expect((await app.invoke("commitInline", app.site, editId))?.ok).toBe(false);
+  expect((await app.invoke("cancelInline", app.site, editId))?.ok).toBe(false);
+  expect((await app.invoke("commitInline", app.otherParent, editId))?.ok).toBe(
+    false
+  );
+  expect((await app.invoke("abandonInline", app.site, editId))?.ok).toBe(false);
+  const saved = await app.invoke("commitInline", app.parent, editId);
+  expect(saved?.ok).toBe(true);
+  expect(app.content.read(field).value).toBe("Typed on page");
+  expect(
+    (await app.invoke("undo", app.parent, { revision: saved?.revision }))?.ok
+  ).toBe(true);
+  expect(app.content.read(field).value).toBe("Original");
+  expect((await app.invoke("commitInline", app.parent, editId))?.ok).toBe(
+    false
+  );
+  expect(app.headers).toHaveLength(0);
+  expect(app.credentialReads()).toEqual({ environmentReads: 0, tokenReads: 0 });
+});
+
+test("inline access rejects unknown fields, child frames, forged edits, oversized proposals and pending publication", async () => {
+  const app = setup();
+  expect(
+    (await app.invoke("beginInline", app.site, { ...field, path: "apiKey" }))
+      ?.ok
+  ).toBe(false);
+  expect(
+    (await app.invoke("beginInline", { ...app.site, senderFrame: {} }, field))
+      ?.ok
+  ).toBe(false);
+  expect((await app.invoke("beginInline", app.parent, field))?.ok).toBe(false);
+  const begun = await app.invoke("beginInline", app.site, field);
+  const editId = begun?.editId;
+  expect(
+    (
+      await app.invoke("stageInline", app.site, {
+        editId: "forged",
+        value: "Wrong",
+      })
+    )?.ok
+  ).toBe(false);
+  expect(
+    (
+      await app.invoke(
+        "stageInline",
+        { ...app.site, senderFrame: {} },
+        { editId, value: "Wrong" }
+      )
+    )?.ok
+  ).toBe(false);
+  expect(
+    (
+      await app.invoke("stageInline", app.site, {
+        editId,
+        value: "x".repeat(65_537),
+      })
+    )?.ok
+  ).toBe(false);
+  expect(
+    (await app.invoke("stageInline", app.site, { editId, value: {} }))?.ok
+  ).toBe(false);
+  await app.invoke("stageInline", app.site, { editId, value: "Pending" });
+  expect((await app.invoke("beginInline", app.site, field))?.ok).toBe(false);
+  app.setPending({ id: "in-flight" });
+  expect((await app.invoke("commitInline", app.parent, editId))?.ok).toBe(
+    false
+  );
+  expect(app.content.read(field).value).toBe("Original");
+  expect((await app.invoke("cancelInline", app.parent, editId))?.ok).toBe(true);
+  expect((await app.invoke("beginInline", app.site, field))?.ok).toBe(false);
+});
+
+test("invalid latest text blocks saving an older accepted proposal until corrected", async () => {
+  const app = setup();
+  const begun = await app.invoke("beginInline", app.site, field);
+  const editId = begun?.editId;
+  await app.invoke("stageInline", app.site, {
+    editId,
+    value: "Earlier valid text",
+  });
+  await app.invoke("stageInline", app.site, {
+    editId,
+    value: "x".repeat(65_537),
+  });
+  expect((await app.invoke("commitInline", app.parent, editId))?.ok).toBe(
+    false
+  );
+  expect(app.content.read(field).value).toBe("Original");
+  await app.invoke("stageInline", app.site, {
+    editId,
+    value: "Corrected text",
+  });
+  expect((await app.invoke("commitInline", app.parent, editId))?.ok).toBe(true);
+  expect(app.content.read(field).value).toBe("Corrected text");
+});
+
+test("unsaved inline text excludes competing panel mutations and selection", async () => {
+  const app = setup();
+  const begun = await app.invoke("beginInline", app.site, field);
+  await app.invoke("stageInline", app.site, {
+    editId: begun?.editId,
+    value: "Keep typing",
+  });
+  const results = await Promise.all(
+    ["save", "undo", "redo", "prepare", "review", "publish", "restore"].map(
+      (action) =>
+        app.invoke(action, app.parent, {
+          ...field,
+          revision: begun?.revision,
+          value: "Competing",
+        })
+    )
+  );
+  for (const reply of results) {
+    expect(reply?.ok).toBe(false);
+    expect(reply?.message).toContain("Save or discard");
+  }
+  expect((await app.invoke("select", app.site, field))?.ok).toBe(false);
+  expect(app.content.read(field).value).toBe("Original");
+  expect(
+    (await app.invoke("commitInline", app.parent, begun?.editId))?.ok
+  ).toBe(true);
+  expect(app.content.read(field).value).toBe("Keep typing");
+});
+
+test("a later draft change rejects inline save without losing the proposal or overwriting newer text", async () => {
+  const app = setup();
+  const begun = await app.invoke("beginInline", app.site, field);
+  const editId = begun?.editId;
+  await app.invoke("stageInline", app.site, {
+    editId,
+    value: "Inline proposal",
+  });
+  app.content.save({
+    ...field,
+    revision: begun?.revision,
+    value: "Newer saved text",
+  });
+  expect((await app.invoke("commitInline", app.parent, editId))?.ok).toBe(
+    false
+  );
+  expect(app.content.read(field).value).toBe("Newer saved text");
+  expect((await app.invoke("abandonInline", app.site, editId))?.ok).toBe(false);
+  expect((await app.invoke("cancelInline", app.parent, editId))?.ok).toBe(true);
+  expect(app.content.read(field).value).toBe("Newer saved text");
+});
+
+test("clean inline reads can be abandoned without changing text or revision", async () => {
+  const app = setup();
+  const begun = await app.invoke("beginInline", app.site, field);
+  expect((await app.invoke("abandonInline", app.site, begun?.editId))?.ok).toBe(
+    true
+  );
+  expect(app.content.read(field)).toEqual({
+    revision: begun?.revision,
+    value: "Original",
+  });
+  expect(
+    (
+      await app.invoke("stageInline", app.site, {
+        editId: begun?.editId,
+        value: "Late",
+      })
+    )?.ok
+  ).toBe(false);
 });

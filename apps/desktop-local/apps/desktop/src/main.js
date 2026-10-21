@@ -158,6 +158,18 @@ function onRunnerEvent(session, event) {
     return;
   }
   if (event.type === "error") {
+    if (contentIpc?.hasPending(session)) {
+      if (!session.inlineRunnerError) {
+        dialog.showMessageBox(session.win, {
+          buttons: ["Keep editing"],
+          detail: "Save or discard your text. Then you can restart the site.",
+          message: "The site stopped. Your page text is still here.",
+          type: "warning",
+        });
+      }
+      session.inlineRunnerError = event;
+      return;
+    }
     hideEditor(session);
   }
   send(session, "site:event", event);
@@ -224,6 +236,7 @@ function showEditor(session, url, onShown) {
 }
 
 function hideEditor(session) {
+  contentIpc?.reset(session);
   if (!session.editorView) {
     return;
   }
@@ -309,6 +322,35 @@ function createWindow(siteId = null) {
   win.on("resize", () => layoutEditor(session));
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   win.webContents.on("will-navigate", (event) => event.preventDefault());
+
+  win.on("close", (event) => {
+    if (!contentIpc?.hasPending(session)) {
+      return;
+    }
+    event.preventDefault();
+    if (session.inlineClosePrompt) {
+      return;
+    }
+    session.inlineClosePrompt = true;
+    dialog
+      .showMessageBox(win, {
+        buttons: ["Keep editing", "Discard and close"],
+        cancelId: 0,
+        defaultId: 0,
+        detail: "Keep editing to save it, or discard the text and close.",
+        message: "This page has text that has not been saved.",
+        type: "question",
+      })
+      .then(({ response }) => {
+        if (response === 1 && !win.isDestroyed()) {
+          contentIpc?.reset(session);
+          win.close();
+        }
+      })
+      .finally(() => {
+        session.inlineClosePrompt = false;
+      });
+  });
 
   win.on("closed", () => {
     session.closing = true;
@@ -444,7 +486,18 @@ function buildMenu() {
       submenu: [
         {
           accelerator: "CmdOrCtrl+R",
-          click: () => focusedSession()?.editorView?.webContents.reload(),
+          click: () => {
+            const session = focusedSession();
+            if (contentIpc?.hasPending(session)) {
+              dialog.showMessageBox(session.win, {
+                buttons: ["Keep editing"],
+                message: "Save or discard the page text before reloading.",
+                type: "info",
+              });
+              return;
+            }
+            session?.editorView?.webContents.reload();
+          },
           label: "Reload editor",
         },
         { role: "togglefullscreen" },
@@ -457,6 +510,7 @@ function buildMenu() {
 }
 
 let publishIpc = null;
+let contentIpc = null;
 
 function registerIpc() {
   ipcMain.handle("updates:status", () => availableUpdate?.version || null);
@@ -469,7 +523,22 @@ function registerIpc() {
     send,
     sessionFor,
   });
-  content.register({ send, sessionFor });
+  contentIpc = content.register({
+    inlineSettled: (session) => {
+      if (!session.inlineRunnerError) {
+        return;
+      }
+      setTimeout(() => {
+        const event = session.inlineRunnerError;
+        session.inlineRunnerError = null;
+        if (event && !session.win.isDestroyed()) {
+          onRunnerEvent(session, event);
+        }
+      }, 0);
+    },
+    send,
+    sessionFor,
+  });
   ipcMain.handle("nav:ready", (event) => {
     const session = sessionFor(event);
     if (!session || event.sender !== session.win.webContents) {
@@ -802,8 +871,39 @@ app.on("activate", () => {
 app.on("window-all-closed", () => app.quit());
 
 // Never leave a site running behind a closed app.
+let inlineQuitPrompt = false;
 app.on("before-quit", (event) => {
   if (quitting) {
+    return;
+  }
+  const unsaved = [...windows.values()].filter((session) =>
+    contentIpc?.hasPending(session)
+  );
+  if (unsaved.length) {
+    event.preventDefault();
+    if (!inlineQuitPrompt) {
+      inlineQuitPrompt = true;
+      dialog
+        .showMessageBox(unsaved[0].win, {
+          buttons: ["Keep editing", "Discard and quit"],
+          cancelId: 0,
+          defaultId: 0,
+          detail: "Keep editing to save it, or discard the text and quit.",
+          message: "Some page text has not been saved.",
+          type: "question",
+        })
+        .then(({ response }) => {
+          if (response === 1) {
+            for (const session of unsaved) {
+              contentIpc?.reset(session);
+            }
+            app.quit();
+          }
+        })
+        .finally(() => {
+          inlineQuitPrompt = false;
+        });
+    }
     return;
   }
   quitting = true;

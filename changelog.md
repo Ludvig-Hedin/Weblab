@@ -15,4 +15,5 @@ This is an unreleased candidate. Provider acceptance and signed client delivery 
 
 - Local acceptance now uses an independent site copy. Local page viewing needs no password; remote and production access rules stay in place.
 
-Known gap: direct page editing still selects nested CMS blocks. The tested Content panel does not meet the requested on-page edit flow. This candidate remains unfinished.
+- Double-click supported page text and type in place, including split headings inside nested CMS blocks. Save/Discard and Undo/Redo stay in the app header.
+- Protect unsaved page text during reload, close, quit, competing Content edits and site-server errors.

@@ -4,8 +4,8 @@
 
 `feature/2026-10-21-local-client-editor` prepares the public Mac app in
 `apps/desktop-local` for native text drafts and reviewed publishing. This is
-an unfinished candidate: direct page editing still selects nested CMS blocks.
-The native Content panel and shared font edits have local acceptance evidence;
+a release candidate with direct page text input, native Save/Discard and local
+Undo/Redo. The Content panel and shared font edits have local acceptance evidence;
 provider write/promotion/restore, signing and clean-Mac acceptance remain open.
 Continue from [local client editor](../features/local-client-editor.md). Client
 source patches and private acceptance notes are kept in a separate private

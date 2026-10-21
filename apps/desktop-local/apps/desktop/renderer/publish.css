@@ -734,3 +734,24 @@
 #content-panel details {
   overflow-wrap: anywhere;
 }
+
+.inline-content {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+.inline-content[hidden],
+.inline-content button[hidden] {
+  display: none;
+}
+.inline-content > [role="status"] {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inline-content > button {
+  flex-shrink: 0;
+}

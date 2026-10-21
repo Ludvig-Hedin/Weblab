@@ -648,7 +648,7 @@ Per package (F-680 … F-705) at least one smoke test.
 | T-881 | F-841 | U + M | `cd apps/desktop-local && bun install && bun run test`; install the notarized DMG on a clean Mac | All package tests pass; app opens with no Gatekeeper warning, opens a local site folder, edits apply to source | `[ ]` manual |
 | T-882 | F-841 | U + M | Run the dropdown, viewport and update tests; open an HTML sketch with JavaScript-built `<option>` elements in the Mac app | Show/Hide appears at the right of Style, selecting an option exposes its styles without changing the form value, wheel pan stays steady, and a newer Mac DMG is offered in the app | `[ ]` manual |
 
-| T-884 | F-843 | U + packaged M | `apps/desktop-local/apps/desktop/{src,renderer,scripts}/*.test.ts`; isolated real CMS site | Draft save/reopen/undo/redo, caller checks, no secret status, CAS and pending recovery, exact source review/promotion/restore, optional Claude, real font save/reload. Unit gates passing; real provider production and signed clean-Mac acceptance remain required. | `[~]` |
+| T-884 | F-843 | U + packaged M | `apps/desktop-local/apps/desktop/{src,renderer,scripts}/*.test.ts`; isolated real CMS site | Direct heading/body typing, split-heading and async binding guards, native Save/Discard/history, unsaved reload/quit/server recovery, draft save/reopen/undo/redo, caller checks, no secret status, CAS and pending recovery, exact source review/promotion/restore, optional Claude, real font save/reload. Unit gates passing; real provider production and signed clean-Mac acceptance remain required. | `[~]` |
 
 ---
 

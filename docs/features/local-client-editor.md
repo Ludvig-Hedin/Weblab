@@ -5,7 +5,7 @@ The public Mac app is in `apps/desktop-local`. It is separate from the hosted ed
 ## Designer flow
 
 1. Open the prepared local site folder. Claude is optional for text and shared font variables.
-2. Open **Content**, prepare a local text copy, choose a field and **Save draft**. Undo/Redo affects local text only.
+2. Prepare a local text copy in **Content** once. Double-click a visible heading or plain body text, type on the page, then use **Save text** in the app header. **Discard** restores the field. Header Undo/Redo affects local text only and returns when the site reopens. The Content panel remains available for fields without a visible text target.
 3. To publish text, connect the site's Sanity write token in the native Content panel. Review exact before/after text, then explicitly publish. A restore creates a new local draft for review. **Replace text connection** repairs an invalid or expired write credential without losing local text.
 4. For design changes, use **Publish**: make a test link, open and check it, prepare the live build, open and check that build, then publish it. The production build uses Vercel `--skip-domain` before promotion.
 5. Shared fonts can be changed under **Variables → Fonts**. A typed family name must already have a loaded font asset. Per-element design Save still uses Claude.
@@ -24,7 +24,7 @@ Manifest fields are a bounded whitelist of human text from published `page`, `si
 - A lost build response stays pending. **Build never started?** offers an explicit discard only after a successful empty provider search and an unchanged live-site check. A late unreviewed build is never promoted. This escape never applies to a live switch.
 - Git Upload and AI change notes also exclude local content and release state, even if the site forgot its ignore rules. Existing committed history is outside this selected-file guard.
 - Text and design publications are separate operations. Dirty or pending text blocks a design release.
-- Credentials remain in native encrypted storage. Website pages may select a known text field; they cannot save, connect credentials or publish.
+- Credentials remain in native encrypted storage. Website pages may read an allowlisted text field and propose its new value in memory. Only the trusted native header may save the exact proposal. Pages cannot write draft files, connect credentials or publish. The editor uses plain text, restores original DOM nodes, checks revisions, and rejects ambiguous bindings. Unsaved text blocks competing Content mutations and native reload; close/quit offers Keep editing or Discard. A site-server failure retains the proposal until Save/Discard.
 - Provider checks are not a distributed lock across other CMS/Vercel users. Coordinate a release window for client production acceptance.
 
 ## Validation
@@ -41,34 +41,26 @@ bun run build:mac
 
 A passing suite or unsigned package is not a completed client release. Verify the packaged app against an isolated real site, then verify authorized preview, public render and restore. Record any missing provider access or signing credentials.
 
-## Continue the unfinished page editing work
+## Direct page editing
 
-This is a draft candidate, not a client-ready release. The native **Content**
-panel can edit supported text, but direct editing on the page is not complete.
-Double-clicking a heading in a nested CMS page can select `CmsPageBody` or
-`CmsSections` and show disabled “From CMS” properties. Opening the page without
-a password does not solve that selection problem.
+`packages/overlay/src/app.ts` resolves a text target before component drill-in.
+`components/inline-content.ts` owns the page caret and bounded field proposal.
+Split animated headings resolve to their full heading. Multiple distinct or
+malformed bindings never choose an arbitrary field. Normal component drill-in
+still handles non-text targets.
 
-Start with `packages/overlay/src/app.ts` under `apps/desktop-local`:
-`onTextEnter` asks `components.onDoubleClick` before resolving an editable text
-target. Inspect hit testing and component retargeting as well; do not assume that
-reordering those calls alone fixes the bug. The current `editLocalContent`
-bridge selects a field in the native Content panel. It does not provide a caret
-or text input on the canvas. The owner needs direct page editing, not just a
-shortcut to the separate panel.
+`apps/desktop/src/content-ipc.js` checks the caller, known field, edit ID, site,
+size limit and revision. The website preload exposes read/propose/abandon only.
+`apps/desktop/renderer/inline-content.js` owns Save, Discard and local history.
+Empty owned fields keep a temporary click area after blur and accept new text.
+Their prior styles return when filled or ended. No Claude login or CMS write
+credential is needed for this local flow.
 
-Acceptance needed before calling this fixed:
-
-- Click the visible heading or body text inside nested CMS components. Select
-  the exact text, without first entering every enclosing component.
-- Type on the page, save locally, and see the exact text in desktop/mobile
-  frames. Reload and reopen the app to check that the edit survives.
-- Undo/redo restores the intended field. Other pages, fields and source files
-  stay unchanged. Split animated headings retain a complete keyed binding.
-- Clicking whitespace, a shared component, links or mixed text never chooses
-  an unrelated CMS field. Normal component editing remains available.
-- Test without Claude or CMS write credentials. No remote publication is
-  needed for this local acceptance.
+Packaged acceptance covers direct heading/body typing, local Save, both frame
+sizes, Undo/Redo, Discard and Keep editing on quit. Empty-field clear/blur/reentry/correction/Save/Undo also passed in the app.
+A saved heading survived an app restart; the restored header Undo returned it to its original value.
+Desktop lint, typecheck and all 2,229 tests pass (172 native-shell tests). Rich text ranges and arbitrary CMS
+structures are outside this plain-text field contract.
 
 ## Resume on another Mac
 
@@ -97,9 +89,11 @@ Client source patches are in a separate private handoff repository, because
 this Weblab repository is public. Do not commit site copies, CMS snapshots,
 credentials, local app data, generated bundles or installers here.
 
-Previous validation: 2,175 desktop tests, lint and types passed; unsigned Mac
-packages built. The independent site copy passed 231 tests and its production
+Earlier validation: 2,175 desktop tests, lint and types passed; unsigned Mac
+packages built. The direct-edit follow-up passes 2,229 tests and a rebuilt
+unsigned acceptance app. The independent site copy passed 231 tests and its production
 build. Native Content save/render/undo and shared-font save/undo/redo were
-checked. Direct page editing, provider write/publish/restore, signing and
-clean-Mac acceptance remain open. Root hosted-web checks had missing unrelated
+checked. Provider write/publish/restore, signing and
+clean-Mac acceptance remain open. Direct page editing now has a separate
+implementation and packaged acceptance record above. Root hosted-web checks had missing unrelated
 dependencies and do not constitute desktop validation.

@@ -43,7 +43,7 @@ later without re-discovering the context.
 - **Discovered:** 2026-10-21 (F-843 local client integration)
 - **Where:** `apps/desktop-local`, F-843, T-884
 - **State:** Native local text and font edits and the provider-independent release checks pass. Real provider write/promotion/restore acceptance and clean-Mac signed-package acceptance are still open. This Mac has no valid Apple code-signing identity.
-- **Local-copy update:** A fully independent loopback-only site copy now opens without a password in native desktop/mobile frames. Clicking the hero currently enters nested component scope; a one-step page-to-text edit journey still needs acceptance. The native Content panel save/render/undo path is verified.
+- **Local-copy update:** A fully independent loopback-only site copy now opens without a password in native desktop/mobile frames. Direct page heading/body typing now bypasses nested CMS component drill-in. Native Save, Undo/Redo, Discard and unsaved-quit protection were checked in the packaged app. The Content panel remains available for other fields.
 - **Next step:** Connect an authorized CMS write credential in the native panel, verify a reviewed text publish/restore and Vercel preview/staged-live/promotion/restore in an agreed release window, then sign/notarize and test the package on a clean Mac.
 - **Risk if ignored:** An unsigned local candidate or unit pass is mistaken for a supported client release.
 - **Tags:** `#release-blocker` `#desktop` `#test-gap`
