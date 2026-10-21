@@ -8,6 +8,7 @@ const { execFile } = require("node:child_process");
 const { basename, dirname } = require("node:path");
 const { canUseGit, childEnv } = require("./runtime");
 const github = require("./github");
+const sites = require("./sites");
 
 const GIT = "/usr/bin/git";
 const SECRET =
@@ -26,6 +27,7 @@ const GITHUB_REMOTE = /github\.com[:/]([^/]+)\/(.+?)(?:\.git)?\/?$/;
 
 /** Runs git and resolves { code, stdout, stderr }. Never rejects. */
 function git(cwd, args, { auth = false, timeout = 60_000 } = {}) {
+  sites.checkVerifiedPath(cwd);
   // Optional locks off, so the count refreshing in the background never holds
   // index.lock while an upload is adding files.
   const extra = { GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0" };
@@ -39,6 +41,7 @@ function git(cwd, args, { auth = false, timeout = 60_000 } = {}) {
     // Authenticated runs carry the token in the environment, so the
     // repository's own hook scripts must not run and see it.
     const full = auth ? ["-c", "core.hooksPath=/dev/null", ...args] : args;
+    sites.checkVerifiedPath(cwd);
     execFile(
       GIT,
       full,
@@ -548,6 +551,7 @@ async function stashCount(cwd) {
 /** First upload for a site with no GitHub copy: a private repository. */
 async function createRepo(cwd, { name } = {}) {
   const now = await status(cwd);
+  sites.checkVerifiedPath(cwd);
   if (!(now.git && now.repo)) {
     return { message: "This folder has no version history yet.", ok: false };
   }
@@ -556,7 +560,9 @@ async function createRepo(cwd, { name } = {}) {
     const again = await push(cwd, now.branch || "main", now.remote);
     return again.ok ? { ok: true, remote: now.remote } : again;
   }
-  const made = await github.createRepo(name);
+  const made = await github.createRepo(name, () =>
+    sites.checkVerifiedPath(cwd)
+  );
   if (!made.ok) {
     return made;
   }
@@ -578,16 +584,20 @@ async function createRepo(cwd, { name } = {}) {
 
 async function pullRequest(cwd, { title = "" } = {}) {
   const now = await status(cwd);
+  sites.checkVerifiedPath(cwd);
   if (!now.remote?.github) {
     return { message: "This site isn’t on GitHub.", ok: false };
   }
-  return github.openPullRequest({
-    base: now.defaultBranch,
-    head: now.branch,
-    name: now.remote.name,
-    owner: now.remote.owner,
-    title: title.trim() || `Changes from ${now.branch}`,
-  });
+  return github.openPullRequest(
+    {
+      base: now.defaultBranch,
+      head: now.branch,
+      name: now.remote.name,
+      owner: now.remote.owner,
+      title: title.trim() || `Changes from ${now.branch}`,
+    },
+    () => sites.checkVerifiedPath(cwd)
+  );
 }
 
 /** Local and GitHub branches, newest first, with who changed them last. */

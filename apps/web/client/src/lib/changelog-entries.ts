@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+    {
+        slug: 'v5-3-mac-site-organization',
+        version: '5.3',
+        title: 'Organize sites on your Mac',
+        description: 'Group sites without moving their files. View full folder locations and reconnect moved folders while keeping the same site in your library.',
+        date: '2026-10-21',
+        tags: ['Desktop', 'Sites'],
+        // UI illustration: /assets/changelog/site-folders.png (renderer preview with example sites)
+    },
     // Illustration: /assets/changelog/working-modes.svg
     {
         slug: 'v5-2-simple-and-advanced-editing',

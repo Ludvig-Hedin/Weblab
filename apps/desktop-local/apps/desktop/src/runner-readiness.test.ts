@@ -50,6 +50,8 @@ function harness() {
   );
   const stopTree = vi.fn(async (child: Child | null) => child?.exit(0));
   const stopGroups = vi.fn(async (_groups: Set<number>) => undefined);
+  const rootMatches = vi.fn(() => true);
+  const verified = vi.fn(async () => ({ id: "site", path: "/site" }));
   const modules: Record<string, unknown> = {
     "./auth": { readApiKey: () => null },
     "./procs": {
@@ -61,6 +63,13 @@ function harness() {
       bunBinary: () => "bun",
       childEnv: (env: object) => env,
       cliEntry: () => "/cli.js",
+    },
+    "./sites": {
+      assertVerified: vi.fn(async () => undefined),
+      checkVerifiedPath: vi.fn(),
+      checkVerifiedSite: vi.fn(),
+      currentRootMatches: rootMatches,
+      verified,
     },
     "./static-site": {},
     "node:child_process": { spawn },
@@ -125,11 +134,13 @@ function harness() {
     events,
     proxyReady,
     requests,
+    rootMatches,
     runner,
     spawn,
     start,
     stopGroups,
     stopTree,
+    verified,
   };
 }
 beforeEach(() => vi.useFakeTimers());
@@ -226,6 +237,57 @@ test("a new opening cancels an earlier probe and only the new site becomes ready
   h.requests[1].reply(200);
   await Promise.all([first.opening, second.opening]);
   expect(h.events.filter((event) => event.type === "ready")).toHaveLength(1);
+  expect(h.events.some((event) => event.type === "error")).toBe(false);
+  await h.runner.stop();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test("a late root-monitor cleanup cannot report an error into a newer opening", async () => {
+  const h = harness();
+  const first = await h.start();
+  await h.proxyReady(first.child);
+  h.requests[0].reply(200);
+  await first.opening;
+  h.events.length = 0;
+  let finishCleanup: (value: undefined) => void = () => undefined;
+  h.stopGroups.mockImplementationOnce(
+    () =>
+      new Promise<undefined>((resolve) => {
+        finishCleanup = resolve;
+      })
+  );
+  h.rootMatches.mockReturnValue(false);
+  await vi.advanceTimersByTimeAsync(500);
+  h.rootMatches.mockReturnValue(true);
+  const second = await h.start();
+  finishCleanup(undefined);
+  await h.proxyReady(second.child);
+  h.requests.at(-1)?.reply(200);
+  await second.opening;
+  expect(h.events.some((event) => event.type === "error")).toBe(false);
+  expect(h.events.filter((event) => event.type === "ready")).toHaveLength(1);
+  await h.runner.stop();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test("a stale folder lookup cannot replace a newer opening's source", async () => {
+  const h = harness();
+  let finishLookup: (site: { id: string; path: string }) => void = () =>
+    undefined;
+  h.verified.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishLookup = resolve;
+      })
+  );
+  const first = await h.start();
+  const second = await h.start();
+  finishLookup({ id: "old-site", path: "/old-site" });
+  await first.opening;
+  await h.proxyReady(second.child);
+  h.requests[0].reply(200);
+  await second.opening;
+  expect(h.spawn).toHaveBeenCalledTimes(1);
   expect(h.events.some((event) => event.type === "error")).toBe(false);
   await h.runner.stop();
   expect(vi.getTimerCount()).toBe(0);

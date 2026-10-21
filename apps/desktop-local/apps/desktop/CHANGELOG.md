@@ -2,6 +2,9 @@
 
 ## 0.2.2 candidate (unreleased)
 
+- Organize Sites into folders without moving their source on disk.
+- Reconnect a closed site after its folder moves. Changed folder identity blocks editing, uploads and publications until it is checked again.
+
 - Type supported CMS text directly on the page, including split headings. Save or discard from the app header.
 - Keep local Undo/Redo available after reopening the site. Protect unsaved text during reload, quit and site errors.
 - Review text and source publications in the native app. Provider and signed-package acceptance remain open.

@@ -38,16 +38,6 @@ later without re-discovering the context.
 
 ## Open
 
-### Folder recovery must cover the newer Content actions before PR #8 merges
-
-- **Discovered:** 2026-10-21, independent PR #8 integration review after PR #12.
-- **Where:** `apps/desktop-local/apps/desktop/src/content-ipc.js`, PR #8 (`codex/local-project-organization`).
-- **Symptom:** The older folder/reconnect branch guards source operations, but the newer Content handlers use `sites.get()` and queue mutations without its root-identity rechecks. Initialization also resumes after an awaited document fetch.
-- **Root cause:** Content actions were added after the folder-recovery branch diverged. A textual merge alone does not extend its safety contract to those handlers.
-- **Next step:** Reconcile Content Save/Undo/Redo, initialization, review/publish/restore and inline-edit paths with verified site identity after waits; add queued-root-change and post-fetch-root-change cases. Keep PR #8 draft until these focused checks and current-version lint/types can run under an approved machine guard. The installed desktop lane remains pinned to 0.2.1/pnpm while main uses 0.2.2/Bun; do not downgrade manifests or bypass it.
-- **Risk if ignored:** After integrating folder recovery, newer Content actions could still act on a replaced site root.
-- **Tags:** `#bug` `#desktop` `#recovery` `#test-gap`
-
 ### Local Mac client publishing needs provider and signed-package acceptance
 
 - **Discovered:** 2026-10-21 (F-843 local client integration)
@@ -95,6 +85,16 @@ later without re-discovering the context.
 - **Next step:** Encrypt with Electron `safeStorage` the way `release/store.js` does, with a migration for existing files.
 - **Risk if ignored:** Another process running as the same user can read test keys. Live keys must not be entered there.
 - **Tags:** `#security` `#desktop`
+
+### Finder recovery needs packaged Mac and interrupted-operation proof
+
+- **Discovered:** 2026-10-01 (Sites organization and Finder moves)
+- **Where:** F-844, T-885; `apps/desktop-local/apps/desktop/src/sites.js`; editor server root identity guard
+- **Symptom:** Metadata folders and checked recovery are implemented, but full packaged Electron/restart/offline-volume/permission flows remain unverified. Automatic bookmarks are best effort. Already executing OS/agent commands cannot be undone by a location guard.
+- **Next step:** Run T-885 in the installed app, including helper resources/signing, parent rename with the app closed, canceled legacy relink, unavailable disks and moving while an edit is already executing. Advise closing a site before Finder moves. Add reviewed physical moving, verified cross-volume cleanup and explicit linked-worktree repair separately.
+- **Risk if ignored:** A same-volume temporary-folder result could be mistaken for guaranteed live-process relocation or physical move support.
+- **Tags:** `#test-gap` `#desktop` `#workflow`
+
 
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
@@ -2341,6 +2341,16 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Folder recovery covers newer Content actions (2026-10-21, PR #8)
+
+- **Discovered:** 2026-10-21, independent PR #8 integration review after PR #12.
+- **Where:** `apps/desktop-local/apps/desktop/src/content-ipc.js`, PR #8 (`codex/local-project-organization`).
+- **Symptom:** The older folder/reconnect branch guards source operations, but the newer Content handlers use `sites.get()` and queue mutations without its root-identity rechecks. Initialization also resumes after an awaited document fetch.
+- **Root cause:** Content actions were added after the folder-recovery branch diverged. A textual merge alone does not extend its safety contract to those handlers.
+- **Resolved:** 2026-10-21, PR #8 integration. Captured source/session identity is rechecked across Content operations, admitted queues, publication journals, provider waits, GitHub retries and delayed AI-note summaries. Independent source review found no unresolved blocker. Local focused regressions, server types and 32-file lint pass; no full suite or hosted CI used. Installed Mac/restart/offline-volume acceptance remains tracked separately below.
+- **Risk if ignored:** After integrating folder recovery, newer Content actions could still act on a replaced site root.
+- **Tags:** `#bug` `#desktop` `#recovery` `#test-gap`
 
 ### Public Mac saved Undo can overwrite later file changes
 

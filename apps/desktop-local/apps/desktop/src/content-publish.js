@@ -20,9 +20,15 @@ function sameDocument(accepted, remote) {
   );
 }
 
-function createContentPublisher({ root, store, provider }) {
+function createContentPublisher({
+  root,
+  store,
+  provider,
+  verify = () => undefined,
+}) {
   const file = join(root, ".weblab/content-release.json");
   function read() {
+    verify();
     for (const path of [join(root, ".weblab"), file]) {
       if (
         fs.existsSync(path) &&
@@ -66,7 +72,9 @@ function createContentPublisher({ root, store, provider }) {
     };
   }
   async function check(snapshot) {
+    verify();
     const remote = await provider.documents();
+    verify();
     const manifest = buildManifest(remote);
     if (
       manifest.projectId !== snapshot.manifest.projectId ||
@@ -105,7 +113,9 @@ function createContentPublisher({ root, store, provider }) {
     return { ok: true, review: reviewed };
   }
   async function finish(record) {
+    verify();
     const source = await provider.documents();
+    verify();
     const remote = buildManifest(source);
     const current = store.snapshot();
     const { pending } = record;
@@ -189,7 +199,9 @@ function createContentPublisher({ root, store, provider }) {
     record.pending = { ...proposed, transactionId: randomUUID() };
     write(record);
     try {
+      verify();
       await provider.mutate(mutations, record.pending.transactionId);
+      verify();
     } catch (error) {
       if (error.definitelyRejected) {
         record.pending = null;
@@ -221,7 +233,9 @@ function createContentPublisher({ root, store, provider }) {
         "Finish the current text draft before restoring published text."
       );
     }
+    verify();
     const source = await provider.documents();
+    verify();
     const manifest = buildManifest(source);
     for (const change of record.last.changes) {
       if (

@@ -33,6 +33,7 @@ function setup(entries = "? src/page.tsx\0", statusFails = false) {
       readToken: () => "fixture-token",
     },
     "./runtime": { canUseGit: () => true, childEnv: () => ({}) },
+    "./sites": { checkVerifiedPath: () => undefined },
     "node:child_process": {
       execFile: (
         _binary: string,

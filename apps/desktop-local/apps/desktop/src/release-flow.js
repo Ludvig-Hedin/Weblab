@@ -4,9 +4,18 @@ const { join } = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { sourceHash, freezeSource } = require("./release-files");
 
-function createReleaseFlow({ root, link, provider }) {
+function createReleaseFlow({ root, link, provider, verify = () => undefined }) {
   const file = join(root, ".vercel/weblab-release.json");
+  async function checked(operation) {
+    verify();
+    try {
+      return await operation();
+    } finally {
+      verify();
+    }
+  }
   function state() {
+    verify();
     for (const path of [root, join(root, ".vercel"), file]) {
       if (fs.existsSync(path) && fs.lstatSync(path).isSymbolicLink()) {
         throw new Error("Release state must not be a link.");
@@ -33,6 +42,7 @@ function createReleaseFlow({ root, link, provider }) {
     return data;
   }
   function save(value) {
+    verify();
     const temp = `${file}.${randomUUID()}.tmp`;
     fs.writeFileSync(temp, JSON.stringify(value), { flag: "wx", mode: 0o600 });
     fs.renameSync(temp, file);
@@ -47,6 +57,7 @@ function createReleaseFlow({ root, link, provider }) {
   async function build(production) {
     const record = state();
     idle(record);
+    verify();
     const snapshot = freezeSource(root, link);
     try {
       if (
@@ -58,7 +69,7 @@ function createReleaseFlow({ root, link, provider }) {
           "Make and review a test link for these exact changes first."
         );
       }
-      const project = await provider.project();
+      const project = await checked(() => provider.project());
       const previousId = project.targets?.production?.id ?? null;
       record.pending = {
         id: randomUUID(),
@@ -69,12 +80,10 @@ function createReleaseFlow({ root, link, provider }) {
       };
       save(record);
       try {
-        const result = await provider.build(
-          snapshot,
-          production,
-          record.pending.id
+        const result = await checked(() =>
+          provider.build(snapshot, production, record.pending.id)
         );
-        const deployment = await provider.deployment(result.id);
+        const deployment = await checked(() => provider.deployment(result.id));
         if (
           deployment.readyState !== "READY" ||
           deployment.projectId !== link.projectId ||
@@ -115,10 +124,11 @@ function createReleaseFlow({ root, link, provider }) {
     const entry = [record.candidate, record.preview].find(
       (value) => value?.id === id
     );
+    verify();
     if (!entry || entry.sourceHash !== sourceHash(root)) {
       throw new Error("The site changed. Make a new test link.");
     }
-    const remote = await provider.deployment(entry.id);
+    const remote = await checked(() => provider.deployment(entry.id));
     if (remote.readyState !== "READY" || remote.projectId !== link.projectId) {
       throw new Error("This version is no longer ready.");
     }
@@ -130,10 +140,11 @@ function createReleaseFlow({ root, link, provider }) {
     const record = state();
     idle(record);
     const { candidate } = record;
+    verify();
     if (!candidate?.reviewed || candidate.sourceHash !== sourceHash(root)) {
       throw new Error("Review the current live version before publishing it.");
     }
-    const project = await provider.project();
+    const project = await checked(() => provider.project());
     if ((project.targets?.production?.id ?? null) !== candidate.previousId) {
       throw new Error("Someone else published. Make a new reviewed version.");
     }
@@ -143,8 +154,11 @@ function createReleaseFlow({ root, link, provider }) {
       kind: "promote",
     };
     save(record);
-    await provider.promote(candidate.id);
-    if ((await provider.project()).targets?.production?.id !== candidate.id) {
+    await checked(() => provider.promote(candidate.id));
+    if (
+      (await checked(() => provider.project())).targets?.production?.id !==
+      candidate.id
+    ) {
       throw new Error(
         "The live switch is not confirmed. Check release status."
       );
@@ -161,10 +175,15 @@ function createReleaseFlow({ root, link, provider }) {
     if (!record.live?.previousId) {
       throw new Error("There is no previous live version to restore.");
     }
-    if ((await provider.project()).targets?.production?.id !== record.live.id) {
+    if (
+      (await checked(() => provider.project())).targets?.production?.id !==
+      record.live.id
+    ) {
       throw new Error("Someone else published. Refresh before restoring.");
     }
-    const previous = await provider.deployment(record.live.previousId);
+    const previous = await checked(() =>
+      provider.deployment(record.live.previousId)
+    );
     if (
       previous.projectId !== link.projectId ||
       previous.readyState !== "READY" ||
@@ -178,8 +197,11 @@ function createReleaseFlow({ root, link, provider }) {
       kind: "rollback",
     };
     save(record);
-    await provider.rollback(previous.id);
-    if ((await provider.project()).targets?.production?.id !== previous.id) {
+    await checked(() => provider.rollback(previous.id));
+    if (
+      (await checked(() => provider.project())).targets?.production?.id !==
+      previous.id
+    ) {
       throw new Error("The restore is not confirmed. Check release status.");
     }
     record.live = {
@@ -193,13 +215,15 @@ function createReleaseFlow({ root, link, provider }) {
     return { ok: true, url: record.live.url };
   }
   async function reconcileBuild(record, intent) {
-    const matches = await provider.findBuild(intent.id);
+    const matches = await checked(() => provider.findBuild(intent.id));
     if (matches.length !== 1) {
       throw new Error(
         "The build is not yet confirmed. Check again later; do not start another build."
       );
     }
-    const remote = await provider.deployment(matches[0].uid || matches[0].id);
+    const remote = await checked(() =>
+      provider.deployment(matches[0].uid || matches[0].id)
+    );
     if (remote.projectId !== link.projectId) {
       throw new Error("The build belongs to another site.");
     }
@@ -233,7 +257,7 @@ function createReleaseFlow({ root, link, provider }) {
     if (intent.kind === "build") {
       await reconcileBuild(record, intent);
     } else {
-      const project = await provider.project();
+      const project = await checked(() => provider.project());
       if (project.targets?.production?.id !== intent.deploymentId) {
         throw new Error(
           "The live switch is not confirmed. Check Vercel before making another release."
@@ -243,7 +267,9 @@ function createReleaseFlow({ root, link, provider }) {
         record.live = record.candidate;
         record.candidate = null;
       } else {
-        const remote = await provider.deployment(intent.deploymentId);
+        const remote = await checked(() =>
+          provider.deployment(intent.deploymentId)
+        );
         record.live = {
           at: Date.now(),
           id: remote.id,
@@ -264,11 +290,11 @@ function createReleaseFlow({ root, link, provider }) {
     }
     // A successful, empty provider read is required. Never discard a known
     // running build or a live switch. A late build has no domain promotion.
-    const matches = await provider.findBuild(intent.id);
+    const matches = await checked(() => provider.findBuild(intent.id));
     if (!Array.isArray(matches) || matches.length) {
       throw new Error("Vercel has this build. Check its status instead.");
     }
-    const project = await provider.project();
+    const project = await checked(() => provider.project());
     if ((project.targets?.production?.id ?? null) !== intent.previousId) {
       throw new Error("The live site changed. Check Vercel before retrying.");
     }

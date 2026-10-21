@@ -8,11 +8,12 @@ import publishing from "./content-publish.js";
 const { createContentStore } = content;
 const { createContentPublisher } = publishing;
 let root: string;
+const movedRoots: string[] = [];
 interface Patch {
   patch: { id: string; ifRevisionID: string; set: Record<string, string> };
 }
 
-function fixture() {
+function fixture(verify = () => undefined) {
   const remote = {
     dataset: "production",
     documents: [
@@ -61,7 +62,7 @@ function fixture() {
       return Promise.resolve();
     }),
   };
-  const publisher = createContentPublisher({ provider, root, store });
+  const publisher = createContentPublisher({ provider, root, store, verify });
   function edit(value = "Edited") {
     return store.save({
       documentId: "home",
@@ -78,6 +79,9 @@ beforeEach(() => {
 });
 afterEach(() => {
   fs.rmSync(root, { force: true, recursive: true });
+  for (const moved of movedRoots.splice(0)) {
+    fs.rmSync(moved, { force: true, recursive: true });
+  }
 });
 
 test("publishes exactly reviewed fields with the original document revision", async () => {
@@ -369,3 +373,51 @@ test("crash recovery refuses changed touched documents even when edited text sti
   expect(f.publisher.status().pending).toBe(true);
   expect(f.provider.mutate).toHaveBeenCalledTimes(1);
 });
+
+for (const replace of [false, true]) {
+  test(`review refuses ${replace ? "replacement" : "moved"} root after a delayed provider read`, async () => {
+    const directory = root;
+    const original = fs.statSync(directory, { bigint: true });
+    const f = fixture(() => {
+      const current = fs.statSync(directory, { bigint: true });
+      if (
+        current.dev !== original.dev ||
+        current.ino !== original.ino ||
+        current.birthtimeNs !== original.birthtimeNs
+      ) {
+        throw new Error("Source folder changed");
+      }
+    });
+    f.edit();
+    let release: () => void = () => undefined;
+    const waiting = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    f.provider.documents.mockImplementationOnce(async () => {
+      await waiting;
+      return structuredClone(f.remote);
+    });
+    const reviewing = f.publisher.review();
+    const moved = `${directory}-moved`;
+    fs.renameSync(directory, moved);
+    movedRoots.push(moved);
+    if (replace) {
+      fs.cpSync(moved, directory, { recursive: true });
+    }
+    release();
+    await expect(reviewing).rejects.toThrow();
+    expect(
+      fs.existsSync(path.join(moved, ".weblab/content-release.json"))
+    ).toBe(false);
+    if (replace) {
+      expect(
+        fs.existsSync(path.join(directory, ".weblab/content-release.json"))
+      ).toBe(false);
+    }
+    expect(f.provider.mutate).not.toHaveBeenCalled();
+    expect(
+      createContentStore(moved).read({ documentId: "home", path: "title" })
+        .value
+    ).toBe("Edited");
+  });
+}

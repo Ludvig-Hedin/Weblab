@@ -8,6 +8,7 @@ import release from "./release-flow.js";
 const { createReleaseFlow } = release;
 const link = { orgId: "team_example", projectId: "prj_example" };
 let root: string;
+const movedRoots: string[] = [];
 interface Deployment {
   id: string;
   meta: { weblabRelease?: string };
@@ -17,7 +18,7 @@ interface Deployment {
   url: string;
 }
 
-function fixture() {
+function fixture(verify = () => undefined) {
   let live = "previous";
   let sequence = 0;
   const snapshots: string[] = [];
@@ -83,7 +84,7 @@ function fixture() {
       return Promise.resolve();
     }),
   };
-  const flow = createReleaseFlow({ link, provider, root });
+  const flow = createReleaseFlow({ link, provider, root, verify });
   async function candidate() {
     await flow.build(false);
     await flow.review(flow.state().preview.id);
@@ -120,6 +121,9 @@ beforeEach(() => {
 });
 afterEach(() => {
   fs.rmSync(root, { force: true, recursive: true });
+  for (const moved of movedRoots.splice(0)) {
+    fs.rmSync(moved, { force: true, recursive: true });
+  }
 });
 
 test("preview and staged production builds do not switch the live website", async () => {
@@ -315,3 +319,187 @@ test("rollback refuses a newer remote release or a previous version from another
   await expect(f.flow.rollback()).rejects.toThrow("previous version");
   expect(f.provider.rollback).not.toHaveBeenCalled();
 });
+
+function gate() {
+  let resolve: () => void = () => undefined;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+const delayedEdges = [
+  "build-project",
+  "build-response",
+  "build-deployment",
+  "review-deployment",
+  "promote-response",
+  "rollback-response",
+  "reconcile-build",
+  "reconcile-promote",
+  "reconcile-rollback",
+] as const;
+
+for (const replace of [false, true]) {
+  for (const edge of delayedEdges) {
+    test(`${edge} refuses a ${replace ? "replacement" : "moved"} source root without rewriting release intent`, async () => {
+      const directory = root;
+      const identity = fs.statSync(directory, { bigint: true });
+      const f = fixture(() => {
+        const current = fs.statSync(directory, { bigint: true });
+        if (
+          current.dev !== identity.dev ||
+          current.ino !== identity.ino ||
+          current.birthtimeNs !== identity.birthtimeNs
+        ) {
+          throw new Error("Source folder changed");
+        }
+      });
+      const entered = gate();
+      const waiting = gate();
+      const pause = async <T>(result: T | Promise<T>) => {
+        const value = await result;
+        entered.resolve();
+        await waiting.promise;
+        return value;
+      };
+      let operation: () => Promise<unknown>;
+      if (edge === "build-project") {
+        f.provider.project.mockImplementationOnce(() =>
+          pause({
+            id: link.projectId,
+            targets: { production: { id: f.live() } },
+          })
+        );
+        operation = () => f.flow.build(false);
+      } else if (edge === "build-response") {
+        const build = f.provider.build.getMockImplementation();
+        if (!build) {
+          throw new Error("Missing build fixture");
+        }
+        f.provider.build.mockImplementationOnce(
+          (snapshot, production, intent) =>
+            pause(build(snapshot, production, intent))
+        );
+        operation = () => f.flow.build(false);
+      } else if (edge === "build-deployment" || edge === "review-deployment") {
+        if (edge === "review-deployment") {
+          await f.flow.build(false);
+        }
+        const id = f.flow.state().preview?.id;
+        const deployment = f.provider.deployment.getMockImplementation();
+        if (!deployment) {
+          throw new Error("Missing deployment fixture");
+        }
+        f.provider.deployment.mockImplementationOnce((target) =>
+          pause(deployment(target))
+        );
+        operation =
+          edge === "build-deployment"
+            ? () => f.flow.build(false)
+            : () => f.flow.review(id);
+      } else if (edge === "promote-response" || edge === "rollback-response") {
+        await f.candidate();
+        if (edge === "rollback-response") {
+          await f.flow.publish();
+        }
+        const mutation =
+          edge === "promote-response"
+            ? f.provider.promote
+            : f.provider.rollback;
+        mutation.mockImplementationOnce((target) => {
+          f.setLive(target);
+          return pause(undefined);
+        });
+        operation =
+          edge === "promote-response"
+            ? () => f.flow.publish()
+            : () => f.flow.rollback();
+      } else {
+        if (edge === "reconcile-build") {
+          const build = f.provider.build.getMockImplementation();
+          if (!build) {
+            throw new Error("Missing build fixture");
+          }
+          f.provider.build.mockImplementationOnce(
+            async (snapshot, production, intent) => {
+              await build(snapshot, production, intent);
+              throw new Error("Lost response");
+            }
+          );
+          await expect(f.flow.build(false)).rejects.toThrow("Lost response");
+        } else {
+          await f.candidate();
+          if (edge === "reconcile-rollback") {
+            await f.flow.publish();
+          }
+          const mutation =
+            edge === "reconcile-promote"
+              ? f.provider.promote
+              : f.provider.rollback;
+          mutation.mockImplementationOnce((target) => {
+            f.setLive(target);
+            throw new Error("Lost response");
+          });
+          await expect(
+            edge === "reconcile-promote" ? f.flow.publish() : f.flow.rollback()
+          ).rejects.toThrow("Lost response");
+        }
+        if (edge === "reconcile-promote") {
+          f.provider.project.mockImplementationOnce(() =>
+            pause({
+              id: link.projectId,
+              targets: { production: { id: f.live() } },
+            })
+          );
+        } else {
+          const deployment = f.provider.deployment.getMockImplementation();
+          if (!deployment) {
+            throw new Error("Missing deployment fixture");
+          }
+          f.provider.deployment.mockImplementationOnce((target) =>
+            pause(deployment(target))
+          );
+        }
+        operation = () => f.flow.reconcile();
+      }
+      const running = operation();
+      await entered.promise;
+      const journal = path.join(directory, ".vercel/weblab-release.json");
+      const before = fs.existsSync(journal)
+        ? fs.readFileSync(journal, "utf8")
+        : null;
+      const calls = {
+        build: f.provider.build.mock.calls.length,
+        deployment: f.provider.deployment.mock.calls.length,
+        promote: f.provider.promote.mock.calls.length,
+        rollback: f.provider.rollback.mock.calls.length,
+      };
+      const moved = `${directory}-moved`;
+      fs.renameSync(directory, moved);
+      movedRoots.push(moved);
+      if (replace) {
+        fs.cpSync(moved, directory, { recursive: true });
+      }
+      waiting.resolve();
+      await expect(running).rejects.toThrow();
+      await expect(operation()).rejects.toThrow();
+      for (const destination of replace ? [directory, moved] : [moved]) {
+        const file = path.join(destination, ".vercel/weblab-release.json");
+        expect(fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null).toBe(
+          before
+        );
+      }
+      if (!["build-project", "review-deployment"].includes(edge)) {
+        expect(before && JSON.parse(before).pending).toBeTruthy();
+      }
+      expect(f.provider.build).toHaveBeenCalledTimes(calls.build);
+      expect(f.provider.promote).toHaveBeenCalledTimes(calls.promote);
+      expect(f.provider.rollback).toHaveBeenCalledTimes(calls.rollback);
+      expect(f.provider.deployment).toHaveBeenCalledTimes(calls.deployment);
+      for (const snapshot of f.snapshots) {
+        expect(fs.existsSync(snapshot)).toBe(false);
+      }
+    });
+  }
+}
