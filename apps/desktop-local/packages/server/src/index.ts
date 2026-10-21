@@ -291,9 +291,20 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       case "cancel":
         jobs.get(parsed.jobId)?.abort?.abort();
         break;
-      case "undo":
-        undo(ws, parsed.jobId);
+      case "undo": {
+        const { jobId } = parsed;
+        editChain = editChain
+          .then(() => undo(ws, jobId))
+          .catch((err) => {
+            send(ws, {
+              error: `undo failed: ${err instanceof Error ? err.message : String(err)}`,
+              jobId,
+              ok: false,
+              type: "undo:result",
+            });
+          });
         break;
+      }
       case "history":
         send(ws, { entries: listHistory(cwd), type: "history" });
         break;
@@ -530,8 +541,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       });
       return;
     }
-    // Content-restore from the before-state captured by the SDK PreToolUse
-    // hooks — instant and reliable. (SDK `rewindEdit` is the alternative.)
+    // Restore only files still matching this turn's captured after-state.
     const { restored, skipped } = restoreFiles(cwd, bundle.diffs);
     const ok = skipped.length === 0;
     broadcast({
@@ -545,7 +555,11 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       ok,
       type: "undo:result",
     });
-    broadcast({ entries: listHistory(cwd), type: "history" });
+    try {
+      broadcast({ entries: listHistory(cwd), type: "history" });
+    } catch (err) {
+      send(ws, { message: `history refresh failed: ${err instanceof Error ? err.message : String(err)}`, type: "error" });
+    }
   }
 
   async function commit(

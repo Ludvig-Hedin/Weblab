@@ -367,7 +367,11 @@ async function remoteKeyNames(cwd, link) {
     cwd,
     `/v10/projects/${link.projectId}/env?${scope(link)}`
   );
-  return new Set((found.data?.envs || []).map((env) => env.key));
+  if (!found.ok || !Array.isArray(found.data?.envs) ||
+      found.data.envs.some((env) => typeof env?.key !== "string")) {
+    return null;
+  }
+  return new Set(found.data.envs.map((env) => env.key));
 }
 
 const markerPath = (cwd) => join(cwd, ".vercel/weblab.json");
@@ -389,8 +393,8 @@ function writeMarker(cwd, patch) {
 }
 
 /**
- * Before a deploy: link the folder, then list local keys Vercel lacks, once
- * per project. Returns { ok, missingKeys, projectName }.
+ * Before every deploy: link the folder, then list local keys Vercel lacks.
+ * Returns { ok, missingKeys, projectName }.
  */
 async function prepare(cwd, site) {
   // Secret files never leave the Mac as files; keys go through Vercel's
@@ -402,12 +406,13 @@ async function prepare(cwd, site) {
   }
   const { link } = linked;
   let missingKeys = [];
-  if (!readMarker(cwd).keysAsked) {
-    const local = localKeys(cwd);
-    if (local.size > 0) {
-      const remote = await remoteKeyNames(cwd, link);
-      missingKeys = [...local.keys()].filter((key) => !remote.has(key));
+  const local = localKeys(cwd);
+  if (local.size > 0) {
+    const remote = await remoteKeyNames(cwd, link);
+    if (!remote) {
+      return { ok: false, message: "Weblab couldn’t check the site’s keys on Vercel. Try again before deploying." };
     }
+    missingKeys = [...local.keys()].filter((key) => !remote.has(key));
   }
   return { missingKeys, ok: true, projectName: link.projectName || "" };
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (2026-10-01)
+
+- Keep newer file changes when an older AI edit is undone, and wait for active edits before restoring files.
+- Show partial files and guarded Undo after a failed or stopped AI turn.
+- Block known secret files and renamed secrets from Upload, including Select all.
+- Preserve unrelated staged work when uploading selected files.
+- Import linked HTML pages and nested assets without following directory links.
+- Check missing deployment keys on every attempt, and refuse preparation when remote settings cannot be checked.
+- Keep the editor’s AI key out of the website preview process.
+- Save local settings without following symbolic links or replacing unreadable files, and use a complete private temporary file before replacement.
+- Explain that GitHub uploads can trigger hosting updates, test links may be public, and a failed deployment needs its online result checked.
+
 ## 0.2.1 (2026-09-29)
 
 - Show and hide native dropdown options from the Style panel, then select an option to edit its look while the sketch stays in Edit mode.

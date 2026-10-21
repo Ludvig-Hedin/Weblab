@@ -19,6 +19,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -323,10 +324,50 @@ describe("fileAtHead", () => {
 });
 
 describe("restoreFiles", () => {
+  it.each([false, true])("keeps later changes when isNew is %s", (isNew) => {
+    write("later.txt", "colleague saved this\n");
+    const result = restoreFiles(repo, [diff({ file: "later.txt", before: "old\n", after: "agent edit\n", isNew })]);
+    expect(result.restored).toEqual([]);
+    expect(result.skipped[0].reason).toContain("file changed");
+    expect(readFileSync(join(repo, "later.txt"), "utf8")).toBe("colleague saved this\n");
+  });
+
+  it("restores a deletion only while the file is still absent", () => {
+    const deleted = diff({ file: "deleted.txt", before: "original\n", after: null, isDeleted: true });
+    expect(restoreFiles(repo, [deleted]).restored).toEqual(["deleted.txt"]);
+    write("deleted.txt", "replacement\n");
+    expect(restoreFiles(repo, [deleted]).restored).toEqual([]);
+    expect(readFileSync(join(repo, "deleted.txt"), "utf8")).toBe("replacement\n");
+  });
+
+  it("refuses history without an after-state", () => {
+    write("added.txt", "keep\n");
+    expect(restoreFiles(repo, [diff({ file: "added.txt", isNew: true })]).restored).toEqual([]);
+    expect(readFileSync(join(repo, "added.txt"), "utf8")).toBe("keep\n");
+  });
+
+  it("checks exact bytes including CRLF and BOM", () => {
+    write("bytes.txt", "\uFEFFagent\r\n");
+    expect(restoreFiles(repo, [diff({ file: "bytes.txt", before: "old\n", after: "agent\n" })]).restored).toEqual([]);
+    expect(restoreFiles(repo, [diff({ file: "bytes.txt", before: "old\r\n", after: "\uFEFFagent\r\n" })]).restored).toEqual(["bytes.txt"]);
+  });
+
+  it("refuses outside paths and symbolic links", () => {
+    writeFileSync(join(empty, "outside.txt"), "outside\n");
+    symlinkSync(join(empty, "outside.txt"), join(repo, "link.txt"));
+    symlinkSync(empty, join(repo, "linked-dir"), process.platform === "win32" ? "junction" : "dir");
+    symlinkSync(join(empty, "missing.txt"), join(repo, "dangling.txt"));
+    for (const file of [join(empty, "outside.txt"), "link.txt", "linked-dir/outside.txt", "dangling.txt"]) {
+      expect(restoreFiles(repo, [diff({ file, before: "old\n", after: file === "dangling.txt" ? null : "outside\n" })]).restored).toEqual([]);
+    }
+    expect(readFileSync(join(empty, "outside.txt"), "utf8")).toBe("outside\n");
+    expect(existsSync(join(empty, "missing.txt"))).toBe(false);
+  });
+
   it("rewrites a file from its before content", () => {
     write("committed.txt", "edited\n");
     const result = restoreFiles(repo, [
-      diff({ before: "one\ntwo\nthree\n", file: "committed.txt" }),
+      diff({ before: "one\ntwo\nthree\n", after: "edited\n", file: "committed.txt" }),
     ]);
     expect(result.restored).toEqual(["committed.txt"]);
     expect(result.skipped).toEqual([]);
@@ -339,7 +380,7 @@ describe("restoreFiles", () => {
   it("deletes a file the edit created", () => {
     write("added.txt", "new\n");
     const result = restoreFiles(repo, [
-      diff({ file: "added.txt", isNew: true }),
+      diff({ file: "added.txt", after: "new\n", isNew: true }),
     ]);
     expect(result.restored).toEqual(["added.txt"]);
     expect(existsSync(join(repo, "added.txt"))).toBe(false);
@@ -375,7 +416,7 @@ describe("restoreFiles", () => {
     // this failure is identical on both.
     mkdirSync(join(repo, "blocked.txt"), { recursive: true });
     const result = restoreFiles(repo, [
-      diff({ before: "original\n", file: "blocked.txt" }),
+      diff({ before: "original\n", after: "edited\n", file: "blocked.txt" }),
     ]);
     expect(result.restored).toEqual([]);
     expect(result.skipped).toHaveLength(1);

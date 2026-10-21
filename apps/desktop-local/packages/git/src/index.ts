@@ -13,12 +13,14 @@
 import { execFile, execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { FileDiff } from "@airship/protocol";
 
@@ -836,15 +838,48 @@ export interface RestoreResult {
  * existed, so undo deleted tracked source files on any machine where git could
  * not run. Refusing and saying so is the only safe answer.
  *
+ * Refuse stale history, symbolic links and missing after-states. The caller
+ * serializes this with agent edits; external editors still need coordination.
+ *
  * Nothing here may throw: `undo` is called straight out of the WebSocket
  * message handler, so an EACCES on one read-only file would otherwise take the
  * whole daemon down with it.
  */
+function restoreTarget(root: string, file: string): string {
+  const abs = resolve(root, file);
+  const rel = relative(root, abs);
+  if (!rel || isAbsolute(rel) || rel === ".." || rel.startsWith(`..${sep}`) || resolve(root, rel) !== abs || rel.split(sep)[0] === ".git") {
+    throw new Error("undo target is outside the project or is Git metadata");
+  }
+  let current = root;
+  for (const part of rel.split(sep)) {
+    current = resolve(current, part);
+    try {
+      if (lstatSync(current).isSymbolicLink()) {
+        throw new Error("undo refuses symbolic links");
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+  return abs;
+}
+
 export function restoreFiles(cwd: string, diffs: FileDiff[]): RestoreResult {
+  let root: string;
+  try {
+    root = realpathSync(cwd);
+  } catch (error) {
+    return {
+      restored: [],
+      skipped: diffs.map((d) => ({ file: d.file, reason: error instanceof Error ? error.message : String(error) })),
+    };
+  }
   const restored: string[] = [];
   const skipped: { file: string; reason: string }[] = [];
   for (const d of diffs) {
-    const abs = resolve(cwd, d.file);
     if (d.noBaseline) {
       skipped.push({
         file: d.file,
@@ -853,8 +888,27 @@ export function restoreFiles(cwd: string, diffs: FileDiff[]): RestoreResult {
       continue;
     }
     try {
+      if (d.after === undefined) {
+        throw new Error("no saved after-state; newer work cannot be checked");
+      }
+      const abs = restoreTarget(root, d.file);
+      let present = true;
+      try {
+        const stat = lstatSync(abs);
+        if (!stat.isFile()) {
+          throw new Error("undo target is not a regular file");
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw error;
+        }
+        present = false;
+      }
+      if (d.after === null ? present : !present || !readFileSync(abs).equals(Buffer.from(d.after, "utf8"))) {
+        throw new Error("file changed since this edit; newer work was kept");
+      }
       if (d.isNew) {
-        if (existsSync(abs)) {
+        if (present) {
           rmSync(abs, { force: true });
         }
         restored.push(d.file);

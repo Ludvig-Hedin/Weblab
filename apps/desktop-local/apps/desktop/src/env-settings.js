@@ -2,6 +2,7 @@
 // user's answers into .env.local. Values are never logged.
 
 const fs = require("node:fs");
+const { randomUUID } = require("node:crypto");
 const { join } = require("node:path");
 
 const EXAMPLE_FILES = [".env.example", ".env.sample", ".env.local.example"];
@@ -29,9 +30,25 @@ function unquote(raw) {
   return hash === -1 ? value : value.slice(0, hash).trim();
 }
 
+function readBytes(path) {
+  let fd;
+  try {
+    fd = fs.openSync(path, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  try {
+    if (!fs.fstatSync(fd).isFile()) throw new Error("Settings must be a regular file.");
+    return fs.readFileSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 function readLines(path) {
   try {
-    return fs.readFileSync(path, "utf8").split(NEWLINE);
+    return readBytes(path)?.toString("utf8").split(NEWLINE) ?? null;
   } catch {
     return null;
   }
@@ -123,8 +140,13 @@ function save(dir, answers) {
   if (updates.size === 0) {
     return;
   }
-  const path = join(dir, ".env.local");
-  const lines = readLines(path) || [];
+  const root = fs.realpathSync(dir);
+  const path = join(root, ".env.local");
+  const before = readBytes(path);
+  if (before && !Buffer.from(before.toString("utf8")).equals(before)) {
+    throw new Error("Settings must be UTF-8 text.");
+  }
+  const lines = before?.toString("utf8").split(NEWLINE) || [];
   const written = new Set();
   const next = lines.map((line) => {
     const assignment = line.match(ASSIGNMENT);
@@ -142,7 +164,28 @@ function save(dir, answers) {
       next.push(`${key}=${formatValue(value.trim())}`);
     }
   }
-  fs.writeFileSync(path, `${next.join("\n")}\n`, { mode: 0o600 });
+  const temporary = join(root, `.env.local.weblab-${randomUUID()}.tmp`);
+  let temporaryFd = null;
+  let created = false;
+  try {
+    temporaryFd = fs.openSync(temporary, "wx", 0o600);
+    created = true;
+    fs.writeFileSync(temporaryFd, `${next.join("\n")}\n`);
+    const writtenFd = temporaryFd;
+    temporaryFd = null;
+    fs.closeSync(writtenFd);
+    const current = readBytes(path);
+    if (before === null ? current !== null : current === null || !before.equals(current)) {
+      throw new Error("Settings changed while saving. Try again.");
+    }
+    fs.renameSync(temporary, path);
+  } finally {
+    try {
+      if (temporaryFd !== null) fs.closeSync(temporaryFd);
+    } finally {
+      if (created && fs.existsSync(temporary)) fs.unlinkSync(temporary);
+    }
+  }
 }
 
 module.exports = { describe, missingKeys, save };

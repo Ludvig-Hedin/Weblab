@@ -5803,6 +5803,7 @@ export class AirshipApp {
 
   private assistantActions(bundle: JobDiffBundle): AssistantActions {
     const canRevert = bundle.status === "done" && bundle.diffs.length > 0;
+    const canUndo = bundle.diffs.length > 0 && bundle.diffs.every((diff) => !diff.noBaseline && diff.after !== undefined);
     // Inside the desktop app, Upload in the top bar does commit and push.
     const canCommit = canRevert && !desktopHost()?.hostsGit;
     return {
@@ -5821,7 +5822,7 @@ export class AirshipApp {
       onOpenIn: canRevert
         ? (editor, file, line) => this.openIn(editor, file, line)
         : undefined,
-      onUndo: canRevert ? () => this.undo(bundle.jobId) : undefined,
+      onUndo: canUndo ? () => this.undo(bundle.jobId) : undefined,
     };
   }
 

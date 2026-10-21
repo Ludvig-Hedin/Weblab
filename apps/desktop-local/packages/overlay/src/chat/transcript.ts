@@ -222,6 +222,12 @@ export function fillAssistant(
         text: bundle.error || "Edit failed.",
       })
     );
+    if (bundle.diffs?.length) {
+      target.append(changedFiles(bundle, {}));
+      if (actions.onUndo) {
+        target.append(actionsRow(bundle, { onUndo: actions.onUndo }));
+      }
+    }
     return;
   }
 

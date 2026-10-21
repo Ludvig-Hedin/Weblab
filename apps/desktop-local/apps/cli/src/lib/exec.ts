@@ -78,8 +78,15 @@ export async function startDevServer(opts: {
     );
   }
 
+  const previewEnv = { ...process.env };
+  // The desktop passes its AI key to the editor, not to project scripts.
+  if (previewEnv.WEBLAB_PREVIEW_STRIP_ANTHROPIC_KEY === "1") {
+    delete previewEnv.ANTHROPIC_API_KEY;
+  }
+  delete previewEnv.WEBLAB_PREVIEW_STRIP_ANTHROPIC_KEY;
   const child = spawn(opts.command, {
     cwd: opts.cwd,
+    env: previewEnv,
     detached: process.platform !== "win32",
     shell: true,
     // The child's output is passed through — including the errors that explain

@@ -24,6 +24,7 @@ const ASSETS = new Set([
   ".avif",
   ".css",
   ".gif",
+  ".html",
   ".ico",
   ".jpeg",
   ".jpg",
@@ -97,6 +98,15 @@ function localFile(root, from, reference) {
     return null;
   }
   try {
+    // An ancestor link can escape the root even when the leaf is a regular file.
+    const parts = relative(root, file).split(sep);
+    let current = root;
+    for (const part of parts) {
+      current = join(current, part);
+      if (fs.lstatSync(current).isSymbolicLink()) {
+        return null;
+      }
+    }
     return fs.lstatSync(file).isFile() ? file : null;
   } catch {
     return null;
@@ -104,7 +114,11 @@ function localFile(root, from, reference) {
 }
 
 function copyLinkedFiles(source, destination) {
-  const root = dirname(source);
+  const root = fs.realpathSync(dirname(source));
+  source = join(root, basename(source));
+  if (!fs.lstatSync(source).isFile()) {
+    throw new Error("Choose a regular HTML file, not a symbolic link.");
+  }
   const queued = [source];
   const copied = new Set();
   while (queued.length) {

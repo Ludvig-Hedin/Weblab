@@ -499,7 +499,7 @@
       return "";
     }
     let all = "mixed";
-    if (picked === s.files.length) {
+    if (picked === s.files.filter((file) => !file.secret).length && picked > 0) {
       all = "true";
     } else if (picked === 0) {
       all = "false";
@@ -507,7 +507,7 @@
     const rows = s.files
       .map(
         (file) =>
-          `<button type="button" class="pub-file" role="checkbox" aria-checked="${up.picked.has(file.path)}" data-act="toggle" data-path="${esc(file.path)}" data-focus-key="f:${esc(file.path)}" title="${esc(file.path)}"><span class="pub-box">${ICON.check}</span><span class="pub-file-name">${esc(file.name)}</span><span class="pub-file-dir">${esc(file.dir)}</span><span class="pub-tag">${fileTag(file)}</span></button>`
+          `<button type="button" class="pub-file" ${file.secret ? 'disabled aria-disabled="true"' : ""} role="checkbox" aria-checked="${up.picked.has(file.path)}" data-act="toggle" data-path="${esc(file.path)}" data-focus-key="f:${esc(file.path)}" title="${esc(file.path)}"><span class="pub-box">${ICON.check}</span><span class="pub-file-name">${esc(file.name)}</span><span class="pub-file-dir">${esc(file.dir)}</span><span class="pub-tag">${fileTag(file)}</span></button>`
       )
       .join("");
     return `<div class="pub-files"><button type="button" class="pub-files-all" role="checkbox" aria-checked="${all}" data-act="toggle-all" data-focus-key="all"><span class="pub-box">${ICON.check}</span><span class="pub-muted">${picked} of ${plural(s.files.length, "file", "files")}</span></button>${rows}</div>`;
@@ -559,7 +559,7 @@
       : "";
     const count = picked || (s.files.length === 0 ? s.ahead : 0);
     const ready = count > 0 && !(picked > 0 && !up.note.trim());
-    return `${head("Upload changes", "Saves your work to GitHub for your team. Your live site does not change from here.")}
+    return `${head("Upload changes", "Saves your work to GitHub for your team. Uploading can update your live site if GitHub is connected to your hosting.")}
       <div class="pub-body">${whereHtml(s, up)}${warn}${fileListHtml(s, up, picked)}${earlier}${noteHtml(s, up)}</div>
       <div class="pub-foot">${button("close", "Cancel")}${button("upload", uploadLabel(s, picked), "primary", ready ? "" : "disabled")}</div>`;
   }
@@ -684,6 +684,9 @@
     toggle: (target) => {
       const { picked } = state.upload;
       const { path } = target.dataset;
+      if (state.status?.files.find((file) => file.path === path)?.secret) {
+        return;
+      }
       if (picked.has(path)) {
         picked.delete(path);
       } else {
@@ -693,7 +696,7 @@
     },
     "toggle-all": () => {
       const up = state.upload;
-      const files = state.status?.files || [];
+      const files = (state.status?.files || []).filter((file) => !file.secret);
       up.picked =
         up.picked.size === files.length
           ? new Set()
@@ -799,7 +802,7 @@
       : "";
     return `${head("Deploy what you see", "Puts this site online with Vercel.")}
       <div class="pub-body"><div class="pub-choices" role="radiogroup" aria-label="Where to deploy">
-        ${choice("preview", "Test link", "A private link to check and share.")}
+        ${choice("preview", "Test link", "A test link to check and share. Anyone with the link may be able to open it.")}
         ${choice("production", "Live site", `${liveName || "Your public address"}. Every visitor sees it.`)}
       </div>${changes}</div>
       <div class="pub-foot">${last}${action}</div>`;
@@ -831,7 +834,7 @@
       ? `<pre class="pub-details">${esc(d.error.log.split("\n").slice(-12).join("\n"))}</pre>`
       : "";
     const canAsk = Boolean(d.error?.log) && inEditor();
-    return `${head("That did not work")}<div class="pub-body">${callout(`Nothing changed online.${said}`, true)}${log}</div>
+    return `${head("That did not work")}<div class="pub-body">${callout(`Check your hosting dashboard before trying again. The online result could not be confirmed.${said}`, true)}${log}</div>
       <div class="pub-foot">${button("again", "Back")}${canAsk ? button("ask-ai", "Ask AI to fix it", "primary") : ""}</div>`;
   }
 

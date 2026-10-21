@@ -144,6 +144,7 @@ function parseStatus(raw) {
     if (file && entry.startsWith("2 ")) {
       // A rename's original path follows as its own field.
       file.from = fields.next().value || "";
+      file.secret ||= SECRET.test(file.from);
     }
   }
   return { files, head };
@@ -377,8 +378,6 @@ async function push(cwd, branch, remote) {
 }
 
 async function commitFiles(cwd, paths, note) {
-  // Unstage by path, which keeps a merge in progress intact.
-  await git(cwd, ["reset", "-q", "--", "."]);
   const add = await git(cwd, [
     "--literal-pathspecs",
     "add",
@@ -391,11 +390,15 @@ async function commitFiles(cwd, paths, note) {
   }
   const identity = await identityArgs(cwd);
   const commit = await git(cwd, [
+    "--literal-pathspecs",
     ...identity,
     "commit",
+    "--only",
     "-q",
     "-m",
     note.trim() || "Update site",
+    "--",
+    ...paths,
   ]);
   if (commit.code !== 0) {
     return {
@@ -412,7 +415,14 @@ async function commitFiles(cwd, paths, note) {
  * `newBranch`, first moves to a fresh branch named after the note.
  */
 async function upload(cwd, { paths = [], note = "", newBranch = false } = {}) {
+  if (!Array.isArray(paths) || paths.some((path) => typeof path !== "string" || SECRET.test(path))) {
+    return { code: "secret", message: "Secret files cannot be uploaded. Leave them on this Mac.", ok: false };
+  }
   const now = await status(cwd);
+  const byPath = new Map((now.files || []).map((file) => [file.path, file]));
+  if (paths.some((path) => byPath.get(path)?.secret)) {
+    return { code: "secret", message: "Secret files cannot be uploaded. Leave them on this Mac.", ok: false };
+  }
   if (!(now.git && now.repo && now.remote)) {
     return {
       code: "no-remote",
@@ -440,7 +450,6 @@ async function upload(cwd, { paths = [], note = "", newBranch = false } = {}) {
       return { message: "Weblab couldn’t make a new branch.", ok: false };
     }
   }
-  const byPath = new Map(now.files.map((file) => [file.path, file]));
   const chosen = paths.filter((path) => byPath.has(path));
   // A moved file is two paths: the new one and the one it left.
   const picked = chosen.flatMap((path) => {
