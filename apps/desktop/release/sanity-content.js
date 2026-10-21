@@ -2,9 +2,10 @@
 
 const { randomUUID } = require('node:crypto');
 const { assertRequestActive } = require('./authorize');
-const defaultEngine = require('./sanity-site');
-const { stable, hash, clone } = require('./sanity-site/contract');
-const { materializeRuntime } = require('./sanity-site/runtime');
+const { requireSiteEngine } = require('./site-engine');
+const defaultEngine = requireSiteEngine('index');
+const { stable, hash, clone } = requireSiteEngine('contract');
+const { materializeRuntime } = requireSiteEngine('runtime');
 
 const MAX_RESPONSE = 10 * 1024 * 1024;
 const MAX_REQUEST = 16 * 1024;
@@ -85,7 +86,7 @@ class SanityContentCoordinator {
         const origin = new URL(appUrl);
         if (origin.username || origin.password || origin.hash || origin.search || origin.pathname !== '/' || (origin.protocol !== 'https:' && !(origin.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname)))) failed('a trusted application origin is required.');
         if (!store || !local || typeof fetchImpl !== 'function') failed('native content setup is unavailable.');
-        if (engine.PROFILE?.projectId !== 'l45nowfu' || engine.PROFILE.dataset !== 'production') failed('the approved website profile is unavailable.');
+        if (!engine.PROFILE?.projectId || engine.PROFILE.dataset !== 'production') failed('the approved website profile is unavailable.');
         Object.assign(this, { origin: origin.origin, store, local, engine, captureDependencies, fetchImpl, now });
     }
 

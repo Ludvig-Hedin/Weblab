@@ -18,6 +18,13 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-10-05 — Customer-pinned code stays out of the public repository
+Decision: Code that embeds one customer's site source or identifiers is gitignored and loaded through a small optional loader; the public tree must run without it.
+Context: The whole-site content engine pins a customer's source files, and this repository is public.
+Alternatives considered: Making the repository private (breaks the public Mac download from GitHub releases); committing a stub profile under the same path (a tracked file with different local content invites an accidental commit).
+Rationale: `apps/desktop/release/site-engine.js` checks for the folder and requires it by computed path, so the package-files test and CI pass without it and a local build includes it. Features that need it report "unavailable" instead of failing at startup.
+Status: Active
+
 ## 2026-09-29 — Startup recovery begins with a read-only CLI turn
 
 Decision: A local preview failure opens a fresh CLI chat in the active private branch. Its first turn receives only a short issue category and runs read-only; the user approves proposed files in chat before a later edit turn.

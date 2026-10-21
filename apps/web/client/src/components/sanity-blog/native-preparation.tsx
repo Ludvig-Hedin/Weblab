@@ -104,7 +104,8 @@ export function NativeContentPreparation({ projectId, branchId, blocked = false,
         await run(async (request, assertCurrent) => {
             const value = await client.query(sanityBlogApi.connection, { projectId: projectId as Id<'projects'>, branchId: branchId as Id<'branches'> });
             assertCurrent();
-            if (value?.sanityProjectId !== 'l45nowfu' || value.dataset !== 'production') {
+            // The desktop app's approved website profile decides which site can be prepared.
+            if (!value?.sanityProjectId || value.dataset !== 'production') {
                 setConnection(null); setRows([]); setCursor(null); return;
             }
             const page = await client.query(publicationDrafts, { projectId: value.projectId, branchId: value.branchId, connectionId: value.id, connectionRevision: value.revision });

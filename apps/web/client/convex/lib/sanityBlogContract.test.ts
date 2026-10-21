@@ -4,7 +4,7 @@ import { BLOG_PROFILE, SANITY_BLOG_MAX_BYTES, applyBlogOperations, applyBlogStru
 export function blogFixture() {
     return {
         _id: 'article-1', _rev: 'rev-one', _type: 'blogPost', _createdAt: '2026-10-01T12:00:00Z',
-        title: 'En cyklande rörmokare', slug: { _type: 'slug', current: 'en-cyklande-rormokare', custom: true },
+        title: 'Ett exempelinlägg', slug: { _type: 'slug', current: 'ett-exempelinlagg', custom: true },
         excerpt: 'Nyheter', publishedAt: '2026-10-01T12:00:00Z', author: 'Anna', categories: ['Nyheter', 'Tips'],
         content: [
             { _key: 'paragraph', _type: 'block', style: 'h3', listItem: 'bullet', level: 2,
@@ -34,7 +34,7 @@ describe('real Sanity blog schema contract', () => {
             { kind: 'categories', value: ['Tips'] },
         ]);
         expect(edited).toEqual({ ...original, title: 'Ny titel', slug: { ...original.slug, current: 'ny-titel' }, excerpt: 'En ingress', author: 'Bo', publishedAt: '2026-10-02T10:00:00+02:00', categories: ['Tips'] });
-        expect(original.title).toBe('En cyklande rörmokare');
+        expect(original.title).toBe('Ett exempelinlägg');
     });
     test('span, link and inline image text edits preserve formatting, assets and unknown siblings', () => {
         const original = blogFixture();

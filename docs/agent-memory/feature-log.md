@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-10-05 — Team desktop editor 0.2.7 on weblab.build
+Author: Claude
+Area: `apps/desktop`, `apps/web/client`, Convex production, CI
+Summary: The local line since July (private working copies, editor save safety, cloud editor, CMS and Sanity blog authoring) was merged with the published local-app-mode line and released on weblab.build for invited accounts. Added preview keys for private-copy previews and a desktop log file. The customer-pinned whole-site engine and internal readiness notes stay out of the public repository.
+Files: `apps/desktop/{main,weblab-local,preload,desktop-log}.js`, `apps/desktop/release/site-engine.js`, `settings-modal/project/preview-keys.tsx`, `.github/workflows/{ci,desktop-release}.yml`
+Links: PR #9, F-842, T-883, `apps/desktop/RELEASES.md` v0.2.7. Packaged acceptance on copied customer sites remains open (BACKLOG).
+
+---
+
 ## 2026-09-29 — Read-only local startup diagnosis
 Author: Codex
 Area: Desktop local preview, CLI chat, editor canvas

@@ -53,7 +53,7 @@ describe('bounded native content export input', () => {
 
 const exported: NativeContentExport = {
     version: 1, userId: 'actor', drafts: [],
-    connection: { id: 'connection' as BlogConnection['id'], projectId: 'project' as BlogConnection['projectId'], branchId: 'branch' as BlogConnection['branchId'], profile: 'sanity-blog-v1', sanityProjectId: 'l45nowfu', dataset: 'production', revision: 1 },
+    connection: { id: 'connection' as BlogConnection['id'], projectId: 'project' as BlogConnection['projectId'], branchId: 'branch' as BlogConnection['branchId'], profile: 'sanity-blog-v1', sanityProjectId: 'exampleid', dataset: 'production', revision: 1 },
 };
 const bearer = 'Bearer aaaaaaaaaaaaaaaaaaaaaaaa';
 describe('native content HTTP authentication boundary', () => {

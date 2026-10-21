@@ -44,7 +44,7 @@ function fixture() {
     return { ctx, get, put, table, writes, scheduled, signIn: (id: string | null) => { subject = id; }, revoke: () => { get('projectMembers:editor')!.role = 'viewer'; } };
 }
 async function connected(f: ReturnType<typeof fixture>) {
-    const row = await createConnection._handler(f.ctx, { ...scope, sanityProjectId: 'l45nowfu', dataset: 'production' });
+    const row = await createConnection._handler(f.ctx, { ...scope, sanityProjectId: 'exampleid', dataset: 'production' });
     return { ...scope, connectionId: row.id, connectionRevision: row.revision };
 }
 const pin = (draft: Awaited<ReturnType<typeof capture._handler>>) => ({ draftId: draft.id, expectedRevision: draft.revision, providerRevision: draft.providerRevision });

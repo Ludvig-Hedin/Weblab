@@ -32,6 +32,7 @@ import {
     precacheOfflineShell,
     requestPersistentStorage,
 } from '@/services/offline/project-cache';
+import { PreviewKeysSection } from './preview-keys';
 
 function formatRelative(ms: number, t: (key: string, values?: Record<string, unknown>) => string): string {
     const diff = Date.now() - ms;
@@ -433,6 +434,8 @@ export const ProjectTab = observer(() => {
                     </div>
                 </div>
                 <Separator />
+
+                <PreviewKeysSection />
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">

@@ -2100,7 +2100,7 @@
       }
     },
     "git": {
-      "copyCredentialsOmitted": "Original keys and account settings were left out. Preview needs separate test keys before it can use connected services.",
+      "copyCredentialsOmitted": "Original keys and account settings were left out. Add test keys under Settings, Project, Preview keys so the preview can use connected services.",
       "localGitHandoff": "Commit in your Git client",
       "handoffButton": "Upload",
       "handoffTitle": "Upload changes",
@@ -5073,6 +5073,20 @@
       "framesCached": "Frames cached",
       "framesCount": "{count, plural, one {# frame} other {# frames}}",
       "noSnapshot": "No canvas snapshot yet",
+      "previewKeys": {
+        "title": "Preview keys",
+        "description": "Test keys for the preview on this Mac. They stay outside the site's code and are never part of a handoff. Use test values, not live ones.",
+        "nameLabel": "Key name",
+        "namePlaceholder": "NEXT_PUBLIC_API_URL",
+        "valueLabel": "Value",
+        "valuePlaceholder": "Value",
+        "add": "Add key",
+        "remove": "Remove {name}",
+        "saved": "Preview keys saved",
+        "restarted": "Preview restarted with the new keys",
+        "restartFailed": "Keys saved. Restart the preview to use them.",
+        "saveFailed": "Couldn't save the key"
+      },
       "commandsTitle": "Commands",
       "commandsWarning": "Only update these if you know what you're doing\\!",
       "installLabel": "Install",

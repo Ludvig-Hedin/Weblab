@@ -6,12 +6,13 @@ const { ReleaseStore } = require('./release/store');
 const { PublishingService } = require('./release/service');
 const { createPublishAuthorizer } = require('./release/authorize');
 const { registerPublishingIpc } = require('./release/ipc');
-const { SanityContentCoordinator } = require('./release/sanity-content');
+const { hasSiteEngine } = require('./release/site-engine');
 const { registerIpcHandlers: registerCliIpc, disposeCli } = require('./weblab-cli');
 const { registerLocalIpc, grantLocalRoot, disposeLocal } = require('./weblab-local');
 const { isOAuthHost } = require('./auth-hosts');
 const { createLoginHandoff, externalHttpUrl, isTrustedSender } = require('./auth-policy');
 const { resolveDesktopProfile, desktopBootstrapArgument } = require('./desktop-profile');
+const { installDesktopLog } = require('./desktop-log');
 
 const DESKTOP_PROFILE = resolveDesktopProfile({
     packaged: app.isPackaged,
@@ -29,6 +30,8 @@ app.setName(APP_NAME);
 if (DESKTOP_PROFILE.userDataName) {
     app.setPath('userData', path.join(app.getPath('appData'), DESKTOP_PROFILE.userDataName));
 }
+// Packaged apps have no terminal, so keep what the shell prints in a small file.
+const DESKTOP_LOG_FILE = installDesktopLog(app.getPath('logs'));
 
 // Boot the desktop shell straight into the auth flow instead of the marketing
 // landing. /sign-in server-redirects already-signed-in users to /projects, so
@@ -606,6 +609,14 @@ function buildMenu() {
                     : [{ role: 'close' }]),
             ],
         },
+        ...(DESKTOP_LOG_FILE
+            ? [{
+                  role: 'help',
+                  submenu: [
+                      { label: 'Show Log File', click: () => shell.showItemInFolder(DESKTOP_LOG_FILE) },
+                  ],
+              }]
+            : []),
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -639,7 +650,10 @@ app.whenReady().then(() => {
         validateSnapshot: local.validatePrivateReleaseSnapshot,
     });
     registerPublishingIpc({ ipcMain, service: publishing,
-        content: new SanityContentCoordinator({ appUrl: APP_URL, store: publishingStore, local }),
+        // Builds without the private website engine keep content preparation off.
+        content: hasSiteEngine()
+            ? new (require('./release/sanity-content').SanityContentCoordinator)({ appUrl: APP_URL, store: publishingStore, local })
+            : null,
         allowedOrigins: ALLOWED_IPC_ORIGINS,
         getWebContents: () => mainWindow?.webContents ?? null,
         plan: async (root) => {

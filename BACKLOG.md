@@ -38,351 +38,41 @@ later without re-discovering the context.
 
 ## Open
 
-### Customer cloud private-review popup and connected acceptance remain unverified
-
-- **Discovered:** 2026-10-03 evening acceptance, F-828.
-- **Where:** `src/components/cloud-editor/releases.tsx:openReview`, T3 collaborative preview.
-- **Symptom:** Customer clicked Version19 Open private review; the attached T3 tab became `about:blank` and remained there. The real private HTTP gateway separately passes. No customer publish/rollback was attempted.
-- **Cause:** Unestablished. Source opens a named blank popup, awaits ticket issuance, then POSTs to that window; independent review found no confirmed source bug. T3 popup interception/tab rebinding is a possibility, not a finding.
-- **Next step:** Mock ticket issuance and observe original/popup identities and POST completion without live cloud cost. Then prove the customer review/publish/rollback flow, final canvas upload/history/recovery and opened backup restore. Do not replace browser acceptance with operator API proof.
-- **Limits:** All8 sandbox starts and five included site builds consumed. Evening runtime stopped, keys revoked and test deployments/aliases deleted before fixed19:18:50UTC deadline. No further paid activation authorization or persistent beta host.
-- **Tags:** `#release-blocker` `#cloud` `#publish` `#test-gap`
-
-### Cloud preview ticket capacity after legacy membership churn
-
-- **Discovered:** 2026-10-02, independent F-820 gateway review.
-- **Where:** `convex/cloudPreviewAccess.ts:issue`, `convex/cloudEditorAccess.ts:removeMember`.
-- **Symptom:** More than 101 distinct users revoked through legacy membership controls during one 15-minute runtime can temporarily prevent new preview tickets. Normal cloud member removal deletes that branch's actor ticket immediately.
-- **Root cause:** Revoked legacy actors retain an unexpired row until runtime replacement/expiry; authorization already denies them on every request.
-- **Next step:** Add bounded stale-access pruning or connect legacy membership cleanup to actor-ticket cleanup, with regrant races covered.
-- **Risk if ignored:** Preview availability under unusual membership churn; no continued access for removed actors.
-- **Tags:** `#bug` `#cloud` `#availability`
-
-### Mounted desktop buffers still need protection across page exits
-
-- **Discovered:** 2026-10-01, first-open working-level integration review.
-- **Where:** `components/working-level/editor-gate.tsx`, `components/store/editor/index.tsx`, `left-panel/code-panel/code-tab/index.tsx`.
-- **Symptom:** In-page owner/site transitions retain the old editor and refuse dirty mounted CodeTab buffers before destructive cleanup. Navigating to `/projects`, another route wrapper or closing/reloading the app can unmount the page gate and its React-only buffers before that contract finishes. This was confirmed before the new recovery slice. CodeTab now checkpoints bounded owner/site/branch/writer drafts before accepted edits and uses captured source-hash CAS and actual saved-byte receipt; package/view behavior remains unproved.
-- **Next step:** Persistently owned editor session or durable per-owner/site/branch draft recovery, plus verified navigation/close handoff. Keep dirty file originals and latest document buffers; current source drift must offer recovery rather than overwrite. Prove leave/back, direct pilot transitions, account switch and native close with unsaved code, failed local writes and failed persistence. Strict text finalization must retain/cache consumed rich slots across storage failures; uncertain stop RPC cannot silently retry as an empty successful edit.
-- **Validation:** Working-level helper fixtures verify staged preparation/disposal/refusal and explicit resume. Page-exit/native-package proof remains unchecked. Two-phase engine/history/text and all-history admission/checkpoints are implemented and source-reviewed. Responsive drain retains failed newest intent, rejects strict close, distinguishes confirmed apply from no-source and separates branch/canonical property. Latest teardown19, text8, rebase9 and durable draft19 pass; final web-client typecheck passes. Actual React/EditorView/navigation/package proof and other non-history producers remain open. Browser draft storage is best-effort, not force-kill/power-loss/reinstall protection.
-- **Risk if ignored:** A seemingly safe level/site gate can still discard unsaved code or text through a different navigation path.
-- **Tags:** `#release-blocker` `#desktop` `#editor` `#data-loss`
-
-### Native live publication needs a shared destination coordinator
-
-- **Discovered:** 2026-10-01, concurrent publisher source review.
-- **Where:** `apps/desktop/release/service.js`, `convex/nativePublishing.ts`, F-804/F-805/F-812.
-- **Symptom:** Native lock identity includes user, branch and private root and exists on one device. Independent clients can pass the same expected-live read then both POST a live switch. Provider promote/rollback exposes no expected-current parameter.
-- **Current protection:** Server authorization returns `productionSwitchEnabled:false`; native publish and rollback refuse before filesystem/store/provider access and check it again on renewed authorization. Renderer cannot enable it. UI disables new live actions and explains why. Review/protected builds/history and reconciliation of existing intents remain available. Rollback endpoint corrected to documented v1.
-- **Next step:** One atomic Convex destination lock by verified Vercel account+project and server-owned at-most-once promote/rollback worker. Bound and pin project rights, immutable source/deployment/domains, safe encrypted operation credential, send stage and worker identity. Never expire sending/queued/unknown requests. Release only with positive correlated provider completion and proof old worker cannot send later. Preserve unresolved locks through project deletion/cleanup. Disable outside automatic production publishers or refuse changed baseline for new review.
-- **Validation:** Verified authorization, missing-capability fallback, early refusal of both live actions and retained pending-status reconciliation covered in focused source checks. Real customer-account proof still missing.
-- **Risk if ignored:** One colleague or customer can overwrite another's freshly published site while both saw an older reviewed baseline.
-- **Tags:** `#release-blocker` `#desktop` `#publish` `#auth-gated`
-
-### Customer desktop CMS runtime, content modes and provider acceptance remain release blockers
-
-- **Discovered:** 2026-10-01, owner-directed customer readiness implementation; F-804–F-812.
-- **Where:** `apps/desktop/release/service.js`, `convex/cmsReleases.ts`, `cmsSanityActions.ts`, `src/lib/editor-scope.ts`; [current comparison and evidence](docs/audits/desktop-client-readiness-2026-10-01.md).
-- **Symptom:** New frozen-file publisher, draft contracts and native archive/restore exist only in source. Attached CMS publication intentionally refuses rather than deploying code without reviewed content. Existing CMS preview relies on a preload overlay excluded from releases. The native authorization route returned404 on the public host. No new package or real Vercel/Sanity acceptance for this source.
-- **Next step:** Implement approved schema/template/block contracts and a bounded atomic snapshot of content, field configuration, bindings, route contracts and original assets. Materialize a supported Next runtime that reads only that immutable artifact, include it in both builds, preserve prior live items during unrelated draft edits and encode explicit archive intent. First-open/settings working-level choice is implemented in source. Complete the functional restricted content view without hidden full-engine entrypoints. Add Sanity website-only default and explicit published-document diff/write/rollback as separate action. Verify fresh backend auth, provider uncertainty, rollback, source conflicts and a clean-Mac signed package before customer distribution.
-- **Customer-copy proof:** The real Cyklande Rörmokaren copy freezes140 unchanged source files but its blogPost/PortableText/routes/assets do not fit the pilot contract. Blog-only integration cannot lift the whole-site gate: home/settings/services/reviews/areas/products/team/FAQ plus direct slug/sitemap fetches also need frozen reads. Known Sanity SDKs in all frozen manifests now block review/build/direct publication even without app cmsSources; policy/service/snapshot36 passed and the actual copy refuses before provider access. This is bounded SDK detection, not proof that arbitrary network code is immutable. Imported legacy rollback baselines also need positive content eligibility before the shared coordinator can enable live switches.
-- **Actual beta checkpoint 2026-10-03:** owner login, isolated copy import/home render and public Sanity blog/private draft save/archive/restore/reopen verified. Content preparation refuses after automatic instrumentation replaces its source mirror without updating history revisions. Guarded checkpoint handoff repair is independently reviewed and source-checked (preparation18, history14, mirror4, combined type/lint exit0), not activated or runtime-accepted. New Simple/Advanced Settings selector was observed after normal Quit/reopen; full-page first-open proof remains pending. The project later failed to load and retry/reload did not recover it; normal Quit/reopen recovered projects only. Diagnose the actual project-load failure and prove private-copy reopening before beta acceptance. Temporary hosting ended11:25:47UTC; no ongoing test service or owner extension.
-- **Implementation boundaries:** [Native CMS/runtime and shared publishing coordinator](docs/notes/2026-10-02-native-cms-publishing-next.md) and [native beta acceptance](docs/notes/2026-10-03-native-beta-testing.md). Native approved blog GET/state/Content UI and fixed Cyklande whole-site runtime/installer/coordinator are now reviewed source, not activated. Engine15, installer21, coordinator17 and helper/IPC28 focused cases passed across recorded runs. Retained stale recovery stays gated until a verified successor; Full preparation cannot bypass the strict save step. Owner assigned shared guard patch, now applied; generator-backed shared typecheck passes. Exact SDK2.1.1 installed and crop/hotspot fixture passes. Unsigned isolated Mac beta built/launched with packaged metadata verified; frontend currently stopped. Actual provider images/copy build/render, isolated backend, OS auth callback, mounted content/authoring, new-link/range-format editing, image replacement, templates, approved block movement/config and shared native publication remain open. Shared native ledger source prerequisite(F-832)19 synthetic handler cases/type/lint/review checked; no native bridge, registrar, credentials, verifier or provider sends. Public dataset support is fixed-profile, not general Sanity discovery. No original/provider writes.
-- **Snapshot correction:** Version2 now retains validated public option/reference/link field rules, refuses dangling optional targets and legacy choice normalization, and omits private metadata. CMS fixtures27 pass, source review and final web-client typecheck complete. Focused lint0 errors/144 warnings. Legacy v1 is incomplete for future runtime eligibility.
-- **Limits:** Existing provider-write adapter is only sanity-pilot-v1. Distinct sanity-blog-v1 is a GET-only approved blog integration with Weblab drafts; it does not write Sanity or make website snapshots. Codex's thread read-only setting is not proof of restricted read roots; Claude isolation and actual OS process behavior still need packaged evidence. Known credential filenames are omitted, not all secrets in arbitrary source/Git history.
-- **Current check limit (2026-10-02):** Native API/UI typing corrections are complete. Final integrated web-client typecheck finished with cloud-only errors in image actions/review-proxy fixtures; these were handed to that owner. Earlier attempts stopped by RAM protection (exit143). Native source lint0 errors/696 warnings; 61 focused fixtures pass. The shared typecheck is not passed, and these checks are not installed/package acceptance.
-- **Validation:** 129 overlapping native/CLI/Sanity source checks passed; later service+real snapshot checks24/24. Parser typecheck passed. Archive/overlay/renderer fixtures passed. Latest release/authorization/working-level subset54/54 and corrected Vercel transport9/9, overlapping earlier checks. Convex access now verified and guarded codegen completed. Final web-client typecheck passed after lifecycle/draft integration. Focused lint of13 final recovery source files reported0 errors and1437 warnings; installed/provider acceptance is still open. No production changes authorized by this entry.
-- **Risk if ignored:** A source-only safety improvement can be mistaken for a ready customer release, or live content can disappear/change outside the reviewed artifact.
-- **Tags:** `#release-blocker` `#desktop` `#cms` `#publish` `#test-gap`
-
-
-### Cloud must satisfy the visual editor brief before client use
-
-- **Discovered:** 2026-10-01, original cloud brief and owner rejection of the form pilot.
-- **Account correction 2026-10-02:** wrong-account pilot Convex project deleted at owner request after verified local backup; isolated Railway frontend stopped. Existing private target is `ludvighedin15/weblab/avid-gnat-539`. Owner completed private login; CLI/MCP access is verified. Coordinate shared dev ownership or use a reviewed isolated preview inside this existing project before further cloud deployment; do not recreate the retired work-account project.
-- **Where:** F-815–F-818, T-855–T-860, `docs/notes/2026-10-01-cloud-pilot-qa.md`.
-- **Status:** The isolated test frontend opens the real Weblab editor from durable cloud source. Real Clerk sessions proved source/binary-image save, reopen, actor/scope denial and concurrent CAS. Source-role and literal-content validators have focused proof; customer validator is integrated but full browser acceptance is incomplete. Old form checks are not visual-editor proof.
-- **Still missing:** Complete customer visual acceptance, image upload, approved templates/slots, reviewed immutable publishing and rollback, constrained AI, collaboration and local upload. Real builder inline save/reload, Undo/Redo, responsive font size, page navigation and multiline text now pass in the isolated Next canvas. Real customer API text and approved class/link saves, retries, restoration and unauthorized-write rejection pass. Six authorized runtimes are stopped; two starts remain within the original eight-start/25 SEK limit. Attribute UI/history is implemented but undergoing final draft-safety review; visible image/link/class updates and Undo/Redo still need browser proof, including the designer-style-to-Build transition. T3 automation repeatedly loses its host. Reviewed OTP navigation correction and cloud cache isolation are deployed and the customer reached the canvas. A real text save was rejected for compiler-empty JSX spacing; the reviewed comparison/fingerprint fix now passes real customer source save/retry/restore and denial checks. Rejected inline text exposed a Load saved version dead end. The independently reviewed cloud-only confirmed reload lease now passes 73 focused source/text/history cases; its actual browser journey remains unchecked. Next hoists async scripts before the startup bootstrap, so earliest-load recovery is not proven. Existing projects also need a safe versioned preload bridge upgrade path.
-- **Next step:** Validate the real builder flow before customer use, then connect customer contracts and publishing to that same editor. Verify explicit discard-and-reload for retained failed inline text in the real customer canvas, including cancellation and Download. Keep source acknowledgment separate from preview/publish status. Do not present isolated test deployment as a production feature or announce it in the public changelog before acceptance.
-- **2026-10-02 beta source checkpoint:** F-825–F-828 add own-image uploads, verified-email invitations, approved Studio pages/blocks/Journal, immutable publishing and retained backups. Root/subagents corrected review findings and focused checks cover source behavior. These slices have not been deployed or accepted end to end. Persistent private target, review-host auth/routing proof, provider account/budget, all six connected beta gates and actual backup restore remain blocking. Retained backups now have workspace discovery and fresh-copy restore after source deletion in source, pending final acceptance; downloaded archive re-import remains outside the supported retained-backup recovery path. See [delivery checkpoint](docs/notes/2026-10-02-cloud-beta-delivery.md).
-- **2026-10-02 browser follow-up:** Customer OTP now returns to the correct project. Cross-tab ZenFS EEXIST is fixed and the customer reached the real canvas. Initial obsolete Next chunk requests also reproduced. Startup-only recovery is in progress. Service-worker explicit precaching/fallback can retain private navigation documents; an offline-safe correction remains required because native cold offline project opening currently uses that path. Do not claim the worker caused the stale chunks without evidence.
-- **Integration:** Shared dirty main includes peer native work. LilacStone owns cloud; WhiteGorge supplied a stable native snapshot handoff. Production and legacy security gates stay closed.
-- **Risk if ignored:** Users receive another incomplete pilot or lose trust in save/preview/publish status.
-- **Tags:** `#release-blocker` `#test-gap` `#cloud`
-
-
-### Installed editor source mapping and undo history need customer proof
-
-- **Discovered:** 2026-10-01 (live Sanity pilot using installed Weblab0.2.0 engine)
-- **Where:** matching `../weblab-html-dropdown/apps/desktop-local/packages/source/src/components.ts`, `packages/overlay/src/app.ts`; installed CLI/source-map path; F-741/T-742 pilot notes
-- **Symptom:** A Next16 Turbopack server-rendered h1 source chip showed an encoded generated `.next` chunk rather than the actual `(site)/page.tsx`. Scoped instructions with the real file allowed Read/Edit-only saving and preserved Sanity expressions. Reloading the entire editor cleared completed chat results and their Undo button; saved source/design survived. Same-visit saved Undo worked. Installed engine has no Sanity-specific inline text protection; newer repo parser fixtures are not installed-engine proof.
-- **Next step:** Coordinate the standalone editor owner. Correct encoded server frame mapping, retain recoverable completed-job undo across editor reload with source conflict checks, and validate a supported CMS text policy. Run packaged edit/save/reload/undo on this pilot before offering unsupported customer self-service. Do not patch the app bundle or peer source during the pilot.
-- **Risk if ignored:** Customer edits can target generated code, overwrite CMS expressions or lose access to undo after reopening.
-- **Tags:** `#bug` `#desktop` `#cms` `#history` `#test-gap`
-
-
-
-### Finder moves need source-folder reconnection
-
-- **Discovered:** 2026-10-01 (owner-requested research; source inspection only)
-- **Where:** `apps/desktop/weblab-local.js` (`grantLocalRoot`, `createPrivateWorkingCopy`, `readPrivateCopyManifest`, `buildLocalGitHandoffPlan`); [research and UX proposal](docs/notes/2026-10-01-project-location-research.md)
-- **Symptom:** Renaming/moving an original folder can invalidate the stored source path and prevent handoff. Private-copy edits remain separately stored, but no Finder relocation recovery is implemented in the inspected flow. The new dashboard details show the working-copy path rather than a resolved source location.
-- **Root cause:** Path-based grants/index/baseline source references, without native bookmark tracking or validated rebinding.
-- **Next step:** Implement stable project identity with per-device source bookmarks and a manual Locate folder flow; preserve private-copy history/baseline, handle source drift separately and invalidate stale handoff plans. Show source location first. Prove same-volume moves/restart, ambiguous copies, offline disks and linked worktrees in the packaged app before offering physical movement.
-- **Risk if ignored:** Finder organization strands the source association; reopening may create a separate project instead of recovering existing saved work.
-- **Tags:** `#bug` `#desktop` `#test-gap`
-
-### Desktop customer readiness: two versions need distinct release acceptance
-
-- **Discovered:** 2026-10-01 (owner-requested deep comparison of installed 0.2.0 and current 0.2.6 source)
-- **Where:** [desktop readiness audit](docs/audits/desktop-client-readiness-2026-10-01.md); installed `/Applications/Weblab.app`; matching standalone source `../weblab-html-dropdown/apps/desktop-local`; current `apps/desktop/` and local editor
-- **Symptom:** Neither version is proven safe for routine paid customer work or customer self-service. Installed 0.2.0 uses original folders and unrestricted AI; source 0.2.6 protects originals but active local publishing, image upload, members and CMS are disabled. Owner requires team and customers in the same first release, simple content/block editing plus self-selected full code/AI/site settings, blog/template pages and customer self-publishing with review and rollback.
-- **Root cause:** Different architectures and packages. The audited source is not the installed app; local safeguards and focused checks do not prove packaged editor/publish acceptance.
-- **Next step:** Follow audit D-10/11/12/15/17/18 and N-01–12. Coordinate owners of dirty native/parser/editor files before integration. Use the owner-selected newer private-copy base and selectable full customer levels. Protect previews and separate test/live keys, chosen under owner delegation. Owner selected Next.js with Tailwind first; use each site’s existing CMS when present, otherwise Weblab CMS. Define and verify supported CMS integrations; the owner’s goal to exceed Framer/Webflow is a quality target, not proven current capability. Implement durable customer content/templates and safe publish/rollback. Verify three copied projects and a disposable hosting project, plus a clean target Mac. Reuse existing backlog entries on dynamic classes, variable rename, responsive token reset, auth handoff, private-copy support and local release proof.
-- **Risk if ignored:** Lost edits, changed original customer code, false save/deploy feedback, inadvertent live changes, or a customer release with missing core flows.
-- **Tags:** `#release-blocker` `#desktop` `#customer` `#publish` `#test-gap`
-
-### Native CLI source hardening needs packaged isolation and recovery proof
-
-- **Discovered:** 2026-10-01 (read-only readiness audit; not a packaged GUI reproduction)
-- **Where:** `apps/desktop/cli/codex.js:44,160,206`, `cli/process.js:98`, `cli/main-bridge.js:142`, `apps/desktop/weblab-local.js:3116,3166,3176,2538` (N-03/04/05 in the audit)
-- **Source resolution 2026-10-01:** MCP discovery uncertainty now refuses startup; abort propagates through probes; held launch gate requires verified owned process identity; turn completion awaits known child exit, persistent active-turn markers prevent crash capture races, dead journal leases recover only with owner proof, and unknown Git ignore results refuse capture/export. Typed Codex add/delete/move batches are all-or-nothing. Focused fixtures passed. Installed0.2.0 is unchanged.
-- **Root cause:** Failed probes return usable defaults; setup and process lifetime are not fully cancellable/awaited; the persistent lock has no recoverable owner identity; unknown ignore results are treated as an empty exclusion set.
-- **Next step:** Verify cancellation, metadata retry, SIGKILL/crash/reopen and quarantined unknown descendant behavior in a built0.2.6 package on an owned copied project. Prove effective read/write sandbox policy and provider config isolation before enabling full customer AI. Never auto-clear a marker whose process outcome is unknown.
-- **Risk if ignored:** Out-of-scope tools, late unjournaled writes, stuck handoff and secret-bearing patches. The local scope currently hides AI; verify the actual native entrypoint before claiming exposure to every customer.
-- **Tags:** `#bug` `#security` `#desktop` `#recovery`
-
-### Editor source fixes need packaged save/reopen/undo acceptance
-
-- **Discovered:** 2026-10-01 (independent source audit, current dirty 0.2.6 source)
-- **Where:** `packages/parser/src/code-edit/text.ts:35`, `code-edit/group.ts:92`, `apps/web/client/src/components/store/editor/code/index.ts:440`, `style/index.ts:256`, `packages/parser/src/code-edit/responsive-rebase.ts:52` (N-07/08/11/12)
-- **Source resolution 2026-10-01:** Ordinary text is now literal-safe; mixed content Ungroup refuses before mutation; dynamic class edits preserve expressions or refuse unsafe flattening; metadata/token changes use reversible history, redo retains its forward action, variable rename keeps utility compatibility, and project breakpoints carry one pinned identity across preview/source. Focused parser/history/style/token/breakpoint checks passed; parser typecheck passed. These are not installed-editor proofs.
-- **Next step:** Check text/style/metadata/token/mobile edits through save/reload/reopen/undo/redo in the selected new package, including a competing source change and queued-write failure. Reuse source fixtures rather than repeating unrelated suites.
-- **Risk if ignored:** Pages can crash or lose content after innocent customer edits. Current controls are not safe simply because ordinary writes have conflict checks.
-- **Tags:** `#bug` `#editor` `#history` `#responsive`
-
-
-### Desktop should open local folders without Git
-
-- **Discovered:** 2026-09-28 (Legora folder failed to open)
-- **Where:** `apps/desktop/weblab-local.js` (`createPrivateWorkingCopy`, `sourceGitSnapshot`) and `apps/web/client/src/hooks/use-open-local-project.ts`
-- **Symptom:** The installed desktop app can reach a non-Git folder, but the new private-copy flow requires a Git repository and committed HEAD. Downloaded folders such as `legora-the-bar` cannot enter that flow without changing the source folder.
-- **Next step:** Create a private snapshot mode for non-Git folders. Keep the source read-only, omit downloaded `node_modules`, install dependencies in the private copy, and provide a reviewed file export for edits because Git patch handoff needs a source repository.
-- **Risk if ignored:** Common downloaded projects cannot open in the next desktop release.
-- **Tags:** `#bug` `#desktop` `#workflow`
-
-### Renaming a color variable breaks the classes that use it
-
-- **Source status:** Source corrected2026-10-01: renaming preserves an old-name utility alias, refusing an occupied new name, so existing JSX utilities keep their value. Token focused checks passed. Packaged edit/reload proof remains in customer release acceptance.
-
-- **Discovered:** 2026-09-28 (Variables tab work, F-800)
-- **Where:** `apps/web/client/src/components/store/editor/tokens/util.ts` `renameThemeVariable`; reached from the Variables tab editor and the style panel's hover edit popover
-- **Symptom:** Rename `color-brand` to `color-primary` and every element with `bg-brand` loses its color. The CSS `var()` references are rewritten, the JSX classes are not.
-- **Root cause:** Rename only rewrites globals.css. Tailwind utilities named after the variable live in source files.
-- **Next step:** After a rename, rewrite `<prefix>-<old>` → `<prefix>-<new>` (and `(--old)` forms) across source files, or warn with a usage count before renaming.
-- **Risk if ignored:** Silent visual regressions after a rename.
-- **Tags:** `#bug`
-
-### Class edits from the style panel flatten dynamic classNames
-
-- **Source status:** Source corrected2026-10-01: unsafe override of dynamic class expressions refuses and static edits preserve conditional branches. Parser/style/token fixtures passed. Packaged acceptance remains.
-
-- **Discovered:** 2026-09-28 (Variables tab work, F-800)
-- **Where:** `TokensManager.setColorClassOnSelected`, `applyTextStyleToSelected`, and `sections/element.tsx` `commitClassName`
-- **Symptom:** Binding or detaching a variable writes the element's full rendered className back with `overrideClasses: true`. A `className={cn(...)}` expression becomes a plain string of today's classes.
-- **Next step:** Edit only the static class tokens in the AST, or refuse on non-literal classNames.
-- **Risk if ignored:** Conditional styling in user code can be lost after one click.
-- **Tags:** `#bug` `#tech-debt`
-
-### AI safeguards — follow-ups
-
-- **Discovered:** 2026-09-25 (F-797)
-- **Where:** `apps/web/client/convex/aiGuards.ts` (`recordSpend`), `convex/aiUsageEvents.ts` (`insert`), `convex/chatActions.ts`, `convex/wireframeActions.ts`, `convex/projectActions.ts` (`generateName`)
-- **Symptom:** (a) Spend writes now require `AI_GUARD_SECRET` (Next.js → Convex), but until the owner sets it on both sides the writes are accepted and logged `[AI_GUARD_SECRET_MISSING]`. (b) Convex action costs are estimates (small Convex-side price table, fixed per-call costs for diff/scrape/search/screenshot/images). (c) Client auto-continue cap of 5 may stop long agent tasks early (each client tool round is one continuation); users must send "continue". (d) Whisper cost is estimated from upload size (no duration returned with `json` format).
-- **Next step:** (a) set `AI_GUARD_SECRET` on Railway and Convex, then make it required; (b) keep `convex/lib/aiActionPricing.ts` in sync with MODEL_PRICING; (c) watch `[AI_CONTINUATION_CAP]` logs and raise `AI_MAX_CONTINUATIONS_PER_TURN` + the client constant together if real turns hit it; (d) use `verbose_json` duration when on OpenAI directly.
-- **Before production:** raise AI_DAILY_BUDGET_USD well above the Pro daily cap ($40) or one Pro user can pause AI for everyone.
-- **Risk if ignored:** Budget DoS by a determined abuser; truncated agent turns.
-- **Tags:** `#ai` `#billing` `#tech-debt`
-
-### Dashboard thumbnails already saved as white pages
-
-- **Discovered:** 2026-09-25 (owner report: "all website previews show just white screen")
-- **Where:** `apps/web/client/convex/projectActions.ts` `captureScreenshot`; `apps/web/client/src/app/projects/_components/select/use-screenshot-backfill.ts`
-- **Symptom:** Project cards on `/projects` show a white tile.
-- **Root cause:** The 24h backfill screenshotted stopped sandboxes (plain 404 page) and overwrote good thumbnails. New captures now skip non-serving previews, but thumbnails already overwritten stay white until the project is opened with a running sandbox. Legacy Supabase-only previews (`previewImgPath`) also render white because `getFileUrlFromStorage` is a stub.
-- **Next step:** Clear `previewImgStorageId` on rows whose stored image is near-blank, or wake the sandbox before recapture; resolve legacy Supabase paths server-side.
-- **Risk if ignored:** Older projects keep white cards until opened.
-- **Tags:** `#bug`
-
-### Local-release Convex gates are not deployed
-
-- **Discovered:** 2026-09-23 (live QA setup)
-- **Where:** `apps/web/client/convex/{projects,branches,branchActions,projectActions,publishActions,deployments,wireframeEmit}.ts`
-- **Symptom:** the committed cloud fail-closed guards exist only in source. `bunx convex dev --once` reports "You don't have access to the selected project": the local Convex CLI is logged into a different account than the `ludvighedin15` team that owns `avid-gnat-539`. The local desktop flow works against the older dev functions because the new code only adds throws.
-- **Next step:** `npx convex login` as the owning account, then `bunx convex dev --once` from `apps/web/client`. Prod deploys through CI on push to main.
-- **Risk if ignored:** the dev backend still accepts caller-supplied cloud sandbox ids until deployed.
-- **Tags:** `#infra` `#convex` `#security`
-
-### Handoff apply needs a folder reopen before further editing
-
-- **Discovered:** 2026-09-23
-- **Where:** `apps/desktop/weblab-local.js` (`computePrivateHandoffPlan`, manifest in `baseline.json`)
-- **Symptom:** after the designer applies an exported patch (or commits) in the source repo, the private copy's baseline no longer matches, so the next review reports "source changed" and export is refused. The user must reopen the folder for a fresh private copy.
-- **Next step:** after a verified `git apply`, re-baseline the private copy (new manifest version with the applied files' source hashes and contents), or offer an in-app "Apply to project" that does apply + re-baseline atomically.
-- **Risk if ignored:** iterative edit → apply → edit sessions are clunky.
-- **Tags:** `#desktop` `#workflow`
-
-### Clearing a named-token breakpoint override leaves its class
-
-- **Discovered:** 2026-09-23
-- **Where:** `apps/web/client/src/components/store/editor/code/tailwind.ts` (`addResponsiveTailwindToRequest` removal tokens), `style/index.ts` (`removedBreakpointMapFor`)
-- **Symptom:** removal tokens are computed as plain values. A cleared `md:text-brand` (Custom type) is not matched, so the class stays in source.
-- **Next step:** record the original `StyleChangeType` on Remove entries and compute removal tokens through the custom-color path.
-- **Risk if ignored:** "reset to inherited" silently does nothing for token colors at Tablet/Desktop.
-- **Tags:** `#bug` `#editor`
-
-### Style writes emit arbitrary values instead of the Tailwind scale
-
-- **Discovered:** 2026-09-23 (focused tests)
-- **Where:** `packages/utility` `CssToTailwindTranslator`, used by `code/tailwind.ts`
-- **Symptom:** padding 16px is written as `p-[16px]`, not `p-4`. Correct, but noisy for designers working in a scale-based codebase.
-- **Next step:** map px values that match the default spacing/type scale (and the project's `@theme` tokens) to named utilities before falling back to arbitrary values.
-- **Risk if ignored:** handoff diffs look unidiomatic to the developer reviewing them.
-- **Tags:** `#tech-debt` `#editor`
-
-### Package typechecks pull in the whole web client
-
-- **Discovered:** 2026-09-23
-- **Where:** `packages/{parser,code-provider,file-system}` and `apps/web/preload` `typecheck` scripts
-- **Symptom:** each reports ~100 errors from `apps/web/client` and `packages/ai` files (missing `@/` and `@convex` aliases, `--jsx` unset). Only the web-client program typechecks cleanly.
-- **Next step:** find the import that drags client files into those programs (likely a test or a type re-export) and cut it, or scope each tsconfig `include`.
-- **Risk if ignored:** package-level typecheck is unusable as a gate.
-- **Tags:** `#tech-debt` `#infra`
-
-### `createLocalBlank` is unreachable and would always fail
-
-- **Discovered:** 2026-09-23 (review)
-- **Where:** `apps/web/client/src/hooks/use-open-local-project.ts` (`createLocalBlank`)
-- **Symptom:** no UI calls it, and native writes require a private working copy, so it would fail with `original_git_root_is_read_only`.
-- **Next step:** delete it with its helpers, or rebuild it on top of a private copy.
-- **Tags:** `#tech-debt`
-
-### Windows preview descendants need crash-path proof
-
-- **Discovered:** 2026-09-23 (packaged runtime review)
-- **Where:** `apps/desktop/weblab-local.js` (`startDevServer`, `stopDevServer`)
-- **Symptom:** explicit stop and app shutdown now target the owned Windows process tree, but a Bun parent that crashes before Weblab can stop it may leave a child dev server. Bun 1.3.10 predates its documented no-orphans option.
-- **Next step:** exercise abrupt Bun termination in a packaged Windows app. If descendants survive, use a Windows job object for the owned preview tree; keep the existing PID-scoped stop path for normal shutdown. Bun's 1.3.14 announcement says its no-orphans flag is a no-op on Windows.
-- **Risk if ignored:** a crash could leave a preview process holding the port and continuing to run project code.
-- **Tags:** `#desktop` `#preview` `#test-gap`
-
-### Private Next.js copies need a supported dependency setup flow
-
-- **Discovered:** 2026-09-23 (private-copy readiness pass)
-- **Where:** `apps/desktop/weblab-local.js` (`createPrivateWorkingCopy`, `startDevServer`)
-- **Symptom:** private copies exclude `node_modules` to avoid sharing mutable dependencies with the original. Source stages pinned Bun 1.3.10 and offers an explicit frozen install from a Bun lock or isolated migration of one npm v2/v3, Yarn v1, or pnpm v9 lock. Focused native tests pass for these locks, but no packaged install or real Next.js preview has run. Workspaces, local dependencies, private registry setup, and lock entries without integrity remain unsupported. An interrupted installer blocks in-place retry while its process may still run. Quitting Weblab and reopening an unchanged source with no private edits makes a fresh copy; journaled edits can be exported as a Git patch before reopening. The old copy is retained and its path is shown.
-- **Next step:** build and inspect each packaged desktop app, then exercise install and preview on a real existing Next.js project for every supported lock type. Verify failure, cancellation, crash, fresh-copy recovery, patch handoff, lockfile rejection, and packaged dev-script behavior on macOS and Windows. Add a safe Windows descendant supervisor before automatic retry in the same copy after a hard crash.
-- **Risk if ignored:** most existing Next.js projects open but cannot reach a usable canvas without manual developer setup.
-- **Tags:** `#release-blocker` `#desktop` `#preview` `#workflow`
-
-### Linked worktree source support needs desktop proof; submodules remain unsupported
-
-- **Discovered:** 2026-09-23 (private copy review)
-- **Where:** `apps/desktop/weblab-local.js` (`createPrivateWorkingCopy`)
-- **Symptom:** source now materializes standard linked worktrees into an independent shallow private Git repository. Focused native tests passed, including a patch applied to a disposable worktree and source pointer/index checks, but the packaged desktop flow has not run. The private index starts at HEAD; source staged changes appear unstaged inside the private copy. Submodules, split/sparse indexes, alternates, partial/shallow repositories, and nonstandard links are refused.
-- **Next step:** complete a real desktop worktree copy, edit, preview, and patch export. Check source Git metadata byte-for-byte in that session and decide whether staged-state parity inside the private copy is required before release.
-- **Risk if ignored:** worktree editing may fail at runtime, or designers may misunderstand staged status in the private copy. Submodule projects remain unsupported.
-- **Tags:** `#desktop` `#git` `#workflow` `#test-gap`
-
-### Plain static HTML Git preview needs desktop proof
-
-- **Discovered:** 2026-09-23 (existing project preparation review)
-- **Where:** `apps/web/client/src/hooks/use-open-local-project.ts`, `apps/desktop/weblab-local.js` (`startDevServer`)
-- **Symptom:** a restricted loopback static server is now implemented and its native file-denial test passes, but a real multi-page desktop session has not been exercised.
-- **Next step:** use an existing static HTML Git fixture to verify multi-page navigation, preparation, editing, reload, and Git patch export in the desktop app.
-- **Risk if ignored:** the advertised static HTML path is incomplete for common existing sites.
-- **Tags:** `#deferred` `#desktop` `#editor` `#preview`
-
-### Next.js Git folders without public need desktop proof
-
-- **Discovered:** 2026-09-23 (existing project preparation review)
-- **Where:** `apps/web/client/src/components/store/editor/sandbox/preload-script.ts` (`planLocalProjectPreparation`)
-- **Symptom:** guarded `public/` creation and rollback are implemented in the private copy and pass native tests, but no real Next.js desktop preparation has run.
-- **Next step:** verify exact review, creation, bridge load, failed apply rollback, and patch export on an existing Next.js Git project without `public/`.
-- **Risk if ignored:** ordinary existing Next.js Git projects can be opened but not visually edited without manual project changes.
-- **Tags:** `#release-blocker` `#desktop` `#editor`
-
-### Local desktop projects still require Clerk and Convex
-
-- **Discovered:** 2026-09-23 (local release UI review)
-- **Where:** `apps/web/client/src/app/projects/new/layout.tsx`, `apps/web/client/src/app/projects/_components/select/index.tsx`, `apps/web/client/convex/projects.ts` (`createLocal`)
-- **Symptom:** the desktop app stores project metadata in Convex and routes through Clerk sign-in even when the source lives on disk. A disconnected user cannot open an existing folder through the normal project flow.
-- **Next step:** implement offline project metadata and auth-free opening as a later capability. Online sign-in is acceptable for the first paid release.
-- **Risk if ignored:** local source is safe on disk, but an auth or network outage can block work on it.
-- **Tags:** `#desktop` `#offline` `#workflow` `#deferred`
-
-### Cloud sandbox authorization and publishing remain disabled
-
-- **Discovered:** 2026-09-23 (local release security review)
-- **Where:** `apps/web/server/src/router/routes/sandbox.ts`, `apps/web/client/convex/{projects,branches,projectActions,branchActions,wireframeEmit,deployments,publishActions}.ts`
-- **Symptom:** cloud file and command RPCs previously checked sign-in but not project ownership; public create mutations accepted caller-provided sandbox IDs. Clone, restore, wireframe emit, and publish also have incomplete recovery or transaction paths. Their server entrypoints are gated for the local release.
-- **Next step:** map every sandbox ID to a project and enforce the caller's capability at every read/write/command boundary; provision IDs only in trusted actions; add abuse and failed-provision tests; then reopen one cloud workflow at a time with live proof.
-- **Risk if ignored:** re-enabling cloud calls could expose another customer's sandbox or incur paid work with misleading deployment state.
-- **Tags:** `#release-blocker` `#security` `#cloud` `#publish`
-
-### Local paid-work release is blocked on end-to-end proof
-
-- **Discovered:** 2026-09-23 (existing Git project readiness pass)
-- **Where:** `apps/web/client/src/components/store/editor/sandbox/`, `apps/desktop/weblab-local.js`, `apps/web/preload/script/`
-- **Symptom:** source-level fixes have not been exercised in a real desktop session on an existing Git project. The generated preload bundle still predates the stale DOM-ID source fix. The editor cannot be called reliable for paid client work yet.
-- **Next step:** when the machine guard admits it, run the registered Bun install, rebuild the preload artifact, run focused type/lint/tests, then complete the desktop open, prepare, visual edit, responsive edit, reload, undo, external change, conflict, and Git patch matrix on three existing wired Tailwind v4 Next.js projects, including one without `public/` and a linked worktree. Verify static HTML and other CSS systems reject visual edits while allowing code/text work.
-- **Risk if ignored:** a passing source review could hide a broken canvas, missing preview bridge, or lost edits.
-- **Tags:** `#release-blocker` `#desktop` `#editor` `#test-gap`
-
-### Static HTML visual style edits have no durable CSS writer
-
-- **Discovered:** 2026-09-23 (local editor source audit)
-- **Where:** `apps/web/client/src/components/store/editor/code/requests.ts`, `code/index.ts`, `style/index.ts`, and `packages/parser/src/pipelines/html/index.ts`
-- **Symptom:** ordinary and responsive style edits generate Tailwind class tokens even for plain HTML. The static preview path injects the editor bridge but no Tailwind stylesheet, so these edits can vanish after reload. The editor now rejects static HTML visual style edits before changing its optimistic style map, preview, or source. Opacity and layer visibility now use the history/source path rather than calling preview injection directly. Text and structural edits remain available.
-- **Next step:** add a same-file CSS source writer for plain HTML that preserves existing authored declarations, emits exact media rules, and supports clear plus undo/redo. Test edit, reload, and Git patch output on an existing static HTML repo before enabling its style controls.
-- **Risk if ignored:** a designer could see a style in the canvas, hand off a patch, and deliver a site without that style.
-- **Tags:** `#deferred` `#desktop` `#editor` `#static-html` `#data-integrity`
-
-### Existing Next.js projects without Tailwind can accept ineffective style classes
-
-- **Discovered:** 2026-09-23 (local editor source audit)
-- **Where:** `apps/web/client/src/components/store/editor/code/requests.ts` and `code/tailwind.ts`; `apps/web/client/src/hooks/use-open-local-project.ts`
-- **Symptom:** the Next.js visual style writer emits Tailwind classes. Local projects with another CSS system must remain open for code/text work without accepting ineffective visual styles. A source-level guard now checks each private branch for the wired Tailwind v4 App Router path, rejects unsupported actions before history/preview and direct source writes, and invalidates that capability if its setup files change.
-- **Next step:** run focused web checks after dependency installation, then prove edit, reload, undo/redo, setup-file change, and patch handoff on an existing Tailwind v4 Next.js Git repo in desktop. Add other Tailwind layouts only after verified source detection and round-trip proof.
-- **Risk if ignored:** a saved patch can contain visually ineffective styles.
-- **Tags:** `#release-blocker` `#desktop` `#editor` `#data-integrity`
-
-### Responsive font stacks and named tokens lack a safe source writer
-
-- **Discovered:** 2026-09-23 (independent local style review)
-- **Where:** `apps/web/client/src/components/store/editor/style/index.ts`, `action/index.ts`, `code/requests.ts`
-- **Symptom:** the current responsive rebase skips font stacks and custom tokens, while the ordinary source writer emits an unprefixed class. Such edits above the base breakpoint could change every width. They now reject before history, preview, or source writes.
-- **Next step:** preserve font/token identity and breakpoint scope through the responsive source writer; prove exact source classes, reload, undo/redo, and Git patch on a real Tailwind Next.js project.
-- **Risk if ignored:** a breakpoint-scoped client edit could alter the whole site.
-- **Tags:** `#deferred` `#editor` `#responsive` `#data-integrity`
-
-### Local preview scripts retain OS file permissions
-
-- **Discovered:** 2026-09-23 (independent security review)
-- **Where:** `apps/desktop/weblab-local.js` (`startDevServer`)
-- **Symptom:** Weblab now edits only an app-owned private copy, avoiding direct writes to the original Git folder. Starting that project's own dev script still runs code with the user's OS file permissions. The script could target an absolute original path.
-- **Next step:** keep an explicit preview warning, restrict inherited environment variables, and consider OS-level process isolation before claiming that preview cannot affect any file outside the copy.
-- **Risk if ignored:** an untrusted project script could read secrets or modify files outside its working directory.
-- **Tags:** `#release-blocker` `#desktop` `#data-integrity` `#security`
-
-### External file refresh needs a rebase or accept flow
-
-- **Discovered:** 2026-09-23 (local mirror review)
-- **Where:** `apps/web/client/src/components/store/editor/sandbox/local-mirror.ts`
-- **Symptom:** after an external IDE save, the current session rejects later Weblab saves to that file, even when the cache has refreshed. This preserves the external edit but forces a project reopen to establish a new baseline.
-- **Next step:** carry a per-buffer source version through each edit and offer a visible reload/rebase or conflict resolution action.
-- **Risk if ignored:** confusing blocked saves during normal Git and IDE handoff.
-- **Tags:** `#desktop` `#editor` `#workflow`
+### Team desktop 0.2.7 needs packaged acceptance on real copied sites
+
+- **Discovered:** 2026-10-05 (team release integration)
+- **Where:** `apps/desktop/`, F-829, F-842, T-883
+- **Symptom:** The combined line passes typecheck and unit tests, but no installed 0.2.7 build has been taken through sign-in, private copy, install, preview with preview keys, edit, save, reopen, undo and handoff on copied customer sites.
+- **Next step:** Install the `desktop-v0.2.7` build on a clean Mac and run that journey on three copied Next.js + Tailwind sites. Log each failure as its own entry.
+- **Risk if ignored:** Source-level safeguards are mistaken for a working team tool.
+- **Tags:** `#release-blocker` `#desktop` `#test-gap`
+
+### Native CLI process-identity checks lose races on loaded machines
+
+- **Discovered:** 2026-10-05 (macOS CI and one local run)
+- **Where:** `apps/desktop/cli/process.js:79,165,182` (`cleanup_unconfirmed`), `cli/cli-lifecycle.test.js:262`, `release-snapshot.test.js:121`
+- **Symptom:** A process that exits before its identity is read is reported as "The CLI exited before its process identity could be verified" (exit 125). `very fast probes retain proven identity` and several release-snapshot cases fail at random on macOS CI runners (2 to 3 per run) and occasionally on a developer Mac. CI runs `release-snapshot.test.js` and `cli/cli-lifecycle.test.js` as a non-blocking step.
+- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Any relaxation must keep refusing when an unobserved descendant could still be running. Then make the CI step blocking again.
+- **Risk if ignored:** On a slow or busy Mac, native AI turns and release snapshots can refuse for no user-visible reason.
+- **Tags:** `#bug` `#desktop` `#flaky`
+
+### Team desktop 0.2.7 has no installer: signing secrets are missing
+
+- **Discovered:** 2026-10-05 (`desktop-v0.2.7` tag build)
+- **Where:** `.github/workflows/desktop-release.yml` ("Stage Apple signing + notary credentials"), repository secrets
+- **Symptom:** The Mac build stops with "A Developer ID Application certificate is required for desktop releases". Windows and Linux built, but nothing was published because the release needs the full set. The repository only has `CONVEX_DEPLOY_KEY`.
+- **Next step:** Add `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD` and one notary set (`APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER`, or `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID`). Steps are in `apps/desktop/RELEASES.md`, "Code signing & notarization". Then re-run the `desktop-v0.2.7` workflow. Do not remove the signing requirement.
+- **Risk if ignored:** The team cannot install the editor that weblab.build now serves.
+- **Tags:** `#release-blocker` `#desktop` `#release`
+
+### Preview keys are stored unencrypted
+
+- **Discovered:** 2026-10-05 (F-842)
+- **Where:** `apps/desktop/weblab-local.js` `updatePreviewEnv`
+- **Symptom:** Preview keys are written as a `0600` JSON file beside the private copy in the app's user data folder, not through the OS keychain.
+- **Next step:** Encrypt with Electron `safeStorage` the way `release/store.js` does, with a migration for existing files.
+- **Risk if ignored:** Another process running as the same user can read test keys. Live keys must not be entered there.
+- **Tags:** `#security` `#desktop`
 
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
@@ -436,9 +126,9 @@ later without re-discovering the context.
 
 - **Discovered:** 2026-07-04 (editor stability audit)
 - **Where / Symptom / Next step:**
-  - ~~`apps/web/preload/script/api/events/dom.ts:27` — per-mutated-node full-subtree `buildLayerTree`~~ — FIXED 2026-09-25: the observer now sends one empty notification per batch.
+  - `apps/web/preload/script/api/events/dom.ts:27` — per-mutated-node full-subtree `buildLayerTree` (O(N²) getComputedStyle) whose payload the parent discards. Build once per MutationObserver batch; the parent ignores the payload so send an empty notification (or consume it incrementally and skip the full `refreshLayers`).
   - `apps/web/client/src/app/project/[id]/_components/canvas/frame/gesture.tsx:432` — `handleDragOver` fires an unthrottled `getElementAtLoc` penpal RPC per dragover. Route through the existing 16ms throttle + in-flight/sequence guard.
-  - ~~`canvas/frame/resize-handles.tsx` (+ `overlay/locked-resize-handles.tsx`) — unthrottled window mousemove~~ — FIXED 2026-09-25: both rAF-coalesce the width; the frame handle also gained unmount cleanup and a released-outside-window stop.
+  - `apps/web/client/src/app/project/[id]/_components/canvas/frame/resize-handles.tsx:34` (+ `overlay/locked-resize-handles.tsx`) — unthrottled window mousemove → async `undebouncedRefresh` (penpal RPCs) + observable frame-map writes per raw event. rAF-coalesce; use the debounced refresh or a reentrancy guard.
   - `apps/web/client/src/components/store/editor/code/index.ts:97` — write-code / interactions ix-id / component createProp / restampHtmlMaster / font layout writes bypass `writeChain`. Expose `CodeManager.runExclusive(fn)` and route them through it.
   - `apps/web/client/src/components/store/editor/code/index.ts:234` — `groupRequestByFile` keys by path only; cross-branch requests sharing a path merge into one group written to the first branch. Key by `${branchId}::${path}` (touches the `FileToRequests` contract + parser).
   - `apps/web/client/src/components/store/editor/history/index.ts:104` — `commitTransaction` isn't atomic (image-swap can partially apply) and splits one gesture into multiple undo entries. Check `push`'s boolean; push a composite/batch undo entry.
@@ -446,7 +136,6 @@ later without re-discovering the context.
   - `apps/web/client/src/components/store/editor/frame-events/index.ts:34` — one mutation triggers all-frames `processDom` + uncached Babel re-parse in `getTemplateNodeChild`. Scope `onWindowMutated` to the originating frame; memoize the parse.
 - **Risk if ignored:** editing gets progressively laggier as frame/tree count grows; rare cross-branch/undo-after-external-change corruption.
 - **Tags:** `#perf` `#editor` `#tech-debt`
-- **Also fixed 2026-09-25 (editor lag pass):** direct style edits paint before the source write (`ActionManager.runStyleOptimistically`, reverts on a failed save); local saves and watcher events re-index one file instead of the whole project (`CodeFileSystem.reindexLocalFile`); canvas hover runs one `getElementAtLoc` lookup at a time.
 
 ### QA loop — WIND DOWN (2026-06-21 iter-21, /loop dynamic) — quick-win queue dry, both title→tooltip candidates refuted
 
@@ -2630,38 +2319,6 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
-
-### Authenticated cloud release review 502 and inherited public response headers
-
-- **Resolved:** 2026-10-03, startup fix commit `7e7cc56f6`; header correction in the owned, reviewed cloud integration working tree.
-- Actual same-container proof isolated OTel automatic fetch/http instrumentation. Narrow disable retains manual/Next spans and exporter. The subsequent live HTML exposed Next config cache/CSP precedence; both review middleware branches now override those headers before rewriting.
-- Actual final private HTML/JS/CSS200 and exact private/no-store/strict CSP verified, with anonymous/origin/replay/revocation/expired-ticket refusals.25 routing/proxy cases, scoped lint, typecheck and independent review pass. See the evening delivery checkpoint. No actual cross-user cache disclosure was established. Customer popup/publish/rollback remains a separate open acceptance gap.
-
-
-### Sanity pilot live content and design workflow
-
-- **Discovered:** 2026-10-01 (owner-requested separate Sanity pilot)
-- **Where:** `examples/sanity-pilot/README.md` (F-741, T-741–743)
-- **Resolved:** 2026-10-01. Real Studio login/publication/restore succeeded on k73ltzd4/production. Installed editor engine saved desktop h1 60→62px while mobile remained36px; subsequent Studio publication retained62px. Pending undo/redo and same-visit saved64→62px undo passed. Local Git patch applied to another source copy with CMS expressions unchanged. Category filter/article/rich text/missing404 and mobile overflow checked. Standalone build/type/lint and34 focused checks passed. Full native folder startup, separate handoff-copy build, image upload and external publishing were not claimed. Installed engine limits are tracked in the open source-mapping/history entry.
-- **Commits:** `86b6b11b2` (Studio/template); independent pilot `4c74f45` (saved design); agent-dotfiles `694894b` (owner-approved third slot only for pilot).
-- **Tags:** `#cms` `#workflow` `#test-gap`
-
-
-### Next.js rewrites next-env.d.ts and blocks every handoff
-
-- **Discovered:** 2026-09-25 (owner screenshot of the Git handoff dialog)
-- **Where:** `apps/desktop/weblab-local.js` `computePrivateHandoffPlan` (unsupported-change loop)
-- **Symptom:** the handoff dialog says export is blocked because `next-env.d.ts` changed outside Weblab. The Next dev server rewrites that file on start, so most Next.js projects can never export a patch.
-- **Root cause:** any file that differs from the snapshot without a journaled Weblab write counts as unsupported, including framework-generated files.
-- **Next step:** ignore known generated files (`next-env.d.ts`, `.next/**`) in the plan diff, or journal them as non-exported noise.
-- **Risk if ignored:** Git handoff is unusable for most local Next.js projects.
-- **Resolved:** 2026-09-25. The handoff plan now ignores unjournaled `next-env.d.ts` changes in the copy and the source.
-- **Tags:** `#bug` `#desktop`
-
-
-### AI safeguards — owner billing decisions (resolved 2026-09-25)
-
-Owner approved in session: all chat types are charged (reserve + reconcile); Stop after output bills the partial real cost (refund only when nothing was produced); Claude Opus 5.5 and GPT-6 Astra are Pro-only (server 403 `pro_model_required` via `usage.tier`, picker shows a Pro tag). Uncommitted at time of writing.
 ### 2026-07-09 — Editor quality audit (docs/audits/editor-quality-audit.md)
 
 - **`isChildTextEditable` stub returning `true` (P1)** — resolved `acbd9b0df`: source-AST gate in `TextEditingManager` (`text/editable.ts`, 16 unit tests); preload stub intentionally retained (prod SHA pin).
