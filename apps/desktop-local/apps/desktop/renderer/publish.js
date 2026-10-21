@@ -502,8 +502,9 @@
     if (s.files.length === 0) {
       return "";
     }
+    const selectable = s.files.filter((file) => !file.secret);
     let all = "mixed";
-    if (picked === s.files.length) {
+    if (selectable.length > 0 && picked === selectable.length) {
       all = "true";
     } else if (picked === 0) {
       all = "false";
@@ -511,10 +512,10 @@
     const rows = s.files
       .map(
         (file) =>
-          `<button type="button" class="pub-file" role="checkbox" aria-checked="${up.picked.has(file.path)}" data-act="toggle" data-path="${esc(file.path)}" data-focus-key="f:${esc(file.path)}" title="${esc(file.path)}"><span class="pub-box">${ICON.check}</span><span class="pub-file-name">${esc(file.name)}</span><span class="pub-file-dir">${esc(file.dir)}</span><span class="pub-tag">${fileTag(file)}</span></button>`
+          `<button type="button" class="pub-file" role="checkbox" aria-checked="${!file.secret && up.picked.has(file.path)}" ${file.secret ? "disabled" : ""} data-act="toggle" data-path="${esc(file.path)}" data-focus-key="f:${esc(file.path)}" title="${esc(file.path)}"><span class="pub-box">${ICON.check}</span><span class="pub-file-name">${esc(file.name)}</span><span class="pub-file-dir">${esc(file.dir)}</span><span class="pub-tag">${fileTag(file)}</span></button>`
       )
       .join("");
-    return `<div class="pub-files"><button type="button" class="pub-files-all" role="checkbox" aria-checked="${all}" data-act="toggle-all" data-focus-key="all"><span class="pub-box">${ICON.check}</span><span class="pub-muted">${picked} of ${plural(s.files.length, "file", "files")}</span></button>${rows}</div>`;
+    return `<div class="pub-files"><button type="button" class="pub-files-all" role="checkbox" aria-checked="${all}" ${selectable.length === 0 ? "disabled" : ""} data-act="toggle-all" data-focus-key="all"><span class="pub-box">${ICON.check}</span><span class="pub-muted">${picked} of ${plural(selectable.length, "file", "files")}</span></button>${rows}</div>`;
   }
 
   function noteHint(up) {
@@ -557,13 +558,15 @@
           button("new-branch", "Use a new branch", "solid")
         )
       : "";
-    const picked = s.files.filter((file) => up.picked.has(file.path)).length;
+    const picked = s.files.filter(
+      (file) => !file.secret && up.picked.has(file.path)
+    ).length;
     const earlier = s.ahead
       ? `<span class="pub-faint">Also sends ${plural(s.ahead, "earlier save", "earlier saves")} from this Mac.</span>`
       : "";
     const count = picked || (s.files.length === 0 ? s.ahead : 0);
     const ready = count > 0 && !(picked > 0 && !up.note.trim());
-    return `${head("Upload changes", "Saves your work to GitHub for your team. Your live site does not change from here.")}
+    return `${head("Upload changes", "Saves your work to GitHub for your team. GitHub may publish these changes if this repository is connected to hosting.")}
       <div class="pub-body">${whereHtml(s, up)}${warn}${fileListHtml(s, up, picked)}${earlier}${noteHtml(s, up)}</div>
       <div class="pub-foot">${button("close", "Cancel")}${button("upload", uploadLabel(s, picked), "primary", ready ? "" : "disabled")}</div>`;
   }
@@ -688,6 +691,11 @@
     toggle: (target) => {
       const { picked } = state.upload;
       const { path } = target.dataset;
+      if (
+        !state.status?.files?.some((file) => file.path === path && !file.secret)
+      ) {
+        return;
+      }
       if (picked.has(path)) {
         picked.delete(path);
       } else {
@@ -697,11 +705,10 @@
     },
     "toggle-all": () => {
       const up = state.upload;
-      const files = state.status?.files || [];
-      up.picked =
-        up.picked.size === files.length
-          ? new Set()
-          : new Set(files.map((file) => file.path));
+      const files = (state.status?.files || []).filter((file) => !file.secret);
+      up.picked = files.every((file) => up.picked.has(file.path))
+        ? new Set()
+        : new Set(files.map((file) => file.path));
       paintUpload();
     },
     upload: () => {
@@ -709,7 +716,9 @@
       runUpload({
         newBranch: up.newBranch,
         note: up.note,
-        paths: [...up.picked],
+        paths: (state.status?.files || [])
+          .filter((file) => !file.secret && up.picked.has(file.path))
+          .map((file) => file.path),
       });
     },
     view: () => host.publish.openLink(state.upload.result?.url),

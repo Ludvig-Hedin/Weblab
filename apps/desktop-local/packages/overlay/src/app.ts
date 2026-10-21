@@ -54,6 +54,7 @@ import {
   type AssistantActions,
   type AssistantTurn,
   assistantTurn,
+  canUndoBundle,
   fillAssistant,
   setTurnStatus,
   userBubble,
@@ -5841,6 +5842,7 @@ export class AirshipApp {
   }
 
   private assistantActions(bundle: JobDiffBundle): AssistantActions {
+    const canUndo = canUndoBundle(bundle);
     const canRevert = bundle.status === "done" && bundle.diffs.length > 0;
     // Inside the desktop app, Upload in the top bar does commit and push.
     const canCommit = canRevert && !desktopHost()?.hostsGit;
@@ -5860,7 +5862,7 @@ export class AirshipApp {
       onOpenIn: canRevert
         ? (editor, file, line) => this.openIn(editor, file, line)
         : undefined,
-      onUndo: canRevert ? () => this.undo(bundle.jobId) : undefined,
+      onUndo: canUndo ? () => this.undo(bundle.jobId) : undefined,
     };
   }
 

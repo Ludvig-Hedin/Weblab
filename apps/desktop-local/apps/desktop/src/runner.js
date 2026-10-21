@@ -249,6 +249,7 @@ class SiteRunner {
     const key = auth.readApiKey();
     if (key) {
       env.ANTHROPIC_API_KEY = key;
+      env.WEBLAB_PREVIEW_STRIP_ANTHROPIC_KEY = "1";
     }
 
     const args = [

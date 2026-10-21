@@ -308,9 +308,20 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       case "cancel":
         jobs.get(parsed.jobId)?.abort?.abort();
         break;
-      case "undo":
-        undo(ws, parsed.jobId);
+      case "undo": {
+        const { jobId } = parsed;
+        editChain = editChain
+          .then(() => undo(ws, jobId))
+          .catch((err) => {
+            send(ws, {
+              error: `undo failed: ${err instanceof Error ? err.message : String(err)}`,
+              jobId,
+              ok: false,
+              type: "undo:result",
+            });
+          });
         break;
+      }
       case "history":
         send(ws, { entries: listHistory(cwd), type: "history" });
         break;
@@ -551,6 +562,8 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   }
 
   function undo(ws: WebSocket, jobId: string): void {
+    // The root may have moved while this request waited behind an edit.
+    assertProjectRoot();
     const bundle = readBundle(cwd, jobId);
     if (!bundle?.diffs.length) {
       send(ws, {
@@ -576,7 +589,11 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       ok,
       type: "undo:result",
     });
-    broadcast({ entries: listHistory(cwd), type: "history" });
+    try {
+      broadcast({ entries: listHistory(cwd), type: "history" });
+    } catch {
+      // History is an enhancement. A completed Undo must keep its result.
+    }
   }
 
   async function commit(

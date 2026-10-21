@@ -1,5 +1,13 @@
 # Current Progress Snapshot
 
+## 2026-10-21 — Current-main recovery integration
+
+PR #8 is merged at `1c7bdfc5e`; clean `../weblab-main` is synchronized to that commit. Further recovered work is local on `integration/recovered-work-2026-10-21` in `../weblab-project-location-recovery`. Original dirty source and historical checkpoints remain preserved.
+
+The desktop recovery covers project-script key isolation, safe settings and HTML imports, selected GitHub Upload, failed-turn Undo and deployment-key rechecks. Source review and focused checks are in progress. Parser preparation and exact content-target helpers pass focused tests and parser types; formatting remains open. These helpers do not yet complete the imported cloud flow.
+
+GitHub Actions is disabled and verified on all 224 currently owned repositories. Verification is local through the installed guards. Public web access remains invited. No new web deployment or 0.2.2 installer has shipped from this integration. The primary recovery task retains its dependencies for checks and packaging; its completed temporary install cache was removed after an idle check.
+
 ## 2026-10-21 — Recovery checkpoints and folder integration continuation
 
 Five local `recovery/cloud-01-*` through `recovery/cloud-05-*` branches preserve the overlapping historical cloud source stack. They are not independently mergeable current-main feature branches. The private `../weblab-recovery-2026-10-21/cloud-checkpoints/` guide, Git bundle and per-checkpoint manifests point to the full saved unfinished source. Keep the original dirty recovery checkout and archives.

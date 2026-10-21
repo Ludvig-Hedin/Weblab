@@ -11,6 +11,10 @@ const github = require("./github");
 const sites = require("./sites");
 
 const GIT = "/usr/bin/git";
+// biome-ignore lint/suspicious/noControlCharactersInRegex: Reject ASCII controls and backslashes in untrusted Git paths.
+const UNSAFE_UPLOAD_PATH = /[\\\u0000-\u001f\u007f]/;
+const WINDOWS_UPLOAD_PATH = /^[A-Za-z]:\//;
+const GIT_METADATA_COMPONENT = /^\.git$/i;
 const SECRET =
   /(^|\/)((\.weblab|\.vercel|\.airship|\.claude|\.codex)(\/|$)|(\.env(\..*)?|.*\.pem|.*\.key|id_rsa.*|\.npmrc)$)/i;
 const IMAGE = /\.(png|jpe?g|gif|webp|avif|svg|ico)$/i;
@@ -398,8 +402,6 @@ async function push(cwd, branch, remote) {
 }
 
 async function commitFiles(cwd, paths, note) {
-  // Unstage by path, which keeps a merge in progress intact.
-  await git(cwd, ["reset", "-q", "--", "."]);
   const add = await git(cwd, [
     "--literal-pathspecs",
     "add",
@@ -412,11 +414,15 @@ async function commitFiles(cwd, paths, note) {
   }
   const identity = await identityArgs(cwd);
   const commit = await git(cwd, [
+    "--literal-pathspecs",
     ...identity,
     "commit",
+    "--only",
     "-q",
     "-m",
     note.trim() || "Update site",
+    "--",
+    ...paths,
   ]);
   if (commit.code !== 0) {
     return {
@@ -433,6 +439,34 @@ async function commitFiles(cwd, paths, note) {
  * `newBranch`, first moves to a fresh branch named after the note.
  */
 async function upload(cwd, { paths = [], note = "", newBranch = false } = {}) {
+  // Reject malformed/private input before even asking Git for repository status.
+  if (
+    !Array.isArray(paths) ||
+    paths.some(
+      (path) =>
+        typeof path !== "string" ||
+        !path ||
+        UNSAFE_UPLOAD_PATH.test(path) ||
+        WINDOWS_UPLOAD_PATH.test(path) ||
+        path
+          .split("/")
+          .some(
+            (part) =>
+              !part ||
+              part === "." ||
+              part === ".." ||
+              GIT_METADATA_COMPONENT.test(part)
+          ) ||
+        SECRET.test(path)
+    )
+  ) {
+    return {
+      code: "private-files",
+      message:
+        "Private files cannot be uploaded. Leave them out and try again.",
+      ok: false,
+    };
+  }
   const now = await status(cwd);
   if (!(now.git && now.repo && now.remote)) {
     return {

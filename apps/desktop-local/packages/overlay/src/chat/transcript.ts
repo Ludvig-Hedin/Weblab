@@ -197,6 +197,22 @@ export function setTurnStatus(status: HTMLElement, text: string): void {
   status.title = text;
 }
 
+/** Captured content is required for every file, including creations/deletions. */
+export function canUndoBundle(bundle: JobDiffBundle): boolean {
+  return (
+    ["done", "failed", "cancelled"].includes(bundle.status) &&
+    bundle.diffs.length > 0 &&
+    bundle.diffs.every(
+      (diff) =>
+        !diff.noBaseline &&
+        (diff.isNew
+          ? diff.before === null && !diff.isDeleted
+          : typeof diff.before === "string") &&
+        (diff.isDeleted ? diff.after === null : typeof diff.after === "string")
+    )
+  );
+}
+
 /**
  * Populate a turn's *result slot* with the finished job — markdown summary,
  * changed files, follow-ups, and actions.
@@ -222,6 +238,13 @@ export function fillAssistant(
         text: bundle.error || "Edit failed.",
       })
     );
+    if (canUndoBundle(bundle) && actions.onUndo) {
+      const recovery = { onUndo: actions.onUndo };
+      target.append(
+        changedFiles(bundle, recovery),
+        actionsRow(bundle, recovery)
+      );
+    }
     return;
   }
 
