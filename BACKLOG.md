@@ -38,6 +38,16 @@ later without re-discovering the context.
 
 ## Open
 
+### Folder recovery must cover the newer Content actions before PR #8 merges
+
+- **Discovered:** 2026-10-21, independent PR #8 integration review after PR #12.
+- **Where:** `apps/desktop-local/apps/desktop/src/content-ipc.js`, PR #8 (`codex/local-project-organization`).
+- **Symptom:** The older folder/reconnect branch guards source operations, but the newer Content handlers use `sites.get()` and queue mutations without its root-identity rechecks. Initialization also resumes after an awaited document fetch.
+- **Root cause:** Content actions were added after the folder-recovery branch diverged. A textual merge alone does not extend its safety contract to those handlers.
+- **Next step:** Reconcile Content Save/Undo/Redo, initialization, review/publish/restore and inline-edit paths with verified site identity after waits; add queued-root-change and post-fetch-root-change cases. Keep PR #8 draft until these focused checks and current-version lint/types can run under an approved machine guard. The installed desktop lane remains pinned to 0.2.1/pnpm while main uses 0.2.2/Bun; do not downgrade manifests or bypass it.
+- **Risk if ignored:** After integrating folder recovery, newer Content actions could still act on a replaced site root.
+- **Tags:** `#bug` `#desktop` `#recovery` `#test-gap`
+
 ### Local Mac client publishing needs provider and signed-package acceptance
 
 - **Discovered:** 2026-10-21 (F-843 local client integration)
