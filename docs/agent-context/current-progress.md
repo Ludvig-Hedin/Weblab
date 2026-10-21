@@ -2,9 +2,9 @@
 
 ## 2026-10-21 — Current-main recovery integration
 
-PR #8 is merged at `1c7bdfc5e`; clean `../weblab-main` is synchronized to that commit. Further recovered work is local on `integration/recovered-work-2026-10-21` in `../weblab-project-location-recovery`. Original dirty source and historical checkpoints remain preserved.
+PR #8 and desktop recovery PR #13 are merged; clean `../weblab-main` is synchronized to `6aa394bfe`. Further recovered work is local on `integration/recovered-work-2026-10-21` in `../weblab-project-location-recovery`. Original dirty source and historical checkpoints remain preserved. The idle HTML donor was normally retired after all 4,935 source fingerprints matched and its exact original edits were archived in `35126f8d8` on retained `recovery/html-original-2026-10-21`.
 
-The desktop recovery covers project-script key isolation, safe settings and HTML imports, selected GitHub Upload, failed-turn Undo and deployment-key rechecks. Source review and focused checks are in progress. Parser preparation and exact content-target helpers pass focused tests and parser types; formatting remains open. These helpers do not yet complete the imported cloud flow.
+The desktop recovery covers project-script key isolation, safe settings and HTML imports, selected GitHub Upload, failed-turn Undo and deployment-key rechecks. All five desktop recovery slices passed 227 focused source cases, four affected TypeScript projects and lint. Parser preparation and exact content-target helpers passed 65 focused cases, parser types and lint after formatting. These helpers do not yet complete the imported cloud flow.
 
 GitHub Actions is disabled and verified on all 224 currently owned repositories. Verification is local through the installed guards. Public web access remains invited. No new web deployment or 0.2.2 installer has shipped from this integration. The primary recovery task retains its dependencies for checks and packaging; its completed temporary install cache was removed after an idle check.
 
@@ -393,3 +393,5 @@ A code task is not done until:
   updated if a new route / module / package / webhook landed
 - the final answer lists files changed, validation status, manual steps,
   and a confidence note
+
+Scoped invited cloud entry is being integrated locally with account/session owner fences, cancelled cache hydration and mounted lifecycle tests. Independent authority and runtime source reviews found no confirmed blocker. Its tests and dependency setup remain unfinished. Disk pressure reached about 1.5 GiB free; the primary stopped only its identified idle dependency retry loop. Both current integration dependency trees remain held for required checks and packaging; no peer process was stopped.
