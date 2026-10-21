@@ -43,7 +43,7 @@ export const TriggerButton = observer(() => {
 
     let colorClasses =
         'border-input bg-background hover:bg-background-weblab text-foreground-primary';
-    let icon: React.ReactNode | null = <Icons.Globe className="mr-1 h-4 w-4" />;
+    let icon: React.ReactNode | null = <Icons.Globe className="h-4 w-4" />;
     let text = 'Publish';
 
     if (isCompleted) {
@@ -54,14 +54,14 @@ export const TriggerButton = observer(() => {
         // back to the published state. On a fresh open with no deploy this session
         // the baseline is 0 and the undo stack is empty, so this reads "Live".
         text = editorEngine.history.length > publishedHistoryLenRef.current ? 'Update' : 'Live';
-        icon = <Icons.Globe className="mr-1 h-4 w-4" />;
+        icon = <Icons.Globe className="h-4 w-4" />;
     } else if (isDeploying) {
-        icon = <Icons.LoadingSpinner className="mr-1 h-4 w-4 animate-spin" />;
+        icon = <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />;
         text = 'Publishing';
     } else if (isFailed) {
         colorClasses =
             'border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive hover:text-destructive hover:border-destructive';
-        icon = <Icons.ExclamationTriangle className="mr-1 h-4 w-4" />;
+        icon = <Icons.ExclamationTriangle className="h-4 w-4" />;
     } else {
         colorClasses =
             'border-input bg-background hover:bg-background-weblab text-foreground-primary hover:border-foreground-primary';
@@ -73,7 +73,7 @@ export const TriggerButton = observer(() => {
                 variant="default"
                 size="sm"
                 className={cn(
-                    'text-mini flex h-8 items-center justify-center rounded-md border px-3 transition-colors duration-150',
+                    'text-small flex h-9 items-center justify-center rounded-md border px-3.5 transition-colors duration-150',
                     colorClasses,
                 )}
             >

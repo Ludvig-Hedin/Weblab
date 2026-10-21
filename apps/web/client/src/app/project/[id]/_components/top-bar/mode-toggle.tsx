@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Play } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -22,6 +23,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { openPreviewWindow } from '../canvas/frame/preview-url';
 
 // All four editor views surfaced inline as the primary mode switcher.
@@ -37,7 +39,7 @@ const MODE_TOGGLE_ITEMS: {
     { mode: EditorMode.CODE, hotkey: Hotkey.CODE },
     { mode: EditorMode.PREVIEW, hotkey: Hotkey.PREVIEW },
     { mode: EditorMode.CMS, hotkey: Hotkey.MODE_CMS },
-];
+].filter((item) => item.mode !== EditorMode.CMS || EDITOR_SCOPE.cms);
 
 // Preview is promoted out of the inline tab strip into a dedicated play button
 // (it's an action — "run the site" — not an edit surface). The desktop tabs
@@ -122,16 +124,6 @@ export const ModeToggle = observer(() => {
         MODE_TOGGLE_ITEMS.find((item) => item.mode === mode) ?? MODE_TOGGLE_ITEMS[0]!;
     const activeLabel = modeLabel(activeModeItem.mode);
 
-    // Active preview URL — same source the inline PreviewOverlay uses: the
-    // selected frame, else the first frame.
-    const allFrames = editorEngine.frames.getAll();
-    const sourceFrame =
-        allFrames.find((data) => data?.selected)?.frame ?? allFrames[0]?.frame ?? null;
-    const previewUrl = sourceFrame?.url ?? null;
-    const popout = (popMode: 'tab' | 'window') => {
-        if (previewUrl) openPreviewWindow(editorEngine.projectId, previewUrl, popMode);
-    };
-
     return (
         <div className="relative">
             {/* Mobile: compact dropdown */}
@@ -164,14 +156,17 @@ export const ModeToggle = observer(() => {
                 </DropdownMenu>
             </div>
 
-            {/* Desktop: inline toggle group + dedicated Preview play button */}
-            <div className="hidden items-center gap-1 md:flex">
+            {/* Desktop: segmented tab control. A tinted track with a subtle
+                border holds the tabs so they read as tabs, not loose labels.
+                The border lives on this wrapper so the measured indicator
+                offsets (relative to groupRef) stay exact. */}
+            <div className="bg-background-secondary/60 border-border hidden items-center rounded-lg border p-0.5 md:flex">
                 <div ref={groupRef} className="relative">
                     {/* Active-tab plate — a rounded fill that glides between tabs.
                         Rendered before the items so it paints behind them; the
                         labels sit on top (relative z-10) and stay readable. */}
                     <motion.div
-                        className="bg-background-bar-active pointer-events-none absolute rounded-md"
+                        className="bg-background-bar-active border-border pointer-events-none absolute rounded-md border shadow-sm"
                         initial={false}
                         style={{ top: indicator?.top ?? 0, height: indicator?.height ?? 0 }}
                         animate={{
@@ -191,7 +186,7 @@ export const ModeToggle = observer(() => {
                         // border-0 + rounded-none strip the ToggleGroup primitive's
                         // default border/radius so the mode tabs read as a flat
                         // header control, not a boxed segmented control.
-                        className="h-7 rounded-none border-0 font-normal"
+                        className="h-8 gap-0.5 rounded-none border-0 font-normal"
                         type="single"
                         value={mode}
                         onValueChange={(value) => {
@@ -210,7 +205,7 @@ export const ModeToggle = observer(() => {
                                         value={item.mode}
                                         aria-label={item.hotkey.description}
                                         className={cn(
-                                            'text-small relative z-10 cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-colors duration-150 ease-in-out',
+                                            'text-small relative z-10 h-8 cursor-pointer rounded-md bg-transparent px-4 whitespace-nowrap transition-colors duration-150 ease-in-out',
                                             mode === item.mode
                                                 ? 'text-foreground-active hover:text-foreground-active hover:bg-transparent'
                                                 : 'text-foreground-tertiary hover:text-foreground-secondary hover:bg-transparent',
@@ -226,59 +221,82 @@ export const ModeToggle = observer(() => {
                         ))}
                     </ToggleGroup>
                 </div>
+            </div>
+        </div>
+    );
+});
 
-                {/* Preview — promoted out of the tab strip into a play button.
-                    Keeps the onboarding-tour anchor so first-run tooltips still
-                    point here. */}
+// Top-bar border style shared by the preview actions so they match the
+// outlined Publish button beside them.
+const outlinedIconBtnClass =
+    'border-border text-foreground-secondary hover:text-foreground-primary hover:bg-background-bar-active size-9 rounded-md border';
+
+// Preview actions sit on the right of the top bar, next to Publish: a play
+// button that enters Preview mode, and a menu that pops the live preview out
+// into its own tab or window.
+export const PreviewActions = observer(() => {
+    const editorEngine = useEditorEngine();
+
+    // Active preview URL — same source the inline PreviewOverlay uses: the
+    // selected frame, else the first frame.
+    const allFrames = editorEngine.frames.getAll();
+    const sourceFrame =
+        allFrames.find((data) => data?.selected)?.frame ?? allFrames[0]?.frame ?? null;
+    const previewUrl = sourceFrame?.url ?? null;
+    const popout = (popMode: 'tab' | 'window') => {
+        if (previewUrl) openPreviewWindow(editorEngine.projectId, previewUrl, popMode);
+    };
+
+    return (
+        <div className="flex items-center gap-1.5">
+            {/* Keeps the onboarding-tour anchor so first-run tooltips still
+                point here. */}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        data-tour="preview-button"
+                        aria-label={Hotkey.PREVIEW.description}
+                        onClick={() => editorEngine.state.setEditorMode(EditorMode.PREVIEW)}
+                        className={outlinedIconBtnClass}
+                    >
+                        <Play className="size-3.5 fill-current" strokeWidth={1.5} />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="mt-1" hideArrow>
+                    <HotkeyLabel hotkey={Hotkey.PREVIEW} />
+                </TooltipContent>
+            </Tooltip>
+
+            <DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            data-tour="preview-button"
-                            aria-label={Hotkey.PREVIEW.description}
-                            onClick={() => editorEngine.state.setEditorMode(EditorMode.PREVIEW)}
-                            className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-7 w-7 rounded-md"
-                        >
-                            <Icons.Play className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Open preview window"
+                                disabled={!previewUrl}
+                                className={outlinedIconBtnClass}
+                            >
+                                <Icons.ExternalLink className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="mt-0" hideArrow>
-                        <HotkeyLabel hotkey={Hotkey.PREVIEW} />
+                    <TooltipContent side="bottom" className="mt-1" hideArrow>
+                        Open preview window
                     </TooltipContent>
                 </Tooltip>
-
-                {/* Pop the live preview out into its own tab/window — a resilient
-                    surface that hot-reloads and auto-recovers from sandbox errors. */}
-                <DropdownMenu>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label="Open preview window"
-                                    disabled={!previewUrl}
-                                    className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-7 w-7 rounded-md"
-                                >
-                                    <Icons.ExternalLink className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="mt-0" hideArrow>
-                            Open preview window
-                        </TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem onSelect={() => popout('tab')}>
-                            Open in new tab
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => popout('window')}>
-                            Open in new window
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+                <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onSelect={() => popout('tab')}>
+                        Open in new tab
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => popout('window')}>
+                        Open in new window
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     );
 });

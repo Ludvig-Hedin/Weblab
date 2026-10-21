@@ -24,6 +24,7 @@ import {
 import { toast } from '@weblab/ui/sonner';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { useEditorEngine } from '@/components/store/editor';
 import { ensureBreakpointSiblings } from '@/components/store/editor/frames';
 import { useOnlineStatus } from '@/services/offline/online-status';
@@ -54,6 +55,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // hasn't written `currentBranchId` yet — gate on `hasActiveBranch` so the
     // hook degrades to "not ready" instead of detonating the editor route.
     const sandbox = editorEngine.branches.hasActiveBranch ? editorEngine.activeSandbox : null;
+    const cloudEditor = editorEngine.branches.hasActiveBranch && isCloudEditorRuntime(editorEngine.branches.activeBranch.runtime);
     const online = useOnlineStatus();
     const [sandboxError, setSandboxError] = useState<string | null>(null);
     const [dataError, setDataError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const framesPendingSandbox = initialBootstrap?.canvas?.frames.some((f) => !f.url) ?? false;
     const rawBootstrap = useQuery(
         api.projects.getEditorBootstrap,
-        online && (!initialBootstrap || framesPendingSandbox)
+        online && (cloudEditor || !initialBootstrap || framesPendingSandbox)
             ? { projectId: editorEngine.projectId as Id<'projects'> }
             : 'skip',
     );
@@ -108,7 +110,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // frame's reload-on-URL effect never fired, and blank projects (the
     // primary create path) stranded on "Setting up your workspace".
     const effectiveBootstrap =
-        framesPendingSandbox && bootstrap
+        (cloudEditor || framesPendingSandbox) && bootstrap
             ? bootstrap
             : (initialBootstrap ?? bootstrap ?? undefined);
 

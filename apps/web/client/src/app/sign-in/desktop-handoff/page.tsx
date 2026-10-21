@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import { auth as clerkAuth, clerkClient } from '@clerk/nextjs/server';
 
 import { BrandLogo } from '@weblab/ui/brand';
+import { Button } from '@weblab/ui/button';
+import { env } from '@/env';
+import { desktopAuthProtocol } from '@/lib/desktop-handoff';
 
 import { DesktopHandoffClient } from './handoff-client';
 
@@ -54,18 +57,13 @@ async function createTicketFor(userId: string): Promise<string> {
 function HandoffErrorScreen({ message }: { message: string }) {
     return (
         <div className="relative flex h-screen w-screen items-center justify-center">
-            <div className="flex w-full max-w-md flex-col items-center gap-8 px-6 text-center">
+            <div className="flex w-full max-w-sm flex-col items-center px-6 text-center">
                 <BrandLogo className="h-5" />
-                <div className="space-y-2">
-                    <h1 className="text-title2 leading-tight">Couldn&apos;t finish sign-in</h1>
-                    <p className="text-foreground-secondary text-regular">{message}</p>
-                </div>
-                <Link
-                    href="/sign-in"
-                    className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
-                >
-                    Back to sign in
-                </Link>
+                <h1 className="text-title3 mt-10">Couldn&apos;t finish sign-in</h1>
+                <p className="text-foreground-secondary text-regular mt-2">{message}</p>
+                <Button asChild size="pill" className="mt-8">
+                    <Link href="/sign-in">Back to sign in</Link>
+                </Button>
             </div>
         </div>
     );
@@ -77,11 +75,16 @@ interface DesktopHandoffPageProps {
     // have to retype it after the OS browser opens. `provider` is currently
     // informational only — kept so a future iteration can deep-link straight
     // into a specific OAuth provider from the sign-in form.
-    searchParams: Promise<{ email?: string; provider?: string }>;
+    searchParams: Promise<{ email?: string; provider?: string; state?: string }>;
 }
 
 export default async function DesktopHandoffPage({ searchParams }: DesktopHandoffPageProps) {
+    const protocol = desktopAuthProtocol(env.WEBLAB_DESKTOP_AUTH_PROTOCOL);
     const params = await searchParams;
+    const state = params.state;
+    if (!state || !/^[a-f0-9]{64}$/.test(state)) {
+        return <HandoffErrorScreen message="Start sign-in from the desktop app to continue." />;
+    }
     const { userId } = await clerkAuth();
 
     // Not signed in: send to the normal sign-in form, then bounce back here
@@ -94,6 +97,7 @@ export default async function DesktopHandoffPage({ searchParams }: DesktopHandof
         // which then mints the ticket. Forwarding `email` on the OUTER
         // /sign-in URL also lets the form prefill the input immediately.
         const handoffBack = new URLSearchParams();
+        handoffBack.set('state', state);
         if (params.email) handoffBack.set('email', params.email);
         if (params.provider) handoffBack.set('provider', params.provider);
         const handoffQuery = handoffBack.toString();
@@ -129,5 +133,5 @@ export default async function DesktopHandoffPage({ searchParams }: DesktopHandof
     // Hand the ticket to the desktop via the custom protocol. The client
     // component sets `window.location.href` so the OS protocol handler fires
     // and Electron's `open-url` event delivers it to `handleDeepLink`.
-    return <DesktopHandoffClient ticket={ticket} />;
+    return <DesktopHandoffClient ticket={ticket} state={state} protocol={protocol} />;
 }

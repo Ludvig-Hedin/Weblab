@@ -38,14 +38,63 @@ later without re-discovering the context.
 
 ## Open
 
+### Local Mac client publishing needs provider and signed-package acceptance
+
+- **Discovered:** 2026-10-21 (F-843 local client integration)
+- **Where:** `apps/desktop-local`, F-843, T-884
+- **State:** Native local text and font edits and the provider-independent release checks pass. Real provider write/promotion/restore acceptance and clean-Mac signed-package acceptance are still open. This Mac has no valid Apple code-signing identity.
+- **Local-copy update:** A fully independent loopback-only site copy now opens without a password in native desktop/mobile frames. Direct page heading/body typing now bypasses nested CMS component drill-in. Native Save, Undo/Redo, Discard and unsaved-quit protection were checked in the packaged app. The Content panel remains available for other fields.
+- **Next step:** Connect an authorized CMS write credential in the native panel, verify a reviewed text publish/restore and Vercel preview/staged-live/promotion/restore in an agreed release window, then sign/notarize and test the package on a clean Mac.
+- **Risk if ignored:** An unsigned local candidate or unit pass is mistaken for a supported client release.
+- **Tags:** `#release-blocker` `#desktop` `#test-gap`
+
+
+
+### Team desktop 0.2.7 needs packaged acceptance on real copied sites
+
+- **Discovered:** 2026-10-05 (team release integration)
+- **Where:** `apps/desktop/`, F-829, F-842, T-883
+- **Symptom:** The combined line passes typecheck and unit tests, but no installed 0.2.7 build has been taken through sign-in, private copy, install, preview with preview keys, edit, save, reopen, undo and handoff on copied customer sites.
+- **Next step:** Install the `desktop-v0.2.7` build on a clean Mac and run that journey on three copied Next.js + Tailwind sites. Log each failure as its own entry.
+- **Risk if ignored:** Source-level safeguards are mistaken for a working team tool.
+- **Tags:** `#release-blocker` `#desktop` `#test-gap`
+
+### Native CLI process-identity checks lose races on loaded machines
+
+- **Discovered:** 2026-10-05 (macOS CI and one local run)
+- **Where:** `apps/desktop/cli/process.js:79,165,182` (`cleanup_unconfirmed`), `cli/cli-lifecycle.test.js:262`, `release-snapshot.test.js:121`
+- **Symptom:** A process that exits before its identity is read is reported as "The CLI exited before its process identity could be verified" (exit 125). `very fast probes retain proven identity` and several release-snapshot cases fail at random on macOS CI runners (2 to 3 per run) and occasionally on a developer Mac. CI runs `release-snapshot.test.js` and `cli/cli-lifecycle.test.js` as a non-blocking step.
+- **Next step:** Capture identity at spawn (held launch gate) instead of sampling afterwards, or treat a clean exit with no descendants as verified. Any relaxation must keep refusing when an unobserved descendant could still be running. Then make the CI step blocking again.
+- **Risk if ignored:** On a slow or busy Mac, native AI turns and release snapshots can refuse for no user-visible reason.
+- **Tags:** `#bug` `#desktop` `#flaky`
+
+### Team desktop 0.2.7 has no installer: signing secrets are missing
+
+- **Discovered:** 2026-10-05 (`desktop-v0.2.7` tag build)
+- **Where:** `.github/workflows/desktop-release.yml` ("Stage Apple signing + notary credentials"), repository secrets
+- **Symptom:** The Mac build stops with "A Developer ID Application certificate is required for desktop releases". Windows and Linux built, but nothing was published because the release needs the full set. The repository only has `CONVEX_DEPLOY_KEY`.
+- **Next step:** Add `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD` and one notary set (`APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER`, or `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID`). Steps are in `apps/desktop/RELEASES.md`, "Code signing & notarization". Then re-run the `desktop-v0.2.7` workflow. Do not remove the signing requirement.
+- **Risk if ignored:** The team cannot install the editor that weblab.build now serves.
+- **Tags:** `#release-blocker` `#desktop` `#release`
+
+### Preview keys are stored unencrypted
+
+- **Discovered:** 2026-10-05 (F-842)
+- **Where:** `apps/desktop/weblab-local.js` `updatePreviewEnv`
+- **Symptom:** Preview keys are written as a `0600` JSON file beside the private copy in the app's user data folder, not through the OS keychain.
+- **Next step:** Encrypt with Electron `safeStorage` the way `release/store.js` does, with a migration for existing files.
+- **Risk if ignored:** Another process running as the same user can read test keys. Live keys must not be entered there.
+- **Tags:** `#security` `#desktop`
+
 ### Finder recovery needs packaged Mac and interrupted-operation proof
 
 - **Discovered:** 2026-10-01 (Sites organization and Finder moves)
-- **Where:** F-811, T-853; `apps/desktop-local/apps/desktop/src/sites.js`; editor server root identity guard
+- **Where:** F-844, T-885; `apps/desktop-local/apps/desktop/src/sites.js`; editor server root identity guard
 - **Symptom:** Metadata folders and checked recovery are implemented, but full packaged Electron/restart/offline-volume/permission flows remain unverified. Automatic bookmarks are best effort. Already executing OS/agent commands cannot be undone by a location guard.
-- **Next step:** Run T-853 in the installed app, including helper resources/signing, parent rename with the app closed, canceled legacy relink, unavailable disks and moving while an edit is already executing. Advise closing a site before Finder moves. Add reviewed physical moving, verified cross-volume cleanup and explicit linked-worktree repair separately.
+- **Next step:** Run T-885 in the installed app, including helper resources/signing, parent rename with the app closed, canceled legacy relink, unavailable disks and moving while an edit is already executing. Advise closing a site before Finder moves. Add reviewed physical moving, verified cross-volume cleanup and explicit linked-worktree repair separately.
 - **Risk if ignored:** A same-volume temporary-folder result could be mistaken for guaranteed live-process relocation or physical move support.
 - **Tags:** `#test-gap` `#desktop` `#workflow`
+
 
 ### Editor stability audit 2026-07-04 — confirmed-but-deferred (entangled / needs live validation)
 
@@ -2292,6 +2341,25 @@ lifetime → now guarded `> 0`. Remaining (not yet fixed):
 ---
 
 ## Resolved
+
+### Folder recovery covers newer Content actions (2026-10-21, PR #8)
+
+- **Discovered:** 2026-10-21, independent PR #8 integration review after PR #12.
+- **Where:** `apps/desktop-local/apps/desktop/src/content-ipc.js`, PR #8 (`codex/local-project-organization`).
+- **Symptom:** The older folder/reconnect branch guards source operations, but the newer Content handlers use `sites.get()` and queue mutations without its root-identity rechecks. Initialization also resumes after an awaited document fetch.
+- **Root cause:** Content actions were added after the folder-recovery branch diverged. A textual merge alone does not extend its safety contract to those handlers.
+- **Resolved:** 2026-10-21, PR #8 integration. Captured source/session identity is rechecked across Content operations, admitted queues, publication journals, provider waits, GitHub retries and delayed AI-note summaries. Independent source review found no unresolved blocker. Local focused regressions, server types and 32-file lint pass; no full suite or hosted CI used. Installed Mac/restart/offline-volume acceptance remains tracked separately below.
+- **Risk if ignored:** After integrating folder recovery, newer Content actions could still act on a replaced site root.
+- **Tags:** `#bug` `#desktop` `#recovery` `#test-gap`
+
+### Public Mac saved Undo can overwrite later file changes
+
+- **Discovered:** 2026-10-21 (client-readiness audit)
+- **Resolved:** 2026-10-21, local candidate; no commit or release yet.
+- **Where:** `apps/desktop-local/packages/git/src/index.ts`, F-843
+- **Fix:** Preflight every saved file against captured post-edit bytes before restoring anything. Refuse later edits, unsafe links, missing snapshots and path overlaps. Preserve all files on a known conflict.
+- **Validation:** All 45 Git package tests pass, including the original later-edit loss case and newly created files. Signed-package client acceptance remains a separate gate above.
+
 ### 2026-07-09 — Editor quality audit (docs/audits/editor-quality-audit.md)
 
 - **`isChildTextEditable` stub returning `true` (P1)** — resolved `acbd9b0df`: source-AST gate in `TextEditingManager` (`text/editable.ts`, 16 unit tests); preload stub intentionally retained (prod SHA pin).

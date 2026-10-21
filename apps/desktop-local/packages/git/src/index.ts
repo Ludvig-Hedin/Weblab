@@ -13,12 +13,22 @@
 import { execFile, execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
+  type Stats,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, relative, resolve, sep } from "node:path";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import { promisify } from "node:util";
 import type { FileDiff } from "@airship/protocol";
 
@@ -90,8 +100,8 @@ export function onGitFailure(
   sink = fn;
 }
 
-function text(value: Buffer | string | undefined): string {
-  if (value === undefined) {
+function text(value: Buffer | string | null | undefined): string {
+  if (value === undefined || value === null) {
     return "";
   }
   return typeof value === "string" ? value : value.toString("utf8");
@@ -108,8 +118,8 @@ function toFailure(
   const e = err as {
     code?: number | string;
     status?: number | null;
-    stderr?: Buffer | string;
-    stdout?: Buffer | string;
+    stderr?: Buffer | string | null;
+    stdout?: Buffer | string | null;
   };
   return {
     args,
@@ -826,53 +836,158 @@ export interface RestoreResult {
   skipped: { file: string; reason: string }[];
 }
 
+const UNSAFE_UNDO_PATH = /[\\:\0]/;
+
+interface UndoPlan {
+  abs: string;
+  before: string | null;
+  file: string;
+}
+
+function undoStat(path: string): Stats | null {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function undoPath(cwd: string, file: string): string {
+  const parts = file.split("/");
+  if (
+    !file ||
+    isAbsolute(file) ||
+    UNSAFE_UNDO_PATH.test(file) ||
+    parts.some((part) => !part || part === "." || part === "..")
+  ) {
+    throw new Error("undo requires a confined project-relative file path");
+  }
+  let abs = realpath(cwd);
+  for (const [index, part] of parts.entries()) {
+    abs = resolve(abs, part);
+    const stat = undoStat(abs);
+    if (!stat) {
+      continue;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error("undo cannot follow symbolic links");
+    }
+    if (index === parts.length - 1 ? !stat.isFile() : !stat.isDirectory()) {
+      throw new Error("undo target is not a regular project file");
+    }
+    if (index === parts.length - 1 && stat.nlink > 1) {
+      throw new Error("undo cannot change a file with multiple hard links");
+    }
+  }
+  return abs;
+}
+
+function reserveUndoPath(abs: string, targets: Set<string>): void {
+  const canonical = canonicalPath(abs);
+  const target =
+    process.platform === "linux" ? canonical : canonical.toLowerCase();
+  if (
+    [...targets].some(
+      (other) =>
+        target === other ||
+        target.startsWith(`${other}${sep}`) ||
+        other.startsWith(`${target}${sep}`)
+    )
+  ) {
+    throw new Error("undo contains overlapping file paths");
+  }
+  targets.add(target);
+}
+
+function undoBytes(abs: string): Buffer | null {
+  try {
+    return readFileSync(abs);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function prepareUndo(
+  cwd: string,
+  diff: FileDiff,
+  targets: Set<string>
+): UndoPlan {
+  if (diff.noBaseline) {
+    throw new Error("no baseline was captured, so there is nothing to restore");
+  }
+  const abs = undoPath(cwd, diff.file);
+  reserveUndoPath(abs, targets);
+  if (
+    diff.isNew
+      ? diff.before !== null || diff.isDeleted
+      : typeof diff.before !== "string"
+  ) {
+    throw new Error("no valid previous content was recorded");
+  }
+  if (diff.isDeleted ? diff.after !== null : typeof diff.after !== "string") {
+    throw new Error("no valid saved content was recorded");
+  }
+  const current = undoBytes(abs);
+  const matches =
+    typeof diff.after === "string"
+      ? current?.equals(Buffer.from(diff.after, "utf8"))
+      : current === null;
+  if (!matches) {
+    throw new Error("file changed since this saved edit; later work was kept");
+  }
+  // Validation above requires a string before existing files and null for new ones.
+  return { abs, before: diff.before ?? null, file: diff.file };
+}
+
+function applyUndo(plan: UndoPlan): void {
+  if (plan.before === null) {
+    if (existsSync(plan.abs)) {
+      rmSync(plan.abs, { force: true });
+    }
+    return;
+  }
+  mkdirSync(dirname(plan.abs), { recursive: true });
+  writeFileSync(plan.abs, plan.before, "utf8");
+}
+
 /**
- * Content-restore undo: rewrite each touched file back to its pre-edit content
- * (deleting files the edit created). Pure filesystem — works whether or not the
- * project is a git repo.
- *
- * `noBaseline` is checked *before* `isNew`, and that order is the whole point.
- * A baseline we could not read used to look exactly like a file that never
- * existed, so undo deleted tracked source files on any machine where git could
- * not run. Refusing and saying so is the only safe answer.
- *
- * Nothing here may throw: `undo` is called straight out of the WebSocket
- * message handler, so an EACCES on one read-only file would otherwise take the
- * whole daemon down with it.
+ * Restore captured content only when every file still matches its saved state.
+ * Preflight the entire bundle so an old job cannot overwrite later work, even
+ * in another file. Missing capture data, links and overlapping paths fail closed.
+ * Filesystem errors are returned to the WebSocket caller instead of thrown.
+ * Writes after preflight are not a transaction against concurrent OS writers.
  */
 export function restoreFiles(cwd: string, diffs: FileDiff[]): RestoreResult {
   const restored: string[] = [];
-  const skipped: { file: string; reason: string }[] = [];
-  for (const d of diffs) {
-    const abs = resolve(cwd, d.file);
-    if (d.noBaseline) {
-      skipped.push({
-        file: d.file,
-        reason: "no baseline was captured, so there is nothing to restore",
-      });
-      continue;
-    }
+  const skipped: RestoreResult["skipped"] = [];
+  const planned: UndoPlan[] = [];
+  const targets = new Set<string>();
+  for (const diff of diffs) {
     try {
-      if (d.isNew) {
-        if (existsSync(abs)) {
-          rmSync(abs, { force: true });
-        }
-        restored.push(d.file);
-        continue;
-      }
-      if (typeof d.before === "string") {
-        mkdirSync(dirname(abs), { recursive: true });
-        writeFileSync(abs, d.before, "utf8");
-        restored.push(d.file);
-        continue;
-      }
-      skipped.push({
-        file: d.file,
-        reason: "no previous content was recorded",
-      });
+      planned.push(prepareUndo(cwd, diff, targets));
     } catch (err) {
       skipped.push({
-        file: d.file,
+        file: diff.file,
+        reason: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  if (skipped.length) {
+    return { restored, skipped };
+  }
+  for (const plan of planned) {
+    try {
+      applyUndo(plan);
+      restored.push(plan.file);
+    } catch (err) {
+      skipped.push({
+        file: plan.file,
         reason: err instanceof Error ? err.message : String(err),
       });
     }

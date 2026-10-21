@@ -127,15 +127,14 @@ export const TreeNode = memo(
                         console.error('Failed to get frameView');
                         return;
                     }
-                    const el: DomElement = await frameData.view.getElementByDomId(
+                    const el: DomElement | null = await frameData.view.getElementByDomId(
                         node.domId,
                         action === MouseAction.MOUSE_DOWN,
                     );
-                    // `getElementByDomId` falls back to <body> for a stale/removed
-                    // domId instead of returning null, so the `!el` guard alone is
-                    // dead. Bail when the resolved element isn't the row we're
-                    // acting on — otherwise hover/click corrupts the selection onto
-                    // <body> (mirrors the guard in layers-tab/index.tsx handleDrop).
+                    // Current preload returns null for a stale domId, but older
+                    // pinned bundles fall back to <body>. Bail when the resolved
+                    // element isn't the row we're acting on, otherwise hover/click
+                    // moves the selection onto <body> (mirrors handleDrop).
                     if (!el || el.domId !== node.domId) {
                         return;
                     }
@@ -264,12 +263,18 @@ export const TreeNode = memo(
             // `isVisible` from the committed style (or refresh it on undo/redo)
             // instead of mutating the node directly.
             function toggleVisibility(): void {
-                const visibility = node.data.isVisible ? 'hidden' : 'inherit';
+                // Visibility is a discrete action. During a slider transaction,
+                // history.push only queues it, so a true return would not mean
+                // the source write succeeded yet.
+                if (editorEngine.history.isTransactionOpen) return;
+                const visibility = node.data.isVisible ? 'hidden' : 'visible';
+                const nextVisible = !node.data.isVisible;
                 const action = editorEngine.style.getUpdateStyleAction({ visibility }, [
                     node.data.domId,
                 ]);
-                editorEngine.action.updateStyle(action);
-                node.data.isVisible = !node.data.isVisible;
+                void editorEngine.action.run(action).then((saved) => {
+                    if (saved) node.data.isVisible = nextVisible;
+                });
             }
 
             function getNodeName() {
@@ -444,7 +449,7 @@ export const TreeNode = memo(
                                                     node.data.frameId,
                                                 );
                                                 if (!frameData?.view) return;
-                                                const el: DomElement =
+                                                const el: DomElement | null =
                                                     await frameData.view.getElementByDomId(
                                                         node.data.domId,
                                                         false,

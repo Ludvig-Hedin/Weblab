@@ -10,11 +10,20 @@ import { AUTO_MODEL_ID, DEFAULT_TAB_COMPLETE_MODEL } from '@weblab/models';
 
 import type { Id } from '@convex/_generated/dataModel';
 import {
+    aiDisabledResponse,
     checkMessageLimit,
+    decrementUsage,
+    enforceAiGuards,
     getSupabaseUser,
     incrementUsage,
+    isAllowedHostedEditorModel,
     reconcileUsageCost,
+    unsupportedModelResponse,
+    usageUnavailableResponse,
 } from '../../chat/helpers';
+import type { IncrementResult } from '../../chat/helpers';
+
+export const maxDuration = 60;
 
 const ALLOWED_OLLAMA_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
@@ -78,6 +87,8 @@ function validateTabCompletePayload(body: TabCompleteBody): string | null {
 const SKIP_PATH_PATTERNS = [/\/node_modules\//, /\/\.next\//, /\/dist\//, /\/\.weblab\//];
 
 export async function POST(req: NextRequest) {
+    const paused = aiDisabledResponse();
+    if (paused) return paused;
     const user = await getSupabaseUser(req);
     if (!user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -153,15 +164,45 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    const completionModel = body.model === AUTO_MODEL_ID ? DEFAULT_TAB_COMPLETE_MODEL : body.model;
+    const completionModel: ChatModel =
+        !body.model || body.model === AUTO_MODEL_ID ? DEFAULT_TAB_COMPLETE_MODEL : body.model;
+    const provider = inferProviderFromModelId(completionModel);
+    if (provider !== 'openrouter' && provider !== 'ollama') {
+        return new Response(JSON.stringify({ completion: '' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+    // Same curated, priced line-up as /api/chat (no unpriced slugs).
+    if (provider === 'openrouter' && !isAllowedHostedEditorModel(completionModel)) {
+        return unsupportedModelResponse();
+    }
+    // Local Ollama runs on the user's machine: no credit reserve, no spend
+    // caps or request counting (only the env kill switch above applies).
+    const isLocalModel = provider === 'ollama';
 
-    if (completionModel) {
-        const provider = inferProviderFromModelId(completionModel);
-        if (provider !== 'openrouter' && provider !== 'ollama') {
-            return new Response(JSON.stringify({ completion: '' }), {
-                status: 200,
+    let incrementResult: IncrementResult = null;
+    if (!isLocalModel) {
+        // Runaway safeguards: budgets, spend caps, Pro-only models, and tab
+        // complete's own looser request bucket (typing never eats chat's).
+        const guard = await enforceAiGuards({ bucket: 'tabComplete', model: completionModel });
+        if (!guard.ok) return guard.response;
+
+        // Reserve BEFORE generating (fail closed). Metering used to run
+        // fire-and-forget after the completion, so a failed or skipped
+        // increment meant a free completion. Refunded below on failure/abort;
+        // reconciled to the real token cost on success.
+        incrementResult = await incrementUsage(req);
+        if (incrementResult && 'limitReached' in incrementResult) {
+            await guard.release();
+            return new Response(JSON.stringify({ error: 'usage_limit', code: 'usage_limit' }), {
+                status: 429,
                 headers: { 'Content-Type': 'application/json' },
             });
+        }
+        if (incrementResult && 'incrementFailed' in incrementResult) {
+            await guard.release();
+            return usageUnavailableResponse();
         }
     }
 
@@ -182,26 +223,23 @@ export async function POST(req: NextRequest) {
                 costUsd = estimatedCostUsd;
             },
         });
-        // Meter after generation so aborted/failed requests don't count.
-        // Fire-and-forget: tab completions are best-effort; don't block the
-        // response. Reserve 1 credit, then reconcile it down to the real token
-        // cost (a completion is ~$0.001 ≈ a tiny fraction of a credit — charging
-        // a flat credit would overcharge ~100x). Log metering failures so silent
-        // telemetry drift is at least visible in server logs.
-        void incrementUsage(req)
-            .then((incrementResult) => {
-                if (costUsd !== undefined) {
-                    return reconcileUsageCost(incrementResult, costUsd);
-                }
-            })
-            .catch((err) => {
-                console.error('[tab-complete] meter increment failed', err);
-            });
+        // Reconcile the reserved credit down to the real token cost (a
+        // completion is ~$0.001 ≈ a tiny fraction of a credit — keeping the
+        // flat credit would overcharge ~100x) and count it toward the spend
+        // safeguards. Fire-and-forget so the completion isn't delayed;
+        // reconcileUsageCost logs and swallows its own errors.
+        // No usage reported → keep the conservative 1-credit reservation
+        // (matches the previous behavior).
+        if (costUsd !== undefined) {
+            void reconcileUsageCost(incrementResult, costUsd);
+        }
         return new Response(JSON.stringify({ completion }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });
     } catch (error) {
+        // Failed or aborted → refund the reservation.
+        void decrementUsage(req, incrementResult);
         // Aborted on the client → silently return nothing.
         if (error instanceof Error && error.name === 'AbortError') {
             return new Response(JSON.stringify({ completion: '' }), {

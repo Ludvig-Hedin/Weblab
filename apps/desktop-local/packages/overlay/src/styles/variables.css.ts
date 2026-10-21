@@ -26,14 +26,15 @@ export const css = `
   font-size: var(--ap-font-size-caption); font-weight: 600; color: var(--ap-text-secondary);
 }
 
-/* Collections: Figma's left list, stacked above the table here. */
+/* Collections stay compact above the table in the narrow dock. */
 .${PREFIX}-vars-cols {
-  display: flex; flex-direction: column; gap: 2px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px;
   padding: var(--ap-space-xs) var(--ap-space-sm) var(--ap-space-sm);
   border-bottom: 1px solid var(--ap-border-default);
 }
+.${PREFIX}-vars-cols > .${PREFIX}-vars-label { grid-column: 1 / -1; }
 .${PREFIX}-vars-col {
-  display: flex; align-items: center; gap: var(--ap-space-xs);
+  display: flex; align-items: center; gap: var(--ap-space-xs); min-width: 0;
   height: 32px; padding: 0 var(--ap-space-sm); margin: 0;
   border: 0; border-radius: var(--ap-radius-sm); background: transparent;
   color: var(--ap-text-secondary); font-family: var(--ap-font-sans);
@@ -51,9 +52,10 @@ export const css = `
 .${PREFIX}-vars-table { min-width: 100%; width: max-content; }
 .${PREFIX}-vars-grid {
   display: grid; align-items: center; column-gap: var(--ap-space-xs);
-  grid-template-columns: minmax(120px, 1fr) repeat(var(--vars-values, 1), minmax(112px, 1fr)) 24px;
+  grid-template-columns: 104px repeat(var(--vars-values, 1), 136px) 24px;
   padding: 0 var(--ap-space-sm) 0 var(--ap-space-md);
 }
+.${PREFIX}-vars-th > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .${PREFIX}-vars-th {
   position: sticky; top: 0; z-index: 1; height: 32px;
   background: var(--ap-surface-panel);

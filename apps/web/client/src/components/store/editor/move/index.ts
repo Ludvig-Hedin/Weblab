@@ -1,5 +1,6 @@
 import type React from 'react';
 import { makeAutoObservable } from 'mobx';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 
 import type { DomElement, ElementPosition } from '@weblab/models';
 import type { MoveElementAction } from '@weblab/models/actions';
@@ -50,12 +51,37 @@ export class MoveManager {
 
     private dragPreparationTimer: ReturnType<typeof setTimeout> | null = null;
 
+    private canMove(target: DomElement): boolean {
+        if (this.editorEngine.canUseDesign === false) return false;
+        const branch = this.editorEngine.branches.getBranchDataById(target.branchId);
+        if (!branch) return false;
+        if (!isCloudEditorRuntime(branch.branch.runtime)) return true;
+        const source = branch.sandbox.cloudSource;
+        return source?.canDesign === true && !source.isContentMode;
+    }
+
+    private async cancelRevokedDrag(state: MoveManagerState): Promise<void> {
+        // A delayed bridge reply must not cancel a newer drag session.
+        if (this.state && this.state !== state) return;
+        this.clear();
+        const view = this.editorEngine.frames.get(state.dragTarget.frameId)?.view;
+        try { await view?.endAllDrag(); }
+        finally {
+            // Absolute dragging writes inline positions directly. endDragAbsolute
+            // removes its restoration attributes, so use a local iframe reload
+            // when permission disappears; never restart/provision the runtime.
+            const position = state.dragTarget.styles?.computed?.position;
+            if (!this.state && (position === 'absolute' || position === 'fixed')) view?.reload();
+        }
+    }
+
     startDragPreparation(
         el: DomElement,
         pos: ElementPosition,
         frameData: FrameData,
         altDuplicate = false,
     ) {
+        if (!this.canMove(el)) return;
         if (this.dragPreparationTimer) {
             clearTimeout(this.dragPreparationTimer);
         }
@@ -100,6 +126,11 @@ export class MoveManager {
             return;
         }
 
+        if (!this.canMove(el)) {
+            await this.cancelRevokedDrag(this.state);
+            return;
+        }
+
         if (!this.editorEngine.elements.selected.some((selected) => selected.domId === el.domId)) {
             console.warn('Element not selected, cannot start drag');
             this.clear();
@@ -126,12 +157,13 @@ export class MoveManager {
         // resolved startDrag has just re-marked the element as dragging
         // inside the iframe with nobody left to end it — undo that and bail
         // before any state writes.
-        if (this.state !== stateAtCall) {
+        if (this.state !== stateAtCall || !this.canMove(el)) {
             try {
                 await frameData.view.endAllDrag();
             } catch (error) {
                 console.error('Error ending orphaned drag:', error);
             }
+            if (this.state === stateAtCall) await this.cancelRevokedDrag(stateAtCall);
             return;
         }
 
@@ -151,6 +183,11 @@ export class MoveManager {
         if (!this.state) {
             return;
         }
+        const stateAtCall = this.state;
+        if (!this.canMove(stateAtCall.dragTarget)) {
+            await this.cancelRevokedDrag(stateAtCall);
+            return;
+        }
 
         const frameData = this.editorEngine.frames.get(this.state.dragTarget.frameId);
         if (!frameData?.view) {
@@ -163,6 +200,12 @@ export class MoveManager {
             if (this.state?.originalIndex == null) {
                 return;
             }
+        }
+
+        if (this.state !== stateAtCall) return;
+        if (!this.canMove(stateAtCall.dragTarget)) {
+            await this.cancelRevokedDrag(stateAtCall);
+            return;
         }
 
         const { x, y } = getRelativeMousePositionToWebview(e);
@@ -192,6 +235,7 @@ export class MoveManager {
             } else {
                 await frameData.view.drag(this.state.dragTarget.domId, dx, dy, x, y);
             }
+            if (!this.canMove(stateAtCall.dragTarget)) await this.cancelRevokedDrag(stateAtCall);
         } catch (error) {
             console.error('Error during drag:', error);
         }
@@ -203,6 +247,10 @@ export class MoveManager {
         }
 
         const savedState = this.state;
+        if (!this.canMove(savedState.dragTarget)) {
+            await this.cancelRevokedDrag(savedState);
+            return;
+        }
         this.clear();
 
         if (savedState?.dragState !== DragState.IN_PROGRESS) {
@@ -231,6 +279,11 @@ export class MoveManager {
             const position = savedState.dragTarget.styles?.computed?.position;
             if (position === 'absolute' || position === 'fixed') {
                 const res = await frameData.view.endDragAbsolute(targetDomId);
+
+                if (!this.canMove(savedState.dragTarget)) {
+                    await this.cancelRevokedDrag(savedState);
+                    return;
+                }
 
                 if (res) {
                     const { left, top } = res;
@@ -265,6 +318,10 @@ export class MoveManager {
             } else {
                 // Handle regular drag with index changes
                 const res = await frameData.view.endDrag(targetDomId);
+                if (!this.canMove(savedState.dragTarget)) {
+                    await this.cancelRevokedDrag(savedState);
+                    return;
+                }
                 if (res && savedState.originalIndex !== null) {
                     const { child, parent, newIndex } = res;
                     if (altDuplicate) {
@@ -340,6 +397,7 @@ export class MoveManager {
     }
 
     async shiftElement(element: DomElement, direction: 'up' | 'down'): Promise<void> {
+        if (!this.canMove(element)) return;
         const frameData = this.editorEngine.frames.get(element.frameId);
         if (!frameData?.view) {
             return;
@@ -360,6 +418,7 @@ export class MoveManager {
 
             // Get filtered children count for accurate index calculation
             const childrenCount = await frameData.view.getChildrenCount(parent.domId);
+            if (!this.canMove(element)) return;
 
             // Calculate new index based on direction and bounds
             const newIndex =

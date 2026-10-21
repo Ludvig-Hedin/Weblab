@@ -18,7 +18,6 @@ const { bunBinary, childEnv } = require("./runtime");
 const sites = require("./sites");
 
 const VERCEL = "vercel@60.1.3";
-const LOG_LINES = 80;
 const DEVICE_URL = /https:\/\/vercel\.com\/oauth\/device\S*/;
 const DEVICE_CODE = /user_code=([A-Z0-9-]+)/;
 const DEPLOY_URL = /https:\/\/[^\s]+\.vercel\.app/;
@@ -27,8 +26,6 @@ const TRAILING_COMMENT = /\s+#.*$/;
 const STEP_UPLOAD = /upload|inspect/i;
 const STEP_BUILD = /build|install|compil|running "/i;
 const STEP_ONLINE = /complet|ready|alias|production:|preview:/i;
-const FAILURE_HINT = /error|failed|cannot|not found/i;
-const ERROR_PREFIX = /^Error:\s*/i;
 const NOT_FOUND = /\b404\b|not[_ ]found/i;
 const ENV_LINE = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
 const ENV_FILES = [
@@ -343,11 +340,6 @@ async function ensureLinked(cwd, { name, repo }) {
       return { details: made.text, message: SETUP_FAILED, ok: false };
     }
     writeLink(cwd, made.data, who.orgId);
-    // Test links from a project Weblab made open for anyone who has the link.
-    await api(cwd, `/v9/projects/${made.data.id}?${scope(readLink(cwd))}`, {
-      body: { ssoProtection: null },
-      method: "PATCH",
-    });
   }
   ensureIgnored(cwd, ".gitignore", ".vercel");
   return { created: !byRepo, link: readLink(cwd), ok: true };
@@ -388,7 +380,10 @@ async function remoteKeyNames(cwd, link) {
     cwd,
     `/v10/projects/${link.projectId}/env?${scope(link)}`
   );
-  return new Set((found.data?.envs || []).map((env) => env.key));
+  if (!(found.ok && Array.isArray(found.data?.envs))) {
+    throw new Error("Vercel settings could not be checked.");
+  }
+  return new Set(found.data.envs.map((env) => env.key));
 }
 
 const markerPath = (cwd) => join(cwd, ".vercel/weblab.json");
@@ -417,6 +412,8 @@ function writeMarker(cwd, patch) {
  * Before a deploy: link the folder, then list local keys Vercel lacks, once
  * per project. Returns { ok, missingKeys, projectName }.
  */
+const RESERVED_KEY =
+  /^(?:VERCEL_|WEBLAB_|ANTHROPIC_|OPENAI_|CLAUDE_|GITHUB_|GH_|AWS_|NODE_OPTIONS$|PATH$|HOME$|SANITY_API_WRITE_TOKEN$)/;
 async function prepare(cwd, site) {
   // Secret files never leave the Mac as files; keys go through Vercel's
   // settings. Checked on every deploy, not only the first.
@@ -431,7 +428,9 @@ async function prepare(cwd, site) {
     const local = localKeys(cwd);
     if (local.size > 0) {
       const remote = await remoteKeyNames(cwd, link);
-      missingKeys = [...local.keys()].filter((key) => !remote.has(key));
+      missingKeys = [...local.keys()].filter(
+        (key) => !(RESERVED_KEY.test(key) || remote.has(key))
+      );
     }
   }
   return { missingKeys, ok: true, projectName: link.projectName || "" };
@@ -444,8 +443,11 @@ async function sendKeys(cwd, names) {
     return { message: "The site isn’t set up on Vercel yet.", ok: false };
   }
   const local = localKeys(cwd);
-  const body = names
-    .filter((key) => local.has(key))
+  const existing = await remoteKeyNames(cwd, link);
+  const body = [...new Set(names)]
+    .filter(
+      (key) => local.has(key) && !RESERVED_KEY.test(key) && !existing.has(key)
+    )
     .map((key) => ({
       key,
       target: ["production", "preview"],
@@ -455,7 +457,7 @@ async function sendKeys(cwd, names) {
   if (body.length > 0) {
     const sent = await api(
       cwd,
-      `/v10/projects/${link.projectId}/env?upsert=true&${scope(link)}`,
+      `/v10/projects/${link.projectId}/env?${scope(link)}`,
       { body, method: "POST" }
     );
     if (!sent.ok) {
@@ -486,66 +488,131 @@ function stepFor(line) {
   return null;
 }
 
-/** The address visitors use: a custom domain if the project has one. */
-async function liveAddress(cwd, url) {
-  const { host } = new URL(url);
-  const link = readLink(cwd);
-  const found = await api(
-    cwd,
-    `/v13/deployments/${encodeURIComponent(host)}${link ? `?${scope(link)}` : ""}`
-  );
-  const aliases = found.data?.alias || [];
-  const custom = aliases.find((alias) => !alias.endsWith(".vercel.app"));
-  const pick = custom || aliases.sort((a, b) => a.length - b.length)[0];
-  return pick ? `https://${pick}` : url;
-}
-
-function failureLine(log) {
-  const line = [...log].reverse().find((entry) => FAILURE_HINT.test(entry));
-  return line ? line.replace(ERROR_PREFIX, "").slice(0, 240) : "";
-}
-
 let deployChild = null;
 
 /**
  * Deploys the folder. `target` is "preview" (test link) or "production"
  * (live site). `onProgress` gets { step, line }.
  */
-async function deploy(cwd, target, onProgress) {
-  ensureIgnored(cwd, ".vercelignore", ".env*");
-  const log = [];
-  const args = ["deploy", "--yes", "--logs", "--non-interactive"];
-  if (target === "production") {
-    args.push("--prod");
+function releaseFlow(cwd, onProgress = () => undefined) {
+  const link = readLink(cwd);
+  if (!link) {
+    throw new Error("Connect this site to Vercel first.");
   }
-  const result = await vercel(cwd, args, {
-    onLine: (line) => {
-      log.push(line);
-      if (log.length > LOG_LINES) {
-        log.shift();
-      }
-      onProgress({ line, step: stepFor(line) });
+  const { createReleaseFlow } = require("./release-flow");
+  const query = scope(link);
+  const get = async (path) => {
+    const result = await api(cwd, path);
+    if (!(result.ok && result.data)) {
+      throw new Error("Vercel could not confirm this site's release status.");
+    }
+    return result.data;
+  };
+  const deployment = (id) =>
+    get(`/v13/deployments/${encodeURIComponent(id)}?${query}`);
+  return createReleaseFlow({
+    link,
+    provider: {
+      build: async (snapshot, production, intentId) => {
+        sites.checkVerifiedPath(cwd);
+        const args = [
+          "deploy",
+          "--yes",
+          "--logs",
+          "--non-interactive",
+          "--scope",
+          link.orgId,
+          "--meta",
+          `weblabRelease=${intentId}`,
+        ];
+        if (production) {
+          args.push("--prod", "--skip-domain");
+        }
+        const result = await vercel(snapshot.directory, args, {
+          onLine: (line) => onProgress({ step: stepFor(line) }),
+          source: false,
+          timeout: 30 * 60_000,
+          track: (child) => {
+            deployChild = child;
+          },
+        });
+        deployChild = null;
+        const url = DEPLOY_URL.exec(result.stdout)?.[0];
+        if (result.code !== 0 || !url) {
+          throw new Error(
+            "Vercel did not confirm the build. Check its release status."
+          );
+        }
+        return deployment(new URL(url).host);
+      },
+      deployment,
+      findBuild: async (id) => {
+        const result = await get(
+          `/v6/deployments?projectId=${encodeURIComponent(link.projectId)}&meta-weblabRelease=${encodeURIComponent(id)}&${query}`
+        );
+        if (!Array.isArray(result.deployments)) {
+          throw new Error(
+            "Vercel did not return a valid build list. Try checking again."
+          );
+        }
+        return result.deployments;
+      },
+      project: () =>
+        get(`/v9/projects/${encodeURIComponent(link.projectId)}?${query}`),
+      promote: async (id) => {
+        const result = await vercel(
+          cwd,
+          ["promote", id, "--yes", "--scope", link.orgId],
+          { timeout: 300_000 }
+        );
+        if (result.code !== 0) {
+          throw new Error("Vercel did not confirm the live switch.");
+        }
+      },
+      rollback: async (id) => {
+        const result = await vercel(
+          cwd,
+          ["rollback", id, "--yes", "--scope", link.orgId],
+          { timeout: 300_000 }
+        );
+        if (result.code !== 0) {
+          throw new Error("Vercel did not confirm the restore.");
+        }
+      },
     },
-    timeout: 30 * 60_000,
-    track: (child) => {
-      deployChild = child;
-    },
+    root: cwd,
+    verify: () => sites.checkVerifiedPath(cwd),
   });
-  deployChild = null;
-  const url = DEPLOY_URL.exec(result.stdout)?.[0];
-  if (result.code !== 0 || !url) {
-    return {
-      log: log.join("\n"),
-      message: failureLine(log),
-      ok: false,
-    };
-  }
-  writeMarker(cwd, { [target]: { at: Date.now(), url } });
-  const address = target === "production" ? await liveAddress(cwd, url) : url;
-  if (target === "production") {
-    writeMarker(cwd, { production: { address, at: Date.now(), url } });
-  }
-  return { ok: true, url: address };
+}
+const { exclusive } = require("./site-operation");
+function releaseAction(cwd, action, input, onProgress) {
+  return exclusive(cwd, () => {
+    const { createContentStore } = require("./content");
+    if (
+      fs.existsSync(join(cwd, ".weblab/content/manifest.json")) &&
+      createContentStore(cwd).status().dirtyCount
+    ) {
+      throw new Error(
+        "Publish or undo your local text drafts before releasing design changes."
+      );
+    }
+    const { createContentPublisher } = require("./content-publish");
+    const textState = createContentPublisher({
+      provider: {},
+      root: cwd,
+      store: createContentStore(cwd),
+    }).status();
+    if (textState.pending) {
+      throw new Error(
+        "Check the pending text publish before releasing design changes."
+      );
+    }
+    return releaseFlow(cwd, onProgress)[action](input);
+  });
+}
+
+function deploy(cwd, target, onProgress) {
+  return releaseAction(cwd, "build", target === "production", onProgress);
 }
 
 function cancelDeploy() {
@@ -566,6 +633,7 @@ async function status(cwd) {
     lastTest: marker.preview || null,
     linked: Boolean(link),
     projectName: link?.projectName || "",
+    release: link ? releaseFlow(cwd).state() : null,
     user: who.user,
   };
 }
@@ -579,6 +647,7 @@ module.exports = {
   login,
   prepare,
   projectBase,
+  releaseAction,
   sendKeys,
   skipKeys,
   status,

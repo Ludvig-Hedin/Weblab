@@ -71,8 +71,12 @@
       code: "",
       error: null,
       keys: [],
+      notice: "",
+      opened: new Set(),
+      operation: "",
       phase: "loading",
       result: null,
+      siteId: null,
       status: null,
       step: "upload",
       target: "",
@@ -109,7 +113,7 @@
   tools.hidden = true;
   tools.innerHTML = `<span class="pub-sep"></span>
     <button type="button" class="pub-btn solid" data-panel="upload" aria-haspopup="dialog">Upload<span class="pub-count" hidden></span></button>
-    <button type="button" class="pub-btn primary" data-panel="deploy" aria-haspopup="dialog">Deploy<span class="pub-dot" hidden></span></button>`;
+    <button type="button" class="pub-btn primary" data-panel="deploy" aria-haspopup="dialog">Publish<span class="pub-dot" hidden></span></button>`;
   const uploadButton = tools.querySelector('[data-panel="upload"]');
   const deployButton = tools.querySelector('[data-panel="deploy"]');
 
@@ -238,7 +242,7 @@
     panel.classList.toggle("narrow", name === "branch");
     panel.setAttribute(
       "aria-label",
-      { branch: "Branches", deploy: "Deploy", upload: "Upload" }[name]
+      { branch: "Branches", deploy: "Publish", upload: "Upload" }[name]
     );
     placePanel();
     paintTopBar();
@@ -723,14 +727,35 @@
 
   async function openDeploy() {
     const d = state.deploy;
-    if (!["busy", "preparing"].includes(d.phase)) {
-      d.phase = "loading";
-      d.target = "";
-      d.error = null;
+    const siteId = currentSite?.id;
+    if (d.siteId !== siteId) {
+      Object.assign(d, { notice: "", phase: "loading", siteId, status: null });
+      d.opened.clear();
+    }
+    if (["busy", "preparing"].includes(d.phase)) {
       paintDeploy();
-      d.status = await host.deploy.status();
-      d.phase = d.status?.connected ? "pick" : "connect";
+      return;
+    }
+    d.phase = "loading";
+    d.error = null;
+    paintDeploy();
+    try {
+      const status = await host.deploy.status();
+      if (currentSite?.id !== siteId) {
+        return;
+      }
+      d.status = status;
+      if (!d.status || d.status.ok === false) {
+        throw new Error(d.status?.message || "Could not check release status.");
+      }
+      d.phase = d.status.connected ? "pick" : "connect";
       refresh();
+    } catch (error) {
+      if (currentSite?.id !== siteId) {
+        return;
+      }
+      d.error = { message: error.message };
+      d.phase = "fail";
     }
     paintDeploy();
   }
@@ -740,11 +765,10 @@
       render(deployHtml());
     }
   }
-
   const DEPLOY_STEPS = [
     ["upload", "Sending your site to Vercel"],
-    ["build", "Getting it ready. Usually under a minute."],
-    ["online", "Going online"],
+    ["build", "Building this version"],
+    ["online", "Checking the built version"],
   ];
 
   function deployHtml() {
@@ -753,21 +777,19 @@
       case "loading":
         return `<div class="pub-body first"><span class="pub-faint">Checking Vercel…</span></div>`;
       case "connect":
-        return `${head("Deploy with Vercel", "Deploy puts what you see here on the internet. Connect Vercel once and you are set.")}
-          <div class="pub-body">${button("login", "Connect Vercel", "primary")}<span class="pub-faint">Opens your browser to sign in. Free for personal sites. Client and company sites need Vercel Pro.</span>${d.error ? `<p class="pub-error">${esc(d.error.message)}</p>` : ""}</div>`;
+        return `${head("Connect Vercel", "Make a test link, check it, then choose when to publish.")}<div class="pub-body">${button("login", "Connect Vercel", "primary")}<span class="pub-faint">Opens your browser to sign in.</span>${d.error ? `<p class="pub-error">${esc(d.error.message)}</p>` : ""}</div>`;
       case "waiting":
-        return `${head("Finish signing in, in your browser")}
-          <div class="pub-body">${d.code ? `<span class="pub-muted">Your code: <span class="pub-code">${esc(d.code)}</span></span>` : ""}${steps([["wait", "Waiting for Vercel"]], "wait")}</div>
-          <div class="pub-foot">${button("cancel-login", "Cancel")}</div>`;
+        return `${head("Finish signing in, in your browser")}<div class="pub-body">${d.code ? `<span class="pub-muted">Your code: <span class="pub-code">${esc(d.code)}</span></span>` : ""}${steps([["wait", "Waiting for Vercel"]], "wait")}</div><div class="pub-foot">${button("cancel-login", "Cancel")}</div>`;
       case "preparing":
         return `${head("Setting up")}<div class="pub-body">${steps([["link", "Finding this site on Vercel"]], "link")}</div>`;
       case "keys":
         return keysHtml();
       case "busy":
-        return `${head(d.target === "production" ? "Updating your live site" : "Making your test link")}
-          <div class="pub-body">${steps(DEPLOY_STEPS, d.step)}<span class="pub-faint">You can close this and keep editing.</span></div>`;
-      case "done":
-        return deployDoneHtml();
+        return `${head(d.operation || "Checking release")}<div class="pub-body">${steps(DEPLOY_STEPS, d.step)}<span class="pub-faint">Keep this window open until the result is confirmed.</span></div>`;
+      case "restore":
+        return `${head("Restore the previous live version?", "Visitors will see the previous published version. Your local files stay as they are.")}<div class="pub-foot">${button("again", "Cancel")}${button("confirm-restore", "Restore previous live version", "primary")}</div>`;
+      case "abandon-build":
+        return `${head("Discard this build attempt?", "Weblab will check that Vercel has no matching build and the live site has not changed. A late build may still finish, but Weblab will not publish it. You can then try a new build.")}<div class="pub-foot">${button("again", "Cancel")}${button("confirm-abandon-build", "Check and discard attempt", "primary")}</div>`;
       case "fail":
         return deployFailHtml();
       default:
@@ -775,121 +797,138 @@
     }
   }
 
+  function releaseReview(entry, title) {
+    if (!entry) {
+      return "";
+    }
+    const opened = state.deploy.opened.has(entry.id);
+    return `<div class="pub-head"><h2>${esc(title)}</h2><span class="pub-faint">${esc(entry.url)}</span></div><div class="pub-body">${entry.reviewed ? `<span class="pub-faint">You checked this version.</span>` : `<span class="pub-faint">Open the link. Check text, fonts, links and mobile layout.</span>`}<div>${button("open-release", `${ICON.open}Open version`, "", `data-id="${esc(entry.id)}"`)}${entry.reviewed ? "" : button("review", "I checked this version", "solid", `data-id="${esc(entry.id)}" ${opened ? "" : "disabled"}`)}</div></div>`;
+  }
+
   function pickHtml() {
     const d = state.deploy;
-    const s = state.status;
-    const choice = (target, title, sub) =>
-      `<button type="button" class="pub-choice" role="radio" aria-checked="${d.target === target}" data-act="target" data-target="${target}" data-focus-key="t:${target}"><span class="pub-radio"></span><span><b>${title}</b><span class="pub-muted">${sub}</span></span></button>`;
-    const live = d.status?.lastLive;
-    const liveName = live?.address
-      ? esc(live.address.replace("https://", ""))
+    const release = d.status?.release || {};
+    const notice = d.notice
+      ? `<div class="pub-body">${callout(esc(d.notice))}</div>`
       : "";
-    const changes =
-      uploadCount() && s?.files?.length
-        ? `<span class="pub-faint">Includes your ${plural(s.files.length, "change", "changes")}, even the ones not uploaded. GitHub is not touched.</span>`
-        : `<span class="pub-faint">Sends the site exactly as it is on this Mac. GitHub is not touched.</span>`;
-    const ACTIONS = {
-      preview: button("deploy", "Make test link", "primary"),
-      production: button("deploy", "Update live site", "primary"),
-    };
-    const action =
-      ACTIONS[d.target] || button("noop", "Pick one", "", "disabled");
-    const last = live?.at
-      ? `<span class="pub-faint">Live site updated ${esc(ago(live.at))}</span>`
+    if (release.pending) {
+      const recover =
+        release.pending.kind === "build"
+          ? button("abandon-build", "Build never started?")
+          : "";
+      return `${head("Check this release first", "A release step has not been confirmed. Check its status before you build, publish or restore again.")}${notice}<div class="pub-foot">${recover}${button("reconcile", "Check release status", "primary")}</div>`;
+    }
+    const test = button(
+      "build-preview",
+      release.preview ? "Make new test link" : "Make test link",
+      "solid"
+    );
+    const prepare = button(
+      "build-production",
+      "Prepare live version",
+      "solid",
+      release.preview?.reviewed ? "" : "disabled"
+    );
+    const publish = button(
+      "publish-live",
+      "Publish live",
+      "primary",
+      release.candidate?.reviewed ? "" : "disabled"
+    );
+    const restore = release.live?.previousId
+      ? button("restore", "Restore previous live version")
       : "";
-    return `${head("Deploy what you see", "Puts this site online with Vercel.")}
-      <div class="pub-body"><div class="pub-choices" role="radiogroup" aria-label="Where to deploy">
-        ${choice("preview", "Test link", "A private link to check and share.")}
-        ${choice("production", "Live site", `${liveName || "Your public address"}. Every visitor sees it.`)}
-      </div>${changes}</div>
-      <div class="pub-foot">${last}${action}</div>`;
+    const live = release.live?.url
+      ? `<div class="pub-body"><span class="pub-faint">Current live version: ${esc(release.live.url)}</span>${restore}</div>`
+      : "";
+    return `${head("Publish your site", "Build and review each version before changing the public site.")}${notice}<div class="pub-body">${test}<span class="pub-faint">Builds saved design changes on this Mac. Publish text drafts first. GitHub is not changed.</span></div>${releaseReview(release.preview, "1. Check the test version")}<div class="pub-body">${prepare}<span class="pub-faint">Builds with live settings. Your public address does not change yet.</span></div>${releaseReview(release.candidate, "2. Check the prepared live version")}<div class="pub-foot">${publish}</div>${live}<div class="pub-body"><span class="pub-faint">Changed something after review? Make and check a new test link.</span></div>`;
   }
 
   function keysHtml() {
     const { keys } = state.deploy;
-    return `${head(`This site needs ${plural(keys.length, "secret key", "secret keys")}`, "They are on this Mac. Vercel needs them too, or the site may not start.")}
-      <div class="pub-body"><span class="pub-faint">${keys.map(esc).join(", ")}</span><span class="pub-faint">Sent once and stored by Vercel. The key files themselves never leave this Mac.</span></div>
-      <div class="pub-foot">${button("skip-keys", "Skip")}${button("send-keys", "Copy keys to Vercel", "primary")}</div>`;
-  }
-
-  function deployDoneHtml() {
-    const d = state.deploy;
-    const url = d.result?.url || "";
-    const live = d.target === "production";
-    return `<div class="pub-body first pub-result"><span class="pub-okmark">${ICON.check}</span>
-        <h2>${live ? "Your live site is updated" : "Your test link is ready"}</h2>
-        <div class="pub-url"><span>${esc(url.replace("https://", ""))}</span>${button("copy", "Copy")}</div></div>
-      <div class="pub-foot">${button("again", "Deploy again")}${button("open-url", `${ICON.open}Open`, "primary")}</div>`;
+    return `${head(`This site needs ${plural(keys.length, "secret key", "secret keys")}`, "They are on this Mac. Vercel needs them too, or the site may not start.")}<div class="pub-body"><span class="pub-faint">${keys.map(esc).join(", ")}</span><span class="pub-faint">Sent once and stored by Vercel. The key files themselves never leave this Mac.</span></div><div class="pub-foot">${button("skip-keys", "Skip")}${button("send-keys", "Copy keys to Vercel", "primary")}</div>`;
   }
 
   function deployFailHtml() {
     const d = state.deploy;
-    const said = d.error?.message
-      ? ` Vercel said: <b>${esc(d.error.message)}</b>`
-      : "";
+    const said = d.error?.message ? ` ${esc(d.error.message)}` : "";
     const log = d.error?.log
       ? `<pre class="pub-details">${esc(d.error.log.split("\n").slice(-12).join("\n"))}</pre>`
       : "";
     const canAsk = Boolean(d.error?.log) && inEditor();
-    return `${head("That did not work")}<div class="pub-body">${callout(`Nothing changed online.${said}`, true)}${log}</div>
-      <div class="pub-foot">${button("again", "Back")}${canAsk ? button("ask-ai", "Ask AI to fix it", "primary") : ""}</div>`;
+    return `${head("Release step not confirmed")}<div class="pub-body">${callout(`Check release status before trying again.${said}`, true)}${log}</div><div class="pub-foot">${button("again", "Back")}${button("reconcile", "Check release status", "primary")}${canAsk ? button("ask-ai", "Ask AI to fix it") : ""}</div>`;
   }
 
-  async function startDeploy() {
+  async function releaseAction(label, action, notice) {
     const d = state.deploy;
-    d.phase = "busy";
-    d.step = "upload";
+    const siteId = currentSite?.id;
+    Object.assign(d, {
+      error: null,
+      notice: "",
+      operation: label,
+      phase: "busy",
+      step: "upload",
+    });
     state.deployDot = "busy";
     paintDeploy();
     paintTopBar();
-    const result = await host.deploy.start(d.target);
-    d.result = result?.ok ? result : null;
-    d.error = result?.ok ? null : result;
-    d.phase = result?.ok ? "done" : "fail";
-    state.deployDot = result?.ok ? "ok" : "fail";
-    if (result?.ok) {
-      d.status = await host.deploy.status();
+    try {
+      const result = await action();
+      if (!result?.ok) {
+        throw Object.assign(
+          new Error(result?.message || "The release step failed."),
+          { detail: result }
+        );
+      }
+      if (currentSite?.id !== siteId) {
+        return;
+      }
+      const status = await host.deploy.status();
+      if (!status || status.ok === false) {
+        throw new Error(status?.message || "Could not confirm release status.");
+      }
+      if (currentSite?.id !== siteId) {
+        return;
+      }
+      Object.assign(d, { notice, phase: "pick", result, status });
+      state.deployDot = "ok";
+    } catch (error) {
+      if (currentSite?.id !== siteId) {
+        return;
+      }
+      d.error = error.detail || { message: error.message };
+      d.phase = "fail";
+      state.deployDot = "fail";
     }
     paintDeploy();
     paintTopBar();
   }
 
-  const DEPLOY_ACTIONS = {
-    again: () => {
-      state.deploy.phase = "pick";
-      state.deploy.target = "";
-      paintDeploy();
-    },
-    "ask-ai": () => {
-      const log = state.deploy.error?.log || "";
-      host.publish.ask(
-        `The site failed to build on Vercel. Find the cause in this build log and fix it:\n\n${log}`
-      );
-      state.deploy.phase = "pick";
-      closePanel();
-    },
-    "cancel-login": () => {
-      host.deploy.cancelLogin();
-      state.deploy.phase = "connect";
-      paintDeploy();
-    },
-    copy: () => {
-      navigator.clipboard?.writeText(state.deploy.result?.url || "");
-      const copied = panel.querySelector('[data-act="copy"]');
-      if (copied) {
-        copied.textContent = "Copied";
-      }
-    },
-    deploy: async () => {
-      const d = state.deploy;
-      d.phase = "preparing";
-      paintDeploy();
+  function startDeploy() {
+    const live = state.deploy.target === "production";
+    return releaseAction(
+      live ? "Preparing the live version" : "Making your test link",
+      () => host.deploy.start(live ? "production" : "preview"),
+      live
+        ? "Live version prepared. Check it before you publish. The public address has not changed."
+        : "Test version ready. Open it and check it before the next step."
+    );
+  }
+
+  async function prepareBuild(target) {
+    const d = state.deploy;
+    const siteId = currentSite?.id;
+    d.target = target;
+    d.phase = "preparing";
+    d.notice = "";
+    paintDeploy();
+    try {
       const prepared = await host.deploy.prepare();
-      if (!prepared?.ok) {
-        d.error = prepared;
-        d.phase = "fail";
-        paintDeploy();
+      if (currentSite?.id !== siteId) {
         return;
+      }
+      if (!prepared?.ok) {
+        throw new Error(prepared?.message || "Could not prepare this site.");
       }
       if (prepared.missingKeys?.length) {
         d.keys = prepared.missingKeys;
@@ -897,47 +936,158 @@
         paintDeploy();
         return;
       }
-      startDeploy();
-    },
-    login: async () => {
-      const d = state.deploy;
-      d.phase = "waiting";
-      d.code = "";
-      d.error = null;
-      paintDeploy();
-      const result = await host.deploy.login();
-      if (d.phase !== "waiting") {
+      await startDeploy();
+    } catch (error) {
+      if (currentSite?.id !== siteId) {
         return;
       }
-      if (result?.ok) {
-        openDeploy();
-      } else {
-        d.error = result;
+      d.error = { message: error.message };
+      d.phase = "fail";
+      paintDeploy();
+    }
+  }
+
+  function releaseEntry(id) {
+    const release = state.deploy.status?.release;
+    return [release?.preview, release?.candidate].find(
+      (entry) => entry?.id === id
+    );
+  }
+
+  const DEPLOY_ACTIONS = {
+    "abandon-build": () => {
+      state.deploy.phase = "abandon-build";
+      paintDeploy();
+    },
+    again: () => openDeploy(),
+    "ask-ai": () => {
+      host.publish.ask(
+        `A release build failed on Vercel. Find the cause in this build log and fix it:\n\n${state.deploy.error?.log || ""}`
+      );
+      state.deploy.phase = "pick";
+      closePanel();
+    },
+    "build-preview": () => prepareBuild("preview"),
+    "build-production": () => prepareBuild("production"),
+    "cancel-login": () => {
+      host.deploy.cancelLogin();
+      state.deploy.phase = "connect";
+      paintDeploy();
+    },
+    "confirm-abandon-build": () => {
+      const intent = state.deploy.status?.release?.pending;
+      if (intent?.kind !== "build") {
+        return;
+      }
+      return releaseAction(
+        "Checking the build attempt",
+        () => host.deploy.abandonBuild(intent.id),
+        "The unconfirmed attempt was discarded. You can make a new test link."
+      );
+    },
+    "confirm-restore": () =>
+      releaseAction(
+        "Restoring the previous live version",
+        () => host.deploy.rollback(),
+        "The previous live version is restored."
+      ),
+    login: async () => {
+      const d = state.deploy;
+      Object.assign(d, { code: "", error: null, phase: "waiting" });
+      paintDeploy();
+      try {
+        const result = await host.deploy.login();
+        if (d.phase !== "waiting") {
+          return;
+        }
+        if (!result?.ok) {
+          throw new Error(result?.message || "Sign-in failed.");
+        }
+        await openDeploy();
+      } catch (error) {
+        d.error = { message: error.message };
         d.phase = "connect";
         paintDeploy();
       }
     },
-    "open-url": () => host.publish.openLink(state.deploy.result?.url),
-    "send-keys": async () => {
-      const d = state.deploy;
-      d.phase = "preparing";
-      paintDeploy();
-      const sent = await host.deploy.sendKeys(d.keys);
-      if (!sent?.ok) {
-        d.error = sent;
-        d.phase = "fail";
-        paintDeploy();
+    "open-release": (target) => {
+      const entry = releaseEntry(target.dataset.id);
+      if (!entry) {
         return;
       }
-      startDeploy();
+      host.publish.openLink(entry.url);
+      state.deploy.opened.add(entry.id);
+      paintDeploy();
+    },
+    "publish-live": () =>
+      releaseAction(
+        "Publishing the reviewed version",
+        () => host.deploy.publish(),
+        "The reviewed version is now live."
+      ),
+    reconcile: () =>
+      releaseAction(
+        "Checking release status",
+        () => host.deploy.reconcile(),
+        "Release status checked. Follow the next step below."
+      ),
+    restore: () => {
+      state.deploy.phase = "restore";
+      paintDeploy();
+    },
+    review: (target) => {
+      const entry = releaseEntry(target.dataset.id);
+      if (!(entry && state.deploy.opened.has(entry.id))) {
+        return;
+      }
+      return releaseAction(
+        "Recording your review",
+        () => host.deploy.review(entry.id),
+        "Your review is saved."
+      );
+    },
+    "send-keys": async () => {
+      const d = state.deploy;
+      const siteId = currentSite?.id;
+      d.phase = "preparing";
+      paintDeploy();
+      try {
+        const sent = await host.deploy.sendKeys(d.keys);
+        if (currentSite?.id !== siteId) {
+          return;
+        }
+        if (!sent?.ok) {
+          throw new Error(sent?.message || "Could not copy the keys.");
+        }
+        await startDeploy();
+      } catch (error) {
+        if (currentSite?.id !== siteId) {
+          return;
+        }
+        d.error = { message: error.message };
+        d.phase = "fail";
+        paintDeploy();
+      }
     },
     "skip-keys": async () => {
-      await host.deploy.skipKeys();
-      startDeploy();
-    },
-    target: (target) => {
-      state.deploy.target = target.dataset.target;
-      paintDeploy();
+      const siteId = currentSite?.id;
+      try {
+        const skipped = await host.deploy.skipKeys();
+        if (currentSite?.id !== siteId) {
+          return;
+        }
+        if (skipped?.ok === false) {
+          throw new Error(skipped.message || "Could not prepare this site.");
+        }
+        await startDeploy();
+      } catch (error) {
+        if (currentSite?.id !== siteId) {
+          return;
+        }
+        state.deploy.error = { message: error.message };
+        state.deploy.phase = "fail";
+        paintDeploy();
+      }
     },
   };
 

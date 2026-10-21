@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@convex/_generated/api';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 
 import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
 import type { ChatModel, LocalModelOption, ReasoningEffort } from '@weblab/models';
-import { PROVIDER_MANIFEST } from '@weblab/ai/client';
+import { CLI_CHAT_PROVIDER_KINDS, PROVIDER_MANIFEST } from '@weblab/ai/client';
 import { APP_NAME } from '@weblab/constants';
-import { modelSupportsReasoningEffort } from '@weblab/models';
+import { isProOnlyModel, modelSupportsReasoningEffort } from '@weblab/models';
+import { ProductType } from '@weblab/stripe';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -34,6 +36,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
+import { useStateManager } from '@/components/store/state';
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { ProviderSetupDialog } from './provider-setup-dialog';
 import { PullModelDialog } from './pull-model-dialog';
 import { ReasoningEffortPills } from './reasoning-effort-pills';
@@ -47,14 +51,14 @@ function ProviderIcon({ name, className }: { name: string; className?: string })
 
 const MODEL_DESCRIPTIONS: Record<string, string> = {
     auto: 'Picks the best model per task automatically',
-    'openai/gpt-5.5': 'Best for deep research and complex knowledge work',
-    'anthropic/claude-sonnet-4.6': 'Excels at coding and complex reasoning',
-    'anthropic/claude-opus-4.8': 'Most capable Claude for the hardest tasks',
+    'openai/gpt-6-astra': 'Flagship GPT for the hardest, longest tasks',
+    'openai/gpt-6-sol': 'Strong GPT for everyday coding and reasoning',
+    'openai/gpt-6-luna': 'Fast, low-cost GPT for quick edits',
+    'anthropic/claude-opus-5.5': 'Most capable Claude for the hardest tasks',
     'google/gemini-3.1-pro-preview': "Google's latest flagship model",
-    'deepseek/deepseek-v4-pro': 'High performance open-source reasoning model',
-    'moonshotai/kimi-k2.7-code': 'Efficient model for coding and analysis',
-    'z-ai/glm-5.2': 'GLM 5.2 — fast and capable reasoning model',
-    'minimax/minimax-m3': 'MiniMax M3 — efficient 1M-context model',
+    'x-ai/grok-4.7': 'Strong at coding and long agent tasks',
+    'x-ai/grok-4.6': 'Fast frontier model for coding',
+    'deepseek/deepseek-v4.1-flash': 'Low-cost open model with a huge context',
 };
 
 function cloudProviderIconName(modelId: string | undefined): string {
@@ -63,9 +67,7 @@ function cloudProviderIconName(modelId: string | undefined): string {
     if (modelId.startsWith('openai/')) return 'OpenAiLogo';
     if (modelId.startsWith('google/')) return 'GeminiMonoLogo';
     if (modelId.startsWith('deepseek/')) return 'DeepSeekLogo';
-    if (modelId.startsWith('moonshotai/')) return 'KimiLogo';
-    if (modelId.startsWith('z-ai/')) return 'Sparkles';
-    if (modelId.startsWith('minimax/')) return 'Sparkles';
+    if (modelId.startsWith('x-ai/')) return 'GrokLogo';
     return 'Sparkles';
 }
 
@@ -120,6 +122,7 @@ export const ModelSelectorV2 = ({
     // filter input (the cmdk filter still works when shown). Kept off here to
     // match the build/plan dropdown's plain-list feel.
     showSearch = false,
+    cliUnavailableReason = null,
 }: {
     value: ChatModel;
     onChange: (model: ChatModel) => void;
@@ -129,13 +132,18 @@ export const ModelSelectorV2 = ({
     onReasoningEffortChange?: (effort: ReasoningEffort) => void;
     /** Show the search/filter input atop the model list. Default: false. */
     showSearch?: boolean;
+    /** Why CLI models can't run here (cloud project). Shown on a disabled row. */
+    cliUnavailableReason?: string | null;
 }) => {
+    const safety = useTranslations('desktopSafety');
     const [isOpen, setIsOpen] = useState(false);
+    const stateManager = useStateManager();
+    const hasAuthCookie = useHasAuthCookie();
+    const subscription = useQuery(api.subscriptions.get, hasAuthCookie === true ? {} : 'skip');
+    const isPro = subscription?.product?.type === ProductType.PRO;
     const [setupEntry, setSetupEntry] = useState<ProviderManifestEntry | null>(null);
     const [pullDialogOpen, setPullDialogOpen] = useState(false);
     const [disconnectTarget, setDisconnectTarget] = useState<ProviderManifestEntry | null>(null);
-    const [customModelInput, setCustomModelInput] = useState('');
-    const customInputRef = useRef<HTMLInputElement>(null);
     const { statuses, refresh } = useProviderStatuses({
         localModels,
         localModelsLoading,
@@ -178,7 +186,11 @@ export const ModelSelectorV2 = ({
     );
 
     const cloud = PROVIDER_MANIFEST.find((e) => e.kind === 'openrouter');
-    const subProviders = PROVIDER_MANIFEST.filter((e) => e.kind !== 'openrouter');
+    // Desktop only: CLI providers whose adapter can run a chat turn. The rest
+    // (Gemini, OpenCode, Cursor, Ollama) stay hidden until they work end to end.
+    const subProviders = hasCliBridge
+        ? PROVIDER_MANIFEST.filter((e) => CLI_CHAT_PROVIDER_KINDS.includes(e.kind))
+        : [];
 
     const selectedId = value as string;
 
@@ -191,6 +203,15 @@ export const ModelSelectorV2 = ({
         : undefined;
 
     const handleSelectModel = (id: string) => {
+        if (isProOnlyModel(id) && !isPro) {
+            setIsOpen(false);
+            if (hasAuthCookie) {
+                stateManager.setIsSubscriptionModalOpen(true);
+            } else {
+                toast.info('This model is available on Pro.');
+            }
+            return;
+        }
         onChange(id as ChatModel);
         setIsOpen(false);
     };
@@ -324,6 +345,11 @@ export const ModelSelectorV2 = ({
                                                     </span>
                                                 )}
                                             </div>
+                                            {isProOnlyModel(option.id) && !isPro && (
+                                                <span className="text-foreground-tertiary text-tiny border-border mt-0.5 shrink-0 rounded-sm border px-1">
+                                                    Pro
+                                                </span>
+                                            )}
                                             {isSelected && (
                                                 <Icons.Check className="text-foreground-secondary mt-0.5 h-3.5 w-3.5 shrink-0" />
                                             )}
@@ -333,9 +359,8 @@ export const ModelSelectorV2 = ({
                             </CommandGroup>
                         )}
 
-                        {/* Sub-provider groups (Ollama, Codex, Claude Code, Gemini CLI, OpenCode, Cursor) hidden for now */}
-                        {false &&
-                            subProviders.map((entry) => {
+                        {/* Desktop CLI providers (Claude Code, Codex): run the user's own CLI */}
+                        {subProviders.map((entry) => {
                                 const status = statuses[entry.kind];
                                 const ready = status.kind === 'ready';
                                 const loading = status.kind === 'loading';
@@ -343,6 +368,36 @@ export const ModelSelectorV2 = ({
 
                                 const groupClass =
                                     '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-tiny [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
+
+                                const unavailableReason = cliUnavailableReason ?? (status.kind === 'unavailable'
+                                    ? safety(status.unavailableReason === 'isolation-unverified' ? 'isolationUnverified' : 'statusUnverified')
+                                    : null);
+                                if (unavailableReason) {
+                                    return (
+                                        <CommandGroup
+                                            key={entry.kind}
+                                            heading={entry.label}
+                                            className={groupClass}
+                                        >
+                                            <CommandItem
+                                                disabled
+                                                value={`${entry.label} unavailable`}
+                                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs opacity-60"
+                                            >
+                                                <ProviderIcon
+                                                    name={entry.icon}
+                                                    className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                                                />
+                                                <span className="text-foreground-secondary whitespace-normal">
+                                                    {unavailableReason.replace(
+                                                        '{provider}',
+                                                        entry.label,
+                                                    )}
+                                                </span>
+                                            </CommandItem>
+                                        </CommandGroup>
+                                    );
+                                }
 
                                 if (loading) {
                                     return (
@@ -502,42 +557,6 @@ export const ModelSelectorV2 = ({
                         <CommandSeparator className="hidden" />
                     </CommandList>
                 </Command>
-                <div className="border-border/40 border-t px-2 py-2">
-                    <div className="flex items-center gap-1.5">
-                        <Icons.Sparkles className="text-foreground-quaternary h-3 w-3 shrink-0" />
-                        <input
-                            ref={customInputRef}
-                            value={customModelInput}
-                            onChange={(e) => setCustomModelInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    const id = customModelInput.trim();
-                                    if (id) {
-                                        handleSelectModel(id);
-                                        setCustomModelInput('');
-                                    }
-                                }
-                            }}
-                            placeholder="Custom OpenRouter model ID…"
-                            className="text-foreground-secondary placeholder:text-foreground-quaternary bg-transparent flex-1 text-xs outline-none"
-                        />
-                        {customModelInput.trim() && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const id = customModelInput.trim();
-                                    if (id) {
-                                        handleSelectModel(id);
-                                        setCustomModelInput('');
-                                    }
-                                }}
-                                className="text-foreground-tertiary hover:text-foreground-primary shrink-0"
-                            >
-                                <Icons.Return className="h-3 w-3" />
-                            </button>
-                        )}
-                    </div>
-                </div>
                 {reasoningEffort &&
                     onReasoningEffortChange &&
                     modelSupportsReasoningEffort(value) && (

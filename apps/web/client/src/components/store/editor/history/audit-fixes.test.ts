@@ -66,6 +66,25 @@ beforeEach(() => {
 });
 
 describe('A7: commitTransaction vs racing startTransaction/undo', () => {
+    it('reports a failed queued style write so the preview can roll back', async () => {
+        const finishes: boolean[] = [];
+        const engine = {
+            code: { write: async () => false },
+            action: { finishQueuedStyleAction: async (_action: Action, saved: boolean) => {
+                finishes.push(saved);
+            }, waitForQueuedStyleDispatches: async () => undefined },
+            posthog: { capture: () => undefined },
+        } as unknown as Engine;
+        const mgr = new HistoryManager(engine, 'branch-style-failure');
+
+        void mgr.startTransaction();
+        await mgr.push({ type: 'update-style', targets: [] });
+        await mgr.commitTransaction();
+
+        expect(finishes).toEqual([false]);
+        expect(mgr.length).toBe(0);
+    });
+
     it('a startTransaction during an in-flight commit does not capture the commit pushes', async () => {
         const gate = deferred<boolean>();
         const mgr = new HistoryManager(
@@ -217,5 +236,102 @@ describe('B13: hydrate merges instead of replacing', () => {
         expect(first?.redoEntry).toEqual(live);
         const second = await mgr.undo();
         expect(second?.redoEntry).toEqual(persisted);
+    });
+});
+
+describe('history replay admission', () => {
+    it('a refused approved-field edit preserves the existing redo stack', async () => {
+        const prior = editTextAction('old', 'saved');
+        const current = new HistoryManager(makeEngine(async () => true), 'field-admission', [], [prior]);
+        let writes = 0;
+        const action = { type: 'write-code' as const, diffs: [], cloudAttribute: { version: 1 } };
+        expect(await current.pushImmediate(action, async () => { writes++; return false; }, () => false)).toBe(false);
+        expect(writes).toBe(0);
+        expect(current.canRedo).toBe(true);
+        expect(current.canUndo).toBe(false);
+        // A revocation can also arrive after admission but before the source write.
+        expect(await current.pushImmediate(action, async () => { writes++; return false; }, () => true)).toBe(false);
+        expect(writes).toBe(1);
+        expect(current.canRedo).toBe(true);
+        expect(current.canUndo).toBe(false);
+    });
+
+    it('checks admission after pending writes settle and before moving either stack', async () => {
+        const write = deferred<boolean>();
+        const current = new HistoryManager(makeEngine(() => write.promise), 'admission-pending');
+        const pushed = current.push(editTextAction('new', 'saved'));
+        let admitted = false;
+        const undo = current.undo(() => { admitted = true; return false; });
+        await Promise.resolve();
+        expect(admitted).toBe(false);
+        write.resolve(true);
+        await pushed;
+        expect(await undo).toBeNull();
+        expect(admitted).toBe(true);
+        expect(current.canUndo).toBe(true);
+        expect(current.canRedo).toBe(false);
+    });
+
+    it('does not pop a newer action that arrives during asynchronous admission', async () => {
+        const gate = deferred<boolean>();
+        const entered = deferred<void>();
+        const current = new HistoryManager(makeEngine(async () => true), 'admission-race',
+            [editTextAction('old', 'older')]);
+        const undo = current.undo(async () => { entered.resolve(); return gate.promise; });
+        await entered.promise;
+        await current.push(editTextAction('new', 'newer'));
+        gate.resolve(true);
+        expect(await undo).toBeNull();
+        expect(current.length).toBe(2);
+        expect(current.canRedo).toBe(false);
+    });
+
+    it('keeps denied redo intact so design mode can replay it later', async () => {
+        const previous = editTextAction('old', 'saved');
+        const current = new HistoryManager(makeEngine(async () => true), 'admission-redo', [], [previous]);
+        expect(await current.redo(() => false)).toBeNull();
+        expect(current.canRedo).toBe(true);
+        expect(current.canUndo).toBe(false);
+        expect((await current.redo())?.forward).toEqual(previous);
+    });
+});
+
+
+describe('rejected text navigation eligibility', () => {
+    it('admits only the exact settled text transaction without changing history', async () => {
+        let writes = 0;
+        const mgr = new HistoryManager(makeEngine(async () => { writes++; return true; }), 'branch-1', [editTextAction('old', 'saved')]);
+        const text = editTextAction('heading', 'rejected');
+        await mgr.startTransaction();
+        await mgr.push(text);
+        expect(mgr.canNavigateRejectedText(text.targets[0]!)).toBe(true);
+        expect(mgr.canNavigateRejectedText({ ...text.targets[0]!, oid: 'other' })).toBe(false);
+        expect(mgr.canNavigateRejectedText({ ...text.targets[0]!, branchId: 'other' })).toBe(false);
+        const lease = mgr.beginDisposalPreparation();
+        expect(mgr.canNavigateRejectedText(text.targets[0]!)).toBe(false);
+        expect(mgr.canNavigateRejectedText(text.targets[0]!, lease)).toBe(true);
+        expect(mgr.canNavigateRejectedText(text.targets[0]!, { owner: Symbol('other') })).toBe(false);
+        mgr.cancelDisposalPreparation(lease);
+        expect(mgr.length).toBe(1);
+        expect(mgr.isTransactionOpen).toBe(true);
+        expect(writes).toBe(0);
+        await mgr.push(imageInsertAction());
+        expect(mgr.canNavigateRejectedText(text.targets[0]!)).toBe(false);
+        expect(mgr.length).toBe(1);
+        expect(writes).toBe(0);
+    });
+
+    it('refuses an in-flight history write', async () => {
+        const gate = deferred<boolean>();
+        const mgr = new HistoryManager(makeEngine(() => gate.promise), 'branch-1');
+        const text = editTextAction('heading', 'saving');
+        await mgr.startTransaction();
+        await mgr.push(text);
+        const saving = mgr.commitTransaction();
+        expect(mgr.canNavigateRejectedText(text.targets[0]!)).toBe(false);
+        gate.resolve(true);
+        await saving;
+        expect(mgr.canNavigateRejectedText(text.targets[0]!)).toBe(true);
+        expect(mgr.length).toBe(1);
     });
 });

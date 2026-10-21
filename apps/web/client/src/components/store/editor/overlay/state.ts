@@ -74,6 +74,10 @@ export class OverlayState {
         ];
     };
 
+    replaceClickRects = (rects: ClickRectState[]) => {
+        this.clickRects = rects;
+    };
+
     updateClickedRects = (newRect: Partial<RectDimensions>) => {
         // Replace the array (and each element) rather than Object.assign-ing in
         // place. The canvas overlay memoizes its rendered rects on the

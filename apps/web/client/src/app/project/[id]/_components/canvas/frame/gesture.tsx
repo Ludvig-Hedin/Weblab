@@ -149,7 +149,7 @@ export const GestureScreen = observer(
                             const inScope =
                                 components.editing &&
                                 components.isInEditScope(el.frameId, el.domId);
-                            if (!inScope) {
+                            if (!inScope && editorEngine.canUseDesign) {
                                 // Webflow's inline gesture: double-clicking a
                                 // text-bound element inside an instance edits
                                 // THAT instance's value, not the master. Takes
@@ -174,6 +174,7 @@ export const GestureScreen = observer(
                                         );
                                         break;
                                     }
+                                    if (!editorEngine.canUseDesign) break;
                                     const entered = await components.enterEditMode(el);
                                     if (entered) break;
                                 } else {
@@ -185,12 +186,12 @@ export const GestureScreen = observer(
                                         el.domId,
                                     );
                                     if (boundary?.instanceId && frameData.view) {
-                                        const boundaryEl: DomElement =
+                                        const boundaryEl: DomElement | null =
                                             await frameData.view.getElementByDomId(
                                                 boundary.domId,
                                                 false,
                                             );
-                                        if (boundaryEl) {
+                                        if (boundaryEl && editorEngine.canUseDesign) {
                                             const entered =
                                                 await components.enterEditMode(boundaryEl);
                                             if (entered) break;
@@ -203,9 +204,9 @@ export const GestureScreen = observer(
                                 (await editorEngine.text.isChildTextEditable(el)) === true
                             ) {
                                 await editorEngine.text.start(el, frameData.view);
-                            } else if (el.oid) {
+                            } else if (el.oid && editorEngine.canUseDesign) {
                                 editorEngine.ide.openCodeBlock(el.oid);
-                            } else {
+                            } else if (editorEngine.canUseDesign) {
                                 toast.error('Cannot find element in code panel');
                                 return;
                             }
@@ -221,6 +222,9 @@ export const GestureScreen = observer(
             },
             [getRelativeMousePosition, editorEngine, isResizing, frame],
         );
+
+        const hoverBusyRef = useRef(false);
+        const hoverNextRef = useRef<React.MouseEvent<HTMLDivElement> | null>(null);
 
         const throttledMouseMove = useMemo(
             () =>
@@ -246,7 +250,24 @@ export const GestureScreen = observer(
                             editorEngine.state.insertMode === InsertMode.INSERT_IMAGE) &&
                             !editorEngine.insert.isDrawing)
                     ) {
-                        await handleMouseEvent(e, MouseAction.MOVE);
+                        // One hover lookup at a time. On a slow frame the
+                        // throttle alone let lookups pile up, and a late
+                        // answer could repaint an old hover target.
+                        if (hoverBusyRef.current) {
+                            hoverNextRef.current = e;
+                            return;
+                        }
+                        hoverBusyRef.current = true;
+                        try {
+                            let next: React.MouseEvent<HTMLDivElement> | null = e;
+                            while (next) {
+                                hoverNextRef.current = null;
+                                await handleMouseEvent(next, MouseAction.MOVE);
+                                next = hoverNextRef.current;
+                            }
+                        } finally {
+                            hoverBusyRef.current = false;
+                        }
                     } else if (editorEngine.insert.isDrawing) {
                         editorEngine.insert.draw(e);
                     }
@@ -264,6 +285,7 @@ export const GestureScreen = observer(
         useEffect(() => {
             return () => {
                 throttledMouseMove.cancel();
+                hoverNextRef.current = null;
             };
         }, [throttledMouseMove]);
 
@@ -572,6 +594,10 @@ export const GestureScreen = observer(
             if (editorEngine.move.isPreparing) {
                 editorEngine.move.cancelDragPreparation();
             }
+            // Drop a queued hover so it cannot bring the outline back after
+            // the pointer left the frame.
+            throttledMouseMove.cancel();
+            hoverNextRef.current = null;
             editorEngine.elements.clearHoveredElement();
             editorEngine.overlay.state.removeHoverRect();
         };

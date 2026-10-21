@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
@@ -9,7 +10,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { IS_LOCAL_APP_MODE } from '@/lib/site-mode';
 import { FEATURE_BACKDROP_SRCS, FeatureBackdrop } from './feature-backdrop';
-import { ClaudeIcon, DeepSeekIcon, GeminiIcon, KimiIcon, OpenAIIcon } from './provider-icons';
+import { ClaudeIcon, DeepSeekIcon, GeminiIcon, GrokIcon, OpenAIIcon } from './provider-icons';
 
 const REVEAL = {
     initial: { opacity: 0, y: 24 },
@@ -230,16 +231,16 @@ function TerminalVisual() {
  * Auto-cycles selected option. Click to pin.
  * ────────────────────────────────────────────────────────────────────────── */
 
-type ModelKey = 'kimi' | 'gpt' | 'opus' | 'gemini' | 'deepseek' | 'sonnet';
+type ModelKey = 'grok' | 'gpt' | 'opus' | 'gemini' | 'deepseek' | 'gptLuna';
 
 const MODELS: { name: string; key: ModelKey; Icon: React.ComponentType<{ className?: string }> }[] =
     [
-        { name: 'Kimi k2.6', key: 'kimi', Icon: KimiIcon },
-        { name: 'GPT-5.5', key: 'gpt', Icon: OpenAIIcon },
-        { name: 'Opus 4.8', key: 'opus', Icon: ClaudeIcon },
+        { name: 'Grok 4.7', key: 'grok', Icon: GrokIcon },
+        { name: 'GPT-6 Astra', key: 'gpt', Icon: OpenAIIcon },
+        { name: 'Opus 5.5', key: 'opus', Icon: ClaudeIcon },
         { name: 'Gemini 3.1 Pro', key: 'gemini', Icon: GeminiIcon },
-        { name: 'DeepSeek V4', key: 'deepseek', Icon: DeepSeekIcon },
-        { name: 'Sonnet 4.6', key: 'sonnet', Icon: ClaudeIcon },
+        { name: 'DeepSeek V4.1', key: 'deepseek', Icon: DeepSeekIcon },
+        { name: 'GPT-6 Luna', key: 'gptLuna', Icon: OpenAIIcon },
     ];
 
 function ModelsVisual() {
@@ -306,7 +307,7 @@ function ModelsVisual() {
                         </span>
                     </div>
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black">
-                        <Icons.ArrowUp className="h-3 w-3" />
+                        <ArrowRight className="h-3 w-3" strokeWidth={2} />
                     </span>
                 </div>
             </div>
@@ -741,7 +742,7 @@ export function AiAssistantVisual() {
                                     </span>
                                     <span className="inline-flex items-center gap-1 text-[9.5px] text-black/55 dark:text-white/55">
                                         <ClaudeIcon className="h-2.5 w-2.5" />
-                                        Sonnet 4.6
+                                        Opus 5.5
                                         <Icons.ChevronDown className="h-2 w-2" />
                                     </span>
                                 </div>

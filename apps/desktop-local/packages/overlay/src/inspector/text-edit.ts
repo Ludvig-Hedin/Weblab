@@ -268,6 +268,8 @@ export function textEditTarget(node: Element): Element {
 }
 
 export interface BeginOptions {
+  /** Allow a known field represented by exactly one empty text node. */
+  allowEmpty?: boolean;
   /**
    * Where to put the caret, in the node's **own document's** client
    * coordinates. Absent or null means select-all, which is what `Enter` and `T`
@@ -316,7 +318,12 @@ export class TextEditor {
     if (this.editing) {
       this.commit();
     }
-    if (!(isEditableText(node) && isHtmlElement(node))) {
+    const emptyField =
+      options.allowEmpty === true &&
+      node.childNodes.length === 1 &&
+      node.firstChild?.nodeType === Node.TEXT_NODE &&
+      node.firstChild.textContent === "";
+    if (!((isEditableText(node) || emptyField) && isHtmlElement(node))) {
       return false;
     }
     this.editing = node;

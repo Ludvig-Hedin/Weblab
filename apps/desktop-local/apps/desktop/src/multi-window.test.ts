@@ -5,19 +5,38 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const nodeRequire = createRequire(import.meta.url);
 const SITE_FOLDER = /^\/site-[ab]$/;
 
-test("Finder opens a second site in its own window and closing it stops only that site", async () => {
+interface MenuItem {
+  click?: () => void;
+  label?: string;
+  submenu?: MenuItem[];
+}
+
+async function harness() {
   const handlers = new Map<string, (...args: unknown[]) => unknown>();
   const sites = new Map<string, { id: string; path: string; name: string }>();
   const runners: { site: string | null; stops: number }[] = [];
   const windows: FakeWindow[] = [];
   let focused: FakeWindow | null = null;
   let ready = false;
+  let menu: MenuItem[] = [];
+  const pending = new Set<unknown>();
+  const responses: number[] = [];
+  const runnerEvents: ((event: unknown) => void)[] = [];
+  const views: { closed: boolean; reloads: number }[] = [];
+  let contentContext: {
+    sessionFor: (event: { sender: unknown }) => unknown;
+    inlineSettled: (session: unknown) => void;
+  };
+  const reset = vi.fn((session: unknown) => pending.delete(session));
+  const showMessageBox = vi.fn(async () => ({
+    response: responses.shift() ?? 0,
+  }));
 
   class FakeWindow extends EventEmitter {
     webContents = Object.assign(new EventEmitter(), {
@@ -45,6 +64,15 @@ test("Finder opens a second site in its own window and closing it stops only tha
       return [1280, 820];
     }
     close() {
+      let prevented = false;
+      this.emit("close", {
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      if (prevented) {
+        return;
+      }
       this.destroyed = true;
       this.emit("closed");
     }
@@ -58,7 +86,7 @@ test("Finder opens a second site in its own window and closing it stops only tha
     exit() {},
     isPackaged: false,
     isReady: () => ready,
-    quit() {},
+    quit: vi.fn(),
     setAboutPanelOptions() {},
     setName() {},
     setPath() {},
@@ -71,24 +99,36 @@ test("Finder opens a second site in its own window and closing it stops only tha
     app,
     BrowserWindow: FakeWindow,
     clipboard: { writeText() {} },
-    dialog: { showOpenDialog() {} },
+    dialog: { showMessageBox, showOpenDialog() {} },
     ipcMain: Object.assign(new EventEmitter(), {
       handle(channel: string, fn: (...args: unknown[]) => unknown) {
         handlers.set(channel, fn);
       },
     }),
     Menu: {
-      buildFromTemplate: (items: unknown) => items,
-      setApplicationMenu() {},
+      buildFromTemplate: (items: MenuItem[]) => items,
+      setApplicationMenu(items: MenuItem[]) {
+        menu = items;
+      },
     },
     nativeImage: { createFromPath() {} },
     shell: { openExternal() {}, showItemInFolder() {} },
     WebContentsView: class {
+      state = { closed: false, reloads: 0 };
+      constructor() {
+        views.push(this.state);
+      }
       webContents = Object.assign(new EventEmitter(), {
-        close() {},
-        loadURL() {
+        close: () => {
+          this.state.closed = true;
+        },
+        loadURL(this: EventEmitter) {
           this.emit("did-finish-load");
         },
+        reload: () => {
+          this.state.reloads += 1;
+        },
+        send() {},
         setWindowOpenHandler() {},
       });
       setBackgroundColor() {}
@@ -102,6 +142,7 @@ test("Finder opens a second site in its own window and closing it stops only tha
     constructor(onEvent: (event: unknown) => void) {
       this.onEvent = onEvent;
       runners.push(this.state);
+      runnerEvents.push(onEvent);
     }
     get running() {
       return Boolean(this.state.site);
@@ -127,6 +168,15 @@ test("Finder opens a second site in its own window and closing it stops only tha
       state: async () => ({ connected: true }),
     },
     "./clone": {},
+    "./content-ipc": {
+      register: (context: typeof contentContext) => {
+        contentContext = context;
+        return {
+          hasPending: (session: unknown) => pending.has(session),
+          reset,
+        };
+      },
+    },
     "./env-settings": {},
     "./favicon": { read: async () => null },
     "./github": { account: () => null },
@@ -167,9 +217,42 @@ test("Finder opens a second site in its own window and closing it stops only tha
     module: { exports: {} },
     process: { env: {}, on() {}, platform: "darwin" },
     require: (name: string) => mocks[name] || nodeRequire(name),
-    setTimeout: () => 0,
+    setTimeout: (callback: () => void, delay: number) => {
+      if (delay === 0) {
+        queueMicrotask(callback);
+      }
+      return 0;
+    },
     URL,
   });
+  await new Promise(setImmediate);
+  const sessionForWindow = (win: FakeWindow) =>
+    contentContext.sessionFor({ sender: win.webContents });
+  return {
+    app,
+    handlers,
+    pending,
+    reload: () =>
+      menu
+        .find((item) => item.label === "View")
+        ?.submenu?.find((item) => item.label === "Reload editor")
+        ?.click?.(),
+    reset,
+    responses,
+    runnerEvents,
+    runners,
+    session: sessionForWindow,
+    settled: (win: FakeWindow) =>
+      contentContext.inlineSettled(sessionForWindow(win)),
+    showMessageBox,
+    sites,
+    views,
+    windows,
+  };
+}
+
+test("Finder opens a second site in its own window and closing it stops only that site", async () => {
+  const { app, handlers, runners, sites, windows } = await harness();
   app.emit("open-file", { preventDefault() {} }, "/site-a");
   await new Promise(setImmediate);
   expect(windows).toHaveLength(1);
@@ -238,4 +321,92 @@ test("Finder opens a second site in its own window and closing it stops only tha
   expect(runners[1].stops).toBeGreaterThan(0);
   expect(runners[0].site).toBe("/site-a");
   expect(runners[2].site).toBe("/site-c");
+});
+
+async function openFixture() {
+  const h = await harness();
+  h.app.emit("open-file", { preventDefault() {} }, "/site-a");
+  const [win] = h.windows;
+  await h.handlers.get("nav:ready")?.({ sender: win.webContents });
+  await h.handlers.get("site:open")?.({ sender: win.webContents }, "/site-a");
+  h.reset.mockClear();
+  return { ...h, session: h.session(win), win };
+}
+
+test("native Reload keeps pending text and its view until the text is settled", async () => {
+  const h = await openFixture();
+  h.pending.add(h.session);
+  h.reload();
+  expect(h.views[0].reloads).toBe(0);
+  expect(h.views[0].closed).toBe(false);
+  expect(h.pending.has(h.session)).toBe(true);
+  expect(h.reset).not.toHaveBeenCalled();
+  expect(h.showMessageBox).toHaveBeenCalledTimes(1);
+  h.pending.delete(h.session);
+  h.reload();
+  expect(h.views[0].reloads).toBe(1);
+});
+
+test("runner errors preserve pending text and the editor, then surface after Save or Discard", async () => {
+  const h = await openFixture();
+  h.pending.add(h.session);
+  const failure = {
+    details: "Target exited",
+    message: "Site stopped",
+    type: "error",
+  };
+  h.runnerEvents[0](failure);
+  h.runnerEvents[0](failure);
+  expect(h.showMessageBox).toHaveBeenCalledTimes(1);
+  expect(h.pending.has(h.session)).toBe(true);
+  expect(h.reset).not.toHaveBeenCalled();
+  expect(h.views[0].closed).toBe(false);
+  expect(
+    h.win.webContents.messages.some(
+      ([channel, event]) =>
+        channel === "site:event" && (event as { type: string }).type === "error"
+    )
+  ).toBe(false);
+  h.pending.delete(h.session);
+  h.settled(h.win);
+  await new Promise(setImmediate);
+  expect(h.views[0].closed).toBe(true);
+  expect(h.win.webContents.messages).toContainEqual(["site:event", failure]);
+});
+
+test("window close Keep editing preserves text; explicit discard closes only that window", async () => {
+  const h = await openFixture();
+  h.pending.add(h.session);
+  h.responses.push(0);
+  h.win.close();
+  await new Promise(setImmediate);
+  expect(h.win.destroyed).toBe(false);
+  expect(h.pending.has(h.session)).toBe(true);
+  expect(h.views[0].closed).toBe(false);
+  expect(h.reset).not.toHaveBeenCalled();
+  h.responses.push(1);
+  h.win.close();
+  await new Promise(setImmediate);
+  expect(h.win.destroyed).toBe(true);
+  expect(h.pending.has(h.session)).toBe(false);
+  expect(h.views[0].closed).toBe(true);
+  expect(h.runners[0].stops).toBe(1);
+});
+
+test("quit Keep editing preserves text and explicit discard clears pending before quitting", async () => {
+  const h = await openFixture();
+  h.pending.add(h.session);
+  const preventDefault = vi.fn();
+  h.responses.push(0);
+  h.app.emit("before-quit", { preventDefault });
+  await new Promise(setImmediate);
+  expect(preventDefault).toHaveBeenCalledTimes(1);
+  expect(h.app.quit).not.toHaveBeenCalled();
+  expect(h.pending.has(h.session)).toBe(true);
+  expect(h.reset).not.toHaveBeenCalled();
+  h.responses.push(1);
+  h.app.emit("before-quit", { preventDefault });
+  await new Promise(setImmediate);
+  expect(h.pending.has(h.session)).toBe(false);
+  expect(h.app.quit).toHaveBeenCalledTimes(1);
 });

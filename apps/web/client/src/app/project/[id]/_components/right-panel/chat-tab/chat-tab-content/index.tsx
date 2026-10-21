@@ -3,9 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
+import { useTranslations } from 'next-intl';
 
 import type { ChatMessage, ChatModel, LocalModelOption } from '@weblab/models';
-import { CHAT_MODEL_OPTIONS, ChatType, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
+import {
+    CHAT_MODEL_OPTIONS,
+    ChatType,
+    migrateChatModel,
+    OLLAMA_DEFAULT_BASE_URL,
+} from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 
 import {
     loadAiPromptCreateModel,
@@ -13,6 +20,7 @@ import {
 } from '@/components/ai-prompt-composer/create-draft';
 import { useReasoningEffort } from '@/components/ai-prompt-composer/model-picker/use-reasoning-effort';
 import { useEditorEngine } from '@/components/store/editor';
+import { STARTUP_RECOVERY_EVENT } from '@/components/store/editor/chat';
 import { canReachLocalOllamaFromBrowser } from '@/services/offline/ollama-client';
 import { useChat } from '../../../../_hooks/use-chat';
 import { ChatInput } from '../chat-input';
@@ -38,6 +46,8 @@ export const ChatTabContent = ({
     projectId,
     initialMessages,
 }: ChatTabContentProps) => {
+    const editorEngine = useEditorEngine();
+    const recoveryText = useTranslations('editor.canvas.frame.loading') as (key: string) => string;
     const userSettings = useQuery(api.users.getSettings, {});
 
     const [model, setModel] = useState<ChatModel>(CHAT_MODEL_OPTIONS[0].model);
@@ -51,7 +61,7 @@ export const ChatTabContent = ({
     // Apply saved default model once settings load (if user hasn't changed it yet)
     useEffect(() => {
         if (!userChangedModel.current && userSettings?.defaultModel) {
-            setModel(userSettings.defaultModel as ChatModel);
+            setModel(migrateChatModel(userSettings.defaultModel) as ChatModel);
         }
     }, [userSettings?.defaultModel]);
 
@@ -65,7 +75,7 @@ export const ChatTabContent = ({
         void loadAiPromptCreateModel().then((handoff) => {
             if (cancelled || !handoff) return;
             userChangedModel.current = true;
-            setModel(handoff as ChatModel);
+            setModel(migrateChatModel(handoff) as ChatModel);
             void removeAiPromptCreateModel();
         });
         return () => {
@@ -187,6 +197,49 @@ export const ChatTabContent = ({
         reasoningEffort,
     });
 
+    const [startupRecovery, setStartupRecovery] = useState(
+        () => editorEngine.chat.pendingStartupRecovery,
+    );
+    useEffect(() => {
+        const receive = () => setStartupRecovery(editorEngine.chat.pendingStartupRecovery);
+        window.addEventListener(STARTUP_RECOVERY_EVENT, receive);
+        receive();
+        return () => window.removeEventListener(STARTUP_RECOVERY_EVENT, receive);
+    }, [editorEngine]);
+    useEffect(() => {
+        if (!startupRecovery) return;
+        if (
+            isStreaming ||
+            queuedMessages.length > 0 ||
+            editorEngine.branches.activeBranch.id !== startupRecovery.branchId
+        ) {
+            if (editorEngine.chat.consumeStartupRecovery(startupRecovery.id)) {
+                setStartupRecovery(null);
+                toast.error(recoveryText('localRecoverySendFailed'));
+            }
+            return;
+        }
+        if (String(model) !== startupRecovery.model) {
+            userChangedModel.current = true;
+            setModel(startupRecovery.model as ChatModel);
+            return;
+        }
+        if (!editorEngine.chat.consumeStartupRecovery(startupRecovery.id)) return;
+        setStartupRecovery(null);
+        void sendMessage(startupRecovery.prompt, ChatType.EDIT).catch((error: unknown) => {
+            console.error('Local startup recovery failed', error);
+            toast.error(recoveryText('localRecoverySendFailed'));
+        });
+    }, [
+        startupRecovery,
+        isStreaming,
+        queuedMessages.length,
+        model,
+        editorEngine,
+        sendMessage,
+        recoveryText,
+    ]);
+
     // `useAiChat` snapshots `initialMessages` once on mount and never re-syncs
     // when the underlying tRPC query refetches. Without this effect, AI streams
     // that completed in another tab/window while this tab was backgrounded
@@ -229,7 +282,6 @@ export const ChatTabContent = ({
         setModel(next);
     };
 
-    const editorEngine = useEditorEngine();
     const handleSuggestionClick = (text: string) => {
         void sendMessage(text, editorEngine.state.chatMode ?? ChatType.EDIT);
     };

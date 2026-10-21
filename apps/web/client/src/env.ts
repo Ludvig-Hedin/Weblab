@@ -66,11 +66,22 @@ export const env = createEnv({
         CLERK_SECRET_KEY: z.string().optional(),
         CLERK_WEBHOOK_SECRET: z.string().optional(),
         CLERK_JWT_ISSUER_DOMAIN: z.url().optional(),
+        WEBLAB_CLOUD_IMAGE_SECRET: z.string().min(32).optional(),
+        WEBLAB_CLOUD_RELEASE_REVIEW_SECRET: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+        WEBLAB_CLOUD_RELEASE_APP_ORIGIN: z.string().url().optional(),
+        WEBLAB_CLOUD_RELEASE_REVIEW_HOST_SUFFIX: z.string().optional(),
+        WEBLAB_CLOUD_RELEASE_BYPASS: z.string().optional(),
+        WEBLAB_CLOUD_RELEASE_TOKEN: z.string().optional(),
+        WEBLAB_CLOUD_RELEASE_TEAM_ID: z.string().optional(),
+        WEBLAB_CLOUD_RELEASE_PROJECT_ID: z.string().optional(),
+        WEBLAB_CLOUD_RELEASE_HOSTNAME: z.string().optional(),
 
         // Phase 5 auth bridge: chooses identity provider for tRPC + middleware.
         // Post-migration default = 'clerk'. 'supabase' is retained for emergency
         // rollback; new deployments should never set it.
         WEBLAB_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('clerk'),
+        // The hosting environment pins the app callback scheme. Requests cannot choose it.
+        WEBLAB_DESKTOP_AUTH_PROTOCOL: z.enum(['weblab', 'weblab-beta']).default('weblab'),
         // Used by the Clerk webhook handler to delete the Clerk-side identity
         // when the user deletes their account from inside Weblab. Without
         // this the Clerk record orphans and the user can silently re-create
@@ -102,6 +113,16 @@ export const env = createEnv({
         ANTHROPIC_API_KEY: z.string().optional(),
         GOOGLE_AI_STUDIO_API_KEY: z.string().optional(),
         OPENAI_API_KEY: z.string().optional(),
+        // AI kill switch. `true` makes every Next.js AI route answer 503 "AI is
+        // paused" before any model call, even if Convex is unreachable. The
+        // Convex-side switch (`bunx convex env set AI_DISABLED true`) also
+        // pauses the Convex AI actions; set both to pause everything. All
+        // other AI safeguard numbers live in convex/lib/aiGuardConfig.ts
+        // (overridable with Convex env vars).
+        AI_DISABLED: z.enum(['true', 'false', '1', '0']).optional(),
+        // Shared with the Convex deployment (`bunx convex env set AI_GUARD_SECRET …`).
+        // Proves spend writes come from this server, not a browser.
+        AI_GUARD_SECRET: z.string().optional(),
 
         // n8n
         N8N_WEBHOOK_URL: z.string().optional(),
@@ -288,7 +309,17 @@ export const env = createEnv({
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
         CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
         CLERK_JWT_ISSUER_DOMAIN: process.env.CLERK_JWT_ISSUER_DOMAIN,
+        WEBLAB_CLOUD_IMAGE_SECRET: process.env.WEBLAB_CLOUD_IMAGE_SECRET,
+        WEBLAB_CLOUD_RELEASE_REVIEW_SECRET: process.env.WEBLAB_CLOUD_RELEASE_REVIEW_SECRET,
+        WEBLAB_CLOUD_RELEASE_APP_ORIGIN: process.env.WEBLAB_CLOUD_RELEASE_APP_ORIGIN,
+        WEBLAB_CLOUD_RELEASE_REVIEW_HOST_SUFFIX: process.env.WEBLAB_CLOUD_RELEASE_REVIEW_HOST_SUFFIX,
+        WEBLAB_CLOUD_RELEASE_BYPASS: process.env.WEBLAB_CLOUD_RELEASE_BYPASS,
+        WEBLAB_CLOUD_RELEASE_TOKEN: process.env.WEBLAB_CLOUD_RELEASE_TOKEN,
+        WEBLAB_CLOUD_RELEASE_TEAM_ID: process.env.WEBLAB_CLOUD_RELEASE_TEAM_ID,
+        WEBLAB_CLOUD_RELEASE_PROJECT_ID: process.env.WEBLAB_CLOUD_RELEASE_PROJECT_ID,
+        WEBLAB_CLOUD_RELEASE_HOSTNAME: process.env.WEBLAB_CLOUD_RELEASE_HOSTNAME,
         WEBLAB_AUTH_PROVIDER: process.env.WEBLAB_AUTH_PROVIDER,
+        WEBLAB_DESKTOP_AUTH_PROTOCOL: process.env.WEBLAB_DESKTOP_AUTH_PROTOCOL,
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
             process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY,
         NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
@@ -350,6 +381,8 @@ export const env = createEnv({
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         GOOGLE_AI_STUDIO_API_KEY: process.env.GOOGLE_AI_STUDIO_API_KEY,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        AI_DISABLED: process.env.AI_DISABLED,
+        AI_GUARD_SECRET: process.env.AI_GUARD_SECRET,
         OPENROUTER_API_KEY:
             process.env.OPENROUTER_API_KEY ??
             (process.env.NODE_ENV === 'development' ? 'dev_openrouter_api_key' : undefined),

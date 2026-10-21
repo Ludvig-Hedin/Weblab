@@ -1,5 +1,38 @@
 # Current Progress Snapshot
 
+## 2026-10-21 — Recovery checkpoints and folder integration continuation
+
+Five local `recovery/cloud-01-*` through `recovery/cloud-05-*` branches preserve the overlapping historical cloud source stack. They are not independently mergeable current-main feature branches. The private `../weblab-recovery-2026-10-21/cloud-checkpoints/` guide, Git bundle and per-checkpoint manifests point to the full saved unfinished source. Keep the original dirty recovery checkout and archives.
+
+The older team-release copy was fingerprint-verified, preserved in local archival commit `b3cbe8cc1` on retained `release/team-desktop`, and normally removed after activity checks and metadata archival. Its checkpoint is unvalidated and unpushed. Keep `weblab-html-dropdown`; all 21 dirty paths have unique later safety work.
+
+PR #8 is being integrated with current main in `../weblab-project-location-recovery`. Content, release, GitHub and delayed-note source boundaries are reconciled and independently reviewed. The four prerequisite libraries, focused root/session/provider regressions, server regressions, server types and 32-file lint now pass locally. Independent source review found no unresolved integration blocker. No full suite, hosted CI, provider publication, browser or installer release ran. Installed Mac/restart/offline-volume proof remains open.
+
+## 2026-10-21 — Local preservation and PR cleanup
+
+The original local checkout is preserved on `recovery/local-work-2026-10-21`, including its 39 unpublished commits and unchanged unfinished files. Verified private local backups cover all five dirty checkouts/repositories. A separate `../weblab-main` checkout tracks remote main cleanly; do not reset the recovery checkout to it.
+
+PR #12 is merged as source, with provider publishing, signing and clean-Mac acceptance still open. PRs #1 and #7 are closed as superseded; useful pilot CI and historical test guidance were recovered in `de0f33ced`. The idle Sanity release worktree was retired with its full branch retained. PR #2 is closed because the owner rejected remote runners. GitHub Actions is disabled on Weblab; local verification only now applies across projects. PR #8 has reconciled its folder guards with newer Content and release actions and passed local focused checks; installed Mac acceptance remains open in `BACKLOG.md`.
+
+This cleanup reused recorded app validation and added independent source review; no fresh local app suite, dependency install or installer release ran. Backup preservation, clean-main synchronization, workflow syntax and the unchanged pilot source were checked.
+
+## 2026-10-21 — Local desktop client editing draft
+
+`feature/2026-10-21-local-client-editor` prepares the public Mac app in
+`apps/desktop-local` for native text drafts and reviewed publishing. This is
+a release candidate with direct page text input, native Save/Discard and local
+Undo/Redo. The Content panel and shared font edits have local acceptance evidence;
+provider write/promotion/restore, signing and clean-Mac acceptance remain open.
+Continue from [local client editor](../features/local-client-editor.md). Client
+source patches and private acceptance notes are kept in a separate private
+handoff repository, not this public repo. No production site was changed.
+
+## 2026-10-05 — Team desktop editor released for invited accounts
+
+`apps/desktop` is active again as the team editor (0.2.7): an Electron shell around weblab.build with sign-in, private working copies of local Git projects, reviewed handoff, preview keys and a log file. weblab.build still runs in local-app mode, so the public download stays `apps/desktop-local` and sign-in stays invite only. Switching a live site from the app is disabled server-side. `desktop-v*` releases are never marked latest.
+
+This repository is public. Customer-pinned code and internal readiness notes are gitignored and stay on the owner's machine: see the "stay local" entries in `.gitignore` and `apps/desktop/release/site-engine.js`. Open follow-ups are at the top of `BACKLOG.md`.
+
 ## 2026-09-29 — Weblab for Mac HTML sketches
 
 The standalone `apps/desktop-local` editor now exposes JavaScript-created native select options through a Show/Hide control at the right of Style. Canvas pan/zoom transform writes are coalesced per animation frame. The desktop shell checks `desktop-local-v*` GitHub releases and offers a Mac DMG from its menu and top bar. Version 0.2.1 is the next planned Mac release; see `apps/desktop-local/apps/desktop/CHANGELOG.md` and `docs/guides/local-app-mode.md` for the release flow.

@@ -3,6 +3,7 @@
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
     AlignPad,
     FlowSegment,
@@ -61,7 +62,9 @@ export const LayoutSection = observer(function LayoutSection() {
         { value: 'block', label: t('layout.block'), icon: <IconBlock /> },
         { value: 'flex-col', label: t('layout.flexColumn'), icon: <IconFlexCol /> },
         { value: 'flex-row', label: t('layout.flexRow'), icon: <IconFlexRow /> },
-        { value: 'grid', label: t('layout.grid'), icon: <IconGrid /> },
+        ...(EDITOR_SCOPE.advancedCss
+            ? [{ value: 'grid', label: t('layout.grid'), icon: <IconGrid /> }]
+            : []),
     ] as const;
 
     // ── Read current values ───────────────────────────────────────────────

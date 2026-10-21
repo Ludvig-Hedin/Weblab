@@ -1,6 +1,6 @@
 import type { T } from 'src/packages';
 import { describe, expect, test } from 'bun:test';
-import { updateNodeTextContent } from 'src/code-edit/text';
+import { getJsxTextGaps, updateNodeTextContent } from 'src/code-edit/text';
 import { t } from 'src/packages';
 import { getAstFromCodeblock, getContentFromAst } from 'src/parse';
 
@@ -18,6 +18,19 @@ function parseJsx(code: string): T.JSXElement {
 }
 
 describe('updateNodeTextContent', () => {
+    test.each(['Welcome {clientName}', '<hello> > goodbye', '&amp; &copy; &', '  spaced\ttext  ', 'a\n{b}\n&copy;'])
+        ('round-trips typed text literally and remains re-editable: %s', async (text) => {
+            let node = parseJsx('<p>old{/* keep this comment */}</p>');
+            for (const value of [text, text + ' again', 'final']) {
+                updateNodeTextContent(node, value);
+                node = parseJsx((await generate(node)).replace(/;\s*$/, ''));
+                expect(getJsxTextGaps(node)?.[0]?.text).toBe(value);
+                expect(await generate(node)).toContain('keep this comment');
+                expect(node.children.filter((child) => t.isJSXElement(child)).length)
+                    .toBe(value.split('\n').length - 1);
+            }
+        });
+
     describe('single line', () => {
         test('updates a plain text node', async () => {
             const node = parseJsx('<button>old</button>');

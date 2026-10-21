@@ -12,12 +12,13 @@ export const FileTreeRow = ({
         <div
             {...attrs}
             className={cn(
-                'h-6 w-auto min-w-0 cursor-pointer rounded outline-none',
+                'w-auto min-w-0 cursor-pointer rounded-md outline-none',
                 attrs['aria-selected']
-                    ? 'bg-foreground-brand/90 text-primary hover:bg-foreground-brand'
-                    : isHighlighted
-                      ? 'bg-foreground-brand/90 text-foreground-primary hover:bg-foreground-brand'
-                      : 'text-foreground-weblab/70 hover:bg-foreground-brand/30 hover:text-foreground-primary',
+                    ? 'bg-foreground/[0.09] text-foreground-primary'
+                    : 'text-foreground-secondary hover:bg-foreground/[0.045] hover:text-foreground-primary',
+                // Keyboard-highlighted row (arrow keys from search) gets a ring
+                // so it stays distinct from the open file.
+                isHighlighted && 'ring-foreground/25 text-foreground-primary ring-1 ring-inset',
             )}
         >
             {children}

@@ -1,6 +1,6 @@
 {
     "name": "@weblab/desktop",
-    "version": "0.2.6",
+    "version": "0.2.7",
     "description": "Weblab desktop app",
     "author": {
         "name": "Weblab",
@@ -8,17 +8,19 @@
     },
     "main": "main.js",
     "private": true,
-    "packageManager": "bun@1.3.1",
+    "packageManager": "bun@1.3.10",
     "scripts": {
         "start": "electron .",
         "dev": "bash scripts/dev.sh",
+        "prepare:beta": "bun scripts/prepare-beta.mjs",
         "link:node_modules": "node -e \"const fs=require('fs');const path=require('path');const link=path.join(process.cwd(),'node_modules');const target=path.resolve(process.cwd(),'../../node_modules');try{fs.rmSync(link,{recursive:true,force:true});}catch{}fs.symlinkSync(target,link,process.platform==='win32'?'junction':'dir');\"",
-        "build:mac": "bun run link:node_modules && electron-builder --mac",
-        "build:win": "bun run link:node_modules && electron-builder --win",
-        "build:linux": "bun run link:node_modules && electron-builder --linux",
-        "build": "bun run link:node_modules && electron-builder --mac --win --linux"
+        "build:mac": "node scripts/stage-bun-runtime.mjs mac && bun run link:node_modules && electron-builder --mac --publish never",
+        "build:win": "node scripts/stage-bun-runtime.mjs win && bun run link:node_modules && electron-builder --win --publish never",
+        "build:linux": "node scripts/stage-bun-runtime.mjs linux && bun run link:node_modules && electron-builder --linux --publish never",
+        "build": "node scripts/stage-bun-runtime.mjs host && bun run link:node_modules && electron-builder --publish never"
     },
     "dependencies": {
+        "@sanity/image-url": "2.1.1",
         "chokidar": "^3.6.0",
         "electron-updater": "^6.3.9"
     },
@@ -42,21 +44,42 @@
             "output": "dist"
         },
         "files": [
+            "package.json",
             "main.js",
             "preload.js",
+            "desktop-profile.js",
+            "desktop-log.js",
             "auth-hosts.js",
+            "auth-policy.js",
+            "private-path-policy.js",
             "weblab-cli.js",
             "weblab-local.js",
             "cli/**",
+            "release/**",
             "assets/**"
         ],
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "assets/icon.icns",
-            "target": [
-                { "target": "dmg", "arch": ["universal"] }
+            "extraResources": [
+                {
+                    "from": ".runtime/mac/bun",
+                    "to": "bin/bun"
+                }
             ],
-            "artifactName": "Weblab.dmg",
+            "binaries": ["Contents/Resources/bin/bun"],
+            "x64ArchFiles": "Contents/Resources/bin/bun",
+            "target": [
+                {
+                    "target": "dmg",
+                    "arch": ["universal"]
+                },
+                {
+                    "target": "zip",
+                    "arch": ["universal"]
+                }
+            ],
+            "artifactName": "Weblab.${ext}",
             "hardenedRuntime": true,
             "gatekeeperAssess": false,
             "entitlements": "build/entitlements.mac.plist",
@@ -80,15 +103,33 @@
         },
         "win": {
             "icon": "assets/icon.ico",
+            "extraResources": [
+                {
+                    "from": ".runtime/win/bun.exe",
+                    "to": "bin/bun.exe"
+                }
+            ],
             "target": [
-                { "target": "nsis", "arch": ["x64"] }
+                {
+                    "target": "nsis",
+                    "arch": ["x64"]
+                }
             ],
             "artifactName": "Weblab-Setup.exe"
         },
         "linux": {
             "icon": "assets/icon.png",
+            "extraResources": [
+                {
+                    "from": ".runtime/linux/bun",
+                    "to": "bin/bun"
+                }
+            ],
             "target": [
-                { "target": "AppImage", "arch": ["x64"] }
+                {
+                    "target": "AppImage",
+                    "arch": ["x64"]
+                }
             ],
             "category": "Development",
             "artifactName": "Weblab.AppImage"

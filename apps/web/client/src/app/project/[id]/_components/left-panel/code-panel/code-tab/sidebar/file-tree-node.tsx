@@ -30,6 +30,9 @@ import { cn } from '@weblab/ui/utils';
 
 import { FileIcon } from './file-icon';
 
+// Must match the `indent` passed to <Tree> in file-tree.tsx.
+export const TREE_INDENT = 14;
+
 interface FileTreeNodeProps {
     node: NodeApi<FileEntry>;
     style: CSSProperties;
@@ -203,23 +206,36 @@ export const FileTreeNode = ({
             <ContextMenuTrigger>
                 <div
                     style={style}
-                    className="flex h-6 cursor-pointer items-center rounded"
+                    className="relative flex h-7 cursor-pointer items-center gap-1 pr-2"
                     onClick={handleClick}
-                    onDoubleClick={(e) => handleRename()}
+                    onDoubleClick={() => handleRename()}
                 >
-                    <span className="relative h-4 w-4 flex-none">
+                    {/* Indent guides — one hairline per nesting level. */}
+                    {Array.from({ length: node.level }, (_, i) => (
+                        <span
+                            key={i}
+                            aria-hidden
+                            className="bg-foreground/[0.07] absolute top-0 bottom-0 w-px"
+                            style={{ left: `${i * TREE_INDENT + 10}px` }}
+                        />
+                    ))}
+                    <span className="text-foreground-tertiary flex h-4 w-5 flex-none items-center justify-center">
                         {isDirectory && (
-                            <div className="absolute z-50 flex h-4 w-4 items-center justify-center">
-                                <motion.div
-                                    initial={false}
-                                    animate={{ rotate: node.isOpen ? 90 : 0 }}
-                                >
-                                    <Icons.ChevronRight className="h-3 w-3" />
-                                </motion.div>
-                            </div>
+                            <motion.div
+                                initial={false}
+                                animate={{ rotate: node.isOpen ? 90 : 0 }}
+                                transition={{ duration: 0.15, ease: 'easeOut' }}
+                            >
+                                <Icons.ChevronRight className="h-3 w-3" />
+                            </motion.div>
                         )}
                     </span>
-                    <FileIcon path={node.data.path} isDirectory={isDirectory} />
+                    <FileIcon
+                        path={node.data.path}
+                        isDirectory={isDirectory}
+                        isOpen={node.isOpen}
+                        className="mr-1"
+                    />
                     {isEditing ? (
                         <input
                             ref={inputRef}
@@ -228,11 +244,11 @@ export const FileTreeNode = ({
                             onChange={(e) => setEditingName(e.target.value)}
                             onBlur={handleBlur}
                             onKeyDown={handleKeyDown}
-                            className="outline-border-active truncate rounded-xs bg-transparent px-0 outline outline-2 outline-offset-2"
+                            className="outline-border-active min-w-0 flex-1 truncate rounded-xs bg-transparent px-0 outline outline-2 outline-offset-2"
                             onClick={(e) => e.stopPropagation()}
                         />
                     ) : (
-                        <span className="truncate" title={node.data.name}>
+                        <span className="text-small truncate" title={node.data.name}>
                             {node.data.name}
                         </span>
                     )}

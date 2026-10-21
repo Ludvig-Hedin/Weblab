@@ -10,6 +10,8 @@ import { applyCodeChange } from '@weblab/ai';
 import type { ActionCtx } from './_generated/server';
 import { api } from './_generated/api';
 import { action } from './_generated/server';
+import { FIXED_CALL_COST_USD } from './lib/aiActionPricing';
+import { assertAiAllowedForAction, recordActionSpend } from './lib/aiGuardAction';
 
 // Convex port of src/server/api/routers/code.ts (utilsRouter).
 //
@@ -113,6 +115,9 @@ export const applyDiff = action({
     ): Promise<{ result: string | null; error: string | null }> => {
         try {
             const me = await requireCaller(ctx);
+            // Runaway safeguards: kill switch, budgets, spend caps. No request
+            // counter — agent turns call this once per file edit.
+            await assertAiAllowedForAction(ctx, { rateLimit: false });
             // Bound input length so a malicious caller can't drive Morph/
             // Relace LLM spend with multi-MB payloads (each call is billed
             // per-token against the shared OpenRouter account).
@@ -129,6 +134,7 @@ export const applyDiff = action({
                 ...metadata,
                 userId: me._id,
             });
+            await recordActionSpend(ctx, FIXED_CALL_COST_USD.applyDiff);
             if (!result) throw new Error('Failed to apply code change. Please try again.');
             return { result, error: null };
         } catch (error) {
@@ -176,6 +182,7 @@ export const scrapeUrl = action({
         try {
             await requireCaller(ctx);
             assertSafeHttpUrl(input.url);
+            await assertAiAllowedForAction(ctx);
             if (!process.env.FIRECRAWL_API_KEY) {
                 throw new Error('FIRECRAWL_API_KEY is not configured');
             }
@@ -189,6 +196,7 @@ export const scrapeUrl = action({
             const timeout = Math.min(Math.max(input.timeout ?? 60_000, 10_000), 120_000);
 
             // 'branding' is supported by the API but not in the SDK types.
+            await recordActionSpend(ctx, FIXED_CALL_COST_USD.firecrawlScrape);
             const result = (await app.scrapeUrl(input.url, {
                 formats: formats as unknown as never,
                 onlyMainContent,
@@ -333,6 +341,7 @@ export const webSearch = action({
             if (input.query.length > 2048) {
                 throw new Error('BAD_REQUEST: query too long');
             }
+            await assertAiAllowedForAction(ctx);
 
             const exa = new Exa(process.env.EXA_API_KEY);
 
@@ -348,6 +357,7 @@ export const webSearch = action({
                 searchOptions.excludeDomains = input.blocked_domains;
             }
 
+            await recordActionSpend(ctx, FIXED_CALL_COST_USD.exaSearch);
             const result = await exa.searchAndContents(input.query, searchOptions);
             if (!result.results || result.results.length === 0) {
                 return { result: [], error: null };

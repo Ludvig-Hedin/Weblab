@@ -25,7 +25,10 @@ function register(ctx) {
   };
   const fromWindow = (event) => {
     const session = ctx.sessionFor(event);
-    return event.sender === session?.win.webContents ? session : null;
+    return event.sender === session?.win.webContents &&
+      (!event.senderFrame || event.senderFrame === event.sender.mainFrame)
+      ? session
+      : null;
   };
   /**
    * Wraps a handler: only the window may call, only with a site open, and a
@@ -41,13 +44,13 @@ function register(ctx) {
       }
       try {
         const open = await sites.verified(raw.id);
+        if (session.openSiteId !== open.id) {
+          return { message: "The open site changed.", ok: false };
+        }
         return await sites.withVerified(open, () => fn(session, open, ...args));
       } catch (error) {
         return {
-          message:
-            error.code === "source-unavailable"
-              ? error.message
-              : "Something went wrong. Try again.",
+          message: error.message || "Something went wrong. Try again.",
           ok: false,
         };
       }
@@ -64,6 +67,10 @@ function register(ctx) {
           throw new Error("The open site changed.");
         }
         await sites.assertVerified(open);
+        if (session.openSiteId !== open.id) {
+          throw new Error("The open site changed.");
+        }
+        sites.checkVerifiedSite(open);
         return fn(session, ...args);
       });
       queues.set(
@@ -84,7 +91,7 @@ function register(ctx) {
     ...(await upload.status(open.path)),
     aiBusy: Boolean(jobs.get(session)),
   }));
-  handle("publish:note", async (_session, open, paths) => {
+  handle("publish:note", async (session, open, paths) => {
     const wanted = new Set(Array.isArray(paths) ? paths.map(String) : []);
     // Only changed files git reported, and never secret ones, reach Claude.
     const { files = [] } = await upload.status(open.path);
@@ -92,6 +99,10 @@ function register(ctx) {
       .filter((file) => wanted.has(file.path) && !file.secret)
       .map((file) => file.path);
     const summary = await upload.changeSummary(open.path, list);
+    if (session.openSiteId !== open.id) {
+      throw new Error("The open site changed.");
+    }
+    sites.checkVerifiedSite(open);
     return note.write(summary, list);
   });
   handle(
@@ -172,6 +183,20 @@ function register(ctx) {
       }
     })
   );
+  for (const action of [
+    "review",
+    "publish",
+    "rollback",
+    "reconcile",
+    "abandonBuild",
+  ]) {
+    handle(
+      `deploy:${action}`,
+      whenIdle((_session, open, input) =>
+        deploy.releaseAction(open.path, action, input)
+      )
+    );
+  }
   ipcMain.handle("deploy:cancel", (event) => {
     if (fromWindow(event) === deployOwner) {
       deploy.cancelDeploy();
@@ -209,6 +234,9 @@ function register(ctx) {
   // shows a still picture of the editor and the live view steps aside.
   ipcMain.handle("editor:freeze", async (event, frozen) => {
     const session = fromWindow(event);
+    if (session) {
+      session.editorFrozen = Boolean(frozen);
+    }
     const view = session?.editorView;
     if (!view) {
       return null;

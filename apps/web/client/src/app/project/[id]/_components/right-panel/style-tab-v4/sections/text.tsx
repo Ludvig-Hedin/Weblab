@@ -5,14 +5,13 @@ import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
 import type { ActionElement } from '@weblab/models/actions';
-import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
-    ColorPickerInline,
-    ColorRow,
+    BoundColorRow,
     FontField,
     FontHeroRow,
     GroupShell,
@@ -31,6 +30,7 @@ import {
     StyleChipPicker,
 } from '../controls';
 import { FIELD_BASE_CLASSES } from '../controls/constants';
+import { TokenEditPanel, useOpenVariablesTab } from '../controls/variable-controls';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
@@ -157,6 +157,7 @@ export const TextSection = observer(function TextSection() {
     ] as const;
 
     const editorEngine = useEditorEngine();
+    const openVariablesTab = useOpenVariablesTab();
     const tokens = editorEngine.tokens;
     const selected = editorEngine.elements.selected[0];
 
@@ -314,10 +315,14 @@ export const TextSection = observer(function TextSection() {
                             onDetach={() => void tokens.applyTextStyleToSelected(null)}
                             onToggleCustom={() => setCustomOpen((v) => !v)}
                             customOpen={customOpen}
-                            onCreate={() => {
-                                editorEngine.state.setLeftPanelTab(LeftPanelTabValue.BRAND);
-                                editorEngine.state.setBrandTab(BrandTabValue.TEXT_STYLES);
-                            }}
+                            onCreate={openVariablesTab}
+                            renderEdit={
+                                activeStyle
+                                    ? (close) => (
+                                          <TokenEditPanel name={activeStyle.name} onClose={close} />
+                                      )
+                                    : undefined
+                            }
                         />
                     </div>
                 </GroupShell>
@@ -341,12 +346,10 @@ export const TextSection = observer(function TextSection() {
 
                 {/* ── 3. Color ─────────────────────────────────────────── */}
                 <GroupShell label={t('text.color')}>
-                    <ColorRow
+                    <BoundColorRow
+                        property="color"
                         value={color.value}
                         onCommit={colorSetter.set}
-                        pickerContent={
-                            <ColorPickerInline value={color.value} onCommit={colorSetter.set} />
-                        }
                         mixed={color.mixed}
                     />
                 </GroupShell>
@@ -448,15 +451,17 @@ export const TextSection = observer(function TextSection() {
                 </GroupShell>
 
                 {/* ── 7. Text shadow ───────────────────────────────────── */}
-                <GroupShell label={t('text.textShadow')}>
-                    <LabeledTextInput
-                        value={textShadow.value}
-                        onCommit={textShadowSetter.set}
-                        placeholder="0 1px 2px rgba(0,0,0,0.2)"
-                        aria-label={t('text.textShadow')}
-                        mixed={textShadow.mixed}
-                    />
-                </GroupShell>
+                {EDITOR_SCOPE.advancedCss && (
+                    <GroupShell label={t('text.textShadow')}>
+                        <LabeledTextInput
+                            value={textShadow.value}
+                            onCommit={textShadowSetter.set}
+                            placeholder="0 1px 2px rgba(0,0,0,0.2)"
+                            aria-label={t('text.textShadow')}
+                            mixed={textShadow.mixed}
+                        />
+                    </GroupShell>
+                )}
             </div>
         </Section>
     );

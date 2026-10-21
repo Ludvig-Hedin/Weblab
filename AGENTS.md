@@ -96,6 +96,8 @@ Deep dives:
 
 ### Validation, Migrations, and Config Changes
 
+Owner directive (2026-10-21): verification is local only. Do not enable or run remote CI, GitHub Actions runners, Blacksmith or hosted test/check jobs. Use the installed RAM/process guards locally. Keep GitHub Actions disabled on owner repositories. Direct hosting deployment requires separate owner authorization and does not authorize remote CI. Preserve branch protections and report any required-check blocker.
+
 #### Default: Run it yourself
 
 **Always run required commands.** Do not instruct the project owner to run

@@ -4,11 +4,24 @@ import { debounce } from 'lodash';
 import { makeAutoObservable, reaction, runInAction } from 'mobx';
 
 import type { Frame, LayerNode } from '@weblab/models';
+import { EditorMode } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
 
+/** Screen-y where the visible canvas starts — under the 56px top bar. */
+const VISIBLE_TOP = 56;
+/** A frame needs at least this many px showing on both axes to count as in view. */
+const MIN_VISIBLE_PX = 48;
+/** Gap above a tall frame when it is brought back into view. */
+const RECENTER_TOP_PADDING = 40;
+
 export class FrameEventManager {
     isCanvasOutOfView = false;
+    /**
+     * Screen-x bounds of the canvas area between the side panels, measured in
+     * main.tsx. A frame hidden behind a panel is not "in view" for the user.
+     */
+    visibleBounds = { left: 0, right: 0 };
     private viewportReactionDisposer?: () => void;
 
     constructor(private editorEngine: EditorEngine) {
@@ -25,6 +38,7 @@ export class FrameEventManager {
                 position: this.editorEngine.canvas.position,
                 scale: this.editorEngine.canvas.scale,
                 frames: this.editorEngine.frames.getAll(),
+                bounds: this.visibleBounds,
             }),
             () => this.handleViewportCheck(),
             {
@@ -48,21 +62,47 @@ export class FrameEventManager {
         trailing: true,
     });
 
+    setVisibleBounds(left: number, right: number) {
+        if (this.visibleBounds.left === left && this.visibleBounds.right === right) return;
+        this.visibleBounds = { left, right };
+    }
+
+    /** True when the user can reach the canvas: not locked, not in code/CMS/preview. */
+    get canShowRecenter(): boolean {
+        const mode = this.editorEngine.state.editorMode;
+        return (
+            !this.editorEngine.state.canvasLocked &&
+            mode !== EditorMode.CODE &&
+            mode !== EditorMode.CMS &&
+            mode !== EditorMode.PREVIEW
+        );
+    }
+
+    /** Screen rect of the canvas area the user can see (between panels, under top bar). */
+    private getVisibleArea() {
+        const left = this.visibleBounds.left;
+        const right = Math.max(left, window.innerWidth - this.visibleBounds.right);
+        return { left, right, top: VISIBLE_TOP, bottom: window.innerHeight };
+    }
+
     private isFrameInViewport(frame: Frame): boolean {
         const canvasPos = this.editorEngine.canvas.position;
         const canvasScale = this.editorEngine.canvas.scale;
+        const area = this.getVisibleArea();
 
         const screenX = canvasPos.x + frame.position.x * canvasScale;
         const screenY = canvasPos.y + frame.position.y * canvasScale;
         const screenWidth = frame.dimension.width * canvasScale;
         const screenHeight = frame.dimension.height * canvasScale;
 
-        return !(
-            screenX + screenWidth < 0 ||
-            screenX > window.innerWidth ||
-            screenY + screenHeight < 0 ||
-            screenY > window.innerHeight
-        );
+        const visibleWidth =
+            Math.min(screenX + screenWidth, area.right) - Math.max(screenX, area.left);
+        const visibleHeight =
+            Math.min(screenY + screenHeight, area.bottom) - Math.max(screenY, area.top);
+        // A frame shrunk below the threshold still counts when it's fully inside.
+        const minWidth = Math.min(MIN_VISIBLE_PX, screenWidth);
+        const minHeight = Math.min(MIN_VISIBLE_PX, screenHeight);
+        return visibleWidth >= minWidth && visibleHeight >= minHeight;
     }
 
     private undebouncedViewportCheck() {
@@ -93,27 +133,30 @@ export class FrameEventManager {
     });
 
     recenterCanvas() {
-        const frames = this.editorEngine.frames.getAll();
-        const firstFrame = frames[0]?.frame;
+        const frames = this.editorEngine.frames;
+        const target = (frames.selected[0] ?? frames.getAll()[0])?.frame;
 
-        if (firstFrame) {
+        if (target) {
             const canvasScale = this.editorEngine.canvas.scale;
+            const area = this.getVisibleArea();
 
-            const frameCenterX = firstFrame.position.x + firstFrame.dimension.width / 2;
-            const frameCenterY = firstFrame.position.y + firstFrame.dimension.height / 2;
-
-            // Center the frame's midpoint in the viewport. With the canvas
-            // transform screenX = canvasPos.x + worldX * scale, centering needs
-            // canvasPos.x = innerWidth/2 - frameCenterX*scale. The previous code
-            // subtracted the default pan offset (200,100) here, landing the
-            // frame 200px left / 100px above true center.
-            const viewportCenterX = window.innerWidth / 2;
-            const viewportCenterY = window.innerHeight / 2;
+            // With the canvas transform screenX = canvasPos.x + worldX * scale,
+            // center the frame horizontally between the panels. A frame taller
+            // than the visible area gets its top pinned near the top bar, so the
+            // user lands on the start of the page instead of its middle.
+            const frameWidth = target.dimension.width * canvasScale;
+            const frameHeight = target.dimension.height * canvasScale;
+            const areaHeight = area.bottom - area.top;
+            const screenX = area.left + (area.right - area.left - frameWidth) / 2;
+            const screenY =
+                frameHeight > areaHeight - RECENTER_TOP_PADDING * 2
+                    ? area.top + RECENTER_TOP_PADDING
+                    : area.top + (areaHeight - frameHeight) / 2;
 
             runInAction(() => {
                 this.editorEngine.canvas.position = {
-                    x: viewportCenterX - frameCenterX * canvasScale,
-                    y: viewportCenterY - frameCenterY * canvasScale,
+                    x: screenX - target.position.x * canvasScale,
+                    y: screenY - target.position.y * canvasScale,
                 };
             });
         } else {

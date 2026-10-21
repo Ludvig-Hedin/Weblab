@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { useMutation, useQuery } from 'convex/react';
+import type { Id } from '@convex/_generated/dataModel';
+import { useConvex, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import {
@@ -12,23 +14,36 @@ import {
     NEXTJS_SCAFFOLD_PORT,
     STATIC_HTML_SCAFFOLD_PORT,
 } from '@weblab/code-provider';
-import { WEBLAB_LOCAL_DEFAULT_PORT } from '@weblab/constants';
+import { APP_NAME, WEBLAB_LOCAL_DEFAULT_PORT } from '@weblab/constants';
 
 import { Routes } from '@/utils/constants';
 
 // Minimal view of the desktop IPC bridge (apps/desktop/preload.js). Local mode
 // is desktop-only; in a normal browser `window.weblabNative` is undefined.
 interface LocalFsBridge {
-    pickFolder(): Promise<{ rootPath: string } | null>;
+    pickFolder(): Promise<{ rootPath?: string; error?: string } | null>;
+    createPrivateWorkingCopy(sourceRoot: string): Promise<{
+        rootPath?: string;
+        sourceRootPath?: string;
+        copyId?: string;
+        priorCopyId?: string;
+        priorRootPath?: string;
+        reused?: boolean;
+        previewNeedsInstall?: boolean;
+        excludedPaths?: string[];
+        exclusions?: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
+        error?: string;
+    }>;
     read(
         root: string,
         path: string,
     ): Promise<{ content?: string; error?: string; notFound?: boolean }>;
-    write(
+    writeIfUnchanged(
         root: string,
         path: string,
-        content: string | Uint8Array,
-    ): Promise<{ success?: boolean; error?: string }>;
+        content: string,
+        expectedSha256: string | null,
+    ): Promise<{ success?: boolean; conflict?: boolean; error?: string }>;
     list(
         root: string,
         path: string,
@@ -50,7 +65,7 @@ export function isDesktopLocalAvailable(): boolean {
 }
 
 interface LocalDevBridge {
-    pickPort?(preferredPort?: number | null): Promise<{ port?: number; error?: string }>;
+    pickPort?(root: string, preferredPort?: number | null): Promise<{ port?: number; error?: string }>;
 }
 
 function getLocalDev(): LocalDevBridge | undefined {
@@ -61,20 +76,17 @@ function getLocalDev(): LocalDevBridge | undefined {
 
 /**
  * Resolve a FREE dev-server port for a new local project so the frame URL is
- * built from a port that's actually open — and uncommon, never the editor's own
- * :3000. Asks the desktop bridge to scan; falls back to `preferred` when the
- * bridge or `pickPort` isn't available (older desktop build). Only meaningful
- * for PORT-honoring frameworks (Next.js) — callers skip it for frameworks that
- * pin their own port (Vite, static `serve`).
+ * built from a port that's actually open and uncommon. The desktop bridge
+ * must confirm the choice; callers skip this for frameworks that pin a port.
  */
-async function resolveFreeLocalPort(preferred: number): Promise<number> {
-    try {
-        const res = await getLocalDev()?.pickPort?.(preferred);
-        if (res && typeof res.port === 'number' && res.port > 0) return res.port;
-    } catch {
-        // fall through to the preferred port
+async function resolveFreeLocalPort(rootPath: string, preferred: number): Promise<number> {
+    const pickPort = getLocalDev()?.pickPort;
+    if (!pickPort) throw new Error('The desktop app cannot reserve a local preview port.');
+    const res = await pickPort(rootPath, preferred);
+    if (res.error || !res.port) {
+        throw new Error(res.error ?? 'Could not reserve a local preview port.');
     }
-    return preferred;
+    return res.port;
 }
 
 function inferPortFromDevScript(devScript: string): number | null {
@@ -121,7 +133,7 @@ function inferFrameworkAndPort(
             else if (deps.vite) framework = 'vite-react';
             else if (deps['@remix-run/react'] || deps['@remix-run/node']) framework = 'remix';
             else if (deps.astro) framework = 'astro';
-            else framework = 'nextjs';
+            else framework = hasIndexHtml ? 'static-html' : 'nextjs';
         } catch {
             // keep defaults
         }
@@ -141,37 +153,35 @@ function nameFromPath(rootPath: string): string {
     return rootPath.split(/[\\/]/).filter(Boolean).pop() ?? 'Local project';
 }
 
-/** True when a folder has no meaningful (non-dotfile) entries. */
+/** True only for a truly empty folder, including hidden Git metadata. */
 async function isFolderEmpty(localfs: LocalFsBridge, rootPath: string): Promise<boolean> {
     const existing = await localfs.list(rootPath, '.');
-    const meaningful = (existing.files ?? []).filter((f) => !f.name.startsWith('.'));
-    return meaningful.length === 0;
+    if (existing.error) throw new Error(existing.error);
+    return (existing.files ?? []).length === 0;
 }
 
 /**
  * Open a local folder as a Weblab project (desktop only). Picks a directory via
  * the native dialog, infers framework + port from its package.json, creates a
  * `runtimeType: 'local'` project pointed at that folder, and opens the editor —
- * which boots the folder's dev server locally and renders it on the canvas.
+ * which loads the folder's source without changing it. Preview starts only
+ * after the user requests it.
  *
  * Also exposes:
  *  - `openLocalFolderAtPath` — same as above but for a path we already have
- *    (drag-and-drop into the window, or a folder dropped on the dock icon). An
- *    *empty* folder is scaffolded with a Static HTML starter so it's runnable.
+ *    (drag-and-drop into the window, or a folder dropped on the dock icon).
  *  - `createLocalBlank` — scaffold a fresh blank project (Next.js or Static
  *    HTML) into an empty folder the user picks.
  */
 export function useOpenLocalProject() {
+    const gitText = useTranslations('editor.git');
     const user = useQuery(api.users.me);
+    const convex = useConvex();
     const createLocal = useMutation(api.projects.createLocal);
     const router = useRouter();
     const [phase, setPhase] = useState<OpenLocalPhase>('idle');
 
-    /**
-     * Open a folder we already have a path for. Non-empty → open as-is with the
-     * inferred framework/port. Empty → scaffold a Static HTML starter first so a
-     * dropped/opened empty folder lands on a runnable project, not a blank shell.
-     */
+    /** Open a read-only Git source through an app-owned working copy. */
     const openLocalFolderAtPath = async (rootPath: string) => {
         const localfs = getLocalFs();
         if (!localfs) {
@@ -183,32 +193,48 @@ export function useOpenLocalProject() {
 
         try {
             const name = nameFromPath(rootPath);
-
-            // Empty folder: scaffold a Static HTML starter so it's immediately
-            // runnable. `serve` installs + boots on open via the NodeFs bridge.
-            if (localfs.write && (await isFolderEmpty(localfs, rootPath))) {
-                setPhase('creating');
-                for (const file of getStaticHtmlScaffoldFiles()) {
-                    const res = await localfs.write(rootPath, file.path, file.content);
-                    if (res.error) throw new Error(`Failed to write ${file.path}: ${res.error}`);
-                }
-                const project = await createLocal({
-                    name,
-                    rootPath,
-                    framework: 'static-html',
-                    port: STATIC_HTML_SCAFFOLD_PORT,
+            setPhase('creating');
+            const copy = await localfs.createPrivateWorkingCopy(rootPath);
+            if (copy.error || !copy.rootPath) {
+                throw new Error(copy.error ?? 'Could not create a private working copy.');
+            }
+            if (copy.priorCopyId) {
+                toast.warning(gitText('handoffNewCopy', { appName: APP_NAME }), {
+                    description: copy.priorRootPath,
                 });
-                setPhase('opening');
-                router.push(`${Routes.PROJECT}/${project._id}`);
-                return;
+            }
+            if (copy.exclusions?.some((entry) => entry.reason === 'credentials')) {
+                toast.warning(gitText('copyCredentialsOmitted'));
+            }
+            const workingRoot = copy.rootPath;
+            const cacheKey = copy.copyId && user?._id
+                ? `weblab:local-project:${user._id}:${copy.copyId}`
+                : null;
+            if (cacheKey) {
+                try {
+                    const cachedId = window.localStorage.getItem(cacheKey);
+                    if (cachedId) {
+                        const existing = await convex.query(api.projects.get, {
+                            projectId: cachedId as Id<'projects'>,
+                        });
+                        if (existing?.storageMode === 'local') {
+                            setPhase('opening');
+                            router.push(`${Routes.PROJECT}/${cachedId}`);
+                            return;
+                        }
+                        window.localStorage.removeItem(cacheKey);
+                    }
+                } catch {
+                    // A stale or inaccessible project can be recreated below.
+                    try { window.localStorage.removeItem(cacheKey); } catch { /* storage unavailable */ }
+                }
             }
 
-            // Existing project: infer framework + port from its package.json so
+            // Infer framework + port from the private copy so
             // the project's frame URL matches the port the dev server binds.
-            setPhase('creating');
             const [pkgRes, idxRes] = await Promise.all([
-                localfs.read(rootPath, 'package.json'),
-                localfs.read(rootPath, 'index.html'),
+                localfs.read(workingRoot, 'package.json'),
+                localfs.read(workingRoot, 'index.html'),
             ]);
             const hasIndexHtml = !idxRes.error && !!idxRes.content;
             const { framework, port, portIsExplicit } = inferFrameworkAndPort(
@@ -220,9 +246,20 @@ export function useOpenLocalProject() {
             // (explicit dev-script flag, or Vite/static which ignore PORT) keep
             // the inferred port so the frame URL matches what the server binds.
             const resolvedPort =
-                framework === 'nextjs' && !portIsExplicit ? await resolveFreeLocalPort(port) : port;
+                framework === 'nextjs' && !portIsExplicit
+                    ? await resolveFreeLocalPort(workingRoot, port)
+                    : port;
 
-            const project = await createLocal({ name, rootPath, framework, port: resolvedPort });
+            const project = await createLocal({
+                name,
+                rootPath: workingRoot,
+                framework,
+                port: resolvedPort,
+            });
+            if (cacheKey) {
+                try { window.localStorage.setItem(cacheKey, project._id); }
+                catch { /* project creation succeeded even if browser storage is unavailable */ }
+            }
             setPhase('opening');
             router.push(`${Routes.PROJECT}/${project._id}`);
         } catch (err) {
@@ -243,6 +280,11 @@ export function useOpenLocalProject() {
 
         setPhase('picking');
         const picked = await localfs.pickFolder();
+        if (picked?.error) {
+            toast.error(picked.error);
+            setPhase('idle');
+            return;
+        }
         if (!picked?.rootPath) {
             setPhase('idle');
             return;
@@ -260,7 +302,7 @@ export function useOpenLocalProject() {
      */
     const createLocalBlank = async (framework: LocalBlankFramework) => {
         const localfs = getLocalFs();
-        if (!localfs?.write) {
+        if (!localfs?.writeIfUnchanged) {
             toast.error('Local projects are only available in the Weblab desktop app.');
             return;
         }
@@ -291,8 +333,10 @@ export function useOpenLocalProject() {
             const files =
                 framework === 'nextjs' ? getNextJsScaffoldFiles() : getStaticHtmlScaffoldFiles();
             for (const file of files) {
-                const res = await localfs.write(rootPath, file.path, file.content);
-                if (res.error) throw new Error(`Failed to write ${file.path}: ${res.error}`);
+                const res = await localfs.writeIfUnchanged(rootPath, file.path, file.content, null);
+                if (!res.success) {
+                    throw new Error(`Failed to write ${file.path}: ${res.error ?? 'file already exists'}`);
+                }
             }
 
             const project = await createLocal({
@@ -303,7 +347,7 @@ export function useOpenLocalProject() {
                 // port instead of :3000. Static `serve` pins its own -l port.
                 port:
                     framework === 'nextjs'
-                        ? await resolveFreeLocalPort(NEXTJS_SCAFFOLD_PORT)
+                        ? await resolveFreeLocalPort(rootPath, NEXTJS_SCAFFOLD_PORT)
                         : STATIC_HTML_SCAFFOLD_PORT,
             });
 

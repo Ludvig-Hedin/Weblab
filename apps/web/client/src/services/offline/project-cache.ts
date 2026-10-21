@@ -184,29 +184,18 @@ export async function getLastOpenedProject(): Promise<string | null> {
     }
 }
 
-/**
- * Ask the active service worker to fetch + cache the given URLs so they're
- * navigable offline. Falls back to a direct `fetch` if no SW is controlling
- * the page (e.g. dev mode without SW). Best-effort: never throws.
- */
-export async function precacheNavigationUrls(urls: string[]): Promise<void> {
+/** Warm only the anonymous offline page and public assets. Never fetch private routes. */
+export async function precacheOfflineShell(): Promise<void> {
     if (typeof window === 'undefined') return;
-    if (urls.length === 0) return;
     try {
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({
                 type: 'WEBLAB_PRECACHE_URLS',
-                urls,
+                urls: ['/offline', '/manifest.webmanifest', '/favicon.svg', '/favicon.png', '/weblab-preload-script.js'],
             });
-            return;
         }
-        // Fallback: hit each URL so the browser HTTP cache at least has a
-        // recent copy, even if the SW route isn't active.
-        await Promise.all(
-            urls.map((url) => fetch(url, { credentials: 'include' }).catch(() => undefined)),
-        );
     } catch (err) {
-        console.warn('[offline] precacheNavigationUrls failed', err);
+        console.warn('[offline] precacheOfflineShell failed', err);
     }
 }
 

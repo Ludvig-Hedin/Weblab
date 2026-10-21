@@ -13,6 +13,9 @@ const NEEDS_QUOTES = /[\s#"'\\]/;
 const BACKSLASH = /\\/g;
 const DOUBLE_QUOTE = /"/g;
 const NEWLINE = /\r?\n/;
+const REQUIRED_NOTE = /\brequired\b/i;
+const OPTIONAL_NOTE =
+  /\boptional\b|\bnot required\b|\brequired (?:only )?(?:for|in|on) (?:production|deployment|deploys?|ci)\b/i;
 
 function unquote(raw) {
   const value = raw.trim();
@@ -41,7 +44,7 @@ function exampleFile(dir) {
   return EXAMPLE_FILES.find((name) => fs.existsSync(join(dir, name))) || null;
 }
 
-/** Keys from the example file, each with the comment lines right above it. */
+/** A comment describes its contiguous assignment block, until a blank line. */
 function exampleKeys(dir) {
   const name = exampleFile(dir);
   const lines = name ? readLines(join(dir, name)) : null;
@@ -50,6 +53,7 @@ function exampleKeys(dir) {
   }
   const keys = [];
   let comments = [];
+  let blockHint = "";
   for (const line of lines) {
     const comment = line.match(COMMENT);
     if (comment) {
@@ -57,11 +61,21 @@ function exampleKeys(dir) {
       continue;
     }
     const assignment = line.match(ASSIGNMENT);
+    if (!assignment) {
+      comments = [];
+      blockHint = "";
+      continue;
+    }
+    if (comments.length > 0) {
+      blockHint = comments.filter(Boolean).join(" ");
+    }
     if (assignment && !keys.some((entry) => entry.key === assignment[1])) {
       keys.push({
         example: unquote(assignment[2]),
-        hint: comments.filter(Boolean).join(" "),
+        hint: blockHint,
         key: assignment[1],
+        required:
+          REQUIRED_NOTE.test(blockHint) && !OPTIONAL_NOTE.test(blockHint),
       });
     }
     comments = [];
@@ -89,11 +103,15 @@ function currentValues(dir) {
 /** Everything the settings screen needs. Values only go to the renderer. */
 function describe(dir) {
   const values = currentValues(dir);
-  return exampleKeys(dir).map(({ key, hint, example }) => ({
+  // Example values are documentation, not a list of required local settings.
+  // Only an explicit Required comment can interrupt opening the site. Never
+  // copy example defaults into .env.local (they may include release switches).
+  return exampleKeys(dir).map(({ key, hint, example, required }) => ({
     hint,
     key,
-    missing: !values[key],
+    missing: required && !values[key],
     placeholder: example,
+    required,
     secret: SECRET_NAME.test(key),
     value: values[key] || "",
   }));

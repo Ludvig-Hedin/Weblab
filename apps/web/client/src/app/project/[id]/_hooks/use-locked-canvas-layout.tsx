@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 
 import { EditorMode } from '@weblab/models';
 
@@ -56,12 +56,12 @@ export function useLockedCanvasLayout(
         : 0;
     const focusedX = focused?.frame.position.x ?? 0;
     const focusedY = focused?.frame.position.y ?? 0;
-    const focusedDimHeight = focused?.frame.dimension.height ?? 0;
     const scale = editorEngine.canvas.scale;
 
     // Structural re-fit: on lock-on, frame switch, responsive-width change, and
     // panel/window resize — recompute fit-to-width scale + centered position.
-    useEffect(() => {
+    // Layout effect: apply before paint so the unfitted frame never flashes.
+    useLayoutEffect(() => {
         if (!layoutActive || !focusedId) return;
         const fit = computeLockedFit({
             frameWidth: focusedWidth,
@@ -89,9 +89,11 @@ export function useLockedCanvasLayout(
 
     // Keep the frame contained on manual +/- zoom (scale changes) without
     // re-fitting — so zooming in never reveals empty canvas.
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!layoutActive || !focusedId) return;
-        const height = editorEngine.frames.get(focusedId)?.contentHeight ?? focusedDimHeight;
+        // Page view: the frame is exactly one screen tall and scrolls inside,
+        // so its on-screen height is the visible area, not the page length.
+        const height = Math.max(1, viewport.height - LOCKED_TOP_GAP) / scale;
         const clamped = clampLockedPosition({
             position: editorEngine.canvas.position,
             scale,
@@ -111,7 +113,6 @@ export function useLockedCanvasLayout(
         focusedWidth,
         focusedX,
         focusedY,
-        focusedDimHeight,
         toolbarLeft,
         toolbarRight,
         viewport.width,

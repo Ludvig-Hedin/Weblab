@@ -1,0 +1,144 @@
+{
+    "home": {
+        "title": "En plats för idéer som blir verklighet.",
+        "intro": "Tankar om design och teknik, från första skiss till något som går att använda. Artiklarna här är exempel för den här testsidan."
+    },
+    "posts": [
+        {
+            "_id": "sample-design",
+            "title": "En skiss som går att prova",
+            "slug": "en-skiss-som-gar-att-prova",
+            "excerpt": "En påhittad berättelse om att göra en tidig idé enkel att förstå och testa.",
+            "category": "Design",
+            "publishedAt": "2026-10-01",
+            "image": null,
+            "body": [
+                {
+                    "_key": "design-intro",
+                    "_type": "block",
+                    "style": "normal",
+                    "children": [
+                        {
+                            "_key": "design-intro-1",
+                            "_type": "span",
+                            "text": "I det här fiktiva exemplet börjar en ny idé med en enkel skiss. Målet är att göra ",
+                            "marks": []
+                        },
+                        {
+                            "_key": "design-intro-2",
+                            "_type": "span",
+                            "text": "nästa steg tydligt",
+                            "marks": ["strong"]
+                        },
+                        {
+                            "_key": "design-intro-3",
+                            "_type": "span",
+                            "text": " för den som ska använda den.",
+                            "marks": []
+                        }
+                    ]
+                },
+                {
+                    "_key": "design-heading",
+                    "_type": "block",
+                    "style": "h2",
+                    "children": [
+                        {
+                            "_key": "design-heading-1",
+                            "_type": "span",
+                            "text": "Börja med en fråga",
+                            "marks": []
+                        }
+                    ]
+                },
+                {
+                    "_key": "design-detail",
+                    "_type": "block",
+                    "style": "normal",
+                    "children": [
+                        {
+                            "_key": "design-detail-1",
+                            "_type": "span",
+                            "text": "Vad behöver någon kunna göra? En liten prototyp kan hjälpa oss att ",
+                            "marks": []
+                        },
+                        {
+                            "_key": "design-detail-2",
+                            "_type": "span",
+                            "text": "utforska frågan",
+                            "marks": ["em"]
+                        },
+                        {
+                            "_key": "design-detail-3",
+                            "_type": "span",
+                            "text": " innan vi bygger vidare.",
+                            "marks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "_id": "sample-technology",
+            "title": "När innehållet får en egen plats",
+            "slug": "nar-innehallet-far-en-egen-plats",
+            "excerpt": "Ett fiktivt exempel på hur text kan uppdateras utan att sidans form behöver ändras.",
+            "category": "Teknik",
+            "publishedAt": "2026-09-28",
+            "image": null,
+            "body": [
+                {
+                    "_key": "technology-intro",
+                    "_type": "block",
+                    "style": "normal",
+                    "children": [
+                        {
+                            "_key": "technology-intro-1",
+                            "_type": "span",
+                            "text": "Den här fiktiva artikeln visar ett arbetssätt där ",
+                            "marks": []
+                        },
+                        {
+                            "_key": "technology-intro-2",
+                            "_type": "span",
+                            "text": "innehåll och form",
+                            "marks": ["strong", "em"]
+                        },
+                        {
+                            "_key": "technology-intro-3",
+                            "_type": "span",
+                            "text": " har varsin plats. En rubrik kan då ändras utan att hela sidan byggs om.",
+                            "marks": []
+                        }
+                    ]
+                },
+                {
+                    "_key": "technology-heading",
+                    "_type": "block",
+                    "style": "h2",
+                    "children": [
+                        {
+                            "_key": "technology-heading-1",
+                            "_type": "span",
+                            "text": "Från text till sida",
+                            "marks": []
+                        }
+                    ]
+                },
+                {
+                    "_key": "technology-detail",
+                    "_type": "block",
+                    "style": "normal",
+                    "children": [
+                        {
+                            "_key": "technology-detail-1",
+                            "_type": "span",
+                            "text": "Redaktören skriver och publicerar. Sidan hämtar det publicerade innehållet och visar det i samma enkla form.",
+                            "marks": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

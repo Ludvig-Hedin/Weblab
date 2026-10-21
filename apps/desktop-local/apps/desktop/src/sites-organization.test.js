@@ -23,6 +23,7 @@ let bookmark;
 function load(name, overrides = {}) {
   const module = { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(directory, name), "utf8"), {
+    AbortController,
     Buffer,
     clearInterval,
     clearTimeout,
@@ -449,6 +450,14 @@ test("active runner keeps its identity monitor after becoming ready and stops on
           )
         );
         return child;
+      },
+    },
+    "node:http": {
+      get(_url, _options, respond) {
+        const request = new EventEmitter();
+        request.setTimeout = () => undefined;
+        queueMicrotask(() => respond({ resume() {}, statusCode: 200 }));
+        return request;
       },
     },
     "node:net": {

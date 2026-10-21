@@ -12,9 +12,9 @@
  *  1. Cascade undefined values **down** from the next-larger defined one
  *     (matches the desktop-first user mental model — "I drew this at Desktop;
  *     it should look right everywhere by default").
- *  2. Walk smallest → largest. Emit base for the smallest breakpoint. For
- *     each next breakpoint, only emit a prefix when its value differs from
- *     the previously emitted value.
+ *  2. Walk smallest → largest. Emit base for Phone (or width zero). A sparse
+ *     Tablet/Desktop edit keeps its min-width prefix instead of leaking into
+ *     smaller widths. Skip values unchanged from the previous emit.
  *  3. Map breakpoint widths to Tailwind prefixes using the project's config
  *     (or Tailwind 3 defaults if config is unavailable).
  *
@@ -47,6 +47,8 @@ export interface RebasedEntry {
 export interface RebaseOptions {
     /** Tailwind breakpoint name → min-width (px). Defaults to v3 defaults. */
     tailwindPrefixes?: Record<string, number>;
+    /** Keep the exact preview threshold instead of flooring to a preset band. */
+    exactThresholds?: boolean;
 }
 
 const DEFAULT_TAILWIND_PREFIXES: Record<string, number> = {
@@ -65,8 +67,13 @@ const DEFAULT_TAILWIND_PREFIXES: Record<string, number> = {
 export function tailwindPrefixForWidth(
     width: number,
     prefixes: Record<string, number> = DEFAULT_TAILWIND_PREFIXES,
+    exactThresholds = false,
 ): string {
     if (width <= 0) return '';
+    if (exactThresholds) {
+        const exact = Object.entries(prefixes).find(([, minWidth]) => minWidth === width);
+        return exact ? `${exact[0]}:` : `[@media(min-width:${Math.round(width)}px)]:`;
+    }
     // Pick the closest preset at-or-below the requested width. Tailwind
     // breakpoints are min-widths, so a frame at 1200px uses `lg:` (1024px+).
     // Falls back to arbitrary `[@media(min-width:Npx)]:` only when no preset
@@ -134,11 +141,15 @@ export function rebaseToMobileFirst(
     const out: RebasedEntry[] = [];
     let lastEmitted: string | undefined;
     const prefixes = options.tailwindPrefixes ?? DEFAULT_TAILWIND_PREFIXES;
-    let isFirst = true;
     for (const e of ascending) {
         if (e.value === undefined) continue;
-        if (e.value === lastEmitted && !isFirst) continue;
-        const tailwindPrefix = isFirst ? '' : tailwindPrefixForWidth(e.minWidth, prefixes);
+        if (e.value === lastEmitted) continue;
+        // A sparse edit may begin at Tablet or Desktop. Treating its first
+        // entry as the base class leaks that value into smaller widths.
+        const tailwindPrefix =
+            (!options.exactThresholds && e.id === 'phone') || e.minWidth <= 0
+                ? ''
+                : tailwindPrefixForWidth(e.minWidth, prefixes, options.exactThresholds);
         const prior = out[out.length - 1];
         if (prior && tailwindPrefix !== '' && prior.tailwindPrefix === tailwindPrefix) {
             // Same band as the previous emit — the larger minWidth wins.
@@ -155,7 +166,6 @@ export function rebaseToMobileFirst(
             tailwindPrefix,
         });
         lastEmitted = e.value;
-        isFirst = false;
     }
     return out;
 }

@@ -37,7 +37,7 @@ export class OverlayManager {
                 shouldHideOverlay: this.editorEngine.state?.shouldHideOverlay,
             }),
             () => {
-                this.refresh();
+                void this.refresh();
             },
         );
     }
@@ -108,15 +108,16 @@ export class OverlayManager {
             return;
         }
 
-        this.state.removeClickRects();
-        for (const clickRect of newClickRects) {
-            this.state.addClickRect(
-                clickRect.rect,
-                clickRect.styles,
-                clickRect.isComponent,
-                clickRect.domId,
-            );
-        }
+        // Replace the outlines in one observable update. Clearing and adding
+        // them one by one made the selection blink during canvas movement.
+        this.state.replaceClickRects(
+            newClickRects.map(({ rect, styles, isComponent, domId }) => ({
+                ...rect,
+                styles,
+                isComponent,
+                id: domId,
+            })),
+        );
 
         // Keep the master-edit scope rect (dim cutout) in sync with pan/zoom
         // and post-edit DOM updates.
@@ -131,19 +132,32 @@ export class OverlayManager {
         // Refresh text editor position if it's active
         if (this.editorEngine.text.isEditing && this.editorEngine.text.targetElement) {
             const targetElement = this.editorEngine.text.targetElement;
+            const textEditor = this.state.textEditor;
             const frameData = this.editorEngine.frames.get(targetElement.frameId);
-            if (frameData?.view) {
+            if (frameData?.view && textEditor) {
+                const view = frameData.view;
+                const isCurrent = () => epoch === this.refreshEpoch &&
+                    this.editorEngine.text.targetElement === targetElement &&
+                    this.state.textEditor === textEditor &&
+                    this.editorEngine.frames.get(targetElement.frameId)?.view === view;
                 try {
-                    const el: DomElement = await frameData.view.getElementByDomId(
+                    const el: DomElement | null = await view.getElementByDomId(
                         targetElement.domId,
                         true,
                     );
-                    if (el) {
-                        const adaptedRect = adaptRectToCanvas(el.rect, frameData.view);
-                        this.state.updateTextEditor(adaptedRect, {
-                            styles: el.styles?.computed,
-                        });
+                    if (!el || !isCurrent()) return;
+                    let styles = textEditor.styles;
+                    try {
+                        const computed = await view.getComputedStyleByDomId(targetElement.domId);
+                        // Older preload bundles omit named typography fields.
+                        // Preserve those captured at start instead of falling
+                        // back to the parent document's font during refresh.
+                        if (computed) styles = { ...styles, ...computed };
+                    } catch {
+                        // Geometry can still refresh with the last good styles.
                     }
+                    if (!isCurrent()) return;
+                    this.state.updateTextEditor(adaptRectToCanvas(el.rect, view), { styles });
                 } catch (error) {
                     console.error('Error refreshing text editor position:', error);
                 }

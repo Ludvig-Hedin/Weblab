@@ -60,7 +60,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
     // Initialize SDKs once, only after user has granted cookie consent.
     // Until consent is granted, no analytics/feedback SDK loads or fires.
     useEffect(() => {
-        if (!hasCookieConsent()) {
+        if (pathname.startsWith('/invitation/cloud/') || !hasCookieConsent()) {
             return;
         }
         let cancelled = false;
@@ -80,6 +80,12 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
                         capture_pageview: 'history_change',
                         capture_pageleave: true,
                         capture_exceptions: true,
+                        before_send: (event) => {
+                            if (window.location.pathname.startsWith('/invitation/cloud/')) return null;
+                            const url: unknown = event?.properties?.$current_url;
+                            if (typeof url === 'string' && url.includes('/invitation/cloud/')) return null;
+                            return event;
+                        },
                     });
                     if (!cancelled) setClientsRevision((n) => n + 1);
                 } catch (e) {
@@ -113,7 +119,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [pathname]);
 
     // Identify or clear identity on user changes
     useEffect(() => {

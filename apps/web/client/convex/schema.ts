@@ -1,5 +1,8 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
+import { cloudEditorTables } from './cloudEditorSchema';
+import { sanityBlogTables } from './cmsSanityBlogSchema';
+import { nativeReleaseTables } from './nativeReleasesSchema';
 
 import {
     vAgentType,
@@ -107,6 +110,9 @@ const layoutGuideValidator = v.object({
 });
 
 export default defineSchema({
+    ...cloudEditorTables,
+    ...sanityBlogTables,
+    ...nativeReleaseTables,
     // -------------------------------------------------------------------------
     // Users + settings + auth-derived data
     // -------------------------------------------------------------------------
@@ -485,6 +491,7 @@ export default defineSchema({
 
     cmsFields: defineTable({
         collectionId: v.id('cmsCollections'),
+        revision: v.optional(v.number()),
         name: v.string(),
         key: v.string(),
         type: vCmsFieldType,
@@ -500,17 +507,67 @@ export default defineSchema({
 
     cmsItems: defineTable({
         collectionId: v.id('cmsCollections'),
+        revision: v.optional(v.number()), // Legacy rows start at revision zero.
         slug: v.optional(v.string()),
         status: vCmsItemStatus,
+        archivedAt: v.optional(v.number()),
         remoteId: v.optional(v.string()),
         values: v.any(),
         publishedAt: v.optional(v.number()),
         updatedAt: v.number(),
     })
         .index('by_collection', ['collectionId'])
+        .index('by_collection_updated', ['collectionId', 'updatedAt'])
         .index('by_collection_slug', ['collectionId', 'slug'])
         .index('by_collection_remote', ['collectionId', 'remoteId'])
         .index('by_collection_status', ['collectionId', 'status']),
+
+    cmsSanityOperations: defineTable({
+        projectId: v.id('projects'),
+        sourceId: v.id('cmsSources'),
+        operationKey: v.string(),
+        ownerTokenIdentifier: v.string(),
+        ownerUserId: v.id('users'),
+        requestJson: v.string(),
+        scheduledFunctionId: v.optional(v.id('_scheduled_functions')),
+        stage: v.union(v.literal('reserved'), v.literal('sending')),
+        kind: v.union(v.literal('create'), v.literal('update'), v.literal('delete')),
+        documentId: v.string(),
+        requestHash: v.string(),
+        expectedRevision: v.optional(v.string()),
+        sourceUpdatedAt: v.number(),
+        state: v.union(v.literal('pending'), v.literal('succeeded'), v.literal('failed'), v.literal('conflict'), v.literal('unknown')),
+        expectedDocumentJson: v.optional(v.string()),
+        beforeDocumentJson: v.optional(v.string()),
+        resultDocumentJson: v.optional(v.string()),
+        resultRevision: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index('by_source_operation_key', ['sourceId', 'operationKey'])
+        .index('by_source', ['sourceId'])
+        .index('by_source_state', ['sourceId', 'state'])
+        .index('by_source_document_id_state', ['sourceId', 'documentId', 'state'])
+        .index('by_project', ['projectId']),
+
+    cmsSanityReadiness: defineTable({
+        projectId: v.id('projects'),
+        sourceId: v.id('cmsSources'),
+        documentId: v.string(),
+        revision: v.string(),
+        sourceUpdatedAt: v.number(),
+        intent: v.union(v.literal('include'), v.literal('exclude')),
+        updatedAt: v.number(),
+    })
+        .index('by_source_document_id', ['sourceId', 'documentId'])
+        .index('by_source', ['sourceId'])
+        .index('by_project', ['projectId']),
+
+    cmsReleaseSnapshots: defineTable({
+        projectId: v.id('projects'),
+        content: v.string(),
+        createdAt: v.number(),
+    }).index('by_project', ['projectId']),
 
     cmsCollectionPages: defineTable({
         projectId: v.id('projects'),
@@ -820,6 +877,53 @@ export default defineSchema({
         // Range index for the purge cron — drop rows whose window closed long
         // ago, mirroring `stripeEventLog.by_processed_at`.
         .index('by_window_start', ['windowStart']),
+
+    // -------------------------------------------------------------------------
+    // AI runaway / spike safeguards (convex/aiGuards.ts, lib/aiGuardConfig.ts)
+    // -------------------------------------------------------------------------
+    // Per-key request rate-limit log, generalising `transcribeRateLimits`.
+    // `key` is `${userId}:${bucket}` for per-user AI buckets, or
+    // `project:${projectId}:screenshotForce` for forced screenshot captures.
+    // `timestamps` is bounded by the largest rule's max (blocked requests are
+    // never appended). The llm bucket row also carries the auto-continuation
+    // counter for the user's current chat turn.
+    aiRateLimits: defineTable({
+        key: v.string(),
+        timestamps: v.array(v.number()),
+        turnKey: v.optional(v.string()),
+        turnContinuations: v.optional(v.number()),
+        updatedAt: v.number(),
+    })
+        .index('by_key', ['key'])
+        // Purge-cron range index.
+        .index('by_updated_at', ['updatedAt']),
+
+    // Per-user real AI spend (USD): UTC-day total + rolling-hour 5-minute
+    // slots (max 12 entries). Separate from billing credits — this is a
+    // runaway cap, not a quota the user buys.
+    aiUserSpend: defineTable({
+        userId: v.id('users'),
+        dayStart: v.number(),
+        dayUsd: v.number(),
+        hourSlots: v.array(v.object({ start: v.number(), usd: v.number() })),
+        updatedAt: v.number(),
+    })
+        .index('by_user', ['userId'])
+        .index('by_updated_at', ['updatedAt']),
+
+    // Fleet-wide real AI spend per UTC day, sharded across a few rows per day
+    // (FLEET_SPEND_SHARDS) so concurrent spend writes don't all contend on one
+    // document. Day total = sum of that day's shards (one bounded index read
+    // before every AI request). ~8 rows/day, kept as history.
+    aiFleetSpend: defineTable({
+        dayStart: v.number(),
+        shard: v.optional(v.number()),
+        usd: v.number(),
+        events: v.number(),
+        updatedAt: v.number(),
+    })
+        .index('by_day', ['dayStart'])
+        .index('by_day_shard', ['dayStart', 'shard']),
 
     // -------------------------------------------------------------------------
     // Presence (live cursors)

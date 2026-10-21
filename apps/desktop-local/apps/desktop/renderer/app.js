@@ -3,6 +3,8 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 let currentSite = null;
+let aiConnected = false;
+let connectReturnSite = null;
 
 function showAvailableUpdate(version) {
   const button = $("#update-available");
@@ -38,6 +40,7 @@ function show(name) {
     setMode("edit");
   }
   $("#error-settings").hidden = !(name === "error" && canEditSettings);
+  paintAiEntry();
 }
 
 // Edit and Preview. The editor owns the mode; these buttons ask for one and
@@ -71,6 +74,49 @@ function setStatus(text, state) {
 }
 
 // Connect Claude
+
+function paintAiEntry() {
+  const screen = $(".screen:not([hidden])")?.dataset.screen;
+  $("#topbar-connect").hidden =
+    aiConnected || !["dashboard", "editor"].includes(screen);
+}
+
+async function openConnect() {
+  connectReturnSite = currentSite?.id || null;
+  try {
+    if (connectReturnSite) {
+      await api.editor.setVisible(false);
+    }
+    $("#connect-key-note").hidden = !connectReturnSite;
+    connectStep("start");
+    show("connect");
+  } catch {
+    setStatus("Could not open Claude sign-in. Try again.", "error");
+  }
+}
+
+async function finishConnect(keySaved = false) {
+  $("#key-input").value = "";
+  const returnSite = connectReturnSite;
+  connectReturnSite = null;
+  if (returnSite && currentSite?.id === returnSite) {
+    try {
+      await api.editor.setVisible(true);
+      show("editor");
+      if (keySaved) {
+        setStatus("Key saved. Reopen this site to use AI.");
+      }
+    } catch {
+      connectReturnSite = returnSite;
+      connectError("Could not return to the site. Try again.");
+    }
+  } else if (!currentSite) {
+    await goDashboard();
+  }
+}
+
+$("#topbar-connect").addEventListener("click", openConnect);
+$("#continue-without-ai").addEventListener("click", () => finishConnect());
 
 function connectStep(step) {
   for (const el of $$("[data-connect]")) {
@@ -127,12 +173,16 @@ $("#key-back").addEventListener("click", () => connectStep("start"));
 
 $("#key-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const result = await api.auth.saveApiKey($("#key-input").value);
-  if (result.ok) {
-    $("#key-input").value = "";
-    goDashboard();
-  } else {
-    connectError(result.message);
+  try {
+    const result = await api.auth.saveApiKey($("#key-input").value);
+    if (result.ok) {
+      aiConnected = true;
+      await finishConnect(true);
+    } else {
+      connectError(result.message);
+    }
+  } catch {
+    connectError("Could not save the key. Try again.");
   }
 });
 
@@ -143,8 +193,10 @@ api.auth.onEvent((event) => {
   }
   if (event.type === "done") {
     if (event.ok) {
+      aiConnected = true;
+      paintAiEntry();
       if (!$('[data-screen="connect"]').hidden) {
-        goDashboard();
+        finishConnect();
       }
     } else {
       connectStep("start");
@@ -1309,11 +1361,18 @@ api.nav.onSiteError((message) => {
 // Start
 
 (async () => {
-  const state = await api.auth.state();
-  if (state.connected) {
-    goDashboard();
-  } else {
+  try {
+    const state = await api.auth.state();
+    aiConnected = Boolean(state.connected);
+    if (aiConnected) {
+      goDashboard();
+    } else {
+      connectStep("start");
+      show("connect");
+    }
+  } catch {
     connectStep("start");
     show("connect");
+    connectError("Could not check Claude. You can continue without AI.");
   }
 })();

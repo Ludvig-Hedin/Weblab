@@ -1,9 +1,11 @@
 import { v } from 'convex/values';
+import { makeFunctionReference } from 'convex/server';
 
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation, query } from './_generated/server';
 import { requireCap } from './lib/permissions';
+import { assertSanitySourceRemovable } from './cmsSanityState';
 
 // Port of src/server/api/routers/cms/source.ts. Mutations that need
 // AES-256-GCM live in cmsActions.ts (Node runtime); this file is
@@ -14,7 +16,7 @@ import { requireCap } from './lib/permissions';
 // encryptCmsCredentials before invoking this mutation). Keeps the
 // encryption boundary entirely in cmsActions.ts.
 
-const externalSourceTypes = v.union(v.literal('payload'), v.literal('strapi'), v.literal('rest'));
+const externalSourceTypes = v.union(v.literal('payload'), v.literal('strapi'), v.literal('rest'), v.literal('sanity'));
 
 function stripCredentials<T extends { credentials?: unknown }>(row: T): Omit<T, 'credentials'> {
     const { credentials: _credentials, ...rest } = row;
@@ -31,7 +33,7 @@ export const list = query({
             .collect();
         // Sort by creation time ascending to match Drizzle ordering.
         rows.sort((a, b) => a._creationTime - b._creationTime);
-        return rows.map((row) => stripCredentials(row));
+        return rows.filter((row) => row.status !== 'deleting').map((row) => stripCredentials(row));
     },
 });
 
@@ -43,7 +45,7 @@ export const get = query({
     handler: async (ctx, { projectId, sourceId }) => {
         await requireCap(ctx, 'project.view', { projectId });
         const row = await ctx.db.get(sourceId);
-        if (!row || row.projectId !== projectId) return null;
+        if (!row || row.projectId !== projectId || row.status === 'deleting') return null;
         return stripCredentials(row);
     },
 });
@@ -63,7 +65,7 @@ export const getWithCredentials = query({
     handler: async (ctx, { projectId, sourceId }) => {
         await requireCap(ctx, 'project.update', { projectId });
         const row = await ctx.db.get(sourceId);
-        if (!row || row.projectId !== projectId) return null;
+        if (!row || row.projectId !== projectId || row.status === 'deleting') return null;
         return row;
     },
 });
@@ -109,10 +111,12 @@ export const update = mutation({
         if (!existing || existing.projectId !== projectId) {
             throw new Error('NOT_FOUND: source');
         }
+        if (existing.status === 'deleting') throw new Error('CONFLICT: Source removal is in progress.');
         if (existing.type === 'weblab') {
             throw new Error('BAD_REQUEST: The default Weblab CMS source cannot be edited');
         }
-        const patch: Partial<Doc<'cmsSources'>> = { updatedAt: Date.now() };
+        if (existing.type === 'sanity') await assertSanitySourceRemovable(ctx, projectId, sourceId);
+        const patch: Partial<Doc<'cmsSources'>> = { updatedAt: Math.max(Date.now(), existing.updatedAt + 1) };
         if (name !== undefined) {
             const trimmed = name.trim();
             if (trimmed.length === 0 || trimmed.length > 80) {
@@ -155,7 +159,15 @@ export const remove = mutation({
                 `BAD_REQUEST: Cannot delete: ${referencing.length} collection(s) still use this source`,
             );
         }
-        await ctx.db.delete(sourceId);
+        if (existing.type === 'sanity') {
+            await assertSanitySourceRemovable(ctx, projectId, sourceId);
+            await ctx.db.patch(sourceId, { status: 'deleting', updatedAt: Date.now() });
+            await ctx.scheduler.runAfter(0, makeFunctionReference<'mutation', {
+                projectId: Id<'projects'>; sourceId: Id<'cmsSources'>;
+            }>('cmsSanityState:finalizeSourceRemoval'), { projectId, sourceId });
+        } else {
+            await ctx.db.delete(sourceId);
+        }
         return { success: true } as const;
     },
 });

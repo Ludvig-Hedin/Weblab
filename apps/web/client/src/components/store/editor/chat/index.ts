@@ -10,6 +10,15 @@ import { ConversationManager } from './conversation';
 export const FOCUS_CHAT_INPUT_EVENT = 'focus-chat-input';
 export const OPEN_CHAT_PANEL_EVENT = 'weblab:open-chat-panel';
 export const OPEN_STYLE_PANEL_EVENT = 'weblab:open-style-panel';
+export const STARTUP_RECOVERY_EVENT = 'weblab:startup-recovery-requested';
+
+type StartupRecoveryRequest = {
+    id: number;
+    branchId: string;
+    model: string;
+    prompt: string;
+};
+
 export class ChatManager {
     conversation: ConversationManager;
     context: ChatContext;
@@ -17,7 +26,10 @@ export class ChatManager {
     // Content sent from useChat hook
     _sendMessageAction: SendMessage | null = null;
     isStreaming = false;
+    queuedMessageCount = 0;
     pendingFixErrorsRequest = false;
+    pendingStartupRecovery: StartupRecoveryRequest | null = null;
+    private startupRecoveryId = 0;
 
     constructor(private editorEngine: EditorEngine) {
         this.context = new ChatContext(this.editorEngine);
@@ -70,6 +82,10 @@ export class ChatManager {
         this.isStreaming = isStreaming;
     }
 
+    setQueuedMessageCount(count: number) {
+        this.queuedMessageCount = count;
+    }
+
     setChatActions(sendMessage: SendMessage) {
         this._sendMessageAction = sendMessage;
     }
@@ -86,6 +102,23 @@ export class ChatManager {
         this.pendingFixErrorsRequest = true;
     }
 
+    requestStartupRecovery(branchId: string, model: string, prompt: string) {
+        this.pendingStartupRecovery = {
+            id: ++this.startupRecoveryId,
+            branchId,
+            model,
+            prompt,
+        };
+        this.openChatPanel();
+        window.dispatchEvent(new Event(STARTUP_RECOVERY_EVENT));
+    }
+
+    consumeStartupRecovery(id: number): boolean {
+        if (this.pendingStartupRecovery?.id !== id) return false;
+        this.pendingStartupRecovery = null;
+        return true;
+    }
+
     consumeFixErrorsRequest(): boolean {
         if (!this.pendingFixErrorsRequest) return false;
         this.pendingFixErrorsRequest = false;
@@ -96,5 +129,7 @@ export class ChatManager {
         this.context.clear();
         this.conversation.clear();
         this.pendingFixErrorsRequest = false;
+        this.pendingStartupRecovery = null;
+        this.queuedMessageCount = 0;
     }
 }

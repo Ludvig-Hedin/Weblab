@@ -307,6 +307,32 @@ describe("TextEditor.begin", () => {
     expect(document.getSelection()?.toString()).toBe("Hello");
   });
 
+  it("requires explicit opt-in for a single empty text node", () => {
+    const { editor, node } = harness("<p></p>");
+    node.append(document.createTextNode(""));
+    expect(isEditableText(node)).toBe(false);
+    expect(textTargetIn(node)).toBeNull();
+    expect(editor.begin(node)).toBe(false);
+    expect(editor.begin(node, { allowEmpty: true })).toBe(true);
+    expect(editor.active).toBe(true);
+    editor.commit();
+  });
+
+  it("the empty-field opt-in does not allow containers or blank whitespace", () => {
+    const { editor, node, owners } = harness("<p></p>");
+    expect(editor.begin(node, { allowEmpty: true })).toBe(false);
+    node.append(document.createElement("span"));
+    expect(editor.begin(node, { allowEmpty: true })).toBe(false);
+    node.replaceChildren(document.createTextNode(" "));
+    expect(editor.begin(node, { allowEmpty: true })).toBe(false);
+    node.replaceChildren(
+      document.createTextNode(""),
+      document.createTextNode("")
+    );
+    expect(editor.begin(node, { allowEmpty: true })).toBe(false);
+    expect(owners).toEqual([]);
+  });
+
   it("asks the node's own document for the caret, not the shell's", () => {
     // The frame case, and the one that fails silently in production: a caret
     // resolved against `document` would land in the shell's DOM.

@@ -14,10 +14,10 @@ import { RedeemClient } from './redeem-client';
 // API), and isolating it in a child component keeps SSR fast.
 
 interface RedeemPageProps {
-    searchParams: Promise<{ ticket?: string }>;
+    searchParams: Promise<{ ticket?: string; state?: string }>;
 }
 
 export default async function SignInRedeemPage({ searchParams }: RedeemPageProps) {
-    const { ticket } = await searchParams;
-    return <RedeemClient ticket={ticket ?? null} />;
+    const { ticket, state } = await searchParams;
+    return <RedeemClient ticket={ticket ?? null} state={state ?? null} />;
 }

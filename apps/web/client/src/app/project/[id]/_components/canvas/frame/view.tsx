@@ -6,6 +6,7 @@ import { observer } from 'mobx-react-lite';
 import { connect, WindowMessenger } from 'penpal';
 
 import type { Frame } from '@weblab/models';
+import { EditorMode } from '@weblab/models';
 import type {
     PenpalChildMethods,
     PenpalParentMethods,
@@ -16,12 +17,14 @@ import { WebPreview, WebPreviewBody } from '@weblab/ui/ai-elements';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { authenticatedPreviewUrl } from '@/lib/cloud-editor/preview-url';
 import { useOnlineStatus } from '@/services/offline/online-status';
 import {
     getPreviewSnapshot,
     inlinePreloadIntoSnapshot,
     savePreviewSnapshot,
 } from '@/services/offline/preview-snapshot';
+import { LOCKED_TOP_GAP } from '../locked-layout';
 
 export type IFrameView = HTMLIFrameElement & {
     isPenpalReady: () => boolean;
@@ -99,7 +102,7 @@ const PENPAL_METHOD_NAMES = [
     'handleBodyReady', 'captureScreenshot', 'buildLayerTree', 'setCapabilities', 'setCmsData',
     'findListAncestorOid', 'serializeDocumentForOffline', 'playInteraction', 'pauseInteraction',
     'scrubInteraction', 'applyInitialStates', 'reloadInteractions', 'applyInteractionsConfig',
-    'listInteractionTargets',
+    'listInteractionTargets', 'scrollPageBy', 'setCanvasViewport',
 ] as const;
 
 // Creates a plain object of safe fallback methods, used before penpal connects
@@ -162,6 +165,10 @@ export const FrameComponent = observer(
         ) => {
             const { popover, ...props } = restProps;
             const editorEngine = useEditorEngine();
+            const cloudSource = editorEngine.branches.getBranchDataById(frame.branchId)?.sandbox.cloudSource;
+            const previewSrc = cloudSource
+                ? authenticatedPreviewUrl(frame.url, cloudSource.state.runtime) ?? ''
+                : frame.url;
             const iframeRef = useRef<HTMLIFrameElement>(null);
             const zoomLevel = useRef(1);
             const isConnecting = useRef(false);
@@ -483,8 +490,40 @@ export const FrameComponent = observer(
                     reloadInteractions: promisifyMethod(penpalChild?.reloadInteractions),
                     applyInteractionsConfig: promisifyMethod(penpalChild?.applyInteractionsConfig),
                     listInteractionTargets: promisifyMethod(penpalChild?.listInteractionTargets),
+                    scrollPageBy: promisifyMethod(penpalChild?.scrollPageBy),
+                    setCanvasViewport: promisifyMethod(penpalChild?.setCanvasViewport),
                 };
             }, [penpalChild]);
+
+            // Pin the page's viewport units to this breakpoint's screen height
+            // (a 100vh hero is one screen, not the whole auto-grown frame) and
+            // hold video/audio still unless the editor is in Preview. The
+            // locked page view is a real one-screen viewport, so it unpins.
+            const isPreviewMode = editorEngine.state.editorMode === EditorMode.PREVIEW;
+            const isLockedFocus =
+                editorEngine.state.canvasLocked &&
+                (editorEngine.frames.selected[0] ?? editorEngine.frames.getAll()[0])?.frame.id ===
+                    frame.id;
+            // A breakpoint's stored height can be missing or inflated by an old
+            // auto-grown frame; fall back to a typical screen for its width.
+            const screenWidth = frame.breakpoint?.width ?? frame.dimension.width;
+            const storedHeight = frame.dimension.height;
+            const screenHeight =
+                Number.isFinite(storedHeight) && storedHeight >= 480 && storedHeight <= 1600
+                    ? storedHeight
+                    : screenWidth <= 480
+                      ? 812
+                      : screenWidth <= 1024
+                        ? 1024
+                        : 900;
+            const viewportHeight = isLockedFocus ? null : screenHeight;
+            useEffect(() => {
+                if (!penpalChild) return;
+                void promisifyMethod(penpalChild.setCanvasViewport)({
+                    height: viewportHeight,
+                    playMedia: isPreviewMode,
+                }).catch(() => undefined);
+            }, [penpalChild, viewportHeight, isPreviewMode]);
 
             useImperativeHandle(ref, (): IFrameView => {
                 const iframe = iframeRef.current;
@@ -634,7 +673,7 @@ export const FrameComponent = observer(
                         // signal instead of a fork-bomb canvas.
                         {...(useSnapshot
                             ? { srcDoc: snapshotHtml ?? undefined }
-                            : { src: frame.url || EMPTY_FRAME_FALLBACK_SRC })}
+                            : { src: previewSrc || EMPTY_FRAME_FALLBACK_SRC })}
                         sandbox="allow-modals allow-forms allow-same-origin allow-scripts allow-popups allow-downloads"
                         allow="geolocation; microphone; camera; midi; encrypted-media"
                         style={(() => {
@@ -646,10 +685,20 @@ export const FrameComponent = observer(
                             const reported = editorEngine.frames.get(frame.id)?.contentHeight;
                             const MIN_HEIGHT = 360;
                             const MAX_HEIGHT = 50_000; // safety cap for runaway pages
-                            const height = Math.min(
-                                MAX_HEIGHT,
-                                Math.max(MIN_HEIGHT, reported ?? frame.dimension.height),
-                            );
+                            // Lock canvas page view: the pinned frame is exactly one
+                            // screen tall and the page scrolls inside it, like a real
+                            // browser (sticky headers, 100vh sections, scroll effects).
+                            const lockedFocus =
+                                editorEngine.state.canvasLocked &&
+                                (editorEngine.frames.selected[0] ??
+                                    editorEngine.frames.getAll()[0])?.frame.id === frame.id;
+                            // CSS calc so a window resize re-sizes it without a render.
+                            const height = lockedFocus
+                                ? `calc((100vh - ${LOCKED_TOP_GAP}px) / ${editorEngine.canvas.scale})`
+                                : Math.min(
+                                      MAX_HEIGHT,
+                                      Math.max(MIN_HEIGHT, reported ?? frame.dimension.height),
+                                  );
                             return { width, height };
                         })()}
                         onLoad={() => {

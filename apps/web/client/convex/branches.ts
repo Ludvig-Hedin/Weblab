@@ -6,6 +6,10 @@ import { internalMutation, internalQuery, mutation, query } from './_generated/s
 import { vBranchRuntimeType } from './lib/enums';
 import { requireCap } from './lib/permissions';
 
+function requireTrustedCloudBranchCreation(): void {
+    throw new Error('Cloud branch creation is unavailable in the local release.');
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 /**
@@ -53,8 +57,8 @@ export const getByProjectId = query({
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
 /**
- * Create a branch directly from DB data. Action layer (branchActions.ts)
- * handles the sandbox provisioning + then calls this internally.
+ * Legacy direct branch creation. Its public contract remains for old clients,
+ * but caller-supplied sandboxId is rejected for the local release.
  */
 export const create = mutation({
     args: {
@@ -70,6 +74,7 @@ export const create = mutation({
         gitRepoUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
+        requireTrustedCloudBranchCreation();
         await requireCap(ctx, 'project.update', { projectId: args.projectId });
 
         // Enforce (projectId, name) uniqueness at app level.

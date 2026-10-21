@@ -18,6 +18,43 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-10-05 — Customer-pinned code stays out of the public repository
+Decision: Code that embeds one customer's site source or identifiers is gitignored and loaded through a small optional loader; the public tree must run without it.
+Context: The whole-site content engine pins a customer's source files, and this repository is public.
+Alternatives considered: Making the repository private (breaks the public Mac download from GitHub releases); committing a stub profile under the same path (a tracked file with different local content invites an accidental commit).
+Rationale: `apps/desktop/release/site-engine.js` checks for the folder and requires it by computed path, so the package-files test and CI pass without it and a local build includes it. Features that need it report "unavailable" instead of failing at startup.
+Status: Active
+
+## 2026-09-29 — Startup recovery begins with a read-only CLI turn
+
+Decision: A local preview failure opens a fresh CLI chat in the active private branch. Its first turn receives only a short issue category and runs read-only; the user approves proposed files in chat before a later edit turn.
+Context: Startup logs can contain local paths and secrets, while Claude's normal edit mode and Codex's file approvals could change the copy before a proposal is shown.
+Alternatives considered: sending the entire log to the CLI; allowing an immediate edit; running a general repair command against the original folder.
+Rationale: The first turn is bounded and reviewable. The original source remains protected by private-copy and Git handoff rules. Preview retry stays explicit while a setup task may still be running.
+Status: Active in source; packaged desktop proof pending.
+
+---
+
+## 2026-09-23 — Dependency setup stays inside the private copy
+
+Decision: An explicit native action installs from one frozen Bun lockfile in the registered private Git copy, with lifecycle scripts disabled, an isolated persistent cache, and dependency link checks before install and preview.
+Context: `node_modules` is excluded from copied client projects so the original dependency tree stays untouched, but Next.js preview needs local dependencies.
+Alternatives considered: automatically installing on open; sharing the original `node_modules`; installing in the original Git root. Those paths would change or execute against client state before review.
+Rationale: the designer chooses when to install, and the original tree remains independent. Bun runtime bundling, foreign lockfiles, and packaged desktop proof remain release blockers.
+Status: Active in source; unverified in packaged desktop.
+
+---
+
+## 2026-09-23 — Existing Git projects edit in a private copy
+
+Decision: Weblab copies a selected Git root into an app-owned working directory, writes there, and exports reviewed Weblab edits as a Git patch for explicit application to the original.
+Context: Node's path-based hash check and rename cannot exclude a concurrent external save to the original working tree. The first paid release requires existing client Git projects and local handoff.
+Alternatives considered: direct guarded writes to the original; linked Git worktrees; a native descriptor-relative helper. Direct writes cannot provide a true cross-process hash compare-and-swap, and linked worktrees can touch the original Git metadata.
+Rationale: an independent copy keeps Weblab's file mutations away from the original HEAD, index, and working tree. A persisted source snapshot, guarded write journal, reviewed patch token, and fresh copy after source drift make handoff explicit and recoverable.
+Status: Active in source; paid release still requires type/lint, preload build, and live desktop proof. See `docs/superpowers/plans/2026-09-23-paid-local-editing.md`.
+
+---
+
 ## 2026-06-12 — Component system: code is the source of truth, no new EditorMode
 Decision: Component definitions (props/slots/variants/bindings) are pure derivations of project source, indexed client-side alongside the oid index; master editing is a sub-state of DESIGN mode, not a new EditorMode; Convex stores only display metadata (deferred).
 Context: Webflow-style master/instance components must work both for Weblab-created projects and imported local Next.js/HTML code, and survive external git edits.
@@ -467,3 +504,7 @@ See `docs/notes/2026-05-06-project-runtime-modes.md`.
 Status: Active. Hybrid still planned.
 
 ---
+
+## 2026-10-02 — Native release eligibility stays failclosed
+
+Self-selected Content/Full is presentation, never project authority. Known Sanity integrations need frozen source/content/assets/routes together, including non-blog reads; no mutable fallback. Native live switches remain disabled until a shared server destination worker and positive artifact/completion proof exist. CMS snapshot v2 retains validated public field rules and omits provider metadata; immutable v1 is not a complete future runtime contract. Browser drafts are bounded best-effort recovery, not power-loss/reinstall guarantees. [Evidence and remaining boundaries](../audits/desktop-client-readiness-2026-10-01.md). Status: source preparation, no production activation.

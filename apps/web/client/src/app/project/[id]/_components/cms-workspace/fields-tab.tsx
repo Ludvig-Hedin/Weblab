@@ -16,12 +16,14 @@ import { ScrollArea } from '@weblab/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
+import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
+import { useProjectCapabilities } from '@/hooks/use-project-capabilities';
 
 const FIELD_TYPE_LABEL_KEYS = {
     [CmsFieldType.TEXT]: transKeys.cms.fields.types.text,
@@ -85,6 +87,11 @@ export const FieldsTab = observer(() => {
             : 'skip',
     );
 
+    const selectedCollection = collectionsData?.find((entry) => entry._id === collectionId);
+    const source = useQuery(api.cmsSources.get, projectId && selectedCollection ? { projectId: projectId as Id<'projects'>, sourceId: selectedCollection.sourceId } : 'skip');
+    const capabilities = useProjectCapabilities(projectId);
+    const canWrite = capabilities.canEdit && source?.type === 'weblab';
+
     // Close any open editor when the user switches collections.
     useEffect(() => {
         setEditing(null);
@@ -106,7 +113,7 @@ export const FieldsTab = observer(() => {
     // undid the first move. The `reorderPending` guard rejects a second reorder
     // while one is in flight (and disables the buttons via FieldRow).
     const moveField = async (fieldId: string, direction: -1 | 1) => {
-        if (!collectionId || reorderPending) return;
+        if (!collectionId || reorderPending || !canWrite) return;
         // Use the displayed list (cached query data), not a fresh fetch —
         // a server-side concurrent reorder would cause the splice to operate
         // on a different order than what the user just clicked.
@@ -133,11 +140,13 @@ export const FieldsTab = observer(() => {
     };
 
     const removeField = async (fieldId: string, name: string) => {
-        if (!projectId || !collectionId) return;
+        if (!projectId || !collectionId || !canWrite) return;
+        const captured = fieldsData?.find((entry) => entry._id === fieldId);
+        if (!captured) return;
         const ok = await confirm({
             title: `Remove the "${name}" field?`,
             description:
-                'Items keep their stored value, but it will no longer appear in the editor.',
+                t(transKeys.cms.readiness.removeFieldBody),
             confirmLabel: 'Remove',
             destructive: true,
         });
@@ -146,6 +155,7 @@ export const FieldsTab = observer(() => {
             await deleteMutation({
                 projectId: projectId as Id<'projects'>,
                 fieldId: fieldId as Id<'cmsFields'>,
+                expectedRevision: captured.revision ?? 0,
             });
             // Convex live queries auto-revalidate — no manual invalidate needed.
             if (editing?.kind === 'edit' && editing.id === fieldId) setEditing(null);
@@ -174,7 +184,7 @@ export const FieldsTab = observer(() => {
 
     const collection = collectionsData?.find((c) => c._id === collectionId);
     const fields = fieldsData ?? [];
-    const startCreate = () => setEditing({ kind: 'create' });
+    const startCreate = () => { if (canWrite) setEditing({ kind: 'create' }); };
     const isCreating = editing?.kind === 'create';
 
     return (
@@ -198,12 +208,13 @@ export const FieldsTab = observer(() => {
                         </span>
                     ) : null}
                 </div>
-                <Button size="sm" onClick={startCreate} disabled={isCreating}>
+                <Button size="sm" onClick={startCreate} disabled={isCreating || !canWrite}>
                     <Icons.Plus className="mr-1 h-3.5 w-3.5" />
                     {t(transKeys.cms.fields.addField)}
                 </Button>
             </div>
 
+            {source !== undefined && source?.type !== 'weblab' ? <p className="text-foreground-secondary text-mini px-4 py-3">{t(transKeys.cms.readiness.externalReadOnly)}</p> : null}
             {fields.length === 0 && !isCreating ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
                     <Icons.ListBullet className="text-foreground-tertiary h-6 w-6" />
@@ -213,7 +224,7 @@ export const FieldsTab = observer(() => {
                     <p className="text-foreground-secondary text-small max-w-sm">
                         {t(transKeys.cms.fields.emptyBody)}
                     </p>
-                    <Button size="sm" onClick={startCreate}>
+                    <Button size="sm" onClick={startCreate} disabled={!canWrite}>
                         <Icons.Plus className="mr-1 h-3.5 w-3.5" />
                         {t(transKeys.cms.fields.addField)}
                     </Button>
@@ -228,14 +239,15 @@ export const FieldsTab = observer(() => {
                                     {
                                         ...f,
                                         id: f._id,
+                                        type: f.type as CmsFieldType,
                                         helpText: f.helpText ?? null,
-                                    } as never
+                                    }
                                 }
                                 index={idx}
                                 total={fields.length}
                                 expanded={editing?.kind === 'edit' && editing.id === f._id}
                                 onToggle={() =>
-                                    setEditing((prev) =>
+                                    canWrite && setEditing((prev) =>
                                         prev?.kind === 'edit' && prev.id === f._id
                                             ? null
                                             : { kind: 'edit', id: f._id },
@@ -244,8 +256,8 @@ export const FieldsTab = observer(() => {
                                 onClose={() => setEditing(null)}
                                 onMove={(id, dir) => void moveField(id, dir)}
                                 onRemove={(id, name) => void removeField(id, name)}
-                                reorderPending={reorderPending}
-                                deletePending={false}
+                                reorderPending={reorderPending || !canWrite}
+                                deletePending={!canWrite}
                                 projectId={projectId}
                                 collectionId={collectionId}
                                 t={t}
@@ -281,6 +293,8 @@ interface FieldRowProps {
         type: CmsFieldType;
         required: boolean;
         helpText: string | null;
+        config?: unknown;
+        revision?: number;
     };
     index: number;
     total: number;
@@ -422,6 +436,8 @@ interface InlineFieldEditorProps {
         type: CmsFieldType;
         required: boolean;
         helpText: string | null;
+        config?: unknown;
+        revision?: number;
     };
     onClose: () => void;
 }
@@ -434,11 +450,18 @@ function InlineFieldEditor({
     onClose,
 }: InlineFieldEditorProps) {
     const t = useTranslations();
+    const [expectedRevision] = useState(field?.revision ?? 0);
     const [name, setName] = useState(field?.name ?? '');
     const [key, setKey] = useState(field?.key ?? '');
     const [type, setType] = useState<CmsFieldType>(field?.type ?? CmsFieldType.TEXT);
     const [required, setRequired] = useState(field?.required ?? false);
     const [helpText, setHelpText] = useState(field?.helpText ?? '');
+    const initialConfig = field?.config && typeof field.config === 'object' && !Array.isArray(field.config) ? field.config as Record<string, unknown> : {};
+    const [optionsText, setOptionsText] = useState(Array.isArray(initialConfig.options) ? initialConfig.options.filter((option): option is string => typeof option === 'string').join('\n') : '');
+    const [multiple, setMultiple] = useState(initialConfig.multiple === true);
+    const [referenceCollection, setReferenceCollection] = useState(typeof initialConfig.collectionId === 'string' ? initialConfig.collectionId : '');
+    const [urlFormat, setUrlFormat] = useState(initialConfig.format === 'url');
+    const collections = useQuery(api.cmsCollections.list, { projectId: projectId as Id<'projects'> });
 
     // Convex live queries auto-revalidate — no useUtils equivalent needed.
     const createMutation = useMutation(api.cmsFields.create);
@@ -452,6 +475,26 @@ function InlineFieldEditor({
         }
         setIsPending(true);
         try {
+            // Send only owned config keys; the server merges all other metadata.
+            const config: Record<string, unknown> = {};
+            if (type === CmsFieldType.OPTION) {
+                const options = optionsText.split(/\r?\n/).map((option) => option.trim()).filter(Boolean);
+                if (!options.length || options.length > 100 || options.some((option) => option.length > 256) || new Set(options).size !== options.length) {
+                    toast.error(t(transKeys.cms.readiness.invalidOptions));
+                    return;
+                }
+                config.options = options;
+                config.multiple = multiple;
+            }
+            if (type === CmsFieldType.REFERENCE) {
+                if (!collections?.some((entry) => entry._id === referenceCollection)) {
+                    toast.error(t(transKeys.cms.readiness.invalidReference));
+                    return;
+                }
+                config.collectionId = referenceCollection;
+                config.multiple = multiple;
+            }
+            if (type === CmsFieldType.TEXT) config.format = urlFormat ? 'url' : 'text';
             if (mode === 'create') {
                 const rawKey = key.trim();
                 // Match the server regex in convex/cmsFields.ts
@@ -486,7 +529,7 @@ function InlineFieldEditor({
                     type,
                     required,
                     helpText: helpText.trim() || undefined,
-                    config: {},
+                    config,
                 });
                 // Convex live queries auto-revalidate — no manual invalidate needed.
                 toast.success(t(transKeys.cms.fields.addDialog.success));
@@ -500,9 +543,11 @@ function InlineFieldEditor({
                 await updateMutation({
                     projectId: projectId as Id<'projects'>,
                     fieldId: field.id as Id<'cmsFields'>,
+                    expectedRevision,
                     name: name.trim(),
                     required,
-                    helpText: helpText.trim() || undefined,
+                    helpText: helpText.trim(),
+                    config,
                 });
                 // Convex live queries auto-revalidate — no manual invalidate needed.
                 toast.success('Field updated');
@@ -607,6 +652,26 @@ function InlineFieldEditor({
                     </Select>
                 )}
             </div>
+
+            {type === CmsFieldType.OPTION ? <div className="space-y-1.5">
+                <Label htmlFor={`field-${fieldId}-options`}>{t(transKeys.cms.readiness.options)}</Label>
+                <Textarea id={`field-${fieldId}-options`} rows={4} value={optionsText} onChange={(event) => setOptionsText(event.target.value)} disabled={isPending} />
+            </div> : null}
+            {type === CmsFieldType.REFERENCE ? <div className="space-y-1.5">
+                <Label htmlFor={`field-${fieldId}-reference`}>{t(transKeys.cms.readiness.referenceCollection)}</Label>
+                <Select value={referenceCollection} onValueChange={setReferenceCollection} disabled={isPending || !collections}>
+                    <SelectTrigger id={`field-${fieldId}-reference`}><SelectValue placeholder={t(transKeys.cms.readiness.chooseValue)} /></SelectTrigger>
+                    <SelectContent>{collections?.map((entry) => <SelectItem key={entry._id} value={entry._id}>{entry.name}</SelectItem>)}</SelectContent>
+                </Select>
+            </div> : null}
+            {type === CmsFieldType.OPTION || type === CmsFieldType.REFERENCE ? <div className="flex items-center gap-2">
+                <Switch id={`field-${fieldId}-multiple`} checked={multiple} onCheckedChange={setMultiple} disabled={isPending} />
+                <Label htmlFor={`field-${fieldId}-multiple`}>{t(transKeys.cms.readiness.multiple)}</Label>
+            </div> : null}
+            {type === CmsFieldType.TEXT ? <div className="flex items-center gap-2">
+                <Switch id={`field-${fieldId}-url`} checked={urlFormat} onCheckedChange={setUrlFormat} disabled={isPending} />
+                <Label htmlFor={`field-${fieldId}-url`}>{t(transKeys.cms.readiness.urlFormat)}</Label>
+            </div> : null}
 
             <div className="space-y-1.5">
                 <Label

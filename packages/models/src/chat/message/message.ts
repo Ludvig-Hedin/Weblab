@@ -1,6 +1,4 @@
-import type { FinishReason, JSONValue, LanguageModelUsage, UIMessage, UIMessagePart } from 'ai';
-
-import type { ChatTools } from '@weblab/ai';
+import type { FinishReason, InferUITools, JSONValue, LanguageModelUsage, ToolSet, UIMessage, UIMessagePart } from 'ai';
 
 import type { MessageCheckpoints } from './checkpoint';
 import type { MessageContext } from './context';
@@ -24,6 +22,9 @@ export type ChatMetadata = {
 };
 
 export type ChatProviderMetadata = Record<string, Record<string, JSONValue>>;
+// The tool registry already returns ToolSet. Infer the same message shape here
+// without importing its implementations and the web editor into shared models.
+type ChatTools = InferUITools<ToolSet>;
 export type ChatDataPart = {};
 export type ChatMessagePart = UIMessagePart<ChatDataPart, ChatTools>;
 export type ChatMessage = UIMessage<ChatMetadata, ChatDataPart, ChatTools>;

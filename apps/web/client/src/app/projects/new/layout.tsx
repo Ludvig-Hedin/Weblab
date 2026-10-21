@@ -8,7 +8,7 @@ import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 
 export const metadata: Metadata = {
     title: APP_NAME,
-    description: `${APP_NAME} – Start a new project with AI`,
+    description: `${APP_NAME} – Open or create a local project`,
 };
 
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -43,8 +43,10 @@ import {
     reloadInteractions,
     scrubInteraction,
 } from './interactions';
+import { setCanvasViewport } from './canvas-viewport';
 import { handleBodyReady } from './ready';
 import { captureScreenshot as _captureScreenshot } from './screenshot';
+import { scrollPageBy } from './scroll';
 import { serializeDocumentForOffline } from './snapshot';
 import { setBranchId, setFrameId } from './state';
 import { updateStyle } from './style';
@@ -97,6 +99,12 @@ const rawMethods = {
     getFigmaSceneData,
     getInsertLocation,
     getRemoveAction,
+
+    // Page scroll (Lock canvas page view)
+    scrollPageBy,
+
+    // Pinned viewport units, hidden scrollbar and held media while editing
+    setCanvasViewport,
 
     // Theme
     getTheme,

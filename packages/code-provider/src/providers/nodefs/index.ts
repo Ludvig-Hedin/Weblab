@@ -59,6 +59,21 @@ export interface NodeFsProviderOptions {
     port?: number | null;
 }
 
+export interface LocalHandoffFile {
+    path: string;
+    original: string | null;
+    updated: string | null;
+}
+
+export interface LocalHandoffPlan {
+    copyId: string;
+    sourceRootPath: string;
+    changedFiles: LocalHandoffFile[];
+    unsupportedChanges: string[];
+    sourceChanged: boolean;
+    planToken: string | null;
+}
+
 // --- Desktop IPC bridge contract ---------------------------------------------
 // Implemented in apps/desktop/preload.js (`window.weblabNative.localfs/localdev`),
 // backed by apps/desktop/weblab-local.js in the Electron main process. The
@@ -68,12 +83,59 @@ export interface NodeFsProviderOptions {
 
 interface LocalFsBridge {
     pickFolder(): Promise<{ rootPath: string } | null>;
-    read(root: string, path: string): Promise<{ content?: string; error?: string; notFound?: boolean }>;
-    write(
+    createPrivateWorkingCopy(sourceRoot: string): Promise<{
+        rootPath?: string;
+        sourceRootPath?: string;
+        copyId?: string;
+        reused?: boolean;
+        priorCopyId?: string;
+        previewNeedsInstall?: boolean;
+        excludedPaths?: string[];
+        exclusions?: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
+        error?: string;
+    }>;
+    planPrivateHandoff(root: string): Promise<Partial<LocalHandoffPlan> & { error?: string }>;
+    exportPrivateHandoff(root: string, planToken: string, files?: LocalHandoffFile[]): Promise<{
+        patchPath?: string;
+        changedFiles?: string[];
+        error?: string;
+    }>;
+    read(root: string, path: string): Promise<{
+        content?: string;
+        sha256?: string;
+        error?: string;
+        notFound?: boolean;
+    }>;
+    writeIfUnchanged(
         root: string,
         path: string,
-        content: string | Uint8Array,
-    ): Promise<{ success?: boolean; error?: string }>;
+        content: string,
+        expectedSha256: string | null,
+    ): Promise<{
+        success?: boolean;
+        hash?: string | null;
+        conflict?: boolean;
+        error?: string;
+        recoveryPath?: string;
+    }>;
+    deleteFileIfUnchanged(
+        root: string,
+        path: string,
+        expectedSha256: string,
+    ): Promise<{
+        success?: boolean;
+        hash?: string | null;
+        conflict?: boolean;
+        error?: string;
+        recoveryPath?: string;
+        quarantinePath?: string;
+    }>;
+    createPreparationPublicDirectory(root: string): Promise<{ success?: boolean; error?: string }>;
+    deletePreparationPublicDirectory(root: string): Promise<{
+        success?: boolean;
+        conflict?: boolean;
+        error?: string;
+    }>;
     list(
         root: string,
         path: string,
@@ -92,19 +154,6 @@ interface LocalFsBridge {
         error?: string;
         notFound?: boolean;
     }>;
-    mkdir(root: string, path: string): Promise<{ success?: boolean; error?: string }>;
-    remove(root: string, path: string, recursive?: boolean): Promise<{ success?: boolean; error?: string }>;
-    rename(
-        root: string,
-        oldPath: string,
-        newPath: string,
-    ): Promise<{ success?: boolean; error?: string }>;
-    copy(
-        root: string,
-        sourcePath: string,
-        targetPath: string,
-        recursive?: boolean,
-    ): Promise<{ success?: boolean; error?: string }>;
     watchStart(root: string, excludes?: string[]): Promise<{ watchId?: string; error?: string }>;
     watchStop(watchId: string): Promise<{ success?: boolean; error?: string }>;
     onWatchEvent(listener: (payload: { watchId: string; event: WatchEvent }) => void): () => void;
@@ -121,10 +170,15 @@ interface LocalDevBridge {
      * create time so the frame URL is built from a port that's guaranteed free
      * (and uncommon), avoiding a collision with the editor's own :3000.
      */
-    pickPort?(preferredPort?: number | null): Promise<{ port?: number; error?: string }>;
+    pickPort?(root: string, preferredPort?: number | null): Promise<{ port?: number; error?: string }>;
     stop(root: string): Promise<{ success?: boolean; error?: string }>;
     status(root: string): Promise<{ running: boolean; port?: number; url?: string }>;
-    run(root: string, command: string): Promise<{ output?: string; exitCode?: number; error?: string }>;
+    gitInfo(root: string): Promise<{
+        isRepositoryRoot: boolean;
+        branch?: string;
+        error?: string;
+    }>;
+    gitStatus(root: string): Promise<{ changedFiles: string[]; error?: string }>;
     onOutput(listener: (payload: { root: string; data: string }) => void): () => void;
 }
 
@@ -152,11 +206,29 @@ function requireLocalDev(): LocalDevBridge {
     return dev;
 }
 
+export class LocalFileConflictError extends Error {
+    constructor(
+        path: string,
+        public readonly currentSha256: string | null,
+        public readonly recoveryPath?: string,
+    ) {
+        super(
+            `File changed on disk: ${path}` +
+                (recoveryPath ? `. On-disk snapshot: ${recoveryPath}` : ''),
+        );
+        this.name = 'LocalFileConflictError';
+    }
+}
+
+const LOCAL_COMMANDS_UNAVAILABLE =
+    'Local shell commands are unavailable here. Use your terminal app in the project folder.';
+const LOCAL_MUTATIONS_UNAVAILABLE =
+    'Direct local file mutations are unavailable. Edit text through the guarded local mirror.';
+
 /**
- * Local-first provider. Edits a real folder on the user's disk and runs its dev
- * server locally, all via the Electron IPC bridge. Selected by `session.ts` when
- * `branch.runtime.type === 'local'`. The whole editor (canvas, parser, element
- * editing, AI chat) reuses this through the `Provider` interface unchanged.
+ * Local folder provider. Text writes use a disk hash check through the desktop
+ * bridge; generic file mutations and shell commands are unavailable. Selected
+ * by `session.ts` when `branch.runtime.type === 'local'`.
  */
 export class NodeFsProvider extends Provider {
     private readonly options: NodeFsProviderOptions;
@@ -164,6 +236,59 @@ export class NodeFsProvider extends Provider {
     constructor(options: NodeFsProviderOptions) {
         super();
         this.options = options;
+    }
+
+    static async createPrivateWorkingCopy(sourceRoot: string): Promise<{
+        rootPath: string;
+        sourceRootPath: string;
+        copyId: string;
+        reused: boolean;
+        priorCopyId?: string;
+        previewNeedsInstall: boolean;
+        excludedPaths: string[];
+        exclusions: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
+    }> {
+        const result = await requireLocalFs().createPrivateWorkingCopy(sourceRoot);
+        if (result.error) throw new Error(result.error);
+        if (!result.rootPath || !result.sourceRootPath || !result.copyId ||
+            result.reused === undefined || result.previewNeedsInstall === undefined ||
+            !Array.isArray(result.excludedPaths)) {
+            throw new Error('Native private working copy response is incomplete.');
+        }
+        return {
+            rootPath: result.rootPath,
+            sourceRootPath: result.sourceRootPath,
+            copyId: result.copyId,
+            reused: result.reused,
+            ...(result.priorCopyId ? { priorCopyId: result.priorCopyId } : {}),
+            previewNeedsInstall: result.previewNeedsInstall,
+            excludedPaths: result.excludedPaths,
+            exclusions: result.exclusions ?? [],
+        };
+    }
+
+    async planPrivateHandoff(): Promise<LocalHandoffPlan> {
+        const result = await requireLocalFs().planPrivateHandoff(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        if (!result.copyId || !result.sourceRootPath || !Array.isArray(result.changedFiles) ||
+            !Array.isArray(result.unsupportedChanges) || typeof result.sourceChanged !== 'boolean' ||
+            (result.planToken !== null && typeof result.planToken !== 'string')) {
+            throw new Error('Native handoff plan response is incomplete.');
+        }
+        return result as LocalHandoffPlan;
+    }
+
+    /** `files` narrows the reviewed plan to cleaned contents (see handoff-clean). */
+    async exportPrivateHandoff(
+        planToken: string,
+        files?: LocalHandoffFile[],
+    ): Promise<{ patchPath: string; changedFiles: string[] }> {
+        const result = await requireLocalFs().exportPrivateHandoff(this.requireRoot(), planToken, files);
+        if (result.error) throw new Error(result.error);
+        if (!result.patchPath || !Array.isArray(result.changedFiles)) {
+            throw new Error('Native handoff export response is incomplete.');
+        }
+        return { patchPath: result.patchPath, changedFiles: result.changedFiles };
     }
 
     private requireRoot(): string {
@@ -176,20 +301,80 @@ export class NodeFsProvider extends Provider {
         return {};
     }
 
-    async writeFile(input: WriteFileInput): Promise<WriteFileOutput> {
-        const res = await requireLocalFs().write(this.requireRoot(), input.args.path, input.args.content);
-        if (res.error) throw new Error(res.error);
-        return { success: true };
+    async writeFile(_input: WriteFileInput): Promise<WriteFileOutput> {
+        throw new Error(LOCAL_MUTATIONS_UNAVAILABLE);
     }
 
-    async renameFile(input: RenameFileInput): Promise<RenameFileOutput> {
-        const res = await requireLocalFs().rename(
+    /** Read a text file and the disk version used by guarded writes. */
+    async readFileWithHash(path: string): Promise<{ content: string; sha256: string }> {
+        const res = await requireLocalFs().read(this.requireRoot(), path);
+        if (res.error) throw new Error(res.notFound ? `File not found: ${path}` : res.error);
+        if (res.content === undefined || !res.sha256) {
+            throw new Error(`Local file read did not return content and hash: ${path}`);
+        }
+        return { content: res.content, sha256: res.sha256 };
+    }
+
+    /** Write only if the file still matches the version read from disk. */
+    async writeFileIfUnchanged(
+        path: string,
+        content: string,
+        expectedSha256: string | null,
+    ): Promise<{ sha256: string }> {
+        const res = await requireLocalFs().writeIfUnchanged(
             this.requireRoot(),
-            input.args.oldPath,
-            input.args.newPath,
+            path,
+            content,
+            expectedSha256,
         );
-        if (res.error) throw new Error(res.error);
-        return {};
+        if (res.conflict) {
+            throw new LocalFileConflictError(path, res.hash ?? null, res.recoveryPath);
+        }
+        if (res.error) {
+            throw new Error(
+                res.recoveryPath
+                    ? `${res.error}. On-disk snapshot: ${res.recoveryPath}`
+                    : res.error,
+            );
+        }
+        if (!res.success || !res.hash) {
+            throw new Error(`Local file write did not return a hash: ${path}`);
+        }
+        return { sha256: res.hash };
+    }
+
+    /** Undo a recent native-created file only while its exact disk version remains. */
+    async deleteFileIfUnchanged(path: string, expectedSha256: string): Promise<void> {
+        const res = await requireLocalFs().deleteFileIfUnchanged(
+            this.requireRoot(), path, expectedSha256,
+        );
+        if (res.conflict && !res.error) {
+            throw new LocalFileConflictError(path, res.hash ?? null, res.recoveryPath);
+        }
+        if (res.error) {
+            throw new Error(
+                res.error +
+                    (res.recoveryPath ? `. On-disk snapshot: ${res.recoveryPath}` : '') +
+                    (res.quarantinePath ? `. Moved file: ${res.quarantinePath}` : ''),
+            );
+        }
+        if (!res.success) throw new Error(`Local file delete did not succeed: ${path}`);
+    }
+
+    /** Create only the reviewed Next.js public folder, if it is still absent. */
+    async createPreparationPublicDirectory(): Promise<void> {
+        const res = await requireLocalFs().createPreparationPublicDirectory(this.requireRoot());
+        if (!res.success) throw new Error(res.error ?? 'Could not create public directory');
+    }
+
+    /** Roll back only the empty public folder created by this native session. */
+    async deletePreparationPublicDirectory(): Promise<void> {
+        const res = await requireLocalFs().deletePreparationPublicDirectory(this.requireRoot());
+        if (!res.success) throw new Error(res.error ?? 'Could not remove public directory');
+    }
+
+    async renameFile(_input: RenameFileInput): Promise<RenameFileOutput> {
+        throw new Error(LOCAL_MUTATIONS_UNAVAILABLE);
     }
 
     async statFile(input: StatFileInput): Promise<StatFileOutput> {
@@ -198,19 +383,13 @@ export class NodeFsProvider extends Provider {
         return { type: res.type, isSymlink: res.isSymlink, size: res.size, mtime: res.mtime };
     }
 
-    async deleteFiles(input: DeleteFilesInput): Promise<DeleteFilesOutput> {
-        const res = await requireLocalFs().remove(
-            this.requireRoot(),
-            input.args.path,
-            input.args.recursive,
-        );
-        if (res.error) throw new Error(res.error);
-        return {};
+    async deleteFiles(_input: DeleteFilesInput): Promise<DeleteFilesOutput> {
+        throw new Error(LOCAL_MUTATIONS_UNAVAILABLE);
     }
 
     async listFiles(input: ListFilesInput): Promise<ListFilesOutput> {
         const res = await requireLocalFs().list(this.requireRoot(), input.args.path);
-        if (res.error && !res.files) throw new Error(res.error);
+        if (res.error) throw new Error(res.error);
         return { files: res.files ?? [] };
     }
 
@@ -233,21 +412,12 @@ export class NodeFsProvider extends Provider {
         return {};
     }
 
-    async copyFiles(input: CopyFilesInput): Promise<CopyFileOutput> {
-        const res = await requireLocalFs().copy(
-            this.requireRoot(),
-            input.args.sourcePath,
-            input.args.targetPath,
-            input.args.recursive,
-        );
-        if (res.error) throw new Error(res.error);
-        return {};
+    async copyFiles(_input: CopyFilesInput): Promise<CopyFileOutput> {
+        throw new Error(LOCAL_MUTATIONS_UNAVAILABLE);
     }
 
-    async createDirectory(input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
-        const res = await requireLocalFs().mkdir(this.requireRoot(), input.args.path);
-        if (res.error) throw new Error(res.error);
-        return {};
+    async createDirectory(_input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
+        throw new Error(LOCAL_MUTATIONS_UNAVAILABLE);
     }
 
     async watchFiles(input: WatchFilesInput): Promise<WatchFilesOutput> {
@@ -265,32 +435,37 @@ export class NodeFsProvider extends Provider {
         return { task: new NodeFsTask(this.options) };
     }
 
-    async runCommand(input: TerminalCommandInput): Promise<TerminalCommandOutput> {
-        const res = await requireLocalDev().run(this.requireRoot(), input.args.command);
-        return { output: res.output ?? '' };
+    async runCommand(_input: TerminalCommandInput): Promise<TerminalCommandOutput> {
+        throw new Error(LOCAL_COMMANDS_UNAVAILABLE);
     }
 
     async runBackgroundCommand(
-        input: TerminalBackgroundCommandInput,
+        _input: TerminalBackgroundCommandInput,
     ): Promise<TerminalBackgroundCommandOutput> {
-        return { command: new NodeFsCommand(this.requireRoot(), input.args.command) };
+        throw new Error(LOCAL_COMMANDS_UNAVAILABLE);
+    }
+
+    async gitInfo(): Promise<{ isRepositoryRoot: boolean; branch?: string }> {
+        const result = await requireLocalDev().gitInfo(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        return { isRepositoryRoot: result.isRepositoryRoot, branch: result.branch };
     }
 
     async gitStatus(_input: GitStatusInput): Promise<GitStatusOutput> {
-        const res = await requireLocalDev().run(this.requireRoot(), 'git status --porcelain');
-        const changedFiles = (res.output ?? '')
-            .split('\n')
-            .map((line) => line.slice(3).trim())
-            .filter((p) => p.length > 0);
-        return { changedFiles };
+        const result = await requireLocalDev().gitStatus(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        return { changedFiles: result.changedFiles };
     }
 
     async setup(_input: SetupInput): Promise<SetupOutput> {
-        // The bridge's dev-server start installs deps (package-manager-aware)
-        // when node_modules is absent, so setup just ensures it's booting. Note:
-        // the editor never calls setup() today (the dev task's open() is the
-        // trigger) — kept for completeness + any future caller.
-        await requireLocalDev().start(this.requireRoot(), this.options.devCommand, this.options.port);
+        // Explicit preview starts check for dependencies in the desktop bridge.
+        // Project open never calls setup().
+        const res = await requireLocalDev().start(
+            this.requireRoot(),
+            this.options.devCommand,
+            this.options.port,
+        );
+        if (res.error) throw new Error(res.error);
         return {};
     }
 
@@ -369,15 +544,22 @@ export class NodeFsFileWatcher extends ProviderFileWatcher {
     }
 
     async start(input: WatchFilesInput): Promise<void> {
-        const fs = getNative()?.localfs;
-        if (!fs) return; // watch is best-effort; absent off-desktop
+        const fs = requireLocalFs();
         const res = await fs.watchStart(this.root, input.args.excludes);
-        if (res.error || !res.watchId) return;
+        if (res.error || !res.watchId) {
+            throw new Error(res.error ?? 'Local file watcher did not return an ID');
+        }
         this.watchId = res.watchId;
-        this.unsubscribe = fs.onWatchEvent(({ watchId, event }) => {
-            if (watchId !== this.watchId) return;
-            for (const cb of this.callbacks) void cb(event);
-        });
+        try {
+            this.unsubscribe = fs.onWatchEvent(({ watchId, event }) => {
+                if (watchId !== this.watchId) return;
+                for (const cb of this.callbacks) void cb(event);
+            });
+        } catch (error) {
+            await fs.watchStop(res.watchId);
+            this.watchId = null;
+            throw error;
+        }
     }
 
     async stop(): Promise<void> {
@@ -400,9 +582,8 @@ export class NodeFsFileWatcher extends ProviderFileWatcher {
 
 export class NodeFsTerminal extends ProviderTerminal {
     private outputCallbacks: Array<(data: string) => void> = [];
-    private unsubscribe: (() => void) | null = null;
 
-    constructor(private readonly root: string) {
+    constructor(_root: string) {
         super();
     }
 
@@ -415,13 +596,7 @@ export class NodeFsTerminal extends ProviderTerminal {
     }
 
     async open(): Promise<string> {
-        if (!this.unsubscribe) {
-            this.unsubscribe =
-                getNative()?.localdev?.onOutput(({ root, data }) => {
-                    if (root !== this.root) return;
-                    for (const cb of this.outputCallbacks) cb(data);
-                }) ?? null;
-        }
+        for (const cb of this.outputCallbacks) cb(`${LOCAL_COMMANDS_UNAVAILABLE}\r\n`);
         return this.id;
     }
 
@@ -429,13 +604,12 @@ export class NodeFsTerminal extends ProviderTerminal {
         // Interactive stdin is not supported over the v1 bridge.
     }
 
-    async run(input: string): Promise<void> {
-        await requireLocalDev().run(this.root, input);
+    async run(_input: string): Promise<void> {
+        throw new Error(LOCAL_COMMANDS_UNAVAILABLE);
     }
 
     async kill(): Promise<void> {
-        this.unsubscribe?.();
-        this.unsubscribe = null;
+        // There is no local shell process to stop.
     }
 
     onOutput(callback: (data: string) => void): () => void {
@@ -494,14 +668,21 @@ export class NodeFsTask extends ProviderTask {
     }
 
     async run(): Promise<void> {
-        await requireLocalDev().start(this.requireRoot(), this.options.devCommand, this.options.port);
+        const res = await requireLocalDev().start(
+            this.requireRoot(),
+            this.options.devCommand,
+            this.options.port,
+        );
+        if (res.error) throw new Error(res.error);
     }
 
     async restart(): Promise<void> {
         const dev = requireLocalDev();
         const root = this.requireRoot();
-        await dev.stop(root);
-        await dev.start(root, this.options.devCommand, this.options.port);
+        const stopped = await dev.stop(root);
+        if (stopped.error) throw new Error(stopped.error);
+        const started = await dev.start(root, this.options.devCommand, this.options.port);
+        if (started.error) throw new Error(started.error);
     }
 
     async stop(): Promise<void> {
@@ -520,7 +701,7 @@ export class NodeFsCommand extends ProviderBackgroundCommand {
     private outputCallbacks: Array<(data: string) => void> = [];
 
     constructor(
-        private readonly root: string,
+        _root: string,
         private readonly cmd: string,
     ) {
         super();
@@ -535,10 +716,7 @@ export class NodeFsCommand extends ProviderBackgroundCommand {
     }
 
     async open(): Promise<string> {
-        const res = await requireLocalDev().run(this.root, this.cmd);
-        const output = res.output ?? '';
-        for (const cb of this.outputCallbacks) cb(output);
-        return output;
+        throw new Error(LOCAL_COMMANDS_UNAVAILABLE);
     }
 
     async restart(): Promise<void> {

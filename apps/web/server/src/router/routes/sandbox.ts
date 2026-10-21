@@ -1,126 +1,86 @@
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import * as sandbox from '../../sandbox';
+import type * as sandbox from '../../sandbox';
 import { requireUserId } from '../context';
 import { publicProcedure, router } from '../trpc';
 
-// Editor → Fastify sandbox proxy. The browser `VercelBrowserProvider` calls
-// these over the authed tRPC WS client (sandbox-server-client.ts). Each file/
-// command procedure requires a verified Clerk user (requireUserId) so an
-// unauthenticated caller can never reach the Vercel Sandbox SDK.
-//
-// TODO(security): add per-sandbox OWNERSHIP — resolve sandboxId → project and
-// assert the caller has `project.edit`. Currently any signed-in user who knows
-// a (random, unguessable) sandboxId could reach it. Acceptable only because
-// sandboxIds are non-enumerable and there are no real users yet; MUST land
-// before broad use. Needs a Convex client in this server.
-export const sandboxRouter = router({
-    // ── Legacy lifecycle stubs (kept; not used by the editor) ──────────────
-    create: publicProcedure.input(z.string()).mutation(({ input }) => {
-        return `hi ${input}`;
-    }),
-    start: publicProcedure.input(z.string()).mutation(({ input }) => {
-        return `hi ${input}`;
-    }),
-    stop: publicProcedure.input(z.string()).mutation(({ input }) => {
-        return {
-            success: true,
-            message: `Sandbox ${input} stopped`,
-            timestamp: new Date().toISOString(),
-        };
-    }),
-    status: publicProcedure.input(z.string()).query(({ input }) => {
-        return {
-            id: input,
-            status: 'running',
-            details: { cpu: '5%', memory: '120MB' },
-            uptime: 1200,
-        };
-    }),
+// Cloud sandbox access needs project-scoped authorization. The local desktop
+// release does not use these procedures. Preserve the public contracts so
+// old clients fail before a remote sandbox is read, changed, or charged.
+function cloudSandboxUnavailable<T>(): T {
+    throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Cloud sandbox access is unavailable until project authorization is implemented.',
+    });
+}
 
-    // ── File ops (authed) ──────────────────────────────────────────────────
+export const sandboxRouter = router({
+    create: publicProcedure.input(z.string()).mutation(() => cloudSandboxUnavailable<string>()),
+    start: publicProcedure.input(z.string()).mutation(() => cloudSandboxUnavailable<string>()),
+    stop: publicProcedure.input(z.string()).mutation(() => cloudSandboxUnavailable<{
+        success: boolean; message: string; timestamp: string;
+    }>()),
+    status: publicProcedure.input(z.string()).query(() => cloudSandboxUnavailable<{
+        id: string; status: string; details: { cpu: string; memory: string }; uptime: number;
+    }>()),
+
     fileList: publicProcedure
         .input(z.object({ sandboxId: z.string(), path: z.string() }))
-        .query(async ({ input, ctx }) => {
+        .query(({ ctx }) => {
             requireUserId(ctx);
-            return sandbox.fileList(input.sandboxId, input.path);
+            return cloudSandboxUnavailable<Awaited<ReturnType<typeof sandbox.fileList>>>();
         }),
-
     fileRead: publicProcedure
         .input(z.object({ sandboxId: z.string(), path: z.string() }))
-        .query(async ({ input, ctx }) => {
+        .query(({ ctx }) => {
             requireUserId(ctx);
-            return sandbox.fileRead(input.sandboxId, input.path);
+            return cloudSandboxUnavailable<Awaited<ReturnType<typeof sandbox.fileRead>>>();
         }),
-
     fileStat: publicProcedure
         .input(z.object({ sandboxId: z.string(), path: z.string() }))
-        .query(async ({ input, ctx }) => {
+        .query(({ ctx }) => {
             requireUserId(ctx);
-            return sandbox.fileStat(input.sandboxId, input.path);
+            return cloudSandboxUnavailable<Awaited<ReturnType<typeof sandbox.fileStat>>>();
         }),
-
     fileWrite: publicProcedure
-        .input(
-            z.object({
-                sandboxId: z.string(),
-                path: z.string(),
-                content: z.string(),
-                overwrite: z.boolean().optional(),
-                // 'base64' for binary import assets; defaults to utf8 text.
-                encoding: z.enum(['utf8', 'base64']).optional(),
-            }),
-        )
-        .mutation(async ({ input, ctx }) => {
+        .input(z.object({
+            sandboxId: z.string(),
+            path: z.string(),
+            content: z.string(),
+            overwrite: z.boolean().optional(),
+            encoding: z.enum(['utf8', 'base64']).optional(),
+        }))
+        .mutation(({ ctx }) => {
             requireUserId(ctx);
-            return sandbox.fileWrite(input.sandboxId, input.path, input.content, input.encoding);
+            return cloudSandboxUnavailable<Awaited<ReturnType<typeof sandbox.fileWrite>>>();
         }),
-
     fileDelete: publicProcedure
-        .input(
-            z.object({
-                sandboxId: z.string(),
-                path: z.string(),
-                recursive: z.boolean().optional(),
-            }),
-        )
-        .mutation(async ({ input, ctx }) => {
+        .input(z.object({ sandboxId: z.string(), path: z.string(), recursive: z.boolean().optional() }))
+        .mutation(({ ctx }) => {
             requireUserId(ctx);
-            await sandbox.fileDelete(input.sandboxId, input.path, input.recursive);
-            return { success: true };
+            return cloudSandboxUnavailable<{ success: boolean }>();
         }),
-
     fileMkdir: publicProcedure
         .input(z.object({ sandboxId: z.string(), path: z.string() }))
-        .mutation(async ({ input, ctx }) => {
+        .mutation(({ ctx }) => {
             requireUserId(ctx);
-            await sandbox.fileMkdir(input.sandboxId, input.path);
-            return { success: true };
+            return cloudSandboxUnavailable<{ success: boolean }>();
         }),
-
-    // ── Command + lifecycle (authed) ────────────────────────────────────────
     commandRun: publicProcedure
         .input(z.object({ sandboxId: z.string(), command: z.string() }))
-        .mutation(async ({ input, ctx }) => {
+        .mutation(({ ctx }) => {
             requireUserId(ctx);
-            const { output, exitCode } = await sandbox.commandRun(input.sandboxId, input.command);
-            return { output, exitCode };
+            return cloudSandboxUnavailable<{ output: string; exitCode: number }>();
         }),
-
     setup: publicProcedure
-        .input(
-            z.object({
-                sandboxId: z.string(),
-                port: z.number().int().positive().max(65_535).optional(),
-                devCommand: z.string().trim().min(1).optional(),
-            }),
-        )
-        .mutation(async ({ input, ctx }) => {
+        .input(z.object({
+            sandboxId: z.string(),
+            port: z.number().int().positive().max(65_535).optional(),
+            devCommand: z.string().trim().min(1).optional(),
+        }))
+        .mutation(({ ctx }) => {
             requireUserId(ctx);
-            await sandbox.setup(input.sandboxId, {
-                port: input.port,
-                devCommand: input.devCommand,
-            });
-            return { success: true };
+            return cloudSandboxUnavailable<{ success: boolean }>();
         }),
 });

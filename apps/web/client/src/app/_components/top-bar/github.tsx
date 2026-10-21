@@ -1,84 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
-const DEFAULT_STAR_COUNT = 22000;
-const DEFAULT_CONTRIBUTORS_COUNT = 90;
-
-const formatStarCount = (count: number): string => {
-    if (count >= 1000) {
-        return `${(count / 1000).toFixed(1)}k`.replace('.0k', 'k');
-    }
-    return count.toString();
-};
-
-export function useGitHubStats() {
-    const [raw, setRaw] = useState<number | null>(DEFAULT_STAR_COUNT);
-    const [formatted, setFormatted] = useState<string>(formatStarCount(DEFAULT_STAR_COUNT));
-    const [contributors, setContributors] = useState<number>(DEFAULT_CONTRIBUTORS_COUNT);
-
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                // Stars
-                const repoResponse = await fetch(
-                    'https://api.github.com/repos/Ludvig-Hedin/Weblab',
-                );
-                // On a rate-limited 403 the body has no stargazers_count;
-                // guard so formatStarCount(undefined) can't throw and abort the
-                // contributors fetch below — fall back to the default instead.
-                if (repoResponse.ok) {
-                    const repoData = await repoResponse.json();
-                    if (typeof repoData.stargazers_count === 'number') {
-                        setRaw(repoData.stargazers_count);
-                        setFormatted(formatStarCount(repoData.stargazers_count));
-                    }
-                }
-
-                // Contributors (use the Link header for pagination)
-                const contribResponse = await fetch(
-                    'https://api.github.com/repos/Ludvig-Hedin/Weblab/contributors?per_page=1&anon=true',
-                );
-                const linkHeader = contribResponse.headers.get('Link');
-                if (linkHeader) {
-                    const match = /&page=(\d+)>; rel="last"/.exec(linkHeader);
-                    if (match) {
-                        setContributors(Number(match[1]));
-                    }
-                } else {
-                    // fallback: count the single returned contributor
-                    const contribData = await contribResponse.json();
-                    setContributors(
-                        Array.isArray(contribData)
-                            ? contribData.length
-                            : DEFAULT_CONTRIBUTORS_COUNT,
-                    );
-                }
-            } catch (error) {
-                // Expected, fully-handled fallback: GitHub's unauthenticated API
-                // rate-limits to 60 req/hr/IP and the request can also fail when
-                // offline or blocked by a privacy extension. We already fall back
-                // to sensible defaults, so this is not an error — log at warn so it
-                // doesn't pollute error monitoring (Sentry) on every such load.
-                // TODO(github-stats): fetch server-side with ISR + a token so real
-                // counts show reliably and DEFAULT_* (inherited values) aren't surfaced.
-                console.warn('GitHub stats unavailable, using defaults:', error);
-                setRaw(DEFAULT_STAR_COUNT);
-                setFormatted(formatStarCount(DEFAULT_STAR_COUNT));
-                setContributors(DEFAULT_CONTRIBUTORS_COUNT);
-            }
-        };
-        fetchStats();
-    }, []);
-
-    return { raw, formatted, contributors };
-}
-
 export function GitHubButton() {
-    const { formatted } = useGitHubStats();
     const t = useTranslations('nav');
     return (
         <a

@@ -31,6 +31,7 @@ const TYPE_LABEL_KEYS = {
     [CmsSourceType.PAYLOAD]: transKeys.cms.sources.payload,
     [CmsSourceType.STRAPI]: transKeys.cms.sources.strapi,
     [CmsSourceType.REST]: transKeys.cms.sources.rest,
+    [CmsSourceType.SANITY]: transKeys.cms.sources.sanity,
 } as const;
 
 export const SourcesTab = observer(() => {

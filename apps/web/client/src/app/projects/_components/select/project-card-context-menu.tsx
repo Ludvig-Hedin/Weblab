@@ -21,15 +21,20 @@ import {
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from '@weblab/ui/context-menu';
 import { Icons } from '@weblab/ui/icons';
 
+import type { ProjectOrganizationProps } from './project-card-utils';
 import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
 import { Routes } from '@/utils/constants';
+import { ProjectDetailsDialog } from './project-details-dialog';
 
-interface ProjectCardContextMenuProps {
+interface ProjectCardContextMenuProps extends ProjectOrganizationProps {
     project: Project;
     refetch: () => void | Promise<unknown>;
     children: React.ReactNode;
@@ -39,8 +44,13 @@ export function ProjectCardContextMenu({
     project,
     refetch,
     children,
+    folders = [],
+    onMoveToFolder,
+    onCreateFolder,
 }: ProjectCardContextMenuProps) {
     const t = useTranslations();
+    const menuT = useTranslations('selectProject');
+    const [showDetails, setShowDetails] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const deleteProject = useMutation(api.projects.remove);
@@ -79,8 +89,16 @@ export function ProjectCardContextMenu({
         }
     };
 
+    const folder = folders.find((item) => item.projectIds.includes(project.id));
+
     return (
         <>
+            <ProjectDetailsDialog
+                project={project}
+                folderName={folder?.name}
+                open={showDetails}
+                onOpenChange={setShowDetails}
+            />
             <ContextMenu>
                 <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
                 <ContextMenuContent className="w-56">
@@ -98,6 +116,43 @@ export function ProjectCardContextMenu({
                         <Icons.ExternalLink className="mr-2 h-4 w-4" />
                         Open in new window
                     </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onSelect={() => setShowDetails(true)}>
+                        <Icons.InfoCircled className="h-4 w-4" />
+                        {menuT('showDetails')}
+                    </ContextMenuItem>
+                    {onMoveToFolder && (
+                        <ContextMenuSub>
+                            <ContextMenuSubTrigger>
+                                <Icons.MoveToFolder className="mr-2 h-4 w-4" />
+                                {menuT('moveToFolder')}
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent>
+                                {folders.map((item) => (
+                                    <ContextMenuItem
+                                        key={item.id}
+                                        disabled={item.id === folder?.id}
+                                        onSelect={() => void onMoveToFolder(item.id)}
+                                    >
+                                        {item.name}
+                                    </ContextMenuItem>
+                                ))}
+                                {folder && (
+                                    <ContextMenuItem onSelect={() => void onMoveToFolder(null)}>
+                                        {menuT('removeFromFolder')}
+                                    </ContextMenuItem>
+                                )}
+                                {onCreateFolder && (
+                                    <>
+                                        <ContextMenuSeparator />
+                                        <ContextMenuItem onSelect={onCreateFolder}>
+                                            {menuT('createFolder')}
+                                        </ContextMenuItem>
+                                    </>
+                                )}
+                            </ContextMenuSubContent>
+                        </ContextMenuSub>
+                    )}
                     <ContextMenuSeparator />
                     <ContextMenuItem
                         onSelect={() => void copyText(getAbsoluteUrl(), 'Link copied')}

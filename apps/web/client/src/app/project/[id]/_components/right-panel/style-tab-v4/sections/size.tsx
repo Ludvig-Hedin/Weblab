@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
+import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import {
     GroupShell,
     IconAspect,
@@ -335,6 +336,7 @@ export const SizeSection = observer(function SizeSection() {
                 </GroupShell>
 
                 {/* ── Behavior ───────────────────────────────────────── */}
+                {EDITOR_SCOPE.advancedCss && (
                 <GroupShell label={t('size.behavior')}>
                     <div className="grid grid-cols-2 gap-1.5">
                         <LabeledNumberInput
@@ -360,6 +362,7 @@ export const SizeSection = observer(function SizeSection() {
                         />
                     </div>
                 </GroupShell>
+                )}
             </div>
         </Section>
     );

@@ -35,8 +35,9 @@ describe('canEditJsxChildrenAsText', () => {
         expect(canEditJsxChildrenAsText('<span>{count + 1} items</span>')).toBe(false);
     });
 
-    test('non-whitespace string literal container blocks editing', () => {
-        expect(canEditJsxChildrenAsText("<p>{'rendered'}</p>")).toBe(false);
+    test('static string literal container remains editable', () => {
+        expect(canEditJsxChildrenAsText("<p>{'rendered'}</p>")).toBe(true);
+        expect(canEditJsxChildrenAsText('<p>{"{client} &amp; <hello>"}</p>')).toBe(true);
     });
 
     test('nested markup child blocks editing', () => {

@@ -10,22 +10,31 @@ import { useEditorEngine } from '@/components/store/editor';
 
 export const RecenterCanvasButton = observer(() => {
     const editorEngine = useEditorEngine();
+    const frameEvent = editorEngine.frameEvent;
+    const { left, right } = frameEvent.visibleBounds;
+    const isVisible = frameEvent.isCanvasOutOfView && frameEvent.canShowRecenter;
 
     return (
         <AnimatePresence>
-            {editorEngine.frameEvent.isCanvasOutOfView && (
+            {isVisible && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full text-center"
+                    // Centered in the canvas area between the side panels.
+                    className="pointer-events-none absolute top-1/2 flex -translate-y-full justify-center"
+                    style={{ left, right }}
                 >
-                    <p className="text-foreground-secondary mb-2">Your canvas is out of view</p>
-                    <Button onClick={editorEngine.frameEvent.recenterCanvas}>
-                        <Scan className="size-4" />
-                        <span>Re-Center the Canvas</span>
-                    </Button>
+                    <div className="pointer-events-auto flex flex-col items-center text-center">
+                        <p className="text-foreground-secondary mb-2">
+                            Your website is out of view
+                        </p>
+                        <Button onClick={() => frameEvent.recenterCanvas()}>
+                            <Scan className="size-4" />
+                            <span>Back to website</span>
+                        </Button>
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>

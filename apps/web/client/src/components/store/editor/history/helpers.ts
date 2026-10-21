@@ -43,6 +43,7 @@ export function reverseWriteCodeAction(action: WriteCodeAction): WriteCodeAction
             original: diff.generated,
             generated: diff.original,
         })),
+        ...(action.previewStyle ? { previewStyle: reverseStyleAction(action.previewStyle) } : {}),
     };
 }
 
@@ -94,6 +95,15 @@ export function undoAction(action: Action): Action {
                 ...action,
                 originalContent: action.newContent,
                 newContent: action.originalContent,
+                ...(action.textSlots
+                    ? {
+                          textSlots: action.textSlots.map((slot) => ({
+                              ...slot,
+                              oldText: slot.newText,
+                              newText: slot.oldText,
+                          })),
+                      }
+                    : {}),
             };
         case 'group-elements':
             const ungroupAction: UngroupElementsAction = {
@@ -407,10 +417,14 @@ export function transformRedoAction(action: Action): Action {
                 targets: action.targets ? [...action.targets] : [],
                 originalContent: action.originalContent,
                 newContent: action.newContent,
+                ...(action.textSlots
+                    ? { textSlots: action.textSlots.map((slot) => ({ ...slot })) }
+                    : {}),
             };
         case 'write-code':
             return {
-                type: 'write-code',
+                ...action,
+                ...(action.previewStyle ? { previewStyle: transformRedoAction(action.previewStyle) as UpdateStyleAction } : {}),
                 diffs: action.diffs.map((diff) => ({
                     ...diff,
                     original: diff.original,

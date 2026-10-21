@@ -7,6 +7,7 @@ import { cn } from '@weblab/ui/utils';
 
 import type { EditorFile } from '../shared/types';
 import { isDirty } from '../shared/utils';
+import { FileIcon } from '../sidebar/file-icon';
 
 export interface FileTabProps {
     file: EditorFile;
@@ -37,11 +38,12 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
     return (
         <div
             className={cn(
-                'group relative h-full min-w-28 overflow-hidden pr-3 pl-3',
-                // Active file tab fills with the bar-active token so the
-                // selected file reads as a distinct surface (matches how the
-                // right-panel tabs look).
-                isActive && 'bg-background-bar-active',
+                'group border-border-bar relative flex h-full max-w-56 min-w-0 flex-none items-center border-r',
+                // The active tab takes the editor's surface and hides the bar's
+                // bottom hairline, so it reads as the top of the open file.
+                isActive
+                    ? 'bg-background-canvas text-foreground-primary after:bg-background-canvas after:absolute after:inset-x-0 after:-bottom-px after:h-px'
+                    : 'text-foreground-tertiary hover:text-foreground-secondary hover:bg-foreground/[0.03]',
             )}
             data-active={dataActive}
             title={file.path}
@@ -52,53 +54,34 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
                 }
             }}
         >
-            <div className="bg-border-tab-divider absolute top-1/2 right-0 h-[50%] w-[0.5px] -translate-y-1/2"></div>
-            <div className="relative flex h-full items-center overflow-hidden">
-                <button
-                    className={cn(
-                        'text-mini flex h-full min-w-0 flex-1 items-center focus:outline-none',
-                        isActive
-                            ? isFileDirty
-                                ? 'text-foreground-brand'
-                                : 'text-foreground'
-                            : isFileDirty
-                              ? 'text-foreground-brand'
-                              : 'text-foreground-secondary/50',
-                    )}
-                    onClick={onClick}
-                >
-                    <span className="min-w-0 truncate">{filename}</span>
-                    {isFileDirty && (
-                        <span className={cn('ml-1 flex-shrink-0', 'text-foreground-brand')}>●</span>
-                    )}
-                    {isActive && (
-                        <div
-                            className={cn(
-                                'absolute bottom-0 left-0 h-[2px] w-full',
-                                isFileDirty ? 'bg-foreground-brand' : 'bg-foreground-hover',
-                            )}
-                        ></div>
-                    )}
-                    {!isActive && (
-                        <div className="bg-foreground-tertiary/50 absolute bottom-0 left-0 h-[2px] w-full opacity-0 group-hover:opacity-100"></div>
-                    )}
-                </button>
-                <div className="group-hover:bg-background-bar-active absolute top-1/2 right-[-3px] z-10 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                        aria-label="Close file"
-                        className={cn(
-                            'hover:text-foreground-hover hover:bg-background-bar-active flex-shrink-0 cursor-pointer p-1.5 hover:rounded-md',
-                            isActive ? 'text-foreground-secondary' : 'text-foreground-primary',
-                        )}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onClose?.();
-                        }}
-                    >
-                        <Icons.CrossS className="h-3 w-3" />
-                    </button>
-                </div>
-            </div>
+            <button
+                className="text-small flex h-full min-w-0 flex-1 items-center gap-2 pr-1 pl-3 focus:outline-none focus-visible:underline"
+                onClick={onClick}
+            >
+                <FileIcon path={file.path} isDirectory={false} className="h-3.5 w-3.5" />
+                <span className="min-w-0 truncate">{filename}</span>
+            </button>
+            {/* Close slot doubles as the unsaved dot: dot at rest, X on hover. */}
+            <button
+                aria-label="Close file"
+                className={cn(
+                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-foreground/[0.08] mr-1.5 flex h-5 w-5 flex-none items-center justify-center rounded',
+                    !isActive && !isFileDirty && 'opacity-0 group-hover:opacity-100',
+                )}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose?.();
+                }}
+            >
+                {isFileDirty ? (
+                    <>
+                        <span className="bg-foreground-secondary h-2 w-2 rounded-full group-hover:hidden" />
+                        <Icons.CrossS className="hidden h-3 w-3 group-hover:block" />
+                    </>
+                ) : (
+                    <Icons.CrossS className="h-3 w-3" />
+                )}
+            </button>
         </div>
     );
 };

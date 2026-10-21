@@ -65,9 +65,9 @@ export const PreviewThemeToggle = observer(() => {
                     type="button"
                     aria-label={`${META[current].label} theme — click for ${META[nextTheme].label}`}
                     onClick={() => editorEngine.state.setPreviewTheme(nextTheme)}
-                    className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-150"
+                    className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-colors duration-150"
                 >
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon className="h-4 w-4" />
                 </button>
             </TooltipTrigger>
             <TooltipContent sideOffset={5} hideArrow>

@@ -272,7 +272,8 @@ const REPO_NAME_CHARS = /[^A-Za-z0-9._-]+/g;
  * A new private repository under the signed-in account. When the name is
  * taken, tries name-2, name-3… and says which one it used.
  */
-async function createRepo(rawName) {
+async function createRepo(rawName, verify = () => undefined) {
+  verify();
   const token = readToken();
   if (!token) {
     return { code: "auth", message: "Sign in to GitHub first.", ok: false };
@@ -285,6 +286,7 @@ async function createRepo(rawName) {
       .slice(0, 90) || "website";
   try {
     for (let n = 1; n <= 20; n += 1) {
+      verify();
       const name = n === 1 ? base : `${base}-${n}`;
       // biome-ignore lint/performance/noAwaitInLoops: stops at the first free name
       const response = await send("/user/repos", token, {
@@ -292,6 +294,7 @@ async function createRepo(rawName) {
         name,
         private: true,
       });
+      verify();
       if (response.status === 401) {
         return {
           code: "auth",
@@ -301,6 +304,7 @@ async function createRepo(rawName) {
       }
       if (response.ok) {
         const repo = await response.json();
+        verify();
         return {
           cloneUrl: repo.clone_url,
           fullName: repo.full_name,
@@ -313,7 +317,11 @@ async function createRepo(rawName) {
       }
     }
     return { message: "Pick another name for the repository.", ok: false };
-  } catch {
+  } catch (error) {
+    if (error?.code === "source-unavailable") {
+      throw error;
+    }
+    verify();
     return {
       code: "offline",
       message: "Weblab couldn’t reach GitHub.",
@@ -323,25 +331,36 @@ async function createRepo(rawName) {
 }
 
 /** Opens a pull request, or returns the one already open for this branch. */
-async function openPullRequest({ owner, name, head, base, title }) {
+async function openPullRequest(
+  { owner, name, head, base, title },
+  verify = () => undefined
+) {
+  verify();
   const token = readToken();
   if (!token) {
     return { code: "auth", message: "Sign in to GitHub first.", ok: false };
   }
   try {
+    verify();
     const response = await send(`/repos/${owner}/${name}/pulls`, token, {
       base,
       head,
       title,
     });
+    verify();
     if (response.ok) {
-      return { ok: true, url: (await response.json()).html_url };
+      const pull = await response.json();
+      verify();
+      return { ok: true, url: pull.html_url };
     }
+    verify();
     const open = await api(
       `/repos/${owner}/${name}/pulls?state=open&head=${encodeURIComponent(`${owner}:${head}`)}`,
       token
     );
+    verify();
     const existing = open.ok ? (await open.json())[0] : null;
+    verify();
     if (existing) {
       return { ok: true, url: existing.html_url };
     }
@@ -352,7 +371,11 @@ async function openPullRequest({ owner, name, head, base, title }) {
           : "GitHub didn’t open the request.",
       ok: false,
     };
-  } catch {
+  } catch (error) {
+    if (error?.code === "source-unavailable") {
+      throw error;
+    }
+    verify();
     return {
       code: "offline",
       message: "Weblab couldn’t reach GitHub.",

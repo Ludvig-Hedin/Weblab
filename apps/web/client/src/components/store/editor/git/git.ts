@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import stripAnsi from 'strip-ansi';
 
+import { NodeFsProvider } from '@weblab/code-provider';
 import { APP_NAME, SUPPORT_EMAIL } from '@weblab/constants';
 
 import type { SandboxManager } from '../sandbox';
@@ -73,10 +74,31 @@ export class GitManager {
         makeAutoObservable(this);
     }
 
+    private get isLocalProject(): boolean {
+        return this.sandbox.session.provider instanceof NodeFsProvider;
+    }
+
+    private localMutationUnavailable(): GitCommandResult {
+        return {
+            success: false,
+            output: '',
+            error: 'Use your Git client for local commits, branches, and pushes. Weblab keeps the project files on disk.',
+        };
+    }
+
     /**
      * Initialize git manager - auto-initializes repo if needed and preloads commits
      */
     async init(): Promise<void> {
+        if (this.sandbox.session.provider instanceof NodeFsProvider) {
+            // A local project is the user's real folder. Never create a repo,
+            // rename its branch, stage files, or commit just because it opened.
+            // Git history is left to the user's Git client for this release.
+            await this.isRepoInitialized();
+            this.commits = [];
+            return;
+        }
+
         const isInitialized = await this.isRepoInitialized();
         if (!isInitialized) {
             await this.initRepo();
@@ -89,6 +111,10 @@ export class GitManager {
      */
     async isRepoInitialized(): Promise<boolean> {
         try {
+            if (this.sandbox.session.provider instanceof NodeFsProvider) {
+                const info = await this.sandbox.session.provider.gitInfo();
+                return info.isRepositoryRoot;
+            }
             return (await this.sandbox.fileExists('.git')) || false;
         } catch (error) {
             console.error('Error checking if repository is initialized:', error);
@@ -108,6 +134,7 @@ export class GitManager {
      * log loudly if every attempt fails.
      */
     async ensureGitConfig(): Promise<boolean> {
+        if (this.isLocalProject) return false;
         try {
             if (!this.sandbox.session) {
                 console.error('No sandbox session available');
@@ -204,6 +231,11 @@ export class GitManager {
      * Initialize git repository
      */
     async initRepo(): Promise<boolean> {
+        // Local Git initialization must be an explicit user action. This
+        // method also stages and commits, so keep accidental callers safe.
+        if (this.sandbox.session.provider instanceof NodeFsProvider) {
+            return false;
+        }
         try {
             const isInitialized = await this.isRepoInitialized();
             if (isInitialized) {
@@ -262,6 +294,9 @@ export class GitManager {
      */
     async getStatus(): Promise<GitStatus | null> {
         try {
+            if (this.isLocalProject && !(await this.isRepoInitialized())) {
+                return { files: [] };
+            }
             const status = await this.sandbox.session.provider?.gitStatus({});
             if (!status) {
                 console.error('Failed to get git status');
@@ -269,7 +304,7 @@ export class GitManager {
             }
 
             return {
-                files: Object.keys(status.changedFiles || {}),
+                files: status.changedFiles,
             };
         } catch (error) {
             console.error('Failed to get git status:', error);
@@ -281,6 +316,7 @@ export class GitManager {
      * Stage all files
      */
     async stageAll(): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         return this.runCommand('git add .');
     }
 
@@ -288,6 +324,7 @@ export class GitManager {
      * Create a commit (low-level) - auto-refreshes commits after successful commit
      */
     async commit(message: string): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         const sanitizedMessage = sanitizeCommitMessage(message);
         const escapedMessage = prepareCommitMessage(sanitizedMessage);
         const result = await this.runCommand(
@@ -300,10 +337,12 @@ export class GitManager {
     }
 
     async stageTracked(): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         return this.runCommand('git add -u');
     }
 
     async getStagedFileCount(): Promise<number> {
+        if (this.isLocalProject) return 0;
         try {
             const result = await this.runCommand('git diff --cached --name-only', true);
             if (!result.success || !result.output?.trim()) {
@@ -323,6 +362,7 @@ export class GitManager {
     }
 
     async getDiffStat(): Promise<{ added: number; removed: number } | null> {
+        if (this.isLocalProject) return null;
         try {
             const result = await this.runCommand('git diff HEAD --numstat', true);
             if (!result.success || !result.output?.trim()) {
@@ -349,6 +389,10 @@ export class GitManager {
      * content, suitable for feeding to a side-by-side diff renderer.
      */
     async getDiffs(): Promise<FileDiff[]> {
+        if (this.isLocalProject) {
+            this.diffs = [];
+            return [];
+        }
         this.isLoadingDiffs = true;
         try {
             const status = await this.getStatus();
@@ -437,10 +481,12 @@ export class GitManager {
     }
 
     async push(): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         return this.runCommand('git push');
     }
 
     async pushBranch(branchName: string, setUpstream = false): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         const escapedBranch = escapeShellString(branchName);
         const command = setUpstream
             ? `git push --set-upstream origin ${escapedBranch}`
@@ -452,6 +498,7 @@ export class GitManager {
      * Create a commit (high-level) - handles full flow: stage, config, commit
      */
     async createCommit(message = `New ${APP_NAME} backup`): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         const status = await this.getStatus();
 
         // Stage all files
@@ -471,6 +518,10 @@ export class GitManager {
      * List commits with formatted output - stores results in this.commits
      */
     async listCommits(maxRetries = 2): Promise<GitCommit[]> {
+        if (this.isLocalProject) {
+            this.commits = [];
+            return [];
+        }
         this.isLoadingCommits = true;
         let lastError: Error | null = null;
 
@@ -549,6 +600,7 @@ export class GitManager {
      * Checkout/restore to a specific commit - auto-refreshes commits after restore
      */
     async restoreToCommit(commitOid: string): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         const result = await withSyncPaused(this.sandbox.syncEngine, () => {
             return this.restoreToCommitInternal(commitOid);
         });
@@ -613,6 +665,7 @@ export class GitManager {
      * Add a display name note to a commit - updates commit in local cache
      */
     async addCommitNote(commitOid: string, displayName: string): Promise<GitCommandResult> {
+        if (this.isLocalProject) return this.localMutationUnavailable();
         const sanitizedDisplayName = sanitizeCommitMessage(displayName);
         const escapedDisplayName = prepareCommitMessage(sanitizedDisplayName);
         const result = await this.runCommand(
@@ -639,6 +692,7 @@ export class GitManager {
      * Get display name from commit notes
      */
     async getCommitNote(commitOid: string): Promise<string | null> {
+        if (this.isLocalProject) return null;
         try {
             const result = await this.runCommand(
                 `git --no-pager notes --ref=${WEBLAB_DISPLAY_NAME_NOTE_REF} show ${commitOid}`,

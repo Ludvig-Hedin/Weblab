@@ -1,4 +1,31 @@
 {
+  "workingLevel": {
+    "title": "Välj ditt arbetsläge",
+    "firstOpen": "Kan ändras i Inställningar.",
+    "content": "Enkelt",
+    "full": "Avancerat",
+    "contentAudience": "För löpande innehållsuppdateringar",
+    "fullAudience": "För designers och utvecklare",
+    "contentDescription": "Redigera bloggutkast på webbplatser som stöds.",
+    "fullDescription": "Design, kod och webbplatsinställningar.",
+    "nextOpen": "Ändringar gäller nästa gång du öppnar en webbplats. Den aktuella redigeraren förblir öppen.",
+    "sessionOnly": "Valet kunde inte sparas på den här enheten. Det gäller för den här inloggade sessionen.",
+    "loading": "Läser in din arbetsnivå…",
+    "choiceRequired": "Välj en arbetsnivå för att öppna webbplatsen.",
+    "contentUnavailableTitle": "Innehållsredigering är inte tillgänglig ännu",
+    "contentUnavailableBody": "Den här versionen kan inte säkert redigera godkända innehållsfält, mallar eller block. Välj Avancerat i Inställningar för att använda de tillgängliga verktygen och öppna sedan webbplatsen igen.",
+    "settings": "Inställningar",
+    "backToSites": "Tillbaka till webbplatser",
+    "closing": "Avslutar den föregående webbplatsen…",
+    "closeFailed": "Den föregående webbplatsen kunde inte sparas klart. Låt fönstret vara öppet och försök igen.",
+    "retry": "Försök igen",
+    "unsavedCode": "Den föregående redigeraren kunde inte spara klart. Gå tillbaka för att fortsätta arbeta, eller försök igen när det går att spara. Dina ändringar finns kvar.",
+    "returnToSite": "Tillbaka till föregående webbplats"
+  },
+  "desktopSafety": {
+    "isolationUnverified": "Tillfälligt otillgänglig. Säker redigering kunde inte bekräftas. Välj en annan AI-leverantör.",
+    "statusUnverified": "Tillgängligheten kunde inte bekräftas. Kontrollera igen innan du använder den här leverantören."
+  },
   "promoBanner": {
     "pro60FirstMonth": {
       "message": "Spara 60 % på din första månad av Pro.",
@@ -10,6 +37,65 @@
     "dismiss": "Stäng banner"
   },
   "cms": {
+    "archive": {
+      "archive": "Arkivera",
+      "archiveTitle": "Arkivera objektet?",
+      "archiveBody": "Behåll objektet i arkivet. Det tas inte med i nästa version. Den publicerade sidan ändras först när du publicerar.",
+      "archiveMany": "Arkivera {count} objekt",
+      "archived": "Objektet arkiverades. Den publicerade sidan har inte ändrats.",
+      "archivedCount": "Arkiverade {count} objekt.",
+      "restoreDraft": "Återställ som utkast",
+      "restoreTitle": "Återställa objektet som utkast?",
+      "restoreBody": "Behåll samma innehåll och adress. Granska det innan det tas med i en version.",
+      "restoreMany": "Återställ {count} objekt",
+      "restored": "Återställt som utkast. Den publicerade sidan har inte ändrats.",
+      "restoredCount": "Återställde {count} objekt som utkast.",
+      "showArchive": "Visa arkiv",
+      "showActive": "Visa aktiva objekt",
+      "status": "Arkiverat",
+      "emptyTitle": "Arkivet är tomt",
+      "emptyBody": "Arkiverade objekt finns kvar här tills du återställer dem.",
+      "editorNotice": "Objektet är arkiverat. Komplettera obligatoriska fält här och återställ det sedan som utkast. Adressen är kvar.",
+      "failed": "Ändringen kunde inte sparas."
+    },
+    "readiness": {
+      "externalReadOnly": "Redigera innehållet i dess externa CMS. Weblab kan inte spara ändringar till den här källan säkert ännu.",
+      "conflict": "Objektet har ändrats på annat håll. Dina ändringar finns kvar. Läs in igen innan du sparar.",
+      "itemRemoved": "Objektet har tagits bort. Dina osparade ändringar finns kvar, men objektet kan inte sparas.",
+      "reload": "Läs in igen",
+      "reloadTitle": "Läsa in objektet igen?",
+      "reloadBody": "Dina osparade ändringar ersätts med den senaste sparade versionen.",
+      "discardTitle": "Kasta osparade ändringar?",
+      "discardBody": "Dina ändringar har inte sparats. Stäng och kasta dem?",
+      "discard": "Kasta ändringar",
+      "keepEditing": "Fortsätt redigera",
+      "draftSaved": "Utkast sparat. Den publicerade sidan har inte ändrats.",
+      "readySaved": "Sparat för granskning. Publicera den granskade versionen för att uppdatera sidan.",
+      "readyForReview": "Redo för granskning",
+      "draftStatus": "Utkast",
+      "imageUrl": "Bildens URL",
+      "imageAlt": "Bildbeskrivning",
+      "configureOptions": "Ställ in fältets alternativ i Redigera fält först.",
+      "configureReference": "Välj fältets samling i Redigera fält först.",
+      "chooseValue": "Välj ett värde",
+      "unavailableSelection": "Sparat val är inte tillgängligt",
+      "clear": "Rensa",
+      "searchLoaded": "Sök bland inlästa objekt…",
+      "loadMore": "Läs in fler",
+      "loadedCount": "{count} inlästa",
+      "deleteMany": "Ta bort {count} objekt?",
+      "deleteBody": "Det sparade utkastet tas bort. Det går inte att ångra här.",
+      "delete": "Ta bort",
+      "deleteFailed": "Kunde inte ta bort objektet",
+      "deletedCount": "{count} objekt borttagna",
+      "options": "Alternativ, ett per rad",
+      "multiple": "Tillåt flera val",
+      "referenceCollection": "Samling",
+      "urlFormat": "Använd som länk",
+      "invalidOptions": "Använd olika alternativ som inte är tomma.",
+      "invalidReference": "Välj en samling från det här projektet.",
+      "removeFieldBody": "Fältet och dess sparade värden tas bort, tillsammans med kopplingar och sidvägar som använder det. Detta kan inte ångras."
+    },
     "topBar": {
       "tooltip": "CMS"
     },
@@ -116,6 +202,7 @@
       "payload": "Payload",
       "strapi": "Strapi",
       "rest": "Generisk REST",
+      "sanity": "Sanity",
       "mapButton": "Mappa",
       "refresh": "Uppdatera",
       "refreshing": "Uppdaterar…",
@@ -359,8 +446,8 @@
       "cloning": "Klonar…",
       "convertToTemplate": "Omvandla till mall",
       "unmarkAsTemplate": "Ta bort som mall",
-      "removeOfflineCopy": "Ta bort offlinekopia",
-      "makeAvailableOffline": "Gör tillgänglig offline"
+      "removeOfflineCopy": "Ta bort lokal kopia",
+      "makeAvailableOffline": "Behåll en lokal kopia"
     },
     "chooser": {
       "orPickStartingPoint": "eller välj en startpunkt",
@@ -370,7 +457,8 @@
       },
       "openFolder": {
         "label": "Öppna mapp",
-        "tooltip": "Öppna en mapp från din dator. Ändringar synkroniseras till disk och din kodredigerare, live."
+        "tooltip": "Öppna en projektmapp. Du redigerar en privat kopia och exporterar sedan ändringarna som en Git-patch.",
+        "limits": "Fungerar med Next.js-sajter och vanliga HTML-sajter, en app per mapp. Weblab redigerar en kopia, så din mapp förblir som den är."
       },
       "uploadFolder": {
         "label": "Ladda upp mapp",
@@ -451,10 +539,10 @@
         "toastFailed": "Det gick inte att uppdatera malltaggen"
       },
       "offline": {
-        "toastRemoved": "{name} borttagen från offline-åtkomst.",
-        "toastPinned": "{name} fäst. Öppna en gång online för att slutföra cachelagringen.",
-        "toastMarked": "{name} markerad som tillgänglig offline.",
-        "toastFailed": "Det gick inte att uppdatera offline-tillgängligheten."
+        "toastRemoved": "Den lokala kopian av {name} har tagits bort.",
+        "toastPinned": "{name} har valts för lokal återställning. Öppna projektet online för att spara projektdata.",
+        "toastMarked": "{name} har valts för lokal återställning. Anslut till nätverket för att öppna det.",
+        "toastFailed": "Det gick inte att uppdatera den lokala projektkopian."
       }
     },
     "frameworkSelect": {
@@ -695,9 +783,9 @@
     "login": {
       "github": "Logga in med GitHub",
       "google": "Logga in med Google",
-      "continueGithub": "Fortsätt med GitHub",
-      "continueGoogle": "Fortsätt med Google",
-      "continueVercel": "Fortsätt med Vercel",
+      "continueGithub": "GitHub",
+      "continueGoogle": "Google",
+      "continueVercel": "Vercel",
       "lastUsed": "Det här använde du senast",
       "loginToEdit": "Logga in för att redigera",
       "shareProjects": "Inget kreditkort krävs • Få en webbplats på sekunder",
@@ -750,6 +838,13 @@
     "cachedAt": "Cachad {time}"
   },
   "selectProject": {
+    "showDetails": "Visa detaljer",
+    "localFolderPath": "Arbetsmapp",
+    "copyPath": "Kopiera sökväg",
+    "pathCopied": "Sökvägen har kopierats",
+    "copyPathFailed": "Kunde inte kopiera sökvägen",
+    "detailsCreated": "Skapad",
+    "projectActions": "Åtgärder för {name}",
     "pendingImportTitle": "Välkommen tillbaka – vill du välja mappen du försökte importera?",
     "pendingImportBody": "Du försökte öppna en lokal mapp innan inloggning. Webbläsare tillåter bara mappväljaren direkt efter ett klick, så klicka nedan för att fortsätta.",
     "chooseFolder": "Välj mapp",
@@ -1186,7 +1281,7 @@
         },
         "q3": {
           "question": "Var är Weblab baserat?",
-          "answer": "Weblab byggs i Sverige. Våra open source-bidragsgivare är utspridda över världen och tillför sina unika perspektiv och otroliga talang till projektet medan vi fortsätter tänja på gränserna för design och utveckling."
+          "answer": "Weblab byggs i Sverige av Ludvig Hedin."
         }
       }
     }
@@ -1661,6 +1756,58 @@
               }
             }
           },
+          "link": {
+            "name": "Länk",
+            "selectHint": "Välj en knapp eller länk för att bestämma vart den går.",
+            "loading": "Laddar…",
+            "goesTo": "Går till",
+            "types": {
+              "page": "Sida",
+              "url": "Webbadress",
+              "section": "Avsnitt på sidan",
+              "email": "E-post",
+              "phone": "Telefon"
+            },
+            "fields": {
+              "page": "Sida",
+              "url": "Adress",
+              "section": "Avsnitt",
+              "email": "E-postadress",
+              "phone": "Telefonnummer"
+            },
+            "placeholders": {
+              "url": "exempel.se",
+              "email": "namn@exempel.se",
+              "phone": "+46 70 123 45 67"
+            },
+            "home": "Startsida",
+            "choosePage": "Välj sida",
+            "noPages": "Inga sidor än.",
+            "chooseSection": "Välj avsnitt",
+            "noSections": "Inget avsnitt på sidan har ett ID än. Ge ett avsnitt ett ID under Stilar och välj det sedan här.",
+            "openInNewTab": "Öppna i ny flik",
+            "text": "Text",
+            "textPlaceholder": "Knapptext",
+            "textNotEditable": "Texten består av flera delar. Ändra den direkt på ytan.",
+            "textBadCharacters": "Texten kan inte innehålla klammerparenteser eller vinkelparenteser.",
+            "makeLink": "Gör till länk",
+            "saveFailed": "Det gick inte att spara ändringen.",
+            "notes": {
+              "notInCode": "Elementet finns inte i koden, så det går inte att ändra här.",
+              "hrefFromCode": "Vart den går bestäms i koden, så det går inte att ändra här.",
+              "targetFromCode": "Om den öppnas i ny flik bestäms i koden.",
+              "buttonNotLink": "Knappen går inte någonstans än.",
+              "canConvert": "Gör den till en länk för att välja vart den går. Kolla hur den ser ut efteråt.",
+              "cannotConvert": "Den kan inte bli en länk här utan risk att det den gör vid klick slutar fungera."
+            },
+            "problems": {
+              "emptyValue": "Fyll i det här först.",
+              "badUrl": "Kolla adressen. Den ska se ut som exempel.se",
+              "badEmail": "Kolla e-postadressen.",
+              "badPhone": "Kolla telefonnumret.",
+              "badSection": "Välj ett avsnitt i listan."
+            }
+          },
           "comments": {
             "name": "Kommentarer",
             "open": "Öppna",
@@ -1787,7 +1934,8 @@
           "brand": "Varumärke",
           "branches": "Branches",
           "apps": "Appar",
-          "search": "Sök"
+          "search": "Sök",
+          "variables": "Variabler"
         },
         "rail": {
           "openLeftPanel": "Öppna vänsterpanelen",
@@ -1951,6 +2099,30 @@
       }
     },
     "git": {
+      "copyCredentialsOmitted": "Originalets nycklar och kontoinställningar lämnades kvar. Lägg in testnycklar under Inställningar, Projekt, Nycklar för förhandsvisning så kan förhandsvisningen använda anslutna tjänster.",
+      "localGitHandoff": "Gör commit i din Git-klient",
+      "handoffButton": "Ladda upp",
+      "handoffTitle": "Ladda upp ändringar",
+      "handoffDescription": "Spara dina ändringar som en patch för din Git-klient. {appName} ändrar aldrig ditt originalprojekt.",
+      "handoffSourceChanged": "Originalprojektet har ändrats sedan du öppnade det. Öppna mappen igen för att lämna över säkert.",
+      "handoffUnsupported": "Kan inte ladda upp ännu. Dessa filer ändrades utanför {appName}: {paths}",
+      "handoffNoChanges": "Det finns ännu inga ändringar från {appName} att lämna över.",
+      "handoffPendingWrites": "Vänta tills den pågående ändringen är klar och granska igen.",
+      "handoffFailed": "Det gick inte att förbereda Git-överlämningen.",
+      "handoffExported": "Klart. Tillämpa den i din Git-klient från projektmappen.",
+      "handoffCopyPath": "Kopiera sökväg",
+      "handoffPathCopied": "Patchens sökväg kopierad",
+      "handoffCopyFailed": "Det gick inte att kopiera patchens sökväg",
+      "handoffRefresh": "Granska igen",
+      "handoffNewCopy": "{appName} öppnade en ny arbetskopia och behöll den tidigare på disken.",
+      "handoffFilesLabel": "Filer",
+      "handoffSelectedCount": "{selected} av {total}",
+      "handoffEditFiles": "Redigera",
+      "handoffDoneEditing": "Klar",
+      "handoffExcluded": "Utesluten",
+      "handoffKindStructure": "Layouten ändrades. Kontrollera den innan du tillämpar.",
+      "handoffClose": "Stäng",
+      "handoffCancel": "Avbryt",
       "toastGitUnavailable": "Git är inte tillgängligt förrän sandbox är redo",
       "toastNoChanges": "Inga ändringar att committa",
       "toastNoBranchName": "Den här grenen saknar git-grennamn",
@@ -1989,6 +2161,89 @@
       "dropdownCreateBranch": "Skapa gren",
       "toastSwitchFailed": "Det gick inte att byta gren",
       "stagedFilesReady": "{count, plural, one {# stagead fil redo att committa.} other {# stagade filer redo att committa.}}"
+    },
+    "publishing": {
+            "content": {
+                "title": "Hemsidans innehåll",
+                "saveFirst": "Spara eller stäng ditt nuvarande bloggutkast innan du förbereder innehåll.",
+                "button": "Förbered hemsidan",
+                "dialogDescription": "Förbered sparat innehåll och bilder i din privata arbetskopia.",
+                "unsupported": "Innehållsförberedelse stöder bara den godkända testsajten med Sanity.",
+                "recoveryDescription": "Om ett valt utkast har ändrats kan du slutföra den tidigare förberedelsen för att återställa kopian. Förhandsvisning är spärrad tills du väljer och förbereder aktuellt innehåll.",
+                "recover": "Slutför tidigare förberedelse",
+                "needsPreparation": "Designen har ändrats efter förberedelsen. Förbered igen för att kunna förhandsvisa.",
+                "prepared": "Förberedelsen stannade innan hemsidan ändrades. Förbered samma innehåll igen.",
+                "description": "Välj upp till åtta sparade bloggändringar. Valet ersätter de bloggändringar som tidigare förberetts i arbetskopian. Övriga inlägg behåller sitt publicerade Sanity-innehåll.",
+                "limits": "Bara den godkända testsajten stöds. Förberedelsen ändrar endast den privata kopian. Förhandsvisningen stängs under förberedelsen. Offertformuläret och Studio stängs av. Sanity ändras inte och publicering är fortfarande spärrad.",
+                "noDrafts": "Inga sparade bloggutkast ännu. Publicerade inlägg kan ändå förberedas.",
+                "archive": "Ta bort detta arkiverade inlägg från hemsidans version.",
+                "stale": "Utkastet har ändrats. Avmarkera och välj det igen för att använda den nya versionen.",
+                "selected": "Valda ändringar: {count} / 8",
+                "more": "Visa fler utkast",
+                "complete": "Innehåll och bilder är förberedda. Spara senare designändringar och förbered igen före förhandsvisning.",
+                "pending": "Förberedelsen avbröts. Återuppta samma innehållsversion före förhandsvisning.",
+                "resume": "Återuppta förberedelsen",
+                "prepare": "Förbered innehåll och bilder"
+            },
+      "sourceOnly": "Endast källfiler. CMS-utkast ingår inte i den här versionen.",
+      "button": "Publicera",
+      "title": "Publicera din webbplats",
+      "description": "Granska en sparad version, kontrollera en skyddad förhandsvisning och välj när den går live.",
+      "scopeChanged": "Projektet, grenen eller kontot ändrades. Öppna publiceringen igen.",
+      "unavailable": "Publicering finns i skrivbordsappen.",
+      "failed": "Publiceringen kunde inte bekräftas. Uppdatera status innan du fortsätter.",
+      "working": "Arbetar…",
+      "pendingSwitch": "Ändringen på den live webbplatsen är inte bekräftad ännu. Uppdatera status. Skicka inte igen.",
+      "pendingBuild": "Byggbegäran är inte bekräftad ännu. Uppdatera status innan du fortsätter.",
+      "refresh": "Uppdatera status",
+      "connectDescription": "Anslut ditt eget Vercel-konto till ett befintligt Next.js-projekt med en live version och skyddade förhandsvisningar.",
+      "token": "Vercel åtkomsttoken",
+      "project": "Vercel projekt-ID",
+      "team": "Team-ID (valfritt)",
+      "connect": "Anslut konto",
+      "review": "Granska aktuella ändringar",
+      "editing": "Avsluta den pågående redigeringen innan du granskar en version.",
+      "version": "Sparad version",
+      "reviewTitle": "Granska ändringar",
+      "frozenTitle": "Granskad version",
+      "unchanged": "Inga ändringar i källan efter rensning. Versionen använder den förberedda webbplatsen som den är.",
+      "reformatted": "Formatering ändrad",
+      "savedReview": "Den här sparade versionen är fast. Skapa en ny granskning för att se alla ändringar och bygga eller publicera den.",
+      "freeze": "Spara granskad version",
+      "reviewedFiles": "Ändrade filer ({count})",
+      "includedFiles": "Filer som ingår i versionen ({count})",
+      "skippedFiles": "Filer som utelämnas från versionen ({count})",
+      "manifestMissing": "Den fullständiga fillistan saknas för den här versionen. Skapa en ny granskning innan du bygger eller publicerar.",
+      "cancelFailed": "Avbrottet kunde inte bekräftas. Uppdatera status innan du fortsätter.",
+      "routingChanged": "Den live webbplatsen eller dess domäner ändrades utanför appen. Granska den aktuella Vercel-versionen nedan innan du godkänner den som ny baslinje.",
+      "observedLive": "Aktuell version på Vercel",
+      "acceptLive": "Granska aktuell live version",
+      "confirmAcceptLive": "Godkänna den här live versionen som ny baslinje? Det sparade återställningsmålet tas bort. Sparade versioner finns kvar i historiken.",
+      "acceptLiveNow": "Godkänn som baslinje",
+      "sharedConfig": "Delade offentliga inställningar",
+      "sharedConfigDescription": "Dessa offentliga värden används i både förhandsvisning och produktion.",
+      "preview": "Skyddad förhandsvisning:",
+      "production": "Produktionsbygge:",
+      "notBuilt": "Inte byggd",
+      "buildPreview": "Bygg skyddad förhandsvisning",
+      "openPreview": "Öppna skyddad förhandsvisning",
+      "openFailed": "Förhandsvisningen kunde inte öppnas.",
+      "checkedPreview": "Jag har kontrollerat den här förhandsvisningen",
+      "buildProduction": "Bygg produktionsversion",
+      "failedBuild": "Bygget misslyckades. Granska källan igen för att skapa en ny version.",
+      "live": "Den här versionen är live.",
+      "publish": "Publicera granskad version",
+      "rollback": "Återställ föregående live version",
+      "confirmTitle": "Bekräfta ändring på live webbplats",
+      "confirmPublish": "Publicera den här versionen på dessa domäner?",
+      "confirmRollback": "Återställ den föregående live versionen på dessa domäner?",
+      "publishNow": "Publicera nu",
+      "rollbackNow": "Återställ nu",
+      "cancel": "Avbryt",
+      "statusNeeded": "Versionens status ändrades eller kunde inte bekräftas. Uppdatera status innan du fortsätter.",
+      "rollbackCurrentVersion": "Nuvarande version",
+      "rollbackPreviousVersion": "Version att återställa",
+      "coordinationUnavailable": "Publicering live och återställning är spärrade tills skyddet för samtidig publicering är klart. Du kan fortfarande granska filer och bygga en skyddad förhandsvisning."
     },
     "publish": {
       "url": {
@@ -2189,7 +2444,56 @@
           "buildingYourSite": "Bygger din webbplats",
           "buildingDesc": "Din förhandsgranskning visas här när AI:n är klar med den första versionen. Det brukar ta 30–60 sekunder.",
           "restarting": "Startar om…",
-          "restartPreview": "Starta om förhandsgranskning"
+          "restartPreview": "Starta om förhandsgranskning",
+          "localPreparationPlanFailed": "Kunde inte granska ändringarna i lokala filer",
+          "localPreparationSuccess": "Lokala filer är förberedda för visuell redigering",
+          "localPreparationIntro": "Granska kodändringarna före visuell redigering.",
+          "localPreparationPlanning": "Beräknar ändringar…",
+          "localPreparationReview": "Granska förberedelserna",
+          "localPreparationTitle": "Förbered lokala filer",
+          "localPreparationDescription": "Granska varje fil innan du tillämpar ändringarna. Element-ID:n och förhandsgranskningsskript läggs till i din privata arbetskopia.",
+          "localPreparationEmpty": "Inga filer behöver ändras. Fortsätt för att aktivera redigeringen.",
+          "localPreparationNew": "Ny:",
+          "localPreparationEdit": "Ändra:",
+          "localPreparationStillChanged": "Fortfarande ändrade: {paths}",
+          "localPreparationRestored": "Filerna som ändrades i det här försöket har återställts.",
+          "localPreparationClose": "Stäng",
+          "localPreparationApplying": "Tillämpar…",
+          "localPreparationApply": "Tillämpa granskade ändringar",
+          "localPreviewScriptWarning": "När du startar förhandsgranskningen körs projektets dev-skript med dina kontobehörigheter.",
+          "localInstallDependencies": "Installera beroenden",
+          "localInstallingDependencies": "Installerar beroenden…",
+          "localCancelInstall": "Avbryt installation",
+          "localInstallDescription": "Installerar paket i den privata kopian. Paketskript är avstängda.",
+          "localInstallSuccess": "Beroenden installerades i den privata kopian",
+          "localInstallFailed": "Kunde inte installera beroenden",
+          "localStartPreview": "Starta förhandsgranskning",
+          "localStartingPreview": "Startar förhandsgranskning…",
+          "localSetupTitle": "Öppnar din sajt",
+          "localSetupInstalling": "Installerar det din sajt behöver. Första gången kan ta några minuter.",
+          "localSetupPreparing": "Gör din sajt redo för redigering…",
+          "localSetupStarting": "Startar din sajt…",
+          "localSetupFailedTitle": "Din sajt startade inte",
+          "localSetupMonorepo": "Det har flera appar i en mapp. Just nu fungerar Weblab med en app per mapp.",
+          "localSetupUnsupportedFramework": "Just nu fungerar Weblab med Next.js-sajter och vanliga HTML-sajter.",
+          "localSetupLockfile": "Det behöver en paketlåsfil så att Weblab kan förbereda det säkert. Lägg till en med projektets vanliga installation och öppna det igen.",
+          "localSetupPort": "Sajten kanske lyssnar på en annan port eller adress.",
+          "localSetupNativeBinding": "macOS blockerade ett paket som sajten behöver.",
+          "localSetupDependencies": "Ett paket som sajten behöver kunde inte laddas.",
+          "localSetupFailed": "Försök igen eller be en lokal kodassistent undersöka starten.",
+          "localSetupRetry": "Försök igen",
+          "localSetupDetails": "Detaljer",
+          "localRecoveryFix": "Fixa starten",
+          "localRecoveryCodex": "Använd Codex",
+          "localRecoveryClaude": "Använd Claude",
+          "localRecoverySlow": "Det tar längre tid än vanligt.",
+          "localRecoverySwitchBranch": "Byt till den här grenen innan du fixar starten.",
+          "localRecoveryUnavailable": "Lokal kodhjälp finns inte i den här desktopappen.",
+          "localRecoveryProviderNotReady": "{provider} är inte redo. Logga in i dess CLI och försök igen.",
+          "localRecoverySendFailed": "Kunde inte starta lokal felsökning av sajten.",
+          "localRecoveryChatBusy": "Låt pågående chattmeddelanden bli klara innan starten felsöks.",
+          "localSetupUnsupportedTitle": "Det här projektet stöds inte än",
+          "localSetupBack": "Tillbaka till projekt"
         },
         "topBar": {
           "goBack": "Gå tillbaka",
@@ -2253,6 +2557,18 @@
       }
     },
     "code": {
+      "drafts": {
+        "protected": "Osparad kod skyddas som ett lokalt utkast för det här kontot, webbplatsen och grenen.",
+        "storageFailed": "Utkastsskyddet behöver åtgärdas. Nya ändringar nekas om de inte kan lagras. Låt fönstret vara öppet och kopiera koden innan du lämnar.",
+        "sourceChanged": "Källkoden har ändrats eller kunde inte bekräftas. Utkastet finns kvar. Spara skriver inte över en annan källkodsversion.",
+        "recover": "Återställ tidigare kodutkast",
+        "recoverVersion": "Återställ den här versionen",
+        "recoverPrevious": "Återställ tidigare godkänd version",
+        "recoveryFailed": "Utkastet kunde inte återställas. Spara eller kasta ditt aktuella utkast innan du väljer en annan version.",
+        "saveFailed": "Koden kunde inte sparas säkert. Utkastet finns kvar. Kontrollera källkoden och utkastsskyddet innan du försöker igen.",
+        "copy": "Kopiera aktuell kod",
+        "copyFailed": "Koden kunde inte kopieras. Markera och kopiera den manuellt."
+      },
       "unsavedChanges": {
         "messageSingle": "Du har osparade ändringar. Vill du verkligen stänga den här filen?",
         "messagePlural": "Du har osparade ändringar. Vill du verkligen stänga {count} filer?",
@@ -2455,8 +2771,7 @@
         "forking": "Förgrenar...",
         "delete": "Ta bort",
         "deleting": "Tar bort...",
-        "cancel": "Avbryt",
-        "switchAnyway": "Byt ändå"
+        "cancel": "Avbryt"
       },
       "brand": {
         "searchTokens": "Sök token…",
@@ -2579,6 +2894,24 @@
         "deleteFileExtra": "Åtgärden kan inte ångras.",
         "deleteFileOrFolder": "Ta bort {kind}",
         "areYouSureDelete": "Är du säker på att du vill ta bort \"{name}\"?"
+      },
+      "variables": {
+        "collections": "Samlingar",
+        "all": "Alla",
+        "search": "Sök variabler",
+        "name": "Namn",
+        "value": "Värde",
+        "empty": "Inga variabler i den här samlingen än.",
+        "noMatch": "Inga variabler matchar ”{query}”.",
+        "createVariable": "Skapa variabel",
+        "edit": "Redigera",
+        "collectionNames": {
+          "colors": "Färger",
+          "sizes": "Storlekar och avstånd",
+          "radius": "Hörnradie",
+          "text-styles": "Textstilar",
+          "other": "Övrigt"
+        }
       }
     },
     "stylePanel": {
@@ -3077,7 +3410,14 @@
           "alignBottom": "Bottenjustera"
         },
         "colorRow": {
-          "mixed": "Blandad"
+          "mixed": "Blandad",
+          "editVariable": "Redigera variabel",
+          "detachVariable": "Koppla loss variabel",
+          "connectVariable": "Använd en variabel",
+          "searchVariables": "Sök variabler",
+          "noColorVariables": "Inga färgvariabler än.",
+          "createVariable": "Skapa variabel",
+          "noMatch": "Ingen träff"
         },
         "fontHeroRow": {
           "changeFont": "Byt teckensnitt",
@@ -3152,7 +3492,8 @@
           "noKindsYet": "Inga {kind}ar ännu",
           "createKind": "Skapa {kind}",
           "detach": "Koppla bort",
-          "detachKind": "Koppla bort {kind}"
+          "detachKind": "Koppla bort {kind}",
+          "edit": "Redigera {kind}"
         },
         "trblGrid": {
           "allSidesLabel": "Redigera alla sidor tillsammans",
@@ -3692,6 +4033,7 @@
         "gemini": "Googles multimodala frontiermodell",
         "deepseek": "Open-weight-resonemang i frontierklass",
         "kimi": "Lång kontext, snabb och kapabel",
+        "grok": "Stark på kod och långa agentuppgifter",
         "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
         "mistral": "Open-weight model tuned for code"
       }
@@ -3828,14 +4170,6 @@
         "title": "Börja med valfri Next.js/Tailwind-mall",
         "body": "Börja med valfri Next.js/Tailwind-mall och låt AI:n förstå dina mönster för att generera matchande komponenter"
       }
-    },
-    "contributor": {
-      "headingLine1": "Stöttat av dig &",
-      "headingOtherBuilders": "{count} andra byggare",
-      "headingLoading": "...",
-      "body": "Gå med i communityn som bygger open source-Cursor för designers",
-      "contributeButton": "Bidra till Weblab",
-      "avatarAlt": "{name}s avatar"
     },
     "codeOneToOne": {
       "headingLine1": "Verkligen ett-till-ett",
@@ -3974,13 +4308,6 @@
     },
     "justShipped": {
       "badge": "Nytt i v{version}"
-    },
-    "socialProof": {
-      "title": "Community-statistik:",
-      "contributorsCount": "90+",
-      "contributorsLabel": "bidragsgivare",
-      "openSource": "Öppen källkod",
-      "transparent": "& transparent"
     },
     "terminalSection": {
       "eyebrow": "Din stack, din terminal",
@@ -4737,14 +5064,28 @@
       "folderLabel": "Mapp",
       "noFolder": "Ingen mapp",
       "newFolder": "+ Ny mapp…",
-      "offlineTitle": "Offline",
-      "offlineDesc": "Cacha det här projektet så att du kan öppna och redigera det utan nätverksanslutning. Redigeringar köas lokalt och synkas när du ansluter igen.",
-      "availableOffline": "Tillgänglig offline",
+      "offlineTitle": "Lokal återställning",
+      "offlineDesc": "Behåll projektdata på den här enheten för återställning. Du behöver nätverk för att öppna eller ladda om ett projekt.",
+      "availableOffline": "Behåll en lokal kopia",
       "lastCached": "Senast cachad",
       "notYetCached": "Inte cachad ännu",
       "framesCached": "Cachade ramar",
       "framesCount": "{count, plural, one {# ram} other {# ramar}}",
       "noSnapshot": "Ingen canvas-ögonblicksbild ännu",
+      "previewKeys": {
+        "title": "Nycklar för förhandsvisning",
+        "description": "Testnycklar för förhandsvisningen på den här Macen. De ligger utanför sajtens kod och följer aldrig med i en överlämning. Använd testvärden, inte skarpa.",
+        "nameLabel": "Nyckelns namn",
+        "namePlaceholder": "NEXT_PUBLIC_API_URL",
+        "valueLabel": "Värde",
+        "valuePlaceholder": "Värde",
+        "add": "Lägg till",
+        "remove": "Ta bort {name}",
+        "saved": "Nycklarna är sparade",
+        "restarted": "Förhandsvisningen startade om med de nya nycklarna",
+        "restartFailed": "Nycklarna är sparade. Starta om förhandsvisningen för att använda dem.",
+        "saveFailed": "Det gick inte att spara nyckeln"
+      },
       "commandsTitle": "Kommandon",
       "commandsWarning": "Uppdatera bara dessa om du vet vad du gör\\!",
       "installLabel": "Installera",
@@ -4753,9 +5094,9 @@
       "discardChanges": "Kasta ändringar",
       "saving": "Sparar...",
       "saveChanges": "Spara ändringar",
-      "toastOfflineOn": "Projekt markerat som tillgängligt offline.",
-      "toastOfflineOff": "Projekt borttaget från offlineåtkomst.",
-      "toastOfflineFailed": "Det gick inte att uppdatera offlinetillgänglighet.",
+      "toastOfflineOn": "Projektet har valts för lokal återställning.",
+      "toastOfflineOff": "Den lokala projektkopian har tagits bort.",
+      "toastOfflineFailed": "Det gick inte att uppdatera den lokala projektkopian.",
       "toastCopyIdFailed": "Det gick inte att kopiera webbplats-ID",
       "toastFolderFailed": "Det gick inte att uppdatera mappen.",
       "toastFolderMoved": "Projekt flyttat till mapp.",

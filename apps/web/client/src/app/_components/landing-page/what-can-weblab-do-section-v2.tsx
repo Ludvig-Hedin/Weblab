@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
@@ -22,17 +22,19 @@ const REVEAL = {
 };
 
 // Ambient idle cycle for visuals — quietly advances an index every interval.
-// Pauses while the user is hovering the visual.
+// Pauses while the user is hovering the visual, and stays still for
+// reduced-motion users.
 function useAmbientCycle(length: number, intervalMs: number) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
+    const reduceMotion = useReducedMotion();
     useEffect(() => {
-        if (paused || length <= 1) return;
+        if (paused || reduceMotion || length <= 1) return;
         const id = setInterval(() => {
             setIndex((i) => (i + 1) % length);
         }, intervalMs);
         return () => clearInterval(id);
-    }, [paused, length, intervalMs]);
+    }, [paused, reduceMotion, length, intervalMs]);
     return {
         index,
         setIndex,
@@ -94,86 +96,106 @@ function FeatureCard({ visual, subtitle, title, paragraph, reverse, backdrop }: 
 
 // ─── Visuals ─────────────────────────────────────────────────────────────
 // All visuals follow the Model Agnostic recipe: monochrome surface, one
-// brand-blue focal point, mono captions, tight type, subtle ambient cycle.
+// brand-blue focal point, tight type, subtle ambient cycle.
 
-const BRAND = 'var(--foreground-brand)';
-const BRAND_SOFT = 'color-mix(in srgb, var(--foreground-brand) 16%, transparent)';
+// Shared window shell for the panel visuals (Components, Structure, History).
+// Mirrors the glass `MacChrome` in feature-trio-section so every asset in this
+// section reads as the same Weblab window as the AI and Code visuals.
+function PanelWindow({
+    title,
+    children,
+    onMouseEnter,
+    onMouseLeave,
+}: {
+    title: string;
+    children: React.ReactNode;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+}) {
+    return (
+        <div
+            className="flex h-[340px] w-full max-w-[300px] flex-col overflow-hidden rounded-[12px] border border-black/[0.06] shadow-[0_8px_28px_-12px_rgba(0,0,0,0.18)] dark:border-white/[0.08] dark:shadow-[0_8px_28px_-12px_rgba(0,0,0,0.6)]"
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+        >
+            <div className="relative flex shrink-0 items-center border-b border-black/[0.05] bg-white/80 px-2.5 py-2 backdrop-blur-[24px] dark:border-white/[0.06] dark:bg-[#161617]">
+                <div className="flex items-center gap-[5px]">
+                    <span className="h-2 w-2 rounded-full bg-black/15 dark:bg-white/15" />
+                    <span className="h-2 w-2 rounded-full bg-black/15 dark:bg-white/15" />
+                    <span className="h-2 w-2 rounded-full bg-black/15 dark:bg-white/15" />
+                </div>
+                <span className="absolute left-1/2 -translate-x-1/2 font-mono text-[10px] text-black/40 dark:text-white/40">
+                    Weblab
+                </span>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col bg-[#FBFAF6] dark:bg-[#161617]">
+                <div className="shrink-0 px-3.5 pt-3 pb-1.5 text-[10px] font-medium text-black/45 dark:text-white/45">
+                    {title}
+                </div>
+                <div className="flex min-h-0 flex-1 flex-col gap-px overflow-hidden px-1.5 pb-1.5">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Selected-row highlight that glides between rows.
+function ActiveRowBg({ layoutId }: { layoutId: string }) {
+    return (
+        <motion.span
+            layoutId={layoutId}
+            transition={{ type: 'spring', stiffness: 380, damping: 34, mass: 0.45 }}
+            className="pointer-events-none absolute inset-0 rounded-[6px] bg-black/[0.05] dark:bg-white/[0.07]"
+            aria-hidden
+        />
+    );
+}
+
+const ROW_TEXT = {
+    active: 'text-black/85 dark:text-white/90',
+    idle: 'text-black/55 dark:text-white/55',
+};
 
 function ComponentsVisual() {
+    const t = useTranslations('landing.whatCanWeblabDoV2');
     const items: {
         label: string;
         Icon: React.ComponentType<{ className?: string }>;
-        meta: string;
     }[] = [
-        { label: 'Button', Icon: Icons.Button, meta: 'ui' },
-        { label: 'Card', Icon: Icons.Box, meta: 'layout' },
-        { label: 'Hero', Icon: Icons.Section, meta: 'section' },
-        { label: 'Navbar', Icon: Icons.Frame, meta: 'nav' },
-        { label: 'Pricing', Icon: Icons.CreditCard, meta: 'section' },
-        { label: 'Footer', Icon: Icons.Layers, meta: 'layout' },
+        { label: 'Button', Icon: Icons.Button },
+        { label: 'Card', Icon: Icons.Box },
+        { label: 'Hero', Icon: Icons.Section },
+        { label: 'Navbar', Icon: Icons.Frame },
+        { label: 'Pricing', Icon: Icons.CreditCard },
+        { label: 'Footer', Icon: Icons.Layers },
     ];
     const cycle = useAmbientCycle(items.length, 2200);
     return (
-        <div
-            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+        <PanelWindow
+            title={t('features.components.subtitle')}
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-                <span className="text-style-tagline">Components</span>
-                <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
-            </div>
-            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
-                {items.map((it, idx) => {
-                    const isActive = idx === cycle.index;
-                    return (
-                        <button
-                            key={it.label}
-                            type="button"
-                            onClick={() => cycle.setIndex(idx)}
-                            className="group/row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150"
-                        >
-                            {isActive && (
-                                <motion.span
-                                    layoutId="components-active"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 34,
-                                        mass: 0.45,
-                                    }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
-                                    aria-hidden
-                                />
-                            )}
-                            <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                                <it.Icon
-                                    className={cn(
-                                        'h-3.5 w-3.5 transition-colors duration-150',
-                                        isActive
-                                            ? 'text-foreground-secondary'
-                                            : 'text-foreground-tertiary',
-                                    )}
-                                />
-                            </span>
-                            <span
-                                className={cn(
-                                    'text-small relative flex-1 font-light tracking-tight transition-colors duration-150',
-                                    isActive
-                                        ? 'text-foreground-primary'
-                                        : 'text-foreground-secondary',
-                                )}
-                            >
-                                {it.label}
-                            </span>
-                            <span className="text-foreground-tertiary text-mini relative font-mono tabular-nums">
-                                {it.meta}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
+            {items.map((it, idx) => {
+                const isActive = idx === cycle.index;
+                return (
+                    <button
+                        key={it.label}
+                        type="button"
+                        onClick={() => cycle.setIndex(idx)}
+                        className={cn(
+                            'relative flex h-8 w-full cursor-pointer items-center gap-2.5 rounded-[6px] px-2 text-left text-[11px] transition-colors duration-150',
+                            isActive ? ROW_TEXT.active : ROW_TEXT.idle,
+                        )}
+                    >
+                        {isActive && <ActiveRowBg layoutId="components-active" />}
+                        <it.Icon className="relative h-3.5 w-3.5 shrink-0 opacity-80" />
+                        <span className="relative truncate">{it.label}</span>
+                    </button>
+                );
+            })}
+        </PanelWindow>
     );
 }
 
@@ -190,7 +212,12 @@ function CmsVisual() {
         { name: 'Authors', count: '5', Icon: Icons.Person },
         { name: 'Media', count: '37', Icon: Icons.Image },
     ];
-    const entries: { title: string; slug: string; status: Status; updated: string }[] = [
+    const entries: {
+        title: string;
+        slug: string;
+        status: Status;
+        updated: string;
+    }[] = [
         {
             title: 'Launching Weblab CMS',
             slug: '/launching-weblab-cms',
@@ -209,7 +236,12 @@ function CmsVisual() {
             status: 'Draft',
             updated: '3d',
         },
-        { title: 'Q3 product roadmap', slug: '/q3-roadmap', status: 'Scheduled', updated: '5d' },
+        {
+            title: 'Q3 product roadmap',
+            slug: '/q3-roadmap',
+            status: 'Scheduled',
+            updated: '5d',
+        },
     ];
     const cycle = useAmbientCycle(entries.length, 2200);
     return (
@@ -386,160 +418,71 @@ function LayersVisual() {
         name: string;
         kind: LayerKind;
         level: number;
-        hasChildren?: boolean;
-        tag?: string;
-        badges?: { label: string; brand?: boolean }[];
-        hidden?: boolean;
+        open?: boolean;
     }[] = [
-        { name: 'Home Page', kind: 'body', level: 0, hasChildren: true, tag: 'body' },
-        {
-            name: 'TopNavigation',
-            kind: 'component',
-            level: 1,
-            badges: [{ label: 'B', brand: true }],
-        },
-        { name: 'Hero', kind: 'section', level: 1, hasChildren: true, tag: 'section' },
-        { name: 'Heading', kind: 'text', level: 2, tag: 'p' },
-        { name: 'ImageGrid', kind: 'div', level: 1, hasChildren: true, tag: 'div' },
+        { name: 'Home Page', kind: 'body', level: 0, open: true },
+        { name: 'TopNavigation', kind: 'component', level: 1 },
+        { name: 'Hero', kind: 'section', level: 1, open: true },
+        { name: 'Heading', kind: 'text', level: 2 },
+        { name: 'ImageGrid', kind: 'div', level: 1, open: true },
         { name: 'ImageCard', kind: 'component', level: 2 },
         { name: 'ImageCard', kind: 'component', level: 2 },
-        { name: 'Footer', kind: 'section', level: 1, hidden: true, tag: 'section' },
+        { name: 'Footer', kind: 'section', level: 1 },
     ];
-    // Cycle a selection through component-tagged rows.
-    const componentIndices = layers
-        .map((l, i) => (l.kind === 'component' ? i : -1))
-        .filter((i) => i >= 0);
-    const cycle = useAmbientCycle(componentIndices.length, 2400);
-    const selectedIdx = componentIndices[cycle.index] ?? 1;
+    const cycle = useAmbientCycle(layers.length, 2400);
 
     return (
-        <div
-            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+        <PanelWindow
+            title={t('layersTitle')}
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                    <span className="text-style-tagline">{t('layersTitle')}</span>
-                    <span className="text-foreground-tertiary bg-foreground-primary/[0.06] rounded-full px-1.5 py-0.5 font-mono text-[9px] leading-none tabular-nums">
-                        {layers.length}
-                    </span>
-                </div>
-                <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
-            </div>
-            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
-                {layers.map((l, idx) => {
-                    const isSelected = idx === selectedIdx;
-                    const isComponent = l.kind === 'component';
-                    return (
-                        <button
-                            key={`${l.name}-${idx}`}
-                            type="button"
-                            onClick={() =>
-                                cycle.setIndex(
-                                    componentIndices.includes(idx)
-                                        ? componentIndices.indexOf(idx)
-                                        : cycle.index,
-                                )
-                            }
+            {layers.map((l, idx) => {
+                const isActive = idx === cycle.index;
+                const isComponent = l.kind === 'component';
+                return (
+                    <button
+                        key={`${l.name}-${idx}`}
+                        type="button"
+                        onClick={() => cycle.setIndex(idx)}
+                        className={cn(
+                            'relative flex h-8 w-full cursor-pointer items-center rounded-[6px] pr-2 pl-1 text-left text-[11px] transition-colors duration-150',
+                            isActive ? ROW_TEXT.active : ROW_TEXT.idle,
+                        )}
+                    >
+                        {isActive && <ActiveRowBg layoutId="layers-active" />}
+                        {/* Indent guides */}
+                        {Array.from({ length: l.level }).map((_, i) => (
+                            <span
+                                key={i}
+                                className="relative w-3.5 shrink-0 self-stretch"
+                                aria-hidden
+                            >
+                                <span className="absolute inset-y-0 left-[7px] w-px bg-black/[0.08] dark:bg-white/[0.08]" />
+                            </span>
+                        ))}
+                        <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                            {l.open && <Icons.ChevronDown className="h-2.5 w-2.5 opacity-50" />}
+                        </span>
+                        <LayerKindIcon
+                            kind={l.kind}
                             className={cn(
-                                'group/layer text-small relative flex h-8 w-full items-center rounded-[8px] pr-1.5 font-light tracking-tight transition-colors duration-150',
-                                'hover:bg-foreground-primary/[0.04]',
-                                isComponent
-                                    ? 'text-foreground-skill'
-                                    : l.hidden
-                                      ? 'text-foreground-tertiary'
-                                      : 'text-foreground-secondary',
+                                'relative mr-2 h-3.5 w-3.5 shrink-0',
+                                isComponent ? 'text-foreground-skill' : 'opacity-80',
+                            )}
+                        />
+                        <span
+                            className={cn(
+                                'relative truncate',
+                                isComponent && 'text-foreground-skill',
                             )}
                         >
-                            {isSelected && (
-                                <motion.span
-                                    layoutId="layers-active-bg"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 34,
-                                        mass: 0.45,
-                                    }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[8px] ring-1 ring-inset"
-                                    aria-hidden
-                                />
-                            )}
-                            {isSelected && (
-                                <motion.span
-                                    layoutId="layers-active-bar"
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 380,
-                                        damping: 34,
-                                        mass: 0.45,
-                                    }}
-                                    className="bg-foreground-brand pointer-events-none absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full"
-                                    aria-hidden
-                                />
-                            )}
-                            {/* Indent guide rails */}
-                            {Array.from({ length: l.level }).map((_, i) => (
-                                <span
-                                    key={i}
-                                    className="relative h-full w-3.5 shrink-0 self-stretch"
-                                    aria-hidden
-                                >
-                                    <span className="bg-foreground-primary/10 absolute top-0 bottom-0 left-[7px] w-px dark:bg-white/10" />
-                                </span>
-                            ))}
-                            {/* Disclosure chevron */}
-                            <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-                                {l.hasChildren ? (
-                                    <Icons.ChevronRight className="text-foreground-tertiary h-2.5 w-2.5 rotate-90 opacity-70" />
-                                ) : null}
-                            </span>
-                            {/* Icon */}
-                            <LayerKindIcon
-                                kind={l.kind}
-                                className={cn(
-                                    'relative mr-1.5 ml-0.5 h-3.5 w-3.5 shrink-0',
-                                    isComponent
-                                        ? 'text-foreground-skill'
-                                        : 'text-foreground-tertiary',
-                                    l.hidden && 'opacity-70',
-                                )}
-                            />
-                            <span
-                                className={cn(
-                                    'relative flex-1 truncate text-left',
-                                    isComponent && 'italic',
-                                    l.hidden && 'opacity-70',
-                                )}
-                            >
-                                {l.name}
-                            </span>
-                            {/* Right cluster: element tag / badges + visibility */}
-                            <span className="relative ml-1 flex shrink-0 items-center gap-1.5">
-                                {l.badges ? (
-                                    l.badges.map((b) => (
-                                        <LayerBadgeChip key={b.label} brand={b.brand}>
-                                            {b.label}
-                                        </LayerBadgeChip>
-                                    ))
-                                ) : l.tag ? (
-                                    <span className="text-foreground-tertiary/70 font-mono text-[9px] leading-none">
-                                        {l.tag}
-                                    </span>
-                                ) : null}
-                                {l.hidden ? (
-                                    <Icons.EyeClosed className="text-foreground-tertiary h-3 w-3 opacity-80" />
-                                ) : isSelected ? (
-                                    <Icons.EyeOpen className="text-foreground-secondary h-3 w-3" />
-                                ) : (
-                                    <Icons.EyeOpen className="text-foreground-tertiary h-3 w-3 opacity-0 transition-opacity duration-150 group-hover/layer:opacity-70" />
-                                )}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
+                            {l.name}
+                        </span>
+                    </button>
+                );
+            })}
+        </PanelWindow>
     );
 }
 
@@ -557,212 +500,85 @@ function LayerKindIcon({
     return <Icons.Box className={className} />;
 }
 
-function LayerBadgeChip({ children, brand }: { children: React.ReactNode; brand?: boolean }) {
-    return (
-        <span
-            className={cn(
-                'flex h-3.5 min-w-3.5 items-center justify-center rounded border px-1 text-[9px] leading-none font-medium',
-                brand
-                    ? 'border-foreground-brand/30 bg-foreground-brand/10 text-foreground-brand'
-                    : 'border-foreground-primary/15 bg-foreground-primary/[0.04] text-foreground-secondary',
-            )}
-        >
-            {children}
-        </span>
-    );
-}
-
 function RevisionVisual() {
     const t = useTranslations('landing.whatCanWeblabDoV2');
-    type Tint = 'brand' | 'violet' | 'emerald' | 'amber' | 'neutral';
-    const versions: {
-        title: string;
-        author: string;
-        time: string;
-        initial: string;
-        tint: Tint;
-        add: number;
-        del: number;
-        group: 'today' | 'earlier';
-    }[] = [
+    const versions: { title: string; author: string; time: string }[] = [
         {
             title: 'New typography and layout',
             author: 'Alessandro',
             time: '3h ago',
-            initial: 'A',
-            tint: 'brand',
-            add: 18,
-            del: 4,
-            group: 'today',
         },
-        {
-            title: 'Save before publishing',
-            author: 'Weblab',
-            time: '10h ago',
-            initial: 'W',
-            tint: 'neutral',
-            add: 6,
-            del: 2,
-            group: 'today',
-        },
-        {
-            title: 'Added background image',
-            author: 'Sandra',
-            time: '12h ago',
-            initial: 'S',
-            tint: 'emerald',
-            add: 24,
-            del: 9,
-            group: 'today',
-        },
-        {
-            title: 'Copy and branding tweaks',
-            author: 'Jonathan',
-            time: '3d ago',
-            initial: 'J',
-            tint: 'amber',
-            add: 9,
-            del: 3,
-            group: 'earlier',
-        },
-        {
-            title: 'Initial draft',
-            author: 'Alessandro',
-            time: '4d ago',
-            initial: 'A',
-            tint: 'violet',
-            add: 120,
-            del: 0,
-            group: 'earlier',
-        },
+        { title: 'Added background image', author: 'Sandra', time: '12h ago' },
+        { title: 'Copy and branding tweaks', author: 'Jonathan', time: '3d ago' },
+        { title: 'Initial draft', author: 'Alessandro', time: '4d ago' },
     ];
     const cycle = useAmbientCycle(versions.length, 3000);
-    // Inline hex so avatar tints render identically regardless of which Tailwind
-    // color palettes the theme ships.
-    const TINT_HEX: Partial<Record<Tint, string>> = {
-        violet: '#8b5cf6',
-        emerald: '#10b981',
-        amber: '#f59e0b',
-    };
     return (
-        <div
-            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+        <PanelWindow
+            title={t('features.history.subtitle')}
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="flex shrink-0 items-center gap-2 border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-                <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
-                <span className="text-style-tagline">{t('revisionToday')}</span>
-            </div>
-            <div className="flex flex-1 flex-col overflow-hidden p-2">
-                {versions.map((v, idx) => {
-                    const isCurrent = idx === 0;
-                    const isActive = idx === cycle.index;
-                    const isLast = idx === versions.length - 1;
-                    const isGroupEnd = !isLast && versions[idx + 1]!.group !== v.group;
-                    const showDivider = idx > 0 && versions[idx - 1]!.group !== v.group;
-                    return (
-                        <React.Fragment key={`${v.title}-${idx}`}>
-                            {showDivider && (
-                                <div className="text-foreground-tertiary px-1 pt-2 pb-1 text-[10px] font-medium tracking-wide uppercase">
-                                    Earlier
-                                </div>
+            {versions.map((v, idx) => {
+                const isCurrent = idx === 0;
+                const isActive = idx === cycle.index;
+                const isLast = idx === versions.length - 1;
+                return (
+                    <button
+                        key={v.title}
+                        type="button"
+                        onClick={() => cycle.setIndex(idx)}
+                        className="relative flex w-full cursor-pointer gap-2.5 rounded-[6px] px-2 py-2 text-left"
+                    >
+                        {isActive && <ActiveRowBg layoutId="revision-active" />}
+                        {/* Timeline — dot + connector to the next version */}
+                        <span className="relative flex w-2 shrink-0 flex-col items-center pt-[5px]">
+                            <span
+                                className={cn(
+                                    'h-2 w-2 shrink-0 rounded-full',
+                                    isCurrent
+                                        ? 'bg-foreground-brand'
+                                        : 'bg-black/20 dark:bg-white/25',
+                                )}
+                            />
+                            {!isLast && (
+                                <span
+                                    className="absolute top-[17px] -bottom-[13px] w-px bg-black/[0.08] dark:bg-white/[0.08]"
+                                    aria-hidden
+                                />
                             )}
-                            <button
-                                type="button"
-                                onClick={() => cycle.setIndex(idx)}
-                                className="group/row relative flex w-full gap-3 text-left"
+                        </span>
+                        <span className="relative flex min-w-0 flex-1 flex-col gap-0.5">
+                            <span
+                                className={cn(
+                                    'truncate text-[11px] leading-4 transition-colors duration-150',
+                                    isActive ? ROW_TEXT.active : ROW_TEXT.idle,
+                                )}
                             >
-                                {/* Timeline rail — avatar node + connector */}
-                                <div className="relative flex w-5 shrink-0 flex-col items-center">
-                                    <span
-                                        className={cn(
-                                            'relative z-10 mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium',
-                                            isCurrent
-                                                ? 'bg-foreground-brand text-white'
-                                                : v.tint === 'neutral'
-                                                  ? 'bg-foreground-primary/[0.06] text-foreground-secondary ring-foreground-primary/10 ring-1 ring-inset'
-                                                  : '',
-                                        )}
-                                        style={
-                                            !isCurrent && TINT_HEX[v.tint]
-                                                ? {
-                                                      backgroundColor: `color-mix(in srgb, ${TINT_HEX[v.tint]} 20%, transparent)`,
-                                                      color: TINT_HEX[v.tint],
-                                                      boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${TINT_HEX[v.tint]} 38%, transparent)`,
-                                                  }
-                                                : undefined
-                                        }
-                                    >
-                                        {v.initial}
-                                    </span>
-                                    {!isLast && !isGroupEnd && (
-                                        <span
-                                            className="bg-foreground-primary/10 mt-1 w-px flex-1"
-                                            aria-hidden
-                                        />
-                                    )}
-                                </div>
-                                {/* Content */}
-                                <div className="group-hover/row:bg-foreground-primary/[0.03] relative flex flex-1 items-start justify-between gap-2 rounded-[8px] px-2 pt-1 pb-4 transition-colors">
-                                    {isActive && (
-                                        <motion.span
-                                            layoutId="revision-active-bg"
-                                            transition={{
-                                                type: 'spring',
-                                                stiffness: 380,
-                                                damping: 34,
-                                                mass: 0.45,
-                                            }}
-                                            className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[8px] ring-1 ring-inset"
-                                            aria-hidden
-                                        />
-                                    )}
-                                    <div className="relative flex min-w-0 flex-col gap-1">
-                                        <span className="text-foreground-primary text-small truncate font-light tracking-tight">
-                                            {v.title}
-                                        </span>
-                                        <span className="text-mini flex min-w-0 items-center gap-1.5 font-mono">
-                                            <span className="text-foreground-tertiary truncate">
-                                                {v.author} · {v.time}
-                                            </span>
-                                            <span className="text-foreground-success shrink-0">
-                                                +{v.add}
-                                            </span>
-                                            <span
-                                                className="shrink-0"
-                                                style={{ color: 'var(--destructive)' }}
-                                            >
-                                                −{v.del}
-                                            </span>
-                                        </span>
-                                    </div>
-                                    {isCurrent ? (
-                                        <span
-                                            className="text-mini relative shrink-0 rounded-full px-2 py-0.5 font-medium"
-                                            style={{ backgroundColor: BRAND_SOFT, color: BRAND }}
-                                        >
-                                            {t('revisionCurrent')}
-                                        </span>
-                                    ) : (
-                                        <span
-                                            className={cn(
-                                                'text-foreground-secondary border-foreground-primary/15 text-mini relative shrink-0 rounded-full border px-2 py-0.5 font-light transition-opacity duration-200',
-                                                isActive
-                                                    ? 'opacity-100'
-                                                    : 'opacity-0 group-hover/row:opacity-100',
-                                            )}
-                                        >
-                                            Restore
-                                        </span>
-                                    )}
-                                </div>
-                            </button>
-                        </React.Fragment>
-                    );
-                })}
-            </div>
-        </div>
+                                {v.title}
+                            </span>
+                            <span className="truncate text-[10px] leading-4 text-black/40 dark:text-white/40">
+                                {v.author} · {v.time}
+                            </span>
+                        </span>
+                        {isCurrent ? (
+                            <span className="text-foreground-brand relative shrink-0 self-center text-[10px]">
+                                {t('revisionCurrent')}
+                            </span>
+                        ) : (
+                            <span
+                                className={cn(
+                                    'relative shrink-0 self-center text-[10px] text-black/55 transition-opacity duration-200 dark:text-white/55',
+                                    isActive ? 'opacity-100' : 'opacity-0',
+                                )}
+                            >
+                                Restore
+                            </span>
+                        )}
+                    </button>
+                );
+            })}
+        </PanelWindow>
     );
 }
 
@@ -1077,7 +893,10 @@ function CodePanelVisual() {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
-        pre.innerHTML = buildTokenHtml(total, 0, { withCaret: false, animateNewest: false });
+        pre.innerHTML = buildTokenHtml(total, 0, {
+            withCaret: false,
+            animateNewest: false,
+        });
         pre.focus({ preventScroll: true });
         const range = document.createRange();
         range.selectNodeContents(pre);
@@ -1297,42 +1116,68 @@ function CodePanelVisual() {
     );
 }
 
-const FEATURE_KEYS = [
-    'aiAssistant',
-    'canvas',
-    'code',
-    'components',
-    'cms',
-    'structure',
-    'history',
-] as const;
+type FeatureKey =
+    | 'aiAssistant'
+    | 'canvas'
+    | 'code'
+    | 'components'
+    | 'cms'
+    | 'structure'
+    | 'history';
 
-// Local-app mode hides features the Mac app does not have yet (CMS).
-const LOCAL_APP_FEATURE_KEYS = FEATURE_KEYS.filter((key) => key !== 'cms');
+// `v2: true` marks a feature that ships with v2. It stays hidden until then.
+const FEATURES: {
+    key: FeatureKey;
+    visual: React.ReactNode;
+    backdrop: string;
+    v2?: boolean;
+}[] = [
+    {
+        key: 'aiAssistant',
+        visual: <FigmaAiAssistantVisual />,
+        backdrop: '/assets/landing/feature-backdrops/ivory.webp',
+    },
+    {
+        key: 'canvas',
+        visual: (
+            <div className="w-full max-w-sm">
+                <DirectEditingInteractive />
+            </div>
+        ),
+        backdrop: '/assets/landing/feature-backdrops/sky.webp',
+    },
+    {
+        key: 'code',
+        visual: <CodePanelVisual />,
+        backdrop: '/assets/landing/feature-backdrops/sand.webp',
+    },
+    {
+        key: 'components',
+        visual: <ComponentsVisual />,
+        backdrop: '/assets/landing/feature-backdrops/mist.webp',
+    },
+    {
+        key: 'cms',
+        visual: <CmsVisual />,
+        backdrop: '/assets/landing/feature-backdrops/ivory.webp',
+    },
+    {
+        key: 'structure',
+        visual: <LayersVisual />,
+        backdrop: '/assets/landing/feature-backdrops/sand.webp',
+    },
+    {
+        key: 'history',
+        visual: <RevisionVisual />,
+        backdrop: '/assets/landing/feature-backdrops/sky.webp',
+        v2: true,
+    },
+];
 
-const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = {
-    aiAssistant: <FigmaAiAssistantVisual />,
-    canvas: (
-        <div className="w-full max-w-sm">
-            <DirectEditingInteractive />
-        </div>
-    ),
-    code: <CodePanelVisual />,
-    components: <ComponentsVisual />,
-    cms: <CmsVisual />,
-    structure: <LayersVisual />,
-    history: <RevisionVisual />,
-};
-
-const BACKDROPS: Record<(typeof FEATURE_KEYS)[number], string> = {
-    aiAssistant: '/assets/landing/feature-backdrops/ivory.webp',
-    canvas: '/assets/landing/feature-backdrops/sky.webp',
-    code: '/assets/landing/feature-backdrops/sand.webp',
-    components: '/assets/landing/feature-backdrops/mist.webp',
-    cms: '/assets/landing/feature-backdrops/ivory.webp',
-    structure: '/assets/landing/feature-backdrops/sand.webp',
-    history: '/assets/landing/feature-backdrops/sky.webp',
-};
+// Local-app mode also hides features the Mac app does not have yet (CMS).
+const VISIBLE_FEATURES = FEATURES.filter(
+    (f) => !f.v2 && !(IS_LOCAL_APP_MODE && f.key === 'cms'),
+);
 
 export function WhatCanWeblabDoSectionV2() {
     const t = useTranslations('landing.whatCanWeblabDoV2') as (key: string) => string;
@@ -1365,14 +1210,14 @@ export function WhatCanWeblabDoSectionV2() {
                 </div>
             </motion.div>
             <div className="flex flex-col gap-20 md:gap-28">
-                {(IS_LOCAL_APP_MODE ? LOCAL_APP_FEATURE_KEYS : FEATURE_KEYS).map((key, i) => (
+                {VISIBLE_FEATURES.map(({ key, visual, backdrop }, i) => (
                     <FeatureCard
                         key={key}
                         subtitle={t(`features.${key}.subtitle`)}
                         title={t(`features.${key}.title`)}
                         paragraph={t(`features.${key}.paragraph`)}
-                        visual={FEATURE_VISUALS[key]}
-                        backdrop={BACKDROPS[key]}
+                        visual={visual}
+                        backdrop={backdrop}
                         reverse={i % 2 === 1}
                     />
                 ))}
