@@ -1,12 +1,12 @@
 import debounce from 'lodash.debounce';
 
+import type { ComponentDef } from '@weblab/models';
 import {
     EditorAttributes,
     WEBLAB_CACHE_DIRECTORY,
     WEBLAB_IX_RUNTIME_FILE,
     WEBLAB_PRELOAD_SCRIPT_FILE,
 } from '@weblab/constants';
-import type { ComponentDef } from '@weblab/models';
 import { RouterType } from '@weblab/models';
 import {
     addOidsToAst,
@@ -27,6 +27,13 @@ import {
 } from '@weblab/parser';
 import { isRootLayoutFile, pathsEqual } from '@weblab/utility';
 
+import type {
+    DurableCommitHandler,
+    DurableRecoveryHandler,
+    DurableSourceChange,
+    DurableSourceFile,
+    DurableTree,
+} from './durable-source';
 import type { JsxElementMetadata } from './index-cache';
 import {
     clearComponentIndexCache,
@@ -35,20 +42,32 @@ import {
     onComponentIndexChanged,
     saveComponentIndexToCache,
 } from './component-index';
-import { FileSystem } from './fs';
 import {
-    applyDurableChanges, cloneDurableContent, DurableCacheError, durableDiff,
-    durablePath, durableRemove, durableSnapshot, durableTransfer, isDurableCachePath,
-    type DurableCommitHandler, type DurableRecoveryHandler, type DurableSourceChange, type DurableSourceFile, type DurableTree,
+    applyDurableChanges,
+    cloneDurableContent,
+    DurableCacheError,
+    durableDiff,
+    durablePath,
+    durableRemove,
+    durableSnapshot,
+    durableTransfer,
+    isDurableCachePath,
 } from './durable-source';
-export type { DurableCommitHandler, DurableRecoveryHandler, DurableSourceChange, DurableSourceFile } from './durable-source';
-export { DurableCacheError } from './durable-source';
+import { FileSystem } from './fs';
 import {
     clearIndexCache,
     getIndexFromCache,
     getOrLoadIndex,
     saveIndexToCache,
 } from './index-cache';
+
+export type {
+    DurableCommitHandler,
+    DurableRecoveryHandler,
+    DurableSourceChange,
+    DurableSourceFile,
+} from './durable-source';
+export { DurableCacheError } from './durable-source';
 
 export type { JsxElementMetadata } from './index-cache';
 
@@ -86,7 +105,8 @@ export class CodeFileSystem extends FileSystem {
 
     constructor(projectId: string, branchId: string, options: CodeEditorOptions = {}) {
         super(`/${projectId}/${branchId}`, { ephemeral: options.durableCloud === true });
-        if (options.localProject && options.durableCloud) throw new Error('Local and durable cloud modes are exclusive');
+        if (options.localProject && options.durableCloud)
+            throw new Error('Local and durable cloud modes are exclusive');
         this.projectId = projectId;
         this.branchId = branchId;
         this.options = {
@@ -133,35 +153,57 @@ export class CodeFileSystem extends FileSystem {
     }
 
     /** Cache-only, verbatim hydration. Never instruments source or echoes writes remotely. */
-    async hydrateDurableSnapshot(files: DurableSourceFile[]): Promise<void> {
+    async hydrateDurableSnapshot(files: DurableSourceFile[], signal?: AbortSignal): Promise<void> {
         if (!this.options.durableCloud) throw new Error('Not a durable cloud project');
+        const guard = () => {
+            this.assertDurableOwner();
+            signal?.throwIfAborted();
+        };
+        guard();
         const next = durableSnapshot(files);
         return this.withWriteLock(async () => {
+            guard();
             this.durableNeedsHydration = true;
             // readDirectory propagates IO errors; listAll silently swallows them.
             const visit = async (directory: string): Promise<void> => {
+                guard();
                 const entries = await super.readDirectory(directory);
+                guard();
                 const removeStale = async (items: typeof entries): Promise<void> => {
                     for (const item of items) {
+                        guard();
                         const path = durablePath(item.path);
                         if (isDurableCachePath(path)) continue;
                         if (item.isDirectory) {
                             await removeStale(item.children ?? []);
+                            guard();
                             // Keep .weblab itself because it can contain local recovery/index data.
-                            if ((!next.has(path) || !next.get(path)?.directory) && path !== '.weblab') await super.deleteDirectory(path);
+                            if (
+                                (!next.has(path) || !next.get(path)?.directory) &&
+                                path !== '.weblab'
+                            )
+                                await super.deleteDirectory(path);
                         } else if (!next.has(path) || next.get(path)?.directory) {
                             await super.deleteFile(path);
                         }
+                        guard();
                     }
                 };
                 await removeStale(entries);
+                guard();
             };
             await visit('/');
-            for (const file of Array.from(next.values()).sort((a, b) => a.path.length - b.path.length)) {
+            guard();
+            for (const file of Array.from(next.values()).sort(
+                (a, b) => a.path.length - b.path.length,
+            )) {
+                guard();
                 if (file.directory) await super.createDirectory(file.path);
                 else await super.writeFile(file.path, file.content);
+                guard();
             }
-            await this.rebuildDurableIndexes(next);
+            await this.rebuildDurableIndexes(next, guard);
+            guard();
             this.durableTree = next;
             this.durableNeedsHydration = false;
         });
@@ -175,7 +217,11 @@ export class CodeFileSystem extends FileSystem {
         return this.durableTree;
     }
 
-    private async rebuildDurableIndexes(tree: DurableTree): Promise<void> {
+    private async rebuildDurableIndexes(
+        tree: DurableTree,
+        guard: () => void = () => this.assertDurableOwner(),
+    ): Promise<void> {
+        guard();
         const staged = {
             elements: {} as Record<string, JsxElementMetadata>,
             components: {} as Record<string, ComponentDef>,
@@ -184,20 +230,33 @@ export class CodeFileSystem extends FileSystem {
         this.stagedIndexes = staged;
         try {
             for (const file of tree.values()) {
-                if (typeof file.content === 'string') await this.reindexLocalFile(file.path, file.content);
+                guard();
+                if (typeof file.content === 'string')
+                    await this.reindexLocalFile(file.path, file.content);
+                guard();
             }
         } finally {
             this.stagedIndexes = null;
         }
+        guard();
         await this.saveIndex(staged.elements);
+        guard();
         await this.saveComponentIndex(staged.components);
+        guard();
     }
 
     /** Caller owns the write lock; all source bytes reach one atomic remote commit. */
-    private async commitDurableChanges(changes: DurableSourceChange[], instrument = true, copied = false, reindexUnchanged: string[] = []): Promise<void> {
+    private async commitDurableChanges(
+        changes: DurableSourceChange[],
+        instrument = true,
+        copied = false,
+        reindexUnchanged: string[] = [],
+    ): Promise<void> {
         // Capture raw bytes and recovery identity before any async parser/index work.
         if (!this.durableRecovery) throw new Error('Durable recovery is not ready');
-        const preserve = this.durableRecovery(changes.map((change) => ({ ...change, content: cloneDurableContent(change.content) })));
+        const preserve = this.durableRecovery(
+            changes.map((change) => ({ ...change, content: cloneDurableContent(change.content) })),
+        );
         let before!: DurableTree;
         let next!: DurableTree;
         let prepared!: DurableSourceChange[];
@@ -207,14 +266,22 @@ export class CodeFileSystem extends FileSystem {
             const proposed = applyDurableChanges(before, changes);
             prepared = durableDiff(before, proposed);
             if (copied) {
-                const preparedPaths = new Set(prepared.map(change => change.path));
-                prepared.push(...changes.filter(change => typeof change.content === 'string' &&
-                    this.isJsxFile(change.path) && !preparedPaths.has(change.path)).map(change => ({ ...change })));
+                const preparedPaths = new Set(prepared.map((change) => change.path));
+                prepared.push(
+                    ...changes
+                        .filter(
+                            (change) =>
+                                typeof change.content === 'string' &&
+                                this.isJsxFile(change.path) &&
+                                !preparedPaths.has(change.path),
+                        )
+                        .map((change) => ({ ...change })),
+                );
             }
             if (!prepared.length) return;
             staged = {
-                elements: { ...await this.loadIndex() },
-                components: { ...await this.loadComponentIndex() },
+                elements: { ...(await this.loadIndex()) },
+                components: { ...(await this.loadComponentIndex()) },
                 rewrites: [],
             };
             this.stagedIndexes = staged;
@@ -229,8 +296,10 @@ export class CodeFileSystem extends FileSystem {
             }
             for (const change of prepared) {
                 if (typeof change.content !== 'string') continue;
-                if (instrument && this.isJsxFile(change.path)) change.content = await this.processJsxFile(change.path, change.content, copied);
-                else if (instrument && this.isHtmlFile(change.path)) change.content = await this.processHtmlFile(change.path, change.content);
+                if (instrument && this.isJsxFile(change.path))
+                    change.content = await this.processJsxFile(change.path, change.content, copied);
+                else if (instrument && this.isHtmlFile(change.path))
+                    change.content = await this.processHtmlFile(change.path, change.content);
                 else await this.reindexLocalFile(change.path, change.content);
             }
             next = applyDurableChanges(before, prepared);
@@ -246,18 +315,23 @@ export class CodeFileSystem extends FileSystem {
         // No staged metadata or source is visible while the network commit is pending.
         if (!prepared.length) return;
         // CloudSource owns recovery after transport admission, including preflight rejection.
-        await this.durableCommit!(prepared.map((change) => ({ ...change, content: cloneDurableContent(change.content) })));
+        await this.durableCommit!(
+            prepared.map((change) => ({ ...change, content: cloneDurableContent(change.content) })),
+        );
         // The acknowledged revision is authoritative even if the local cache fails next.
         this.durableTree = next;
         try {
             this.assertDurableOwner();
-            for (const change of prepared.filter((change) => change.content === null && !change.directory).sort((a, b) => b.path.length - a.path.length)) {
+            for (const change of prepared
+                .filter((change) => change.content === null && !change.directory)
+                .sort((a, b) => b.path.length - a.path.length)) {
                 if (before.get(change.path)?.directory) {
                     if (change.path !== '.weblab') await super.deleteDirectory(change.path);
-                }
-                else await super.deleteFile(change.path);
+                } else await super.deleteFile(change.path);
             }
-            for (const change of prepared.filter((change) => change.directory).sort((a, b) => a.path.length - b.path.length)) {
+            for (const change of prepared
+                .filter((change) => change.directory)
+                .sort((a, b) => a.path.length - b.path.length)) {
                 await super.createDirectory(change.path);
             }
             for (const change of prepared) {
@@ -271,11 +345,17 @@ export class CodeFileSystem extends FileSystem {
         }
     }
 
-    private async preserveDurableAttempt(preserve: () => Promise<void>, originalError: unknown): Promise<void> {
+    private async preserveDurableAttempt(
+        preserve: () => Promise<void>,
+        originalError: unknown,
+    ): Promise<void> {
         try {
             await preserve();
         } catch (recoveryError) {
-            throw new AggregateError([originalError, recoveryError], 'Source save failed and its recovery copy could not be stored. Keep the editor open and download your changes.');
+            throw new AggregateError(
+                [originalError, recoveryError],
+                'Source save failed and its recovery copy could not be stored. Keep the editor open and download your changes.',
+            );
         }
     }
 
@@ -287,9 +367,13 @@ export class CodeFileSystem extends FileSystem {
     async replaceLocalSnapshot(files: Array<{ path: string; content: string }>): Promise<void> {
         if (!this.options.localProject) throw new Error('Not a local project');
         return this.withWriteLock(async () => {
-            const incoming = new Map(files.map((file) => [file.path.replace(/^\/+/, ''), file.content]));
+            const incoming = new Map(
+                files.map((file) => [file.path.replace(/^\/+/, ''), file.content]),
+            );
             const oldFiles = (await this.listAll()).filter(
-                (entry) => entry.type === 'file' && !entry.path.replace(/^\/+/, '').startsWith(`${WEBLAB_CACHE_DIRECTORY}/`),
+                (entry) =>
+                    entry.type === 'file' &&
+                    !entry.path.replace(/^\/+/, '').startsWith(`${WEBLAB_CACHE_DIRECTORY}/`),
             );
             for (const old of oldFiles) {
                 const oldPath = old.path.replace(/^\/+/, '');
@@ -370,7 +454,11 @@ export class CodeFileSystem extends FileSystem {
     }
 
     private async saveRecoveryCopy(path: string, content: string): Promise<string> {
-        const name = path.split('/').pop()?.replace(/[^a-zA-Z0-9._-]/g, '_') ?? 'source';
+        const name =
+            path
+                .split('/')
+                .pop()
+                ?.replace(/[^a-zA-Z0-9._-]/g, '_') ?? 'source';
         const recoveryPath = `${WEBLAB_CACHE_DIRECTORY}/recovery/${Date.now()}-${Math.random().toString(36).slice(2)}-${name}.txt`;
         await super.writeFile(recoveryPath, content);
         return recoveryPath;
@@ -395,7 +483,10 @@ export class CodeFileSystem extends FileSystem {
                 this.assertDurableOwner();
                 return fn();
             });
-            const settled = run.then(() => undefined, () => undefined);
+            const settled = run.then(
+                () => undefined,
+                () => undefined,
+            );
             durableScopeQueues.set(key, settled);
             this.writeLock = settled;
             void settled.then(() => {
@@ -448,12 +539,16 @@ export class CodeFileSystem extends FileSystem {
 
     async writeFiles(files: Array<{ path: string; content: string | Uint8Array }>): Promise<void> {
         if (this.options.durableCloud) {
-            const copies = files.map((file) => ({ path: durablePath(file.path), content: cloneDurableContent(file.content)! }));
+            const copies = files.map((file) => ({
+                path: durablePath(file.path),
+                content: cloneDurableContent(file.content)!,
+            }));
             return this.withWriteLock(async () => {
                 const source = copies.filter((file) => !isDurableCachePath(file.path));
                 if (source.length) await this.commitDurableChanges(source);
                 try {
-                    for (const file of copies.filter((file) => isDurableCachePath(file.path))) await super.writeFile(file.path, file.content);
+                    for (const file of copies.filter((file) => isDurableCachePath(file.path)))
+                        await super.writeFile(file.path, file.content);
                 } catch (error) {
                     if (!source.length) throw error;
                     throw this.durableCacheFailure(error);
@@ -479,39 +574,63 @@ export class CodeFileSystem extends FileSystem {
             const normalized = durablePath(path);
             return this.withWriteLock(async () => {
                 if (isDurableCachePath(normalized)) return super.createDirectory(normalized);
-                await this.commitDurableChanges([{ path: normalized, content: null, directory: true }]);
+                await this.commitDurableChanges([
+                    { path: normalized, content: null, directory: true },
+                ]);
             });
         }
-        if (this.options.localProject) throw new Error('Creating local folders from the editor is not ready');
+        if (this.options.localProject)
+            throw new Error('Creating local folders from the editor is not ready');
         await super.createDirectory(path);
     }
 
     async copyDirectory(from: string, to: string): Promise<void> {
-        if (this.options.durableCloud) return this.withWriteLock(() => {
-            if (isDurableCachePath(durablePath(from)) && isDurableCachePath(durablePath(to))) return super.copyDirectory(from, to);
-            return this.commitDurableChanges(durableTransfer(this.requireDurableTree(), from, to, true, false), true, true);
-        });
-        if (this.options.localProject) throw new Error('Copying local folders from the editor is not ready');
+        if (this.options.durableCloud)
+            return this.withWriteLock(() => {
+                if (isDurableCachePath(durablePath(from)) && isDurableCachePath(durablePath(to)))
+                    return super.copyDirectory(from, to);
+                return this.commitDurableChanges(
+                    durableTransfer(this.requireDurableTree(), from, to, true, false),
+                    true,
+                    true,
+                );
+            });
+        if (this.options.localProject)
+            throw new Error('Copying local folders from the editor is not ready');
         await super.copyDirectory(from, to);
     }
 
     async copyFile(from: string, to: string, options: { overwrite?: boolean } = {}): Promise<void> {
-        if (this.options.durableCloud) return this.withWriteLock(async () => {
-            if (isDurableCachePath(durablePath(from)) && isDurableCachePath(durablePath(to))) return super.writeFile(to, await super.readFile(from));
-            const tree = this.requireDurableTree();
-            const fromPath = durablePath(from), toPath = durablePath(to);
-            let transferTree = tree;
-            if (options.overwrite && tree.has(toPath)) {
-                if (fromPath === toPath || toPath.startsWith(`${fromPath}/`) || fromPath.startsWith(`${toPath}/`)) throw new Error('Source and destination overlap');
-                if (tree.get(toPath)?.directory) throw new Error(`Directory exists: ${toPath}`);
-                // Only the proposed transfer ignores the target. The original
-                // source, target and indexes stay intact until the save succeeds.
-                transferTree = new Map(tree);
-                transferTree.delete(toPath);
-            }
-            return this.commitDurableChanges(durableTransfer(transferTree, fromPath, toPath, false, false), true, true, [fromPath]);
-        });
-        if (this.options.localProject) throw new Error('Copying local files from the editor is not ready');
+        if (this.options.durableCloud)
+            return this.withWriteLock(async () => {
+                if (isDurableCachePath(durablePath(from)) && isDurableCachePath(durablePath(to)))
+                    return super.writeFile(to, await super.readFile(from));
+                const tree = this.requireDurableTree();
+                const fromPath = durablePath(from),
+                    toPath = durablePath(to);
+                let transferTree = tree;
+                if (options.overwrite && tree.has(toPath)) {
+                    if (
+                        fromPath === toPath ||
+                        toPath.startsWith(`${fromPath}/`) ||
+                        fromPath.startsWith(`${toPath}/`)
+                    )
+                        throw new Error('Source and destination overlap');
+                    if (tree.get(toPath)?.directory) throw new Error(`Directory exists: ${toPath}`);
+                    // Only the proposed transfer ignores the target. The original
+                    // source, target and indexes stay intact until the save succeeds.
+                    transferTree = new Map(tree);
+                    transferTree.delete(toPath);
+                }
+                return this.commitDurableChanges(
+                    durableTransfer(transferTree, fromPath, toPath, false, false),
+                    true,
+                    true,
+                    [fromPath],
+                );
+            });
+        if (this.options.localProject)
+            throw new Error('Copying local files from the editor is not ready');
         await super.copyFile(from, to);
     }
 
@@ -526,8 +645,11 @@ export class CodeFileSystem extends FileSystem {
                 // identity before indexing, or their nodes replace the original.
                 traverse(ast, {
                     JSXOpeningElement(nodePath) {
-                        nodePath.node.attributes = nodePath.node.attributes.filter((attribute) =>
-                            !t.isJSXAttribute(attribute) || attribute.name.name !== EditorAttributes.DATA_WEBLAB_ID);
+                        nodePath.node.attributes = nodePath.node.attributes.filter(
+                            (attribute) =>
+                                !t.isJSXAttribute(attribute) ||
+                                attribute.name.name !== EditorAttributes.DATA_WEBLAB_ID,
+                        );
                     },
                 });
             }
@@ -560,7 +682,10 @@ export class CodeFileSystem extends FileSystem {
         await this.updateMetadataForFile(path, formattedContent);
 
         if (ixIdRewrites.size > 0) {
-            (this.stagedIndexes?.rewrites ?? this.pendingIxIdRewrites).push({ path, rewrites: ixIdRewrites });
+            (this.stagedIndexes?.rewrites ?? this.pendingIxIdRewrites).push({
+                path,
+                rewrites: ixIdRewrites,
+            });
         }
 
         return formattedContent;
@@ -586,9 +711,7 @@ export class CodeFileSystem extends FileSystem {
 
         const globalOids = await this.getOidsExcludingFile(path);
         const { ast: oidAst, modified } = htmlPipeline.injectOids(ast, { globalOids });
-        const processedContent = modified
-            ? await htmlPipeline.generate(oidAst, content)
-            : content;
+        const processedContent = modified ? await htmlPipeline.generate(oidAst, content) : content;
 
         await this.updateHtmlMetadataForFile(path, processedContent);
         return processedContent;
@@ -787,9 +910,11 @@ export class CodeFileSystem extends FileSystem {
     async rebuildIndex(): Promise<void> {
         // Under the same lock as writeFile/deleteFile/moveFile so a full rebuild
         // can't race a concurrent single-file index update.
-        return this.withWriteLock(() => this.options.durableCloud
-            ? this.rebuildDurableIndexes(this.requireDurableTree())
-            : this.performRebuildIndex());
+        return this.withWriteLock(() =>
+            this.options.durableCloud
+                ? this.rebuildDurableIndexes(this.requireDurableTree())
+                : this.performRebuildIndex(),
+        );
     }
 
     private async performRebuildIndex(): Promise<void> {
@@ -801,7 +926,8 @@ export class CodeFileSystem extends FileSystem {
         const sourceFiles = entries.filter(
             (entry) =>
                 entry.type === 'file' &&
-                (!this.options.durableCloud || !isDurableCachePath(entry.path.replace(/^\/+/, ''))) &&
+                (!this.options.durableCloud ||
+                    !isDurableCachePath(entry.path.replace(/^\/+/, ''))) &&
                 (this.isJsxFile(entry.path) || this.isHtmlFile(entry.path)),
         );
 
@@ -885,10 +1011,13 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async deleteFile(path: string): Promise<void> {
-        if (this.options.durableCloud) return this.withWriteLock(() => {
-            if (isDurableCachePath(durablePath(path))) return super.deleteFile(path);
-            return this.commitDurableChanges(durableRemove(this.requireDurableTree(), path, false));
-        });
+        if (this.options.durableCloud)
+            return this.withWriteLock(() => {
+                if (isDurableCachePath(durablePath(path))) return super.deleteFile(path);
+                return this.commitDurableChanges(
+                    durableRemove(this.requireDurableTree(), path, false),
+                );
+            });
         if (this.options.localProject) {
             throw new Error('Deleting local files from the editor is not ready');
         }
@@ -931,10 +1060,18 @@ export class CodeFileSystem extends FileSystem {
     }
 
     async moveFile(oldPath: string, newPath: string): Promise<void> {
-        if (this.options.durableCloud) return this.withWriteLock(() => {
-            if (isDurableCachePath(durablePath(oldPath)) && isDurableCachePath(durablePath(newPath))) return super.moveFile(oldPath, newPath);
-            return this.commitDurableChanges(durableTransfer(this.requireDurableTree(), oldPath, newPath, false, true), false);
-        });
+        if (this.options.durableCloud)
+            return this.withWriteLock(() => {
+                if (
+                    isDurableCachePath(durablePath(oldPath)) &&
+                    isDurableCachePath(durablePath(newPath))
+                )
+                    return super.moveFile(oldPath, newPath);
+                return this.commitDurableChanges(
+                    durableTransfer(this.requireDurableTree(), oldPath, newPath, false, true),
+                    false,
+                );
+            });
         if (this.options.localProject) {
             throw new Error('Moving local files from the editor is not ready');
         }
@@ -1014,11 +1151,15 @@ export class CodeFileSystem extends FileSystem {
      * concurrent single-file index update.
      */
     async deleteDirectory(path: string): Promise<void> {
-        if (this.options.durableCloud) return this.withWriteLock(() => {
-            if (isDurableCachePath(durablePath(path))) return super.deleteDirectory(path);
-            return this.commitDurableChanges(durableRemove(this.requireDurableTree(), path, true));
-        });
-        if (this.options.localProject) throw new Error('Deleting local folders from the editor is not ready');
+        if (this.options.durableCloud)
+            return this.withWriteLock(() => {
+                if (isDurableCachePath(durablePath(path))) return super.deleteDirectory(path);
+                return this.commitDurableChanges(
+                    durableRemove(this.requireDurableTree(), path, true),
+                );
+            });
+        if (this.options.localProject)
+            throw new Error('Deleting local folders from the editor is not ready');
         return this.withWriteLock(async () => {
             await super.deleteDirectory(path);
 
@@ -1057,11 +1198,20 @@ export class CodeFileSystem extends FileSystem {
      * and component keys, so edits route to the now-nonexistent old location.
      */
     async moveDirectory(oldPath: string, newPath: string): Promise<void> {
-        if (this.options.durableCloud) return this.withWriteLock(() => {
-            if (isDurableCachePath(durablePath(oldPath)) && isDurableCachePath(durablePath(newPath))) return super.moveDirectory(oldPath, newPath);
-            return this.commitDurableChanges(durableTransfer(this.requireDurableTree(), oldPath, newPath, true, true), false);
-        });
-        if (this.options.localProject) throw new Error('Moving local folders from the editor is not ready');
+        if (this.options.durableCloud)
+            return this.withWriteLock(() => {
+                if (
+                    isDurableCachePath(durablePath(oldPath)) &&
+                    isDurableCachePath(durablePath(newPath))
+                )
+                    return super.moveDirectory(oldPath, newPath);
+                return this.commitDurableChanges(
+                    durableTransfer(this.requireDurableTree(), oldPath, newPath, true, true),
+                    false,
+                );
+            });
+        if (this.options.localProject)
+            throw new Error('Moving local folders from the editor is not ready');
         return this.withWriteLock(async () => {
             await super.moveDirectory(oldPath, newPath);
 

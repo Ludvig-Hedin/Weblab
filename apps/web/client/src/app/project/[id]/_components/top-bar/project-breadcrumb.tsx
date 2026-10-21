@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@webla
 import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { useDownloadProjectToFolder } from '@/hooks/use-download-project-to-folder';
@@ -33,6 +34,17 @@ import { NewProjectMenu } from './new-project-menu';
 import { RecentProjectsMenu } from './recent-projects';
 
 export const ProjectBreadcrumb = observer(() => {
+    const scoped = useScopedProject();
+    if (scoped)
+        return (
+            <div className="text-small mr-0 min-w-0 truncate">
+                {scoped.entry.bootstrap.project.name}
+            </div>
+        );
+    return <OrdinaryProjectBreadcrumb />;
+});
+
+const OrdinaryProjectBreadcrumb = observer(() => {
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
     const posthog = usePostHog();

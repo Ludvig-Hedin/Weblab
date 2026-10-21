@@ -1,6 +1,6 @@
 import type { PostHog } from 'posthog-js/react';
-import { makeAutoObservable, runInAction } from 'mobx';
 import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { CodeFileSystem } from '@weblab/file-system';
 import type { FrameworkId } from '@weblab/framework';
@@ -41,6 +41,14 @@ import { PropertiesClipboardManager } from './style/properties-clipboard';
 import { TextEditingManager } from './text';
 import { ThemeManager } from './theme';
 import { TokensManager } from './tokens';
+
+/** A captured client hint only; every scoped request is independently authorized. */
+export type ScopedEditorProject = Readonly<{
+    actorId: string;
+    clerkUserId: string;
+    sessionId: string;
+    isCurrent: (branchId?: string) => boolean;
+}>;
 
 export class EditorEngine {
     private clearPromise: Promise<void> | null = null;
@@ -103,11 +111,19 @@ export class EditorEngine {
     readonly comment: CommentManager = new CommentManager(this);
     readonly presence: PresenceManager = new PresenceManager(this);
 
-    constructor(projectId: string, posthog: PostHog, framework: FrameworkId | null = null) {
+    constructor(
+        projectId: string,
+        posthog: PostHog,
+        framework: FrameworkId | null = null,
+        readonly scopedProject?: ScopedEditorProject,
+    ) {
         this.projectId = projectId;
         this.posthog = posthog;
         this.framework = framework;
-        makeAutoObservable<this, 'clearPromise'>(this, { clearPromise: false });
+        makeAutoObservable<this, 'clearPromise'>(this, {
+            clearPromise: false,
+            scopedProject: false,
+        });
     }
 
     async init() {
@@ -118,13 +134,17 @@ export class EditorEngine {
         this.chat.init();
         this.style.init();
         this.stylePreferences.init();
-        this.comment.init();
+        if (!this.scopedProject) this.comment.init();
         this.presence.init();
     }
 
     /** Cloud roles come from the server; local working preferences cannot widen them. */
     get canUseDesign(): boolean {
-        if (!this.branches.hasActiveBranch || !isCloudEditorRuntime(this.branches.activeBranch.runtime)) return true;
+        if (
+            !this.branches.hasActiveBranch ||
+            !isCloudEditorRuntime(this.branches.activeBranch.runtime)
+        )
+            return true;
         const source = this.activeSandbox.cloudSource;
         return source?.canDesign === true && !source.isContentMode;
     }
@@ -133,7 +153,10 @@ export class EditorEngine {
         if (this.isClosing) throw new Error('The previous editor has not finished closing.');
         await this.branches.initBranches(branches);
         await this.branches.init();
-        if (this.branches.hasActiveBranch && isCloudEditorRuntime(this.branches.activeBranch.runtime)) {
+        if (
+            this.branches.hasActiveBranch &&
+            isCloudEditorRuntime(this.branches.activeBranch.runtime)
+        ) {
             await this.pages.scanPages();
         }
         await this.interactions.init();
@@ -150,10 +173,14 @@ export class EditorEngine {
         if (!this.clearPromise) {
             this.isClosing = true;
             let disposalStarted = false;
-            const operation = this.clearAsync(() => { disposalStarted = true; }).catch((error: unknown) => {
+            const operation = this.clearAsync(() => {
+                disposalStarted = true;
+            }).catch((error: unknown) => {
                 if (!disposalStarted && this.clearPromise === operation) {
                     this.clearPromise = null;
-                    runInAction(() => { this.isClosing = false; });
+                    runInAction(() => {
+                        this.isClosing = false;
+                    });
                 }
                 throw error;
             });

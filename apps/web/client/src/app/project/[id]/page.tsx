@@ -8,9 +8,11 @@ import { APP_NAME } from '@weblab/constants';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { CloudProjectEntry } from '@/components/cloud-editor/entry';
+import { CloudProjectSignIn } from '@/components/cloud-editor/project-sign-in';
 import { CloudPilotEditor } from '@/components/cloud-pilot/editor';
 import { WorkingLevelEditorGate } from '@/components/working-level/editor-gate';
 import { env } from '@/env';
+import { getCloudProjectEntry } from '@/utils/auth/cloud-project-user';
 import { classifyProjectLoadError } from './_adapters/classify-load-error';
 import {
     fromConvexBootstrap,
@@ -68,7 +70,13 @@ function collectFramePreconnectOrigins(
     return Array.from(origins);
 }
 
-export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ legacy?: string }> }) {
+export default async function Page({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ legacy?: string }>;
+}) {
     const resolved = await params;
     const projectId = resolved.id;
     // Dev-only: this runs server-side on every project open. Guard it so it
@@ -80,14 +88,22 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         return <ProjectLoadError variant="invalid-id" />;
     }
 
+    let allowOfflineFallback = false;
     try {
-        const { getToken } = await auth();
-        const token = await getToken({ template: 'convex' });
-        const bootstrap = await fetchQuery(
-            api.projects.getEditorBootstrap,
-            { projectId: projectId as Id<'projects'> },
-            { token: token ?? undefined },
-        );
+        const entry = await getCloudProjectEntry(projectId);
+        if (entry.kind === 'signed-out' || entry.kind === 'denied') {
+            return <CloudProjectSignIn denied={entry.kind === 'denied'} />;
+        }
+        allowOfflineFallback = entry.kind === 'ordinary';
+        const token = entry.token;
+        const bootstrap =
+            entry.kind === 'scoped'
+                ? entry.scoped.bootstrap
+                : await fetchQuery(
+                      api.projects.getEditorBootstrap,
+                      { projectId: projectId as Id<'projects'> },
+                      { token: token ?? undefined },
+                  );
 
         if (!bootstrap?.project) {
             return <ProjectLoadError variant="not-found" />;
@@ -96,10 +112,21 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         // A pilot (including damaged/unknown versions) never enters the legacy editor.
         if (isCloudPilotProject(bootstrap.project)) {
             if ((await searchParams).legacy !== '1' && bootstrap.project.workspaceId) {
-                const workspace = await fetchQuery(api.workspaces.get, { workspaceId: bootstrap.project.workspaceId }, { token: token ?? undefined });
-                return <WorkingLevelEditorGate siteId={bootstrap.project._id}>
-                    <CloudProjectEntry workspaceId={bootstrap.project.workspaceId} workspaceSlug={workspace.slug ?? ''} sourcePilotId={bootstrap.project._id} projectName={bootstrap.project.name} />
-                </WorkingLevelEditorGate>;
+                const workspace = await fetchQuery(
+                    api.workspaces.get,
+                    { workspaceId: bootstrap.project.workspaceId },
+                    { token: token ?? undefined },
+                );
+                return (
+                    <WorkingLevelEditorGate siteId={bootstrap.project._id}>
+                        <CloudProjectEntry
+                            workspaceId={bootstrap.project.workspaceId}
+                            workspaceSlug={workspace.slug ?? ''}
+                            sourcePilotId={bootstrap.project._id}
+                            projectName={bootstrap.project.name}
+                        />
+                    </WorkingLevelEditorGate>
+                );
             }
             return (
                 <WorkingLevelEditorGate siteId={bootstrap.project._id}>
@@ -120,7 +147,11 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             bootstrap.branches as never as Array<Parameters<typeof fromConvexBranch>[0]>
         ).map(fromConvexBranch);
         return (
-            <ProjectProviders project={project} branches={branches}>
+            <ProjectProviders
+                project={project}
+                branches={branches}
+                scopedActorId={entry.kind === 'scoped' ? entry.scoped.user._id : undefined}
+            >
                 {preconnectOrigins.map((origin) => (
                     <link key={`preconnect-${origin}`} rel="preconnect" href={origin} />
                 ))}
@@ -144,6 +175,10 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         if (variant === 'invalid-id') {
             return <ProjectLoadError variant="invalid-id" />;
         }
+
+        // Scoped customers always need current actor-bound cloud admission.
+        // The legacy project-only offline cache cannot establish that access.
+        if (!allowOfflineFallback) return <ProjectLoadError variant={variant} />;
 
         // Always offer the offline-cache fallback — the client component
         // checks IndexedDB and falls through to ProjectLoadError if there's

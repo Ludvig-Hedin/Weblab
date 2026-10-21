@@ -1303,3 +1303,7 @@ Private customer-copy proof, known-Sanity publication refusal, bounded owner/sit
   Clerk prod sign-up set to Restricted. Guide: `docs/guides/local-app-mode.md`.
 - Follow-ups: backlog 178 (move weblab-local into `apps/desktop-local`),
   179 (SEO metadata still cloud-flavoured).
+
+## 2026-10-21 — Scoped invited cloud entry, source integration
+
+F-845 and T-887 recover exact enrolled-project entry for existing invited accounts, canonical issuer identity, personal viewport writes and initiating-session cancellation through editor startup and durable hydration. Ordinary settings/preview routes and shared offline-cache fallback retain ordinary admission. No public sign-up or imported-site activation. Fresh authority/frontend source reviews found no confirmed blocker. Checked: 198 focused cases, web/file-system types and focused lint (0 errors, 444 warnings). Connected invitation claim/reopen/revocation and deployed acceptance remain open; this is not a live release announcement.

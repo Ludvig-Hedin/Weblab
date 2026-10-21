@@ -3,6 +3,7 @@ import { observable, runInAction } from 'mobx';
 
 import type { CodeFileSystem, DurableSourceChange, DurableSourceFile } from '@weblab/file-system';
 
+import type { RejectedTextNavigationLease } from '../text';
 import type {
     CloudRecoveryKey,
     CloudRecoveryOperation,
@@ -11,7 +12,6 @@ import type {
 } from './cloud-recovery';
 import type {
     CloudDesignerOperation,
-    CloudImageOperation,
     CloudEditorAccess,
     CloudEditorClient,
     CloudEditorCommit,
@@ -20,10 +20,10 @@ import type {
     CloudEditorRuntimeStatus,
     CloudEditorScope,
     CloudEditorSnapshot,
-    CloudSourceOperation,
+    CloudImageOperation,
     CloudSemanticOperation,
+    CloudSourceOperation,
 } from '@/lib/cloud-editor/api';
-import type { RejectedTextNavigationLease } from '../text';
 import { cloudEditorApi } from '@/lib/cloud-editor/api';
 import { clearAcknowledgedJournalDraft } from '@/lib/cloud-editor/journal-drafts';
 import {
@@ -34,6 +34,7 @@ import {
 } from './cloud-recovery';
 
 type SourceCallbacks = {
+    owner?: { signal: AbortSignal; isCurrent: () => boolean };
     onSourceChanged?: (paths: string[], external: boolean) => void;
     recoveryStore?: CloudRecoveryStore;
     hasLocalWork?: () => boolean;
@@ -52,8 +53,16 @@ export interface CloudAttributeApproval {
     field: CloudAttributeField;
     generation: number;
 }
-export type CloudImagePrepared = { attemptId: CloudImageOperation['image']['attemptId']; assetPath: string; hash: string; bytes: Uint8Array };
-export type CloudImageLease = { current: () => boolean; commit: (image: CloudImagePrepared, source: string) => Promise<boolean> };
+export type CloudImagePrepared = {
+    attemptId: CloudImageOperation['image']['attemptId'];
+    assetPath: string;
+    hash: string;
+    bytes: Uint8Array;
+};
+export type CloudImageLease = {
+    current: () => boolean;
+    commit: (image: CloudImagePrepared, source: string) => Promise<boolean>;
+};
 export interface CloudAttributeWrite extends CloudAttributeApproval {
     revision: number;
     value: string;
@@ -73,12 +82,24 @@ const CONTENT_REJECTIONS_AFTER_RECEIPT = new Set([
 // UNAVAILABLE is intentionally absent: revocation is checked before that lookup.
 const SEMANTIC_REJECTIONS_AFTER_RECEIPT = new Set([
     ...CONTENT_REJECTIONS_AFTER_RECEIPT,
-    'CLOUD_STUDIO_INVALID_TARGET', 'CLOUD_STUDIO_ALREADY_INSTALLED', 'CLOUD_STUDIO_ROUTE_OCCUPIED',
-    'CLOUD_STUDIO_TEMPLATE_NOT_APPROVED', 'CLOUD_STUDIO_SLOT_NOT_APPROVED', 'CLOUD_STUDIO_SLOT_CHANGED',
-    'CLOUD_STUDIO_BLOCK_NOT_APPROVED', 'CLOUD_STUDIO_SLOT_LIMIT', 'CLOUD_STUDIO_STALE_APPROVAL',
-    'CLOUD_STUDIO_INVALID_SLUG', 'CLOUD_STUDIO_INVALID_VALUES', 'CLOUD_STUDIO_INVALID_ASSET',
-    'CLOUD_STUDIO_ITEM_LIMIT', 'CLOUD_STUDIO_INVALID_ITEM', 'CLOUD_STUDIO_ITEM_NOT_FOUND',
-    'CLOUD_STUDIO_ITEM_CONFLICT', 'CLOUD_STUDIO_ITEM_ARCHIVED', 'CLOUD_STUDIO_CONTENT_TOO_LARGE',
+    'CLOUD_STUDIO_INVALID_TARGET',
+    'CLOUD_STUDIO_ALREADY_INSTALLED',
+    'CLOUD_STUDIO_ROUTE_OCCUPIED',
+    'CLOUD_STUDIO_TEMPLATE_NOT_APPROVED',
+    'CLOUD_STUDIO_SLOT_NOT_APPROVED',
+    'CLOUD_STUDIO_SLOT_CHANGED',
+    'CLOUD_STUDIO_BLOCK_NOT_APPROVED',
+    'CLOUD_STUDIO_SLOT_LIMIT',
+    'CLOUD_STUDIO_STALE_APPROVAL',
+    'CLOUD_STUDIO_INVALID_SLUG',
+    'CLOUD_STUDIO_INVALID_VALUES',
+    'CLOUD_STUDIO_INVALID_ASSET',
+    'CLOUD_STUDIO_ITEM_LIMIT',
+    'CLOUD_STUDIO_INVALID_ITEM',
+    'CLOUD_STUDIO_ITEM_NOT_FOUND',
+    'CLOUD_STUDIO_ITEM_CONFLICT',
+    'CLOUD_STUDIO_ITEM_ARCHIVED',
+    'CLOUD_STUDIO_CONTENT_TOO_LARGE',
     'CLOUD_STUDIO_PROJECTION_CHANGED',
 ]);
 
@@ -98,9 +119,11 @@ async function decodeSnapshot(
     client: CloudEditorClient,
     scope: CloudEditorScope,
     signal: AbortSignal,
+    assertOwner: () => void,
 ): Promise<DurableSourceFile[]> {
     const files: DurableSourceFile[] = [];
     for (const file of snapshot.files) {
+        assertOwner();
         signal.throwIfAborted();
         if (file.kind === 'directory') {
             files.push({ path: file.path, content: null, directory: true });
@@ -126,6 +149,8 @@ async function decodeSnapshot(
         }
         if (bytes.byteLength !== file.bytes || (await sha256(bytes)) !== file.hash)
             throw new Error('Saved source did not match its checksum');
+        assertOwner();
+        signal.throwIfAborted();
         files.push({ path: file.path, content: file.text ?? bytes });
     }
     return files;
@@ -158,7 +183,18 @@ export class CloudSource {
         discardReloadFailed: false,
     });
     private localWorkGuards = new Set<() => boolean>();
-    private stopped = false;
+    private closed = false;
+    private get stopped(): boolean {
+        return this.closed || this.callbacks.owner?.isCurrent() === false;
+    }
+    private readonly onOwnerLost = () => {
+        void this.stop();
+    };
+    private assertOwner(): void {
+        if (this.stopped)
+            throw new Error('The signed-in account or source changed. Reopen this project.');
+        this.abort.signal.throwIfAborted();
+    }
     private readonly abort = new AbortController();
     private operation: CloudSourceOperation | null = null;
     private lastAttempt: CloudRecoveryOperation | null = null;
@@ -182,7 +218,12 @@ export class CloudSource {
     private readonly beforeUnload = (event: BeforeUnloadEvent) => {
         if (this.rejectedReload?.bypassUnload) {
             this.rejectedReload.bypassUnload = false;
-            try { this.assertRejectedReload(this.rejectedReload); return; } catch { /* Keep the normal warning. */ }
+            try {
+                this.assertRejectedReload(this.rejectedReload);
+                return;
+            } catch {
+                /* Keep the normal warning. */
+            }
         }
         if (!this.hasPendingChanges && !this.state.pending && !this.hasLocalWork) return;
         event.preventDefault();
@@ -203,7 +244,12 @@ export class CloudSource {
     private sourcePaths = new Set<string>();
     private listeners = new Set<(paths: string[], external: boolean) => void>();
     private attributeWrite: CloudAttributeWrite | null = null;
-    private imageLease: { pin: CloudAttributeApproval; revision: number; prepared?: CloudImagePrepared; candidate?: string } | null = null;
+    private imageLease: {
+        pin: CloudAttributeApproval;
+        revision: number;
+        prepared?: CloudImagePrepared;
+        candidate?: string;
+    } | null = null;
 
     constructor(
         private readonly client: CloudEditorClient,
@@ -212,9 +258,13 @@ export class CloudSource {
         private readonly callbacks: SourceCallbacks = {},
     ) {
         this.recovery = callbacks.recoveryStore ?? new IndexedDbCloudRecoveryStore();
+        callbacks.owner?.signal.addEventListener('abort', this.onOwnerLost, { once: true });
+        if (callbacks.owner?.signal.aborted) this.onOwnerLost();
     }
 
-    get canWrite(): boolean { return this.imageLease === null && this.sourceWriteReady; }
+    get canWrite(): boolean {
+        return this.imageLease === null && this.sourceWriteReady;
+    }
     async cancelImagePreparation(attemptId: CloudImagePrepared['attemptId']): Promise<void> {
         await this.client.mutation(cloudEditorApi.cancelImage, { attemptId });
     }
@@ -278,15 +328,30 @@ export class CloudSource {
             );
     }
     get approvedAttributeBindings() {
-        if (!this.canEditContent || this.state.contracts?.revision !== this.state.savedRevision) return [];
-        return this.state.contracts.contracts.filter((contract) => contract.active).flatMap((contract) =>
-            contract.bindings.filter((binding) => binding.fields.some((field) => field !== 'text')).map((binding) => ({
-                ...binding, path: contract.path, generation: contract.generation,
-            })));
+        if (!this.canEditContent || this.state.contracts?.revision !== this.state.savedRevision)
+            return [];
+        return this.state.contracts.contracts
+            .filter((contract) => contract.active)
+            .flatMap((contract) =>
+                contract.bindings
+                    .filter((binding) => binding.fields.some((field) => field !== 'text'))
+                    .map((binding) => ({
+                        ...binding,
+                        path: contract.path,
+                        generation: contract.generation,
+                    })),
+            );
     }
-    canEditAttribute(path: string, oid: string, field: CloudAttributeField, value?: string): boolean {
+    canEditAttribute(
+        path: string,
+        oid: string,
+        field: CloudAttributeField,
+        value?: string,
+    ): boolean {
         if (!this.canWrite) return false;
-        const binding = this.approvedAttributeBindings.find((entry) => entry.path === path.replace(/^\/+/, '') && entry.oid === oid);
+        const binding = this.approvedAttributeBindings.find(
+            (entry) => entry.path === path.replace(/^\/+/, '') && entry.oid === oid,
+        );
         if (!binding?.fields.includes(field)) return false;
         if (value === undefined) return true;
         if (/[\u0000-\u001f\u007f]/.test(value)) return false;
@@ -295,49 +360,106 @@ export class CloudSource {
         return value.length <= 2048 && (binding.allowedValues?.[field]?.includes(value) ?? false);
     }
     private attributeApprovalCurrent(write: CloudAttributeWrite): boolean {
-        return this.actorId === write.actorId && this.scope.branchId === write.branchId &&
+        return (
+            this.actorId === write.actorId &&
+            this.scope.branchId === write.branchId &&
             this.state.savedRevision === write.revision &&
             this.canEditAttribute(write.path, write.oid, write.field, write.value) &&
-            this.approvedAttributeBindings.some((binding) => binding.path === write.path &&
-                binding.oid === write.oid && binding.generation === write.generation);
+            this.approvedAttributeBindings.some(
+                (binding) =>
+                    binding.path === write.path &&
+                    binding.oid === write.oid &&
+                    binding.generation === write.generation,
+            )
+        );
     }
     /** Pin this one durable write to its original approval, regardless of later UI mode. */
-    async withApprovedAttributeWrite(write: CloudAttributeWrite, save: () => Promise<boolean>): Promise<boolean> {
+    async withApprovedAttributeWrite(
+        write: CloudAttributeWrite,
+        save: () => Promise<boolean>,
+    ): Promise<boolean> {
         if (this.attributeWrite || !this.attributeApprovalCurrent(write)) return false;
         const admitted = { ...write };
         this.attributeWrite = admitted;
-        runInAction(() => { this.state.attributeWritePending = true; });
-        try { return await save(); }
-        finally {
+        runInAction(() => {
+            this.state.attributeWritePending = true;
+        });
+        try {
+            return await save();
+        } finally {
             if (this.attributeWrite === admitted) this.attributeWrite = null;
-            runInAction(() => { this.state.attributeWritePending = false; });
+            runInAction(() => {
+                this.state.attributeWritePending = false;
+            });
         }
     }
     /** An exclusive operation keeps preparation outside the source and the final image/source write inside CodeFS. */
-    async withImageUpload(pin: CloudAttributeApproval, revision: number, run: (lease: CloudImageLease) => Promise<boolean>): Promise<boolean> {
-        if (!this.canWrite || !this.isContentMode || this.hasLocalWork || pin.field !== 'src' ||
-            this.actorId !== pin.actorId || revision !== this.state.savedRevision || pin.branchId !== this.scope.branchId) return false;
-        const allowed = () => this.approvedAttributeBindings.some(b => b.path === pin.path && b.oid === pin.oid &&
-            b.generation === pin.generation && b.fields.includes('src') && b.allowImageUploads === true);
+    async withImageUpload(
+        pin: CloudAttributeApproval,
+        revision: number,
+        run: (lease: CloudImageLease) => Promise<boolean>,
+    ): Promise<boolean> {
+        if (
+            !this.canWrite ||
+            !this.isContentMode ||
+            this.hasLocalWork ||
+            pin.field !== 'src' ||
+            this.actorId !== pin.actorId ||
+            revision !== this.state.savedRevision ||
+            pin.branchId !== this.scope.branchId
+        )
+            return false;
+        const allowed = () =>
+            this.approvedAttributeBindings.some(
+                (b) =>
+                    b.path === pin.path &&
+                    b.oid === pin.oid &&
+                    b.generation === pin.generation &&
+                    b.fields.includes('src') &&
+                    b.allowImageUploads === true,
+            );
         if (!allowed()) return false;
         const owner: NonNullable<CloudSource['imageLease']> = { pin: { ...pin }, revision };
         this.imageLease = owner;
-        runInAction(() => { this.state.attributeWritePending = true; });
-        const current = () => this.imageLease === owner && this.sourceWriteReady && this.actorId === pin.actorId &&
-            this.state.savedRevision === revision && this.scope.branchId === pin.branchId && allowed();
+        runInAction(() => {
+            this.state.attributeWritePending = true;
+        });
+        const current = () =>
+            this.imageLease === owner &&
+            this.sourceWriteReady &&
+            this.actorId === pin.actorId &&
+            this.state.savedRevision === revision &&
+            this.scope.branchId === pin.branchId &&
+            allowed();
         try {
-            return await run({ current, commit: async (image, source) => {
-                if (!current() || image.assetPath !== `public/weblab-upload-${image.hash}.webp` ||
-                    await sha256(image.bytes) !== image.hash || !current()) return false;
-                owner.prepared = image; owner.candidate = source;
-                try {
-                    await this.fs.writeFiles([{ path: pin.path, content: source }, { path: image.assetPath, content: image.bytes }]);
-                    return true;
-                } catch { return false; }
-            } });
+            return await run({
+                current,
+                commit: async (image, source) => {
+                    if (
+                        !current() ||
+                        image.assetPath !== `public/weblab-upload-${image.hash}.webp` ||
+                        (await sha256(image.bytes)) !== image.hash ||
+                        !current()
+                    )
+                        return false;
+                    owner.prepared = image;
+                    owner.candidate = source;
+                    try {
+                        await this.fs.writeFiles([
+                            { path: pin.path, content: source },
+                            { path: image.assetPath, content: image.bytes },
+                        ]);
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                },
+            });
         } finally {
             if (this.imageLease === owner) this.imageLease = null;
-            runInAction(() => { this.state.attributeWritePending = false; });
+            runInAction(() => {
+                this.state.attributeWritePending = false;
+            });
             this.syncUnloadWarning();
         }
     }
@@ -367,12 +489,16 @@ export class CloudSource {
     }
     private async loadCapabilities(): Promise<void> {
         try {
+            this.assertOwner();
             const access = await this.client.query(cloudEditorApi.access, this.scope);
+            this.assertOwner();
+            if (this.actorId && access.actorId !== this.actorId)
+                throw new Error('The signed-in account changed. Reopen this project.');
             const contracts =
                 access.role && access.canEditContent
                     ? await this.client.query(cloudEditorApi.contracts, this.scope)
                     : null;
-            if (this.stopped) return;
+            this.assertOwner();
             if (contracts && contracts.actorId !== this.actorId)
                 throw new Error('The signed-in account changed. Reopen this project.');
             runInAction(() => {
@@ -385,6 +511,7 @@ export class CloudSource {
             if (!this.stopped)
                 runInAction(() => {
                     this.state.accessReady = false;
+                    this.state.runtime = null;
                     this.state.accessError =
                         'Project permissions could not be checked. Your draft is still available.';
                 });
@@ -476,11 +603,14 @@ export class CloudSource {
     }
 
     private async startSource(): Promise<void> {
+        this.assertOwner();
         this.fs.setDurableCommitHandler((changes) => this.commit(changes));
         this.fs.setDurableCacheErrorHandler(() => this.cacheFailed());
         await this.hydrate();
+        this.assertOwner();
         // Viewing or editing approved content never starts a paid runtime on open.
         if (this.canDesign) await this.retryPreview().catch(() => undefined);
+        this.assertOwner();
         // The first runtime writes its dependency lock. Finish loading that
         // revision before BranchManager attaches history or admits canvas edits.
         if (this.canDesign && !this.sourcePaths.has('bun.lock')) await this.settleInitialRuntime();
@@ -492,7 +622,9 @@ export class CloudSource {
     private async settleInitialRuntime(): Promise<void> {
         const deadline = Date.now() + 180_000;
         while (!this.stopped && Date.now() < deadline) {
+            this.assertOwner();
             let status = await this.client.query(cloudEditorApi.status, this.scope);
+            this.assertOwner();
             if (
                 status.enabled &&
                 status.status === 'ready' &&
@@ -502,7 +634,9 @@ export class CloudSource {
             ) {
                 // Minting an actor-bound view ticket never provisions runtime work.
                 await this.client.mutation(cloudEditorApi.issuePreview, this.scope);
+                this.assertOwner();
                 status = await this.client.query(cloudEditorApi.status, this.scope);
+                this.assertOwner();
             }
             if (status.status === 'ready') {
                 await this.hydrate();
@@ -519,6 +653,7 @@ export class CloudSource {
                 this.abort.signal.addEventListener('abort', finish, { once: true });
             });
         }
+        this.assertOwner();
         runInAction(() => {
             this.state.needsReload = true;
             this.state.error =
@@ -557,8 +692,10 @@ export class CloudSource {
                 transportVersion: 1,
                 changes: changes.map((change) => ({
                     path: change.path,
-                    content: change.content instanceof Uint8Array
-                        ? Uint8Array.from(change.content).buffer : change.content,
+                    content:
+                        change.content instanceof Uint8Array
+                            ? Uint8Array.from(change.content).buffer
+                            : change.content,
                     ...(change.directory ? { directory: true } : {}),
                 })),
             },
@@ -570,17 +707,26 @@ export class CloudSource {
         runInAction(() => {
             this.state.needsReload = true;
             this.state.saveAcknowledged = false;
-            this.state.error = 'The latest attempted changes could not be stored in browser recovery. Keep this tab open and download your changes before reloading. Any earlier recovery copy has been kept.';
+            this.state.error =
+                'The latest attempted changes could not be stored in browser recovery. Keep this tab open and download your changes before reloading. Any earlier recovery copy has been kept.';
         });
     }
 
-    private async preserveLocalRecovery(key: CloudRecoveryKey, record: CloudRecoveryRecord): Promise<void> {
-        if (!this.localRecoveryAttempts.some((attempt) => attempt.operation.operationId === record.operation.operationId))
+    private async preserveLocalRecovery(
+        key: CloudRecoveryKey,
+        record: CloudRecoveryRecord,
+    ): Promise<void> {
+        if (
+            !this.localRecoveryAttempts.some(
+                (attempt) => attempt.operation.operationId === record.operation.operationId,
+            )
+        )
             this.localRecoveryAttempts.push(record);
         runInAction(() => {
             this.state.needsReload = true;
             this.state.saveAcknowledged = false;
-            this.state.error = 'The edit could not be prepared for saving. Download your attempted changes before reloading the saved source.';
+            this.state.error =
+                'The edit could not be prepared for saving. Download your attempted changes before reloading the saved source.';
         });
         this.syncUnloadWarning();
         try {
@@ -591,8 +737,12 @@ export class CloudSource {
             this.recoveryVersion = record.version;
             this.attemptCreatedAt = record.createdAt;
             this.operationAmbiguous = false;
-            this.localRecoveryAttempts = this.localRecoveryAttempts.filter((attempt) => attempt !== record);
-            runInAction(() => { this.state.recoveryUnsupported = true; });
+            this.localRecoveryAttempts = this.localRecoveryAttempts.filter(
+                (attempt) => attempt !== record,
+            );
+            runInAction(() => {
+                this.state.recoveryUnsupported = true;
+            });
         } catch {
             // The old durable record is still owned by its original operation.
             // New bytes remain downloadable, including if this editor is stopping.
@@ -600,7 +750,9 @@ export class CloudSource {
                 try {
                     const existing = await this.recovery.load(key);
                     if (existing) this.restoreRecovery(existing);
-                } catch { /* The new in-memory download remains available. */ }
+                } catch {
+                    /* The new in-memory download remains available. */
+                }
             }
             this.localRecoveryStorageFailed();
             throw new CloudRecoveryStorageError();
@@ -639,7 +791,10 @@ export class CloudSource {
 
     cacheFailed(): void {
         if (this.stopped) return;
-        if (this.localRecoveryAttempts.length) { this.localRecoveryStorageFailed(); return; }
+        if (this.localRecoveryAttempts.length) {
+            this.localRecoveryStorageFailed();
+            return;
+        }
         runInAction(() => {
             this.state.needsReload = true;
             this.state.error =
@@ -690,10 +845,27 @@ export class CloudSource {
                 );
             try {
                 if (operation.transport === 'studio' || operation.transport === 'journal') {
-                    const { changes: _changes, transport, transportVersion: _version, ...request } = operation;
+                    const {
+                        changes: _changes,
+                        transport,
+                        transportVersion: _version,
+                        ...request
+                    } = operation;
                     return transport === 'studio'
-                        ? await this.client.action(cloudEditorApi.commitStudio, request as Omit<Extract<CloudSemanticOperation, { transport: 'studio' }>, 'changes' | 'transport' | 'transportVersion'>)
-                        : await this.client.action(cloudEditorApi.commitJournal, request as Omit<Extract<CloudSemanticOperation, { transport: 'journal' }>, 'changes' | 'transport' | 'transportVersion'>);
+                        ? await this.client.action(
+                              cloudEditorApi.commitStudio,
+                              request as Omit<
+                                  Extract<CloudSemanticOperation, { transport: 'studio' }>,
+                                  'changes' | 'transport' | 'transportVersion'
+                              >,
+                          )
+                        : await this.client.action(
+                              cloudEditorApi.commitJournal,
+                              request as Omit<
+                                  Extract<CloudSemanticOperation, { transport: 'journal' }>,
+                                  'changes' | 'transport' | 'transportVersion'
+                              >,
+                          );
                 }
                 if (operation.transport === 'content-image')
                     return await this.client.action(cloudEditorApi.commitImage, operation);
@@ -720,8 +892,16 @@ export class CloudSource {
         )
             throw new Error('Unexpected saved revision');
         if (operation.transport === 'journal' && typeof window !== 'undefined') {
-            try { clearAcknowledgedJournalDraft(window.localStorage, this.scope, operation.actorId, operation.operation); }
-            catch { /* Saved content is final; retain any unreadable browser draft for recovery. */ }
+            try {
+                clearAcknowledgedJournalDraft(
+                    window.localStorage,
+                    this.scope,
+                    operation.actorId,
+                    operation.operation,
+                );
+            } catch {
+                /* Saved content is final; retain any unreadable browser draft for recovery. */
+            }
         }
         this.operation = null;
         this.operationAmbiguous = false;
@@ -757,18 +937,22 @@ export class CloudSource {
                 this.state.contracts.revision = result.revision;
         });
         if (operation.transport === 'content-image') {
-            try { await this.refreshCapabilities(); }
-            catch {
+            try {
+                await this.refreshCapabilities();
+            } catch {
                 // The receipt is final. Let CodeFS install the acknowledged bytes even
                 // when the follow-up permission read is unavailable; never call failed().
                 runInAction(() => {
                     this.state.needsReload = true;
-                    this.state.error = 'Your image was saved. Reload the saved source before editing.';
+                    this.state.error =
+                        'Your image was saved. Reload the saved source before editing.';
                 });
             }
         }
         if (operation.transport === 'studio' || operation.transport === 'journal')
-            runInAction(() => { this.state.needsReload = true; });
+            runInAction(() => {
+                this.state.needsReload = true;
+            });
         if (!recoveryCleared)
             runInAction(() => {
                 this.state.needsReload = true;
@@ -790,11 +974,14 @@ export class CloudSource {
         // Within that window, conflict proves this operation did not commit.
         const definitiveRejection =
             (code === 'CLOUD_CONFLICT' ||
-                ((this.lastAttempt?.transport === 'content' || this.lastAttempt?.transport === 'content-image') &&
+                ((this.lastAttempt?.transport === 'content' ||
+                    this.lastAttempt?.transport === 'content-image') &&
                     code !== null &&
                     CONTENT_REJECTIONS_AFTER_RECEIPT.has(code)) ||
-                ((this.lastAttempt?.transport === 'studio' || this.lastAttempt?.transport === 'journal') &&
-                    code !== null && SEMANTIC_REJECTIONS_AFTER_RECEIPT.has(code))) &&
+                ((this.lastAttempt?.transport === 'studio' ||
+                    this.lastAttempt?.transport === 'journal') &&
+                    code !== null &&
+                    SEMANTIC_REJECTIONS_AFTER_RECEIPT.has(code))) &&
             Date.now() - this.attemptCreatedAt < RECOVERY_RECEIPT_LIFETIME;
         const rejected = definitiveRejection || (!!code && !this.operationAmbiguous);
         if (rejected) this.operation = null;
@@ -820,11 +1007,18 @@ export class CloudSource {
     }
 
     private prepareOperation(changes: DurableSourceChange[]): CloudSourceOperation {
-        if (!(this.canWrite || (this.imageLease?.prepared && this.sourceWriteReady))) throw new Error('Reload or retry the saved source before editing');
+        if (!(this.canWrite || (this.imageLease?.prepared && this.sourceWriteReady)))
+            throw new Error('Reload or retry the saved source before editing');
         if (!this.actorId) throw new Error('The authenticated source is not ready');
         const attribute = this.attributeWrite;
-        if (attribute && (!this.attributeApprovalCurrent(attribute) || changes.length !== 1 ||
-            changes[0]?.path !== attribute.path || changes[0]?.content !== attribute.candidate || changes[0]?.directory !== undefined)) {
+        if (
+            attribute &&
+            (!this.attributeApprovalCurrent(attribute) ||
+                changes.length !== 1 ||
+                changes[0]?.path !== attribute.path ||
+                changes[0]?.content !== attribute.candidate ||
+                changes[0]?.directory !== undefined)
+        ) {
             throw new Error('The approved field changed before this edit could be saved');
         }
         const candidate: CloudEditorCommit = {
@@ -846,13 +1040,31 @@ export class CloudSource {
         const image = this.imageLease;
         if (image?.prepared) {
             const asset = image.prepared;
-            const source = candidate.changes.find(c => c.path === image.pin.path);
-            if (image.revision !== candidate.expectedRevision || image.pin.actorId !== candidate.actorId ||
-                typeof source?.content !== 'string' || source.content !== image.candidate ||
-                candidate.changes.some(c => c.directory !== undefined || (c.path !== image.pin.path && c.path !== asset.assetPath)))
+            const source = candidate.changes.find((c) => c.path === image.pin.path);
+            if (
+                image.revision !== candidate.expectedRevision ||
+                image.pin.actorId !== candidate.actorId ||
+                typeof source?.content !== 'string' ||
+                source.content !== image.candidate ||
+                candidate.changes.some(
+                    (c) =>
+                        c.directory !== undefined ||
+                        (c.path !== image.pin.path && c.path !== asset.assetPath),
+                )
+            )
                 throw new Error('The image target changed before saving');
-            return { ...candidate, transport: 'content-image', transportVersion: 1,
-                image: { attemptId: asset.attemptId, path: image.pin.path, oid: image.pin.oid, generation: image.pin.generation, assetPath: asset.assetPath } };
+            return {
+                ...candidate,
+                transport: 'content-image',
+                transportVersion: 1,
+                image: {
+                    attemptId: asset.attemptId,
+                    path: image.pin.path,
+                    oid: image.pin.oid,
+                    generation: image.pin.generation,
+                    assetPath: asset.assetPath,
+                },
+            };
         }
         if (this.isContentMode || attribute) {
             const textChanges = candidate.changes.map((change) => {
@@ -865,7 +1077,10 @@ export class CloudSource {
                     (contract) => contract.active && contract.path === change.path,
                 );
                 if (!contract) throw new Error('This file has no approved content contract');
-                return { path: change.path, generation: attribute?.generation ?? contract.generation };
+                return {
+                    path: change.path,
+                    generation: attribute?.generation ?? contract.generation,
+                };
             });
             operation = {
                 ...candidate,
@@ -879,18 +1094,39 @@ export class CloudSource {
     }
 
     /** Semantic edits are journaled before transport. The open filesystem is never silently replaced. */
-    async commitSemantic(request: Omit<CloudSemanticOperation, 'operationId' | 'transportVersion' | 'changes' | 'projectId' | 'branchId'>): Promise<void> {
-        if (!this.canWrite || this.hasLocalWork || this.hasPendingChanges || !this.actorId ||
-            request.actorId !== this.actorId || request.expectedRevision !== this.state.savedRevision)
+    async commitSemantic(
+        request: Omit<
+            CloudSemanticOperation,
+            'operationId' | 'transportVersion' | 'changes' | 'projectId' | 'branchId'
+        >,
+    ): Promise<void> {
+        if (
+            !this.canWrite ||
+            this.hasLocalWork ||
+            this.hasPendingChanges ||
+            !this.actorId ||
+            request.actorId !== this.actorId ||
+            request.expectedRevision !== this.state.savedRevision
+        )
             throw new Error('Finish the current edit before changing pages or content');
-        const operation = { ...request, ...this.scope, transportVersion: 1 as const, changes: [] as [], operationId: crypto.randomUUID() } as CloudSemanticOperation;
+        const operation = {
+            ...request,
+            ...this.scope,
+            transportVersion: 1 as const,
+            changes: [] as [],
+            operationId: crypto.randomUUID(),
+        } as CloudSemanticOperation;
         if (!validSemanticOperation(operation)) throw new Error('Unsupported content operation');
         this.operation = operation;
         this.lastAttempt = operation;
         this.recoveryVersion = 2;
         this.operationAmbiguous = false;
         this.attemptCreatedAt = Date.now();
-        runInAction(() => { this.state.pending = true; this.state.error = null; this.state.saveAcknowledged = false; });
+        runInAction(() => {
+            this.state.pending = true;
+            this.state.error = null;
+            this.state.saveAcknowledged = false;
+        });
         this.syncUnloadWarning();
         try {
             const result = await this.send(operation);
@@ -900,7 +1136,10 @@ export class CloudSource {
             if (!this.stopped) await this.failed(error);
             throw error;
         } finally {
-            if (!this.stopped) runInAction(() => { this.state.pending = false; });
+            if (!this.stopped)
+                runInAction(() => {
+                    this.state.pending = false;
+                });
             this.syncUnloadWarning();
         }
     }
@@ -978,16 +1217,27 @@ export class CloudSource {
     }
 
     private assertNoOtherDrafts(): void {
-        if (this.state.localDraftChanges || this.state.attributeWritePending ||
-            this.localRecoveryAttempts.length || [...this.localWorkGuards].some((guard) => guard()))
+        if (
+            this.state.localDraftChanges ||
+            this.state.attributeWritePending ||
+            this.localRecoveryAttempts.length ||
+            [...this.localWorkGuards].some((guard) => guard())
+        )
             throw new Error('Other unsaved edits must be finished before discarding this text');
     }
 
     private assertRejectedReload(reload: NonNullable<CloudSource['rejectedReload']>): void {
         const key = this.recoveryKey();
-        if (this.stopped || this.state.pending || this.state.loading || this.operation ||
-            this.lastAttempt !== reload.attempt || key.actorId !== reload.key.actorId ||
-            key.projectId !== reload.key.projectId || key.branchId !== reload.key.branchId)
+        if (
+            this.stopped ||
+            this.state.pending ||
+            this.state.loading ||
+            this.operation ||
+            this.lastAttempt !== reload.attempt ||
+            key.actorId !== reload.key.actorId ||
+            key.projectId !== reload.key.projectId ||
+            key.branchId !== reload.key.branchId
+        )
             throw new Error('The source owner or pending save changed');
         this.assertNoOtherDrafts();
         reload.lease.assertCurrent();
@@ -1011,10 +1261,17 @@ export class CloudSource {
                 if (!attempt || !this.callbacks.prepareRejectedTextNavigation)
                     throw new Error('No settled rejected text session is available');
                 lease = this.callbacks.prepareRejectedTextNavigation();
-                runInAction(() => { this.state.needsReload = true; });
+                runInAction(() => {
+                    this.state.needsReload = true;
+                });
                 const record = await this.recovery.load(key);
-                if (!record || record.operation.operationId !== attempt.operationId ||
-                    record.disposition !== 'rejected' || record.ambiguous || record.definitiveRejection !== true)
+                if (
+                    !record ||
+                    record.operation.operationId !== attempt.operationId ||
+                    record.disposition !== 'rejected' ||
+                    record.ambiguous ||
+                    record.definitiveRejection !== true
+                )
                     throw new Error('An unconfirmed recovery operation cannot be discarded here');
                 reload = { lease, key, record, attempt, bypassUnload: false };
                 this.assertRejectedReload(reload);
@@ -1027,7 +1284,8 @@ export class CloudSource {
             runInAction(() => {
                 this.state.discardReloadRequested = true;
                 this.state.discardReloadFailed = false;
-                this.state.error = 'The recovery copy was discarded. If this page stays open, download the text still in this tab or load the saved version again.';
+                this.state.error =
+                    'The recovery copy was discarded. If this page stays open, download the text still in this tab or load the saved version again.';
             });
             reload.bypassUnload = true;
             this.requestDocumentReload();
@@ -1036,10 +1294,17 @@ export class CloudSource {
         } catch (error) {
             if (reload) reload.bypassUnload = false;
             if (removed && reload) {
-                try { await this.recovery.save(reload.key, reload.record); }
-                catch { this.localRecoveryStorageFailed(); }
+                try {
+                    await this.recovery.save(reload.key, reload.record);
+                } catch {
+                    this.localRecoveryStorageFailed();
+                }
             }
-            try { (reload?.lease ?? lease)?.release(); } catch { /* Never release another history owner's lease. */ }
+            try {
+                (reload?.lease ?? lease)?.release();
+            } catch {
+                /* Never release another history owner's lease. */
+            }
             if (this.rejectedReload === reload) this.rejectedReload = null;
             runInAction(() => {
                 this.state.discardReloadRequested = false;
@@ -1058,10 +1323,16 @@ export class CloudSource {
         if (!this.initialized) return this.start();
         if (this.hasLocalWork || this.rejectedReload) {
             if (!options.discardRecovery)
-                return Promise.reject(new Error(this.hasPendingChanges || this.hasRecoverableText
-                    ? 'Confirm discarding the recovery copy before reloading'
-                    : 'Finish or copy your current edit before loading the saved version'));
-            this.reloadPromise ??= this.navigateRejectedText().finally(() => { this.reloadPromise = null; });
+                return Promise.reject(
+                    new Error(
+                        this.hasPendingChanges || this.hasRecoverableText
+                            ? 'Confirm discarding the recovery copy before reloading'
+                            : 'Finish or copy your current edit before loading the saved version',
+                    ),
+                );
+            this.reloadPromise ??= this.navigateRejectedText().finally(() => {
+                this.reloadPromise = null;
+            });
             return this.reloadPromise;
         }
         if (this.hasPendingChanges && !options.discardRecovery)
@@ -1095,13 +1366,15 @@ export class CloudSource {
 
     private restoreRecovery(recovery: CloudRecoveryRecord | null) {
         const restored = recovery ? cloudRecoveryOperation(recovery) : null;
-        const unsupported = !!recovery && (!restored || (recovery.version === 1 && !this.canDesign));
-        this.lastAttempt = unsupported ? recovery!.operation : restored;
-        this.recoveryVersion = unsupported ? recovery!.version : 2;
+        const unsupported =
+            !!recovery && (!restored || (recovery.version === 1 && !this.canDesign));
+        this.lastAttempt = unsupported ? recovery.operation : restored;
+        this.recoveryVersion = unsupported ? recovery.version : 2;
         this.attemptCreatedAt = recovery?.createdAt ?? 0;
         this.operationAmbiguous = recovery?.disposition === 'pending';
         const expired = !!recovery && Date.now() - recovery.createdAt >= RECOVERY_RECEIPT_LIFETIME;
-        this.operation = recovery?.disposition === 'pending' && !expired && !unsupported ? restored : null;
+        this.operation =
+            recovery?.disposition === 'pending' && !expired && !unsupported ? restored : null;
         runInAction(() => {
             this.state.recoveryExpired = expired;
             this.state.recoveryUnsupported = unsupported;
@@ -1114,23 +1387,28 @@ export class CloudSource {
             this.state.loading = true;
         });
         try {
+            this.assertOwner();
             const snapshot = await this.client.query(cloudEditorApi.snapshot, this.scope);
+            this.assertOwner();
             if (this.actorId && this.actorId !== snapshot.actorId)
                 throw new Error('The signed-in account changed. Reopen this project.');
             this.actorId = snapshot.actorId;
             this.recoveryIdentity ??= { ...this.scope, actorId: snapshot.actorId };
             this.fs.setDurableRecoveryHandler((changes) => this.prepareLocalRecovery(changes));
             await this.refreshCapabilities();
+            this.assertOwner();
             const recovery = await this.recovery.load(this.recoveryKey());
+            this.assertOwner();
             const files = await decodeSnapshot(
                 snapshot,
                 this.client,
                 this.scope,
                 this.abort.signal,
+                () => this.assertOwner(),
             );
-            if (this.stopped) return;
-            await this.fs.hydrateDurableSnapshot(files);
-            if (this.stopped) return;
+            this.assertOwner();
+            await this.fs.hydrateDurableSnapshot(files, this.abort.signal);
+            this.assertOwner();
             const changed = new Set([...this.sourcePaths, ...files.map((file) => file.path)]);
             this.binaryFiles.clear();
             this.sourcePaths.clear();
@@ -1288,16 +1566,27 @@ export class CloudSource {
         const editingText = this.callbacks.recoverableText?.() ?? null;
         if (!this.hasPendingChanges && editingText === null)
             throw new Error('There are no unsaved changes to download');
-        const encodeChanges = (changes: CloudRecoveryOperation['changes']) => changes.map((change) => {
-            if (change.content instanceof ArrayBuffer) {
-                const bytes = new Uint8Array(change.content);
-                let base64 = '';
-                for (let offset = 0; offset < bytes.length; offset += 6_144)
-                    base64 += btoa(String.fromCharCode(...bytes.subarray(offset, offset + 6_144)));
-                return { path: change.path, encoding: 'base64', content: base64 };
-            }
-            return { path: change.path, encoding: change.directory ? 'directory' : change.content === null ? 'delete' : 'utf8', content: change.content };
-        });
+        const encodeChanges = (changes: CloudRecoveryOperation['changes']) =>
+            changes.map((change) => {
+                if (change.content instanceof ArrayBuffer) {
+                    const bytes = new Uint8Array(change.content);
+                    let base64 = '';
+                    for (let offset = 0; offset < bytes.length; offset += 6_144)
+                        base64 += btoa(
+                            String.fromCharCode(...bytes.subarray(offset, offset + 6_144)),
+                        );
+                    return { path: change.path, encoding: 'base64', content: base64 };
+                }
+                return {
+                    path: change.path,
+                    encoding: change.directory
+                        ? 'directory'
+                        : change.content === null
+                          ? 'delete'
+                          : 'utf8',
+                    content: change.content,
+                };
+            });
         return {
             editingText,
             version: 2,
@@ -1337,10 +1626,21 @@ export class CloudSource {
     }
 
     async stop(): Promise<void> {
-        this.stopped = true;
+        this.closed = true;
+        this.callbacks.owner?.signal.removeEventListener('abort', this.onOwnerLost);
+        runInAction(() => {
+            this.state.accessReady = false;
+            this.state.access = null;
+            this.state.contracts = null;
+            this.state.runtime = null;
+        });
         const reload = this.rejectedReload;
         this.rejectedReload = null;
-        try { reload?.lease.release(); } catch { /* This stop must not affect a newer owner. */ }
+        try {
+            reload?.lease.release();
+        } catch {
+            /* This stop must not affect a newer owner. */
+        }
         this.abort.abort();
         if (this.pollTimer) clearTimeout(this.pollTimer);
         this.pollTimer = null;
