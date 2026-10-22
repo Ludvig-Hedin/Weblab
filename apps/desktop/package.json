@@ -52,6 +52,7 @@
             "auth-hosts.js",
             "auth-policy.js",
             "private-path-policy.js",
+            "source-location.js",
             "weblab-cli.js",
             "weblab-local.js",
             "cli/**",
@@ -134,6 +135,12 @@
             "category": "Development",
             "artifactName": "Weblab.AppImage"
         },
+        "extraResources": [
+            {
+                "from": "assets/source-bookmark.jxa.js",
+                "to": "source-bookmark.jxa.js"
+            }
+        ],
         "npmRebuild": false,
         "publish": {
             "provider": "github",
