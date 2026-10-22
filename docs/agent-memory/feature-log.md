@@ -1311,3 +1311,7 @@ F-845 and T-887 recover exact enrolled-project entry for existing invited accoun
 ## 2026-10-22 — Folder import/preparation recovery, local source checkpoint
 
 F-846–848 and T-888–890 add immutable folder manifests, authenticated bounded media transport, initiating-session retry/recovery and explicit preparation of the saved copy. Prepared source keeps original media and runtime/config pins; imported open never auto-starts preview. Legacy starter content/Studio/release APIs refuse imports, and a completed import retires its recovery only after matching project navigation so another folder can be imported. 273 focused cases pass, including actual mounted form/controller cases. Final formatting/types/lint, normal backend generation and real connected acceptance remain open. Flags stay off; no live release announcement yet. Railway deployment pause and backend access are recorded in BACKLOG.
+
+## 2026-10-22 — Public Mac 0.2.2
+
+Published [desktop-local-v0.2.2](https://github.com/Ludvig-Hedin/Weblab/releases/tag/desktop-local-v0.2.2) from main `d124aea1e`. Existing folder organization, local text editing and recovery changes now have a signed, Apple-notarized Apple Silicon DMG. Gatekeeper accepts the mounted app and the first-party download matches final SHA-256 `48ecb2bfad867ba178a339c4e66f53fda38c6b3b4539a639c978f67e1e7ac018`. Clean-Mac and real provider acceptance remain open. PRs #16–17 are next-release source only; automatic Railway source deploys are disabled to preserve that boundary.

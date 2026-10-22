@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — local desktop 0.2.2 candidate
+## Local desktop 0.2.2 — 2026-10-22
 
 - Integration checks now include the folder dashboard in the optional-AI startup test setup.
 
@@ -13,7 +13,7 @@
 - Show shared font values in the narrow side panel.
 - Recover failed build attempts and replace a broken text connection safely.
 
-This is an unreleased candidate. Provider acceptance and signed client delivery are still required.
+The signed, Apple-notarized Apple Silicon installer is [available to download](https://weblab.build/api/download/mac). The downloaded file matches the final package hash. Clean-Mac installation and real CMS/hosting publish, promotion and restore acceptance remain open.
 
 - Local acceptance now uses an independent site copy. Local page viewing needs no password; remote and production access rules stay in place.
 

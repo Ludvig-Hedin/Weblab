@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.2 candidate (unreleased)
+## 0.2.2 (2026-10-22)
 
 - Keep the app’s AI key out of project scripts and preserve local settings when a save fails.
 - Import linked HTML pages while refusing linked source folders and unsafe paths.
@@ -13,7 +13,7 @@
 
 - Type supported CMS text directly on the page, including split headings. Save or discard from the app header.
 - Keep local Undo/Redo available after reopening the site. Protect unsaved text during reload, quit and site errors.
-- Review text and source publications in the native app. Provider and signed-package acceptance remain open.
+- Review text and source publications in the native app. Apple notarization, signature checks and the public download pass. Real provider publishing and clean-Mac installation acceptance remain open.
 
 ## 0.2.1 (2026-09-29)
 

@@ -1,5 +1,13 @@
 # Current Progress Snapshot
 
+## 2026-10-22 — Main release and next-release integration
+
+Owner chose main `d124aea1e` for the current release, then remaining work for the next release. This supersedes earlier open-PR-only/no-deploy instructions. [Mac 0.2.2](https://github.com/Ludvig-Hedin/Weblab/releases/tag/desktop-local-v0.2.2) is public, built from that exact desktop tree `f2eae47d18ce6b375d95e3f18643b74275451124`. Developer ID signature, Apple Accepted (`757606a0-0992-4849-bbaa-f82cf1222a9e`), stapling and Gatekeeper checks pass. The first-party download returns the 229,332,890-byte DMG, SHA-256 `48ecb2bfad867ba178a339c4e66f53fda38c6b3b4539a639c978f67e1e7ac018`. Clean-Mac installation and real provider publication remain unverified.
+
+Railway production deployment `e963b242-0eb5-4c5a-bc90-6a561a3c6382` targets exactly `d124aea1e`; its build is still running. Production remains local-app mode. Automatic GitHub-source deploys were disabled before next-release merges so those changes stay unreleased. GitHub Actions remains disabled. No Convex deployment, credential rotation, provider activation or customer-site write ran.
+
+PRs #17 and #16 are merged for the next release; import activation remains disabled. Exact #16 head `dbed9ba52` also has independent local verification recorded in #17 (285 focused tests, web types and lint). Earlier formatter/connected/backend acceptance limits remain recorded. The current main checkout is `../weblab-main`. All local branch history and the original 720-file snapshot are now pushed, with draft archive PRs #18–22. Those are donor histories, not wholesale merge candidates: #18 predates and omits the current public Mac app, and #20–22 contain superseded implementations. Remaining recovery requires current-main slices and preservation of newer code.
+
 ## 2026-10-22 — Local editor synchronized for PR handoff
 
 This checkout pulled remote main `d124aea1e` into the local editor branch. PR #17
