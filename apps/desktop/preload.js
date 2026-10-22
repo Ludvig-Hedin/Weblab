@@ -65,6 +65,10 @@ const IS_APP_ORIGIN = !!(APP_ORIGIN_AT_PRELOAD && ALLOWED_ORIGINS.has(APP_ORIGIN
 const localfsBridge = IS_APP_ORIGIN
     ? {
           pickFolder: () => ipcRenderer.invoke('weblab:localfs:pickFolder'),
+          sourceLocation: (root, resolve = false) => ipcRenderer.invoke('weblab:localfs:sourceLocation', { root, resolve }),
+          locateSource: (root) => ipcRenderer.invoke('weblab:localfs:locateSource', { root }),
+          confirmSource: (root, token) => ipcRenderer.invoke('weblab:localfs:confirmSource', { root, token }),
+          revealSource: (root) => ipcRenderer.invoke('weblab:localfs:revealSource', { root }),
           createPrivateWorkingCopy: (sourceRoot) =>
               ipcRenderer.invoke('weblab:localfs:createPrivateWorkingCopy', { sourceRoot }),
           planPrivateHandoff: (root) =>

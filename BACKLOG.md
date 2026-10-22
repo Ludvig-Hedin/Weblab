@@ -38,6 +38,15 @@ later without re-discovering the context.
 
 ## Open
 
+### Next-release recovery is not fully integrated or locally checked
+
+- **Discovered:** 2026-10-22, owner requested the current-main release first, then all retained work including the paused team editor for the next release.
+- **Where:** `integration/next-release-2026-10-22`; `apps/desktop/source-location*`, project source-location controls, `convex/lib/cloudContent{Text,Image}Contract*`; archival PRs #18–22.
+- **State:** PRs #16–17 are merged, unreleased. Current-main source recovery adds the paused team editor’s missing Finder reconnection/source identity guards and four inactive imported-text/image validators. Fresh source review found one package-resource test mismatch, corrected. The first source-location/contract slice passed 64 focused cases and web types; scoped frontend lint has zero errors/11 warnings, native/contract lint zero errors/4,935 warnings. A nullable UI path type error and package-resource assertion mismatch were corrected. Earlier guard refusals respected the occupied scheduler and 20% RAM threshold. No thresholds or peer processes were changed. Native/visible acceptance remains open; later text transport/history recovery is still in progress and has not inherited these results.
+- **Next step:** The normal generator has updated the translation declarations. Finish native/visible source-relink acceptance and validate each later text transport/history slice independently before merging it. Recover the remaining cloud source/history, Pages/blocks, protected builds, publication/recovery and approved-property slices against current main; keep activation flags off. Older #20–22 implementations are preserved donors and must not replace newer main code. The paused team editor’s remaining CSS Modules/Sanity work is included in owner scope.
+- **Risk if ignored:** Archived code regresses newer work, untested reconnection permits stale operations, or an inactive validator is mistaken for complete imported editing.
+- **Tags:** `#test-gap` `#release-blocker` `#desktop` `#cloud`
+
 ### Recovered cloud import needs final local and connected acceptance
 
 - **Discovered:** 2026-10-22 (F-846–848 source recovery)
