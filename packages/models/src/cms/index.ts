@@ -20,6 +20,7 @@ export enum CmsSourceType {
     PAYLOAD = 'payload',
     STRAPI = 'strapi',
     REST = 'rest',
+    SANITY = 'sanity',
 }
 
 export enum CmsBindingKind {

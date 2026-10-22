@@ -162,3 +162,26 @@ Read with `readRemoteRef`, write with `encodeRemoteRef`, strip with
 `stripRemoteRef` (all from `routers/cms/sync.ts`). The tRPC `collection.list`
 / `collection.get` / `collection.update` paths handle the prefix
 automatically — direct SQL access to that column needs to be aware of it.
+
+
+## Customer release source preparation, 2026-10-01
+
+Native items use optional legacy-safe revisions and archive timestamps. `remove` is CAS archive, preserving ID, slug reservation and values. `restore` rechecks native source/current project rights and current field validation, applies only explicit repaired fields without dropping legacy values, clears archive and returns draft. Active/archive pagination filters before a bounded scan; preview bindings and frozen ready-content omit archives. Frozen references must point to eligible native ready items in their configured collection. Existing immutable snapshots are never mutated by archive/restore.
+
+`cmsReleases.freeze` currently freezes bounded ready native content only. It does not yet freeze field configs/bindings/page routes/assets or merge a prior live baseline. It is not a website renderer. Native Vercel publication refuses attached CMS until a reviewed immutable runtime artifact exists. Runtime/source code must read the frozen artifact for both preview and production, and rollback must reuse saved artifact rather than current drafts.
+
+`cmsSanityActions` and `cmsSanityState` implement only `sanity-pilot-v1` draft contracts. Public saves reserve one scheduled operation; workers use stored current owner identity because Convex scheduling does not carry caller auth. Current rights, source timestamp/encrypted credentials and scheduler state are checked before decrypt/provider requests and before confirmed completion. A provider send with an unknown outcome is never retried or unlocked by mere absence. Source updates/removal refuse unresolved operations; deletion uses a tombstone and credential-free indexed cleanup. Published-document writes are deliberately absent. Website-only default and optional also-publish-Sanity require separate release/diff/restore flows before exposure.
+
+CMS overlay preview restores owned original nodes/attributes before fresh data; missing/archived content should not leave stale text/images. This preload is excluded from deployment artifacts and is not the intended production CMS runtime. All these changes are source preparation, not deployed/package acceptance. See F-806–F-811 and T-848–T-851.
+
+### Native immutable snapshot v2 (2026-10-02)
+
+`cmsReleases.freeze` now serializes version2. Fields include only validated public option values/multiplicity, reference collection/multiplicity and text/rich-text/slug link format. The exact projected schema validates item values. Unknown provider settings never enter the artifact, legacy options that would normalize refuse, and every reference collection must exist in the same snapshot even with no selected values. Existing immutable v1 snapshots are returned unchanged by get; a future runtime must explicitly require a supported complete contract. This is not asset/binding/route/live-baseline support. Production switches remain disabled.
+
+## Native approved Sanity blog drafts (source-only, 2026-10-02)
+
+`cmsSanityBlogConnections` pins one immutable public project/dataset/profile to a local branch. `cmsSanityBlogDrafts` stores captured original/provider revision and CAS edited JSON/local revision, slug reservation, archive status and editor. Separate `cmsSanityBlog` state and Node `cmsSanityBlogActions` do published GET only; they never call existing pilot writes. Real profile uses content Portable Text, categories strings and author string. Stable field/span/link/image-description operations preserve all other raw metadata. Existing encoded Unicode/emoji URLs are read unchanged; explicit new slug values remain canonical ASCII.
+
+Standalone native Content UI and Full Blog modal use these APIs independently of EditorEngine. Writer-separated recovery checkpoints edits, create payload+UUID and exact save intent before acceptance. Unknown receipts can rebase newer typing only on exact scope/provider/local rev+1/content match. Two-MiB envelope bounds cover up to256KiB source plus escaped saved content/operations; document/network bounds remain smaller. Archived local drafts reserve their slug and restore unchanged to draft. Branch deletion schedules bounded cleanup after the parent disappears. Any connection marks CMS publication required; production switch remains false.
+
+No backend activation, frozen runtime, Sanity published-document writes or installed-app acceptance. Authoring source now appends stable normal paragraphs, changes supported normal/h2/h3/h4/quote styles and toggles strong/em on whole spans. The same strict structural helper drives local replay and server apply, lists/metadata stay intact, appends/decorators never coalesce, and recovered save intent must match an exact saveable baseline prefix. Local field/count maxima align with server limits while incomplete syntax remains recoverable. Inactive retained style menus close and refuse edits. Image replacement, new link creation, selection-range formatting, paragraph movement/deletion and templates remain release work. F-821–F-824/T-863–T-866.

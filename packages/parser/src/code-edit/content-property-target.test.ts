@@ -100,7 +100,7 @@ describe('imported approved literal property addressing', () => {
         expect(validateContentPropertyTarget(files, about, found.target)).toBe('dark');
         expect(resolveContentImageRenderMapping(files, selection)).toEqual(imageBefore);
         for (const name of Object.keys(files).filter(name => name !== about)) expect(files[name]).toBe(before[name]);
-        expect(replaceContentPropertyTarget(files[about]!, found.target, 'dark', 'light')).toBe(before[about]);
+        expect(replaceContentPropertyTarget(files[about]!, found.target, 'dark', 'light')).toBe(before[about]!);
     });
     test('does not insert a missing/defaulted Security tone or accept another enum', () => {
         const files = mapped(), found = resolveContentPropertyTarget(files, selection);

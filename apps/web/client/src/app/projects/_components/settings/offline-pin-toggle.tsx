@@ -15,12 +15,12 @@ import { transKeys } from '@/i18n/keys';
 import {
     cacheProject,
     evictCachedProject,
-    precacheNavigationUrls,
+    precacheOfflineShell,
     requestPersistentStorage,
 } from '@/services/offline/project-cache';
 
 /**
- * Per-project "Make available offline" toggle in the project-card dropdown.
+ * Per-project "Keep a local copy" toggle in the project-card dropdown.
  * Mirrors the toggle in editor → Settings → Project but reachable from
  * `/projects` so power users can pin without entering each project first.
  */
@@ -65,7 +65,7 @@ export function OfflinePinToggle({ project }: { project: Project }) {
                     await cacheProject(project, branchList as any);
                 }
                 await requestPersistentStorage();
-                await precacheNavigationUrls([`/project/${project.id}`, '/projects']);
+                await precacheOfflineShell();
                 if (branchList.length > 0) {
                     toast.success(
                         t(transKeys.projects.dialogs.offline.toastMarked, { name: project.name }),

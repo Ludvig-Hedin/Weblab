@@ -7,6 +7,7 @@ import { Icons } from '@weblab/ui/icons';
 import type { ServerToolContext } from '../server-context';
 import { putImage } from '../../image/cache';
 import { ServerTool } from '../models/server';
+import { mapImageLimitError } from './generate-image';
 
 const SUPPORTED_EDIT_SIZES = ['1024x1024', '1024x1536', '1536x1024', 'auto'] as const;
 
@@ -68,45 +69,32 @@ export class EditImageTool extends ServerTool {
             );
         }
 
-        const sourceB64 = source.content.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
-        const sourceBytes = Buffer.from(sourceB64, 'base64');
-        const { default: OpenAI, toFile } = await import('openai');
-        const sourceFile = await toFile(
-            sourceBytes,
-            `source.${extensionFromMime(source.mimeType)}`,
-            {
-                type: source.mimeType,
-            },
-        );
-
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        // The installed openai SDK types lag the live API; gpt-image-2 is a
-        // real model id accepted by OpenAI's images.edit endpoint. The SDK
-        // type union allows arbitrary strings via `(string & {})`.
-        const result = await openai.images.edit({
-            model: 'gpt-image-2',
-            image: sourceFile,
-            prompt: args.prompt,
-            n: 1,
-            ...(args.size ? { size: args.size } : {}),
-        });
-
-        const out = result.data?.[0];
-        const b64 = out?.b64_json;
-        if (!b64) {
-            throw new Error('OpenAI image edit returned no data.');
+        // Reserve image credits + enforce daily/burst/per-turn caps BEFORE the
+        // paid OpenAI call — mirrors generate_image. Absent in unmetered
+        // contexts (tests, local tooling).
+        let creditHandle: Awaited<
+            ReturnType<NonNullable<ServerToolContext['reserveImageCredits']>>
+        > | null = null;
+        if (ctx.reserveImageCredits) {
+            try {
+                creditHandle = await ctx.reserveImageCredits();
+            } catch (err) {
+                throw new Error(mapImageLimitError(err));
+            }
         }
 
-        const mimeType = 'image/png';
-        const id = putImage(b64, mimeType, ctx.userId);
-
-        return {
-            id,
-            url: `/api/chat-images/${id}`,
-            modelId: 'gpt-image-2',
-            prompt: args.prompt,
-            mimeType,
-        };
+        try {
+            return await runImageEdit(args, source, ctx.userId);
+        } catch (err) {
+            // Edit failed after reserving — refund so the user isn't charged
+            // and the slot is freed from the daily/burst caps.
+            if (creditHandle && ctx.releaseImageCredits) {
+                await ctx.releaseImageCredits(creditHandle).catch(() => {
+                    // Best-effort refund; never mask the original failure.
+                });
+            }
+            throw err;
+        }
     }
 
     static getLabel(input?: z.infer<typeof EditImageTool.parameters>): string {
@@ -117,6 +105,53 @@ export class EditImageTool extends ServerTool {
         }
         return 'Editing image';
     }
+}
+
+async function runImageEdit(
+    args: z.infer<typeof EditImageTool.parameters>,
+    source: ImageMessageContext,
+    userId: string,
+): Promise<{ id: string; url: string; modelId: string; prompt: string; mimeType: string }> {
+    const sourceB64 = source.content.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+    const sourceBytes = Buffer.from(sourceB64, 'base64');
+    const { default: OpenAI, toFile } = await import('openai');
+    const sourceFile = await toFile(
+        sourceBytes,
+        `source.${extensionFromMime(source.mimeType)}`,
+        {
+            type: source.mimeType,
+        },
+    );
+
+    // One retry at most (SDK default is 2) — each retry is a paid call.
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 1 });
+    // The installed openai SDK types lag the live API; gpt-image-2 is a
+    // real model id accepted by OpenAI's images.edit endpoint. The SDK
+    // type union allows arbitrary strings via `(string & {})`.
+    const result = await openai.images.edit({
+        model: 'gpt-image-2',
+        image: sourceFile,
+        prompt: args.prompt,
+        n: 1,
+        ...(args.size ? { size: args.size } : {}),
+    });
+
+    const out = result.data?.[0];
+    const b64 = out?.b64_json;
+    if (!b64) {
+        throw new Error('OpenAI image edit returned no data.');
+    }
+
+    const mimeType = 'image/png';
+    const id = putImage(b64, mimeType, userId);
+
+    return {
+        id,
+        url: `/api/chat-images/${id}`,
+        modelId: 'gpt-image-2',
+        prompt: args.prompt,
+        mimeType,
+    };
 }
 
 interface MessageWithMetadata {

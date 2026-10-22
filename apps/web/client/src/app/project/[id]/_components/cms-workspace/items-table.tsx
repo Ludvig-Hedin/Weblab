@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { makeFunctionReference } from 'convex/server';
 import { api } from '@convex/_generated/api';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
-import type { CmsCollection } from '@weblab/db';
 import { Button } from '@weblab/ui/button';
 import { Checkbox } from '@weblab/ui/checkbox';
 import { Icons } from '@weblab/ui/icons';
@@ -16,16 +16,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@weblab/ui/sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@weblab/ui/table';
 
-import type { Id } from '@convex/_generated/dataModel';
+import type { Doc, Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useProjectCapabilities } from '@/hooks/use-project-capabilities';
 import { transKeys } from '@/i18n/keys';
 import { ItemEditor } from './item-editor';
 import { RoutingDialog } from './routing-dialog';
 
 interface Props {
     projectId: string;
-    collection: CmsCollection;
+    collection: Doc<'cmsCollections'>;
     onEditFields: () => void;
 }
 
@@ -40,9 +41,14 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     const [creating, setCreating] = useState(false);
     const [routingOpen, setRoutingOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const { confirm, dialog: confirmDialog } = useConfirm();
     const t = useTranslations();
+    const archiveT = useTranslations('cms.archive');
+    const caps = useProjectCapabilities(projectId);
+    const source = useQuery(api.cmsSources.get, { projectId: projectId as Id<'projects'>, sourceId: collection.sourceId });
+    const canWrite = caps.canEdit && source?.type === 'weblab';
 
     // Reset selection + search + open editors when the user switches
     // collections — otherwise the bulk-delete bar would carry stale ids
@@ -56,33 +62,26 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
         setEditingId(null);
         setCreating(false);
         setRoutingOpen(false);
-    }, [collection.id]);
+    }, [collection._id, showArchived]);
 
     // Convex live queries auto-revalidate — no useUtils equivalent needed.
     const deleteMutation = useMutation(api.cmsItems.remove);
+    const restoreMutation = useMutation(makeFunctionReference<'mutation', { projectId: Id<'projects'>; itemId: Id<'cmsItems'>; expectedRevision: number }, { success: true }>('cmsItems:restore'));
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // TODO(bug-hunt): convex/cmsItems.ts list() caps at 100 items by
-    // default (max 500). UI doesn't pass `limit`, so for collections
-    // with > 100 items: (a) count badge shows 100 even though there
-    // are more, (b) client-side search silently misses items beyond
-    // the slice, (c) the preview-item Select in the header is also
-    // truncated. Need pagination (load-more or virtualized) and a
-    // separate `count` query so the badge is accurate.
-    const itemsData = useQuery(api.cmsItems.list, {
+    const { results: items, status: pageStatus, loadMore } = usePaginatedQuery(api.cmsItems.listPage, {
         projectId: projectId as Id<'projects'>,
-        collectionId: collection.id as Id<'cmsCollections'>,
-    });
+        collectionId: collection._id, archived: showArchived,
+    }, { initialNumItems: 50 });
     const fieldsData = useQuery(api.cmsFields.listByCollection, {
         projectId: projectId as Id<'projects'>,
-        collectionId: collection.id as Id<'cmsCollections'>,
+        collectionId: collection._id as Id<'cmsCollections'>,
     });
     const pagesData = useQuery(api.cmsCollectionPages.list, {
         projectId: projectId as Id<'projects'>,
     });
-    const collectionPage = pagesData?.find((p) => p.collectionId === collection.id) ?? null;
+    const collectionPage = pagesData?.find((p) => p.collectionId === collection._id) ?? null;
 
-    const items = itemsData ?? [];
     const fields = fieldsData ?? [];
     // Pick the first text-shaped field as the "title" column. Falls back to
     // the slug, then the item id.
@@ -106,7 +105,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     }, [items, fields, search]);
 
     const allSelected =
-        filteredItems.length > 0 && filteredItems.every((it) => selectedIds.has(it._id));
+        filteredItems.some((it) => it.remoteId === undefined) && filteredItems.filter((it) => it.remoteId === undefined).every((it) => selectedIds.has(it._id));
     const someSelected = selectedIds.size > 0 && !allSelected;
     const toggleSelectAll = () => {
         if (allSelected) {
@@ -115,7 +114,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
             setSelectedIds(next);
         } else {
             const next = new Set(selectedIds);
-            for (const it of filteredItems) next.add(it._id);
+            for (const it of filteredItems) { if (it.remoteId === undefined) next.add(it._id); }
             setSelectedIds(next);
         }
     };
@@ -127,18 +126,21 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     };
 
     const handleDelete = async (id: string) => {
+        const captured = items.find((item) => item._id === id);
+        if (!canWrite || !captured || captured.remoteId !== undefined) return;
         const ok = await confirm({
-            title: 'Delete this item?',
-            description: 'This cannot be undone.',
-            confirmLabel: 'Delete',
-            destructive: true,
+            title: archiveT(showArchived ? 'restoreTitle' : 'archiveTitle'),
+            description: archiveT(showArchived ? 'restoreBody' : 'archiveBody'),
+            confirmLabel: archiveT(showArchived ? 'restoreDraft' : 'archive'),
+            destructive: !showArchived,
         });
         if (!ok) return;
         setIsDeleting(true);
         try {
-            await deleteMutation({
+            await (showArchived ? restoreMutation : deleteMutation)({
                 projectId: projectId as Id<'projects'>,
                 itemId: id as Id<'cmsItems'>,
+                expectedRevision: captured.revision ?? 0,
             });
             // Convex live queries auto-revalidate — no manual invalidate needed.
             setSelectedIds((prev) => {
@@ -146,49 +148,38 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                 next.delete(id);
                 return next;
             });
-            toast.success('Item deleted');
+            toast.success(archiveT(showArchived ? 'restored' : 'archived'));
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to delete item');
+            toast.error(err instanceof Error ? err.message : archiveT('failed'));
+            if (showArchived && err instanceof Error && err.message.includes('BAD_REQUEST:')) setEditingId(id);
         } finally {
             setIsDeleting(false);
         }
     };
 
-    // TODO(bug-hunt): partial-failure handling drops the failed ids from
-    // `selectedIds` (line: `setSelectedIds(new Set())`) so the user can't
-    // re-attempt the failures without re-selecting from the table. Also,
-    // failures only surface as a count — first error message gets logged
-    // but never shown. Keep failed ids selected (`setSelectedIds(new
-    // Set(failedIds))`) and surface the first failure's message in the
-    // toast so the user has something to act on.
     const handleBulkDelete = async () => {
-        if (selectedIds.size === 0) return;
+        if (!canWrite || selectedIds.size === 0) return;
+        const captured = items.filter((item) => selectedIds.has(item._id));
         const ok = await confirm({
-            title: `Delete ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}?`,
-            description: 'This cannot be undone.',
-            confirmLabel: 'Delete',
-            destructive: true,
+            title: archiveT(showArchived ? 'restoreMany' : 'archiveMany', { count: String(captured.length) }),
+            description: archiveT(showArchived ? 'restoreBody' : 'archiveBody'),
+            confirmLabel: archiveT(showArchived ? 'restoreDraft' : 'archive'), destructive: !showArchived,
         });
         if (!ok) return;
         setIsDeleting(true);
         const failures: string[] = [];
-        for (const id of Array.from(selectedIds)) {
+        const failedIds = new Set<string>();
+        for (const item of captured) {
             try {
-                await deleteMutation({
-                    projectId: projectId as Id<'projects'>,
-                    itemId: id as Id<'cmsItems'>,
-                });
-            } catch (err) {
-                failures.push(err instanceof Error ? err.message : 'Unknown error');
+                await (showArchived ? restoreMutation : deleteMutation)({ projectId: projectId as Id<'projects'>, itemId: item._id, expectedRevision: item.revision ?? 0 });
+            } catch (error) {
+                failedIds.add(item._id);
+                failures.push(error instanceof Error ? error.message : archiveT('failed'));
             }
         }
-        // Convex live queries auto-revalidate — no manual invalidate needed.
-        if (failures.length === 0) {
-            toast.success(`${selectedIds.size} item(s) deleted`);
-        } else {
-            toast.error(`${failures.length} item(s) failed to delete`);
-        }
-        setSelectedIds(new Set());
+        setSelectedIds(failedIds);
+        if (failures.length) toast.error(failures[0]);
+        else toast.success(archiveT(showArchived ? 'restoredCount' : 'archivedCount', { count: String(captured.length) }));
         setIsDeleting(false);
     };
 
@@ -200,11 +191,14 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                         {collection.name}
                     </h2>
                     <span className="text-foreground-tertiary text-mini">
-                        {t(transKeys.cms.items.count, { count: items.length })}
+                        {pageStatus === 'Exhausted'
+                            ? t(transKeys.cms.items.count, { count: items.length })
+                            : t(transKeys.cms.readiness.loadedCount, { count: String(items.length) })}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    {collectionPage ? (
+                    <Button size="sm" variant="outline" disabled={isDeleting} onClick={() => setShowArchived(!showArchived)}>{archiveT(showArchived ? 'showActive' : 'showArchive')}</Button>
+                    {collectionPage && !showArchived ? (
                         <Select
                             value={editorEngine.state.cmsCurrentItemId ?? ''}
                             onValueChange={(v) => editorEngine.state.setCmsCurrentItemId(v || null)}
@@ -243,7 +237,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                     <Button
                         size="sm"
                         onClick={() => setCreating(true)}
-                        disabled={fields.length === 0}
+                        disabled={!canWrite || showArchived || fields.length === 0}
                         title={
                             fields.length === 0 ? t(transKeys.cms.items.addFieldsFirst) : undefined
                         }
@@ -265,11 +259,12 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                 />
             ) : items.length === 0 ? (
                 <ItemsEmpty
-                    title={t(transKeys.cms.items.noItemsTitle)}
-                    body={t(transKeys.cms.items.noItemsBody)}
-                    cta={{
+                    title={showArchived ? archiveT('emptyTitle') : t(transKeys.cms.items.noItemsTitle)}
+                    body={showArchived ? archiveT('emptyBody') : t(transKeys.cms.items.noItemsBody)}
+                    cta={showArchived ? undefined : {
                         label: t(transKeys.cms.items.newItem),
-                        onClick: () => setCreating(true),
+                        onClick: () => { if (canWrite) setCreating(true); },
+                        disabled: !canWrite,
                     }}
                 />
             ) : (
@@ -280,7 +275,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search items…"
+                                placeholder={t(transKeys.cms.readiness.searchLoaded)}
                                 className="text-mini h-8 pl-7"
                             />
                         </div>
@@ -288,12 +283,12 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                className="text-red"
+                                className={showArchived ? undefined : 'text-red'}
                                 onClick={() => void handleBulkDelete()}
-                                disabled={isDeleting}
+                                disabled={!canWrite || isDeleting}
                             >
                                 <Icons.Trash className="mr-1 h-3.5 w-3.5" />
-                                Delete {selectedIds.size}
+                                {archiveT(showArchived ? 'restoreMany' : 'archiveMany', { count: String(selectedIds.size) })}
                             </Button>
                         ) : null}
                     </div>
@@ -310,6 +305,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                                       ? 'indeterminate'
                                                       : false
                                             }
+                                            disabled={!canWrite || isDeleting}
                                             onCheckedChange={() => toggleSelectAll()}
                                             aria-label="Select all"
                                         />
@@ -351,6 +347,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                                 >
                                                     <Checkbox
                                                         checked={checked}
+                                                        disabled={!canWrite || item.remoteId !== undefined || isDeleting}
                                                         onCheckedChange={() =>
                                                             toggleSelectOne(item._id)
                                                         }
@@ -367,7 +364,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                                 </TableCell>
                                                 <TableCell>
                                                     <span className="text-mini capitalize">
-                                                        {item.status}
+                                                        {item.archivedAt !== undefined ? archiveT('status') : t(item.status === 'published' ? transKeys.cms.readiness.readyForReview : transKeys.cms.readiness.draftStatus)}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="text-foreground-tertiary text-mini">
@@ -380,12 +377,12 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="text-red h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                                        className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                                                         onClick={() => void handleDelete(item._id)}
-                                                        disabled={isDeleting}
-                                                        aria-label="Delete item"
+                                                        disabled={!canWrite || item.remoteId !== undefined || isDeleting}
+                                                        aria-label={archiveT(showArchived ? 'restoreDraft' : 'archive')}
                                                     >
-                                                        <Icons.Trash className="h-3.5 w-3.5" />
+                                                        {showArchived ? <Icons.Reset className="h-3.5 w-3.5" /> : <Icons.Trash className="h-3.5 w-3.5" />}
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
@@ -398,11 +395,14 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                 </>
             )}
 
+            {pageStatus === 'CanLoadMore' || pageStatus === 'LoadingMore' ? <Button size="sm" variant="ghost" className="mx-4 my-2" disabled={pageStatus === 'LoadingMore'} onClick={() => loadMore(50)}>{t(transKeys.cms.readiness.loadMore)}</Button> : null}
+            {!canWrite && source !== undefined && source?.type !== 'weblab' ? <p className="text-foreground-secondary text-mini px-4 py-2">{t(transKeys.cms.readiness.externalReadOnly)}</p> : null}
+
             {(editingId !== null || creating) && (
                 <ItemEditor
                     projectId={projectId}
                     collection={collection}
-                    fields={fields as never}
+                    fields={fields}
                     itemId={editingId}
                     onClose={() => {
                         setEditingId(null);
@@ -413,7 +413,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
 
             <RoutingDialog
                 projectId={projectId}
-                collection={collection}
+                collection={{ ...collection, id: collection._id }}
                 open={routingOpen}
                 onOpenChange={setRoutingOpen}
             />
@@ -429,17 +429,17 @@ function ItemsEmpty({
 }: {
     title: string;
     body: string;
-    cta: { label: string; onClick: () => void };
+    cta?: { label: string; onClick: () => void; disabled?: boolean };
 }) {
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <Icons.ListBullet className="text-foreground-tertiary h-6 w-6" />
             <h3 className="text-foreground-primary text-regularPlus">{title}</h3>
             <p className="text-foreground-secondary text-small max-w-sm">{body}</p>
-            <Button size="sm" onClick={cta.onClick}>
+            {cta && <Button size="sm" onClick={cta.onClick} disabled={cta.disabled}>
                 <Icons.Plus className="mr-1 h-3.5 w-3.5" />
                 {cta.label}
-            </Button>
+            </Button>}
         </div>
     );
 }

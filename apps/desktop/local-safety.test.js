@@ -264,8 +264,15 @@ test('linked worktree gets an independent private Git copy and a guarded patch h
         expect(saved.success).toBe(true);
         backups.push(saved.recoveryPath);
         await recordPrivateWrite(copy.rootPath, 'page.html', saved.hash, base);
+        // Next's dev server writes next-env.d.ts on start; it must not block handoff.
+        await writeFile(join(copy.rootPath, 'next-env.d.ts'), '/// <reference types="next" />\n');
+        await writeFile(join(worktree, 'next-env.d.ts'), '/// <reference types="next" />\n');
+        await writeFile(join(copy.rootPath, 'tsconfig.tsbuildinfo'), '{"version":"5"}\n');
         const plan = await planPrivateHandoff(copy.rootPath, base);
         expect(plan.sourceChanged).toBe(false);
+        expect(plan.unsupportedChanges).toEqual([]);
+        expect(plan.changedFiles.map((file) => file.path)).not.toContain('next-env.d.ts');
+        expect(plan.changedFiles.map((file) => file.path)).not.toContain('tsconfig.tsbuildinfo');
         expect(plan.changedFiles).toContainEqual({
             path: 'page.html', original: '<h1>dirty</h1>\n', updated: '<h1>Weblab edit</h1>\n',
         });
@@ -670,9 +677,6 @@ test('explicit static preview serves site files but denies project secrets and s
         await writeFile(join(project, 'index.html'), '<html>Site</html>');
         await writeFile(join(project, 'about.html'), '<html>About</html>');
         await writeFile(join(project, 'site.css'), 'body { color: red; }');
-        await writeFile(join(project, '.env'), 'SECRET=private');
-        await writeFile(join(outside, 'outside.css'), 'outside');
-        await symlink(join(outside, 'outside.css'), join(project, 'linked.css'));
         const started = await startDevServer(project, null, null, () => null);
         expect(started.error).toBeUndefined();
         const origin = `http://127.0.0.1:${started.port}`;
@@ -680,16 +684,24 @@ test('explicit static preview serves site files but denies project secrets and s
         expect(await (await fetch(`${origin}/about`)).text()).toBe('<html>About</html>');
         expect((await fetch(`${origin}/site.css`)).headers.get('content-type'))
             .toBe('text/css; charset=utf-8');
+        await writeFile(join(project, '.env'), 'SECRET=private');
+        await writeFile(join(outside, 'outside.css'), 'outside');
+        await symlink(join(outside, 'outside.css'), join(project, 'linked.css'));
         await writeFile(join(project, 'package.json'), JSON.stringify({ name: 'static' }));
         for (const path of ['/.env', '/package.json', '/linked.css']) {
             expect((await fetch(`${origin}${path}`)).status).toBe(404);
         }
         expect((await fetch(origin, { headers: { Host: 'untrusted.example' } })).status).toBe(403);
         expect(await stopDevServer(project)).toEqual({ success: true });
+        const tainted = await startDevServer(project, null, started.port, () => null);
+        expect(tainted.error).toContain('Live credentials are not allowed');
+        await rm(join(project, '.env'));
+        await rm(join(project, 'linked.css'));
         const restarted = await startDevServer(project, null, started.port, () => null);
         expect(restarted.error).toBeUndefined();
-        expect(await (await fetch(`http://127.0.0.1:${restarted.port}`)).text())
-            .toBe('<html>Site</html>');
+        const response = await fetch(`http://127.0.0.1:${restarted.port}`);
+        expect(response.status).toBe(200);
+        expect(await response.text()).toBe('<html>Site</html>');
     } finally {
         await stopDevServer(project);
         await rm(project, { recursive: true, force: true });

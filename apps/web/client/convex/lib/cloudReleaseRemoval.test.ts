@@ -171,3 +171,28 @@ describe('explicit saved version removal', () => {
         await expect(begin._handler(f.ctx, args)).rejects.toThrow('CLOUD_IMPORTED_SNAPSHOT_TOO_LARGE'); expect(f.effects).toEqual([]);
     });
 });
+
+
+describe('eligible source retention and immutable tombstones', () => {
+    it('protects a public source parent until its candidate is removed, then clears eligibility in the tombstone', async () => {
+        const f = fixture(); Object.assign(f.get(releaseId)!, { purpose: 'release', artifactProfile: 'imported-next-public-v1',
+            publicationIntent: 'eligible-public-version', imported: { version: 1, capturedRevision: 2 } });
+        f.put('cloudReleases', 'cloudReleases:public-child', { projectId, branchId, workspaceId, actorId, purpose: 'release',
+            status: 'frozen', revision: 2, createdAt: 1, importedHosting: { artifactId: releaseId, visibility: 'publishable' } });
+        expect((await f.inspectOne()).result).toMatchObject({ state: 'blocked', reason: 'required-by-version' });
+        await expect(f.start()).rejects.toThrow('CLOUD_RELEASE_REMOVAL_BLOCKED'); expect(f.effects).toEqual([]);
+        f.table('cloudReleases').delete('cloudReleases:public-child');
+        const started = await f.start(); expect(started.progress.phase).not.toBe('done');
+        for (let index = 0; index < 5 && f.get(releaseId)!.removedAt === undefined; index++) await f.next();
+        expect(f.get(releaseId)?.removedAt).toBeNumber(); expect(f.get(releaseId)?.publicationIntent).toBeUndefined();
+        expect(f.get(releaseId)?.artifactProfile).toBeUndefined(); expect(f.get(releaseId)?.imported).toBeUndefined();
+        expect(f.get(releaseId)?.operationKey).toBe('capture_version_operation_001');
+        expect((await f.next()).progress.phase).toBe('done');
+    });
+    it('refuses mixed public-format backups rather than permitting removal through starter classification', async () => {
+        const f = fixture(); Object.assign(f.get(releaseId)!, { artifactProfile: 'imported-next-public-v1', publicationIntent: 'eligible-public-version',
+            imported: { version: 1, capturedRevision: 2 } });
+        expect((await f.inspectOne()).result).toMatchObject({ state: 'blocked', reason: 'version-unavailable' });
+        await expect(f.start()).rejects.toThrow('CLOUD_RELEASE_REMOVAL_BLOCKED'); expect(f.effects).toEqual([]);
+    });
+});

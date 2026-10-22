@@ -358,7 +358,7 @@ export function ClerkAuthForm({
             // generic message that renders as a blank error line).
             if (isAlreadySignedInError(err)) {
                 try {
-                    await signOut();
+                    await signOut(() => undefined);
                     await startOAuth();
                     return;
                 } catch (retryError) {
@@ -458,7 +458,7 @@ export function ClerkAuthForm({
             } catch (err) {
                 let flowError = err;
                 if (isAlreadySignedInError(err)) {
-                    await signOut();
+                    await signOut(() => undefined);
                     try {
                         await createSignInAttempt();
                         return 'sign-in';
@@ -530,11 +530,9 @@ export function ClerkAuthForm({
     }
 
     return (
-        <div className="flex w-full flex-col items-center space-y-4">
+        <div className="flex w-full max-w-[360px] flex-col items-center space-y-4">
             {hasOAuthProvider && (
-                // Vertical stack of full-width provider pills, 16px gap. Each
-                // shows its logo + "Continue with …" label, centered.
-                <div className="flex w-full flex-col gap-4">
+                <div className="flex w-full gap-2">
                     {showGoogle && (
                         <Button
                             type="button"
@@ -542,7 +540,10 @@ export function ClerkAuthForm({
                             size="pill"
                             onClick={() => void handleOAuth('google')}
                             disabled={!isLoaded}
-                            className={cn('w-full gap-2.5', providerButtonClassName)}
+                            className={cn(
+                                'min-w-0 flex-1 gap-1.5 px-2 text-sm has-[>svg]:px-2',
+                                providerButtonClassName,
+                            )}
                         >
                             <Icons.GoogleLogo viewBox="0 0 24 24" />
                             {t(transKeys.welcome.login.continueGoogle)}
@@ -555,7 +556,10 @@ export function ClerkAuthForm({
                             size="pill"
                             onClick={() => void handleOAuth('github')}
                             disabled={!isLoaded}
-                            className={cn('w-full gap-2.5', providerButtonClassName)}
+                            className={cn(
+                                'min-w-0 flex-1 gap-1.5 px-2 text-sm has-[>svg]:px-2',
+                                providerButtonClassName,
+                            )}
                         >
                             <Icons.GitHubLogo />
                             {t(transKeys.welcome.login.continueGithub)}
@@ -568,7 +572,10 @@ export function ClerkAuthForm({
                             size="pill"
                             onClick={() => void handleOAuth('vercel')}
                             disabled={!isLoaded}
-                            className={cn('w-full gap-2.5', providerButtonClassName)}
+                            className={cn(
+                                'min-w-0 flex-1 gap-1.5 px-2 text-sm has-[>svg]:px-2',
+                                providerButtonClassName,
+                            )}
                         >
                             <VercelLogo />
                             {t(transKeys.welcome.login.continueVercel)}

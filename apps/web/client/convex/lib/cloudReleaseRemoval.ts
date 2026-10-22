@@ -215,7 +215,7 @@ export async function continueRemoval(ctx: MutationCtx, args: CloudRemovalContin
         const completedAt = Date.now(); removal.phase = 'done'; removal.completedAt = completedAt;
         await assertSnapshotBudget(ctx, { writeBytes: NATIVE_DOCUMENT_BYTES, writeDocs: 1 });
         await ctx.db.patch(row._id, { removal, removedAt: completedAt, studioInputJson: 'null', previousArtifactJson: 'null',
-            artifactJson: undefined, imported: undefined, artifactProfile: undefined, importedHosting: undefined,
+            artifactJson: undefined, imported: undefined, artifactProfile: undefined, publicationIntent: undefined, importedHosting: undefined,
             importedHostingRequest: undefined, importedHostingBuildPolicyJson: undefined, sourceHash: undefined,
             deploymentId: undefined, deploymentUrl: undefined, builtDestinationKey: undefined, error: undefined });
         await assertSnapshotBudget(ctx);

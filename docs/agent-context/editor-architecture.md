@@ -40,6 +40,16 @@ not replace it with `useMemo`.
 When adding behavior, put it in the narrow manager that owns the concept. Avoid
 threading unrelated state through the route component.
 
+### Local component classes, F-849 (source addition 2026-10-16)
+
+`code/css-module-declaration.ts` resolves one direct intrinsic JSX OID through its lexical relative CSS Module import. The explicit StyleTabV4 Component class section writes one existing margin-top/max-width/color/font-weight declaration through `CodeManager.applyCssModuleStyle`. It keeps shared-class/all-sizes scope separate from Tailwind capability and never uses per-instance preview overrides. Ambiguous rules, composition and unknown styles refuse; one exact pure local --delay helper and bounded numeric RGB are recognized.
+
+A serializable `cssModuleStyle` marker carries the unchanged JSX read dependency and property inverse through history. The final serialized write barrier checks actual native JSX/CSS bytes and observed source/external/own revisions before guarded CSS write. Only marked actions request a branch refresh; completed source save stays successful if refresh is blocked by newer pending work. Separate JSX read and CSS write are not an atomic cross-file transaction.
+
+Complete stylesheet discovery uses strict file inventory for capability/breakpoints/tokens; ordinary browsing remains best effort. Unreadable subtrees fail closed. Magma still does not receive a shared Tailwind capability because its Studio root has different CSS ownership.
+
+Focused proof and actual native/source/history/render checks, with declared storage and UI seams, are in [customer editing](../notes/2026-10-15-basic-editing-customer-sites.md). Full authenticated control/FrameManager/IndexedDB/desktop reopen acceptance remains open. Sanity Studio owns Magma copy; no new Weblab CMS writer is wired.
+
 ### Manager teardown rules (updated 2026-07-04)
 
 - **`EditorEngine.clear()`** now also calls `state.clear()` and

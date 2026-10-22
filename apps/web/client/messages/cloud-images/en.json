@@ -1,0 +1,21 @@
+{
+    "allow": "Allow image uploads",
+    "upload": "Upload image",
+    "busy": "Uploading…",
+    "failed": "The change could not finish. Check the save status before trying again.",
+    "hint": "PNG, JPEG or WebP, up to 4 MB.",
+    "image": "Image",
+    "alt": "Alt text",
+    "allowSource": "Allow image replacement",
+    "allowAlt": "Allow alt text changes",
+    "currentOnly": "The current image is the starting choice. Uploads need separate permission.",
+    "ratio": "Use an image with a {width}:{height} aspect ratio.",
+    "unsupported": "This image cannot be edited here yet.",
+    "unapproved": "Your agency has not enabled changes for this image.",
+    "conflicting": "Remove the existing content permission before approving this image.",
+    "draftPinned": "This draft belongs to the previous image. Select it again to save, or discard the draft.",
+    "stale": "The image or its permissions changed. Your draft is kept here for copying or discarding.",
+    "storageFailed": "This draft could not be stored on this device. Keep this panel open and copy your text before leaving.",
+    "save": "Save",
+    "discard": "Discard draft"
+}

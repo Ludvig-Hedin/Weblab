@@ -106,7 +106,8 @@ export default function ClerkVerifyPage() {
 
     const [email, setEmail] = useState<string | null>(null);
     const [mode, setMode] = useState<ClerkOtpMode>('sign-in');
-    const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
+    const [isRedirecting, setIsRedirecting] = useState(false);
+    const navigationStartedRef = useRef(false);
 
     const initialCountdown = (() => {
         if (!sentAt || Number.isNaN(sentAt)) return 0;
@@ -125,14 +126,15 @@ export default function ClerkVerifyPage() {
     const [isResending, setIsResending] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Hydrate email + mode from sessionStorage. If email is missing (direct
-    // nav, refresh in a new tab, sessionStorage threw), bounce back to
-    // /sign-in. The mode tells us which Clerk attempt method to call —
+    // Hydrate email + mode from sessionStorage. If email is missing, wait
+    // for Clerk before choosing the signed-in destination or sign-in form.
+    // The mode tells us which Clerk attempt method to call —
     // `signIn.attemptFirstFactor` for existing users, `signUp.attemptEmail-
     // AddressVerification` for new ones. Defaults to 'sign-in' so an
     // upgrade path from an older session that wrote only the email key
     // still works.
     useEffect(() => {
+        if (navigationStartedRef.current) return;
         let stored: string | null = null;
         let storedMode: string | null = null;
         try {
@@ -142,12 +144,24 @@ export default function ClerkVerifyPage() {
             stored = null;
         }
         if (!stored) {
-            router.replace('/sign-in');
+            // Activation can refresh this route. A missing OTP stash does not
+            // mean an already active Clerk session needs to sign in again.
+            if (!isUserLoaded) return;
+            const safe = sanitizeReturnUrl(returnUrl);
+            if (isSignedIn) {
+                const fallback = storedMode === 'sign-up' ? Routes.PROFILE_SETUP : Routes.PROJECTS;
+                router.replace(returnUrl && safe !== Routes.HOME ? safe : fallback);
+            } else {
+                const query = returnUrl && safe !== Routes.HOME
+                    ? `?${new URLSearchParams({ [LocalForageKeys.RETURN_URL]: safe })}`
+                    : '';
+                router.replace(`/sign-in${query}`);
+            }
             return;
         }
         setEmail(stored);
         if (storedMode === 'sign-up') setMode('sign-up');
-    }, [router]);
+    }, [isSignedIn, isUserLoaded, returnUrl, router]);
 
     // Mirror the Supabase verify page: clear the stash on tab close so it
     // doesn't survive "Continue where you left off".
@@ -182,11 +196,6 @@ export default function ClerkVerifyPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(() => {
-        if (!pendingRedirectUrl || !isUserLoaded || !isSignedIn) return;
-        router.replace(pendingRedirectUrl);
-    }, [isSignedIn, isUserLoaded, pendingRedirectUrl, router]);
-
     async function completeVerifiedResult(result: ClerkSignUpResult) {
         if (result.status !== 'complete') return false;
         if (!setActive) {
@@ -203,29 +212,41 @@ export default function ClerkVerifyPage() {
             setOtp('');
             return true;
         }
-        try {
-            sessionStorage.removeItem(SIGN_IN_EMAIL_KEY);
-            sessionStorage.removeItem(SIGN_IN_MODE_KEY);
-            // Drop the durable prefill too — the user is now signed in, so the
-            // next visit to /sign-in is presumably a *different* user on this
-            // device.
-            localStorage.removeItem(LAST_USED_EMAIL_KEY);
-        } catch {
-            // best-effort cleanup
-        }
-        await setActive({ session: result.createdSessionId });
         const safe = sanitizeReturnUrl(returnUrl);
         // New users land on /profile-setup so they can pick a name; existing
         // users go straight to projects (or their returnUrl).
         const fallback = mode === 'sign-up' ? Routes.PROFILE_SETUP : Routes.PROJECTS;
         const finalReturnUrl = returnUrl && safe !== Routes.HOME ? safe : fallback;
-        setPendingRedirectUrl(finalReturnUrl);
+        await setActive({
+            session: result.createdSessionId,
+            navigate: ({ decorateUrl }) => {
+                const destination = decorateUrl(finalReturnUrl);
+                navigationStartedRef.current = true;
+                setIsRedirecting(true);
+                try {
+                    // A document navigation supports Clerk's cookie refresh and
+                    // survives a provider remount. Keep recovery if it throws.
+                    window.location.replace(destination);
+                } catch (cause) {
+                    navigationStartedRef.current = false;
+                    setIsRedirecting(false);
+                    throw cause;
+                }
+                try {
+                    sessionStorage.removeItem(SIGN_IN_EMAIL_KEY);
+                    sessionStorage.removeItem(SIGN_IN_MODE_KEY);
+                    localStorage.removeItem(LAST_USED_EMAIL_KEY);
+                } catch {
+                    // Navigation was requested; storage cleanup is best-effort.
+                }
+            },
+        });
         return true;
     }
 
     async function handlePasswordComplete() {
         if (!signUp || !email || !missingSignUpFields.includes('password')) return;
-        if (password.length < 8 || isCompletingPassword || pendingRedirectUrl) return;
+        if (password.length < 8 || isCompletingPassword || isRedirecting) return;
         setIsCompletingPassword(true);
         setError(null);
         try {
@@ -266,7 +287,7 @@ export default function ClerkVerifyPage() {
     }
 
     async function handleVerify(value: string) {
-        if (value.length !== 6 || isVerifying || pendingRedirectUrl) return;
+        if (value.length !== 6 || isVerifying || isRedirecting) return;
         if (!isLoaded || !signIn || !signUp || !setActive || !email) return;
         setIsVerifying(true);
         setError(null);
@@ -438,7 +459,7 @@ export default function ClerkVerifyPage() {
                             onChange={handleOtpChange}
                             disabled={
                                 isVerifying ||
-                                Boolean(pendingRedirectUrl) ||
+                                isRedirecting ||
                                 missingSignUpFields.includes('password')
                             }
                         >
@@ -460,7 +481,7 @@ export default function ClerkVerifyPage() {
                                     onChange={(event) => setPassword(event.target.value)}
                                     autoComplete="new-password"
                                     placeholder="Create a password"
-                                    disabled={isCompletingPassword || Boolean(pendingRedirectUrl)}
+                                    disabled={isCompletingPassword || isRedirecting}
                                 />
                                 <p className="text-mini text-foreground-secondary">
                                     Create a password to finish setting up this account.
@@ -479,13 +500,13 @@ export default function ClerkVerifyPage() {
                                 missingSignUpFields.includes('password')
                                     ? password.length < 8 ||
                                       isCompletingPassword ||
-                                      Boolean(pendingRedirectUrl)
+                                      isRedirecting
                                     : otp.length !== 6 ||
                                       isVerifying ||
-                                      Boolean(pendingRedirectUrl)
+                                      isRedirecting
                             }
                         >
-                            {isVerifying || isCompletingPassword || pendingRedirectUrl ? (
+                            {isVerifying || isCompletingPassword || isRedirecting ? (
                                 <>
                                     <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                                     {t(transKeys.welcome.verify.verifying)}

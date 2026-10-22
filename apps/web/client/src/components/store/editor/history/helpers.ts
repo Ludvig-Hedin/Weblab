@@ -12,6 +12,9 @@ import type {
 } from '@weblab/models/actions';
 import { EditorAttributes } from '@weblab/constants';
 import { assertNever, createDomId, createOid } from '@weblab/utility';
+import { cloudTextIdentity, freezeCloudTextApproval, validCloudTextApproval } from '../sandbox/cloud-source';
+import { freezeCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
 
 export function reverse<T>(change: Change<T>): Change<T> {
     return { updated: change.original, original: change.updated };
@@ -43,6 +46,12 @@ export function reverseWriteCodeAction(action: WriteCodeAction): WriteCodeAction
             original: diff.generated,
             generated: diff.original,
         })),
+        ...(action.previewStyle ? { previewStyle: reverseStyleAction(action.previewStyle) } : {}),
+        ...(action.cssModuleStyle ? { cssModuleStyle: { ...action.cssModuleStyle,
+            previousValue: action.cssModuleStyle.value, value: action.cssModuleStyle.previousValue } } : {}),
+        ...(action.cloudProperty ? { cloudProperty: { pin: freezeCloudPropertyApproval(action.cloudProperty.pin),
+            previousValue: action.cloudProperty.value, value: action.cloudProperty.previousValue } } : {}),
+        ...(action.cloudImage ? { cloudImage: { field: action.cloudImage.field, pin: freezeCloudImageApproval(action.cloudImage.pin) } } : {}),
     };
 }
 
@@ -94,6 +103,16 @@ export function undoAction(action: Action): Action {
                 ...action,
                 originalContent: action.newContent,
                 newContent: action.originalContent,
+                ...(action.cloudText ? { cloudText: freezeCloudTextApproval(action.cloudText) } : {}),
+                ...(action.textSlots
+                    ? {
+                          textSlots: action.textSlots.map((slot) => ({
+                              ...slot,
+                              oldText: slot.newText,
+                              newText: slot.oldText,
+                          })),
+                      }
+                    : {}),
             };
         case 'group-elements':
             const ungroupAction: UngroupElementsAction = {
@@ -242,8 +261,13 @@ function actionTargetKeys(action: Action): string[] | null {
             // The element being inserted/removed IS the identity — `targets`
             // only carries the frame fan-out.
             return [action.element.oid];
-        case 'move-element':
         case 'edit-text':
+            if (action.cloudText) {
+                const pin = action.cloudText;
+                return validCloudTextApproval(pin) ? [cloudTextIdentity(pin)] : [];
+            }
+            return action.targets.map((t) => t.oid ?? t.domId).sort();
+        case 'move-element':
         case 'insert-image':
         case 'remove-image':
             return action.targets.map((t) => t.oid ?? t.domId).sort();
@@ -277,6 +301,7 @@ export function updateTransactionActions(actions: Action[], newAction: Action): 
     // SAME element(s). Two edit-text (or remove-element, …) actions on
     // different elements inside one transaction must BOTH survive — wholesale
     // replace-by-type silently dropped the first.
+    if (newAction.type === 'write-code' && ('cloudProperty' in newAction || 'cloudImage' in newAction || 'cssModuleStyle' in newAction || actions.some(action => action.type === 'write-code' && ('cloudProperty' in action || 'cloudImage' in action || 'cssModuleStyle' in action)))) return [...actions, newAction];
     const newKeys = actionTargetKeys(newAction);
     const existingActionIndex = actions.findIndex(
         (a) =>
@@ -407,10 +432,17 @@ export function transformRedoAction(action: Action): Action {
                 targets: action.targets ? [...action.targets] : [],
                 originalContent: action.originalContent,
                 newContent: action.newContent,
+                ...(action.cloudText ? { cloudText: freezeCloudTextApproval(action.cloudText) } : {}),
+                ...(action.textSlots
+                    ? { textSlots: action.textSlots.map((slot) => ({ ...slot })) }
+                    : {}),
             };
         case 'write-code':
             return {
-                type: 'write-code',
+                ...action,
+                ...(action.previewStyle ? { previewStyle: transformRedoAction(action.previewStyle) as UpdateStyleAction } : {}),
+                ...(action.cloudProperty ? { cloudProperty: { ...action.cloudProperty, pin: freezeCloudPropertyApproval(action.cloudProperty.pin) } } : {}),
+                ...(action.cloudImage ? { cloudImage: { field: action.cloudImage.field, pin: freezeCloudImageApproval(action.cloudImage.pin) } } : {}),
                 diffs: action.diffs.map((diff) => ({
                     ...diff,
                     original: diff.original,

@@ -50,6 +50,27 @@ function validateFaq(candidateSource: string, originalSource = faq, contract = c
 }
 
 describe('cloud v2 text contracts', () => {
+    it('pins renderer mappings without conflating question and answer leaf OIDs', () => {
+        const mapping = { version: 1 as const, kind: 'keyed-prop-map' as const, mappingId: 'faq',
+            callsite: { path: 'src/components/home-faq.tsx', exportName: 'HomeFaq', oid: 'call' },
+            renderer: { path: 'src/components/chat-faq.tsx', exportName: 'ChatFaq', oid: 'answer' } };
+        const answer: ContentTextBinding = { ...faqBinding, renderMapping: mapping };
+        const question: ContentTextBinding = { bindingId: 'faq.audience.question',
+            target: { kind: 'data-leaf', exportName: 'homeFaqItems', itemId: 'audience', property: 'question' },
+            renderMapping: { ...mapping, renderer: { ...mapping.renderer, oid: 'question' } } };
+        const contract = createCloudTextContract(faqPath, faq, [answer, question]);
+        const changed = structuredClone(contract);
+        changed.bindings[0]!.renderMapping!.renderer.oid = 'another';
+        rejects(() => validateCloudTextCandidate({ contract: changed, originalSource: faq, candidateSource: faq }), 'STALE_CONTRACT');
+        const conflicting = structuredClone(question);
+        conflicting.renderMapping!.renderer.exportName = 'DifferentFaq';
+        rejects(() => createCloudTextContract(faqPath, faq, [answer, conflicting]), 'INVALID_TARGET');
+        rejects(() => createCloudTextContract(heroPath, hero, [{ ...heroBinding, renderMapping: mapping }]), 'INVALID_TARGET');
+        const unknown = { ...answer, renderMapping: { ...mapping, extra: true } };
+        rejects(() => createCloudTextContract(faqPath, faq, [unknown]), 'INVALID_TARGET');
+        expect(validateCloudTextCandidate({ contract, originalSource: faq, candidateSource: faq.replace('Everyone.', 'Only this record.') }).source)
+            .toBe(faq.replace("'Everyone.'", '"Only this record."'));
+    });
     it('edits a named Hero leaf while preserving CSS expressions and every other byte', () => {
         const result = validateHero(hero.replace('Build with care', 'Build for people'));
         expect(result.operations).toEqual([{ bindingId: 'hero.line-one', previousValue: 'Build with care', value: 'Build for people' }]);

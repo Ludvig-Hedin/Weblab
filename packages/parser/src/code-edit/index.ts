@@ -3,6 +3,7 @@ export * from './helpers';
 export * from './image';
 export * from './insert';
 export * from './layout';
+export * from './local-middleware';
 export * from './move';
 export * from './next-config';
 export * from './remove';

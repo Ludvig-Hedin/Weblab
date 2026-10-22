@@ -149,7 +149,7 @@ export const GestureScreen = observer(
                             const inScope =
                                 components.editing &&
                                 components.isInEditScope(el.frameId, el.domId);
-                            if (!inScope) {
+                            if (!inScope && editorEngine.canUseDesign) {
                                 // Webflow's inline gesture: double-clicking a
                                 // text-bound element inside an instance edits
                                 // THAT instance's value, not the master. Takes
@@ -174,6 +174,7 @@ export const GestureScreen = observer(
                                         );
                                         break;
                                     }
+                                    if (!editorEngine.canUseDesign) break;
                                     const entered = await components.enterEditMode(el);
                                     if (entered) break;
                                 } else {
@@ -190,7 +191,7 @@ export const GestureScreen = observer(
                                                 boundary.domId,
                                                 false,
                                             );
-                                        if (boundaryEl) {
+                                        if (boundaryEl && editorEngine.canUseDesign) {
                                             const entered =
                                                 await components.enterEditMode(boundaryEl);
                                             if (entered) break;
@@ -203,9 +204,9 @@ export const GestureScreen = observer(
                                 (await editorEngine.text.isChildTextEditable(el)) === true
                             ) {
                                 await editorEngine.text.start(el, frameData.view);
-                            } else if (el.oid) {
+                            } else if (el.oid && editorEngine.canUseDesign) {
                                 editorEngine.ide.openCodeBlock(el.oid);
-                            } else {
+                            } else if (editorEngine.canUseDesign) {
                                 toast.error('Cannot find element in code panel');
                                 return;
                             }

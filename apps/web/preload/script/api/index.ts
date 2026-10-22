@@ -33,7 +33,7 @@ import {
     startDrag,
 } from './elements/move/drag';
 import { getComputedStyleByDomId } from './elements/style';
-import { editText, isChildTextEditable, startEditingText, stopEditingText } from './elements/text';
+import { editText, isChildTextEditable, startEditingText, stopEditingText, startEditingPlainTextV1, editPlainTextV1, stopEditingPlainTextV1 } from './elements/text';
 import {
     applyInitialStates,
     applyInteractionsConfig,
@@ -43,8 +43,10 @@ import {
     reloadInteractions,
     scrubInteraction,
 } from './interactions';
+import { setCanvasViewport } from './canvas-viewport';
 import { handleBodyReady } from './ready';
 import { captureScreenshot as _captureScreenshot } from './screenshot';
+import { scrollPageBy } from './scroll';
 import { serializeDocumentForOffline } from './snapshot';
 import { setBranchId, setFrameId } from './state';
 import { updateStyle } from './style';
@@ -98,6 +100,12 @@ const rawMethods = {
     getInsertLocation,
     getRemoveAction,
 
+    // Page scroll (Lock canvas page view)
+    scrollPageBy,
+
+    // Pinned viewport units, hidden scrollbar and held media while editing
+    setCanvasViewport,
+
     // Theme
     getTheme,
     setTheme,
@@ -111,6 +119,9 @@ const rawMethods = {
     endAllDrag,
 
     // Edit text
+    startEditingPlainTextV1,
+    editPlainTextV1,
+    stopEditingPlainTextV1,
     startEditingText,
     editText,
     stopEditingText,

@@ -85,9 +85,7 @@ export const CollectionsTab = observer(() => {
                 {selected ? (
                     <ItemsTable
                         projectId={projectId}
-                        // Map the Convex doc (`_id`) to the `CmsCollection` shim shape
-                        // (`id`) that ItemsTable and its children read at runtime.
-                        collection={{ ...selected, id: selected._id }}
+                        collection={selected}
                         onEditFields={() => editorEngine.state.setCmsTab(CmsTabValue.FIELDS)}
                     />
                 ) : (

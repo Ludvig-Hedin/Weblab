@@ -1,11 +1,24 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePostHog } from 'posthog-js/react';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { Icons } from '@weblab/ui/icons';
+import { useCloudEditorCopy } from '@/lib/cloud-editor/copy';
 
 import type { Branch, Project } from '@weblab/models';
 
-import { EditorEngine } from './engine';
+import { EditorEngine, type ScopedEditorProject } from './engine';
+import { useWorkingLevelLifecycle } from '@/components/working-level/editor-gate';
+import { ProjectLoadError } from '@/app/project/[id]/_components/project-load-error';
+
+function CloudStartup() {
+    const copy = useCloudEditorCopy();
+    return <div role="status" aria-live="polite" className="bg-background text-foreground-secondary flex h-dvh items-center justify-center gap-2 text-sm">
+        <Icons.LoadingSpinner className="h-4 w-4 animate-spin" aria-hidden="true" />
+        {copy.previewStarting}
+    </div>;
+}
 
 const EditorEngineContext = createContext<EditorEngine | null>(null);
 
@@ -28,14 +41,32 @@ export const EditorEngineProvider = ({
     children,
     project,
     branches,
+    scopedProject,
 }: {
     children: React.ReactNode;
     project: Project;
     branches: Branch[];
+    scopedProject?: ScopedEditorProject;
 }) => {
     const posthog = usePostHog();
     const currentProjectId = useRef(project.id);
     const engineRef = useRef<EditorEngine | null>(null);
+    const pendingEngine = useRef<EditorEngine | null>(null);
+    const renderedChildren = useRef(children);
+    const lifecycle = useWorkingLevelLifecycle();
+    const initializing = useRef<Promise<void> | null>(null);
+    const initializationRequest = useRef<{
+        projectId: string;
+        engine: EditorEngine | null;
+        ready: boolean;
+        promise: Promise<void>;
+    } | null>(null);
+    const requestedProjectId = useRef(project.id);
+    requestedProjectId.current = project.id;
+    const mountGeneration = useRef(0);
+    const cleanupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const initializationFailed = useRef(false);
+    const closing = useRef(false);
     // Mirror the latest `branches` prop into a ref so the async init effects
     // always read the most recent value at await/invocation time, not the
     // snapshot captured on the render that scheduled them. Without this, a
@@ -51,96 +82,154 @@ export const EditorEngineProvider = ({
             project.id,
             posthog,
             project.metadata?.runtime?.framework ?? null,
+            scopedProject,
         );
         engine.screenshot.lastScreenshotAt = project.metadata?.previewImg?.updatedAt ?? null;
-        engineRef.current = engine;
         return engine;
     });
+    if (!engineRef.current && !initializationRequest.current) engineRef.current = editorEngine;
     const [isReady, setIsReady] = useState(false);
+    const [startupFailure, setStartupFailure] = useState<string | null>(null);
+    const [resumeAttempt, setResumeAttempt] = useState(0);
 
-    // Initialize the engine for the very first mount. Awaits both init Promises
-    // so children never observe a half-hydrated engine (e.g. `activeSandbox`
-    // returning undefined while `initBranches` is still resolving).
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                await editorEngine.initBranches(branchesRef.current);
-                await editorEngine.init();
-            } catch (err) {
-                console.error('[EditorEngineProvider] initial init failed', err);
-            }
-            if (!cancelled) {
-                setIsReady(true);
-            }
-        })();
+    // StrictMode replays setup immediately. Only that replay may cancel this
+    // provider's deferred unmount cleanup; account closure remains latched.
+    useLayoutEffect(() => {
+        const generation = ++mountGeneration.current;
+        if (cleanupTimer.current !== null) {
+            clearTimeout(cleanupTimer.current);
+            cleanupTimer.current = null;
+        }
         return () => {
-            cancelled = true;
+            cleanupTimer.current = setTimeout(() => {
+                cleanupTimer.current = null;
+                if (mountGeneration.current !== generation) return;
+                closing.current = true;
+                void (async () => {
+                    try { await initializing.current; }
+                    catch { /* Failed engines remain reachable for disposal. */ }
+                    if (mountGeneration.current !== generation) return;
+                    const losingEngine = pendingEngine.current;
+                    await losingEngine?.clear();
+                    if (pendingEngine.current === losingEngine) pendingEngine.current = null;
+                    if (mountGeneration.current !== generation) return;
+                    await engineRef.current?.clear();
+                })().catch((err: unknown) => {
+                    console.error('[EditorEngineProvider] unmount cleanup failed', err);
+                });
+            }, 0);
         };
-        // Only runs on initial mount; project-change is handled by the next effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Re-initialize when project ID changes.
-    useEffect(() => {
-        // Cancellation guard for rapid id changes: each run owns a flag the
-        // cleanup flips, so a stale (superseded) init can never overwrite a
-        // newer engine in state/ref.
-        let cancelled = false;
-        const initializeEngine = async () => {
-            if (currentProjectId.current !== project.id) {
-                setIsReady(false);
-
-                // Finish the previous project's writes before starting a new
-                // engine. Its beforeunload guard remains attached until then.
-                const stale = engineRef.current;
-                if (stale) {
-                    try {
-                        await stale.clear();
-                    } catch (err) {
-                        console.error('[EditorEngineProvider] previous engine cleanup failed', err);
-                    }
-                }
-
-                if (cancelled) return;
-
-                const newEngine = new EditorEngine(
-                    project.id,
-                    posthog,
-                    project.metadata?.runtime?.framework ?? null,
-                );
-                // Mirror the initial-mount path: log and continue instead of
-                // letting an unhandled rejection leave the provider rendering
-                // null forever.
-                try {
-                    await newEngine.initBranches(branchesRef.current);
-                    await newEngine.init();
-                } catch (err) {
-                    console.error('[EditorEngineProvider] project-switch init failed', err);
-                }
-                if (cancelled) {
-                    // A newer project id superseded this run — dispose the
-                    // losing engine instead of leaking its sandbox/listeners.
-                    void newEngine.clear().catch((err: unknown) => {
-                        console.error('[EditorEngineProvider] unused engine cleanup failed', err);
-                    });
-                    return;
-                }
-                newEngine.screenshot.lastScreenshotAt =
-                    project.metadata?.previewImg?.updatedAt ?? null;
-
-                engineRef.current = newEngine;
-                setEditorEngine(newEngine);
-                currentProjectId.current = project.id;
-                setIsReady(true);
+    // Register before passive initialization so an account change cannot
+    // remove this provider while its first sandbox is still being created.
+    useLayoutEffect(() => lifecycle?.register(async () => {
+        closing.current = true;
+        try { await initializing.current; }
+        catch { initializationFailed.current = true; }
+        const losingEngine = pendingEngine.current;
+        await losingEngine?.clear();
+        pendingEngine.current = null;
+        const retainedEngine = engineRef.current;
+        try {
+            await retainedEngine?.clear();
+        } catch (error) {
+            if (!initializationFailed.current && !losingEngine && retainedEngine
+                && retainedEngine === engineRef.current && retainedEngine.isClosing === false) {
+                lifecycle.allowResumeBeforeDisposal();
+                closing.current = false;
+                setResumeAttempt((attempt) => attempt + 1);
             }
-        };
+            throw error;
+        }
+    }), [lifecycle]);
 
-        void initializeEngine();
-        return () => {
-            cancelled = true;
-        };
-    }, [project.id]);
+    // One operation per requested project, including StrictMode's replay.
+    // Project handoffs serialize behind initialization and retain failed or
+    // superseded engines until their guarded disposal succeeds.
+    useEffect(() => {
+        let cancelled = false;
+        let request = initializationRequest.current;
+        if (!request || request.projectId !== project.id) {
+            const previousInitialization = initializing.current;
+            const initialEngine = previousInitialization ? null : engineRef.current;
+            request = { projectId: project.id, engine: initialEngine, ready: false, promise: Promise.resolve() };
+            const ownedRequest = request;
+            const isCurrent = () => !closing.current &&
+                initializationRequest.current === ownedRequest && requestedProjectId.current === ownedRequest.projectId;
+            const operation = Promise.resolve().then(async () => {
+                try { await previousInitialization; }
+                catch { /* Dispose the failed pending engine before its replacement. */ }
+                if (!isCurrent()) return;
+
+                if (!initialEngine) {
+                    const losingEngine = pendingEngine.current;
+                    if (losingEngine) {
+                        await losingEngine.clear();
+                        if (pendingEngine.current === losingEngine) pendingEngine.current = null;
+                    }
+                    if (!isCurrent()) return;
+                    const stale = engineRef.current;
+                    if (stale) {
+                        try { await stale.clear(); }
+                        catch (err) {
+                            // Refused disposal leaves the old editor's mounted
+                            // buffers intact for recovery through its owner gate.
+                            console.error('[EditorEngineProvider] previous engine cleanup failed', err);
+                            lifecycle?.reportFailure();
+                            return;
+                        }
+                        if (engineRef.current === stale) {
+                            engineRef.current = null;
+                            setIsReady(false);
+                        }
+                    }
+                    if (!isCurrent()) return;
+                    // The old editor is now disposed. Never show its children
+                    // if replacement initialization fails.
+                    setIsReady(false);
+                    ownedRequest.engine = new EditorEngine(
+                        project.id, posthog, project.metadata?.runtime?.framework ?? null, scopedProject,
+                    );
+                    pendingEngine.current = ownedRequest.engine;
+                }
+                const engine = ownedRequest.engine;
+                if (!engine) throw new Error('The editor could not start. Reload this project.');
+                await engine.initBranches(branchesRef.current);
+                await engine.init();
+                ownedRequest.ready = true;
+            });
+            ownedRequest.promise = operation;
+            initializationRequest.current = ownedRequest;
+            initializing.current = operation;
+        }
+        const ownedRequest = request;
+        const ownsRequest = () => !cancelled && !closing.current &&
+            initializationRequest.current === ownedRequest && requestedProjectId.current === ownedRequest.projectId;
+        const canPublish = () => ownsRequest() && ownedRequest.engine !== null &&
+            (engineRef.current === ownedRequest.engine || pendingEngine.current === ownedRequest.engine);
+        void ownedRequest.promise.then(() => {
+            const engine = ownedRequest.engine;
+            if (!engine || !ownedRequest.ready || !canPublish()) return;
+            engine.screenshot.lastScreenshotAt = project.metadata?.previewImg?.updatedAt ?? null;
+            engineRef.current = engine;
+            if (pendingEngine.current === engine) pendingEngine.current = null;
+            currentProjectId.current = ownedRequest.projectId;
+            initializationFailed.current = false;
+            setStartupFailure(null);
+            setEditorEngine(engine);
+            setIsReady(true);
+        }, (err: unknown) => {
+            console.error('[EditorEngineProvider] initialization failed', err);
+            if (!ownsRequest()) return;
+            initializationFailed.current = true;
+            setStartupFailure(ownedRequest.projectId);
+            setIsReady(false);
+        });
+        return () => { cancelled = true; };
+        // Same-project metadata changes must not rebuild a live sandbox.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project.id, resumeAttempt]);
 
     // Apply branch updates without recreating the engine.
     //
@@ -166,34 +255,21 @@ export const EditorEngineProvider = ({
         // Intentional no-op. See comment above.
     }, [branches]);
 
-    // Cleanup on unmount — capture the engine locally so a later remount
-    // cannot point engineRef at a different instance before the timeout fires.
-    useEffect(() => {
-        return () => {
-            const stale = engineRef.current;
-            if (stale) {
-                setTimeout(() => {
-                    void stale.clear().catch((err: unknown) => {
-                        console.error('[EditorEngineProvider] unmount cleanup failed', err);
-                    });
-                }, 0);
-            }
-        };
-    }, []);
-
     // Hold children until the first `initBranches` + `init` pair resolves.
     // Without this gate, observer components downstream read
     // `editorEngine.activeSandbox` on the first render — which calls
     // `branches.activeBranchData`, throws "No branch selected", and tears the
     // whole tree down through the root error boundary before `initBranches`
-    // has had a chance to write `currentBranchId`. A null-render here is the
-    // smallest change that lets the async init finish cleanly; a loader at
-    // this layer would compete with `useStartProject`'s richer step UI inside
-    // `<Main>`, which we want to keep as the single source of progress copy.
-    if (!isReady) {
-        return null;
+    // has had a chance to write `currentBranchId`. Cloud startup can include
+    // its first dependency install; give that wait feedback before Main mounts.
+    if (startupFailure === project.id) {
+        return <ProjectLoadError variant="unknown" onRetry={() => window.location.reload()} />;
     }
+    if (!isReady) {
+        return branches.some((branch) => isCloudEditorRuntime(branch.runtime)) ? <CloudStartup /> : null;
+    }
+    if (currentProjectId.current === project.id) renderedChildren.current = children;
     return (
-        <EditorEngineContext.Provider value={editorEngine}>{children}</EditorEngineContext.Provider>
+        <EditorEngineContext.Provider value={editorEngine}>{renderedChildren.current}</EditorEngineContext.Provider>
     );
 };

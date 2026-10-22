@@ -149,6 +149,7 @@ export const snapshot = query({
                 )
                 .collect();
             for (const it of items) {
+                if (it.archivedAt !== undefined) continue;
                 if (publishedOnly && it.status !== 'published') continue;
                 allItems.push(it);
             }

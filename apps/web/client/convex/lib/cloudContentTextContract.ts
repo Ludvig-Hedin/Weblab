@@ -10,10 +10,12 @@ import {
     type ContentTextTarget,
 } from '@weblab/parser/src/code-edit/content-target';
 import { CloudContentContractError } from './cloudContentContract';
+import type { KeyedTextRenderMapping } from '@weblab/parser/src/code-edit/content-render-mapping';
 
 export interface ContentTextBinding {
     bindingId: string;
     target: ContentTextTarget;
+    renderMapping?: KeyedTextRenderMapping;
 }
 
 export interface CloudTextContract {
@@ -77,11 +79,30 @@ function checkBindings(bindings: ContentTextBinding[]): void {
     if (!Array.isArray(bindings) || !bindings.length || bindings.length > 100) fail('INVALID_TARGET');
     const ids = new Set<string>();
     const targets = new Set<string>();
+    const mappings = new Map<string, string>();
     for (const binding of bindings) {
         if (!binding || typeof binding.bindingId !== 'string'
             || !/^[A-Za-z0-9_.:-]{1,160}$/.test(binding.bindingId) || ids.has(binding.bindingId)
             || !binding.target || typeof binding.target !== 'object') fail('INVALID_TARGET');
         const target = binding.target;
+        if (binding.renderMapping !== undefined) {
+            const mapping = binding.renderMapping;
+            if (target.kind !== 'data-leaf' || !mapping || mapping.version !== 1 || mapping.kind !== 'keyed-prop-map'
+                || typeof mapping.mappingId !== 'string' || !/^[A-Za-z0-9_.:-]{1,160}$/.test(mapping.mappingId)
+                || Object.keys(mapping).sort().join(',') !== 'callsite,kind,mappingId,renderer,version') fail('INVALID_TARGET');
+            for (const entry of [mapping.callsite, mapping.renderer]) {
+                if (!entry || Object.keys(entry).sort().join(',') !== 'exportName,oid,path'
+                    || typeof entry.exportName !== 'string' || !/^[A-Za-z_$][\w$]{0,159}$/.test(entry.exportName)
+                    || typeof entry.oid !== 'string' || !entry.oid.length || entry.oid.length > 160
+                    || /[\u0000-\u0020\u007f]/.test(entry.oid)) fail('INVALID_TARGET');
+                checkPath(entry.path);
+            }
+            // Question and answer share a mapping namespace, with distinct leaf OIDs.
+            const identity = JSON.stringify([target.exportName, mapping.callsite.path, mapping.callsite.exportName,
+                mapping.callsite.oid, mapping.renderer.path, mapping.renderer.exportName]);
+            if (mappings.has(mapping.mappingId) && mappings.get(mapping.mappingId) !== identity) fail('INVALID_TARGET');
+            mappings.set(mapping.mappingId, identity);
+        }
         const key = target.kind === 'component-literal'
             ? JSON.stringify([target.kind, target.exportName, target.oid])
             : target.kind === 'data-leaf'

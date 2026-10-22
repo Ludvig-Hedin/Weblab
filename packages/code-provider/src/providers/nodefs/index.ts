@@ -59,6 +59,11 @@ export interface NodeFsProviderOptions {
     port?: number | null;
 }
 
+export interface LocalPreviewSettings {
+    NEXT_PUBLIC_SANITY_PROJECT_ID: string;
+    NEXT_PUBLIC_SANITY_DATASET: string;
+}
+
 export interface LocalHandoffFile {
     path: string;
     original: string | null;
@@ -91,6 +96,7 @@ interface LocalFsBridge {
         priorCopyId?: string;
         previewNeedsInstall?: boolean;
         excludedPaths?: string[];
+        exclusions?: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
         error?: string;
     }>;
     planPrivateHandoff(root: string): Promise<Partial<LocalHandoffPlan> & { error?: string }>;
@@ -159,6 +165,12 @@ interface LocalFsBridge {
 }
 
 interface LocalDevBridge {
+    getPreviewSettings?(root: string): Promise<{ settings?: LocalPreviewSettings | null; error?: string }>;
+    setPreviewSettings?(root: string, settings: LocalPreviewSettings | null): Promise<{
+        success?: boolean;
+        settings?: LocalPreviewSettings | null;
+        error?: string;
+    }>;
     start(
         root: string,
         command?: string | null,
@@ -245,6 +257,7 @@ export class NodeFsProvider extends Provider {
         priorCopyId?: string;
         previewNeedsInstall: boolean;
         excludedPaths: string[];
+        exclusions: { path: string; reason: 'credentials' | 'dependencies' | 'generated' }[];
     }> {
         const result = await requireLocalFs().createPrivateWorkingCopy(sourceRoot);
         if (result.error) throw new Error(result.error);
@@ -261,6 +274,7 @@ export class NodeFsProvider extends Provider {
             ...(result.priorCopyId ? { priorCopyId: result.priorCopyId } : {}),
             previewNeedsInstall: result.previewNeedsInstall,
             excludedPaths: result.excludedPaths,
+            exclusions: result.exclusions ?? [],
         };
     }
 
@@ -292,6 +306,29 @@ export class NodeFsProvider extends Provider {
         const root = this.options.rootPath;
         if (!root) throw new Error('Local project has no rootPath configured.');
         return root;
+    }
+
+    async getPreviewSettings(): Promise<LocalPreviewSettings | null> {
+        const get = requireLocalDev().getPreviewSettings;
+        if (!get) throw new Error('Update the Weblab desktop app to configure preview settings.');
+        const result = await get(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        if (result.settings === undefined) throw new Error('Native preview settings response is incomplete.');
+        return result.settings;
+    }
+
+    async setPreviewSettings(settings: LocalPreviewSettings | null): Promise<void> {
+        const set = requireLocalDev().setPreviewSettings;
+        if (!set) throw new Error('Update the Weblab desktop app to configure preview settings.');
+        const result = await set(this.requireRoot(), settings);
+        if (result.error) throw new Error(result.error);
+        if (result.success !== true) throw new Error('Native preview settings were not saved.');
+    }
+
+    async stopPreview(): Promise<void> {
+        const result = await requireLocalDev().stop(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        if (result.success !== true) throw new Error('The preview did not confirm it stopped.');
     }
 
     async initialize(_input: InitializeInput): Promise<InitializeOutput> {

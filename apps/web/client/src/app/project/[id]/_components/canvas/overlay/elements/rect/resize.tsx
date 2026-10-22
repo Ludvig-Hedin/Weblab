@@ -291,13 +291,22 @@ interface ResizeHandlesProps {
     borderRadius: number;
     isComponent?: boolean;
     styles: Record<string, string>;
+    /** Canvas-space padding of the element; the radius handle only shows when it fits inside. */
+    paddingInset: { top: number; left: number };
+    /** Show the radius handle regardless of fit (Tab spacing-inspect held). */
+    forceShowRadius: boolean;
 }
+
+/** Elements this large (canvas px) keep the radius handle even without padding. */
+const RADIUS_HANDLE_ALWAYS_MIN_SIZE = 120;
 
 export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
     width,
     height,
     borderRadius,
     isComponent,
+    paddingInset,
+    forceShowRadius,
     styles,
 }) => {
     const editorEngine = useEditorEngine();
@@ -321,7 +330,17 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
 
     // Calculate radius handle position (20px or 25% of width/height, whichever is smaller)
     const radiusOffset = Math.min(20, width * 0.25, height * 0.25);
-    const showRadius = width >= 10 && height >= 10;
+    // The radius dot sits inset from the top-left corner. On small elements
+    // (buttons, links) that inset lands on the label text, so only show it
+    // when it fits inside the padding box, on large elements, or while Tab
+    // spacing-inspect is held.
+    const radiusHandleExtent = radiusOffset + 4;
+    const radiusFitsInPadding =
+        paddingInset.top >= radiusHandleExtent && paddingInset.left >= radiusHandleExtent;
+    const isLargeElement =
+        width >= RADIUS_HANDLE_ALWAYS_MIN_SIZE && height >= RADIUS_HANDLE_ALWAYS_MIN_SIZE;
+    const showRadius =
+        width >= 10 && height >= 10 && (forceShowRadius || radiusFitsInPadding || isLargeElement);
 
     const updateWidth = (newWidth: string) => {
         editorEngine.style.update('width', newWidth);

@@ -24,7 +24,9 @@ import {
 import { toast } from '@weblab/ui/sonner';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { useEditorEngine } from '@/components/store/editor';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 import { ensureBreakpointSiblings } from '@/components/store/editor/frames';
 import { useOnlineStatus } from '@/services/offline/online-status';
 import { cacheProjectExtras, getCachedProject } from '@/services/offline/project-cache';
@@ -50,10 +52,12 @@ export interface EditorBootstrapData {
 
 export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const editorEngine = useEditorEngine();
+    const scoped = useScopedProject();
     // `activeSandbox` throws "No branch selected" when branch init failed or
     // hasn't written `currentBranchId` yet — gate on `hasActiveBranch` so the
     // hook degrades to "not ready" instead of detonating the editor route.
     const sandbox = editorEngine.branches.hasActiveBranch ? editorEngine.activeSandbox : null;
+    const cloudEditor = editorEngine.branches.hasActiveBranch && isCloudEditorRuntime(editorEngine.branches.activeBranch.runtime);
     const online = useOnlineStatus();
     const [sandboxError, setSandboxError] = useState<string | null>(null);
     const [dataError, setDataError] = useState<string | null>(null);
@@ -66,7 +70,8 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // with `Could not find public function for 'skip'.` and detonating the
     // entire editor route. Pass `api.X` unconditionally and gate `'skip'` on
     // the args slot so the query subscribes only when the gate flips true.
-    const user = useQuery(api.users.me, online ? {} : 'skip');
+    const legacyUser = useQuery(api.users.me, online && !scoped ? {} : 'skip');
+    const user = scoped?.entry.user ?? legacyUser;
     const userError: { message?: string } | null = null;
     // CR-050: poll the canvas + frames row so collaborator mutations show up
     // without a full reload. The userCanvas row is per-user (scale/position),
@@ -80,12 +85,13 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // the background `_provisionSandbox` writes real URLs and the frame
     // component triggers a page reload.
     const framesPendingSandbox = initialBootstrap?.canvas?.frames.some((f) => !f.url) ?? false;
-    const rawBootstrap = useQuery(
+    const legacyBootstrap = useQuery(
         api.projects.getEditorBootstrap,
-        online && (!initialBootstrap || framesPendingSandbox)
+        online && !scoped && (cloudEditor || !initialBootstrap || framesPendingSandbox)
             ? { projectId: editorEngine.projectId as Id<'projects'> }
             : 'skip',
     );
+    const rawBootstrap = scoped ? scoped.entry.bootstrap : legacyBootstrap;
     const bootstrapError: { message?: string } | null = null;
     // Map the raw Convex doc graph into the editor-store shapes the stores were
     // written against. The server-rendered `initialBootstrap` (page.tsx) is
@@ -107,8 +113,8 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // empty-URL snapshot forever: `applyFrames` never saw a real URL, the
     // frame's reload-on-URL effect never fired, and blank projects (the
     // primary create path) stranded on "Setting up your workspace".
-    const effectiveBootstrap =
-        framesPendingSandbox && bootstrap
+    const effectiveBootstrap = scoped ? bootstrap :
+        (cloudEditor || framesPendingSandbox) && bootstrap
             ? bootstrap
             : (initialBootstrap ?? bootstrap ?? undefined);
 
@@ -142,7 +148,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const breakpointMigrationRanRef = useRef(false);
     const liveConversations = useQuery(
         api.conversations.list,
-        online && Boolean(effectiveBootstrap)
+        online && !scoped && Boolean(effectiveBootstrap)
             ? { projectId: editorEngine.projectId as Id<'projects'> }
             : 'skip',
     );
@@ -163,7 +169,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const conversationsError: { message?: string } | null = null;
     const livePendingRequest = useQuery(
         api.projectCreateRequests.getPendingRequest,
-        online && Boolean(effectiveBootstrap)
+        online && !scoped && Boolean(effectiveBootstrap)
             ? { projectId: editorEngine.projectId as Id<'projects'> }
             : 'skip',
     );
@@ -172,7 +178,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // request — e.g. the handoff completed), the bootstrap copy is stale; a
     // `??` chain here kept `hasPendingCreation` true forever, which left the
     // "Building your site" frame overlay stuck after the AI had started.
-    const creationRequest =
+    const creationRequest = scoped ? undefined :
         (livePendingRequest === undefined
             ? effectiveBootstrap?.creationRequest
             : livePendingRequest) ?? undefined;
@@ -213,7 +219,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // cache so the editor opens with a usable canvas instead of an empty
     // shell. Falls through to ready-without-data if nothing was cached.
     useEffect(() => {
-        if (online) return;
+        if (online || scoped) return;
         let cancelled = false;
         void (async () => {
             const cached = await getCachedProject(editorEngine.projectId);
@@ -242,6 +248,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         };
     }, [
         online,
+        scoped,
         editorEngine.projectId,
         editorEngine.canvas,
         editorEngine.frames,
@@ -251,21 +258,21 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     // Online: persist canvas/frames/conversations into the offline cache so
     // the next offline boot has a fully populated editor.
     useEffect(() => {
-        if (!online) return;
+        if (!online || scoped) return;
         if (!canvasWithFrames) return;
         void cacheProjectExtras(editorEngine.projectId, {
             userCanvas: canvasWithFrames.userCanvas,
             frames: canvasWithFrames.frames,
         });
-    }, [online, canvasWithFrames, editorEngine.projectId]);
+    }, [online, scoped, canvasWithFrames, editorEngine.projectId]);
 
     useEffect(() => {
-        if (!online) return;
+        if (!online || scoped) return;
         if (!conversations) return;
         void cacheProjectExtras(editorEngine.projectId, {
             conversations,
         });
-    }, [online, conversations, editorEngine.projectId]);
+    }, [online, scoped, conversations, editorEngine.projectId]);
 
     // Offline → online transition: swap the offline shim for the real cloud
     // provider, then drain the durable write queue against it. Failures are
@@ -275,7 +282,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         ? (editorEngine.branches.activeBranch.sandbox?.id ?? null)
         : null;
     useEffect(() => {
-        if (!online) return;
+        if (!online || scoped) return;
         if (!sandbox) return;
         if (!sandbox.session.isOffline) return;
         if (!branchSandboxId) return;
@@ -348,6 +355,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         online,
+        scoped,
         sandbox?.session.isOffline,
         branchSandboxId,
         editorEngine.projectId,
@@ -356,10 +364,10 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     ]);
 
     useEffect(() => {
-        if (tabState === 'reactivated' && sandbox && branchSandboxId && user?._id) {
+        if (!scoped && tabState === 'reactivated' && sandbox && branchSandboxId && user?._id) {
             void sandbox.session.reconnect(branchSandboxId, user._id);
         }
-    }, [tabState, sandbox, branchSandboxId, user?._id]);
+    }, [scoped, tabState, sandbox, branchSandboxId, user?._id]);
 
     useEffect(() => {
         if (!canvasWithFrames) return;
@@ -380,7 +388,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         // First-load only: migrate legacy single-frame projects into full
         // Desktop+Tablet+Phone breakpoint groups. The synthesized siblings are
         // applied locally so the user sees them before the next 30s refetch.
-        if (!breakpointMigrationRanRef.current) {
+        if (!scoped && !breakpointMigrationRanRef.current) {
             breakpointMigrationRanRef.current = true;
             void (async () => {
                 try {
@@ -398,13 +406,14 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
 
     useEffect(() => {
         const applyConversations = async () => {
+            if (scoped) { updateProjectReadyState({ conversations: true }); return; }
             if (conversations) {
                 await editorEngine.chat.conversation.applyConversations(conversations);
                 updateProjectReadyState({ conversations: true });
             }
         };
         void applyConversations();
-    }, [editorEngine.chat.conversation, conversations]);
+    }, [scoped, editorEngine.chat.conversation, conversations]);
 
     useEffect(() => {
         const isProjectReady = Object.values(projectReadyState).every((value) => value);

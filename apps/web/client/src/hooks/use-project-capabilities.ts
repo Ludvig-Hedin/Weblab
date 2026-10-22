@@ -5,6 +5,7 @@ import { useQuery } from 'convex/react';
 import type { Capability } from '@weblab/auth';
 
 import type { Id } from '@convex/_generated/dataModel';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 
 /**
  * Returns the caller's capability set for a given project, plus convenience
@@ -13,10 +14,12 @@ import type { Id } from '@convex/_generated/dataModel';
  * the trust boundary — UI gating is a hint only.
  */
 export function useProjectCapabilities(projectId: string | null | undefined) {
-    const data = useQuery(
+    const scoped = useScopedProject();
+    const legacy = useQuery(
         api.users.capabilities,
-        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
+        projectId && !scoped ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
+    const data = scoped ? (scoped.projectId === projectId && scoped.scope.isCurrent() ? scoped.entry.capabilities : []) : legacy;
     const isLoading = projectId ? data === undefined : false;
 
     return useMemo(() => {

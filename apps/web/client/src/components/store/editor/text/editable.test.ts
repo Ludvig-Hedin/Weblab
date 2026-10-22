@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { canEditJsxChildrenAsText, isHtmlSourcePath } from './editable';
+import { canEditJsxChildrenAsRichText, canEditJsxChildrenAsText, isHtmlSourcePath } from './editable';
 
 describe('canEditJsxChildrenAsText', () => {
     test('plain text child is editable', () => {
@@ -35,8 +35,9 @@ describe('canEditJsxChildrenAsText', () => {
         expect(canEditJsxChildrenAsText('<span>{count + 1} items</span>')).toBe(false);
     });
 
-    test('non-whitespace string literal container blocks editing', () => {
-        expect(canEditJsxChildrenAsText("<p>{'rendered'}</p>")).toBe(false);
+    test('static string literal container remains editable', () => {
+        expect(canEditJsxChildrenAsText("<p>{'rendered'}</p>")).toBe(true);
+        expect(canEditJsxChildrenAsText('<p>{"{client} &amp; <hello>"}</p>')).toBe(true);
     });
 
     test('nested markup child blocks editing', () => {
@@ -70,5 +71,33 @@ describe('isHtmlSourcePath', () => {
     test('does not match JSX/TSX sources', () => {
         expect(isHtmlSourcePath('src/app/page.tsx')).toBe(false);
         expect(isHtmlSourcePath('components/html-preview.tsx')).toBe(false);
+    });
+});
+
+
+describe('authored text ownership guards', () => {
+    test.each([
+        '<p dangerouslySetInnerHTML={{__html: cms}} />',
+        '<p children={cms} />',
+        '<p {...props}>old</p>',
+        '<br />',
+        '<p>one<br className="mobile-only" />two</p>',
+        '<p>one<br {...props} />two</p>',
+        '<p>one<br data-oid={id} />two</p>',
+    ])('refuses both plain and rich editing: %s', code => {
+        expect(canEditJsxChildrenAsText(code)).toBe(false);
+        expect(canEditJsxChildrenAsRichText(code)).toBe(false);
+    });
+    test('rich editing also checks ownership on nested text elements', () => {
+        for (const code of [
+            '<p>one<span children={cms} /></p>',
+            '<p>one<span dangerouslySetInnerHTML={{__html: cms}} /></p>',
+            '<p>one<span {...props} /></p>',
+        ]) expect(canEditJsxChildrenAsRichText(code)).toBe(false);
+    });
+    test('generated source IDs do not disable ordinary line breaks', () => {
+        const code = '<p>one<br data-oid="generated" />two</p>';
+        expect(canEditJsxChildrenAsText(code)).toBe(true);
+        expect(canEditJsxChildrenAsRichText(code)).toBe(true);
     });
 });

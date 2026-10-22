@@ -9,6 +9,8 @@ import { type FileEntry } from '@weblab/file-system';
 
 import type { EditorEngine } from '../engine';
 import type { ErrorManager } from '../error';
+import type { BranchData } from '../branch/manager';
+import type { HistoryDisposalCheckpoint, HistoryDisposalLease } from '../history';
 import { OfflineWriteWatcher } from '@/services/offline/write-queue-watcher';
 import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
 import { GitManager } from '../git';
@@ -28,7 +30,12 @@ import {
     type LocalPreparationPlan,
 } from './preload-script';
 import { SessionManager } from './session';
-import { LocalMirror } from './local-mirror';
+import { LocalMirror, readMirroredLocalTextVersion } from './local-mirror';
+import { CloudSource } from './cloud-source';
+import { CloudProvider } from './cloud-provider';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import type { Id } from '@convex/_generated/dataModel';
+import { captureConvexAuthOwner, getConvexHttpClientForOwner } from '@/components/store/lib/convex-http-client';
 
 export enum PreloadScriptState {
     NOT_INJECTED = 'not-injected',
@@ -53,8 +60,12 @@ export class SandboxManager {
     private providerReactionDisposer?: () => void;
     private sync: CodeProviderSync | null = null;
     private localMirror: LocalMirror | null = null;
+    cloudSource: CloudSource | null = null;
+    /** True once a local folder's source mirror has loaded, so setup can start. */
+    localSourceReady = false;
     private localPreparationPlan: LocalPreparationPlan | null = null;
     private localPreparationProvider: NodeFsProvider | null = null;
+    private localPreparationSnapshot: { mirror: LocalMirror; version: string } | null = null;
     private localPreparationApplying = false;
     /**
      * Latched by `clear()`. `init()` is invoked from `BranchManager.init`'s
@@ -103,9 +114,10 @@ export class SandboxManager {
         this.gitManager = new GitManager(this);
         // The exact reviewed plan object is the apply token. Keep its identity
         // instead of letting MobX deep-convert it into a different object.
-        makeAutoObservable<this, 'localPreparationPlan' | 'localPreparationProvider'>(this, {
+        makeAutoObservable<this, 'localPreparationPlan' | 'localPreparationProvider' | 'localPreparationSnapshot'>(this, {
             localPreparationPlan: observable.ref,
             localPreparationProvider: observable.ref,
+            localPreparationSnapshot: observable.ref,
         });
     }
 
@@ -115,6 +127,52 @@ export class SandboxManager {
         // initialize). Continuing would start a session and register the
         // provider reaction / sync engine on a disposed manager.
         if (this.disposed) return;
+        if (isCloudEditorRuntime(this.branch.runtime)) {
+            const scope = { projectId: this.editorEngine.projectId as Id<'projects'>, branchId: this.branch.id as Id<'branches'> };
+            const authOwner = captureConvexAuthOwner();
+            if (!authOwner) throw new Error('The signed-in account is unavailable. Reopen this project.');
+            await authOwner.ready;
+            if (this.disposed || !authOwner.isCurrent() || this.editorEngine.projectId !== scope.projectId || this.branch.id !== scope.branchId) return;
+            const source: CloudSource = new CloudSource(getConvexHttpClientForOwner(authOwner), scope, this.fs, { owner: { signal: authOwner.signal, isCurrent: () =>
+                authOwner.isCurrent() && !this.disposed && this.cloudSource === source &&
+                this.editorEngine.projectId === source.scope.projectId }, recoverableText: () => this.editorEngine.text.recoverableText, hasLocalWork: () => {
+                const engine = this.editorEngine;
+                const history = engine.branches?.getBranchDataById(this.branch.id)?.history;
+                return engine.isClosing || engine.text.hasPendingWork || engine.code.hasPendingWrites ||
+                    engine.action.hasPendingRebases || engine.action.hasPendingStylePreflights ||
+                    !!history?.isTransactionOpen || !!history?.isPreparingForDisposal;
+            }, prepareRejectedTextNavigation: () => {
+                const engine = this.editorEngine;
+                const assertOwner = () => {
+                    if (this.disposed || this.cloudSource !== source || engine.isClosing ||
+                        engine.projectId !== source.scope.projectId || !engine.branches.hasActiveBranch ||
+                        engine.branches.activeBranch.id !== this.branch.id ||
+                        engine.branches.getBranchDataById(this.branch.id)?.sandbox !== this ||
+                        engine.code.hasPendingWrites || engine.action.hasPendingRebases ||
+                        engine.action.hasPendingStylePreflights)
+                        throw new Error('This source changed or other editor work is still pending');
+                };
+                assertOwner();
+                const lease = engine.text.prepareRejectedCloudNavigation(this.branch.id);
+                return { assertCurrent: () => { assertOwner(); lease.assertCurrent(); }, release: () => lease.release() };
+            }, onSourceChanged: (paths, external) => {
+                for (const path of paths) this.editorEngine.branches?.invalidateStyleWriterForSourceChange(this.branch.id, path);
+                if (external) this.editorEngine.branches?.getBranchDataById(this.branch.id)?.history.clear();
+            } });
+            this.cloudSource = source;
+            try {
+                await source.start();
+                if (this.disposed || !authOwner.isCurrent()) { source.stop(); return; }
+                this.session.installCloudProvider(new CloudProvider(this.fs, source));
+                await this.getRouterConfig();
+                if (this.disposed || !authOwner.isCurrent() || this.cloudSource !== source) return;
+                runInAction(() => { this.preloadScriptState = PreloadScriptState.INJECTED; });
+            } catch (error) {
+                runInAction(() => { this.session.connectionError = 'Workspace setup failed: The saved cloud project could not be loaded. Reload to try again.'; });
+                throw error;
+            }
+            return;
+        }
         if (this.branch.runtime.type === 'local') {
             // Local source is loaded from disk before BranchManager considers
             // this branch ready. The cloud reaction below must never pull or
@@ -132,6 +190,7 @@ export class SandboxManager {
                 await mirror.stop();
                 return;
             }
+            runInAction(() => { this.localSourceReady = true; });
             void this.gitManager.init().catch((error) => {
                 console.error('[SandboxManager] local Git probe failed:', error);
             });
@@ -286,10 +345,13 @@ export class SandboxManager {
         if (this.localPreparationApplying) throw new Error('Local preparation is already applying.');
         this.localPreparationPlan = null;
         this.localPreparationProvider = null;
+        this.localPreparationSnapshot = null;
         const framework = this.editorEngine.framework;
         if (framework !== 'nextjs' && framework !== 'static-html') {
             throw new Error('Visual preparation currently supports Next.js and static HTML projects.');
         }
+        const mirror = this.localMirror;
+        const version = mirror?.sourceVersion();
         const entries = await this.fs.listAll();
         const routerConfig = framework === 'nextjs' ? await this.getRouterConfig() : null;
         const plan = await planLocalProjectPreparation(
@@ -298,6 +360,14 @@ export class SandboxManager {
             entries.filter((entry) => entry.type === 'file').map((entry) => entry.path),
             routerConfig,
         );
+        if (plan.files.length === 0 && !plan.createDirectories?.length) {
+            const diskVersion = await readMirroredLocalTextVersion(provider);
+            if (!mirror || version == null || this.disposed || this.session.provider !== provider ||
+                this.localMirror !== mirror || mirror.sourceVersion() !== version || diskVersion !== version) {
+                throw new Error('The local source changed while reviewing preparation. Prepare a fresh diff.');
+            }
+            this.localPreparationSnapshot = { mirror, version };
+        }
         for (const file of plan.files) Object.freeze(file);
         Object.freeze(plan.files);
         if (plan.createDirectories) Object.freeze(plan.createDirectories);
@@ -329,16 +399,71 @@ export class SandboxManager {
             throw new Error('Review the current source changes before applying.');
         }
         if (this.localPreparationApplying) throw new Error('Local preparation is already applying.');
+        const snapshot = this.localPreparationSnapshot;
         this.localPreparationPlan = null;
         this.localPreparationProvider = null;
+        this.localPreparationSnapshot = null;
         this.localPreparationApplying = true;
+        // Already prepared source needs acknowledgement, not a history handoff.
+        // Restored undo and redo entries must survive this read-only startup path.
+        if (plan.files.length === 0 && !plan.createDirectories?.length) {
+            try {
+                if (!snapshot) throw new Error('Review the current source changes before applying.');
+                const branchData = await this.editorEngine.branches.awaitBranchInitialization(this.branch.id);
+                const assertOwner = () => {
+                    if (this.disposed || this.editorEngine.isClosing ||
+                        branchData.history.isPreparingForDisposal || this.session.provider !== provider ||
+                        this.localMirror !== snapshot.mirror || snapshot.mirror.sourceVersion() !== snapshot.version ||
+                        this.editorEngine.branches.getBranchDataById(this.branch.id) !== branchData ||
+                        this.editorEngine.branches.activeBranchData !== branchData || branchData.sandbox !== this) {
+                        throw new Error('The local project changed during preparation.');
+                    }
+                };
+                assertOwner();
+                const diskVersion = await readMirroredLocalTextVersion(provider);
+                assertOwner();
+                if (diskVersion !== snapshot.version) {
+                    throw new Error('The mirrored local source changed since review. Prepare a fresh diff.');
+                }
+                runInAction(() => { this.preloadScriptState = PreloadScriptState.INJECTED; });
+                return;
+            } catch (error) {
+                throw new LocalPreparationApplyError(
+                    `Preparation stopped: ${error instanceof Error ? error.message : String(error)}`, [], [],
+                );
+            } finally {
+                this.localPreparationApplying = false;
+            }
+        }
         const written: Array<{ file: LocalPreparationFile; writtenHash: string }> = [];
         const createdDirectories: string[] = [];
         const rollbackIssues: string[] = [];
         let failure: unknown = null;
         let mirrorStopped = false;
+        let branchData: BranchData | null = null;
+        let lease: HistoryDisposalLease | null = null;
+        let checkpoint: HistoryDisposalCheckpoint | null = null;
+        let actionPrepared = false;
+        const assertOwner = () => {
+            if (!branchData || !lease || !checkpoint || this.disposed || this.session.provider !== provider ||
+                this.editorEngine.branches.getBranchDataById(this.branch.id) !== branchData ||
+                this.editorEngine.branches.activeBranchData !== branchData || branchData.sandbox !== this) {
+                throw new Error('The local project changed during preparation.');
+            }
+            branchData.history.assertEmptySourcePreparationOwner(lease, checkpoint);
+        };
 
         try {
+            branchData = await this.editorEngine.branches.awaitBranchInitialization(this.branch.id);
+            if (branchData.sandbox !== this || this.editorEngine.branches.activeBranchData !== branchData ||
+                this.disposed || this.session.provider !== provider) {
+                throw new Error('The local project changed while loading.');
+            }
+            lease = branchData.history.beginDisposalPreparation();
+            this.editorEngine.action.beginHistoryDisposalPreparation(this.branch.id, lease);
+            actionPrepared = true;
+            checkpoint = branchData.history.captureEmptySourcePreparation(lease);
+            assertOwner();
             if (plan.files.length > 0 && !this.localMirror) {
                 throw new Error('Local source mirror is not ready. Reopen the project and retry.');
             }
@@ -355,6 +480,7 @@ export class SandboxManager {
                 if (file.expectedSha256) {
                     const current = await provider.readFileWithHash(file.path);
                     if (current.sha256 !== file.expectedSha256) {
+                        branchData.history.rejectChangedPreparationSource(lease, checkpoint);
                         throw new Error(`${file.path} changed since review. Prepare a fresh diff.`);
                     }
                 } else {
@@ -363,26 +489,33 @@ export class SandboxManager {
                     if (plan.createDirectories?.includes(parent)) continue;
                     const listing = await provider.listFiles({ args: { path: parent } });
                     if (listing.files.some((entry) => entry.name === name)) {
+                        branchData.history.rejectChangedPreparationSource(lease, checkpoint);
                         throw new Error(`${file.path} was created since review. Prepare a fresh diff.`);
                     }
                 }
             }
+            assertOwner();
+            branchData.history.assertDisposalCheckpoint(lease, checkpoint);
+            // Include new/deleted mirrored paths, even when the file watcher has
+            // not observed an outside edit. This scan never mutates the editor FS.
+            if (await readMirroredLocalTextVersion(provider) !== checkpoint.sourceVersion) {
+                branchData.history.rejectChangedPreparationSource(lease, checkpoint);
+                throw new Error('The mirrored local source changed since loading. Prepare a fresh diff.');
+            }
+            assertOwner();
             if (plan.files.length > 0 && this.localMirror) {
+                branchData.history.assertDisposalCheckpoint(lease, checkpoint);
                 await this.localMirror.stop();
                 this.localMirror = null;
                 mirrorStopped = true;
             }
             for (const directory of plan.createDirectories ?? []) {
-                if (this.disposed || this.session.provider !== provider) {
-                    throw new Error('The local project changed during preparation.');
-                }
+                assertOwner();
                 await provider.createPreparationPublicDirectory();
                 createdDirectories.push(directory);
             }
             for (const file of plan.files) {
-                if (this.disposed || this.session.provider !== provider) {
-                    throw new Error('The local project changed during preparation.');
-                }
+                assertOwner();
                 const result = await provider.writeFileIfUnchanged(
                     file.path,
                     file.updated,
@@ -430,14 +563,35 @@ export class SandboxManager {
             if (mirrorStopped && !this.disposed && this.session.provider === provider) {
                 const mirror = new LocalMirror(provider, this.fs, (path) =>
                     this.editorEngine.branches?.invalidateStyleWriterForSourceChange(this.branch.id, path));
-                await mirror.start();
-                this.localMirror = mirror;
+                let adopted = false;
+                try {
+                    await mirror.start();
+                    assertOwner();
+                    this.localMirror = mirror;
+                    adopted = true;
+                } finally {
+                    if (!adopted) await mirror.stop();
+                }
                 await this.editorEngine.branches?.refreshStyleWriter(this.branch.id);
+                assertOwner();
+                if (branchData && lease && checkpoint?.sourceVersion) {
+                    const mirroredHashes = new Map<string, string>(JSON.parse(checkpoint.sourceVersion));
+                    if (!failure) for (const { file, writtenHash } of written) mirroredHashes.set(file.path, writtenHash);
+                    const expectedMirroredVersion = JSON.stringify([...mirroredHashes].sort(([left], [right]) =>
+                        left < right ? -1 : left > right ? 1 : 0));
+                    // A clean rollback may restore the original baseline. Any partial
+                    // rollback or unrelated edit must retain strict history refusal.
+                    branchData.history.completeEmptySourcePreparation(lease, checkpoint, expectedMirroredVersion);
+                }
             }
         } catch (error) {
             failure ??= error;
         } finally {
             this.localPreparationApplying = false;
+            if (lease && branchData) {
+                if (actionPrepared) this.editorEngine.action.cancelHistoryDisposalPreparation(this.branch.id, lease);
+                branchData.history.cancelDisposalPreparation(lease);
+            }
         }
 
         if (failure) {
@@ -695,6 +849,8 @@ export class SandboxManager {
     }
 
     async readFile(path: string): Promise<string | Uint8Array> {
+        const binary = this.cloudSource?.binaryContent(path);
+        if (binary) return binary;
         if (!this.fs) throw new Error('File system not initialized');
         return this.fs.readFile(path);
     }
@@ -810,6 +966,8 @@ export class SandboxManager {
 
     clear() {
         this.disposed = true;
+        this.cloudSource?.stop();
+        this.cloudSource = null;
         this.providerReactionDisposer?.();
         this.providerReactionDisposer = undefined;
         this.sync?.release();
@@ -818,6 +976,7 @@ export class SandboxManager {
         this.localMirror = null;
         this.localPreparationPlan = null;
         this.localPreparationProvider = null;
+        this.localPreparationSnapshot = null;
         this.stopOfflineWatcher();
         if (this.preloadRetryTimeout) {
             clearTimeout(this.preloadRetryTimeout);

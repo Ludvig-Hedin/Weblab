@@ -4,9 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { BrandLogo } from '@weblab/ui/brand';
+import { Button } from '@weblab/ui/button';
+import { desktopHandoffUrl, type DesktopAuthProtocol } from '@/lib/desktop-handoff';
 
 interface DesktopHandoffClientProps {
     ticket: string;
+    state: string;
+    protocol: DesktopAuthProtocol;
 }
 
 /**
@@ -20,28 +24,37 @@ interface DesktopHandoffClientProps {
  * with a `window.location.href` fallback — is the pattern that reliably
  * triggers the OS protocol handler while keeping this page on screen.
  */
-export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
+export function DesktopHandoffClient({ ticket, state, protocol }: DesktopHandoffClientProps) {
+    const deepLink = desktopHandoffUrl({ protocol, ticket, state });
     const [retried, setRetried] = useState(false);
-    // True once we're fairly sure the deep link never reached a desktop app.
-    // When the OS handles `weblab://`, focus leaves this document (the app comes
-    // forward / an "Open Weblab?" prompt appears), so a still-focused, still-
-    // visible page after a few seconds means the scheme almost certainly isn't
-    // registered — the user doesn't have the desktop app (or the browser
-    // blocked the launch). Surface concrete escapes instead of an endless
-    // spinner. Closes the TODO(bug-hunt) gap noted below.
+    // True once the deep link most likely did not reach the desktop app: the
+    // page never lost focus in the first few seconds. When the OS handles
+    // `weblab://`, focus leaves this document (the app comes forward or an
+    // "Open Weblab?" prompt appears), so any blur counts as a launch and
+    // keeps the hint hidden. This page is only reached from the desktop app,
+    // so a stall means a blocked or dismissed prompt, not a missing install.
     const [stalled, setStalled] = useState(false);
     useEffect(() => {
+        let left = false;
+        const markLeft = () => {
+            left = true;
+            setStalled(false);
+        };
+        window.addEventListener('blur', markLeft);
+        document.addEventListener('visibilitychange', markLeft);
         const id = window.setTimeout(() => {
-            if (document.visibilityState === 'visible' && document.hasFocus()) {
+            if (!left && document.visibilityState === 'visible' && document.hasFocus()) {
                 setStalled(true);
             }
         }, 4000);
-        return () => window.clearTimeout(id);
+        return () => {
+            window.clearTimeout(id);
+            window.removeEventListener('blur', markLeft);
+            document.removeEventListener('visibilitychange', markLeft);
+        };
     }, []);
 
     useEffect(() => {
-        const deepLink = `weblab://auth/handoff?ticket=${encodeURIComponent(ticket)}`;
-
         // Launch the desktop app WITHOUT navigating this tab away. Assigning
         // `window.location.href = 'weblab://…'` works, but most browsers blank
         // the tab to about:blank while the OS resolves the handler — so the
@@ -71,66 +84,37 @@ export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
         // Detection for an unregistered `weblab://` (user uninstalled the
         // desktop app, browser blocks unknown schemes) is handled by the
         // separate `stalled` timer above: after ~4s with the page still
-        // focused/visible we surface "Download desktop / Continue in browser"
-        // fallbacks instead of leaving the user on the spinner.
+        // focused/visible we show a hint to allow the browser prompt.
         return () => {
             window.clearTimeout(mountId);
             window.clearTimeout(fallbackId);
             iframe.remove();
         };
-    }, [ticket]);
+    }, [deepLink]);
 
     function manualRetry() {
-        const deepLink = `weblab://auth/handoff?ticket=${encodeURIComponent(ticket)}`;
         window.location.href = deepLink;
         setRetried(true);
     }
 
     return (
         <div className="relative flex h-screen w-screen items-center justify-center">
-            <div className="flex w-full max-w-md flex-col items-center gap-8 px-6 text-center">
+            <div className="flex w-full max-w-sm flex-col items-center px-6 text-center">
                 <BrandLogo className="h-5" />
-                <div className="space-y-2">
-                    <h1 className="text-title2 leading-tight">Finishing sign-in…</h1>
-                    <p className="text-foreground-secondary text-regular">
-                        Taking you back to the Weblab app.
-                    </p>
-                </div>
-                <p className="text-foreground-tertiary text-small">
-                    Didn&apos;t switch back automatically?
+                <h1 className="text-title3 mt-10">Finishing sign-in</h1>
+                <p className="text-foreground-secondary text-regular mt-2">
+                    {stalled
+                        ? 'Weblab didn’t open. If your browser asks, allow it to open Weblab.'
+                        : 'Taking you back to the Weblab app.'}
                 </p>
-                <button
-                    type="button"
-                    onClick={manualRetry}
-                    className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
-                >
-                    {retried ? 'Try again' : 'Open Weblab'}
-                </button>
-
-                {/* The deep link never switched away — the desktop app likely
-                    isn't installed, or the browser blocked the scheme. Give the
-                    user a real way out instead of an endless spinner. */}
-                {stalled && (
-                    <div className="border-foreground/10 mt-2 flex flex-col items-center gap-3 border-t pt-6">
-                        <p className="text-foreground-secondary text-small">
-                            Don&apos;t have the Weblab desktop app?
-                        </p>
-                        <div className="flex items-center gap-4">
-                            <Link
-                                href="/download"
-                                className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
-                            >
-                                Download the app
-                            </Link>
-                            <Link
-                                href="/projects"
-                                className="text-foreground-secondary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
-                            >
-                                Continue in browser
-                            </Link>
-                        </div>
-                    </div>
-                )}
+                <div className="mt-8 flex items-center gap-2">
+                    <Button size="pill" onClick={manualRetry}>
+                        {retried ? 'Try again' : 'Open Weblab'}
+                    </Button>
+                    <Button asChild size="pill" variant="ghost">
+                        <Link href="/projects">Continue in browser</Link>
+                    </Button>
+                </div>
             </div>
         </div>
     );

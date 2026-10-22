@@ -14,8 +14,10 @@ import { AppQueryClientProvider } from '@/components/query-client-provider';
 import RB2BLoader from '@/components/rb2b-loader';
 import { TelemetryProvider } from '@/components/telemetry-provider';
 import { AppearanceProvider } from '@/components/ui/appearance-provider';
+import { WorkingLevelProvider } from '@/components/working-level/provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
+import { INITIAL_CHUNK_RECOVERY_SCRIPT } from './_components/chunk-bootstrap';
 import { ChunkErrorReloader } from './_components/chunk-error-reloader';
 import { CookieConsent } from './_components/cookie-consent';
 import { DesktopChrome } from './_components/desktop-chrome';
@@ -143,6 +145,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     return (
         <html lang={locale || 'en'} suppressHydrationWarning>
             <head>
+                <script dangerouslySetInnerHTML={{ __html: INITIAL_CHUNK_RECOVERY_SCRIPT }} />
                 {/* Desktop (Electron) chrome wiring.
 
                     The inline <script> promotes the `weblabDesktop` preload
@@ -201,7 +204,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   app-region: no-drag;
 }
 [data-desktop='true'][data-desktop-platform='darwin']:not([data-desktop-fullscreen='true']) :is(.top-bar, .desktop-drag-region) {
-  padding-left: 80px;
+  padding-left: 88px;
 }
 `,
                     }}
@@ -248,11 +251,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                     <AppearanceProvider>
                                         <AuthProvider>
                                             <NextIntlClientProvider>
-                                                <SmoothScrollGate />
-                                                {children}
-                                                <DesktopFolderDrop />
-                                                <Toaster />
-                                                <CookieConsent />
+                                                <WorkingLevelProvider>
+                                                    <SmoothScrollGate />
+                                                    {children}
+                                                    <DesktopFolderDrop />
+                                                    <Toaster />
+                                                    <CookieConsent />
+                                                </WorkingLevelProvider>
                                             </NextIntlClientProvider>
                                         </AuthProvider>
                                     </AppearanceProvider>

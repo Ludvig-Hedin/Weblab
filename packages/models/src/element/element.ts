@@ -19,6 +19,8 @@ export interface DomElement extends BaseDomElement {
      * Optional — older bridges leave it undefined.
      */
     className?: string;
+    /** Untrusted rendered record hints; source contracts decide edit authority. */
+    contentIdentity?: { mappingId: string; itemId: string };
 }
 
 export interface DomElementStyles {

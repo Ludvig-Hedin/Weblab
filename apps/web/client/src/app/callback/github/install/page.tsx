@@ -6,7 +6,6 @@ import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
 
 import { Button } from '@weblab/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
 
 import { Routes } from '@/utils/constants';
@@ -97,24 +96,24 @@ export default function GitHubInstallCallbackPage() {
     }, [state, hasOpener]);
 
     return (
-        <div className="from-background-primary via-background to-background-primary flex min-h-screen items-center justify-center bg-gradient-to-br p-6">
+        <div className="bg-background flex min-h-screen items-center justify-center px-6 py-12">
             <div className="w-full max-w-md">
                 <div className="mb-8 flex items-center justify-center gap-4">
-                    <div className="bg-background-secondary rounded-xl p-4">
+                    <div className="p-4">
                         <Icons.WeblabLogo className="text-foreground-primary h-8 w-8" />
                     </div>
                     <Icons.DotsHorizontal className="text-foreground-tertiary h-8 w-8" />
-                    <div className="bg-background-secondary rounded-xl p-4">
+                    <div className="p-4">
                         <Icons.GitHubLogo className="text-foreground-primary h-8 w-8" />
                     </div>
                 </div>
 
-                <Card className="border-border bg-background-primary shadow-2xl">
-                    <CardContent className="p-8">
+                <div>
+                    <div>
                         <div className="flex flex-col items-center text-center">
                             {state === 'loading' && (
                                 <StateContent
-                                    indicatorColor="bg-background-secondary"
+                                    indicatorColor="text-foreground-primary"
                                     indicatorIcon={Icons.GitHubLogo}
                                     indicatorAnimated
                                     title="Connecting to GitHub"
@@ -124,7 +123,7 @@ export default function GitHubInstallCallbackPage() {
 
                             {state === 'success' && (
                                 <StateContent
-                                    indicatorColor="bg-foreground-success"
+                                    indicatorColor="text-foreground-success"
                                     indicatorIcon={Icons.CheckCircled}
                                     title="GitHub connected!"
                                     description={
@@ -150,7 +149,7 @@ export default function GitHubInstallCallbackPage() {
 
                             {state === 'error' && (
                                 <StateContent
-                                    indicatorColor="bg-destructive"
+                                    indicatorColor="text-destructive"
                                     indicatorIcon={Icons.ExclamationTriangle}
                                     title="Something went wrong"
                                     description={message}
@@ -176,8 +175,8 @@ export default function GitHubInstallCallbackPage() {
                                 />
                             )}
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -203,19 +202,19 @@ function StateContent({
     return (
         <div className="flex w-full flex-col items-center gap-2">
             <div
-                className={`relative h-16 w-16 rounded-full ${indicatorColor} mb-2 flex items-center justify-center`}
+                className={`relative h-16 w-16 ${indicatorColor} mb-2 flex items-center justify-center`}
             >
                 {indicatorAnimated && (
                     <div className="border-foreground-primary/30 absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-current" />
                 )}
-                <IndicatorIcon className="h-8 w-8 text-white" />
+                <IndicatorIcon className="h-8 w-8" />
             </div>
-            <CardTitle className="text-foreground-primary text-xl">{title}</CardTitle>
-            <CardDescription
-                className={`max-w-sm ${isError ? 'text-foreground-tertiary' : 'text-foreground-secondary/90'}`}
+            <h1 className="text-foreground-primary text-xl leading-none font-semibold">{title}</h1>
+            <p
+                className={`max-w-sm text-sm ${isError ? 'text-foreground-tertiary' : 'text-foreground-secondary/90'}`}
             >
                 {description}
-            </CardDescription>
+            </p>
             {actions}
         </div>
     );

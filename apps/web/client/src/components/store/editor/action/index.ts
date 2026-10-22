@@ -1,6 +1,16 @@
 import { cloneDeep, debounce } from 'lodash';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { EditorAttributes } from '@weblab/constants';
+import { parse, t, type T } from '@weblab/parser/src/packages';
+import { getContentFromAst } from '@weblab/parser/src/parse';
+import { formatContent } from '@weblab/parser/src/prettier';
 
-import type { DomElement, LayerNode } from '@weblab/models';
+import type { CloudImageApproval, CloudPropertyApproval, CloudTextApproval, DomElement, LayerNode } from '@weblab/models';
+import { readContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
+import { readContentImageTarget, replaceContentImageTarget } from '@weblab/parser/src/code-edit/content-image-target';
+import { freezeCloudPropertyApproval, reconstructCloudPropertyAction, validCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { readContentPropertyTarget, replaceContentPropertyTarget } from '@weblab/parser/src/code-edit/content-property-target';
+import { copyCloudImageBinding, freezeCloudImageApproval, validCloudImageApproval } from '../sandbox/cloud-image-approval';
 import { EditorMode } from '@weblab/models';
 import {
     type Action,
@@ -13,16 +23,82 @@ import {
     type RemoveImageAction,
     type UngroupElementsAction,
     type UpdateStyleAction,
+    type WriteCodeAction,
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
+import type { BranchDisposalPreparation } from '../branch/manager';
+import type { HistoryDisposalLease, HistoryManager } from '../history';
 import type { FrameData } from '../frames';
 import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
+import type { CloudAttributeApproval, CloudAttributeField, CloudAttributeWrite, CloudImagePrepareCallback, CloudImagePrepared, CloudImagePrepareTarget } from '../sandbox/cloud-source';
+import { validCloudTextApproval, cloudTextRenderer, cloudTextIdentity, freezeCloudTextApproval, matchesCloudTextElement } from '../sandbox/cloud-source';
+
+export interface ApprovedAttributeEdit {
+    branchId: string;
+    path: string;
+    oid: string;
+    field: CloudAttributeField;
+    value: string;
+    expectedRevision: number;
+    expectedGeneration: number;
+}
+type AttributeHistoryAction = WriteCodeAction & { cloudAttribute: CloudAttributeApproval & { version: 1 } };
+
+function attributeHistory(action: Action): AttributeHistoryAction | null {
+    if (action.type !== 'write-code' || !('cloudAttribute' in action)) return null;
+    const pin = action.cloudAttribute;
+    if (!pin || typeof pin !== 'object' || !('version' in pin) || pin.version !== 1 ||
+        !('actorId' in pin) || typeof pin.actorId !== 'string' ||
+        !('branchId' in pin) || typeof pin.branchId !== 'string' ||
+        !('path' in pin) || typeof pin.path !== 'string' ||
+        !('oid' in pin) || typeof pin.oid !== 'string' ||
+        !('field' in pin) || !['src', 'alt', 'href', 'className'].includes(String(pin.field)) ||
+        !('generation' in pin) || typeof pin.generation !== 'number' || !Number.isSafeInteger(pin.generation) || pin.generation < 1) return null;
+    return action as AttributeHistoryAction;
+}
+
+function approvedLiteral(source: string, oid: string, field: CloudAttributeField): { ast: T.File; value: T.StringLiteral } {
+    const ast = parse(source, { sourceType: 'module', plugins: ['typescript', 'jsx'] });
+    const values: T.StringLiteral[] = [];
+    t.traverseFast(ast, (node) => {
+        if (!t.isJSXOpeningElement(node)) return;
+        const ids = node.attributes.filter((attr) => t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name, { name: EditorAttributes.DATA_WEBLAB_ID }));
+        if (ids.length !== 1 || !t.isJSXAttribute(ids[0]) || !t.isStringLiteral(ids[0].value) || ids[0].value.value !== oid) return;
+        const attributes = node.attributes.filter((attr) => t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name, { name: field }));
+        if (attributes.length !== 1 || !t.isJSXAttribute(attributes[0])) throw new Error('The approved attribute is unavailable');
+        const value = attributes[0].value;
+        if (t.isStringLiteral(value)) values.push(value);
+        else if (t.isJSXExpressionContainer(value) && t.isStringLiteral(value.expression)) values.push(value.expression);
+        else throw new Error('The approved attribute is not a literal');
+    });
+    if (values.length !== 1) throw new Error('The approved element identity changed');
+    return { ast, value: values[0]! };
+}
+
+async function attributeCandidate(source: string, path: string, oid: string, field: CloudAttributeField, value: string): Promise<string> {
+    const literal = approvedLiteral(source, oid, field);
+    literal.value.value = value;
+    return formatContent(path, await getContentFromAst(literal.ast, source));
+}
 
 type StyleTarget = UpdateStyleAction['targets'][number];
+type SourceRebaseAttempt = {
+    key: string;
+    oid: string;
+    property: string;
+    branchId?: string;
+    applied: boolean;
+};
+
+function rebaseKey(branchId: string | undefined, oid: string, property: string): string {
+    const canonical = property.startsWith('--') ? property
+        : property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+    return JSON.stringify([branchId ?? null, oid, canonical]);
+}
 
 function styleKey(target: StyleTarget, property: string): string {
     return `${target.frameId}:${target.domId}::${property}`;
@@ -63,12 +139,27 @@ function withoutKeys(action: UpdateStyleAction, excluded: Set<string>): UpdateSt
 }
 
 export class ActionManager {
+    private textPreviewRuns = new Map<string, symbol>();
     constructor(private editorEngine: EditorEngine) {}
 
     private queuedStyleDispatches = new Set<Promise<void>>();
     /** Newest optimistic style edit per `${frameId}:${domId}::${property}`. */
     private latestStyleEdit = new Map<string, UpdateStyleAction>();
     private optimisticStyleRuns = new Set<Promise<boolean>>();
+    private stylePreflights = new Set<Promise<void>>();
+
+    get hasPendingStylePreflights(): boolean {
+        return this.stylePreflights.size > 0;
+    }
+
+    async waitForStylePreflights(): Promise<void> {
+        while (this.stylePreflights.size > 0) {
+            await Promise.allSettled(Array.from(this.stylePreflights));
+        }
+        // Let validated runs enter their gesture transaction before release
+        // closes it, or Undo inspects the preceding action.
+        await Promise.resolve();
+    }
 
     async waitForQueuedStyleDispatches(): Promise<void> {
         while (this.queuedStyleDispatches.size > 0) {
@@ -107,28 +198,58 @@ export class ActionManager {
     }
 
     async run(action: Action, onApplied?: () => void): Promise<boolean> {
+        if (this.editorEngine.canUseDesign === false && action.type !== 'edit-text') return false;
         if (action.type === 'update-style' && this.styleWriteBlocked(action)) return false;
+        // Pin history before preflight RPCs can yield to a frame/branch switch.
+        const sourceHistory = action.type === 'update-style' && this.editorEngine.branches?.getBranchDataById
+            ? this.editorEngine.branches.getBranchDataById(action.targets[0]?.branchId ?? '')?.history
+            : this.editorEngine.history;
+        if (!sourceHistory) return false;
+        if (action.type === 'update-style' && this.editorEngine.code?.preflightStyleAction) {
+            const preflight = this.editorEngine.code.preflightStyleAction(action);
+            this.stylePreflights.add(preflight);
+            try {
+                await preflight;
+            } catch (error) {
+                toast.error('This style must be edited in code', {
+                    description: error instanceof Error ? error.message : 'The source could not be checked safely.',
+                });
+                return false;
+            } finally {
+                this.stylePreflights.delete(preflight);
+            }
+        }
+        if (action.type === 'update-style' && this.editorEngine.code?.prepareStyleAction) {
+            action = this.editorEngine.code.prepareStyleAction(action);
+        }
         // A released slider or drag may still be committing. A new transaction
         // queues into its own commit; a direct edit waits so undo order and
         // source writes stay in sequence instead of being dropped.
         if (
             action.type === 'update-style' &&
-            !this.editorEngine.history.isInTransaction &&
-            this.editorEngine.history.isCommitPending
+            !sourceHistory.isInTransaction &&
+            sourceHistory.isCommitPending
         ) {
-            await this.editorEngine.history.waitForCommit();
+            await sourceHistory.waitForCommit();
         }
-        const queuedStyle = action.type === 'update-style' && this.editorEngine.history.isInTransaction;
+        const queuedStyle = action.type === 'update-style' && sourceHistory.isInTransaction;
         let finishQueued: (() => void) | undefined;
         const queuedCompletion = queuedStyle ? new Promise<void>((resolve) => {
             finishQueued = () => resolve(undefined);
         }) : null;
         if (queuedCompletion) this.queuedStyleDispatches.add(queuedCompletion);
         if (action.type === 'update-style' && !queuedStyle) {
-            return this.runStyleOptimistically(action, onApplied);
+            return this.runStyleOptimistically(action, sourceHistory, onApplied);
         }
         try {
-            const pushed = await this.editorEngine.history.push(action);
+            const structural = action.type === 'group-elements' || action.type === 'ungroup-elements';
+            const actionHistory = action.type === 'group-elements' || action.type === 'ungroup-elements'
+                ? this.editorEngine.branches.getBranchDataById(action.parent.branchId)?.history
+                : sourceHistory;
+            if (!actionHistory) return false;
+            const pushed = structural
+                ? await actionHistory.pushImmediate(action)
+                : await actionHistory.push(action);
             if (!pushed) {
                 // The code write failed (push already dropped the action from
                 // undo history). No preview edit should be dispatched.
@@ -153,9 +274,10 @@ export class ActionManager {
      */
     private runStyleOptimistically(
         action: UpdateStyleAction,
+        history: EditorEngine['history'],
         onApplied?: () => void,
     ): Promise<boolean> {
-        const run = this.saveStyleInBackground(action, onApplied);
+        const run = this.saveStyleInBackground(action, history, onApplied);
         this.optimisticStyleRuns.add(run);
         void run.finally(() => this.optimisticStyleRuns.delete(run)).catch(() => undefined);
         return run;
@@ -163,11 +285,12 @@ export class ActionManager {
 
     private async saveStyleInBackground(
         action: UpdateStyleAction,
+        history: EditorEngine['history'],
         onApplied?: () => void,
     ): Promise<boolean> {
         const keys = styleKeys(action);
         for (const key of keys) this.latestStyleEdit.set(key, action);
-        const pushed = this.editorEngine.history.push(action);
+        const pushed = history.push(action);
         const preview = this.dispatch(action, { scheduleRebase: false, skipWriteGuard: true });
         const [saved] = await Promise.all([pushed, preview.catch((error: unknown) => {
             console.error('Style preview failed', error);
@@ -187,7 +310,7 @@ export class ActionManager {
         onApplied?.();
         // Same debounced responsive rebase the old write-then-dispatch path
         // scheduled once the write had landed.
-        if (!this.editorEngine.history.isInTransaction) {
+        if (!history.isInTransaction) {
             this.scheduleRebasesForTargets(action.targets);
         }
         return true;
@@ -200,25 +323,321 @@ export class ActionManager {
         }
     }
 
+    async editApprovedProperty(edit: { pin: CloudPropertyApproval; previousValue: string; choiceId: string; expectedRevision: number; current: () => boolean }): Promise<boolean> {
+        if (!validCloudPropertyApproval(edit.pin)) return false;
+        const pin = freezeCloudPropertyApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        const choice = pin.binding.options.find(option => option.id === edit.choiceId);
+        if (!branch || !source || !choice || !source.isContentMode || !source.canWrite || source.hasLocalWork ||
+            source.state.savedRevision !== edit.expectedRevision || !source.isPropertyApprovalCurrent(pin) || this.editorEngine.isClosing) return false;
+        const codeEditor = branch.codeEditor, version = source.getSourceVersion(), external = source.getExternalRevision();
+        const current = () => edit.current() && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch &&
+            this.editorEngine.branches.activeBranchData === branch && branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source &&
+            source.isContentMode && source.state.savedRevision === edit.expectedRevision && source.getSourceVersion() === version &&
+            source.getExternalRevision() === external && source.isPropertyApprovalCurrent(pin);
+        try {
+            const original = await codeEditor.readFile(pin.path);
+            if (typeof original !== 'string' || !current() || readContentPropertyTarget(original, pin.binding.target) !== edit.previousValue) return false;
+            if (choice.value === edit.previousValue) return true;
+            const generated = replaceContentPropertyTarget(original, pin.binding.target, edit.previousValue, choice.value);
+            const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }],
+                cloudProperty: { pin, previousValue: edit.previousValue, value: choice.value } };
+            return await branch.history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry,
+                { branchId: pin.branchId, codeEditor, current }) : Promise.resolve(false),
+                async entry => current() && await this.preparePropertyHistory(entry, branch.history) && current());
+        } catch { return false; }
+    }
+
+    private async preparePropertyHistory(action: Action, history: HistoryManager): Promise<boolean> {
+        if (action.type !== 'write-code' || !action.cloudProperty || !validCloudPropertyApproval(action.cloudProperty.pin)) return false;
+        const pin = action.cloudProperty.pin, branches = this.editorEngine.branches, branch = branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || branch.history !== history || !branches.hasActiveBranch || branches.activeBranchData !== branch ||
+            !source.isContentMode || !source.canWrite || source.hasLocalWork || !source.isPropertyApprovalCurrent(pin)) return false;
+        const revision = source.state.savedRevision, version = source.getSourceVersion(), external = source.getExternalRevision(), codeEditor = branch.codeEditor;
+        try {
+            const original = await codeEditor.readFile(pin.path);
+            if (typeof original !== 'string') return false;
+            reconstructCloudPropertyAction(action, original);
+            return branches.hasActiveBranch && branches.activeBranchData === branch && branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source &&
+                source.canWrite && source.isContentMode && source.state.savedRevision === revision && source.getSourceVersion() === version &&
+                source.getExternalRevision() === external && source.isPropertyApprovalCurrent(pin);
+        } catch { return false; }
+    }
+
+    async editApprovedImportedImage(edit: { pin: CloudImageApproval; field: 'src' | 'alt'; value: string; expectedRevision: number; current: () => boolean }): Promise<boolean> {
+        if (!validCloudImageApproval(edit.pin)) return false;
+        const pin = freezeCloudImageApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || !source.isContentMode || !source.canWrite || source.hasLocalWork || source.state.savedRevision !== edit.expectedRevision ||
+            !source.isImageApprovalCurrent(pin) || !pin.binding.fields.includes(edit.field) || this.editorEngine.isClosing) return false;
+        const current = () => edit.current() && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch && this.editorEngine.branches.activeBranchData === branch &&
+            branch.sandbox.cloudSource === source && source.isContentMode && source.canWrite && source.state.savedRevision === edit.expectedRevision && source.isImageApprovalCurrent(pin);
+        try {
+            const original = await branch.codeEditor.readFile(pin.path);
+            if (typeof original !== 'string' || !current()) return false;
+            const previous = readContentImageTarget(original, pin.binding.target);
+            const generated = replaceContentImageTarget(original, pin.binding.target, previous, { ...previous, [edit.field]: edit.value });
+            if (generated === original) return true;
+            const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }], cloudImage: { pin, field: edit.field } };
+            return await branch.history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry, { branchId: pin.branchId, codeEditor: branch.codeEditor, current: edit.current }) : Promise.resolve(false),
+                async entry => current() && await this.prepareImportedImageHistory(entry, branch.history) !== null && current());
+        } catch { return false; }
+    }
+
+    async uploadApprovedImportedImage(edit: { pin: CloudImageApproval; expectedRevision: number; current: () => boolean }, file: File, prepare: CloudImagePrepareCallback): Promise<boolean> {
+        if (!validCloudImageApproval(edit.pin) || file.size < 1 || file.size > 4_000_000) return false;
+        const pin = freezeCloudImageApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || !source.isContentMode || !source.canWrite || source.hasLocalWork || source.state.savedRevision !== edit.expectedRevision ||
+            !source.isImageApprovalCurrent(pin) || this.editorEngine.isClosing) return false;
+        const active = () => edit.current() && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch && this.editorEngine.branches.activeBranchData === branch &&
+            branch.sandbox.cloudSource === source && source.isContentMode && source.isImageApprovalCurrent(pin);
+        const original = await branch.codeEditor.readFile(pin.path);
+        if (typeof original !== 'string' || !active() || source.state.savedRevision !== edit.expectedRevision) return false;
+        const previous = readContentImageTarget(original, pin.binding.target);
+        return source.withApprovedImageWrite({ pin, field: 'src', revision: edit.expectedRevision, previous, upload: true, current: edit.current }, async lease => {
+            let preparedAttempt: CloudImagePrepared['attemptId'] | null = null, commitStarted = false;
+            try {
+                const current = () => active() && lease.current();
+                if (!current()) return false;
+                const target: CloudImagePrepareTarget = { ...source.scope, actorId: pin.actorId as CloudImagePrepareTarget['actorId'],
+                    expectedRevision: edit.expectedRevision, operationId: lease.operationId,
+                    pin: { version: 2, path: pin.path, generation: pin.generation, designRevision: pin.designRevision, fingerprint: pin.fingerprint, binding: copyCloudImageBinding(pin.binding) } };
+                const image = await prepare(target, current); preparedAttempt = image.attemptId;
+                if (!current() || await branch.codeEditor.readFile(pin.path) !== original || !current()) return false;
+                const generated = replaceContentImageTarget(original, pin.binding.target, previous, { ...previous, src: image.assetPath.slice('public'.length) });
+                if (generated === original) return true;
+                const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }], cloudImage: { pin, field: 'src' } };
+                return await branch.history.pushImmediate(action, async () => {
+                    if (!current()) return false;
+                    commitStarted = true;
+                    return lease.commit(generated, image);
+                }, () => current());
+            } catch { return false; }
+            finally {
+                if (preparedAttempt && !commitStarted) try { await source.cancelImportedImagePreparation(preparedAttempt, pin.actorId); } catch { /* Exact attempt expiry owns cleanup. */ }
+            }
+        });
+    }
+
+    private async prepareImportedImageHistory(action: Action, history: HistoryManager) {
+        if (action.type !== 'write-code' || !action.cloudImage || !validCloudImageApproval(action.cloudImage.pin) ||
+            !['src', 'alt'].includes(action.cloudImage.field) || action.diffs.length !== 1 || action.previewStyle || action.refreshTokens || 'cloudAttribute' in action) return null;
+        const pin = action.cloudImage.pin, field = action.cloudImage.field, branches = this.editorEngine.branches;
+        const branch = branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || branch.history !== history || !branches.hasActiveBranch || branches.activeBranchData !== branch ||
+            action.branchId !== pin.branchId || !source.isContentMode || !source.canWrite || source.state.localDraftChanges || !source.isImageApprovalCurrent(pin) || !pin.binding.fields.includes(field)) return null;
+        const revision = source.state.savedRevision, version = source.getSourceVersion(), diff = action.diffs[0]!;
+        try {
+            if (diff.path !== pin.path || await branch.codeEditor.readFile(pin.path) !== diff.original) return null;
+            const previous = readContentImageTarget(diff.original, pin.binding.target), value = readContentImageTarget(diff.generated, pin.binding.target);
+            const other = field === 'src' ? 'alt' : 'src';
+            if (previous[other] !== value[other] || replaceContentImageTarget(diff.original, pin.binding.target, previous, value) !== diff.generated) return null;
+            return branches.hasActiveBranch && branches.activeBranchData === branch && branch.sandbox.cloudSource === source && source.canWrite &&
+                source.state.savedRevision === revision && source.getSourceVersion() === version && source.isImageApprovalCurrent(pin) ? { branch, source } : null;
+        } catch { return null; }
+    }
+
+    async uploadApprovedImage(edit: Omit<ApprovedAttributeEdit, 'field' | 'value'>, file: File): Promise<boolean> {
+        const branch = this.editorEngine.branches.getBranchDataById(edit.branchId);
+        const source = branch?.sandbox.cloudSource;
+        const actorId = source?.state.contracts?.actorId;
+        if (!branch || !source || !actorId || this.editorEngine.isClosing || file.size > 4_000_000 || !file.size) return false;
+        const pin: CloudAttributeApproval = { actorId, branchId: edit.branchId, path: edit.path, oid: edit.oid,
+            field: 'src', generation: edit.expectedGeneration };
+        const active = () => !this.editorEngine.isClosing && this.editorEngine.activeSandbox.cloudSource === source &&
+            this.editorEngine.branches.hasActiveBranch && this.editorEngine.branches.activeBranchData === branch && source.state.contracts?.actorId === actorId;
+        return source.withImageUpload(pin, edit.expectedRevision, async lease => {
+            let preparedAttempt: import('../sandbox/cloud-source').CloudImagePrepared['attemptId'] | null = null;
+            let commitStarted = false;
+            try {
+                if (!active() || !lease.current()) return false;
+                const metadata = await branch.codeEditor.getJsxElementMetadata(edit.oid);
+                if (metadata?.path.replace(/^\/+/, '') !== edit.path || !active() || !lease.current()) return false;
+                const original = await branch.codeEditor.readFile(edit.path);
+                if (typeof original !== 'string' || !active() || !lease.current()) return false;
+                const response = await fetch('/api/cloud-editor/images', { method: 'POST', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/octet-stream', 'x-weblab-image-target': JSON.stringify({
+                        ...source.scope, actorId, path: edit.path, oid: edit.oid, expectedRevision: edit.expectedRevision,
+                        generation: edit.expectedGeneration, operationId: crypto.randomUUID(),
+                    }) }, body: file });
+                if (!response.ok) return false;
+                const image: unknown = await response.json();
+                if (image && typeof image === 'object' && 'attemptId' in image && typeof image.attemptId === 'string')
+                    preparedAttempt = image.attemptId as import('../sandbox/cloud-source').CloudImagePrepared['attemptId'];
+                if (!image || typeof image !== 'object' || !('attemptId' in image) || typeof image.attemptId !== 'string' ||
+                    !('assetPath' in image) || typeof image.assetPath !== 'string' || !('hash' in image) || typeof image.hash !== 'string' ||
+                    !('bytes' in image) || typeof image.bytes !== 'string' || image.bytes.length > 810_000 || !active() || !lease.current()) return false;
+                const bytes = Uint8Array.from(atob(image.bytes), char => char.charCodeAt(0));
+                const assetPath = image.assetPath, hash = image.hash;
+                const generated = await attributeCandidate(original, edit.path, edit.oid, 'src', assetPath.slice('public'.length));
+                if (!active() || !lease.current() || await branch.codeEditor.readFile(edit.path) !== original) return false;
+                if (generated === original) return true;
+                const action: AttributeHistoryAction = { type: 'write-code', branchId: edit.branchId,
+                    diffs: [{ path: edit.path, original, generated }], cloudAttribute: { ...pin, version: 1 } };
+                return await branch.history.pushImmediate(action, async () => {
+                    if (!active() || !lease.current()) return false;
+                    commitStarted = true;
+                    return lease.commit({ attemptId: image.attemptId as import('../sandbox/cloud-source').CloudImagePrepared['attemptId'],
+                        assetPath, hash, bytes }, generated);
+                }, () => active() && lease.current());
+            } catch { return false; }
+            finally {
+                // Never cancel a possibly sent commit. Its durable journal owns recovery.
+                if (preparedAttempt && !commitStarted)
+                    try { await source.cancelImagePreparation(preparedAttempt); } catch { /* Owned expiry will collect it. */ }
+            }
+        });
+    }
+
+    async editApprovedAttribute(edit: ApprovedAttributeEdit): Promise<boolean> {
+        const branch = this.editorEngine.branches.getBranchDataById(edit.branchId);
+        const source = branch?.sandbox.cloudSource;
+        if (!branch || !source?.isContentMode || this.editorEngine.isClosing || source.hasLocalWork ||
+            source.state.savedRevision !== edit.expectedRevision || !source.canEditAttribute(edit.path, edit.oid, edit.field, edit.value)) return false;
+        const actorId = source.state.contracts?.actorId;
+        if (!actorId || !source.approvedAttributeBindings.some((binding) => binding.path === edit.path &&
+            binding.oid === edit.oid && binding.generation === edit.expectedGeneration)) return false;
+        try {
+            const metadata = await branch.codeEditor.getJsxElementMetadata(edit.oid);
+            if (metadata?.path.replace(/^\/+/, '') !== edit.path) return false;
+            const original = await branch.codeEditor.readFile(edit.path);
+            if (typeof original !== 'string') return false;
+            const generated = await attributeCandidate(original, edit.path, edit.oid, edit.field, edit.value);
+            if (source.state.savedRevision !== edit.expectedRevision) return false;
+            if (generated === original) return true;
+            const action: AttributeHistoryAction = {
+                type: 'write-code', branchId: edit.branchId, diffs: [{ path: edit.path, original, generated }],
+                cloudAttribute: { version: 1, actorId, branchId: edit.branchId, path: edit.path,
+                    oid: edit.oid, field: edit.field, generation: edit.expectedGeneration },
+            };
+            return await branch.history.pushImmediate(action,
+                (entry) => source.state.savedRevision === edit.expectedRevision ? this.writeAttributeHistory(entry, branch.history) : Promise.resolve(false),
+                async (entry) => source.state.savedRevision === edit.expectedRevision &&
+                    (await this.prepareAttributeHistory(entry, branch.history)) !== null && source.state.savedRevision === edit.expectedRevision);
+        } catch { return false; }
+    }
+
+    private async prepareAttributeHistory(action: Action, history: HistoryManager) {
+        const entry = attributeHistory(action);
+        if (!entry || entry.diffs.length !== 1 || entry.previewStyle || entry.refreshTokens) return null;
+        const pin = entry.cloudAttribute;
+        const branches = this.editorEngine.branches;
+        const branch = branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        if (!branch || !source || !isCloudEditorRuntime(branch.branch.runtime) || branch.history !== history ||
+            !branches.hasActiveBranch || branches.activeBranchData !== branch || entry.branchId !== pin.branchId ||
+            source.state.contracts?.actorId !== pin.actorId || !source.canWrite) return null;
+        const diff = entry.diffs[0]!;
+        if (diff.path !== pin.path || !source.approvedAttributeBindings.some((binding) =>
+            binding.path === pin.path && binding.oid === pin.oid && binding.generation === pin.generation)) return null;
+        const revision = source.state.savedRevision;
+        try {
+            const metadata = await branch.codeEditor.getJsxElementMetadata(pin.oid);
+            if (metadata?.path.replace(/^\/+/, '') !== pin.path || await branch.codeEditor.readFile(pin.path) !== diff.original) return null;
+            const value = approvedLiteral(diff.generated, pin.oid, pin.field).value.value;
+            if (!source.canEditAttribute(pin.path, pin.oid, pin.field, value) ||
+                await attributeCandidate(diff.original, pin.path, pin.oid, pin.field, value) !== diff.generated) return null;
+            if (!branches.hasActiveBranch || branches.activeBranchData !== branch || branch.sandbox.cloudSource !== source ||
+                !source.canWrite || source.state.savedRevision !== revision || source.state.contracts?.actorId !== pin.actorId ||
+                !source.approvedAttributeBindings.some((binding) => binding.path === pin.path && binding.oid === pin.oid && binding.generation === pin.generation)) return null;
+            const write: CloudAttributeWrite = { ...pin, revision, value, candidate: diff.generated };
+            return { branch, source, write };
+        } catch { return null; }
+    }
+
+    private async writeAttributeHistory(action: Action, history: HistoryManager): Promise<boolean> {
+        const prepared = await this.prepareAttributeHistory(action, history);
+        if (!prepared) return false;
+        return prepared.source.withApprovedAttributeWrite(prepared.write, () =>
+            this.editorEngine.code.write(action, { branchId: prepared.branch.branch.id, codeEditor: prepared.branch.codeEditor }));
+    }
+
+    private writeHistoryReplay(action: Action, history: HistoryManager): Promise<boolean> {
+        return 'cloudAttribute' in action ? this.writeAttributeHistory(action, history) : this.editorEngine.code.write(action);
+    }
+
+    /** Build history must still refer to currently approved source identities. */
+    private async admitHistoryReplay(action: Action, history: HistoryManager): Promise<boolean> {
+        if (action.type === 'write-code' && 'cloudProperty' in action) return this.preparePropertyHistory(action, history);
+        if (action.type === 'write-code' && 'cloudImage' in action) return await this.prepareImportedImageHistory(action, history) !== null;
+        if (action.type === 'edit-text' && 'cloudText' in action) {
+            if (!validCloudTextApproval(action.cloudText)) return false;
+            const pin = freezeCloudTextApproval(action.cloudText);
+            if (action.textSlots !== undefined || action.targets.length === 0 ||
+                action.targets.some(target => target.branchId !== pin.branchId || target.oid !== cloudTextRenderer(pin).oid)) return false;
+            const branches = this.editorEngine.branches;
+            const branch = branches.getBranchDataById(pin.branchId);
+            const source = branch?.sandbox.cloudSource;
+            if (!branch || !source || branch.history !== history || !branches.hasActiveBranch ||
+                branches.activeBranchData !== branch || !source.canWrite || source.state.localDraftChanges ||
+                !source.isTextApprovalCurrent(pin)) return false;
+            const version = source.getSourceVersion();
+            const externalRevision = source.getExternalRevision();
+            const codeEditor = branch.codeEditor;
+            try {
+                const metadata = await codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+                const content = await codeEditor.readFile(pin.path);
+                return typeof content === 'string' && metadata?.path.replace(/^\/+/, '') === cloudTextRenderer(pin).path &&
+                    readContentTextTarget(content, pin.target) === action.originalContent &&
+                    branches.hasActiveBranch && branches.activeBranchData === branch && branch.history === history &&
+                    branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source && source.canWrite &&
+                    !source.state.localDraftChanges && source.getSourceVersion() === version &&
+                    source.getExternalRevision() === externalRevision && source.isTextApprovalCurrent(pin);
+            } catch { return false; }
+        }
+        if ('cloudAttribute' in action) return (await this.prepareAttributeHistory(action, history)) !== null;
+        const branches = this.editorEngine.branches;
+        const branch = branches?.hasActiveBranch ? branches.activeBranchData : null;
+        if (!branch || !isCloudEditorRuntime(branch.branch.runtime)) return true;
+        const source = branch.sandbox.cloudSource;
+        if (!source?.canWrite || branch.history !== history) return false;
+        if (source.canDesign && !source.isContentMode) return true;
+        if (action.type !== 'edit-text' || action.targets.length === 0 ||
+            action.targets.some((target) => target.branchId !== branch.branch.id)) return false;
+
+        const version = source.getSourceVersion();
+        const bindings = source.approvedTextBindings;
+        const oids = new Set([
+            ...action.targets.map((target) => target.oid),
+            ...(action.textSlots?.map((slot) => slot.oid) ?? []),
+        ]);
+        try {
+            const approved = await Promise.all([...oids].map(async (oid) => {
+                if (!oid) return null;
+                const metadata = await branch.codeEditor.getJsxElementMetadata(oid);
+                const path = metadata?.path.replace(/^\/+/, '');
+                const binding = bindings.find((entry) => entry.oid === oid && entry.path === path);
+                return binding ?? null;
+            }));
+            return branches.hasActiveBranch && branches.activeBranchData === branch &&
+                branch.sandbox.cloudSource === source && source.canWrite &&
+                source.getSourceVersion() === version && approved.every((binding) => binding !== null &&
+                    source.canEditText(binding.path, binding.oid) && source.approvedTextBindings.some((current) =>
+                        current.oid === binding.oid && current.path === binding.path && current.generation === binding.generation));
+        } catch {
+            return false;
+        }
+    }
+
     async undo() {
+        const history = this.editorEngine.history;
+        await this.waitForStylePreflights();
         await this.waitForOptimisticStyleRuns();
         this.cancelPendingRebases();
         await Promise.allSettled(Array.from(this.inFlightRebases));
-        const result = await this.editorEngine.history.undo();
+        const result = await history.undo((action) => this.admitHistoryReplay(action, history));
 
         if (result == null) {
             return;
         }
-        const written = await this.editorEngine.code.write(result.inverse);
+        const written = await this.writeHistoryReplay(result.inverse, history);
         if (!written) {
             // The inverse write failed (error already surfaced by code.write),
             // so the undo never actually reverted the files. Roll the history
             // stack move back so undo/redo state stays in sync with the file
             // contents and the user can retry.
-            this.editorEngine.history.rollbackUndo(result.redoEntry);
+            history.rollbackUndo(result.redoEntry);
             return;
         }
-        await this.editorEngine.history.confirmSourceReplay(result.externalRevision);
+        await history.confirmSourceReplay(result.externalRevision);
         // Also apply the inverse to the live frames: the preload's injected
         // stylesheet and the style panel mirror don't watch the file system,
         // so without this the undone value keeps winning the cascade in the
@@ -228,21 +647,23 @@ export class ActionManager {
     }
 
     async redo() {
+        const history = this.editorEngine.history;
+        await this.waitForStylePreflights();
         await this.waitForOptimisticStyleRuns();
         this.cancelPendingRebases();
         await Promise.allSettled(Array.from(this.inFlightRebases));
-        const result = await this.editorEngine.history.redo();
+        const result = await history.redo((action) => this.admitHistoryReplay(action, history));
         if (result == null) {
             return;
         }
-        const written = await this.editorEngine.code.write(result.forward);
+        const written = await this.writeHistoryReplay(result.forward, history);
         if (!written) {
             // The forward write failed — roll the redo stack move back so the
             // action returns to the redo stack and state stays consistent.
-            this.editorEngine.history.rollbackRedo(result.forward, result.redoEntry);
+            history.rollbackRedo(result.forward, result.redoEntry);
             return;
         }
-        await this.editorEngine.history.confirmSourceReplay(result.externalRevision);
+        await history.confirmSourceReplay(result.externalRevision);
         // Mirror of the undo path: re-apply the forward action to the frames.
         await this.dispatchHistoryAction(result.forward);
         this.editorEngine.posthog.capture('redo');
@@ -259,6 +680,10 @@ export class ActionManager {
      * ~600ms later.
      */
     private async dispatchHistoryAction(action: Action) {
+        if (action.type === 'write-code' && action.previewStyle) {
+            await this.dispatchHistoryAction(action.previewStyle);
+            return;
+        }
         if (action.type === 'update-style') {
             // Sync the override map to the replayed values FIRST, so any
             // later rebase for the same (oid, property) flushes the restored
@@ -266,18 +691,34 @@ export class ActionManager {
             const activeBp = this.editorEngine.breakpoints?.activeId ?? 'desktop';
             for (const target of action.targets) {
                 if (!target.oid) continue;
-                const styles: Record<string, string> = {};
-                for (const [property, change] of Object.entries(target.change.updated)) {
-                    styles[property] = change.value;
-                }
                 this.editorEngine.style.recordOverrideForOid(
                     target.oid,
                     target.breakpoint?.id ?? activeBp,
-                    styles,
+                    target.change.updated,
                 );
             }
         }
         await this.dispatch(action, { scheduleRebase: false, skipWriteGuard: true });
+    }
+
+    async applySourcePreview(action: UpdateStyleAction): Promise<void> {
+        await this.dispatchHistoryAction(action);
+    }
+
+    async resetResponsiveStyle(action: UpdateStyleAction): Promise<boolean> {
+        await this.waitForStylePreflights();
+        await this.waitForOptimisticStyleRuns();
+        this.cancelPendingRebases();
+        await Promise.allSettled(Array.from(this.inFlightRebases));
+        try {
+            await this.editorEngine.code.resetResponsiveStyle(action);
+            return true;
+        } catch (error) {
+            toast.error("Couldn't reset this breakpoint", {
+                description: error instanceof Error ? error.message : 'The source could not be saved.',
+            });
+            return false;
+        }
     }
 
     async finishQueuedStyleAction(action: UpdateStyleAction, saved: boolean): Promise<void> {
@@ -288,10 +729,11 @@ export class ActionManager {
         for (const target of action.targets) {
             if (!target.oid) continue;
             for (const property of Object.keys(target.change.updated)) {
-                const key = `${target.oid}::${property}`;
+                const key = rebaseKey(target.branchId, target.oid, property);
                 const timer = this.rebaseTimers.get(key);
                 if (timer) clearTimeout(timer);
                 this.rebaseTimers.delete(key);
+                this.scheduledRebases.delete(key);
             }
         }
         await Promise.allSettled(Array.from(this.inFlightRebases));
@@ -354,6 +796,7 @@ export class ActionManager {
     }
 
     async updateStyle({ targets }: UpdateStyleAction, options?: { scheduleRebase?: boolean; skipWriteGuard?: boolean }) {
+        if (this.editorEngine.canUseDesign === false) return;
         if (!options?.skipWriteGuard && this.styleWriteBlocked({ type: 'update-style', targets })) return;
         // Snapshot the selection BEFORE applying the edit. The action fans each
         // selected element out to its sibling responsive frames so the style
@@ -390,7 +833,8 @@ export class ActionManager {
                 updated: target.change.updated,
             });
             for (const value of Object.values(change.updated)) {
-                const newValue = this.editorEngine.theme.getColorByName(value.value);
+                const newValue = this.editorEngine.theme.getColorByName(value.value) ??
+                    this.editorEngine.tokens?.resolveVariableValue(`color-${value.value}`);
                 if (value.type === StyleChangeType.Custom && newValue) {
                     value.value = newValue;
                 }
@@ -457,62 +901,115 @@ export class ActionManager {
         for (const target of targets) {
             if (!target.oid) continue;
             for (const property of Object.keys(target.change.updated)) {
-                const key = `${target.oid}::${property}`;
+                const key = rebaseKey(target.branchId, target.oid, property);
                 if (seen.has(key)) continue;
                 seen.add(key);
-                this.scheduleSourceRebase(target.oid, property);
+                this.scheduleSourceRebase(target.oid, property, target.branchId);
             }
         }
     }
 
     private rebaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private scheduledRebases = new Map<string, SourceRebaseAttempt>();
+    private latestRebaseAttempts = new Map<string, SourceRebaseAttempt>();
+    private rebaseFailures = new Map<string, Error>();
     private inFlightRebases = new Set<Promise<void>>();
+    private rebasePreparation: BranchDisposalPreparation | null = null;
+    private localHistoryPreparations = new Map<string, HistoryDisposalLease>();
 
     get hasPendingRebases(): boolean {
-        return this.rebaseTimers.size > 0 || this.inFlightRebases.size > 0;
+        return this.rebaseTimers.size > 0 || this.inFlightRebases.size > 0 || this.rebaseFailures.size > 0;
+    }
+
+    beginDisposalPreparation(preparation: BranchDisposalPreparation): void {
+        if (this.localHistoryPreparations.size > 0 || (this.rebasePreparation && this.rebasePreparation !== preparation)) {
+            throw new Error('Responsive source saving is already closing.');
+        }
+        this.rebasePreparation = preparation;
+    }
+
+    cancelDisposalPreparation(preparation: BranchDisposalPreparation): void {
+        if (this.rebasePreparation !== preparation) throw new Error('Responsive preparation owner changed.');
+        this.rebasePreparation = null;
+    }
+
+    beginHistoryDisposalPreparation(branchId: string, lease: HistoryDisposalLease): void {
+        if (this.rebasePreparation || this.localHistoryPreparations.has(branchId)) {
+            throw new Error('This responsive source history is already closing.');
+        }
+        this.localHistoryPreparations.set(branchId, lease);
+    }
+
+    cancelHistoryDisposalPreparation(branchId: string, lease: HistoryDisposalLease): void {
+        if (this.localHistoryPreparations.get(branchId) !== lease) throw new Error('Responsive history preparation owner changed.');
+        this.localHistoryPreparations.delete(branchId);
+    }
+
+    private getHistoryLease(branchId: string): HistoryDisposalLease | undefined {
+        return this.rebasePreparation?.getHistoryLease(branchId) ?? this.localHistoryPreparations.get(branchId);
     }
 
     private cancelPendingRebases() {
         for (const timer of this.rebaseTimers.values()) clearTimeout(timer);
         this.rebaseTimers.clear();
+        this.scheduledRebases.clear();
     }
 
     requestSourceRebase(oid: string, property: string): void {
-        this.scheduleSourceRebase(oid, property);
+        const branches = this.editorEngine.branches;
+        const branchId = branches?.hasActiveBranch ? branches.activeBranch.id : undefined;
+        if (this.rebasePreparation || (branchId && this.localHistoryPreparations.has(branchId))) {
+            throw new Error('Keep this editor open until responsive changes finish saving.');
+        }
+        this.scheduleSourceRebase(oid, property, branchId);
     }
 
-    private startSourceRebase(oid: string, property: string): void {
-        const task = this.runSourceRebase(oid, property);
-        this.inFlightRebases.add(task);
-        void task.catch((error: unknown) => {
-            console.error('Source rebase failed', { oid, property, error });
-        }).finally(() => {
-            this.inFlightRebases.delete(task);
+    private startSourceRebase(attempt: SourceRebaseAttempt): void {
+        // Track bookkeeping too, so the strict drain cannot miss a rejection.
+        const task = this.runSourceRebase(attempt).then((outcome) => {
+            if (outcome === 'applied' && this.latestRebaseAttempts.get(attempt.key) === attempt) {
+                attempt.applied = true;
+                this.rebaseFailures.delete(attempt.key);
+            }
+        }, (error: unknown) => {
+            // An older failure remains unresolved until the newest intent lands.
+            // An older result cannot undo a newer successful confirmation.
+            if (!this.latestRebaseAttempts.get(attempt.key)?.applied) {
+                this.rebaseFailures.set(attempt.key, error instanceof Error ? error : new Error('Responsive source saving failed.'));
+            }
+            console.error('Source rebase failed', { oid: attempt.oid, property: attempt.property, error });
         });
+        this.inFlightRebases.add(task);
+        void task.finally(() => this.inFlightRebases.delete(task));
     }
 
-    private scheduleSourceRebase(oid: string, property: string) {
-        const key = `${oid}::${property}`;
+    private scheduleSourceRebase(oid: string, property: string, branchId?: string) {
+        const key = rebaseKey(branchId, oid, property);
+        const attempt: SourceRebaseAttempt = { key, oid, property, branchId, applied: false };
+        // Supersede at scheduling time, before the debounce can start.
+        this.latestRebaseAttempts.set(key, attempt);
         const existing = this.rebaseTimers.get(key);
         if (existing) clearTimeout(existing);
+        this.scheduledRebases.set(key, attempt);
         const timer = setTimeout(() => {
             this.rebaseTimers.delete(key);
-            this.startSourceRebase(oid, property);
+            this.scheduledRebases.delete(key);
+            this.startSourceRebase(attempt);
         }, 600);
         this.rebaseTimers.set(key, timer);
     }
 
-    private async runSourceRebase(oid: string, property: string) {
+    private async runSourceRebase({ oid, property, branchId }: SourceRebaseAttempt): Promise<'applied' | 'no-source'> {
         const map = this.editorEngine.style.breakpointMapFor(oid, property);
         const removed = this.editorEngine.style.removedBreakpointMapFor(oid, property);
-        if (Object.keys(map).length === 0 && Object.keys(removed).length === 0) return;
-        // The action manager has already debounced this key. Enqueue the
-        // source write now so undo and beforeunload can order it correctly.
-        await this.editorEngine.code.writeResponsiveStyleNow({
+        if (Object.keys(map).length === 0 && Object.keys(removed).length === 0) return 'no-source';
+        return this.editorEngine.code.writeResponsiveStyleNow({
+            branchId,
             oid,
             property,
             valuesByBreakpoint: map,
             removedByBreakpoint: removed,
+            getHistoryLease: () => branchId ? this.getHistoryLease(branchId) : undefined,
         });
     }
 
@@ -599,7 +1096,81 @@ export class ActionManager {
         }
     }
 
-    private async editText({ targets, newContent }: EditTextAction) {
+    /** Reacquire keyed leaves from live frame metadata; duplicate instances are unsupported. */
+    async approvedTextElements(pin: CloudTextApproval, frameId: string): Promise<DomElement[] | null> {
+        if (!validCloudTextApproval(pin)) return null;
+        const branch = this.editorEngine.branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        const frame = this.editorEngine.frames.get(frameId);
+        const view = frame?.view;
+        const layers = this.editorEngine.ast.mappings.getMapping(frameId);
+        if (!branch || !source?.isTextApprovalCurrent(pin) || !frame || !view || frame.frame.branchId !== pin.branchId || !layers) return null;
+        const revision = source.getSourceVersion();
+        const found: DomElement[] = [];
+        for (const layer of layers.values()) {
+            if (layer.oid !== cloudTextRenderer(pin).oid) continue;
+            const dom = await view.getElementByDomId(layer.domId, true);
+            if (this.editorEngine.branches.getBranchDataById(pin.branchId) !== branch ||
+                branch.sandbox.cloudSource !== source || source.getSourceVersion() !== revision ||
+                !source.isTextApprovalCurrent(pin)) return null;
+            if (!dom) return null;
+            if (dom.frameId !== frameId || dom.instanceId !== layer.instanceId) return null;
+            if (matchesCloudTextElement(pin, dom)) found.push(dom);
+        }
+        return pin.target.kind === 'data-leaf' && found.length > 1 ? null : found;
+    }
+
+    /** Fan out only within the original source owner and complete rendered identity. */
+    async previewApprovedText(pin: CloudTextApproval, value: string, exclude?: { frameId: string; domId: string }): Promise<void> {
+        if (!validCloudTextApproval(pin) || value.includes('\r')) return;
+        const branch = this.editorEngine.branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        if (!branch || !source?.isTextApprovalCurrent(pin)) return;
+        const identity = cloudTextIdentity(pin);
+        const run = Symbol('approved-text-preview');
+        this.textPreviewRuns.set(identity, run);
+        const codeEditor = branch.codeEditor;
+        const revision = source.getSourceVersion();
+        const externalRevision = source.getExternalRevision();
+        const current = () => this.editorEngine.branches.getBranchDataById(pin.branchId) === branch &&
+            branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor &&
+            this.textPreviewRuns.get(identity) === run && source.getSourceVersion() === revision &&
+            source.getExternalRevision() === externalRevision && source.isTextApprovalCurrent(pin);
+        try {
+            const metadata = await branch.codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+            const content = await branch.codeEditor.readFile(pin.path);
+            if (!current() || metadata?.path.replace(/^\/+/, '') !== cloudTextRenderer(pin).path || typeof content !== 'string') return;
+            readContentTextTarget(content, pin.target);
+            await Promise.allSettled(this.editorEngine.frames.getAll()
+                .filter(frame => frame.frame.branchId === pin.branchId && frame.view)
+                .map(async frame => {
+                    const view = frame.view!;
+                    const matches = await this.approvedTextElements(pin, frame.frame.id);
+                    if (!matches || !current()) return;
+                    for (const match of matches) {
+                        if (!current()) return;
+                        if (exclude?.frameId === frame.frame.id && exclude.domId === match.domId) continue;
+                        const dom = await view.getElementByDomId(match.domId, true);
+                        if (!current() || !dom || !matchesCloudTextElement(pin, dom) || dom.frameId !== frame.frame.id ||
+                            dom.instanceId !== match.instanceId) continue;
+                        const result = await view.editPlainTextV1(dom.domId, value);
+                        if (!result || result.textRenderMode !== 'plain-string-v1' || !current() ||
+                            result.domEl.domId !== dom.domId || result.domEl.frameId !== dom.frameId ||
+                            result.domEl.branchId !== pin.branchId || result.domEl.instanceId !== dom.instanceId ||
+                            !matchesCloudTextElement(pin, result.domEl)) continue;
+                        if (result.newMap) this.editorEngine.ast.updateMap(frame.frame.id, result.newMap, result.domEl.domId);
+                    }
+                }));
+        } catch { /* Saved source remains authoritative when a preview frame is unavailable. */ }
+        finally { if (this.textPreviewRuns.get(identity) === run) this.textPreviewRuns.delete(identity); }
+    }
+
+    private async editText(action: EditTextAction) {
+        const { targets, newContent, textSlots } = action;
+        if ('cloudText' in action) {
+            if (validCloudTextApproval(action.cloudText)) await this.previewApprovedText(action.cloudText, newContent);
+            return;
+        }
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {
@@ -607,7 +1178,7 @@ export class ActionManager {
                 console.error('Failed to get frameView');
                 continue;
             }
-            const result = await frameData.view.editText(target.domId, newContent);
+            const result = await frameData.view.editText(target.domId, newContent, textSlots);
             if (!result) {
                 // Source persisted before dispatch; HMR reconciles. Keep going.
                 console.error('Failed to edit text');
@@ -703,23 +1274,36 @@ export class ActionManager {
     flushPendingRebases() {
         for (const [key, timer] of this.rebaseTimers) {
             clearTimeout(timer);
-            const [oid, property] = key.split('::');
-            if (!oid || !property) continue;
-            this.startSourceRebase(oid, property);
+            const attempt = this.scheduledRebases.get(key);
+            if (attempt) this.startSourceRebase(attempt);
         }
         this.rebaseTimers.clear();
+        this.scheduledRebases.clear();
     }
 
-    async flushAndWaitForPendingRebases(): Promise<void> {
+    async flushAndWaitForPendingRebases(preparation?: BranchDisposalPreparation): Promise<void> {
+        if (preparation && this.rebasePreparation !== preparation) {
+            throw new Error('Responsive preparation owner changed.');
+        }
+        await this.waitForStylePreflights();
+        await this.waitForOptimisticStyleRuns();
         this.flushPendingRebases();
         while (this.inFlightRebases.size > 0) {
             await Promise.allSettled(Array.from(this.inFlightRebases));
+            this.flushPendingRebases();
+        }
+        if (this.rebaseFailures.size > 0) {
+            throw new Error('Responsive changes could not finish saving. Keep this editor open to retry them.');
         }
     }
 
     clear() {
         // Engine teardown flushes and waits for source rebases first.
         this.cancelPendingRebases();
+        this.latestRebaseAttempts.clear();
+        this.rebaseFailures.clear();
+        this.rebasePreparation = null;
+        this.localHistoryPreparations.clear();
         this.latestStyleEdit.clear();
         // Drop the trailing re-click: without this, the 100ms trailing edge
         // fires after teardown and re-selects elements on a cleared engine.

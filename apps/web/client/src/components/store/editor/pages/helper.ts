@@ -8,6 +8,7 @@ import { RouterType } from '@weblab/models';
 import { formatContent, generate, getAstFromContent, t, traverse } from '@weblab/parser';
 
 import type { SandboxManager } from '../sandbox';
+import { hasAppRouterLayout } from './router-layout';
 
 const DEFAULT_LAYOUT_CONTENT = `export default function Layout({
     children,
@@ -695,20 +696,8 @@ export const detectRouterConfig = async (provider: Provider): Promise<RouterConf
     // Check for App Router
     for (const appPath of APP_ROUTER_PATHS) {
         try {
-            const result = await provider.listFiles({ args: { path: appPath } });
-            const entries = result.files;
-            if (entries && entries.length > 0) {
-                // Check for layout file (required for App Router)
-                const hasLayout = entries.some(
-                    (entry) =>
-                        entry.type === 'file' &&
-                        entry.name.startsWith('layout.') &&
-                        ALLOWED_EXTENSIONS.includes(getFileExtension(entry.name)),
-                );
-
-                if (hasLayout) {
-                    return { type: RouterType.APP, basePath: appPath };
-                }
+            if (await hasAppRouterLayout(provider, appPath)) {
+                return { type: RouterType.APP, basePath: appPath };
             }
         } catch (error) {
             // Directory doesn't exist, continue checking

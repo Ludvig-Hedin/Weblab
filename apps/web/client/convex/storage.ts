@@ -1,14 +1,13 @@
 import { v } from 'convex/values';
 
-import { internalMutation, mutation, query } from './_generated/server';
+import { internalMutation, internalQuery, mutation } from './_generated/server';
 import { requireUser } from './lib/permissions';
 
 // Convex File Storage primitives.
 //
 // Replaces Supabase Storage. Single global namespace (no buckets). Every
-// authenticated caller can generate an upload URL and read by storageId.
-// Ownership is enforced at the parent record level (e.g. project.previewImg)
-// not here — the storageId itself is just an opaque pointer.
+// authenticated caller can generate an upload URL. Reads require a scoped
+// parent-record endpoint; possession of a storage ID grants no read authority.
 
 /**
  * Returns a pre-signed URL the browser POSTs a file to. Required for
@@ -24,24 +23,12 @@ export const generateUploadUrl = mutation({
 });
 
 /**
- * Resolves a storage id to a short-lived signed URL. Returns null if the
- * caller isn't authenticated OR the storageId is unknown — both treated
- * the same so we never leak existence-of-id to anonymous callers.
- *
- * TODO(storage-scope): the Convex storage namespace is global. Any signed-in
- * user can fetch any other tenant's blob if the storageId leaks (logs,
- * stale UI state, exfiltrated workspace membership). There are currently
- * no in-app callers, but before wiring this up to project thumbnails or
- * chat uploads, change the signature to `(storageId, { projectId })` and
- * verify the project's record (e.g. `projects.previewImgStorageId`) owns
- * the supplied storageId before returning a URL. Mirror the same model for
- * future per-message attachment lookups.
+ * Server-only primitive. Public reads must authorize the current actor against
+ * an owning parent record. A previously visible ID must not bypass revocation.
  */
-export const getFileUrl = query({
+export const getFileUrl = internalQuery({
     args: { storageId: v.id('_storage') },
     handler: async (ctx, { storageId }) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
         return ctx.storage.getUrl(storageId);
     },
 });

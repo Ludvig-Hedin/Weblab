@@ -520,6 +520,12 @@ export const htmlPipeline: EditorPipeline<HtmlAst> = {
                 }
             }
 
+            // Whole-block (span-preserving) text edits are JSX-only; the editor
+            // never offers them for HTML sources. Refuse rather than drop them.
+            if (diff.textSlots?.length) {
+                throw new Error('Whole-block text edits are not supported for HTML sources');
+            }
+
             if (textContent !== undefined && textContent !== null) {
                 setElementText(element, textContent);
             }

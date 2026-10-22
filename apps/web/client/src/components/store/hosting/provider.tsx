@@ -12,6 +12,9 @@ import { toast } from '@weblab/ui/sonner';
 
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
+import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
+import { observer } from 'mobx-react-lite';
 
 interface PublishParams {
     projectId: string;
@@ -76,25 +79,27 @@ function toDeployment(row: Doc<'deployments'> | null | undefined): Deployment | 
     } as unknown as Deployment;
 }
 
-export const HostingProvider = ({ children }: HostingProviderProps) => {
+export const HostingProvider = observer(({ children }: HostingProviderProps) => {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId as Id<'projects'>;
+    const scoped = useScopedProject();
+    const cloudEditor = !!scoped || (editorEngine.branches.hasActiveBranch && isCloudEditorRuntime(editorEngine.branches.activeBranch.runtime));
 
     // Convex live queries — no `refetchInterval` needed; they auto-refresh
     // whenever the underlying data changes.
-    const previewRow = useQuery(api.deployments.getByType, {
+    const previewRow = useQuery(api.deployments.getByType, cloudEditor ? 'skip' : {
         projectId,
         type: DeploymentType.PREVIEW,
     });
-    const customRow = useQuery(api.deployments.getByType, {
+    const customRow = useQuery(api.deployments.getByType, cloudEditor ? 'skip' : {
         projectId,
         type: DeploymentType.CUSTOM,
     });
-    const unpublishPreviewRow = useQuery(api.deployments.getByType, {
+    const unpublishPreviewRow = useQuery(api.deployments.getByType, cloudEditor ? 'skip' : {
         projectId,
         type: DeploymentType.UNPUBLISH_PREVIEW,
     });
-    const unpublishCustomRow = useQuery(api.deployments.getByType, {
+    const unpublishCustomRow = useQuery(api.deployments.getByType, cloudEditor ? 'skip' : {
         projectId,
         type: DeploymentType.UNPUBLISH_CUSTOM,
     });
@@ -127,6 +132,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
 
     // Publish function
     const publish = async (params: PublishParams): Promise<{ success: boolean } | null> => {
+        if (cloudEditor) return null;
         let deployment: Deployment | null = null;
         try {
             const row = await runCreateDeployment({
@@ -173,6 +179,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
 
     // Unpublish function
     const unpublish = async (projectId: string, type: DeploymentType) => {
+        if (cloudEditor) return null;
         try {
             const response = await runUnpublish({
                 projectId: projectId as Id<'projects'>,
@@ -193,6 +200,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
     };
 
     const cancel = async (type: DeploymentType) => {
+        if (cloudEditor) return;
         const target = deployments[type];
         if (!target) {
             toast.error('No deployment found');
@@ -220,7 +228,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
     };
 
     return <HostingContext.Provider value={value}>{children}</HostingContext.Provider>;
-};
+});
 
 export const useHostingContext = () => {
     const context = useContext(HostingContext);

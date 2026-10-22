@@ -4,6 +4,7 @@ import type { DomElement } from '@weblab/models';
 import { StyleChangeType } from '@weblab/models/style';
 
 import type { EditorEngine } from '../engine';
+import type { UpdateStyleAction } from '@weblab/models/actions';
 import { StyleManager } from './index';
 
 const element = (frameId: string, computed: Record<string, string>) =>
@@ -11,6 +12,7 @@ const element = (frameId: string, computed: Record<string, string>) =>
         oid: 'element-1',
         domId: 'dom-1',
         frameId,
+        branchId: 'branch',
         styles: { defined: {}, computed },
     }) as unknown as DomElement;
 
@@ -22,6 +24,7 @@ function setup(
         frame: {
             id: 'desktop-frame',
             groupId: 'group-1',
+            branchId: 'branch',
             breakpoint: { id: 'desktop', width: 1024 },
         },
     };
@@ -29,6 +32,7 @@ function setup(
         frame: {
             id: 'tablet-frame',
             groupId: 'group-1',
+            branchId: 'branch',
             breakpoint: { id: 'tablet', width: 768 },
         },
         view: {
@@ -44,8 +48,15 @@ function setup(
             getAll: () => [desktop, tablet],
             getByGroupId: () => [desktop, tablet],
         },
+        action: { resetResponsiveStyle: async (action: UpdateStyleAction) => {
+            for (const target of action.targets) {
+                if (target.oid) manager.recordOverrideForOid(target.oid, target.breakpoint!.id, target.change.updated);
+            }
+            return true;
+        } },
     } as unknown as EditorEngine;
-    return { manager: new StyleManager(engine), selected };
+    const manager = new StyleManager(engine);
+    return { manager, selected, engine: manager['editorEngine'] };
 }
 
 describe('StyleManager responsive overrides', () => {
@@ -91,13 +102,27 @@ describe('StyleManager responsive overrides', () => {
         manager.requestSourceRebase = () => {};
 
         const pendingSeed = manager['seedOverridesFromSiblings'](selected);
-        manager.clearBreakpointOverride('element-1', 'color', 'tablet');
+        await manager.clearBreakpointOverride('element-1', 'color', 'tablet');
         resolveSibling(element('tablet-frame', { color: 'green' }));
         await pendingSeed;
 
         expect(manager.getOverrideValue('element-1', 'color', 'tablet')).toBeNull();
         expect(manager.isOverriddenAt('element-1', 'color', 'tablet')).toBe(false);
         expect(manager.breakpointMapFor('element-1', 'color')).toEqual({});
-        expect(manager.removedBreakpointMapFor('element-1', 'color')).toEqual({ tablet: 'green' });
+        expect(manager.removedBreakpointMapFor('element-1', 'color')).toEqual({ tablet: '' });
+    });
+
+    it('a refused source reset leaves the old binding and override intact', async () => {
+        const { manager, engine, selected } = setup();
+        await manager['seedOverridesFromSiblings'](selected);
+        manager.recordOverrideForOid('element-1', 'tablet', {
+            color: { value: 'brand', type: StyleChangeType.Custom },
+        });
+        expect(manager.isOverriddenAt('element-1', 'color', 'tablet')).toBe(true);
+        engine.action.resetResponsiveStyle = async () => false;
+        expect(await manager.clearBreakpointOverride('element-1', 'color', 'tablet')).toBe(false);
+        expect(manager.getOverrideValue('element-1', 'color', 'tablet')).toBe('brand');
+        expect(manager.isOverriddenAt('element-1', 'color', 'tablet')).toBe(true);
+        expect(manager.removedBreakpointMapFor('element-1', 'color')).toEqual({});
     });
 });

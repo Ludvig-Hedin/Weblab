@@ -167,6 +167,7 @@ describe('NodeFsProvider (local-first)', () => {
         expect(await NodeFsProvider.createPrivateWorkingCopy('/original')).toEqual({
             rootPath: '/private/project', sourceRootPath: '/original', copyId: 'copy-1',
             reused: false, previewNeedsInstall: true, excludedPaths: ['node_modules'],
+            exclusions: [],
         });
     });
 

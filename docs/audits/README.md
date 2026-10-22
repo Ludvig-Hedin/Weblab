@@ -6,6 +6,7 @@ Point-in-time reports on the state of the product, the site, or specific dimensi
 
 | File | Date | What it audits | Status |
 |---|---|---|---|
+| [`customer-readiness-audit.md`](./customer-readiness-audit.md) | 2026-10-15 | Internal demo, local/live split, customer delivery and output evidence | Active |
 | [`fork-and-product-audit.md`](./fork-and-product-audit.md) | 2026-09-22 | Upstream comparison, editor risks, and designer beta path | Active |
 | [`website-product-audit.md`](./website-product-audit.md) | — | Marketing site + product surface review | Reference |
 | [`seo/action-plan.md`](./seo/action-plan.md) | 2026-05-11 | SEO action plan: prioritized fixes, goals | Active |

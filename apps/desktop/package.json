@@ -12,6 +12,7 @@
     "scripts": {
         "start": "electron .",
         "dev": "bash scripts/dev.sh",
+        "prepare:beta": "bun scripts/prepare-beta.mjs",
         "link:node_modules": "node -e \"const fs=require('fs');const path=require('path');const link=path.join(process.cwd(),'node_modules');const target=path.resolve(process.cwd(),'../../node_modules');try{fs.rmSync(link,{recursive:true,force:true});}catch{}fs.symlinkSync(target,link,process.platform==='win32'?'junction':'dir');\"",
         "build:mac": "node scripts/stage-bun-runtime.mjs mac && bun run link:node_modules && electron-builder --mac --publish never",
         "build:win": "node scripts/stage-bun-runtime.mjs win && bun run link:node_modules && electron-builder --win --publish never",
@@ -19,6 +20,7 @@
         "build": "node scripts/stage-bun-runtime.mjs host && bun run link:node_modules && electron-builder --publish never"
     },
     "dependencies": {
+        "@sanity/image-url": "2.1.1",
         "chokidar": "^3.6.0",
         "electron-updater": "^6.3.9"
     },
@@ -42,25 +44,40 @@
             "output": "dist"
         },
         "files": [
+            "package.json",
             "main.js",
+            "quit-coordinator.js",
             "preload.js",
+            "desktop-profile.js",
             "auth-hosts.js",
+            "auth-policy.js",
+            "private-path-policy.js",
             "weblab-cli.js",
             "weblab-local.js",
             "cli/**",
+            "release/**",
             "assets/**"
         ],
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "assets/icon.icns",
             "extraResources": [
-                { "from": ".runtime/mac/bun", "to": "bin/bun" }
+                {
+                    "from": ".runtime/mac/bun",
+                    "to": "bin/bun"
+                }
             ],
             "binaries": ["Contents/Resources/bin/bun"],
             "x64ArchFiles": "Contents/Resources/bin/bun",
             "target": [
-                { "target": "dmg", "arch": ["universal"] },
-                { "target": "zip", "arch": ["universal"] }
+                {
+                    "target": "dmg",
+                    "arch": ["universal"]
+                },
+                {
+                    "target": "zip",
+                    "arch": ["universal"]
+                }
             ],
             "artifactName": "Weblab.${ext}",
             "hardenedRuntime": true,
@@ -87,20 +104,32 @@
         "win": {
             "icon": "assets/icon.ico",
             "extraResources": [
-                { "from": ".runtime/win/bun.exe", "to": "bin/bun.exe" }
+                {
+                    "from": ".runtime/win/bun.exe",
+                    "to": "bin/bun.exe"
+                }
             ],
             "target": [
-                { "target": "nsis", "arch": ["x64"] }
+                {
+                    "target": "nsis",
+                    "arch": ["x64"]
+                }
             ],
             "artifactName": "Weblab-Setup.exe"
         },
         "linux": {
             "icon": "assets/icon.png",
             "extraResources": [
-                { "from": ".runtime/linux/bun", "to": "bin/bun" }
+                {
+                    "from": ".runtime/linux/bun",
+                    "to": "bin/bun"
+                }
             ],
             "target": [
-                { "target": "AppImage", "arch": ["x64"] }
+                {
+                    "target": "AppImage",
+                    "arch": ["x64"]
+                }
             ],
             "category": "Development",
             "artifactName": "Weblab.AppImage"

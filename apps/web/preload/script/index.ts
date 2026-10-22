@@ -73,6 +73,8 @@ const getTrustedParentOrigins = (remoteWindow: Window): string[] => {
 };
 
 const createMessageConnection = async () => {
+    // A site opened in its own tab has no editor parent to connect to.
+    if (window === window.top) return null;
     if (isConnecting || penpalParent) {
         return penpalParent;
     }

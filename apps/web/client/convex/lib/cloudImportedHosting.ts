@@ -3,7 +3,7 @@
 import { parse, t, type T } from '@weblab/parser/src/packages';
 import type { ImportedReleaseMetadata } from '../cloudReleasesSchema';
 import { prepareImportedReleaseArtifact } from './cloudImportedReleaseArtifact';
-import type { ImportedSnapshotFile } from './cloudImportedRelease';
+import { IMPORTED_PUBLICATION_INTENT, type ImportedSnapshotFile } from './cloudImportedRelease';
 import { IMPORTED_BUN_ARCHIVE_SHA256, type ImportedNextFile } from './cloudImportedNextProfile';
 import { manifestHash, sha256 } from './cloudReleaseArtifact';
 import {
@@ -14,7 +14,7 @@ import {
 } from './cloudImportedHostingState';
 
 export type ImportedHostingArtifact = {
-    id: string; purpose: 'private-artifact'; hash: string; artifactJson: string;
+    id: string; purpose: 'private-artifact' | 'release'; hash: string; artifactJson: string;
     projectId: string; branchId: string; workspaceId: string; revision: number;
 };
 export type ImportedHostingInput = {
@@ -242,13 +242,14 @@ function buildPolicy(files: ImportedNextFile[]): ImportedHostingBuildPolicy {
  */
 export async function prepareImportedHostingCandidate(input: ImportedHostingInput): Promise<ImportedHostingPrepared> {
     const { artifact } = input;
-    if (!artifact || artifact.purpose !== 'private-artifact' || !hostingId(artifact.id) || !hostingHash(artifact.hash) ||
+    if (!artifact || !['private-artifact', 'release'].includes(artifact.purpose) ||
+        input.visibility !== (artifact.purpose === 'release' ? 'publishable' : 'protected-only') || !hostingId(artifact.id) || !hostingHash(artifact.hash) ||
         ![artifact.projectId, artifact.branchId, artifact.workspaceId, input.actorId].every(hostingId) ||
         !Number.isSafeInteger(artifact.revision) || artifact.revision < 0 || artifact.revision !== input.metadata.capturedRevision ||
         typeof artifact.artifactJson !== 'string' || artifact.artifactJson.length > 700_000 ||
         IMPORTED_HOSTING_TOOLCHAIN.bunArchiveSha256 !== IMPORTED_BUN_ARCHIVE_SHA256) hostingFail('ARTIFACT_MISMATCH');
     // This existing path requires real prepared bridge files. Never fabricate them for validation.
-    const prepared = await prepareImportedReleaseArtifact({ purpose: 'private-artifact', source: input.source, original: input.original, metadata: input.metadata });
+    const prepared = await prepareImportedReleaseArtifact({ purpose: artifact.purpose, ...(artifact.purpose === 'release' ? { publicationIntent: IMPORTED_PUBLICATION_INTENT } : {}), source: input.source, original: input.original, metadata: input.metadata });
     if (prepared.hash !== artifact.hash || prepared.artifactJson !== artifact.artifactJson) hostingFail('ARTIFACT_MISMATCH');
     let buildPolicyReceipt: ImportedHostingBuildPolicy;
     try { buildPolicyReceipt = buildPolicy(prepared.files); } catch { return unsupported(); }

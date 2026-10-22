@@ -1,43 +1,27 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
-/**
- * Build the set of origins this preload considers "us". The CLI bridge is
- * attached only when the BrowserWindow is currently on one of these origins.
- *
- * This is defense in depth — the main process re-checks `event.senderFrame.url`
- * against the same list on every IPC call. The preload-time gate exists so a
- * compromised renderer that navigates away from us can't simply call our IPC
- * methods on `window.weblabNative.cli`.
- *
- * Origins included:
- *   - The hosted production origin (NEXT_PUBLIC_SITE_URL or the app domain)
- *   - localhost on common dev ports — without this, running the desktop app
- *     against `bun dev` (NEXT_PUBLIC_SITE_URL=http://localhost:3000) would
- *     fail the origin check and the picker would render every CLI provider
- *     as "Desktop only" even though we ARE in the desktop app.
- */
+// A sandboxed preload cannot require local helpers. Main passes one mandatory
+// resolved bootstrap; no runtime env or missing-hint fallback grants access.
 function buildAllowedOrigins() {
     const out = new Set();
     try {
-        if (process.env.NEXT_PUBLIC_SITE_URL) {
-            out.add(new URL(process.env.NEXT_PUBLIC_SITE_URL).origin);
-        }
-    } catch {
-        // ignore malformed env value
-    }
-    // Use URL parsing to guard against malformed domains (e.g. ports, paths in
-    // the env var) that would produce a non-origin string (CR-108).
-    const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
-    try {
-        out.add(new URL(`https://${domain}`).origin);
-    } catch {
-        out.add('https://weblab.build');
-    }
-    // Dev convenience: standard Next.js dev ports (non-production only).
-    if (process.env.NODE_ENV !== 'production') {
-        out.add('http://localhost:3000');
-        out.add('http://127.0.0.1:3000');
-    }
+        const prefix = '--weblab-desktop-bootstrap=';
+        const hints = process.argv.filter(arg => arg.startsWith('--weblab-desktop-bootstrap'));
+        if (hints.length !== 1 || !hints[0].startsWith(prefix) || hints[0].length > 4096) return out;
+        const value = JSON.parse(decodeURIComponent(hints[0].slice(prefix.length)));
+        if (!value || typeof value !== 'object' || Array.isArray(value) ||
+            Object.keys(value).sort().join(',') !== 'channel,siteUrl,version' || value.version !== 1 ||
+            !['stable', 'development', 'beta'].includes(value.channel) || typeof value.siteUrl !== 'string') return out;
+        const url = new URL(value.siteUrl);
+        if (url.origin !== value.siteUrl || url.username || url.password) return out;
+        const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+        if (url.protocol !== 'https:' && !(value.channel === 'development' && local && url.protocol === 'http:')) return out;
+        if (value.channel === 'beta' && (url.port ||
+            !/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z][a-z0-9-]*$/.test(url.hostname) ||
+            url.hostname === 'weblab.build' || url.hostname.endsWith('.weblab.build') ||
+            url.hostname.endsWith('.localhost') || url.hostname.endsWith('.local'))) return out;
+        out.add(url.origin);
+    } catch { /* Invalid bootstrap exposes no privileged bridge. */ }
     return out;
 }
 
@@ -115,8 +99,14 @@ const localfsBridge = IS_APP_ORIGIN
 
 const localdevBridge = IS_APP_ORIGIN
     ? {
+          getPreviewSettings: (root) =>
+              ipcRenderer.invoke('weblab:localdev:getPreviewSettings', { root }),
+          setPreviewSettings: (root, settings) =>
+              ipcRenderer.invoke('weblab:localdev:setPreviewSettings', { root, settings }),
           installDependencies: (root) =>
               ipcRenderer.invoke('weblab:localdev:installDependencies', { root }),
+          dependenciesReady: (root) =>
+              ipcRenderer.invoke('weblab:localdev:dependenciesReady', { root }),
           cancelInstallDependencies: (root) =>
               ipcRenderer.invoke('weblab:localdev:cancelInstallDependencies', { root }),
           start: (root, command, port) =>
@@ -138,7 +128,7 @@ const localdevBridge = IS_APP_ORIGIN
 const bridge = {
     platform: process.platform,
     target: 'desktop',
-    version: ipcRenderer.sendSync('weblab:get-version'),
+    version: IS_APP_ORIGIN ? ipcRenderer.sendSync('weblab:get-version') : undefined,
     /**
      * Open a URL in the user's default OS browser. Used by the renderer to
      * hand off OAuth flows to a real browser (provider WebViews — like
@@ -147,13 +137,22 @@ const bridge = {
      * in the browser, then redirects back into the desktop shell via the
      * `weblab://auth/handoff?ticket=...` deep link (see main.js).
      */
-    openExternal: (url) => ipcRenderer.invoke('weblab:open-external', url),
+    openExternal: IS_APP_ORIGIN
+        ? (url) => ipcRenderer.invoke('weblab:open-external', url) : undefined,
+    claimLoginHandoff: IS_APP_ORIGIN
+        ? (ticket, state) => ipcRenderer.invoke('weblab:claim-login-handoff', { ticket, state })
+        : undefined,
     /**
      * Legacy alias kept so any in-flight renderer code that still calls
      * `weblabNative.openOAuth(url)` keeps working — the main-process handler
      * now also routes through `shell.openExternal`, so the behavior matches.
      */
-    openOAuth: (url) => ipcRenderer.invoke('weblab:open-external', url),
+    openOAuth: IS_APP_ORIGIN
+        ? (url) => ipcRenderer.invoke('weblab:open-external', url) : undefined,
+    publishing: IS_APP_ORIGIN ? {
+        request: (method, input) => ipcRenderer.invoke('weblab:publishing', { method, input }),
+        cancel: () => ipcRenderer.invoke('weblab:publishing-cancel'),
+    } : undefined,
     cli: cliBridge,
     localfs: localfsBridge,
     localdev: localdevBridge,

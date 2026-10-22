@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 
-import { setConvexAuthFetcher } from '@/components/store/lib/convex-http-client';
+import { captureConvexAuthOwner, setConvexAuthFetcher, setConvexAuthSession } from '@/components/store/lib/convex-http-client';
 
 /**
  * Bridges Clerk's session token into the MobX-side singleton
@@ -19,7 +19,13 @@ import { setConvexAuthFetcher } from '@/components/store/lib/convex-http-client'
  * protected query/mutation/action.
  */
 export function ConvexAuthBridge() {
-    const { getToken, isSignedIn, isLoaded } = useAuth();
+    const { getToken, isSignedIn, isLoaded, userId, sessionId } = useAuth();
+
+    useLayoutEffect(() => {
+        setConvexAuthSession(isLoaded && isSignedIn ? userId : null, isLoaded && isSignedIn ? sessionId : null);
+        const owner = captureConvexAuthOwner();
+        return () => { if (owner?.isCurrent()) setConvexAuthSession(null, null); };
+    }, [isLoaded, isSignedIn, userId, sessionId]);
 
     useEffect(() => {
         if (!isLoaded) return;
@@ -29,13 +35,15 @@ export function ConvexAuthBridge() {
         }
         // Token rotates ~every 60s. Re-register a fresh fetcher every minute
         // so the singleton picks up the new token before the old one expires.
+        const owner = captureConvexAuthOwner();
+        if (!owner || owner.userId !== userId || owner.sessionId !== sessionId) return;
         const fetcher = () => getToken({ template: 'convex' });
-        setConvexAuthFetcher(fetcher);
+        setConvexAuthFetcher(fetcher, owner);
         const interval = setInterval(() => {
-            setConvexAuthFetcher(fetcher);
+            setConvexAuthFetcher(fetcher, owner);
         }, 50_000);
         return () => clearInterval(interval);
-    }, [getToken, isSignedIn, isLoaded]);
+    }, [getToken, isSignedIn, isLoaded, userId, sessionId]);
 
     return null;
 }

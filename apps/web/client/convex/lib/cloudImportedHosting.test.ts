@@ -125,9 +125,7 @@ describe('imported hosting candidate planner', () => {
     it('changes candidate identity for another actor or mode without making either an access grant', async () => {
         const input = await fixture(), result = await prepareImportedHostingCandidate(input);
         expect((await prepareImportedHostingCandidate({ ...input, actorId: 'users:second-colleague' })).hash).not.toBe(result.hash);
-        const publishable = await prepareImportedHostingCandidate({ ...input, visibility: 'publishable' });
-        expect(publishable.hash).not.toBe(result.hash);
-        expect(publishable.importedHosting.deployHash).toBe(result.importedHosting.deployHash);
+        await expect(prepareImportedHostingCandidate({ ...input, visibility: 'publishable' })).rejects.toThrow('ARTIFACT_MISMATCH');
     });
 
     it('preserves only the admitted runtime declarations without treating them as provider proof', async () => {
@@ -192,5 +190,23 @@ describe('imported hosting candidate planner', () => {
         'escaped CSS build plugin': { 'src/app/globals.css': '@pl\\75gin "arbitrary-plugin";' },
     })) it(`refuses ${name} without executing imported code`, async () => {
         await expect((async () => prepareImportedHostingCandidate(await fixture(overrides)))()).rejects.toThrow();
+    });
+});
+
+
+describe('public source to frozen publishable candidate pairing', () => {
+    it('prepares public source only as publishable and never promotes private source', async () => {
+        const input = await fixture(), privateBefore = JSON.stringify(input);
+        await expect(prepareImportedHostingCandidate({ ...input, visibility: 'publishable' })).rejects.toThrow('ARTIFACT_MISMATCH');
+        const publicSource = await prepareImportedReleaseArtifact({ ...input, purpose: 'release', publicationIntent: 'eligible-public-version' });
+        const eligible: ImportedHostingInput = { ...input, visibility: 'publishable', artifact: { ...input.artifact,
+            purpose: 'release', hash: publicSource.hash, artifactJson: publicSource.artifactJson } };
+        const result = await prepareImportedHostingCandidate(eligible);
+        expect(result.files).toEqual(publicSource.files); expect(result.importedHosting.visibility).toBe('publishable');
+        expect(result.importedHosting.artifactHash).toBe(publicSource.hash);
+        await assertImportedHostingSeal(result);
+        await expect(prepareImportedHostingCandidate({ ...eligible, visibility: 'protected-only' })).rejects.toThrow('ARTIFACT_MISMATCH');
+        await expect(prepareImportedHostingCandidate({ ...input, visibility: 'publishable', artifact: { ...input.artifact, purpose: 'release' } })).rejects.toThrow('ARTIFACT_MISMATCH');
+        expect(JSON.stringify(input)).toBe(privateBefore);
     });
 });

@@ -1,0 +1,510 @@
+import { makeFunctionReference } from 'convex/server';
+import { canReadImportedSource, canUseImportedText, canUseImportedImages, canUseImportedStudio, canUseImportedProperties, importedTextAuthority } from './lib/cloudImportedAccess';
+import { getPreparedImport } from './lib/cloudImportedState';
+import { sourceProfileCapabilities, assertExecutableCloudProfile } from './lib/cloudImportManifest';
+import { v } from 'convex/values';
+
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx, QueryCtx } from './_generated/server';
+import { internalMutation, mutation, query } from './_generated/server';
+import { cloudEditorRole } from './cloudEditorAccessSchema';
+import { can } from './lib/auth';
+import { cloudError, cloudScope } from './lib/cloudEditor';
+import { getUserByClerkIdSafe } from './lib/permissions';
+import { requireCloudProjectCapability } from './lib/cloudProjectAdmission';
+
+export type CloudEditorRole = 'responsible' | 'designer' | 'content';
+type Scope = { projectId: Id<'projects'>; branchId: Id<'branches'> };
+type Context = MutationCtx | QueryCtx;
+const rank: Record<CloudEditorRole, number> = { content: 1, designer: 2, responsible: 3 };
+const MAX_MEMBERS = 100;
+
+function requireEnabled() {
+    if (process.env.WEBLAB_CLOUD_EDITOR_ENABLED !== 'true') cloudError('CLOUD_DISABLED');
+}
+
+/** A stored cloud grant never substitutes for current ordinary project access. */
+export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: CloudEditorRole) {
+    const legacy = await requireCloudProjectCapability(ctx, scope);
+    const branch = await ctx.db.get(scope.branchId);
+    const state = await ctx.db
+        .query('cloudEditorStates')
+        .withIndex('by_branchId', (q) => q.eq('branchId', scope.branchId))
+        .unique();
+    if (
+        !branch ||
+        branch.projectId !== scope.projectId ||
+        !state ||
+        state.projectId !== scope.projectId ||
+        state.version !== 1 ||
+        state.workspaceId !== legacy.workspace._id
+    )
+        return cloudError('CLOUD_NOT_ENROLLED');
+    const preparation = await getPreparedImport(ctx, state);
+    const grant = await ctx.db
+        .query('cloudEditorGrants')
+        .withIndex('by_projectId_userId', (q) =>
+            q.eq('projectId', scope.projectId).eq('userId', legacy.user._id),
+        )
+        .unique();
+    const creator = state.createdByUserId === legacy.user._id;
+    const role: CloudEditorRole | null = grant?.role ?? (creator ? 'responsible' : null);
+    const resource = {
+        workspace: { id: legacy.workspace._id, createdByUserId: legacy.workspace.createdByUserId },
+        workspaceRole: legacy.workspaceRole,
+        project: {
+            id: scope.projectId,
+            accessMode: legacy.project!.accessMode,
+            workspaceId: legacy.workspace._id,
+        },
+        projectRole: legacy.projectRole,
+    };
+    const update = can('project.update', resource);
+    const profile = sourceProfileCapabilities(state.profile);
+    const canDesign = profile.sourceWrite && role !== null && rank[role] >= rank.designer && update;
+    const canPrepareImport = state.profile === 'imported-source-v1' && update &&
+        (role === 'responsible' || role === 'designer') &&
+        process.env.WEBLAB_CLOUD_IMPORTS_ENABLED === 'true' && process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true';
+    const importedAuthority = importedTextAuthority(state, preparation);
+    const canEditImportedText = canUseImportedText(role, importedAuthority);
+    const canApproveImportedText = canDesign && canEditImportedText;
+    const canEditImportedImages = canUseImportedImages(role, importedAuthority);
+    const canApproveImportedImages = canDesign && canEditImportedImages;
+    const canEditImportedStudio = canUseImportedStudio(role, importedAuthority);
+    const canApproveImportedStudio = canDesign && canEditImportedStudio;
+    const canEditImportedProperties = canUseImportedProperties(role, importedAuthority);
+    const canApproveImportedProperties = canDesign && canEditImportedProperties;
+    const canEditContent = (profile.contentWrite && role !== null) || canEditImportedText;
+    const canPreview = profile.preview && role !== null && (!profile.imported || canDesign || canEditImportedText);
+    const canReadSource = !profile.imported || canReadImportedSource(role, update, importedAuthority);
+    const publicationGrant = hasCloudPublicationGrant(role, grant?.publish, creator);
+    const canPublish = profile.release && (grant?.publish ?? creator);
+    const canManage = role === 'responsible' && can('project.invite', resource);
+    if (minRole) {
+        requireEnabled();
+        assertExecutableCloudProfile(state.profile);
+        if (minRole === 'content' && !profile.contentWrite) return cloudError('CLOUD_CONTENT_PROFILE_UNSUPPORTED');
+        if (
+            !role ||
+            rank[role] < rank[minRole] ||
+            (minRole !== 'content' && !update) ||
+            (minRole === 'responsible' && !canManage)
+        )
+            return cloudError('CLOUD_ROLE_REQUIRED');
+    }
+    return { ...legacy, state, branch, role, canDesign, canPrepareImport, canEditContent, canPreview, canPublish, canManage,
+        canReadSource, preparation, importedAuthority, publicationGrant,
+        ...(canEditImportedProperties ? { canEditImportedProperties: true as const } : {}),
+        ...(canApproveImportedProperties ? { canApproveImportedProperties: true as const } : {}),
+        ...(canEditImportedStudio ? { canEditImportedStudio: true as const } : {}),
+        ...(canApproveImportedStudio ? { canApproveImportedStudio: true as const } : {}),
+        ...(canEditImportedText ? { canEditImportedText: true as const } : {}),
+        ...(canEditImportedImages ? { canEditImportedImages: true as const } : {}),
+        ...(canApproveImportedImages ? { canApproveImportedImages: true as const } : {}),
+        ...(canApproveImportedText ? { canApproveImportedText: true as const } : {}) };
+}
+
+/** Same independent grant rule for authenticated admission and canonical stored workers. */
+export function hasCloudPublicationGrant(role: CloudEditorRole | null, publish: boolean | undefined, creator: boolean): boolean {
+    return role !== null && (publish ?? creator);
+}
+export function importedPublicationEnabled(): boolean {
+    return process.env.WEBLAB_CLOUD_IMPORTED_PUBLICATION_ENABLED === 'true';
+}
+
+/** Frozen versions use current access, never today's editable source/preparation bytes. */
+export async function requireImportedReleaseAccess(ctx: Context, scope: Scope) {
+    const access = await requireCloudProjectCapability(ctx, scope);
+    const branch = await ctx.db.get(scope.branchId);
+    const state = await ctx.db.query('cloudEditorStates').withIndex('by_branchId', q => q.eq('branchId', scope.branchId)).unique();
+    if (!branch || branch.projectId !== scope.projectId || !state || state.projectId !== scope.projectId ||
+        state.workspaceId !== access.workspace._id || state.profile !== 'imported-next-v1' || state.version !== 1) cloudError('CLOUD_NOT_ENROLLED');
+    const grant = await ctx.db.query('cloudEditorGrants').withIndex('by_projectId_userId', q => q.eq('projectId', scope.projectId).eq('userId', access.user._id)).unique();
+    const creator = state.createdByUserId === access.user._id;
+    const role = grant?.role ?? (creator ? 'responsible' : null);
+    if (!role) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
+    const canDesign = (role === 'responsible' || role === 'designer') && can('project.update', {
+        workspace: { id: access.workspace._id, createdByUserId: access.workspace.createdByUserId }, workspaceRole: access.workspaceRole,
+        project: { id: scope.projectId, workspaceId: access.workspace._id, accessMode: access.project!.accessMode }, projectRole: access.projectRole,
+    });
+    return { ...access, state, branch, role, canDesign, publicationGrant: hasCloudPublicationGrant(role, grant?.publish, creator) };
+}
+export function assertImportedReleasePublisher(access: Pick<Awaited<ReturnType<typeof requireImportedReleaseAccess>>, 'publicationGrant' | 'canDesign'>, design = false): void {
+    if (!importedPublicationEnabled()) cloudError('CLOUD_IMPORTED_PUBLICATION_DISABLED');
+    if (!access.publicationGrant || (design && !access.canDesign)) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
+}
+
+/** Separate rollout and current grant; never enables the imported release capability. */
+export function assertImportedPublicationAccess(access: Awaited<ReturnType<typeof requireCloudAccess>>): void {
+    if (!importedPublicationEnabled()) cloudError('CLOUD_IMPORTED_PUBLICATION_DISABLED');
+    if (access.state.profile !== 'imported-next-v1' || access.state.version !== 1 || !access.preparation ||
+        !access.canDesign || !access.publicationGrant) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
+}
+
+export const access = query({
+    args: cloudScope,
+    handler: async (ctx, scope) => {
+        const { user, role, canDesign, canPrepareImport, canEditContent, canPreview, canPublish, canManage, canApproveImportedText, canEditImportedText, canApproveImportedImages, canEditImportedImages, canEditImportedStudio, canApproveImportedStudio, canEditImportedProperties, canApproveImportedProperties } = await requireCloudAccess(
+            ctx,
+            scope,
+        );
+        return { actorId: user._id, role, canDesign, canPrepareImport, canEditContent, canPreview, canPublish, canManage,
+            ...(canEditImportedProperties ? { canEditImportedProperties } : {}),
+            ...(canApproveImportedProperties ? { canApproveImportedProperties } : {}),
+            ...(canEditImportedStudio ? { canEditImportedStudio } : {}),
+            ...(canApproveImportedStudio ? { canApproveImportedStudio } : {}),
+            ...(canEditImportedText ? { canEditImportedText } : {}),
+            ...(canEditImportedImages ? { canEditImportedImages } : {}),
+            ...(canApproveImportedImages ? { canApproveImportedImages } : {}),
+            ...(canApproveImportedText ? { canApproveImportedText } : {}) };
+    },
+});
+
+/** A finite project allowance, not a fourth customer role or an open-ended subscription. */
+export const previewAllowance = query({
+    args: cloudScope,
+    handler: async (ctx, scope) => {
+        const { state } = await requireCloudAccess(ctx, scope);
+        const allowance = state.contentPreviewAllowance;
+        return allowance && allowance.expiresAt > Date.now() ? allowance : null;
+    },
+});
+
+export const setPreviewAllowance = mutation({
+    args: { ...cloudScope, starts: v.number() },
+    handler: async (ctx, args) => {
+        const { state } = await requireManager(ctx, args, true);
+        if (!Number.isSafeInteger(args.starts) || args.starts < 0 || args.starts > 8)
+            cloudError('CLOUD_INVALID_PREVIEW_ALLOWANCE');
+        const generation = (state.contentPreviewAllowance?.generation ?? 0) + 1;
+        if (!Number.isSafeInteger(generation)) cloudError('CLOUD_INVALID_PREVIEW_ALLOWANCE');
+        await ctx.db.patch(state._id, {
+            contentPreviewAllowance: {
+                remainingStarts: args.starts,
+                expiresAt: Date.now() + 24 * 60 * 60_000,
+                generation,
+            },
+            ...(state.previewStartRequest?.kind === 'content'
+                ? { previewStartRequest: undefined }
+                : {}),
+        });
+        return null;
+    },
+});
+
+async function requireManager(ctx: Context, scope: Scope, write = false) {
+    const result = await requireCloudAccess(ctx, scope);
+    if (!result.canManage) return cloudError('CLOUD_ROLE_REQUIRED');
+    if (write) requireEnabled();
+    return result;
+}
+
+export const listMembers = query({
+    args: cloudScope,
+    handler: async (ctx, scope) => {
+        const { state, workspace, project } = await requireManager(ctx, scope);
+        const grants = await ctx.db
+            .query('cloudEditorGrants')
+            .withIndex('by_projectId_userId', (q) => q.eq('projectId', scope.projectId))
+            .take(MAX_MEMBERS + 1);
+        if (grants.length > MAX_MEMBERS) return cloudError('CLOUD_MEMBER_LIMIT');
+        const members = new Map(
+            grants.map((grant) => [grant.userId, { role: grant.role, publish: grant.publish }]),
+        );
+        if (!members.has(state.createdByUserId))
+            members.set(state.createdByUserId, { role: 'responsible', publish: true });
+        return Promise.all(
+            [...members].map(async ([userId, grant]) => {
+                const user = await ctx.db.get(userId);
+                const projectMember = await ctx.db
+                    .query('projectMembers')
+                    .withIndex('by_project_user', (q) =>
+                        q.eq('projectId', scope.projectId).eq('userId', userId),
+                    )
+                    .unique();
+                const workspaceMember = await ctx.db
+                    .query('workspaceMembers')
+                    .withIndex('by_workspace_user', (q) =>
+                        q.eq('workspaceId', workspace._id).eq('userId', userId),
+                    )
+                    .unique();
+                const active =
+                    !!user &&
+                    can('project.view', {
+                        workspace: {
+                            id: workspace._id,
+                            createdByUserId: workspace.createdByUserId,
+                        },
+                        workspaceRole: workspaceMember?.role ?? null,
+                        project: {
+                            id: scope.projectId,
+                            accessMode: project!.accessMode,
+                            workspaceId: workspace._id,
+                        },
+                        projectRole: projectMember?.role ?? null,
+                    });
+                return {
+                    userId,
+                    email: user?.email ?? null,
+                    displayName: user?.displayName ?? null,
+                    ...grant,
+                    active,
+                    isCreator: userId === state.createdByUserId,
+                };
+            }),
+        );
+    },
+});
+
+export const setMember = mutation({
+    args: { ...cloudScope, email: v.string(), role: cloudEditorRole, publish: v.boolean() },
+    handler: async (ctx, args) => {
+        const { state, workspace } = await requireManager(ctx, args, true);
+        const email = args.email.trim();
+        if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+            return cloudError('CLOUD_INVALID_EMAIL');
+        const normalized = email.toLowerCase();
+        const users = await ctx.db
+            .query('users')
+            .withIndex('by_email', (q) => q.eq('email', normalized))
+            .take(2);
+        if (email !== normalized) {
+            const exact = await ctx.db
+                .query('users')
+                .withIndex('by_email', (q) => q.eq('email', email))
+                .take(2);
+            for (const user of exact)
+                if (!users.some((existing) => existing._id === user._id)) users.push(user);
+        }
+        if (users.length !== 1 || !users[0]?.clerkUserId)
+            return cloudError('CLOUD_MEMBER_NOT_FOUND');
+        const userId = users[0]._id;
+        if (userId === state.createdByUserId && args.role !== 'responsible')
+            return cloudError('CLOUD_CREATOR_PROTECTED');
+        const workspaceMember = await ctx.db
+            .query('workspaceMembers')
+            .withIndex('by_workspace_user', (q) =>
+                q.eq('workspaceId', workspace._id).eq('userId', userId),
+            )
+            .unique();
+        if (
+            args.role === 'content' &&
+            (workspace.createdByUserId === userId ||
+                workspaceMember?.role === 'owner' ||
+                workspaceMember?.role === 'admin')
+        )
+            return cloudError('CLOUD_WORKSPACE_AUTHORITY_CONFLICT');
+        const existing = await ctx.db
+            .query('cloudEditorGrants')
+            .withIndex('by_projectId_userId', (q) =>
+                q.eq('projectId', args.projectId).eq('userId', userId),
+            )
+            .unique();
+        if (!existing) {
+            const members = await ctx.db
+                .query('cloudEditorGrants')
+                .withIndex('by_projectId_userId', (q) => q.eq('projectId', args.projectId))
+                .take(MAX_MEMBERS);
+            if (members.length >= MAX_MEMBERS) return cloudError('CLOUD_MEMBER_LIMIT');
+        }
+        const membership = await ctx.db
+            .query('projectMembers')
+            .withIndex('by_project_user', (q) =>
+                q.eq('projectId', args.projectId).eq('userId', userId),
+            )
+            .unique();
+        const updatedAt = Date.now();
+        const role =
+            args.role === 'responsible'
+                ? 'manager'
+                : args.role === 'designer'
+                  ? 'editor'
+                  : 'viewer';
+        if (membership) await ctx.db.patch(membership._id, { role, updatedAt });
+        else
+            await ctx.db.insert('projectMembers', {
+                projectId: args.projectId,
+                userId,
+                role,
+                updatedAt,
+            });
+        if (existing)
+            await ctx.db.patch(existing._id, { role: args.role, publish: args.publish, updatedAt });
+        else
+            await ctx.db.insert('cloudEditorGrants', {
+                projectId: args.projectId,
+                userId,
+                role: args.role,
+                publish: args.publish,
+                updatedAt,
+            });
+        return { userId };
+    },
+});
+
+export const removeMember = mutation({
+    args: { ...cloudScope, userId: v.id('users') },
+    handler: async (ctx, args) => {
+        const { state } = await requireManager(ctx, args, true);
+        if (args.userId === state.createdByUserId) return cloudError('CLOUD_CREATOR_PROTECTED');
+        const removal = await ctx.db.query('cloudEditorMemberRemovals')
+            .withIndex('by_projectId_userId', q => q.eq('projectId', args.projectId).eq('userId', args.userId)).unique();
+        const removedAt = Math.max(Date.now(), (removal?.removedAt ?? 0) + 1);
+        if (removal) await ctx.db.patch(removal._id, { removedAt });
+        else await ctx.db.insert('cloudEditorMemberRemovals', { projectId: args.projectId, userId: args.userId, removedAt });
+        const removedUser = await ctx.db.get(args.userId);
+        if (removedUser?.email) {
+            const pendingInvites = await ctx.db.query('cloudEditorInvitations')
+                .withIndex('by_projectId_email', q => q.eq('projectId', args.projectId).eq('email', removedUser.email!.trim().toLowerCase())).take(501);
+            if (pendingInvites.length > 500) return cloudError('CLOUD_INVITATION_LIMIT');
+            for (const invite of pendingInvites) if (invite.status === 'pending') await ctx.db.patch(invite._id, { status: 'revoked' });
+        }
+        const grant = await ctx.db
+            .query('cloudEditorGrants')
+            .withIndex('by_projectId_userId', (q) =>
+                q.eq('projectId', args.projectId).eq('userId', args.userId),
+            )
+            .unique();
+        const membership = await ctx.db
+            .query('projectMembers')
+            .withIndex('by_project_user', (q) =>
+                q.eq('projectId', args.projectId).eq('userId', args.userId),
+            )
+            .unique();
+        await cleanupRemovedPreviewAccess(ctx, { projectId: args.projectId, userId: args.userId, cursor: null });
+        if (grant) await ctx.db.delete(grant._id);
+        if (membership) await ctx.db.delete(membership._id);
+        return null;
+    },
+});
+
+/** A permanent project-wide boundary; regrant must never revive an old ticket/request. */
+export async function cloudPreviewRemoval(ctx: Context, projectId: Id<'projects'>, userId: Id<'users'>) {
+    return ctx.db.query('cloudEditorMemberRemovals')
+        .withIndex('by_projectId_userId', q => q.eq('projectId', projectId).eq('userId', userId)).unique();
+}
+
+type RemovalCleanup = { projectId: Id<'projects'>; userId: Id<'users'>; cursor: string | null };
+const removalCleanupRef = makeFunctionReference<'mutation', RemovalCleanup, null>('cloudEditorAccess:_cleanupRemovedPreviewAccess');
+async function cleanupRemovedPreviewAccess(ctx: MutationCtx, args: RemovalCleanup): Promise<null> {
+    const removal = await cloudPreviewRemoval(ctx, args.projectId, args.userId);
+    if (!removal) return null;
+    const page = await ctx.db.query('cloudEditorStates').withIndex('by_projectId', q => q.eq('projectId', args.projectId))
+        .paginate({ numItems: 32, cursor: args.cursor });
+    for (const state of page.page) {
+        const ticket = await ctx.db.query('cloudPreviewTickets').withIndex('by_branchId_and_userId', q =>
+            q.eq('branchId', state.branchId).eq('userId', args.userId)).unique();
+        if (ticket?.projectId === args.projectId && ticket.updatedAt <= removal.removedAt) await ctx.db.delete(ticket._id);
+        const request = state.previewStartRequest;
+        if (request?.actorId === args.userId && (request.createdAt === undefined || request.createdAt <= removal.removedAt))
+            await ctx.db.patch(state._id, { previewStartRequest: undefined });
+    }
+    if (!page.isDone) await ctx.scheduler.runAfter(0, removalCleanupRef, { ...args, cursor: page.continueCursor });
+    return null;
+}
+export const _cleanupRemovedPreviewAccess = internalMutation({
+    args: { projectId: v.id('projects'), userId: v.id('users'), cursor: v.union(v.string(), v.null()) },
+    handler: cleanupRemovedPreviewAccess,
+});
+
+/** Scheduled workers have no session. Resolve the request's stored actor against current records. */
+export async function authorizeCloudPreviewStart(
+    ctx: Context,
+    scope: Scope,
+    requestGeneration: number,
+    token?: string,
+): Promise<boolean> {
+    if (process.env.WEBLAB_CLOUD_EDITOR_ENABLED !== 'true') return false;
+    const state = await ctx.db
+        .query('cloudEditorStates')
+        .withIndex('by_branchId', (q) => q.eq('branchId', scope.branchId))
+        .unique();
+    const request = state?.previewStartRequest;
+    if (
+        !state ||
+        state.projectId !== scope.projectId ||
+        state.version !== 1 ||
+        !sourceProfileCapabilities(state.profile).preview ||
+        !request ||
+        request.generation !== requestGeneration ||
+        request.expiresAt <= Date.now() ||
+        (request.reservedToken !== undefined && request.reservedToken !== token)
+    )
+        return false;
+    let importedAuthority: ReturnType<typeof importedTextAuthority>;
+    try { importedAuthority = importedTextAuthority(state, await getPreparedImport(ctx, state)); } catch { return false; }
+    const removal = await cloudPreviewRemoval(ctx, scope.projectId, request.actorId);
+    if (removal && (request.createdAt === undefined || request.createdAt <= removal.removedAt)) return false;
+    const user = await ctx.db.get(request.actorId);
+    const project = await ctx.db.get(scope.projectId);
+    const branch = await ctx.db.get(scope.branchId);
+    if (
+        !user?.clerkUserId ||
+        !project ||
+        !branch ||
+        branch.projectId !== project._id ||
+        project.workspaceId !== state.workspaceId
+    )
+        return false;
+    if ((await getUserByClerkIdSafe(ctx, user.clerkUserId))?._id !== user._id) return false;
+    const workspace = await ctx.db.get(project.workspaceId);
+    if (!workspace) return false;
+    const workspaceMember = await ctx.db
+        .query('workspaceMembers')
+        .withIndex('by_workspace_user', (q) =>
+            q.eq('workspaceId', workspace._id).eq('userId', user._id),
+        )
+        .unique();
+    const projectMember = await ctx.db
+        .query('projectMembers')
+        .withIndex('by_project_user', (q) => q.eq('projectId', project._id).eq('userId', user._id))
+        .unique();
+    const resource = {
+        workspace: { id: workspace._id, createdByUserId: workspace.createdByUserId },
+        workspaceRole: workspaceMember?.role ?? null,
+        project: { id: project._id, accessMode: project.accessMode, workspaceId: workspace._id },
+        projectRole: projectMember?.role ?? null,
+    };
+    if (!can('project.view', resource)) return false;
+    const grant = await ctx.db
+        .query('cloudEditorGrants')
+        .withIndex('by_projectId_userId', (q) =>
+            q.eq('projectId', project._id).eq('userId', user._id),
+        )
+        .unique();
+    const role = grant?.role ?? (state.createdByUserId === user._id ? 'responsible' : null);
+    if (!role) return false;
+    if (sourceProfileCapabilities(state.profile).imported && request.kind === 'content') {
+        if (!canUseImportedText(role, importedAuthority) || !importedAuthority ||
+            request.importedAuthority?.preparationId !== importedAuthority.preparationId ||
+            request.importedAuthority.designRevision !== importedAuthority.designRevision) return false;
+    }
+    if (request.kind === 'design')
+        return rank[role] >= rank.designer && can('project.update', resource);
+    const allowance = state.contentPreviewAllowance;
+    if (
+        !allowance ||
+        allowance.expiresAt <= Date.now() ||
+        (allowance.generation ?? 0) !== request.allowanceGeneration
+    )
+        return false;
+    return hasCloudPreviewLock(ctx, scope);
+}
+
+/** Content members may use a builder's resolved dependencies, never resolve or seal new ones. */
+export async function hasCloudPreviewLock(ctx: Context, scope: Scope): Promise<boolean> {
+    for (const path of ['bun.lock', 'bun.lockb']) {
+        const file = await ctx.db
+            .query('cloudEditorFiles')
+            .withIndex('by_branchId_path', (q) => q.eq('branchId', scope.branchId).eq('path', path))
+            .unique();
+        if (
+            file?.projectId === scope.projectId &&
+            file.kind === 'file' &&
+            file.bytes > 0 &&
+            (typeof file.text === 'string' || file.storageId)
+        )
+            return true;
+    }
+    return false;
+}

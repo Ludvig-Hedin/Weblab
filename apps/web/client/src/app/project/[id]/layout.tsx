@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { fetchQuery } from 'convex/nextjs';
@@ -10,12 +11,22 @@ import { Icons } from '@weblab/ui/icons/index';
 import type { Id } from '@convex/_generated/dataModel';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
+import { getCloudProjectEntry } from '@/utils/auth/cloud-project-user';
+import { CloudProjectSignIn } from '@/components/cloud-editor/project-sign-in';
 
 export default async function Layout({
     params,
     children,
 }: Readonly<{ params: Promise<{ id: string }>; children: React.ReactNode }>) {
     const projectId = (await params).id;
+    const pathname = (await headers()).get('x-pathname')?.split('?')[0];
+    if (/^[a-z0-9]{16,64}$/.test(projectId) && pathname === `/project/${projectId}`) {
+        const entry = await getCloudProjectEntry(projectId);
+        if (entry.kind === 'signed-out' || entry.kind === 'denied') {
+            return <CloudProjectSignIn denied={entry.kind === 'denied'} />;
+        }
+        return <>{children}</>;
+    }
     const user = await getCurrentUser();
     if (!user) {
         redirect(getSignInUrl(`/project/${projectId}`));

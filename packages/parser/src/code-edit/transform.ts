@@ -12,8 +12,8 @@ import { insertImageToNode, removeImageFromNode } from './image';
 import { insertElementToNode } from './insert';
 import { moveElementInNode } from './move';
 import { removeElementFromNode } from './remove';
-import { addClassToNode, renameNodeTag, replaceNodeClasses, updateNodeProp } from './style';
-import { updateNodeTextContent } from './text';
+import { addClassToNode, removeClassesFromNode, renameNodeTag, replaceNodeClasses, updateNodeProp } from './style';
+import { updateNodeTextContent, updateNodeTextSlots } from './text';
 
 export function transformAst(ast: T.File, oidToCodeDiff: Map<string, CodeDiffRequest>): void {
     addImportsFromStructureChanges(ast, oidToCodeDiff);
@@ -28,6 +28,9 @@ export function transformAst(ast: T.File, oidToCodeDiff: Map<string, CodeDiffReq
             const codeDiffRequest = oidToCodeDiff.get(currentOid);
             if (codeDiffRequest) {
                 const { attributes, tagName, textContent, structureChanges } = codeDiffRequest;
+                if (codeDiffRequest.classRemovals?.length) {
+                    removeClassesFromNode(path.node, codeDiffRequest.classRemovals, codeDiffRequest.requireClassRemoval);
+                }
 
                 if (tagName) {
                     renameNodeTag(path.node, tagName);
@@ -47,7 +50,9 @@ export function transformAst(ast: T.File, oidToCodeDiff: Map<string, CodeDiffReq
                     });
                 }
 
-                if (textContent !== undefined && textContent !== null) {
+                if (codeDiffRequest.textSlots != null) {
+                    updateNodeTextSlots(path.node, codeDiffRequest.textSlots);
+                } else if (textContent !== undefined && textContent !== null) {
                     updateNodeTextContent(path.node, textContent);
                 }
 

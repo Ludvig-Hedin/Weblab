@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
+import { SanityBlogDialog } from '@/components/sanity-blog/dialog';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 import { transKeys } from '@/i18n/keys';
@@ -19,11 +20,16 @@ import { EDITOR_SCOPE } from '@/lib/editor-scope';
 import { Members } from '../members';
 import { BranchDisplay } from './branch';
 import { ComponentEditCrumb } from './component-edit-crumb';
+import { SaveStatus } from '@/components/cloud-editor/save-status';
+import { CloudModeSwitch } from '@/components/cloud-editor/mode-switch';
+import { CloudMembers } from '@/components/cloud-editor/members';
+import { CloudStudioTools } from '@/components/cloud-editor/studio-tools';
+import { CloudReleaseDialog } from '@/components/cloud-editor/release-dialog';
 import { ConnectionChip } from './connection-chip';
 import { CurrentPageSelector } from './current-page-selector';
 import { DiffButton } from './diff';
 import { GitActionsButton } from './git-actions';
-import { ModeToggle } from './mode-toggle';
+import { ModeToggle, PreviewActions } from './mode-toggle';
 import { ProjectBreadcrumb } from './project-breadcrumb';
 import { PublishButton } from './publish';
 
@@ -65,15 +71,22 @@ export const TopBar = observer(() => {
                 <CurrentPageSelector />
                 {EDITOR_SCOPE.components && <ComponentEditCrumb />}
                 <span className="ml-2 hidden md:block">
-                    <ConnectionChip />
+                    {editorEngine.activeSandbox.cloudSource ? <SaveStatus source={editorEngine.activeSandbox.cloudSource} /> : <ConnectionChip />}
                 </span>
             </div>
 
             {/* Center: mode toggle (dropdown on mobile, tabs on desktop) */}
-            <ModeToggle />
+            {editorEngine.activeSandbox.cloudSource ? <CloudModeSwitch /> : <ModeToggle />}
 
             {/* Right: desktop shows all actions; mobile shows only avatar + publish */}
-            <div className="flex flex-grow basis-0 items-center justify-end gap-1.5">
+            <div className="flex flex-grow basis-0 items-center justify-end gap-2">
+                {editorEngine.branches.hasActiveBranch && editorEngine.branches.activeBranch.runtime.type === 'local' && (
+                    <SanityBlogDialog projectId={editorEngine.projectId} branchId={editorEngine.branches.activeBranch.id} />
+                )}
+                {editorEngine.activeSandbox.cloudSource?.state.access?.canManage && <CloudMembers scope={editorEngine.activeSandbox.cloudSource.scope} />}
+                {editorEngine.activeSandbox.cloudSource && (editorEngine.activeSandbox.cloudSource.state.profile === 'starter-v1' ||
+                    (editorEngine.activeSandbox.cloudSource.state.profile === 'imported-next-v1' && editorEngine.activeSandbox.cloudSource.state.access?.canEditImportedStudio)) &&
+                    editorEngine.activeSandbox.cloudSource.canEditContent && <CloudStudioTools key={editorEngine.activeSandbox.cloudSource.scope.branchId} source={editorEngine.activeSandbox.cloudSource} />}
                 {/* md+: undo/redo */}
                 <motion.div
                     className="hidden md:flex md:items-center"
@@ -127,7 +140,8 @@ export const TopBar = observer(() => {
                     </Tooltip>
                     )}
                     {EDITOR_SCOPE.versionHistory && <DiffButton />}
-                    <GitActionsButton />
+                    <PreviewActions />
+                    {!editorEngine.activeSandbox.cloudSource && <GitActionsButton />}
                     {EDITOR_SCOPE.members && <Members />}
                 </div>
 
@@ -142,7 +156,7 @@ export const TopBar = observer(() => {
                         <p>{t('editor.topBar.profile')}</p>
                     </TooltipContent>
                 </Tooltip>
-                <PublishButton />
+                <>{editorEngine.activeSandbox.cloudSource ? <CloudReleaseDialog key={editorEngine.activeSandbox.cloudSource.scope.branchId} source={editorEngine.activeSandbox.cloudSource} /> : <PublishButton />}</>
             </div>
         </div>
     );

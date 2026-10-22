@@ -17,6 +17,8 @@ import { cn } from '@weblab/ui/utils';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
+import { CloudContentPanel } from '@/components/cloud-editor/content-panel';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 import { OPEN_CHAT_PANEL_EVENT, OPEN_STYLE_PANEL_EVENT } from '@/components/store/editor/chat';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
@@ -27,6 +29,7 @@ import { ChatControls } from './chat-tab/controls';
 import { FIX_ERRORS_EVENT } from './chat-tab/error';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
+import { useLinkTarget } from './link-tab/use-link-target';
 
 // Style tab is not the default active tab — defer its module load until the
 // user switches to it. Each tab is only rendered when its value is active
@@ -52,15 +55,19 @@ const CommentsTab = dynamic(() => import('./comments-tab').then((m) => m.Comment
 const InteractionsTab = dynamic(() => import('./interactions-tab').then((m) => m.InteractionsTab), {
     ssr: false,
 });
+const LinkTab = dynamic(() => import('./link-tab').then((m) => m.LinkTab), {
+    ssr: false,
+});
 
-type RightPanelTab = 'style' | 'interactions' | 'chat';
+type RightPanelTab = 'style' | 'link' | 'interactions' | 'chat';
 
 /** Tabs outside the local release scope fall back to Style. */
-const isTabEnabled = (tab: RightPanelTab): boolean =>
+const isTabEnabled = (tab: RightPanelTab, scoped = false): boolean =>
     tab === 'style' ||
-    (tab === 'chat' && EDITOR_SCOPE.aiChat) ||
+    tab === 'link' ||
+    (tab === 'chat' && !scoped && EDITOR_SCOPE.aiChat) ||
     (tab === 'interactions' && EDITOR_SCOPE.interactions);
-const enabledTab = (tab: RightPanelTab): RightPanelTab => (isTabEnabled(tab) ? tab : 'style');
+const enabledTab = (tab: RightPanelTab, scoped = false): RightPanelTab => (isTabEnabled(tab, scoped) ? tab : 'style');
 
 const DEFAULT_PANEL_WIDTH = 352;
 // While the project is being scaffolded from a prompt the chat is the primary
@@ -96,7 +103,7 @@ const STORAGE_KEYS = {
 } as const;
 
 const isRightPanelTab = (value: unknown): value is RightPanelTab =>
-    value === 'style' || value === 'interactions' || value === 'chat';
+    value === 'style' || value === 'link' || value === 'interactions' || value === 'chat';
 
 const readStoredWidth = (): number | null => {
     if (typeof window === 'undefined') return null;
@@ -144,13 +151,14 @@ const writeStored = (key: string, value: string): void => {
 
 export const RightPanel = observer(() => {
     const editorEngine = useEditorEngine();
+    const scoped = !!useScopedProject();
     const t = useTranslations();
     // Guard the empty-projectId boot window: `useQuery` with a blank id cast
     // to `Id<'projects'>` would fire an invalid query during engine init.
     // 'skip' until the engine has a real projectId (Convex 'skip' sentinel).
     const creationRequest = useQuery(
         api.projectCreateRequests.getPendingRequest,
-        editorEngine.projectId ? { projectId: editorEngine.projectId as Id<'projects'> } : 'skip',
+        !scoped && editorEngine.projectId ? { projectId: editorEngine.projectId as Id<'projects'> } : 'skip',
     );
     const isFirstCreation = !!creationRequest;
     const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
@@ -162,10 +170,10 @@ export const RightPanel = observer(() => {
     const [panelWidth, setPanelWidth] = useState(
         isFirstCreation ? FIRST_CREATION_PANEL_WIDTH : DEFAULT_PANEL_WIDTH,
     );
-    const [activeTab, setActiveTabState] = useState<RightPanelTab>(enabledTab('chat'));
+    const [activeTab, setActiveTabState] = useState<RightPanelTab>(enabledTab('chat', scoped));
     const setActiveTab = useCallback(
-        (tab: RightPanelTab) => setActiveTabState(enabledTab(tab)),
-        [],
+        (tab: RightPanelTab) => setActiveTabState(enabledTab(tab, scoped)),
+        [scoped],
     );
     // `ResizablePanel` only reads `defaultWidth` at mount; to apply a restored
     // width after hydration we push it through `forceWidth` once. Left
@@ -181,13 +189,26 @@ export const RightPanel = observer(() => {
     // mode and bounce the user off it if it was the active tab when they
     // entered CODE so they don't land on an empty disabled tab.
     const isCodeMode = editorEngine.state.editorMode === EditorMode.CODE;
-    const isCommentMode = editorEngine.state.editorMode === EditorMode.COMMENT;
+    const isCommentMode = !scoped && editorEngine.state.editorMode === EditorMode.COMMENT;
+    // Link tab: enabled when the selection is, or sits inside, a link or button.
+    const linkTarget = useLinkTarget();
+    const isLinkTabDisabled = isCodeMode || linkTarget.status !== 'found';
 
     useEffect(() => {
-        if (isCodeMode && (activeTab === 'style' || activeTab === 'interactions')) {
+        if (
+            isCodeMode &&
+            (activeTab === 'style' || activeTab === 'link' || activeTab === 'interactions')
+        ) {
             setActiveTab('chat');
         }
     }, [isCodeMode, activeTab]);
+
+    // Leave the Link tab once the selection is no longer a link or button.
+    useEffect(() => {
+        if (activeTab === 'link' && linkTarget.status === 'none' && !isCodeMode) {
+            setActiveTab('style');
+        }
+    }, [activeTab, linkTarget.status, isCodeMode, setActiveTab]);
 
     useEffect(() => {
         if (isCommentMode) {
@@ -240,7 +261,7 @@ export const RightPanel = observer(() => {
     useEffect(() => {
         const gained = hasElementSelection && !prevHasSelection.current;
         prevHasSelection.current = hasElementSelection;
-        if (gained && !isCodeMode && activeTab !== 'style') {
+        if (gained && !isCodeMode && activeTab !== 'style' && activeTab !== 'link') {
             setActiveTab('style');
         }
     }, [hasElementSelection, isCodeMode, activeTab]);
@@ -334,8 +355,11 @@ export const RightPanel = observer(() => {
     // and uncomment the two toggle buttons below.
     const rightCollapsed = editorEngine.state.panelsHidden;
     const styleLabel = t(transKeys.editor.panels.edit.tabs.styles.name);
+    const linkLabel = t(transKeys.editor.panels.edit.tabs.link.name);
     const interactionsLabel = t(transKeys.editor.panels.edit.tabs.interactions.name);
     const chatLabel = t(transKeys.editor.panels.edit.tabs.chat.name);
+
+    if (!editorEngine.canUseDesign) return <aside className="bg-background-chrome h-full w-80 overflow-y-auto border-l"><CloudContentPanel /></aside>;
 
     return (
         <div
@@ -392,6 +416,7 @@ export const RightPanel = observer(() => {
                     className="animate-in fade-in slide-in-from-right-2 overflow-hidden duration-200"
                 >
                     <DropdownManagerProvider>
+                        {editorEngine.activeSandbox.cloudSource && <CloudContentPanel />}
                         {isCommentMode ? (
                             <div className="flex h-full min-w-0 flex-col gap-0">
                                 <div className="flex h-10 w-full flex-row items-center border-b px-2">
@@ -482,6 +507,52 @@ export const RightPanel = observer(() => {
                                                 </Tooltip>
                                             );
                                         })()}
+                                        {(() => {
+                                            const showLinkLabel = !isNarrow || activeTab === 'link';
+                                            const linkTrigger = (
+                                                <TabsTrigger
+                                                    value="link"
+                                                    disabled={isLinkTabDisabled}
+                                                    aria-label={linkLabel}
+                                                    title={showLinkLabel ? undefined : linkLabel}
+                                                    className={cn(
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:text-mini relative h-7 gap-1.5 rounded-md',
+                                                        showLinkLabel
+                                                            ? 'px-2.5'
+                                                            : 'w-7 flex-none px-0',
+                                                        isLinkTabDisabled &&
+                                                            'cursor-not-allowed opacity-40',
+                                                    )}
+                                                >
+                                                    <Icons.Link className="h-3 w-3 shrink-0" />
+                                                    {showLinkLabel && linkLabel}
+                                                </TabsTrigger>
+                                            );
+                                            // Same reason as Style above: only wrap in
+                                            // a tooltip while disabled, so the active
+                                            // tab keeps its `data-state`.
+                                            if (!isLinkTabDisabled) return linkTrigger;
+                                            return (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="inline-flex">
+                                                            {linkTrigger}
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom" hideArrow>
+                                                        {isCodeMode
+                                                            ? t(
+                                                                  transKeys.editor.panels.edit.tabs
+                                                                      .styles.availableInDesignMode,
+                                                              )
+                                                            : t(
+                                                                  transKeys.editor.panels.edit.tabs
+                                                                      .link.selectHint,
+                                                              )}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            );
+                                        })()}
                                         {EDITOR_SCOPE.interactions && (() => {
                                             const showInteractionsLabel =
                                                 !isNarrow || activeTab === 'interactions';
@@ -523,7 +594,7 @@ export const RightPanel = observer(() => {
                                                 </Tooltip>
                                             );
                                         })()}
-                                        {EDITOR_SCOPE.aiChat && (
+                                        {!scoped && EDITOR_SCOPE.aiChat && (
                                         <>
                                         <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                         <TabsTrigger
@@ -548,7 +619,7 @@ export const RightPanel = observer(() => {
                                         )}
                                     </TabsList>
                                     <div className="ml-auto flex shrink-0 items-center gap-0.5">
-                                        {activeTab === 'chat' && (
+                                        {!scoped && activeTab === 'chat' && (
                                             <>
                                                 <ChatControls
                                                     compact={isChatControlsCompact}
@@ -611,10 +682,10 @@ export const RightPanel = observer(() => {
                                         */}
                                     </div>
                                 </div>
-                                <ChatHistory
+                                {!scoped && <ChatHistory
                                     isOpen={isChatHistoryOpen}
                                     onOpenChange={setIsChatHistoryOpen}
-                                />
+                                />}
 
                                 <TabsContent
                                     value="style"
@@ -625,6 +696,13 @@ export const RightPanel = observer(() => {
                                         chunk; gating render avoids paying for the
                                         observer subtree on first paint. */}
                                     {activeTab === 'style' && <StyleTab />}
+                                </TabsContent>
+
+                                <TabsContent
+                                    value="link"
+                                    className="min-h-0 flex-1 overflow-hidden"
+                                >
+                                    {activeTab === 'link' && <LinkTab target={linkTarget} />}
                                 </TabsContent>
 
                                 <TabsContent
@@ -639,7 +717,7 @@ export const RightPanel = observer(() => {
                                     className="min-h-0 flex-1 overflow-hidden"
                                 >
                                     <div className="flex h-full flex-col overflow-y-auto">
-                                        {currentConversation ? (
+                                        {!scoped && (currentConversation ? (
                                             <ChatTab
                                                 conversationId={currentConversation.id}
                                                 projectId={editorEngine.projectId}
@@ -665,7 +743,7 @@ export const RightPanel = observer(() => {
                                                     )}
                                                 </Button>
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 </TabsContent>
                             </Tabs>

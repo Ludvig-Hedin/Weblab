@@ -64,7 +64,7 @@ const COPY: Record<
 };
 
 export const ProjectLoadError = observer(
-    ({ variant, message }: { variant: Variant; message?: string }) => {
+    ({ variant, message, onRetry }: { variant: Variant; message?: string; onRetry?: () => void }) => {
         const router = useRouter();
         const copy = COPY[variant];
         // `ProjectLoadError` can render BEFORE `EditorEngineProvider` mounts
@@ -79,6 +79,10 @@ export const ProjectLoadError = observer(
         const [isRetrying, setIsRetrying] = useState(false);
 
         const handleRetry = async () => {
+            if (onRetry) {
+                onRetry();
+                return;
+            }
             // No engine available → fall back to a plain server refresh.
             // This is the path taken when the error was thrown from the
             // page Server Component before providers mounted.
@@ -87,6 +91,12 @@ export const ProjectLoadError = observer(
                 return;
             }
 
+            if (editorEngine.branches.hasActiveBranch && editorEngine.activeSandbox.cloudSource) {
+                // A failed source load aborted engine initialization. Reconnect
+                // alone cannot finish the remaining stores; rebuild the engine.
+                window.location.reload();
+                return;
+            }
             setIsRetrying(true);
             try {
                 // The failed sandbox state lives in MobX. `reconnect` falls
@@ -131,7 +141,7 @@ export const ProjectLoadError = observer(
                     <h1 className="text-title3 font-medium">{copy.title}</h1>
                     <p className="text-foreground-secondary text-small">{copy.description}</p>
                     {message && variant === 'unknown' && (
-                        <pre className="text-foreground-tertiary bg-background-secondary text-mini max-w-full rounded-md px-3 py-2 break-words whitespace-pre-wrap">
+                        <pre className="text-foreground-tertiary text-mini max-w-full break-words whitespace-pre-wrap">
                             {message}
                         </pre>
                     )}

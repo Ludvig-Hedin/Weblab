@@ -9,6 +9,12 @@ import { scaffoldFigmaProjectFiles } from '@weblab/figma';
 import type { Doc, Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
 import { action, internalAction } from './_generated/server';
+import { estimateModelCostUsd, FIXED_CALL_COST_USD } from './lib/aiActionPricing';
+import {
+    allowForcedScreenshot,
+    assertAiAllowedForAction,
+    recordActionSpend,
+} from './lib/aiGuardAction';
 import { deriveRepoName } from './lib/repoName';
 import { mapSandboxProvisionError, type SandboxErrorData } from './lib/sandboxErrors';
 
@@ -109,6 +115,32 @@ function toLivenessState(status: number): 'alive' | 'gone' | 'notFound' | 'error
 }
 
 /**
+ * True only when the preview URL is actually serving the site right now.
+ *
+ * Sandboxes stop after their timeout, and a stopped or deleted Vercel sandbox
+ * answers with a tiny plain-text 404/410 ("This sandbox was not found"). Firecrawl
+ * happily screenshots that — an almost entirely white page — and we used to
+ * persist it over the project's real thumbnail. The dashboard backfill re-captures
+ * every preview older than 24h, by which point nearly every sandbox is stopped, so
+ * every card ended up white. Local (http://localhost) dev servers are also
+ * unreachable from Firecrawl's cloud. Skip both instead of storing an error page.
+ */
+async function isPreviewServing(url: string): Promise<boolean> {
+    try {
+        if (new URL(url).protocol !== 'https:') return false;
+        // GET, not HEAD: some dev servers answer HEAD with 405.
+        const response = await fetch(url, {
+            redirect: 'manual',
+            signal: AbortSignal.timeout(8_000),
+        });
+        void response.body?.cancel();
+        return response.status < 400;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Captures a screenshot of the project's preview URL via Firecrawl,
  * compresses via sharp, uploads to Convex File Storage, and persists the
  * storage id on the project.
@@ -117,6 +149,7 @@ function toLivenessState(status: number): 'alive' | 'gone' | 'notFound' | 'error
  *   - FIRECRAWL_API_KEY is not configured
  *   - the project was captured in the last 30 minutes (use `force: true` to
  *     bypass the dedupe)
+ *   - the preview URL isn't serving (stopped sandbox, localhost, error page)
  */
 export const captureScreenshot = action({
     args: {
@@ -150,7 +183,14 @@ export const captureScreenshot = action({
             if (!project) {
                 throw new Error('NOT_FOUND: project');
             }
-            if (!args.force && project.updatedPreviewImgAt) {
+            // `force` bypasses the 30-min dedupe, but at most once per project
+            // per 5 minutes (aiGuardConfig.screenshotForce) — a looping client
+            // can't turn it into unbounded paid Firecrawl captures. A refused
+            // force just falls back to the normal dedupe below.
+            const force = args.force
+                ? await allowForcedScreenshot(ctx, args.projectId)
+                : false;
+            if (!force && project.updatedPreviewImgAt) {
                 const ageMs = Date.now() - project.updatedPreviewImgAt;
                 if (ageMs < 30 * 60 * 1000) {
                     return { success: true as const, skipped: 'recent' as const };
@@ -179,6 +219,13 @@ export const captureScreenshot = action({
             }
             const url = frameUrl;
 
+            // Never overwrite a good thumbnail with a stopped sandbox's
+            // white error page. success:false so the editor retries on its
+            // next debounce instead of treating this as a fresh capture.
+            if (!(await isPreviewServing(url))) {
+                return { success: false as const, skipped: 'preview_unavailable' as const };
+            }
+
             // Firecrawl REST API — direct fetch, no SDK dependency.
             const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
                 method: 'POST',
@@ -200,13 +247,21 @@ export const captureScreenshot = action({
                     `Firecrawl HTTP ${fcRes.status}: ${await fcRes.text().catch(() => '')}`,
                 );
             }
+            // Firecrawl bills per scrape; count it toward the spend caps.
+            await recordActionSpend(ctx, FIXED_CALL_COST_USD.firecrawlScrape);
             const fcJson = (await fcRes.json()) as {
                 success: boolean;
                 error?: string;
-                data?: { screenshot?: string };
+                data?: { screenshot?: string; metadata?: { statusCode?: number } };
             };
             if (!fcJson.success) {
                 throw new Error(`Failed to scrape URL: ${fcJson.error ?? 'Unknown error'}`);
+            }
+            // The sandbox can stop between the probe and the scrape; don't
+            // persist a screenshot of an error page.
+            const scrapedStatus = fcJson.data?.metadata?.statusCode;
+            if (typeof scrapedStatus === 'number' && scrapedStatus >= 400) {
+                return { success: false as const, skipped: 'preview_unavailable' as const };
             }
             const screenshotUrl = fcJson.data?.screenshot;
             if (!screenshotUrl) throw new Error('Invalid screenshot URL');
@@ -1332,6 +1387,8 @@ export const restoreSandbox = action({
  * Generates a concise project name from a user prompt via OpenRouter.
  * Falls back to "New Project" on error or empty model response.
  */
+const GENERATE_NAME_MAX_PROMPT_CHARS = 2_000;
+
 export const generateName = action({
     args: { prompt: v.string() },
     handler: async (ctx, { prompt }): Promise<string> => {
@@ -1342,13 +1399,19 @@ export const generateName = action({
             const apiKey = process.env.OPENROUTER_API_KEY;
             if (!apiKey) return 'New Project';
 
+            // Runaway safeguards: kill switch, budgets, per-user rate limit.
+            // Blocked → caught below → the "New Project" fallback.
+            await assertAiAllowedForAction(ctx);
+            // A name needs only the gist of the prompt; bound the billed input.
+            const namePrompt = prompt.slice(0, GENERATE_NAME_MAX_PROMPT_CHARS);
+
             const MAX_NAME_LENGTH = 50;
             const body = {
                 model: 'openai/gpt-5',
                 messages: [
                     {
                         role: 'user',
-                        content: `Generate a concise and meaningful project name (2-4 words maximum) that reflects the main purpose or theme of the project based on user's creation prompt. Generate only the project name, nothing else. Keep it short and descriptive. User's creation prompt: <prompt>${prompt}</prompt>`,
+                        content: `Generate a concise and meaningful project name (2-4 words maximum) that reflects the main purpose or theme of the project based on user's creation prompt. Generate only the project name, nothing else. Keep it short and descriptive. User's creation prompt: <prompt>${namePrompt}</prompt>`,
                     },
                 ],
                 max_tokens: 50,
@@ -1364,7 +1427,15 @@ export const generateName = action({
             if (!res.ok) return 'New Project';
             const json = (await res.json()) as {
                 choices?: { message?: { content?: string } }[];
+                usage?: { prompt_tokens?: number; completion_tokens?: number };
             };
+            await recordActionSpend(
+                ctx,
+                estimateModelCostUsd('openai/gpt-5', {
+                    inputTokens: json.usage?.prompt_tokens,
+                    outputTokens: json.usage?.completion_tokens,
+                }),
+            );
             const text = json.choices?.[0]?.message?.content?.trim() ?? '';
             if (text.length > 0 && text.length <= MAX_NAME_LENGTH) {
                 return text;

@@ -30,15 +30,29 @@ import { toDbMessage } from '@weblab/db';
 import { CHAT_MODEL_OPTIONS, ChatType, IMAGE_MAX_PER_TURN } from '@weblab/models';
 
 import type { Id } from '../../../../convex/_generated/dataModel';
+import { env } from '@/env';
 import { trackEvent } from '@/utils/analytics/server';
 import {
+    aiDisabledResponse,
+    buildTurnGuard,
     checkMessageLimit,
     decrementUsage,
+    enforceAiGuards,
     errorHandler,
     getSupabaseUser,
     incrementUsage,
+    recordAiSpend,
+    usageUnavailableResponse,
     validateMessagePayload,
 } from './helpers';
+
+// Long agent turns stream for minutes (up to 8 model steps per POST). Cap the
+// function so a hung upstream can't hold a worker (and spend) open forever.
+export const maxDuration = 300;
+
+// Flat per-image provider cost estimate for the spend safeguards (gpt-image
+// class models run ~$0.04–$0.19 per image).
+const IMAGE_ESTIMATED_COST_USD = 0.1;
 
 const getConvexToken = async (): Promise<string | undefined> => {
     const { getToken } = await auth();
@@ -200,6 +214,9 @@ async function runWithTimeout<T>(
 }
 
 export async function POST(req: NextRequest) {
+    // Kill switch first: no auth/Convex round-trips while AI is paused.
+    const paused = aiDisabledResponse();
+    if (paused) return paused;
     try {
         const user = await getSupabaseUser(req);
         if (!user) {
@@ -358,6 +375,21 @@ const streamResponse = async (req: NextRequest, userId: string) => {
         }
     }
 
+    // Runaway / spike safeguards (Convex): kill switch, fleet daily budget,
+    // per-user spend caps, shared LLM request rate limit, and the server-side
+    // auto-continuation cap (a continuation POST ends with the assistant's
+    // tool-call message; the turn is keyed by the last user message id).
+    // Premium models (Opus 5.5, GPT-6 Astra) are Pro-only: the gate checks
+    // the plan itself (one tier lookup) and answers 403 `pro_model_required`
+    // BEFORE recording anything, so a refused request uses no rate budget.
+    const guard = await enforceAiGuards({
+        bucket: 'llm',
+        turn: buildTurnGuard(conversationId, messages),
+        model: selectedModel as string,
+        token: convexToken,
+    });
+    if (!guard.ok) return guard.response;
+
     // Up-front usage record. Increment is the real concurrency-safe gate;
     // checkMessageLimit can pass under concurrency (it reads a pre-deduction
     // count). If increment fails with USAGE_LIMIT_REACHED, refuse before
@@ -384,9 +416,17 @@ const streamResponse = async (req: NextRequest, userId: string) => {
         // trace IDs across users and poison telemetry.
         const traceId = uuidv4();
 
-        if (chatType === ChatType.EDIT && !isLocalModel) {
+        // Every chat type is charged (reserve now, reconcile to real cost).
+        if (!isLocalModel) {
             const incrementResult = await incrementUsage(req, traceId);
+            if (incrementResult && 'incrementFailed' in incrementResult) {
+                // Fail closed: never stream an unmetered response.
+                await guard.release();
+                return usageUnavailableResponse();
+            }
             if (incrementResult && 'limitReached' in incrementResult) {
+                // Refused: don't let this request count against rate limits.
+                await guard.release();
                 // Include `usage` so the client renders the "Get more credits"
                 // upgrade CTA (error-message.tsx gates that button on
                 // code===402 && usage). The sibling checkMessageLimit 402 above
@@ -458,7 +498,15 @@ const streamResponse = async (req: NextRequest, userId: string) => {
             if (imagesThisTurn > IMAGE_MAX_PER_TURN) {
                 throw new Error('IMAGE_TURN_CAP_REACHED');
             }
-            return fetchMutation(api.usage.reserveImage, { traceId }, { token: convexToken });
+            const handle = await fetchMutation(
+                api.usage.reserveImage,
+                { traceId },
+                { token: convexToken },
+            );
+            // Count the image's provider cost toward the spend safeguards
+            // (conservative flat estimate; not un-counted if generation fails).
+            void recordAiSpend(IMAGE_ESTIMATED_COST_USD, convexToken);
+            return handle;
         };
         const releaseImageCredits = async (handle: {
             usageRecordId: string | undefined;
@@ -534,6 +582,7 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                 await fetchMutation(
                     api.aiUsageEvents.insert,
                     {
+                        serverSecret: env.AI_GUARD_SECRET,
                         userId: userId as Id<'users'>,
                         conversationId: event.conversationId
                             ? (event.conversationId as Id<'conversations'>)
@@ -568,7 +617,11 @@ const streamResponse = async (req: NextRequest, userId: string) => {
             // not reconciled. Best-effort — a failure here must never break the
             // stream, so it's logged and swallowed (the user keeps the
             // conservative 1-credit charge).
-            if (usageRecord?.usageRecordId && !usageRefunded && !event.errorType) {
+            // Aborted turns that produced output are billed for what was used;
+            // with no measured cost the reserved credit stands.
+            const billable =
+                !event.errorType || (event.errorType === 'aborted' && event.estimatedCostUsd > 0);
+            if (usageRecord?.usageRecordId && !usageRefunded && billable) {
                 try {
                     await fetchMutation(
                         api.usage.reconcileUsage,
@@ -664,13 +717,12 @@ const streamResponse = async (req: NextRequest, userId: string) => {
                     );
 
                 if (isAborted || !responseHasContent) {
-                    // Refund the reserved credit — keeping aborted/empty turns free
-                    // for the user is deliberate (a Stop click shouldn't cost a
-                    // credit). But still RECORD the partial provider spend so it's
-                    // tracked: finalizeUsage with an errorType writes the
-                    // aiUsageEvents row and the sink skips credit reconcile (it gates
-                    // on `!errorType`), so this never double-charges.
-                    await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
+                    // Stop after output started: charge what was used (the sink
+                    // reconciles the reserved credit to the partial cost). Empty
+                    // turns, and Stop before any output, are refunded.
+                    if (!(isAborted && responseHasContent)) {
+                        await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
+                    }
                     const partialUsage = await readTotalUsage();
                     const abortToolCallCount = countToolCalls(responseMessage?.parts);
                     try {
@@ -742,9 +794,19 @@ const streamResponse = async (req: NextRequest, userId: string) => {
             },
             onError: (error) => {
                 void refundUsageOnce('stream_error');
-                void built.finalizeUsage({
-                    errorType: error instanceof Error ? error.name : 'unknown',
-                    sink: usageSink,
+                // Record what the completed steps cost before the error
+                // (multi-step turns can spend a lot before failing).
+                // readTotalUsage is timeout-bounded; this runs detached so the
+                // error response isn't delayed.
+                void (async () => {
+                    const usage = await readTotalUsage();
+                    await built.finalizeUsage({
+                        usage,
+                        errorType: error instanceof Error ? error.name : 'unknown',
+                        sink: usageSink,
+                    });
+                })().catch((err: unknown) => {
+                    console.warn('[chat] failed to record errored-turn usage', err);
                 });
                 return errorHandler(error);
             },

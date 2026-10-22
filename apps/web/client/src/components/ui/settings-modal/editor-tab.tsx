@@ -11,6 +11,8 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
+import { useWorkingLevel } from '@/components/working-level/provider';
+import { WorkingLevelSelector } from '@/components/working-level/selector';
 
 type PendingChanges = {
     shouldWarnDelete?: boolean;
@@ -20,6 +22,7 @@ type PendingChanges = {
 
 export const EditorTab = observer(() => {
     const t = useTranslations();
+    const workingLevel = useWorkingLevel();
     const userSettings = useQuery(api.users.getSettings);
     const updateSettingsMutation = useMutation(api.users.updateSettings);
     const [savedFlash, setSavedFlash] = useState(false);
@@ -96,8 +99,17 @@ export const EditorTab = observer(() => {
         </span>
     );
 
+    if (workingLevel.native !== false && (workingLevel.pending || workingLevel.level !== 'full')) {
+        return <div className="px-6 py-6"><h2 className="text-largePlus mb-3">{t('workingLevel.title')}</h2>
+            <WorkingLevelSelector level={workingLevel.level} onChange={workingLevel.choose} disabled={workingLevel.pending} nextOpen sessionOnly={workingLevel.storageFailed} />
+        </div>;
+    }
+
     return (
         <div className="divide-border flex flex-col divide-y px-6">
+            {workingLevel.native && <section className="space-y-3 py-6"><h2 className="text-largePlus">{t('workingLevel.title')}</h2>
+                <WorkingLevelSelector level={workingLevel.level} onChange={workingLevel.choose} disabled={workingLevel.pending} nextOpen sessionOnly={workingLevel.storageFailed} />
+            </section>}
             <section className="space-y-4 py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>

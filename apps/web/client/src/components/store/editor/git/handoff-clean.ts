@@ -4,7 +4,7 @@ import {
     WEBLAB_DEV_IX_RUNTIME_PATH,
     WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
 } from '@weblab/constants';
-import { generate, getAstFromContent, removeIdsFromAst, t, traverse } from '@weblab/parser';
+import { generate, getAstFromContent, getRenderedJsxText, isLocalMiddlewareFile, removeIdsFromAst, stripLocalMiddleware, t, traverse } from '@weblab/parser';
 
 /**
  * Turns a private working copy's changes into a clean Git handoff.
@@ -63,12 +63,14 @@ export function cleanHandoffFile(file: HandoffFileChange): CleanHandoffFile {
     if (HTML_SOURCE.test(file.path)) {
         return { ...file, updated: stripHtmlInstrumentation(file.updated), reformatted: false };
     }
-    if (!JSX_SOURCE.test(file.path) || !file.updated.includes(EditorAttributes.DATA_WEBLAB_ID)) {
+    const middleware = isLocalMiddlewareFile(file.path);
+    if (!JSX_SOURCE.test(file.path) || (!middleware && !file.updated.includes(EditorAttributes.DATA_WEBLAB_ID))) {
         return { ...file, reformatted: false };
     }
     const originalAst = file.original === null ? null : getAstFromContent(file.original);
     const cleanAst = getAstFromContent(file.updated);
     if (!cleanAst) return { ...file, reformatted: false };
+    if (middleware) stripLocalMiddleware(cleanAst, originalAst);
     stripInstrumentation(cleanAst, originalAst ? importsNextScript(originalAst) : false);
     const cleanCode = generate(cleanAst, { retainLines: true }, file.updated).code;
 
@@ -154,35 +156,21 @@ function collectElements(ast: T.File): T.JSXElement[] {
 }
 
 function code(node: T.Node): string {
-    return generate(node, { compact: true, comments: false }).code;
-}
-
-/** JSX collapses whitespace across lines; compare text the way it renders. */
-function jsxTextValue(value: string): string {
-    const lines = value.split(/\r\n|\n|\r/);
-    return lines
-        .map((line, index) => {
-            let next = line;
-            if (index > 0) next = next.replace(/^[ \t]+/, '');
-            if (index < lines.length - 1) next = next.replace(/[ \t]+$/, '');
-            return next;
-        })
-        .filter((line) => line.length > 0)
-        .join(' ')
-        .trim();
+    return generate(node, { compact: true, comments: true }).code;
 }
 
 function attributeKey(attr: T.JSXAttribute | T.JSXSpreadAttribute): string {
-    return t.isJSXSpreadAttribute(attr) ? `...${code(attr.argument)}` : code(attr.name);
+    return t.isJSXSpreadAttribute(attr) ? `...${canonical(attr.argument)}` : code(attr.name);
 }
 
 function attributeValueKey(attr: T.JSXAttribute): string {
     if (attr.value === null || attr.value === undefined) return 'true';
     if (t.isStringLiteral(attr.value)) return `str:${attr.value.value}`;
-    return `code:${code(attr.value)}`;
+    return `code:${canonical(attr.value)}`;
 }
 
 function replayOntoOriginal(original: string, originalAst: T.File, cleanAst: T.File): string | null {
+    if (canonical(originalAst) === canonical(cleanAst)) return original;
     const before = collectElements(originalAst);
     const after = collectElements(cleanAst);
     if (before.length !== after.length) return null;
@@ -195,7 +183,7 @@ function replayOntoOriginal(original: string, originalAst: T.File, cleanAst: T.F
         if (!attributeEdits(o.openingElement, c.openingElement, edits)) return null;
         if (!childEdits(original, o, c, edits)) return null;
     }
-    if (edits.length === 0) return original;
+    if (edits.length === 0) return null;
 
     edits.sort((a, b) => b.start - a.start);
     let result = original;
@@ -280,39 +268,73 @@ function childEdits(original: string, o: T.JSXElement, c: T.JSXElement, edits: T
 }
 
 function isBlankText(node: T.Node): boolean {
-    return t.isJSXText(node) && jsxTextValue(node.value) === '';
+    return t.isJSXText(node) && getRenderedJsxText(node.value) === '';
 }
 
 function childKey(node: T.Node): string {
-    if (t.isJSXText(node)) return `text:${jsxTextValue(node.value)}`;
-    return `code:${code(node)}`;
+    return canonical(node);
 }
 
-/**
- * Source for a changed child. Text keeps the original's surrounding
- * whitespace so indentation around the edited copy is unchanged.
- */
+function escapeJsxText(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\{/g, '&#123;').replace(/\}/g, '&#125;');
+}
+
+/** Keep newline scaffolding around changed text, without repeating inline spaces. */
 function childSource(next: T.Node, previous: T.Node | null, original: string): string {
     if (!t.isJSXText(next)) return generate(next).code;
-    const value = jsxTextValue(next.value);
+    // JSXText values are decoded by the parser. Escape them before writing
+    // source so literal text cannot turn into markup or an expression.
+    const value = escapeJsxText(getRenderedJsxText(next.value));
     if (previous && t.isJSXText(previous) && previous.start != null && previous.end != null) {
         const raw = original.slice(previous.start, previous.end);
-        const leading = /^\s*/.exec(raw)?.[0] ?? '';
-        const trailing = /\s*$/.exec(raw)?.[0] ?? '';
+        const before = /^[ \t\r\n]*/.exec(raw)?.[0] ?? '';
+        const after = /[ \t\r\n]*$/.exec(raw)?.[0] ?? '';
+        // Only retain line scaffolding. Inline spaces already belong to value.
+        const leading = /[\r\n]/.test(before) ? before : '';
+        const trailing = /[\r\n]/.test(after) ? after : '';
         return `${leading}${value}${trailing}`;
     }
     return value;
 }
 
-/** Formatting-free code used to prove a replay matches the designer's version. */
-function canonical(ast: T.File): string {
-    const copy = t.cloneNode(ast, true);
-    traverse(copy, {
-        JSXText(path: NodePath<T.JSXText>) {
-            const value = jsxTextValue(path.node.value);
-            if (value === '') path.remove();
-            else path.node.value = value;
-        },
+/**
+ * Print safe comparison source. Escaping decoded JSX text keeps literal markup
+ * distinct from real JSX. Comments retain their lexical boundary even when
+ * removing an injected import moves their AST attachment to a neighbor.
+ */
+function canonical(node: T.Node): string {
+    const copy = t.cloneNode(node, true);
+    t.traverseFast(copy, (current) => {
+        if (t.isJSXElement(current) || t.isJSXFragment(current)) {
+            current.children = current.children.filter((child) => !isBlankText(child));
+        }
+        if (t.isJSXText(current)) {
+            current.value = escapeJsxText(getRenderedJsxText(current.value));
+            delete current.extra;
+        }
+        const comments = [
+            ...(current.leadingComments ?? []),
+            ...(current.innerComments ?? []),
+            ...(current.trailingComments ?? []),
+            ...(t.isFile(current) ? current.comments ?? [] : []),
+        ];
+        for (const comment of comments) {
+            if (comment.type === 'CommentBlock') comment.value = commentValue(comment.value);
+        }
     });
     return code(copy);
+}
+
+/** Ignore only the shared indentation of block-comment continuation lines. */
+function commentValue(value: string): string {
+    const lines = value.split('\n');
+    const continuation = lines.slice(1).filter((line) => line !== '');
+    if (continuation.length === 0) return value;
+    let indentation = /^[ \t]*/.exec(continuation[0]!)![0];
+    for (const line of continuation) {
+        while (indentation && !line.startsWith(indentation)) indentation = indentation.slice(0, -1);
+    }
+    if (!indentation) return value;
+    return [lines[0], ...lines.slice(1).map((line) => line.startsWith(indentation) ? line.slice(indentation.length) : line)].join('\n');
 }

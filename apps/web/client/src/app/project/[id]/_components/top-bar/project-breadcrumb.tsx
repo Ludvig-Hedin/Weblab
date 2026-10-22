@@ -31,8 +31,15 @@ import { Routes } from '@/utils/constants';
 import { CloneProjectDialog } from '../clone-project-dialog';
 import { NewProjectMenu } from './new-project-menu';
 import { RecentProjectsMenu } from './recent-projects';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 
 export const ProjectBreadcrumb = observer(() => {
+    const scoped = useScopedProject();
+    if (scoped) return <div className="text-small mr-0 min-w-0 truncate">{scoped.entry.bootstrap.project.name}</div>;
+    return <OrdinaryProjectBreadcrumb />;
+});
+
+const OrdinaryProjectBreadcrumb = observer(() => {
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
     const posthog = usePostHog();
@@ -45,7 +52,10 @@ export const ProjectBreadcrumb = observer(() => {
     const subscription = useQuery(api.subscriptions.get, {});
     const isPro = subscription?.product?.type === ProductType.PRO;
     const { canView, canEdit, isLoading: capsLoading } = useProjectCapabilitiesContext();
-    const showViewerPill = !capsLoading && canView && !canEdit;
+    const cloudSource = editorEngine.branches.hasActiveBranch
+        ? editorEngine.activeSandbox.cloudSource
+        : null;
+    const showViewerPill = !capsLoading && canView && !canEdit && !cloudSource?.canEditContent;
     const t = useTranslations();
     const closeTimeoutRef = useRef<Timer | null>(null);
     const navTimeoutRef = useRef<Timer | null>(null);
@@ -157,19 +167,21 @@ export const ProjectBreadcrumb = observer(() => {
                     <Button
                         variant="ghost"
                         className={cn(
-                            'text-foreground-weblab text-small hover:text-foreground-active group -ml-0.5 cursor-pointer gap-2 px-1.5',
+                            'text-foreground-weblab text-regular hover:text-foreground-active group -ml-0.5 cursor-pointer gap-2.5 px-1.5',
                             isDropdownOpen
                                 ? 'bg-background-secondary hover:!bg-background-secondary'
                                 : 'hover:!bg-transparent',
                         )}
                     >
+                        {/* size-5, not h-/w-: the Button's icon rule only skips
+                            svgs with a size-* class, so h-9 w-9 got shrunk to 16px. */}
                         <Icons.WeblabLogo
                             className={cn(
-                                'hidden h-9 w-9 md:block',
+                                'hidden size-5 md:block',
                                 isClosingProject && 'animate-pulse',
                             )}
                         />
-                        <span className="text-foreground-weblab text-small group-hover:text-foreground-active mx-0 max-w-[60px] cursor-pointer truncate px-0 md:max-w-[100px] lg:max-w-[200px]">
+                        <span className="text-foreground-weblab text-regular group-hover:text-foreground-active mx-0 max-w-[60px] cursor-pointer truncate px-0 md:max-w-[100px] lg:max-w-[200px]">
                             {isClosingProject ? 'Stopping project...' : project?.name}
                         </span>
                     </Button>

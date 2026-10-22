@@ -16,12 +16,49 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-09-29 — Read-only local startup diagnosis
+Author: Codex
+Area: Desktop local preview, CLI chat, editor canvas
+Summary: A failed or 30-second-stalled local setup offers Fix startup with Codex or Claude Code. It opens a fresh chat, sends a short issue category instead of raw startup logs, and enforces a read-only first turn that proposes file changes before the user approves an edit. The CLI stays in the active branch's private copy; the original source still uses reviewed Git handoff.
+Files: `canvas/frame/index.tsx`, `local-startup-recovery.ts`, `use-chat/cli-transport.ts`, `apps/desktop/cli/{claude,codex-events}.js`
+Links: F-801, T-841, changelog v5.0. Live packaged desktop proof remains open.
+
+---
+
 ## 2026-09-28 — Variables tab and color variable binding
 Author: Claude
 Area: `apps/web/client` left panel, style panel v4, `TokensManager`
 Summary: New left-panel Variables tab (`LeftPanelTabValue.VARIABLES`, `EDITOR_SCOPE.variables`) shows globals.css tokens as collections with a Name/Value list, reusing the Brand tab rows, groups, inline editors and add form. Token rows get a hover edit button. In the style panel, fill, text and border color rows detect a Tailwind class bound to a variable (`bg-brand`, `bg-(--x)`, palette `bg-red-500`), show its name, and offer hover edit (popover with the same editor), detach (writes `bg-[#hex]` from the rendered color) and connect (pick a color variable). Binding and detach rewrite the className directly because `var()` values have no Tailwind translation. The text style chip gets hover edit + detach.
 Files: `left-panel/design-panel/variables-tab/index.tsx`, `right-panel/style-tab-v4/controls/{bound-color-row,variable-controls,color-row,style-chip-picker}.tsx`, `right-panel/style-tab-v4/hooks/use-color-variable.ts`, `components/store/editor/tokens/{color-binding,index}.ts`
 Links: F-800, T-839, T-840. Gaps in BACKLOG: rename does not rewrite classes; class edits flatten dynamic classNames.
+
+---
+
+## 2026-09-25 — Local CLI chat models (Claude Code, Codex) in the desktop app
+Author: Claude
+Area: `apps/desktop/cli`, `apps/desktop/weblab-cli.js`, `apps/desktop/weblab-local.js`, `apps/web/client` chat transport + picker + message cards, `packages/ai` manifest
+Summary: Picking Claude Code or Codex on a local project now runs the user's own CLI inside the private working copy (main process refuses any other folder) and streams the reply, reasoning and read-only action cards into chat. Claude: `claude -p` stream-json with partial messages, `acceptEdits`, Bash disallowed, `--resume` per conversation. Codex: new `codex app-server` JSON-RPC adapter (read-only sandbox, `untrusted` approvals; edits accepted only inside the folder, commands declined), `thread/resume`. Real sign-in probes (`claude auth status`, `codex login status`) with the login-shell PATH. Stop kills the process tree. After each turn only the files the CLI itself reported editing are journaled (gitignored, `.git`/`.claude`/`.codex`/`node_modules` and symlinked paths skipped, with a chat note) so the Git handoff includes them. The CLI gets an allowlisted environment; Claude runs with `--strict-mcp-config --setting-sources user` and path deny rules; Codex has the user's MCP servers switched off per turn. One turn per folder; quit waits up to 5s for turns to finish. CLI activity is sent as `data-cli-tool` parts, not AI SDK tool parts, so the chat hook never executes them and cloud turns never replay foreign tool calls.
+Files: `apps/desktop/cli/{claude,claude-events,codex,codex-events,process,shared,status,main-bridge}.js`, `apps/desktop/weblab-cli.js`, `apps/web/client/src/app/project/[id]/_hooks/use-chat/cli-transport.ts`, `apps/web/client/src/lib/cli-chat/*`, `model-picker/model-selector-v2.tsx`, `message-content/cli-tool-card.tsx`
+Links: F-799, T-837, T-838. Gaps: CLI turns are not persisted server-side (chat history after reload); Codex model list is a single "your default model" entry.
+
+---
+
+## 2026-09-25 — AI runaway / spike safeguards
+Author: Claude
+Area: `apps/web/client` AI routes + Convex, `packages/ai`, `packages/models`
+Summary: One Convex gate (`aiGuards.checkAndRecord`) now runs before every AI model call: kill switch (`AI_DISABLED`), fleet daily budget ($20 real USD, `AI_DAILY_BUDGET_USD`, tagged `[AI_BUDGET_EXCEEDED]` logs), per-user rolling-hour/day spend caps from real cost, per-user request limits (chat/summarize/inline/terminal share 20/min + 400/h; tab complete 120/min; Convex helper actions 20/min + 200/h), and a 5-per-turn auto-continuation cap (client + server). Chat output is capped at 32k tokens instead of the context window; credit-increment outages now fail closed with a 503; `edit_image` reserves image credits; tab complete reserves before generating; Whisper cost is recorded. Numbers live in `convex/lib/aiGuardConfig.ts`, overridable with Convex env vars.
+Files: `apps/web/client/convex/aiGuards.ts`, `apps/web/client/convex/lib/aiGuard*.ts`, `apps/web/client/src/app/api/chat/helpers/ai-guard*.ts`, AI route handlers, `use-chat/continuation-cap.ts`, `packages/models/src/llm/index.ts` (`getMaxOutputTokens`)
+Links: F-797, F-798, T-833…T-836. Needs `bunx convex deploy` before the Next.js deploy (the Next side fails open only while the gate is missing).
+
+---
+
+## 2026-09-23 — Mini visual editor scope, clean Git handoff, verified local slice
+Author: Claude
+Area: `apps/web/client` editor, `apps/desktop` handoff
+Summary: The editor is trimmed through one switch file (`src/lib/editor-scope.ts`) to text, color, typography, spacing, size, flex layout, borders, layers and pages; AI chat, interactions, comments, CMS, components, brand, branches, image upload, history, members and rare CSS are hidden. The Git patch handoff now strips `data-oid`, bootstrap scripts and editor assets and replays attribute/text edits onto the original source so formatting survives. Breakpoint edits write prefixed Tailwind classes that match the preview.
+Validation: web-client typecheck clean; eslint 0 errors on changed files; focused bun tests 111 web + 65 desktop pass; preload bundle rebuilt. Live desktop QA pending.
+Files: `apps/web/client/src/lib/editor-scope.ts`, `apps/web/client/src/components/store/editor/git/handoff-clean.ts`, `apps/desktop/weblab-local.js`
+Links: commits `ea00bbec0`, `6ec364d51`
 
 ---
 
@@ -1230,3 +1267,7 @@ Notable in-flight work as of this log's creation (see
   guards (rename project, offline-pin toggle); busy state threaded into the
   cancel-subscription modal; "Deleting…" label on project delete.
 - **Validation:** bun typecheck clean; changed-file ESLint 0 errors.
+
+## 2026-10-02 — Native customer readiness preparation, source only
+
+Private customer-copy proof, known-Sanity publication refusal, bounded owner/site/branch/writer code drafts, two-phase history/text close and failed responsive-intention retention are implemented and source-reviewed. Native CMS immutable snapshot v2 retains only validated public choice/reference/link rules; legacy v1 stays unchanged. Latest draft19, teardown19, text8, rebase9, CMS27 and policy/service/snapshot36 focused cases passed; final web-client typecheck passed. Focused lint has0 errors with warnings. No push/deploy/new installer/provider-write acceptance. Content UI, frozen customer runtime/assets and shared live coordinator remain blockers. Links: F-804–814, T-846–854, [comparison](../audits/desktop-client-readiness-2026-10-01.md), [next boundaries](../notes/2026-10-02-native-cms-publishing-next.md). No public release announcement yet.

@@ -29,7 +29,7 @@ import {
     cacheProject,
     evictCachedProject,
     getCachedProject,
-    precacheNavigationUrls,
+    precacheOfflineShell,
     requestPersistentStorage,
 } from '@/services/offline/project-cache';
 
@@ -119,7 +119,7 @@ export const ProjectTab = observer(() => {
             if (next) {
                 await pinOffline({ projectId });
                 if (project) {
-                    // Refresh the IndexedDB cache so the editor can boot offline immediately.
+                    // Refresh local project data for recovery in an already loaded editor.
                     // TODO(convex): adapter for project/branches cache shape may need updating.
                     await cacheProject(
                         project as unknown as Parameters<typeof cacheProject>[0],
@@ -127,10 +127,8 @@ export const ProjectTab = observer(() => {
                     );
                 }
                 await requestPersistentStorage();
-                // Seed the service worker's navigation cache with this
-                // project's URL so the first offline visit doesn't fall
-                // through to /offline. Safe no-op if SW isn't installed.
-                await precacheNavigationUrls([`/project/${editorEngine.projectId}`, '/projects']);
+                // Warm the anonymous offline page without fetching private documents.
+                await precacheOfflineShell();
                 toast.success(t('toastOfflineOn'));
             } else {
                 await unpinOffline({ projectId });

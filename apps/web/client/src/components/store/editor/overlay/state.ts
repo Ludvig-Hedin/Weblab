@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 import { nanoid } from 'nanoid/non-secure';
 
-import type { DomElementStyles, RectDimensions } from '@weblab/models';
+import type { DomElementStyles, RectDimensions, TextRenderMode } from '@weblab/models';
 
 export interface MeasurementState {
     fromRect: RectDimensions;
@@ -15,6 +15,7 @@ export interface ClickRectState extends RectDimensions {
 }
 
 export interface TextEditorState {
+    textRenderMode?: TextRenderMode;
     rect: RectDimensions;
     content: string;
     styles: Record<string, string>;
@@ -74,6 +75,10 @@ export class OverlayState {
         ];
     };
 
+    replaceClickRects = (rects: ClickRectState[]) => {
+        this.clickRects = rects;
+    };
+
     updateClickedRects = (newRect: Partial<RectDimensions>) => {
         // Replace the array (and each element) rather than Object.assign-ing in
         // place. The canvas overlay memoizes its rendered rects on the
@@ -122,8 +127,9 @@ export class OverlayState {
         onChange: (content: string) => void,
         onStop: () => void,
         isComponent?: boolean,
+        textRenderMode: TextRenderMode = 'legacy',
     ) => {
-        this.textEditor = { rect, content, styles, onChange, onStop, isComponent };
+        this.textEditor = { rect, content, styles, onChange, onStop, isComponent, textRenderMode };
     };
 
     updateTextEditor = (
