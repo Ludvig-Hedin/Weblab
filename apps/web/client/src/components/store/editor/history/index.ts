@@ -1,6 +1,8 @@
+import { freezeCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
 import { freezeCloudTextApproval } from '../sandbox/cloud-source';
 import { debounce } from 'lodash';
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { Action } from '@weblab/models/actions';
 import { jsonClone } from '@weblab/utility';
@@ -11,6 +13,10 @@ import { clearHistory, loadHistory, saveHistory } from './storage';
 
 /** Keep a copied authority pin immutable while the stack remains observable. */
 function retainCloudTextHistoryPin(action: Action): Action {
+    if (action.type === 'write-code' && action.cloudProperty) return { ...action, cloudProperty: observable.object({
+        previousValue: action.cloudProperty.previousValue, value: action.cloudProperty.value, pin: freezeCloudPropertyApproval(action.cloudProperty.pin) }, { pin: observable.ref }) };
+    if (action.type === 'write-code' && action.cloudImage) return { ...action, cloudImage: observable.object({
+        field: action.cloudImage.field, pin: freezeCloudImageApproval(action.cloudImage.pin) }, { pin: observable.ref }) };
     return action.type === 'edit-text' && action.cloudText
         ? { ...action, cloudText: freezeCloudTextApproval(action.cloudText) }
         : action;
@@ -619,7 +625,7 @@ export class HistoryManager {
         await Promise.allSettled(Array.from(this.pendingWrites.values()));
         this.sourceIsCurrent();
         const expectedExternalRevision = this.externalRevision?.() ?? null;
-        const previousRedo = this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action || (action.type === 'edit-text' && 'cloudText' in action) ? [...this.redoStack] : null;
+        const previousRedo = this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action || 'cloudImage' in action || 'cloudProperty' in action || (action.type === 'edit-text' && 'cloudText' in action) ? [...this.redoStack] : null;
         if (this.redoStack.length > 0) {
             this.redoStack = [];
         }
@@ -847,7 +853,8 @@ export class HistoryManager {
             if (top == null) {
                 return null;
             }
-            const forward = forwardCandidate;
+            const forward = forwardCandidate.type === 'write-code' && (forwardCandidate.cloudImage || forwardCandidate.cloudProperty)
+                ? retainCloudTextHistoryPin(forwardCandidate) : forwardCandidate;
             this.undoStack.push(forward);
             this.mutationGeneration++;
             // MobX wraps a plain replay action on insertion. Return the actual

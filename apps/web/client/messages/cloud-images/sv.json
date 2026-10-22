@@ -1,1 +1,21 @@
-{"allow":"Tillåt bilduppladdning","upload":"Ladda upp bild","busy":"Laddar upp…","failed":"Uppladdningen kunde inte slutföras. Kontrollera sparstatus innan du försöker igen.","hint":"PNG, JPEG eller WebP, högst 4 MB."}
+{
+    "allow": "Tillåt bilduppladdning",
+    "upload": "Ladda upp bild",
+    "busy": "Laddar upp…",
+    "failed": "Uppladdningen kunde inte slutföras. Kontrollera sparstatus innan du försöker igen.",
+    "hint": "PNG, JPEG eller WebP, högst 4 MB.",
+    "image": "Bild",
+    "alt": "Alt-text",
+    "allowSource": "Tillåt bildbyte",
+    "allowAlt": "Tillåt ändring av alt-text",
+    "currentOnly": "Den nuvarande bilden är det första valet. Uppladdning behöver ett eget tillstånd.",
+    "ratio": "Använd en bild med proportionerna {width}:{height}.",
+    "unsupported": "Den här bilden kan inte redigeras här ännu.",
+    "unapproved": "Din byrå har inte aktiverat ändringar för den här bilden.",
+    "conflicting": "Ta bort det befintliga innehållstillståndet innan bilden godkänns.",
+    "draftPinned": "Utkastet hör till den förra bilden. Välj den igen för att spara, eller kasta utkastet.",
+    "stale": "Bilden eller dess tillstånd har ändrats. Utkastet finns kvar så att du kan kopiera eller kasta texten.",
+    "storageFailed": "Utkastet kunde inte sparas på enheten. Håll panelen öppen och kopiera texten innan du lämnar den.",
+    "save": "Spara",
+    "discard": "Kasta utkast"
+}

@@ -1,9 +1,16 @@
+import type { CloudPropertyApproval } from '@weblab/models/actions';
+import { cloudPropertyWirePin, validCloudPropertyApproval } from './cloud-property-approval';
+import { replaceContentPropertyTarget } from '@weblab/parser/src/code-edit/content-property-target';
+import { assertImportedStudioOperation, studioHashValue } from '@convex/lib/cloudImportedStudioState';
+import { validCloudImageApproval, validCloudImageValue } from './cloud-image-approval';
 import { validateCloudChanges } from '@convex/lib/cloudEditor';
 
 import type {
+    CloudPropertyOperation,
     CloudEditorCommit,
     CloudTextOperation,
     CloudImageOperation,
+    CloudImageV2Operation,
     CloudEditorScope,
     CloudSourceOperation,
     CloudSemanticOperation,
@@ -14,8 +21,15 @@ export type CloudRecoveryOperation = CloudEditorCommit & {
     transport?: string;
     transportVersion?: number;
     expectedContracts?: Array<{ path: string; generation: number; version?: 2; designRevision?: number }>;
-    image?: CloudImageOperation['image'];
+    image?: CloudImageOperation['image'] | CloudImageV2Operation['image'];
+    pin?: CloudImageV2Operation['pin'] | CloudPropertyOperation['pin'];
+    previousValue?: string;
+    choiceId?: string;
+    previous?: CloudImageV2Operation['previous'];
     expectedGeneration?: number;
+    expectedPreparationId?: string;
+    expectedDesignRevision?: number;
+    expectedRecipeFingerprint?: string;
     operation?: CloudSemanticOperation['operation'];
 };
 export type CloudRecoveryRecord = {
@@ -26,6 +40,8 @@ export type CloudRecoveryRecord = {
     disposition: 'pending' | 'rejected';
     definitiveRejection?: boolean;
     createdAt: number;
+    propertyApproval?: CloudPropertyApproval;
+    propertyOriginal?: string;
 };
 
 export interface CloudRecoveryStore {
@@ -85,7 +101,7 @@ export function storedCloudRecoveryRecord(
             if (operation.changes.some((change) => typeof change?.path !== 'string'))
                 throw new CloudRecoveryStorageError();
         } else if (operation.transport === 'studio' || operation.transport === 'journal') {
-            if (record.version !== 2 || operation.transportVersion !== 1 || !validSemanticOperation(operation))
+            if (record.version !== 2 || !validSemanticOperation(operation))
                 throw new CloudRecoveryStorageError();
         } else validateCloudChanges(operation.changes);
         if (
@@ -109,7 +125,29 @@ export function storedCloudRecoveryRecord(
 /** Unknown protocols remain downloadable, but can never choose a save endpoint. */
 export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSourceOperation | null {
     const operation = record.operation;
+    if (operation.transport === 'content-property' && operation.transportVersion === 1) {
+        const pin = record.propertyApproval, original = record.propertyOriginal, change = operation.changes[0];
+        if (record.version !== 2 || !validCloudPropertyApproval(pin) || typeof original !== 'string' || pin.actorId !== operation.actorId ||
+            pin.projectId !== operation.projectId || pin.branchId !== operation.branchId || pin.designRevision > operation.expectedRevision ||
+            !operation.pin || Object.keys(operation.pin).sort().join(',') !== 'bindingId,definitionHash,designRevision,generation,path,preparationId,version' ||
+            Object.entries(cloudPropertyWirePin(pin)).some(([key, value]) => Reflect.get(operation.pin!, key) !== value) ||
+            Object.keys(operation).sort().join(',') !== 'actorId,branchId,changes,choiceId,expectedRevision,operationId,pin,previousValue,projectId,transport,transportVersion' ||
+            operation.changes.length !== 1 || !change || Object.keys(change).sort().join(',') !== 'content,path' || change.path !== pin.path || typeof change.content !== 'string' ||
+            typeof operation.previousValue !== 'string' || !pin.binding.options.some(option => option.value === operation.previousValue)) return null;
+        const choice = pin.binding.options.find(option => option.id === operation.choiceId);
+        if (!choice || choice.value === operation.previousValue) return null;
+        try {
+            if (new TextEncoder().encode(JSON.stringify(record)).byteLength > 4_000_000 ||
+                replaceContentPropertyTarget(original, pin.binding.target, operation.previousValue, choice.value) !== change.content) return null;
+        } catch { return null; }
+        return operation as CloudPropertyOperation;
+    }
+    if (record.propertyApproval !== undefined || record.propertyOriginal !== undefined || operation.previousValue !== undefined || operation.choiceId !== undefined) return null;
+    if (operation.transport === 'studio' && operation.transportVersion === 2)
+        return record.version === 2 && validSemanticOperation(operation) ? operation as CloudSemanticOperation : null;
+    if (operation.expectedPreparationId !== undefined || operation.expectedDesignRevision !== undefined || operation.expectedRecipeFingerprint !== undefined) return null;
     if (record.version === 1) {
+        if (operation.pin !== undefined || operation.previous !== undefined) return null;
         if (
             operation.transport !== undefined ||
             operation.transportVersion !== undefined ||
@@ -119,6 +157,25 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
         return { ...operation, transport: 'design', transportVersion: 1 };
     }
     if (record.version !== 2) return null;
+    if (operation.transport === 'content-image' && operation.transportVersion === 2) {
+        const pin = operation.pin, image = operation.image, previous = operation.previous;
+        if (!pin || typeof pin !== 'object' || Array.isArray(pin) || !('binding' in pin) || Object.keys(pin).sort().join(',') !== 'binding,designRevision,fingerprint,generation,path,version' ||
+            !validCloudImageApproval({ ...pin, projectId: operation.projectId, branchId: operation.branchId, actorId: operation.actorId }) ||
+            pin.designRevision > operation.expectedRevision || !image || typeof image !== 'object' || !('kind' in image) || !validCloudImageValue(previous) ||
+            operation.expectedContracts !== undefined || operation.operation !== undefined || operation.expectedGeneration !== undefined ||
+            operation.changes.filter(change => change.path === pin.path && typeof change.content === 'string' && change.directory === undefined).length !== 1) return null;
+        if (image.kind === 'values') {
+            if (Object.keys(image).join(',') !== 'kind' || operation.changes.length !== 1) return null;
+        } else if (image.kind === 'upload') {
+            if (Object.keys(image).sort().join(',') !== 'attemptId,kind' || typeof image.attemptId !== 'string' || !image.attemptId.length ||
+                image.attemptId.length > 160 || /[^A-Za-z0-9_:-]/.test(image.attemptId) || operation.changes.length > 2 ||
+                operation.changes.some(change => change.path !== pin.path && (change.directory !== undefined ||
+                    !/^public\/weblab-upload-[a-f0-9]{64}\.webp$/.test(change.path) || change.path.length !== 90 ||
+                    !(change.content instanceof ArrayBuffer) || change.content.byteLength < 1 || change.content.byteLength > 600_000))) return null;
+        } else return null;
+        return operation as CloudImageV2Operation;
+    }
+    if (operation.pin !== undefined || operation.previous !== undefined) return null;
     if (operation.transport === 'content' && operation.transportVersion === 2) {
         const pins = operation.expectedContracts;
         if (!Array.isArray(pins) || !pins.length || pins.length !== operation.changes.length ||
@@ -139,7 +196,7 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
         return validSemanticOperation(operation) ? operation as CloudSemanticOperation : null;
     if (operation.transport === 'content-image') {
         const pin = operation.image;
-        if (!pin || typeof pin.attemptId !== 'string' || typeof pin.path !== 'string' || typeof pin.oid !== 'string' ||
+        if (!pin || typeof pin !== 'object' || 'kind' in pin || !('attemptId' in pin) || typeof pin.attemptId !== 'string' || typeof pin.path !== 'string' || typeof pin.oid !== 'string' ||
             !Number.isSafeInteger(pin.generation) || pin.generation < 1 ||
             !/^public\/weblab-upload-[a-f0-9]{64}\.webp$/.test(pin.assetPath) || operation.expectedContracts !== undefined ||
             operation.changes.length < 1 || operation.changes.length > 2 ||
@@ -171,11 +228,20 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
     return paths.size === 0 ? (operation as CloudSourceOperation) : null;
 }
 
-/** A restored semantic request can only select one of the two fixed, validated server actions. */
+/** A restored semantic request can only select its fixed, validated server action. */
 export function validSemanticOperation(operation: CloudRecoveryOperation): boolean {
-    if (operation.changes.length !== 0 || operation.image !== undefined || operation.expectedContracts !== undefined ||
+    if (operation.changes.length !== 0 || operation.pin !== undefined || operation.previous !== undefined || operation.image !== undefined || operation.expectedContracts !== undefined ||
         !Number.isSafeInteger(operation.expectedGeneration) || operation.expectedGeneration! < 0 ||
         !operation.operation || typeof operation.operation !== 'object' || Array.isArray(operation.operation)) return false;
+    if (operation.transport === 'studio' && operation.transportVersion === 2) {
+        if (operation.pin !== undefined || operation.previous !== undefined || typeof operation.expectedPreparationId !== 'string' ||
+            !operation.expectedPreparationId.length || operation.expectedPreparationId.length > 160 || /[^A-Za-z0-9_:-]/.test(operation.expectedPreparationId) ||
+            !Number.isSafeInteger(operation.expectedDesignRevision) || operation.expectedDesignRevision! < 1 ||
+            operation.expectedDesignRevision! > operation.expectedRevision ||
+            (operation.operation.kind === 'capture' ? operation.expectedRecipeFingerprint !== '' : !studioHashValue(operation.expectedRecipeFingerprint))) return false;
+        try { assertImportedStudioOperation(operation.operation); return true; } catch { return false; }
+    }
+    if (operation.transportVersion !== 1 || operation.expectedPreparationId !== undefined || operation.expectedDesignRevision !== undefined || operation.expectedRecipeFingerprint !== undefined) return false;
     const kinds = operation.transport === 'studio'
         ? ['install', 'configure', 'approveSlot', 'createPage', 'insertBlock', 'moveBlock', 'removeBlock']
         : operation.transport === 'journal' ? ['save', 'archive', 'restore'] : [];
@@ -187,7 +253,9 @@ export function validSemanticOperation(operation: CloudRecoveryOperation): boole
 function sameOperation(left: CloudRecoveryRecord, right: CloudRecoveryRecord): boolean {
     const canonical = (record: CloudRecoveryRecord) =>
         JSON.stringify(
-            cloudRecoveryOperation(record) ?? record.operation,
+            record.operation.transport === 'content-property'
+                ? { operation: record.operation, propertyApproval: record.propertyApproval, propertyOriginal: record.propertyOriginal }
+                : cloudRecoveryOperation(record) ?? record.operation,
             (_key, value: unknown) => {
                 if (value instanceof ArrayBuffer)
                     return { binary: Array.from(new Uint8Array(value)) };

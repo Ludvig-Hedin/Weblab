@@ -1,0 +1,23 @@
+{
+  "link": "Link destination",
+  "tone": "Hero appearance",
+  "shared": "Applies wherever this component is used.",
+  "page": "Applies to this page.",
+  "light": "Light",
+  "dark": "Dark",
+  "current": "Current destination",
+  "label": "Option name",
+  "destination": "Destination",
+  "add": "Add destination",
+  "remove": "Remove option",
+  "approve": "Allow these choices",
+  "revoke": "Remove permission",
+  "locked": "Your designer controls these choices.",
+  "stale": "Return to this element to finish. If its permissions changed, discard these choices and start again.",
+  "failed": "Could not save. Your choices are still here.",
+  "savedReload": "Saved. Reload before making another change.",
+  "unknownReload": "The permission change could not be confirmed. Copy any choices you want to keep, then reload to check the saved permissions.",
+  "copy": "Copy choices",
+  "discard": "Discard choices",
+  "keepCurrent": "Keep the current value among the allowed choices."
+}

@@ -171,3 +171,8 @@ These routes need private deployment and connected acceptance. They are not an a
 ### Private release review launcher (2026-10-05)
 
 `/cloud-review/[releaseId]` (F-833) is an authenticated, non-cached app-side opening step. A normal link opens it; a session-bound one-use ticket is then POSTed in the same tab to the isolated review origin. It does not expose a ticket in its URL or host customer code. Local dummy/mounted checks are distinct from live provider acceptance.
+
+
+### Next-release imported image inspection (2026-10-22)
+
+`/api/cloud-editor/images/inspect` accepts the explicit imported-image v2 inspection protocol, with the existing initiating-session bearer verifier, bounded decode and gated backend admission (F-852). The existing image upload route keeps v1 and v2 dispatch separate. Source recovery does not activate either imported image flag or provider publication.

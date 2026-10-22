@@ -1320,3 +1320,16 @@ Published [desktop-local-v0.2.2](https://github.com/Ludvig-Hedin/Weblab/releases
 ## 2026-10-22 — Next-release paused-editor and imported-text recovery
 
 Recovered separate imported v2 text approval/save endpoints and original actor/contract/revision pins through source writes, durable recovery and Undo/Redo. Saved canvas identity and plain-string wiring passed focused local checks, with web/preload/parser/filesystem types and zero-error scoped lint. The paused team shell now waits for actual window closure before stopping native services, preserving running previews/CLI work after a renderer veto. Both cloud rollout gates remain off, and the public release stays pinned to `d124aea1e`. Source integration is separate from packaged Electron and real customer acceptance. F-851 / T-895; F-813 unload continuation.
+
+
+## 2026-10-22 — Next-release CSS, preview and image source checkpoint
+
+Recovered the saved narrow CSS Module controls and immutable source owner through Apply/Undo/Redo, with final native JSX dependency checks. Public Sanity preview settings coexist with private Preview Keys outside project source/export. Imported-image v2 backend/HTTP/source transport retains explicit gates, original actors, storage provenance and exact recovery operations. Fresh source reviews and focused batches pass; web types are still unverified after two RAM-guard terminations and scoped lint is queued. No current-package/customer acceptance, deployment or activation is claimed. F-849/F-850/F-852, T-893/T-894/T-898.
+
+### 2026-10-22 — Imported controls, Pages and approved properties, next-release source
+
+Recovered image controls with immutable history, imported Pages/approved-block recipes and separate approved link/component properties. Current actor, source and live DOM-instance identity are checked around asynchronous work and recovery. Focused source checks pass; final combined types/lint and connected acceptance remain separate. Frozen snapshots and protected/private-review work continue locally; no activation or deployment. F-852–854, T-899–901.
+
+### 2026-10-22 — Retained versions, protected review and publication recovery, source only
+
+Recovered exact imported frozen source/media/Studio provenance, separate public eligibility and protected/publishable candidates, encrypted destination credentials, final-send authority, factual alias outcomes and indexed recovery beyond recent lists. Retained version removal reauthorizes each bounded phase and preserves exact tombstone receipts. Saved frontend intents retain initiating session/actor and original request across uncertainty. Independent source reviews are clear; final57 frontend and198 provider/lifecycle cases pass. Final retained backend rerun, combined types and release-slice lint remain blocked by the installed shared guard. All current donor source is represented; superseded and excluded private customer implementations stay archived. F-828/F-834/F-855, T-902–904. No deploy, operator registration, provider write or activation.

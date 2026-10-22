@@ -13,6 +13,16 @@ import { _approvalInput, _selectionInput, _approve, _commit, _input, contracts, 
 import { approve, commit, resolveSelection } from '../cloudEditorTextActions';
 const hash = (text: string) => createHash('sha256').update(text).digest('hex');
 
+const imageBinding = {
+    bindingId: 'hero-image', target: { kind: 'object-image', exportName: 'aboutHero', srcProperty: 'imageSrc', altProperty: 'imageAlt' },
+    fields: ['src', 'alt'], allowImageUploads: true,
+    originalAsset: { path: 'public/about.webp', hash: hash('image'), bytes: 100 },
+    aspectRatio: { width: 16, height: 9 }, allowedAssets: [{ path: 'public/about.webp', hash: hash('image'), bytes: 100 }],
+    renderMapping: { version: 1, kind: 'object-prop-image', mappingId: 'about-hero',
+        callsite: { path: 'app/about/page.tsx', exportName: 'AboutPage', oid: 'mount' },
+        renderer: { path: 'src/components/page-hero.tsx', exportName: 'PageHero', oid: 'image' } },
+};
+
 const scope = { projectId: 'projects:one' as Id<'projects'>, branchId: 'branches:one' as Id<'branches'> };
 const workspaceId = 'workspaces:one' as Id<'workspaces'>;
 const page = (id: string) => `export function Hero() { return <main data-oid="root-${id}"><h1 data-oid="title-${id}">Hello</h1></main>; }`;
@@ -202,10 +212,39 @@ describe('imported v2 text handlers', () => {
         expect(f.writes).toEqual([]);
     });
 
-    it('does not expose or revoke empty and legacy-family rows as text approvals', async () => {
+    it('keeps active image approvals out of text controls and refuses replacing or revoking them', async () => {
+        const f = await fixture(); await f.approvePath();
+        const row = [...f.table('cloudEditorContentContracts').values()][0]!;
+        row.textBindings = [];
+        row.imageBindings = [imageBinding];
+        const before = structuredClone(row);
+        f.writes.length = 0;
+        expect((await contracts._handler(f.ctx, scope)).contracts).toEqual([]);
+        await expect(f.approvePath('app/page.tsx', 'title-one', 1)).rejects.toThrow('CLOUD_CONTENT_IMAGE_APPROVAL_EXISTS');
+        await expect(revoke._handler(f.ctx, { ...scope, actorId: 'users:builder' as Id<'users'>, path: 'app/page.tsx', expectedGeneration: 1 })).rejects.toThrow('CLOUD_CONTENT_STALE_CONTRACT');
+        f.signIn('customer');
+        expect((await contracts._handler(f.ctx, scope)).contracts).toEqual([]);
+        await expect(commit._handler(f.action, f.request())).rejects.toThrow('CLOUD_CONTENT_STALE_CONTRACT');
+        expect(row).toEqual(before);
+        expect(f.writes).toEqual([]);
+    });
+
+    it('rechecks the approval family at the final text approval write', async () => {
+        const f = await fixture(); await f.approvePath();
+        const row = [...f.table('cloudEditorContentContracts').values()][0]!;
+        f.writes.length = 0;
+        f.beforeApproval(() => { row.textBindings = []; row.imageBindings = [imageBinding]; });
+        await expect(f.approvePath('app/page.tsx', 'title-one', 1)).rejects.toThrow('CLOUD_CONTENT_IMAGE_APPROVAL_EXISTS');
+        expect(row.imageBindings).toEqual([imageBinding]);
+        expect(row.generation).toBe(1);
+        expect(f.writes).toEqual([]);
+    });
+
+    it('does not expose or revoke empty and mixed-family rows as text approvals', async () => {
         for (const change of [
             { textBindings: [] },
             { bindings: [{ oid: 'legacy', fields: ['text'] }] },
+            { imageBindings: [imageBinding] },
         ]) {
             const f = await fixture(); await f.approvePath();
             const row = [...f.table('cloudEditorContentContracts').values()][0]!;

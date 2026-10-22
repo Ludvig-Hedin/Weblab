@@ -25,6 +25,7 @@ export class FileSystem {
     }
     private basePath: string;
     private watchers = new Map<string, any[]>();
+    private readonly directoryWatchCleanups = new Set<() => void>();
     private watcherTimeouts = new Map<string, NodeJS.Timeout>();
     private isInitialized = false;
 
@@ -464,131 +465,113 @@ export class FileSystem {
     }
 
     watchDirectory(inputPath: string, callback: (event: FileChangeEvent) => void) {
-        if (!this.fs) throw new Error('File system not initialized');
+        const backend = this.fs;
+        if (!backend) throw new Error('File system not initialized');
+        const fullPath = this.resolveSafe(inputPath);
 
-        const watchers: any[] = [];
+        const watchers = new Set<ReturnType<typeof backend.watch>>();
         const watchedPaths = new Set<string>();
+        const timers = new Map<string, ReturnType<typeof setTimeout>>();
+        let disposed = false;
 
         const setupWatcher = (dirPath: string) => {
-            if (watchedPaths.has(dirPath)) return;
-            watchedPaths.add(dirPath);
-
-            const watcher = this.fs!.watch(dirPath, async (eventType, filename) => {
-                if (!filename) return;
-
+            if (disposed || watchedPaths.has(dirPath)) return;
+            const watcher = backend.watch(dirPath, (eventType, filename) => {
+                if (disposed || !filename) return;
                 const relativePath = path.relative(this.basePath, dirPath);
                 const filePath = path.join(relativePath, filename);
-
-                const timeoutKey = `watch-dir:${filePath}`;
-
-                const existingTimeout = this.watcherTimeouts.get(timeoutKey);
-                if (existingTimeout) {
-                    clearTimeout(existingTimeout);
-                }
+                const previous = timers.get(filePath);
+                if (previous !== undefined) clearTimeout(previous);
 
                 const timeout = setTimeout(async () => {
+                    if (disposed || timers.get(filePath) !== timeout) return;
+                    // Remove only this timer before awaiting. A later event can
+                    // install its own timer while a rename stat is in flight.
+                    timers.delete(filePath);
                     const fullPath = this.resolveSafe(filePath);
-
-                    // For rename events, check if the file exists to determine the actual event type
                     if (eventType === 'rename') {
                         try {
-                            const stats = await this.fs!.promises.stat(fullPath);
-
-                            // File exists - determine if it's create or update
+                            const stats = await backend.promises.stat(fullPath);
+                            if (disposed) return;
                             if (watchedPaths.has(fullPath)) {
-                                // Path was already being watched, so it's an update
-                                callback({
-                                    type: 'update',
-                                    path: filePath,
-                                });
+                                callback({ type: 'update', path: filePath });
                             } else {
-                                // New path, it's a create
-                                console.log(`[FileSystem] Detected create for ${filePath}`);
-                                callback({
-                                    type: 'create',
-                                    path: filePath,
-                                });
-
-                                // If it's a new directory, start watching it
-                                if (stats.isDirectory()) {
-                                    await setupWatchersRecursive(fullPath);
-                                }
+                                callback({ type: 'create', path: filePath });
+                                // A consumer may unsubscribe synchronously.
+                                if (disposed) return;
+                                if (stats.isDirectory()) await setupWatchersRecursive(fullPath);
                             }
                         } catch (error) {
-                            // File doesn't exist, it was deleted.
-                            // fs.watch also fires on the watched directory
-                            // itself when IT is deleted, with filename equal to
-                            // its own basename — joining that onto relativePath
-                            // fabricates a phantom child like "public/public".
-                            // Detect the self-event and report the directory's
-                            // own path instead.
+                            if (disposed) return;
+                            // A removed watch root reports its own basename,
+                            // rather than a real child with that same name.
                             let deletedPath = filePath;
                             if (filename === path.basename(dirPath)) {
                                 try {
-                                    await this.fs!.promises.stat(dirPath);
+                                    await backend.promises.stat(dirPath);
+                                    if (disposed) return;
                                 } catch {
+                                    if (disposed) return;
                                     deletedPath = relativePath;
                                     watchedPaths.delete(dirPath);
                                 }
                             }
-
-                            if (!deletedPath) {
-                                // The watch root itself vanished — nothing
-                                // meaningful to report downstream.
-                                this.watcherTimeouts.delete(timeoutKey);
-                                return;
-                            }
-
-                            console.log(`[FileSystem] Detected delete for ${deletedPath}`);
-                            callback({
-                                type: 'delete',
-                                path: deletedPath,
-                            });
-
-                            // Remove from watched paths if it was a directory
+                            if (!deletedPath || disposed) return;
+                            callback({ type: 'delete', path: deletedPath });
+                            if (disposed) return;
                             watchedPaths.delete(fullPath);
                         }
                     } else {
-                        // Change event is an update
-                        callback({
-                            type: 'update',
-                            path: filePath,
-                        });
+                        if (disposed) return;
+                        callback({ type: 'update', path: filePath });
                     }
-
-                    this.watcherTimeouts.delete(timeoutKey);
                 }, 50);
-
-                this.watcherTimeouts.set(timeoutKey, timeout);
+                timers.set(filePath, timeout);
             });
-
-            watchers.push(watcher);
+            if (disposed) {
+                watcher.close();
+                return;
+            }
+            watchedPaths.add(dirPath);
+            watchers.add(watcher);
         };
 
         const setupWatchersRecursive = async (dirPath: string): Promise<void> => {
-            setupWatcher(dirPath);
-
+            if (disposed) return;
             try {
-                const entries = await this.fs!.promises.readdir(dirPath);
+                setupWatcher(dirPath);
+                if (disposed) return;
+                const entries = await backend.promises.readdir(dirPath);
+                if (disposed) return;
                 for (const entry of entries) {
                     const entryPath = path.join(dirPath, entry);
-                    const stats = await this.fs!.promises.stat(entryPath);
+                    const stats = await backend.promises.stat(entryPath);
+                    if (disposed) return;
                     if (stats.isDirectory()) {
                         await setupWatchersRecursive(entryPath);
+                        if (disposed) return;
                     }
                 }
             } catch (err) {
-                // Directory might not exist
+                if (disposed) return;
+                // Directory might no longer exist.
             }
         };
 
-        const fullPath = this.resolveSafe(inputPath);
-        setupWatchersRecursive(fullPath);
-
-        // Return cleanup function
-        return () => {
-            watchers.forEach((w) => w.close());
+        const unsubscribe = () => {
+            if (disposed) return;
+            disposed = true;
+            this.directoryWatchCleanups.delete(unsubscribe);
+            for (const timer of timers.values()) clearTimeout(timer);
+            timers.clear();
+            for (const watcher of watchers) watcher.close();
+            watchers.clear();
+            watchedPaths.clear();
         };
+        // Register before recursive setup crosses its first async boundary.
+        this.directoryWatchCleanups.add(unsubscribe);
+        void setupWatchersRecursive(fullPath);
+        return unsubscribe;
     }
 
     async exists(inputPath: string): Promise<boolean> {
@@ -699,6 +682,7 @@ export class FileSystem {
 
     cleanup(): Promise<void> {
         this.beginClose();
+        for (const unsubscribe of [...this.directoryWatchCleanups]) unsubscribe();
         // Clear all watchers
         for (const watchers of this.watchers.values()) {
             watchers.forEach((w) => w.close());
