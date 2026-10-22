@@ -1,3 +1,6 @@
+import { importedTextAuthority } from './lib/cloudImportedAccess';
+import { getPreparedImport } from './lib/cloudImportedState';
+import { sourceProfileCapabilities, assertExecutableCloudProfile, assertContentCloudProfile } from './lib/cloudImportManifest';
 import { v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
@@ -35,6 +38,7 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
         state.workspaceId !== legacy.workspace._id
     )
         return cloudError('CLOUD_NOT_ENROLLED');
+    const preparation = await getPreparedImport(ctx, state);
     const grant = await ctx.db
         .query('cloudEditorGrants')
         .withIndex('by_projectId_userId', (q) =>
@@ -54,29 +58,45 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
         projectRole: legacy.projectRole,
     };
     const update = can('project.update', resource);
-    const canDesign = role !== null && rank[role] >= rank.designer && update;
-    const canEditContent = role !== null;
-    const canPublish = grant?.publish ?? creator;
+    const profile = sourceProfileCapabilities(state.profile);
+    const importedAuthority = importedTextAuthority(state, preparation);
+    const canDesign = profile.sourceWrite && (!profile.imported || importedAuthority !== null) && role !== null && rank[role] >= rank.designer && update;
+    const canPrepareImport = state.profile === 'imported-source-v1' && update &&
+        (role === 'responsible' || role === 'designer') &&
+        process.env.WEBLAB_CLOUD_IMPORTS_ENABLED === 'true' && process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true';
+    const canReadSource = !profile.imported || ((role === 'responsible' || role === 'designer') && update);
+    const canEditContent = profile.contentWrite && role !== null;
+    const canPreview = profile.preview && role !== null && (!profile.imported || canDesign);
+    const canPublish = profile.release && (grant?.publish ?? creator);
     const canManage = role === 'responsible' && can('project.invite', resource);
     if (minRole) {
         requireEnabled();
+        assertExecutableCloudProfile(state.profile);
+        if (minRole === 'content' && !profile.contentWrite) return cloudError('CLOUD_CONTENT_PROFILE_UNSUPPORTED');
         if (
             !role ||
             rank[role] < rank[minRole] ||
-            (minRole !== 'content' && !update) ||
+            (minRole !== 'content' && !canDesign) ||
             (minRole === 'responsible' && !canManage)
         )
             return cloudError('CLOUD_ROLE_REQUIRED');
     }
-    return { ...legacy, state, branch, role, canDesign, canEditContent, canPublish, canManage };
+    return { ...legacy, state, branch, role, canDesign, canPrepareImport, canReadSource, canPreview, preparation, canEditContent, canPublish, canManage };
+}
+
+/** Starter content/Studio transports cannot mutate prepared imported source. */
+export async function requireStarterCloudAccess(...args: Parameters<typeof requireCloudAccess>) {
+    const access = await requireCloudAccess(...args);
+    assertContentCloudProfile(access.state.profile);
+    return access;
 }
 
 export const access = query({
     args: cloudScope,
     handler: async (ctx, scope) => {
-        const { user, role, canDesign, canEditContent, canPublish, canManage } =
+        const { user, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage } =
             await requireCloudAccess(ctx, scope);
-        return { actorId: user._id, role, canDesign, canEditContent, canPublish, canManage };
+        return { actorId: user._id, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage };
     },
 });
 
@@ -337,11 +357,17 @@ export async function authorizeCloudPreviewStart(
         !state ||
         state.projectId !== scope.projectId ||
         state.version !== 1 ||
+        !sourceProfileCapabilities(state.profile).preview ||
         request?.generation !== requestGeneration ||
         request.expiresAt <= Date.now() ||
         (request.reservedToken !== undefined && request.reservedToken !== token)
     )
         return false;
+    try {
+        const preparation = await getPreparedImport(ctx, state);
+        if (sourceProfileCapabilities(state.profile).imported && !importedTextAuthority(state, preparation)) return false;
+    } catch { return false; }
+    if (sourceProfileCapabilities(state.profile).imported && request.kind !== 'design') return false;
     const user = await ctx.db.get(request.actorId);
     const project = await ctx.db.get(scope.projectId);
     const branch = await ctx.db.get(scope.branchId);

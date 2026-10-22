@@ -12,6 +12,7 @@ import type * as PreviewAccess from '@convex/cloudPreviewAccess';
 import type * as StudioActions from '@convex/cloudEditorStudioActions';
 import type * as JournalActions from '@convex/cloudEditorCmsActions';
 import type * as Images from '@convex/cloudEditorContentImages';
+import type * as ImportPreparation from '@convex/cloudEditorImportPreparationActions';
 
 type BackendApi = ApiFromModules<{
     cloudEditor: typeof Source;
@@ -32,7 +33,10 @@ type PreviewApi = ApiFromModules<{ preview: typeof PreviewAccess }>['preview'];
 type StudioApi = ApiFromModules<{ studio: typeof StudioActions; journal: typeof JournalActions }>;
 type ImagesApi = ApiFromModules<{ images: typeof Images }>['images'];
 
+type ImportPreparationApi = ApiFromModules<{ preparation: typeof ImportPreparation }>['preparation'];
+
 export const cloudEditorApi = {
+    prepareImport: makeFunctionReference<'action', FunctionArgs<ImportPreparationApi['prepare']>, FunctionReturnType<ImportPreparationApi['prepare']>>('cloudEditorImportPreparationActions:prepare'),
     cancelImage: makeFunctionReference<'mutation', FunctionArgs<ImagesApi['cancelPreparation']>, null>('cloudEditorContentImages:cancelPreparation'),
     commitStudio: makeFunctionReference<'action', FunctionArgs<StudioApi['studio']['commit']>, FunctionReturnType<StudioApi['studio']['commit']>>('cloudEditorStudioActions:commit'),
     commitJournal: makeFunctionReference<'action', FunctionArgs<StudioApi['journal']['commit']>, FunctionReturnType<StudioApi['journal']['commit']>>('cloudEditorCmsActions:commit'),
@@ -103,6 +107,8 @@ export type CloudEditorCommitResult = FunctionReturnType<A['commit']>;
 export type CloudEditorAccess = FunctionReturnType<AccessApi['access']>;
 export type CloudEditorContracts = FunctionReturnType<C['contracts']>;
 export type CloudEditorContentCommit = FunctionArgs<CA['commit']>;
+export type CloudEditorImportPreparation = FunctionArgs<ImportPreparationApi['prepare']>;
+export type CloudEditorImportPreparationResult = FunctionReturnType<ImportPreparationApi['prepare']>;
 export type CloudDesignerOperation = CloudEditorCommit & {
     transport: 'design';
     transportVersion: 1;

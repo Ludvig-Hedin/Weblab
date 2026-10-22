@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, internalQuery, query } from './_generated/server';
-import { requireCloudAccess } from './cloudEditorAccess';
+import { requireStarterCloudAccess as requireCloudAccess } from './cloudEditorAccess';
 import { contentBinding } from './cloudEditorContentSchema';
 import { studioOperation, studioSettings } from './cloudEditorStudioSchema';
 import { assertCloudRevision, assertOperationId, cloudError, cloudScope, inlineSourceBytes,

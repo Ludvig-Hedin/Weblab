@@ -508,3 +508,10 @@ Status: Active. Hybrid still planned.
 ## 2026-10-02 — Native release eligibility stays failclosed
 
 Self-selected Content/Full is presentation, never project authority. Known Sanity integrations need frozen source/content/assets/routes together, including non-blog reads; no mutable fallback. Native live switches remain disabled until a shared server destination worker and positive artifact/completion proof exist. CMS snapshot v2 retains validated public field rules and omits provider metadata; immutable v1 is not a complete future runtime contract. Browser drafts are bounded best-effort recovery, not power-loss/reinstall guarantees. [Evidence and remaining boundaries](../audits/desktop-client-readiness-2026-10-01.md). Status: source preparation, no production activation.
+
+
+## 2026-10-22 — Imported source preparation is an immutable boundary
+
+Implementation: an imported folder first uses `imported-source-v1`. An explicit preparation transaction validates its retained original manifest and creates an immutable receipt plus pinned `imported-next-v1` runtime policy. Every runtime admission revalidates provenance; only explicit preview can provision compute. Existing starter content/Studio/backup/release transports refuse imported profiles until their corresponding recovery slice preserves those contracts.
+Context: source-only storage, designer source saves and provider execution have different authority and integrity requirements. An imported folder must not acquire unrestricted starter semantics through an older API or backup copy.
+Status: local recovery source with 273 focused cases; flags off and connected acceptance pending. This records the implemented saved recovery contract, not additional rollout or spending authority. See F-846–848, T-888–890 and BACKLOG.

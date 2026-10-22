@@ -38,6 +38,25 @@ later without re-discovering the context.
 
 ## Open
 
+### Recovered cloud import needs final local and connected acceptance
+
+- **Discovered:** 2026-10-22 (F-846–848 source recovery)
+- **Where:** cloud import/preparation modules and routes, T-888–890
+- **State:** 273 focused cases pass, including mounted import/retry/navigation and legacy API refusal. Web types passed before final admission tightening; repeat after formatting. Focused lint has zero errors and 3,147 warnings before formatting. Normal Convex generation is blocked by missing access to the selected Weblab project. Flags remain off. Original-folder integrity, real invited session, source-only refusal, preparation and explicit finite preview/reconnect remain unproven against connected services.
+- **Next step:** Apply the separately reviewed exact local formatter operation after owner approval, complete final types/lint and normal generation, deploy coherent backend/web source with flags off, then perform the authorized disposable-folder journey before activation. Confirm the exact provider destination and finite allowance rather than selecting a customer project.
+- **Risk if ignored:** Helper or mounted checks are mistaken for a ready connected cloud editor, or imported runtime is activated before its actual provenance and account boundaries are accepted.
+- **Tags:** `#release-blocker` `#test-gap` `#cloud`
+
+### Railway deployment pause and credential incident block web release
+
+- **Discovered:** 2026-10-22, official Railway incident and production deployment history
+- **Where:** Weblab Railway production; https://status.railway.com/incident/QH8L8B3E
+- **State:** Railway paused all deployments during its October 21 security investigation. It recommends rotating stored credentials and reviewing service logs; account-specific exposure is not established. The web service still serves the October 5 release. Credential values were not revealed or copied; the scoped inventory and proposed response remain private, awaiting owner approval.
+- **Next step:** Resolve owner-approved credential containment/replacement with verified provider scope and shared consumers, restore Weblab backend access, then deploy and verify exact checked source when Railway restores builds. Revocation during the pause may interrupt live features; do not silently choose that tradeoff or enable remote CI.
+- **Risk if ignored:** Old potentially affected credentials remain usable, or an old deployment is incorrectly reported as the new release.
+- **Tags:** `#release-blocker` `#security` `#infra`
+
+
 ### Local Mac client publishing needs provider and signed-package acceptance
 
 - **Discovered:** 2026-10-21 (F-843 local client integration)

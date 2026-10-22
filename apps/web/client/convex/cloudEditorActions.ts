@@ -1,5 +1,6 @@
 'use node';
 
+import { loadCloudRuntimeAssets } from './lib/cloudRuntimeAssets';
 import { createHash } from 'node:crypto';
 import { makeFunctionReference } from 'convex/server';
 import { v } from 'convex/values';
@@ -29,19 +30,6 @@ function hash(content: string | ArrayBuffer): string {
     return createHash('sha256').update(typeof content === 'string' ? content : Buffer.from(content)).digest('hex');
 }
 
-/** New projects use reviewed runtime bundles from this deployment, never a caller-supplied URL. */
-async function runtimeFiles(): Promise<Array<{ path: string; content: string }>> {
-    const origin = process.env.WEBLAB_EDITOR_ORIGIN;
-    if (!origin || new URL(origin).protocol !== 'https:') return cloudError('CLOUD_RUNTIME_NOT_CONFIGURED');
-    return Promise.all(['weblab-preload-script.js', 'weblab-ix-runtime.js'].map(async name => {
-        const response = await fetch(new URL(`/${name}?cloudRuntime=20261002-inline-newlines`, origin), { signal: AbortSignal.timeout(15_000), redirect: 'error' });
-        if (!response.ok) return cloudError('CLOUD_RUNTIME_BUNDLE_UNAVAILABLE');
-        const content = await response.text();
-        if (content.length < 100 || content.length > 750_000 || /^\s*</.test(content)) return cloudError('CLOUD_RUNTIME_BUNDLE_UNAVAILABLE');
-        return { path: `public/${name}`, content };
-    }));
-}
-
 export const create = action({
     args: { workspaceId: v.id('workspaces'), name: v.string(), creationId: v.string(), sourcePilotId: v.optional(v.id('projects')) },
     handler: async (ctx, args): Promise<{ projectId: Id<'projects'>; branchId: Id<'branches'> }> => {
@@ -49,7 +37,7 @@ export const create = action({
         const prior = await ctx.runQuery(createdRef, { workspaceId: args.workspaceId, creationId: args.creationId });
         if (prior) return prior;
         const legacy = await ctx.runQuery(prepareRef, { workspaceId: args.workspaceId, sourcePilotId: args.sourcePilotId });
-        const files = [...createCloudEditorFiles(args.name, legacy?.content), ...await runtimeFiles()];
+        const files = [...createCloudEditorFiles(args.name, legacy?.content), ...await loadCloudRuntimeAssets(process.env.WEBLAB_EDITOR_ORIGIN)];
         validateCloudChanges(files);
         return ctx.runMutation(createRef, { ...args, sourcePilotRevision: legacy?.revision, files: files.map(file => ({ path: file.path, kind: 'file' as const,
             text: file.content, bytes: Buffer.byteLength(file.content), hash: hash(file.content) })) });
@@ -65,7 +53,7 @@ export const commit = action({
             hash: c.content === null ? '' : hash(c.content),
         })) }));
         const scope = { projectId: args.projectId, branchId: args.branchId, actorId: args.actorId, expectedRevision: args.expectedRevision, operationId: args.operationId, fingerprint };
-        const prior = await ctx.runQuery(operationRef, scope);
+        const prior = await ctx.runQuery(operationRef, { ...scope, changes: args.changes });
         if (prior) return { revision: prior.revision, currentRevision: prior.currentRevision };
         const attemptId = args.changes.some(change => change.content instanceof ArrayBuffer)
             ? await ctx.runMutation(beginUploadRef, { projectId: args.projectId, branchId: args.branchId, operationId: args.operationId, fingerprint }) : undefined;

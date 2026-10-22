@@ -2,7 +2,7 @@
 // shim keeps the import path alive so unmigrated call sites don't break.
 // Returns null for legacy Supabase paths.
 //
-// New code MUST use `useQuery(api.storage.getFileUrl, { storageId })` from
+// New code must use an authorized parent-record storage endpoint from
 // `convex/react` instead.
 
 // One-shot warn so legacy traffic that still hits this stub surfaces in

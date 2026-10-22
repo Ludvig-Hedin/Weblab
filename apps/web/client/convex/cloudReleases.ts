@@ -1,3 +1,4 @@
+import { assertReleaseCloudProfile, sourceProfileCapabilities } from './lib/cloudImportManifest';
 import { makeFunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 import type { Doc, Id } from './_generated/dataModel';
@@ -19,6 +20,7 @@ const finishRef = makeFunctionReference<'mutation', { operationId: Id<'cloudRele
 function enabled(): boolean { return process.env.WEBLAB_CLOUD_RELEASES_ENABLED === 'true'; }
 export async function releaseAccess(ctx: Context, scope: Scope, publish = false) {
     const access = await requireCloudAccess(ctx, scope);
+    assertReleaseCloudProfile(access.state.profile);
     if (!access.role || (publish && !access.canPublish)) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
     return access;
 }
@@ -42,6 +44,7 @@ async function workerAllowed(ctx: Context, op: Doc<'cloudReleaseOperations'>): P
         ctx.db.query('cloudEditorStates').withIndex('by_branchId', q => q.eq('branchId', op.branchId)).unique(),
     ]);
     if (!user?.clerkUserId || !project || branch?.projectId !== project._id || state?.projectId !== project._id) return false;
+    if (!sourceProfileCapabilities(state.profile).release) return false;
     const workspace = await ctx.db.get(project.workspaceId);
     if (!workspace) return false;
     const [member, workspaceMember, grant] = await Promise.all([

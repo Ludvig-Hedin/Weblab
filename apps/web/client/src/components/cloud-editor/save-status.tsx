@@ -18,7 +18,7 @@ import { Button } from '@weblab/ui/button';
 import type { CloudSource } from '@/components/store/editor/sandbox/cloud-source';
 import { useCloudEditorCopy } from '@/lib/cloud-editor/copy';
 
-type RecoveryAction = 'save' | 'reload' | 'preview' | 'download' | 'permissions';
+type RecoveryAction = 'save' | 'reload' | 'preview' | 'download' | 'permissions' | 'prepare';
 
 export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
     const copy = useCloudEditorCopy();
@@ -27,12 +27,13 @@ export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
     const actionInFlight = useRef(false);
     const [actionError, setActionError] = useState<string | null>(null);
     const [confirmReload, setConfirmReload] = useState(false);
-    const busy = state.pending || state.loading || action !== null;
+    const busy = state.pending || state.loading || state.preparingImport || action !== null;
     const previewFailed = !!state.runtimeError || state.runtime?.status === 'error';
     const sourceProblem = state.conflict || state.needsReload || !!state.error;
 
     let label: string;
-    if (state.discardReloadRequested) label = copy.discardReloadPending;
+    if (state.preparingImport) label = copy.preparingImport;
+    else if (state.discardReloadRequested) label = copy.discardReloadPending;
     else if (state.accessError) label = copy.permissionsUnavailable;
     else if (state.pending) label = copy.saving;
     else if (state.loading || (state.savedRevision === 0 && !sourceProblem))
@@ -46,6 +47,7 @@ export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
             source.hasPendingChanges || state.savedRevision === 0
                 ? copy.saveError
                 : copy.savedReload;
+    else if (state.profile === 'imported-source-v1') label = copy.importSourceSaved;
     else if (state.runtime?.enabled === false) label = `${copy.saved} · ${copy.paused}`;
     else if (previewFailed) label = copy.previewFailed;
     else if (state.runtime?.status === 'stopped') label = `${copy.saved} · ${copy.previewIdle}`;
@@ -54,7 +56,7 @@ export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
     else label = copy.saved;
 
     async function perform(kind: RecoveryAction, discardRecovery = false): Promise<boolean> {
-        if (actionInFlight.current || state.pending || state.loading) return false;
+        if (actionInFlight.current || state.pending || state.loading || state.preparingImport) return false;
         actionInFlight.current = true;
         setAction(kind);
         setActionError(null);
@@ -63,12 +65,13 @@ export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
             else if (kind === 'save') await source.retryPending();
             else if (kind === 'reload') await source.reloadSavedSource({ discardRecovery });
             else if (kind === 'preview') await source.retryPreview();
+            else if (kind === 'prepare') await source.prepareImportedSource();
             else source.downloadPendingChanges();
             return true;
         } catch {
             // Source and preview keep their own error states. Downloads and
             // unexpected failures still need visible feedback here.
-            setActionError(state.discardReloadRequested || state.discardReloadFailed
+            setActionError(kind === 'prepare' ? copy.prepareImportFailed : state.discardReloadRequested || state.discardReloadFailed
                 ? copy.discardReloadFailed : source.hasLocalWork ? copy.finishEdit : copy.genericError);
             return false;
         } finally {
@@ -92,6 +95,29 @@ export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
             >
                 {label}
             </span>
+            {source.canPrepareImport && !sourceProblem && (
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={busy || source.hasPendingChanges || source.hasRecoverableText || source.hasLocalWork}
+                    loading={action === 'prepare'}
+                    onClick={() => { void perform('prepare'); }}
+                >
+                    {copy.prepareImport}
+                </Button>
+            )}
+            {state.profile === 'imported-next-v1' && state.runtime?.status === 'stopped' &&
+                !previewFailed && !sourceProblem && source.canPreview && state.runtime.enabled !== false && (
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        disabled={busy || source.hasLocalWork || source.hasPendingChanges}
+                        loading={action === 'preview'}
+                        onClick={() => { void perform('preview'); }}
+                    >
+                        {copy.openPreview}
+                    </Button>
+                )}
             {(source.hasPendingChanges || source.hasRecoverableText) && (
                 <Button
                     variant="ghost"
@@ -130,7 +156,7 @@ export const SaveStatus = observer(({ source }: { source: CloudSource }) => {
             )}
             {previewFailed &&
                 !sourceProblem &&
-                source.canEditContent &&
+                source.canPreview &&
                 state.runtime?.enabled !== false && (
                     <Button
                         variant="ghost"

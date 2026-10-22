@@ -1,3 +1,4 @@
+import { isImportedCloudProfile } from '@convex/lib/cloudImportManifest';
 import { validateCloudChanges } from '@convex/lib/cloudEditor';
 import { observable, runInAction } from 'mobx';
 
@@ -25,6 +26,7 @@ import type {
     CloudSourceOperation,
 } from '@/lib/cloud-editor/api';
 import { cloudEditorApi } from '@/lib/cloud-editor/api';
+import { readImportedAsset } from '@/lib/cloud-imports/client';
 import { clearAcknowledgedJournalDraft } from '@/lib/cloud-editor/journal-drafts';
 import {
     cloudRecoveryOperation,
@@ -131,7 +133,9 @@ async function decodeSnapshot(
         }
         let bytes: Uint8Array;
         if (file.text !== null) bytes = new TextEncoder().encode(file.text);
-        else {
+        else if (isImportedCloudProfile(snapshot.profile)) {
+            bytes = await readImportedAsset(scope, file, signal);
+        } else {
             if (
                 !file.storageId ||
                 !Number.isSafeInteger(file.bytes) ||
@@ -159,6 +163,9 @@ async function decodeSnapshot(
 /** The saved revision belongs to source storage, independently of preview readiness. */
 export class CloudSource {
     readonly state = observable({
+        profile: 'starter-v1' as CloudEditorSnapshot['profile'],
+        preparingImport: false,
+        preparationError: false,
         localDraftChanges: false,
         loading: false,
         pending: false,
@@ -232,6 +239,7 @@ export class CloudSource {
     private startPromise: Promise<void> | null = null;
     private reloadPromise: Promise<void> | null = null;
     private previewPromise: Promise<void> | null = null;
+    private preparationPromise: Promise<void> | null = null;
     private pollTimer: ReturnType<typeof setTimeout> | null = null;
     private polling = false;
     private latestRevision = 0;
@@ -272,6 +280,8 @@ export class CloudSource {
         return (
             !this.stopped &&
             this.initialized &&
+            this.state.profile !== 'imported-source-v1' &&
+            !this.state.preparingImport &&
             this.state.accessReady &&
             (this.isContentMode
                 ? this.canEditContent && this.state.contracts?.revision === this.state.savedRevision
@@ -294,11 +304,19 @@ export class CloudSource {
         );
     }
     get canDesign(): boolean {
-        return !this.stopped && this.state.accessReady && this.state.access?.canDesign === true;
+        return !this.stopped && this.state.profile !== 'imported-source-v1' && this.state.accessReady && this.state.access?.canDesign === true;
+    }
+    get canPreview(): boolean {
+        return !this.stopped && this.state.accessReady && this.state.access?.canPreview === true;
+    }
+    get canPrepareImport(): boolean {
+        return !this.stopped && this.initialized && this.state.profile === 'imported-source-v1' &&
+            this.state.accessReady && this.state.savedRevision > 0 && this.state.access?.canPrepareImport === true &&
+            (this.state.access?.role === 'responsible' || this.state.access?.role === 'designer');
     }
     get canEditContent(): boolean {
         return (
-            !this.stopped && this.state.accessReady && this.state.access?.canEditContent === true
+            !this.stopped && !isImportedCloudProfile(this.state.profile) && this.state.accessReady && this.state.access?.canEditContent === true
         );
     }
     get isContentMode(): boolean {
@@ -609,11 +627,11 @@ export class CloudSource {
         await this.hydrate();
         this.assertOwner();
         // Viewing or editing approved content never starts a paid runtime on open.
-        if (this.canDesign) await this.retryPreview().catch(() => undefined);
+        if (this.canDesign && !isImportedCloudProfile(this.state.profile)) await this.retryPreview().catch(() => undefined);
         this.assertOwner();
         // The first runtime writes its dependency lock. Finish loading that
         // revision before BranchManager attaches history or admits canvas edits.
-        if (this.canDesign && !this.sourcePaths.has('bun.lock')) await this.settleInitialRuntime();
+        if (this.canDesign && !isImportedCloudProfile(this.state.profile) && !this.sourcePaths.has('bun.lock')) await this.settleInitialRuntime();
         if (this.stopped) throw new Error('Cloud project was closed');
         this.initialized = true;
         this.startRuntimeLifecycle();
@@ -630,7 +648,7 @@ export class CloudSource {
                 status.status === 'ready' &&
                 !status.previewToken &&
                 (status.expiresAt ?? 0) > Date.now() &&
-                this.canEditContent
+                this.canPreview
             ) {
                 // Minting an actor-bound view ticket never provisions runtime work.
                 await this.client.mutation(cloudEditorApi.issuePreview, this.scope);
@@ -1316,6 +1334,8 @@ export class CloudSource {
 
     reloadSavedSource(options: { discardRecovery?: boolean } = {}): Promise<void> {
         if (this.stopped) return Promise.reject(new Error('Cloud project was closed'));
+        if (this.state.preparingImport)
+            return Promise.reject(new Error('Wait for preparation before reloading'));
         if (this.state.pending)
             return Promise.reject(new Error('Wait for the current save before reloading'));
         if (this.operation)
@@ -1382,7 +1402,7 @@ export class CloudSource {
         return { unsupported, expired };
     }
 
-    private async hydrate(): Promise<void> {
+    private async hydrate(options: { preserveLocalWork?: boolean } = {}): Promise<void> {
         runInAction(() => {
             this.state.loading = true;
         });
@@ -1393,6 +1413,7 @@ export class CloudSource {
             if (this.actorId && this.actorId !== snapshot.actorId)
                 throw new Error('The signed-in account changed. Reopen this project.');
             this.actorId = snapshot.actorId;
+            runInAction(() => { this.state.profile = snapshot.profile ?? 'starter-v1'; });
             this.recoveryIdentity ??= { ...this.scope, actorId: snapshot.actorId };
             this.fs.setDurableRecoveryHandler((changes) => this.prepareLocalRecovery(changes));
             await this.refreshCapabilities();
@@ -1406,6 +1427,20 @@ export class CloudSource {
                 this.abort.signal,
                 () => this.assertOwner(),
             );
+            this.assertOwner();
+            if (isImportedCloudProfile(snapshot.profile)) {
+                // Media reads can span a permission/design change. Verify the original
+                // snapshot again before installing any of its decoded bytes.
+                const current = await this.client.query(cloudEditorApi.status, this.scope);
+                this.assertOwner();
+                if (current.actorId !== snapshot.actorId || current.revision !== snapshot.revision ||
+                    current.profile !== snapshot.profile ||
+                    current.importedAuthority?.preparationId !== snapshot.importedAuthority?.preparationId ||
+                    current.importedAuthority?.designRevision !== snapshot.importedAuthority?.designRevision)
+                    throw new Error('The saved source changed while loading. Reopen this project.');
+            }
+            if (options.preserveLocalWork && (this.hasLocalWork || this.hasPendingChanges || this.hasRecoverableText))
+                throw new Error('Finish or copy your current edit before loading the prepared source');
             this.assertOwner();
             await this.fs.hydrateDurableSnapshot(files, this.abort.signal);
             this.assertOwner();
@@ -1454,6 +1489,57 @@ export class CloudSource {
         }
     }
 
+    /** Preparation changes saved source only. Preview provisioning requires a second explicit action. */
+    prepareImportedSource(): Promise<void> {
+        if (this.stopped) return Promise.reject(new Error('Cloud project was closed'));
+        this.preparationPromise ??= this.prepareImport().finally(() => { this.preparationPromise = null; });
+        return this.preparationPromise;
+    }
+
+    private async prepareImport(): Promise<void> {
+        const clean = () => !this.state.pending && !this.state.loading && !this.state.needsReload &&
+            !this.state.conflict && !this.operation && !this.hasLocalWork && !this.hasPendingChanges && !this.hasRecoverableText;
+        if (!(this.canPrepareImport || (this.state.preparationError && this.state.access?.canDesign === true && this.canPreview)) || !clean()) throw new Error('Finish or recover your current edit before preparing this site');
+        const unconfirmed = this.state.preparationError;
+        runInAction(() => { this.state.preparingImport = true; this.state.preparationError = false; });
+        try {
+            this.assertOwner();
+            await this.refreshCapabilities();
+            this.assertOwner();
+            if (!clean() || !this.actorId) throw new Error('Import preparation is unavailable');
+            if (this.canPrepareImport) {
+                const actorId = this.actorId;
+                const expectedRevision = this.state.savedRevision;
+                // The immutable import scope/revision and actor produce the same key
+                // after a timeout or browser restart. Never replace an ambiguous key.
+                const identity = [1, actorId, this.scope.projectId, this.scope.branchId, expectedRevision];
+                const operationKey = `prepare_${await sha256(new TextEncoder().encode(JSON.stringify(identity)))}`;
+                if (!this.canPrepareImport || !clean() || this.actorId !== actorId || this.state.savedRevision !== expectedRevision)
+                    throw new Error('Import preparation changed');
+                this.assertOwner();
+                await this.client.action(cloudEditorApi.prepareImport, { ...this.scope, expectedRevision, operationKey });
+                this.assertOwner();
+            } else if (!unconfirmed || this.state.access?.canDesign !== true || !this.canPreview) {
+                throw new Error('Import preparation is unavailable');
+            }
+            // A committed preparation no longer grants canPrepareImport. Resolve
+            // a lost acknowledgement by reading its saved result, not by starting it again.
+            this.assertOwner();
+            await this.hydrate({ preserveLocalWork: true });
+            if (this.state.profile !== 'imported-next-v1') throw new Error('Prepared source is unavailable');
+            this.assertOwner();
+            await this.refreshCapabilities();
+            this.assertOwner();
+            await this.refreshStatus();
+            this.assertOwner();
+        } catch (error) {
+            if (!this.stopped) runInAction(() => { this.state.preparationError = true; });
+            throw error;
+        } finally {
+            if (!this.stopped) runInAction(() => { this.state.preparingImport = false; });
+        }
+    }
+
     retryPreview(): Promise<void> {
         if (this.stopped) return Promise.reject(new Error('Cloud project was closed'));
         this.previewPromise ??= this.ensurePreview().finally(() => {
@@ -1464,12 +1550,14 @@ export class CloudSource {
 
     private async ensurePreview(): Promise<void> {
         try {
-            if (!this.canEditContent)
+            this.assertOwner();
+            if (!this.canPreview)
                 throw Object.assign(
                     new Error('Cloud project access is required to start the preview'),
                     { data: 'CLOUD_ROLE_REQUIRED' },
                 );
             await this.client.mutation(cloudEditorApi.ensurePreview, this.scope);
+            this.assertOwner();
             if (!this.stopped) {
                 this.previewRequestError = null;
                 runInAction(() => {
@@ -1511,7 +1599,7 @@ export class CloudSource {
                 status.status === 'ready' &&
                 !status.previewToken &&
                 (status.expiresAt ?? 0) > Date.now() &&
-                this.canEditContent
+                this.canPreview
             ) {
                 // Minting an actor-bound view ticket never provisions runtime work.
                 await this.client.mutation(cloudEditorApi.issuePreview, this.scope);
@@ -1542,6 +1630,7 @@ export class CloudSource {
             if (
                 !this.operation &&
                 !this.state.loading &&
+                !this.state.preparingImport &&
                 status.revision > this.state.savedRevision
             ) {
                 this.markExternal();

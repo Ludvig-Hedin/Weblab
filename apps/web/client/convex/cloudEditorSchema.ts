@@ -1,3 +1,5 @@
+import { importTables } from './cloudEditorImportsSchema';
+import { importPreparationTables } from './cloudEditorImportPreparationSchema';
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -12,6 +14,8 @@ import { cloudEditorContentImageTables } from './cloudEditorContentImageSchema';
 
 /** Server-created enrollment, never inferred from editable project tags/metadata. */
 export const cloudEditorTables = {
+    ...importTables,
+    ...importPreparationTables,
     ...cloudEditorInvitationTables,
     ...cloudEditorStudioTables,
     ...cloudReleaseTables,
@@ -34,6 +38,9 @@ export const cloudEditorTables = {
         projectId: v.id('projects'),
         branchId: v.id('branches'),
         version: v.literal(1),
+        profile: v.optional(v.union(v.literal('starter-v1'), v.literal('imported-source-v1'), v.literal('imported-next-v1'))),
+        preparationId: v.optional(v.id('cloudEditorImportPreparations')),
+        designRevision: v.optional(v.number()),
         workspaceId: v.id('workspaces'),
         createdByUserId: v.id('users'),
         creationId: v.string(),

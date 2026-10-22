@@ -3,7 +3,7 @@ import { makeFunctionReference } from 'convex/server';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, internalQuery, mutation, query } from './_generated/server';
-import { requireCloudAccess } from './cloudEditorAccess';
+import { requireStarterCloudAccess as requireCloudAccess } from './cloudEditorAccess';
 import { contentBinding, contentTransport, expectedContract } from './cloudEditorContentSchema';
 import { assertCloudRevision, assertOperationId, cloudError, cloudPath, cloudScope,
     inlineSourceBytes, MAX_CLOUD_FILES, MAX_CLOUD_INLINE_BYTES, MAX_CLOUD_PROJECT_BYTES,

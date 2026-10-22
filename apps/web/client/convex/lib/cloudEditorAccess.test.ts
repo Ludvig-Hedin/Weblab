@@ -176,6 +176,8 @@ describe('cloud customer access foundation', () => {
             expect(await access._handler(f.ctx, scope)).toEqual({
                 actorId: 'users:content',
                 role: 'content',
+                canPrepareImport: false,
+                canPreview: true,
                 canDesign: false,
                 canEditContent: true,
                 canPublish: false,
@@ -199,7 +201,9 @@ describe('cloud customer access foundation', () => {
         expect(await access._handler(f.ctx, scope)).toEqual({
             actorId: 'users:creator',
             role: 'responsible',
-            canDesign: true,
+            canPrepareImport: false,
+                canPreview: true,
+                canDesign: true,
             canEditContent: true,
             canPublish: true,
             canManage: true,
@@ -211,6 +215,8 @@ describe('cloud customer access foundation', () => {
             expect(await access._handler(f.ctx, scope)).toEqual({
                 actorId: `users:${name}`,
                 role: null,
+                canPrepareImport: false,
+                canPreview: false,
                 canDesign: false,
                 canEditContent: false,
                 canPublish: false,
@@ -266,7 +272,9 @@ describe('cloud customer access foundation', () => {
         expect(await access._handler(f.ctx, scope)).toEqual({
             actorId: 'users:designer',
             role: 'responsible',
-            canDesign: false,
+            canPrepareImport: false,
+                canPreview: true,
+                canDesign: false,
             canEditContent: true,
             canPublish: false,
             canManage: false,
@@ -325,7 +333,9 @@ describe('cloud customer access foundation', () => {
         expect(await access._handler(f.ctx, scope)).toEqual({
             actorId: 'users:content',
             role: 'content',
-            canDesign: false,
+            canPrepareImport: false,
+                canPreview: true,
+                canDesign: false,
             canEditContent: true,
             canPublish: true,
             canManage: false,

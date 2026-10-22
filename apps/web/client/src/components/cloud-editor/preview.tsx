@@ -75,7 +75,9 @@ function PreviewContent({ projectId, branchId, url }: PreviewProps) {
     const [loaded, setLoaded] = useState(false);
     const [frameFailed, setFrameFailed] = useState(false);
     const rawUrl = previewUrlOnRuntime(url, status?.previewUrl);
-    const src = authenticatedPreviewUrl(rawUrl, status, now);
+    const src = status?.profile === 'imported-source-v1'
+        ? null
+        : authenticatedPreviewUrl(rawUrl, status, now);
     const expired =
         status?.expiresAt !== null && status?.expiresAt !== undefined && status.expiresAt <= now;
 
@@ -86,6 +88,7 @@ function PreviewContent({ projectId, branchId, url }: PreviewProps) {
 
     useEffect(() => {
         if (
+            status?.profile === 'imported-source-v1' ||
             status?.status !== 'ready' ||
             !status.enabled ||
             status.previewToken ||
@@ -100,6 +103,7 @@ function PreviewContent({ projectId, branchId, url }: PreviewProps) {
             current = false;
         };
     }, [
+        status?.profile,
         status?.status,
         status?.enabled,
         status?.previewToken,
@@ -111,7 +115,7 @@ function PreviewContent({ projectId, branchId, url }: PreviewProps) {
     ]);
 
     async function retry() {
-        if (inFlight.current || !status?.enabled) return;
+        if (inFlight.current || !status?.enabled || status.profile === 'imported-source-v1') return;
         inFlight.current = true;
         setPending(true);
         setError(null);
@@ -136,6 +140,8 @@ function PreviewContent({ projectId, branchId, url }: PreviewProps) {
         error ??
         (!status
             ? copy.loading
+            : status.profile === 'imported-source-v1'
+              ? copy.importSourceOnly
             : !status.enabled
               ? copy.paused
               : status.status === 'starting'
@@ -153,7 +159,7 @@ function PreviewContent({ projectId, branchId, url }: PreviewProps) {
                 >
                     {message}
                 </p>
-                {status?.enabled && (
+                {status?.enabled && status.profile !== 'imported-source-v1' && (
                     <Button
                         variant="outline"
                         size="sm"

@@ -14,6 +14,8 @@ import { Label } from '@weblab/ui/label';
 import type { Id } from '@convex/_generated/dataModel';
 import { cloudEditorApi } from '@/lib/cloud-editor/api';
 import { useCloudEditorCopy } from '@/lib/cloud-editor/copy';
+import { cloudImportApi } from '@/lib/cloud-imports/api';
+import { useCloudImportCopy } from '@/lib/cloud-imports/copy';
 
 interface EntryProps {
     workspaceId: Id<'workspaces'>;
@@ -48,6 +50,18 @@ class EntryBoundary extends Component<
 }
 
 type CreationAttempt = { creationId: string; name: string };
+
+function ImportFolderLink({ workspaceId, workspaceSlug }: EntryProps) {
+    const copy = useCloudImportCopy();
+    const access = useQuery(cloudImportApi.access, { workspaceId });
+    return access?.enabled ? (
+        <Button asChild variant="outline" className="self-start">
+            <Link href={`/w/${encodeURIComponent(workspaceSlug)}/cloud-pilot/import`}>
+                {copy.importFolder}
+            </Link>
+        </Button>
+    ) : null;
+}
 
 function ProjectCreation(props: EntryProps & { userId: string }) {
     const copy = useCloudEditorCopy();
@@ -247,6 +261,11 @@ export function CloudProjectEntry(props: EntryProps) {
                     )}
                 >
                     <ProjectCreation {...props} userId={userId} />
+                    {!props.sourcePilotId && (
+                        <EntryBoundary fallback={() => null}>
+                            <ImportFolderLink {...props} />
+                        </EntryBoundary>
+                    )}
                     {props.children}
                 </EntryBoundary>
             )}

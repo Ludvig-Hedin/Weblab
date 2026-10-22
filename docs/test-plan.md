@@ -665,3 +665,7 @@ Per package (F-680 … F-705) at least one smoke test.
 - [ ] Vercel Sandbox CI fixture — recorded API or handwritten?
 - [ ] Test data — seeded user or factory-on-demand?
 - [ ] Convex test harness — `convex-test` package usage standardized?
+
+| T-888 | F-846 | U + mounted + connected M | Import manifest/receipt/controller and mounted import-project tests | Selection/review precedes explicit upload; immutable retries, account/session switch, lost begin/finalize and terminal navigation permit a distinct next import without losing recovery. | `[ ]` local and connected proof pending |
+| T-889 | F-847 | U + connected M | Import auth/transport/client/storage tests | Canonical same-origin session auth, nonce/lease/size/hash bounds, late receipt recovery, no storage URL exposure, revoked or switched actors refused during media transfer. | `[ ]` local and connected proof pending |
+| T-890 | F-848 | U + mounted + connected M | Preparation/state/profile/config/runtime tests and cloud-source tests | Atomic provenance/pins, profile/epoch owner recheck, no source-only writes or auto-runtime, coalesced preparation with local-draft refusal, old starter API refusal, explicit preview with finite authorized allowance. | `[ ]` local and connected proof pending |

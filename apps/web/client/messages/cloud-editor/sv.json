@@ -117,5 +117,11 @@
     "contentDiscardDraft": "Kasta utkast",
     "discardReloadPending": "Laddar om",
     "discardReloadRetained": "Återställningskopian har tagits bort. Om sidan är kvar kan du ladda ner texten som finns i den här fliken eller läsa in den sparade versionen igen.",
-    "discardReloadFailed": "Sidan kunde inte laddas om. Texten finns kvar i den här fliken. Ladda ner den eller försök igen."
+    "discardReloadFailed": "Sidan kunde inte laddas om. Texten finns kvar i den här fliken. Ladda ner den eller försök igen.",
+    "importSourceSaved": "Importerade filer sparade",
+    "importSourceOnly": "Källkod och media är sparade. Redigering och förhandsvisning fungerar ännu inte för den här importerade sajten.",
+    "prepareImport": "Förbered för redigering",
+    "preparingImport": "Förbereder för redigering…",
+    "prepareImportFailed": "Förberedelsen kunde inte bekräftas. Försök igen för att kontrollera samma begäran.",
+    "openPreview": "Öppna förhandsvisning"
 }
