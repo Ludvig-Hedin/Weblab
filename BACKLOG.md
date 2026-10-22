@@ -47,12 +47,12 @@ later without re-discovering the context.
 - **Risk if ignored:** Helper or mounted checks are mistaken for a ready connected cloud editor, or imported runtime is activated before its actual provenance and account boundaries are accepted.
 - **Tags:** `#release-blocker` `#test-gap` `#cloud`
 
-### Railway deployment pause and credential incident block web release
+### Railway credential incident needs owner-scoped response
 
 - **Discovered:** 2026-10-22, official Railway incident and production deployment history
 - **Where:** Weblab Railway production; https://status.railway.com/incident/QH8L8B3E
-- **State:** Railway paused all deployments during its October 21 security investigation. It recommends rotating stored credentials and reviewing service logs; account-specific exposure is not established. The web service still serves the October 5 release. Credential values were not revealed or copied; the scoped inventory and proposed response remain private, awaiting owner approval.
-- **Next step:** Resolve owner-approved credential containment/replacement with verified provider scope and shared consumers, restore Weblab backend access, then deploy and verify exact checked source when Railway restores builds. Revocation during the pause may interrupt live features; do not silently choose that tradeoff or enable remote CI.
+- **State:** Railway paused all deployments during its October 21 security investigation. It recommends rotating stored credentials and reviewing service logs; account-specific exposure is not established. Production builds resumed for this Pro workspace; exact main `d124aea1e` was deployed and checked on 2026-10-22. The separate credential response remains open. Credential values were not revealed or copied; the scoped inventory and proposed response remain private, awaiting owner approval.
+- **Next step:** Resolve owner-approved credential containment/replacement with verified provider scope and shared consumers, restore Weblab backend access, then verify affected integrations. The current web deploy is complete; automatic source deploys remain off while preparing the next release. Revocation during the pause may interrupt live features; do not silently choose that tradeoff or enable remote CI.
 - **Risk if ignored:** Old potentially affected credentials remain usable, or an old deployment is incorrectly reported as the new release.
 - **Tags:** `#release-blocker` `#security` `#infra`
 
