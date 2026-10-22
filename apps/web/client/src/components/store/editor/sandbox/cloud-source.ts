@@ -1,10 +1,12 @@
+import { cloudPropertyApprovalIdentity, cloudPropertyWirePin, freezeCloudPropertyApproval, matchesCloudPropertyElement, validCloudPropertyApproval } from './cloud-property-approval';
+import { replaceContentPropertyTarget } from '@weblab/parser/src/code-edit/content-property-target';
 import { readContentImageTarget, replaceContentImageTarget } from '@weblab/parser/src/code-edit/content-image-target';
 import { validCloudImageApproval, validCloudImageValue, copyCloudImageBinding, freezeCloudImageApproval, cloudImageApprovalIdentity, matchesCloudImageElement } from './cloud-image-approval';
 import { isImportedCloudProfile } from '@convex/lib/cloudImportManifest';
 import { validateCloudChanges } from '@convex/lib/cloudEditor';
 import { observable, runInAction } from 'mobx';
 
-import type { CloudImageApproval, CloudTextApproval, CloudTextRenderMapping, PlainTextElementIdentity } from '@weblab/models/actions';
+import type { CloudPropertyApproval, CloudImageApproval, CloudTextApproval, CloudTextRenderMapping, PlainTextElementIdentity } from '@weblab/models/actions';
 import type { DomElement } from '@weblab/models';
 import type { CodeFileSystem, DurableSourceChange, DurableSourceFile } from '@weblab/file-system';
 
@@ -16,6 +18,8 @@ import type {
     CloudRecoveryStore,
 } from './cloud-recovery';
 import type {
+    CloudPropertyContracts,
+    CloudPropertyOperation,
     CloudDesignerOperation,
     CloudEditorAccess,
     CloudEditorClient,
@@ -30,6 +34,7 @@ import type {
     CloudImageV2Contracts,
     CloudImageV2Operation,
     CloudSemanticOperation,
+    CloudSemanticRequest,
     CloudSourceOperation,
 } from '@/lib/cloud-editor/api';
 import { cloudEditorApi } from '@/lib/cloud-editor/api';
@@ -272,6 +277,7 @@ export class CloudSource {
         contracts: null as CloudEditorContracts | null,
         textContracts: null as CloudTextContracts | null,
         imageContracts: null as CloudImageV2Contracts | null,
+        propertyContracts: null as CloudPropertyContracts | null,
         contentMode: false,
         attributeWritePending: false,
         recoveryUnsupported: false,
@@ -341,11 +347,17 @@ export class CloudSource {
     private sourcePaths = new Set<string>();
     private listeners = new Set<(paths: string[], external: boolean) => void>();
     private attributeWrite: CloudAttributeWrite | null = null;
+    private semanticCurrent: { operationId: string; current: () => boolean } | null = null;
     private importedImageWrite: {
         pin: CloudImageApproval; revision: number; field: 'src' | 'alt'; previous: { src: string; alt: string };
         operationId: string; upload: boolean; prepared?: CloudImagePrepared; candidate?: string; current?: () => boolean;
     } | null = null;
     private textWrite: CloudTextWrite | null = null;
+    private propertyWrite: {
+        pin: CloudPropertyApproval; revision: number; previousValue: string; choiceId: string; operationId: string;
+        original: string; candidate: string; current: () => boolean; validate?: () => Promise<boolean>;
+    } | null = null;
+    private propertyRecovery: Pick<CloudRecoveryRecord, 'propertyApproval' | 'propertyOriginal'> = {};
     private imageLease: {
         pin: CloudAttributeApproval;
         revision: number;
@@ -365,7 +377,7 @@ export class CloudSource {
     }
 
     get canWrite(): boolean {
-        return this.imageLease === null && this.importedImageWrite === null && this.sourceWriteReady;
+        return this.propertyWrite === null && this.imageLease === null && this.importedImageWrite === null && this.sourceWriteReady;
     }
     async cancelImagePreparation(attemptId: CloudImagePrepared['attemptId']): Promise<void> {
         await this.client.mutation(cloudEditorApi.cancelImage, { attemptId });
@@ -455,6 +467,50 @@ export class CloudSource {
         if (!validCloudTextApproval(pin) || pin.projectId !== this.scope.projectId || pin.branchId !== this.scope.branchId ||
             pin.actorId !== this.actorId) return false;
         return this.currentTextApprovals.filter(current => cloudTextIdentity(current) === cloudTextIdentity(pin)).length === 1;
+    }
+    private get currentPropertyApprovals(): CloudPropertyApproval[] {
+        const snapshot = this.state.propertyContracts;
+        if (!this.canEditContent || !this.state.access?.canEditImportedProperties || !snapshot || snapshot.actorId !== this.actorId || snapshot.revision !== this.state.savedRevision) return [];
+        return snapshot.contracts.filter(contract => contract.active && contract.current && contract.designRevision === snapshot.designRevision &&
+            contract.preparationId === snapshot.preparationId).flatMap(contract => contract.bindings.flatMap(binding => {
+                const pin = { version: 1 as const, ...this.scope, actorId: snapshot.actorId, path: contract.path, generation: contract.generation,
+                    preparationId: contract.preparationId, designRevision: contract.designRevision, definitionHash: contract.definitionHash, binding };
+                return validCloudPropertyApproval(pin) ? [freezeCloudPropertyApproval(pin)] : [];
+            }));
+    }
+    resolveRenderedPropertyApproval(element: Pick<DomElement, 'oid' | 'branchId' | 'contentIdentity'>): CloudPropertyApproval | null {
+        const matches = this.currentPropertyApprovals.filter(pin => matchesCloudPropertyElement(pin, element));
+        return matches.length === 1 ? matches[0]! : null;
+    }
+    isPropertyApprovalCurrent(pin: unknown): pin is CloudPropertyApproval {
+        if (!validCloudPropertyApproval(pin) || pin.actorId !== this.actorId || pin.projectId !== this.scope.projectId || pin.branchId !== this.scope.branchId) return false;
+        return this.currentPropertyApprovals.filter(current => cloudPropertyApprovalIdentity(current) === cloudPropertyApprovalIdentity(pin)).length === 1;
+    }
+    /** Reserve before queueing. The checked CodeFS write is the only durable owner. */
+    async withApprovedPropertyWrite(input: { pin: CloudPropertyApproval; revision: number; previousValue: string; choiceId: string;
+        original: string; candidate: string; current: () => boolean; validate?: () => Promise<boolean> }, run: (lease: { current: () => boolean; commit: () => Promise<boolean> }) => Promise<boolean>): Promise<boolean> {
+        if (input.validate && !await input.validate()) return false;
+        if (!input.current() || !this.canWrite || !this.isContentMode || this.hasLocalWork || this.textWrite || this.attributeWrite ||
+            !this.isPropertyApprovalCurrent(input.pin) || input.revision !== this.state.savedRevision) return false;
+        const choice = input.pin.binding.options.find(option => option.id === input.choiceId);
+        if (!choice || choice.value === input.previousValue || !input.pin.binding.options.some(option => option.value === input.previousValue) ||
+            replaceContentPropertyTarget(input.original, input.pin.binding.target, input.previousValue, choice.value) !== input.candidate) return false;
+        const owner = { ...input, pin: freezeCloudPropertyApproval(input.pin), operationId: crypto.randomUUID() };
+        this.propertyWrite = owner;
+        runInAction(() => { this.state.attributeWritePending = true; });
+        const current = () => owner.current() && this.propertyWrite === owner && this.sourceWriteReady && this.isContentMode &&
+            this.state.savedRevision === owner.revision && this.isPropertyApprovalCurrent(owner.pin);
+        try {
+            return await run({ current, commit: async () => {
+                if (!current() || await this.fs.readFile(owner.pin.path) !== owner.original || !current()) return false;
+                try { await this.fs.writeCloudTextFile(owner.pin.path, owner.candidate, owner.original); return true; }
+                catch { return false; }
+            } });
+        } finally {
+            if (this.propertyWrite === owner) this.propertyWrite = null;
+            runInAction(() => { this.state.attributeWritePending = false; });
+            this.syncUnloadWarning();
+        }
     }
     private get currentImageApprovals(): CloudImageApproval[] {
         const snapshot = this.state.imageContracts;
@@ -704,7 +760,11 @@ export class CloudSource {
         });
     }
     private maySend(operation: CloudSourceOperation): boolean {
+        if (operation.transport === 'content-property') return this.state.profile === 'imported-next-v1' && this.canEditContent && this.state.access?.canEditImportedProperties === true;
         if (operation.transport === 'design') return this.canDesign;
+        if (operation.transport === 'studio' && operation.transportVersion === 2)
+            return this.state.profile === 'imported-next-v1' && this.canEditContent && this.state.access?.canEditImportedStudio === true &&
+                (operation.operation.kind !== 'capture' || this.state.access?.canApproveImportedStudio === true);
         if (operation.transport === 'content-image' && operation.transportVersion === 2)
             return this.canEditContent && this.state.access?.canEditImportedImages === true;
         if (isImportedCloudProfile(this.state.profile)) return this.canEditContent &&
@@ -741,14 +801,20 @@ export class CloudSource {
                 try { imageContracts = await this.client.query(cloudEditorApi.imageContracts, this.scope); }
                 catch { /* Discovery cannot grant permission or disable designer source writes. */ }
             }
+            let propertyContracts: CloudPropertyContracts | null = null;
+            if (access.canEditImportedProperties || access.canApproveImportedProperties) {
+                try { propertyContracts = await this.client.query(cloudEditorApi.propertyContracts, { ...this.scope, actorId: access.actorId }); }
+                catch { /* No property authority is inferred from an unavailable projection. */ }
+            }
             this.assertOwner();
-            if ((imageContracts && imageContracts.actorId !== this.actorId) || (textContracts && textContracts.actorId !== this.actorId) || (contracts && contracts.actorId !== this.actorId))
+            if ((propertyContracts && propertyContracts.actorId !== this.actorId) || (imageContracts && imageContracts.actorId !== this.actorId) || (textContracts && textContracts.actorId !== this.actorId) || (contracts && contracts.actorId !== this.actorId))
                 throw new Error('The signed-in account changed. Reopen this project.');
             runInAction(() => {
                 this.state.access = access;
                 this.state.contracts = contracts;
                 this.state.textContracts = textContracts;
                 this.state.imageContracts = imageContracts;
+                this.state.propertyContracts = propertyContracts;
                 this.state.accessReady = true;
                 this.state.accessError = null;
             });
@@ -766,7 +832,7 @@ export class CloudSource {
     get hasLocalWork(): boolean {
         try {
             return (
-                this.imageLease !== null || this.importedImageWrite !== null ||
+                this.propertyWrite !== null || this.imageLease !== null || this.importedImageWrite !== null ||
                 this.state.localDraftChanges ||
                 this.state.attributeWritePending ||
                 (this.callbacks.hasLocalWork?.() ?? false) ||
@@ -1020,7 +1086,7 @@ export class CloudSource {
     ): Promise<void> {
         if (!this.lastAttempt) return;
         try {
-            await this.recovery.save(this.recoveryKey(), {
+            const record: CloudRecoveryRecord = {
                 version: this.recoveryVersion,
                 actorId: this.actorId!,
                 operation: this.lastAttempt,
@@ -1028,7 +1094,10 @@ export class CloudSource {
                 disposition,
                 definitiveRejection,
                 createdAt: this.attemptCreatedAt,
-            });
+                ...(this.lastAttempt.transport === 'content-property' ? this.propertyRecovery : {}),
+            };
+            if (this.lastAttempt.transport === 'content-property' && !cloudRecoveryOperation(record)) throw new CloudRecoveryStorageError();
+            await this.recovery.save(this.recoveryKey(), record);
         } catch {
             throw new CloudRecoveryStorageError();
         }
@@ -1082,7 +1151,17 @@ export class CloudSource {
             }
         }
         for (let attempt = 0; ; attempt++) {
+            this.assertOwner();
             if (this.stopped) throw new Error('Cloud project was closed');
+            if (!this.operationAmbiguous && this.semanticCurrent?.operationId === operation.operationId && !this.semanticCurrent.current())
+                throw Object.assign(new Error('Page approval changed before saving'), { data: 'CLOUD_IMPORTED_STUDIO_SELECTION_CHANGED' });
+            if (!this.operationAmbiguous && operation.transport === 'content-property') {
+                const owner = this.propertyWrite;
+                if (!owner || owner.operationId !== operation.operationId || !owner.current() ||
+                    this.state.savedRevision !== operation.expectedRevision || !this.isPropertyApprovalCurrent(owner.pin) ||
+                    (owner.validate && !await owner.validate()) || this.propertyWrite !== owner || !owner.current())
+                    throw Object.assign(new Error('The selected property changed before saving'), { data: 'CLOUD_PROPERTY_SELECTION_CHANGED' });
+            }
             if (!this.operationAmbiguous && operation.transport === 'content-image' && operation.transportVersion === 2 &&
                 this.importedImageWrite?.operationId === operation.operationId && this.importedImageWrite.current?.() === false)
                 throw Object.assign(new Error('The selected image changed before saving'), { data: 'CLOUD_IMAGE_SELECTION_CHANGED' });
@@ -1092,6 +1171,10 @@ export class CloudSource {
                     { data: 'CLOUD_ROLE_REQUIRED' },
                 );
             try {
+                if (operation.transport === 'studio' && operation.transportVersion === 2) {
+                    const { changes: _changes, ...request } = operation;
+                    return await this.client.action(cloudEditorApi.commitImportedStudio, request);
+                }
                 if (operation.transport === 'studio' || operation.transport === 'journal') {
                     const {
                         changes: _changes,
@@ -1103,7 +1186,7 @@ export class CloudSource {
                         ? await this.client.action(
                               cloudEditorApi.commitStudio,
                               request as Omit<
-                                  Extract<CloudSemanticOperation, { transport: 'studio' }>,
+                                  Extract<CloudSemanticOperation, { transport: 'studio'; transportVersion: 1 }>,
                                   'changes' | 'transport' | 'transportVersion'
                               >,
                           )
@@ -1115,6 +1198,7 @@ export class CloudSource {
                               >,
                           );
                 }
+                if (operation.transport === 'content-property') return await this.client.action(cloudEditorApi.commitProperty, operation);
                 if (operation.transport === 'content-image')
                     return operation.transportVersion === 2
                         ? await this.client.action(cloudEditorApi.commitImageV2, operation)
@@ -1190,20 +1274,28 @@ export class CloudSource {
             if (operation.transport === 'content' && operation.transportVersion === 2 &&
                 this.state.textContracts?.revision === operation.expectedRevision)
                 this.state.textContracts.revision = result.revision;
+            if (operation.transport === 'content' && operation.transportVersion === 2 && this.state.propertyContracts?.revision === operation.expectedRevision)
+                this.state.propertyContracts.revision = result.revision;
             if (operation.transport === 'content' && operation.transportVersion === 2 &&
                 this.state.imageContracts?.revision === operation.expectedRevision)
                 this.state.imageContracts.revision = result.revision;
         });
-        if (operation.transport === 'content-image') {
+        if (operation.transport === 'content-image' || operation.transport === 'content-property') {
             try {
                 await this.refreshCapabilities();
+                if (operation.transport === 'content-property' && (!this.state.propertyContracts || this.state.propertyContracts.revision !== result.revision ||
+                    (this.state.access?.canEditImportedText && this.state.textContracts?.revision !== result.revision) ||
+                    (this.state.access?.canEditImportedImages && this.state.imageContracts?.revision !== result.revision)))
+                    throw new Error('The saved property contracts need reloading');
             } catch {
                 // The receipt is final. Let CodeFS install the acknowledged bytes even
                 // when the follow-up permission read is unavailable; never call failed().
                 runInAction(() => {
                     this.state.needsReload = true;
                     this.state.error =
-                        'Your image was saved. Reload the saved source before editing.';
+                        operation.transport === 'content-property'
+                            ? 'Your changes were saved. Reload the saved source to continue editing.'
+                            : 'Your image was saved. Reload the saved source before editing.';
                 });
             }
         }
@@ -1233,7 +1325,7 @@ export class CloudSource {
         const definitiveRejection =
             (code === 'CLOUD_CONFLICT' ||
                 ((this.lastAttempt?.transport === 'content' ||
-                    this.lastAttempt?.transport === 'content-image') &&
+                    this.lastAttempt?.transport === 'content-image' || this.lastAttempt?.transport === 'content-property') &&
                     code !== null &&
                     CONTENT_REJECTIONS_AFTER_RECEIPT.has(code)) ||
                 ((this.lastAttempt?.transport === 'studio' ||
@@ -1265,7 +1357,7 @@ export class CloudSource {
     }
 
     private prepareOperation(changes: DurableSourceChange[]): CloudSourceOperation {
-        if (!(this.canWrite || ((this.imageLease?.prepared || this.importedImageWrite?.candidate) && this.sourceWriteReady)))
+        if (!(this.canWrite || ((this.propertyWrite?.candidate || this.imageLease?.prepared || this.importedImageWrite?.candidate) && this.sourceWriteReady)))
             throw new Error('Reload or retry the saved source before editing');
         if (!this.actorId) throw new Error('The authenticated source is not ready');
         const attribute = this.attributeWrite;
@@ -1288,7 +1380,7 @@ export class CloudSource {
             ...this.scope,
             actorId: this.actorId,
             expectedRevision: this.state.savedRevision,
-            operationId: importedImage?.operationId ?? crypto.randomUUID(),
+            operationId: this.propertyWrite?.operationId ?? importedImage?.operationId ?? crypto.randomUUID(),
             changes: changes.map((change) => ({
                 path: change.path,
                 content:
@@ -1299,6 +1391,18 @@ export class CloudSource {
             })),
         };
         validateCloudChanges(candidate.changes);
+        const property = this.propertyWrite;
+        if (property) {
+            const pin = property.pin;
+            if (!property.current() || !this.isPropertyApprovalCurrent(pin) || property.revision !== candidate.expectedRevision ||
+                candidate.changes.length !== 1 || candidate.changes[0]?.path !== pin.path || candidate.changes[0]?.content !== property.candidate || candidate.changes[0]?.directory !== undefined)
+                throw new Error('The original property approval changed before saving');
+            this.propertyRecovery = { propertyApproval: pin, propertyOriginal: property.original };
+            return { ...candidate, transport: 'content-property', transportVersion: 1,
+                changes: [{ path: pin.path, content: property.candidate }], pin: { ...cloudPropertyWirePin(pin), preparationId: pin.preparationId as CloudPropertyOperation['pin']['preparationId'] },
+                previousValue: property.previousValue, choiceId: property.choiceId };
+        }
+
         if (importedImage) {
             const pin = importedImage.pin, prepared = importedImage.prepared;
             if (importedImage.current?.() === false || !this.isImageApprovalCurrent(pin) || importedImage.revision !== candidate.expectedRevision ||
@@ -1375,53 +1479,71 @@ export class CloudSource {
         return operation;
     }
 
-    /** Semantic edits are journaled before transport. The open filesystem is never silently replaced. */
-    async commitSemantic(
-        request: Omit<
-            CloudSemanticOperation,
-            'operationId' | 'transportVersion' | 'changes' | 'projectId' | 'branchId'
-        >,
+    /** Approval does not change source; callers must reload newly approved text contracts. */
+    async updateImportedStudioApproval(
+        request: {
+            projectId: CloudEditorScope['projectId']; branchId: CloudEditorScope['branchId'];
+            actorId: NonNullable<CloudEditorAccess>['actorId']; expectedRevision: number; expectedGeneration: number;
+            expectedPreparationId: import('@convex/_generated/dataModel').Id<'cloudEditorImportPreparations'>;
+            expectedDesignRevision: number; expectedRecipeFingerprint: string;
+        }, kind: 'pause' | 'reapprove', current: () => boolean,
     ): Promise<void> {
-        if (
-            !this.canWrite ||
-            this.hasLocalWork ||
-            this.hasPendingChanges ||
-            !this.actorId ||
-            request.actorId !== this.actorId ||
-            request.expectedRevision !== this.state.savedRevision
-        )
+        this.assertOwner();
+        if (!current() || !this.canWrite || this.hasLocalWork || this.hasPendingChanges ||
+            !this.state.access?.canApproveImportedStudio || request.actorId !== this.actorId ||
+            request.projectId !== this.scope.projectId || request.branchId !== this.scope.branchId ||
+            request.expectedRevision !== this.state.savedRevision) throw new Error('Finish the current edit before changing page approval');
+        let dispatched = false;
+        runInAction(() => { this.state.pending = true; });
+        try {
+            this.assertOwner();
+            if (!current()) throw new Error('Page approval changed');
+            dispatched = true;
+            runInAction(() => { this.state.saveAcknowledged = false; });
+            if (kind === 'pause') await this.client.mutation(cloudEditorApi.pauseImportedStudio, request);
+            else await this.client.action(cloudEditorApi.reapproveImportedStudio, request);
+            this.assertOwner();
+            if (!this.stopped) runInAction(() => { this.state.needsReload = true; });
+        } catch (error) {
+            if (dispatched && !this.stopped) runInAction(() => { this.state.needsReload = true; });
+            throw error;
+        } finally {
+            if (!this.stopped) runInAction(() => { this.state.pending = false; });
+        }
+    }
+
+    /** Semantic edits are journaled before transport. The open filesystem is never silently replaced. */
+    async commitSemantic(request: CloudSemanticRequest, current?: () => boolean): Promise<void> {
+        this.assertOwner();
+        if (current?.() === false) throw new Error('Page approval changed');
+        if (isImportedCloudProfile(this.state.profile)) {
+            if (this.state.profile !== 'imported-next-v1' || request.transport !== 'studio' || request.transportVersion !== 2 ||
+                !this.state.access?.canEditImportedStudio || (request.operation.kind === 'capture' && !this.state.access?.canApproveImportedStudio))
+                throw new Error('These page changes require current agency approval');
+        } else if (request.transportVersion === 2) throw new Error('This operation requires an imported site');
+        if (!this.canWrite || this.hasLocalWork || this.hasPendingChanges || !this.actorId ||
+            request.actorId !== this.actorId || request.expectedRevision !== this.state.savedRevision)
             throw new Error('Finish the current edit before changing pages or content');
-        const operation = {
-            ...request,
-            ...this.scope,
-            transportVersion: 1 as const,
-            changes: [] as [],
-            operationId: crypto.randomUUID(),
-        } as CloudSemanticOperation;
+        const operation = structuredClone({ ...request, ...this.scope, transportVersion: request.transportVersion ?? 1, changes: [] as [], operationId: crypto.randomUUID() }) as CloudSemanticOperation;
         if (!validSemanticOperation(operation)) throw new Error('Unsupported content operation');
+        this.semanticCurrent = current ? { operationId: operation.operationId, current } : null;
         this.operation = operation;
         this.lastAttempt = operation;
         this.recoveryVersion = 2;
         this.operationAmbiguous = false;
         this.attemptCreatedAt = Date.now();
-        runInAction(() => {
-            this.state.pending = true;
-            this.state.error = null;
-            this.state.saveAcknowledged = false;
-        });
+        runInAction(() => { this.state.pending = true; this.state.error = null; this.state.saveAcknowledged = false; });
         this.syncUnloadWarning();
         try {
             const result = await this.send(operation);
+            this.assertOwner();
             if (this.stopped) throw new Error('Cloud project was closed');
             await this.acknowledge(operation, result);
         } catch (error) {
             if (!this.stopped) await this.failed(error);
             throw error;
         } finally {
-            if (!this.stopped)
-                runInAction(() => {
-                    this.state.pending = false;
-                });
+            if (!this.stopped) runInAction(() => { this.state.pending = false; });
             this.syncUnloadWarning();
         }
     }
@@ -1650,6 +1772,7 @@ export class CloudSource {
 
     private restoreRecovery(recovery: CloudRecoveryRecord | null) {
         const restored = recovery ? cloudRecoveryOperation(recovery) : null;
+        this.propertyRecovery = recovery ? { propertyApproval: recovery.propertyApproval, propertyOriginal: recovery.propertyOriginal } : {};
         const unsupported =
             !!recovery && (!restored || (recovery.version === 1 && !this.canDesign));
         this.lastAttempt = unsupported ? recovery.operation : restored;
@@ -1950,6 +2073,7 @@ export class CloudSource {
             transportVersion: this.lastAttempt?.transportVersion ?? null,
             expectedContracts: this.lastAttempt?.expectedContracts ?? null,
             image: this.lastAttempt?.image ?? null,
+            property: this.lastAttempt?.transport === 'content-property' ? { pin: this.lastAttempt.pin, previousValue: this.lastAttempt.previousValue, choiceId: this.lastAttempt.choiceId, ...this.propertyRecovery } : null,
             semanticOperation: this.lastAttempt?.operation ?? null,
             expectedGeneration: this.lastAttempt?.expectedGeneration ?? null,
             operationId: this.lastAttempt?.operationId ?? null,

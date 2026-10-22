@@ -35,3 +35,13 @@ export function canReadImportedSource(role: Role, update: boolean, authority: Im
 export function canUseImportedImages(role: Role, authority: ImportedTextAuthority | null): boolean {
     return canUseImportedText(role, authority) && process.env.WEBLAB_CLOUD_IMPORTED_IMAGES_ENABLED === 'true';
 }
+
+/** Pages/blocks retain the separate imported text/content prerequisite. */
+export function canUseImportedStudio(role: Role, authority: ImportedTextAuthority | null): boolean {
+    return canUseImportedText(role, authority) && process.env.WEBLAB_CLOUD_IMPORTED_STUDIO_ENABLED === 'true';
+}
+
+/** Explicit approved property choices retain the imported content prerequisite. */
+export function canUseImportedProperties(role: Role, authority: ImportedTextAuthority | null): boolean {
+    return canUseImportedText(role, authority) && process.env.WEBLAB_CLOUD_IMPORTED_PROPERTIES_ENABLED === 'true';
+}

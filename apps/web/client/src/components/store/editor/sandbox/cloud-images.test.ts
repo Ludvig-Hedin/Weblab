@@ -26,7 +26,7 @@ async function fixture() {
         writeFiles: async (files: Array<{ path: string; content: string | Uint8Array }>) => handler(files) } as unknown as CodeFileSystem;
     const client = { query: async (ref: FunctionReference<'query'>) => {
         switch (getFunctionName(ref)) {
-            case 'cloudEditorAccess:access': return { role: 'content', canDesign: false, canEditContent: true, canManage: false, canPublish: false };
+            case 'cloudEditorAccess:access': return { actorId, role: 'content', canDesign: false, canEditContent: true, canManage: false, canPublish: false };
             case 'cloudEditorContent:contracts': if (failRefresh && contracts.revision > 1) throw new Error('Read unavailable'); return structuredClone(contracts);
             case 'cloudEditor:snapshot': return { actorId, revision: 1, files: [{ path: 'app/page.tsx', kind: 'file', text: 'old', storageId: null, bytes: 3, hash: Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('old'))), b => b.toString(16).padStart(2, '0')).join('') }] };
             default: return { revision: contracts.revision, status: 'stopped', enabled: true, appliedRevision: null, previewUrl: null, previewToken: null, expiresAt: null, error: null };
@@ -77,11 +77,13 @@ describe('cloud image durable operation', () => {
             expect(await f.source.withImageUpload(f.pin, 1, lease => lease.commit(f.prepared, 'new'))).toBe(false);
             const record = f.record()!;
             expect(record.operation.transport).toBe('content-image');
-            expect(record.operation.image?.oid).toBe('image');
+            const image = record.operation.image;
+            if (record.operation.transportVersion !== 1 || !image || !('oid' in image)) throw new Error('Expected the legacy image journal');
+            expect(image.oid).toBe('image');
             const key = { ...f.source.scope, actorId: f.pin.actorId };
             expect(storedCloudRecoveryRecord(record, key)).toEqual(record);
             expect(cloudRecoveryOperation(record)?.transport).toBe('content-image');
-            record.operation.image!.generation = 0;
+            image.generation = 0;
             expect(cloudRecoveryOperation(record)).toBeNull();
             expect(f.hydrated()).toBe(1); expect(f.source.canWrite).toBe(false);
         } finally { await f.source.stop(); }

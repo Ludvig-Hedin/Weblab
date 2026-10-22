@@ -9,7 +9,9 @@ import { cloudPreviewAccessTables } from './cloudPreviewAccessSchema';
 import { cloudEditorUploadTables } from './cloudEditorUploadSchema';
 import { cloudEditorInvitationTables } from './cloudEditorInvitationsSchema';
 import { cloudEditorStudioTables } from './cloudEditorStudioSchema';
+import { importedStudioTables } from './cloudEditorImportedStudioSchema';
 import { cloudReleaseTables } from './cloudReleasesSchema';
+import { cloudEditorPropertyTables } from './cloudEditorPropertySchema';
 import { cloudEditorContentImageTables } from './cloudEditorContentImageSchema';
 
 /** Server-created enrollment, never inferred from editable project tags/metadata. */
@@ -18,8 +20,10 @@ export const cloudEditorTables = {
     ...importPreparationTables,
     ...cloudEditorInvitationTables,
     ...cloudEditorStudioTables,
+    ...importedStudioTables,
     ...cloudReleaseTables,
     ...cloudEditorContentImageTables,
+    ...cloudEditorPropertyTables,
     ...cloudEditorUploadTables,
     ...cloudEditorAccessTables,
     ...cloudEditorContentTables,

@@ -185,7 +185,7 @@ function normalizeApprovedText(ast: T.File, bindings: CloudContentBinding[]): vo
     }
 }
 
-function safeHref(value: string): boolean {
+export function safeHref(value: string): boolean {
     if (!value || /[\s\\]/.test(value) || value.startsWith('//')) return false;
     try {
         if (controls.test(decodeURIComponent(value))) return false;

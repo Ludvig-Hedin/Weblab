@@ -1,3 +1,6 @@
+import { freezeCloudPropertyApproval, reconstructCloudPropertyAction, validCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { validCloudImageApproval, freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
+import { readContentImageTarget, replaceContentImageTarget } from '@weblab/parser/src/code-edit/content-image-target';
 import { createEditorBeforeUnloadHandler } from './before-unload';
 import { replaceContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
 import { validCloudTextApproval, cloudTextRenderer, freezeCloudTextApproval } from '../sandbox/cloud-source';
@@ -129,8 +132,67 @@ export class CodeManager {
      * from the undo stack when its write fails so a later undo can't emit the
      * inverse of an edit that never landed.
      */
-    async write(action: Action, sourceContext?: { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean }): Promise<boolean> {
+    async write(action: Action, sourceContext?: { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean; validate?: () => Promise<boolean> }): Promise<boolean> {
         try {
+            if (action.type === 'write-code' && 'cloudProperty' in action) {
+                const edit = action.cloudProperty;
+                if (!edit || !validCloudPropertyApproval(edit.pin)) throw new Error('This property edit has no valid original approval.');
+                const pin = freezeCloudPropertyApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+                const codeEditor = sourceContext?.codeEditor ?? branch?.codeEditor;
+                if (!branch || !source || !codeEditor || !isCloudEditorRuntime(branch.branch.runtime) || branch.codeEditor !== codeEditor ||
+                    (sourceContext && sourceContext.branchId !== pin.branchId)) throw new Error('The property source is no longer available.');
+                const revision = source.state.savedRevision, version = source.getSourceVersion(), externalRevision = source.getExternalRevision();
+                const current = () => (sourceContext?.current?.() ?? true) && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch &&
+                    this.editorEngine.branches.activeBranchData === branch && this.editorEngine.branches.getBranchDataById(pin.branchId) === branch &&
+                    branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor && source.isContentMode &&
+                    source.state.savedRevision === revision && source.getSourceVersion() === version && source.getExternalRevision() === externalRevision;
+                const original = await codeEditor.readFile(pin.path);
+                if (typeof original !== 'string' || !current()) return false;
+                const reconstructed = reconstructCloudPropertyAction(action, original), diff = reconstructed.diffs[0]!;
+                const choice = pin.binding.options.find(option => option.value === edit.value);
+                if (!choice) return false;
+                const saved = await source.withApprovedPropertyWrite({ pin, revision, previousValue: edit.previousValue, choiceId: choice.id,
+                    original, candidate: diff.generated, current, validate: sourceContext?.validate }, lease => this.enqueueWrite(async () => {
+                        if (!lease.current() || await codeEditor.readFile(pin.path) !== original || !lease.current()) return false;
+                        return lease.commit();
+                    }));
+                if (!saved) throw new Error('The approved property could not be saved.');
+                return true;
+            }
+            if (action.type === 'write-code' && 'cloudImage' in action) {
+                const edit = action.cloudImage;
+                if (!edit || !validCloudImageApproval(edit.pin) || !['src', 'alt'].includes(edit.field) ||
+                    !edit.pin.binding.fields.includes(edit.field) || action.diffs.length !== 1 || action.branchId !== edit.pin.branchId ||
+                    action.previewStyle || action.refreshTokens || action.cssModuleStyle || 'cloudAttribute' in action || 'cloudProperty' in action) throw new Error('This image edit has no valid original approval.');
+                const pin = freezeCloudImageApproval(edit.pin), diff = action.diffs[0]!;
+                const branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+                const codeEditor = sourceContext?.codeEditor ?? branch?.codeEditor;
+                if (!branch || !source || !codeEditor || !isCloudEditorRuntime(branch.branch.runtime) || diff.path !== pin.path ||
+                    (sourceContext && sourceContext.branchId !== pin.branchId) || branch.codeEditor !== codeEditor) throw new Error('The image source is no longer available.');
+                const externalRevision = source.getExternalRevision(), mode = source.isContentMode;
+                const revision = source.state.savedRevision;
+                const ownerCurrent = () => (sourceContext?.current?.() ?? true) && !this.editorEngine.isClosing &&
+                    this.editorEngine.branches.hasActiveBranch && this.editorEngine.branches.activeBranchData === branch &&
+                    this.editorEngine.branches.getBranchDataById(pin.branchId) === branch && branch.sandbox.cloudSource === source &&
+                    branch.codeEditor === codeEditor && source.isContentMode === mode && source.getExternalRevision() === externalRevision &&
+                    source.state.savedRevision === revision;
+                const previous = readContentImageTarget(diff.original, pin.binding.target), value = readContentImageTarget(diff.generated, pin.binding.target);
+                const other = edit.field === 'src' ? 'alt' : 'src';
+                if (value[other] !== previous[other] || replaceContentImageTarget(diff.original, pin.binding.target, previous, value) !== diff.generated)
+                    throw new Error('The image edit changes unapproved source.');
+                // Acquire before this write enters the queue, so pending-work admission
+                // still rejects unrelated writes without rejecting this write itself.
+                const saved = await source.withApprovedImageWrite({ pin, field: edit.field, revision, previous, current: ownerCurrent }, lease =>
+                    this.enqueueWrite(async () => {
+                        const current = () => ownerCurrent() && lease.current() && this.editorEngine.branches.getBranchDataById(pin.branchId) === branch &&
+                            branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor && source.isContentMode === mode &&
+                            source.getExternalRevision() === externalRevision && source.state.savedRevision === revision;
+                        if (!current() || await codeEditor.readFile(pin.path) !== diff.original || !current()) return false;
+                        return lease.commit(diff.generated);
+                    }));
+                if (!saved) throw new Error('The approved image could not be saved.');
+                return true;
+            }
             if (action.type === 'edit-text' && 'cloudText' in action) {
                 if (!validCloudTextApproval(action.cloudText) || action.textSlots !== undefined || action.targets.length === 0)
                     throw new Error('This text edit has no valid original approval.');

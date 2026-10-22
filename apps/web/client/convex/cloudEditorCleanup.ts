@@ -7,7 +7,7 @@ import { internalMutation } from './_generated/server';
 import { cloudScope, cloudError } from './lib/cloudEditor';
 
 type Scope = { projectId: Id<'projects'>; branchId: Id<'branches'> };
-type CleanupPage = Scope & { kind: 'files' | 'receipts' | 'grants' | 'contracts' | 'tickets' | 'studio' | 'journal' | 'invitations' | 'removals' | 'imported-media' | 'image-admissions'; cursor: string | null };
+type CleanupPage = Scope & { kind: 'files' | 'receipts' | 'grants' | 'contracts' | 'tickets' | 'studio' | 'journal' | 'invitations' | 'removals' | 'imported-media' | 'image-admissions' | 'imported-studio' | 'properties'; cursor: string | null };
 const cleanupRef = makeFunctionReference<'mutation', CleanupPage, null>('cloudEditorCleanup:_drain');
 
 /**
@@ -29,8 +29,9 @@ export async function deleteCloudEditorBranch(ctx: MutationCtx, scope: Scope): P
     await ctx.scheduler.runAfter(0, cleanupRef, { ...scope, kind: 'files', cursor: null });
     await ctx.scheduler.runAfter(0, cleanupRef, { ...scope, kind: 'receipts', cursor: null });
     await ctx.scheduler.runAfter(0, cleanupRef, { ...scope, kind: 'contracts', cursor: null });
+    await ctx.scheduler.runAfter(0, cleanupRef, { ...scope, kind: 'properties', cursor: null });
     await ctx.scheduler.runAfter(0, cleanupRef, { ...scope, kind: 'tickets', cursor: null });
-    for (const kind of ['studio', 'journal', 'imported-media', 'image-admissions'] as const)
+    for (const kind of ['studio', 'journal', 'imported-media', 'image-admissions', 'imported-studio'] as const)
         await ctx.scheduler.runAfter(0, cleanupRef, { ...scope, kind, cursor: null });
     const remaining = await ctx.db.query('cloudEditorStates')
         .withIndex('by_projectId', q => q.eq('projectId', scope.projectId)).first();
@@ -44,7 +45,7 @@ export async function deleteCloudEditorBranch(ctx: MutationCtx, scope: Scope): P
 
 /** Private continuation, scheduled only after removing a matching enrollment. */
 export const _drain = internalMutation({
-    args: { ...cloudScope, kind: v.union(v.literal('files'), v.literal('receipts'), v.literal('grants'), v.literal('contracts'), v.literal('tickets'), v.literal('studio'), v.literal('journal'), v.literal('invitations'), v.literal('removals'), v.literal('imported-media'), v.literal('image-admissions')), cursor: v.union(v.string(), v.null()) },
+    args: { ...cloudScope, kind: v.union(v.literal('files'), v.literal('receipts'), v.literal('grants'), v.literal('contracts'), v.literal('tickets'), v.literal('studio'), v.literal('journal'), v.literal('invitations'), v.literal('removals'), v.literal('imported-media'), v.literal('image-admissions'), v.literal('imported-studio'), v.literal('properties')), cursor: v.union(v.string(), v.null()) },
     handler: async (ctx, args): Promise<null> => {
         // Do not let an old continuation touch a branch enrolled again later.
         const state = await ctx.db.query('cloudEditorStates')
@@ -71,11 +72,17 @@ export const _drain = internalMutation({
         }
         // Paginate before matching projectId: mismatched rows must be preserved
         // without causing an unbounded scan or a repeating first-page loop.
-        const page = args.kind === 'imported-media'
+        const page = args.kind === 'properties'
+            ? await ctx.db.query('cloudEditorPropertyContracts').withIndex('by_branchId_and_path', q => q.eq('branchId', args.branchId))
+                .paginate({ cursor: args.cursor, numItems: 100 })
+            : args.kind === 'imported-media'
             ? await ctx.db.query('cloudEditorImportedMedia').withIndex('by_branchId', q => q.eq('branchId', args.branchId))
                 .paginate({ cursor: args.cursor, numItems: 100 })
             : args.kind === 'image-admissions'
             ? await ctx.db.query('cloudEditorImportedImageAdmissions').withIndex('by_branchId', q => q.eq('branchId', args.branchId))
+                .paginate({ cursor: args.cursor, numItems: 100 })
+            : args.kind === 'imported-studio'
+            ? await ctx.db.query('cloudEditorImportedStudioApprovals').withIndex('by_branchId', q => q.eq('branchId', args.branchId))
                 .paginate({ cursor: args.cursor, numItems: 100 })
             : args.kind === 'studio'
             ? await ctx.db.query('cloudEditorStudioContracts').withIndex('by_branchId', q => q.eq('branchId', args.branchId))

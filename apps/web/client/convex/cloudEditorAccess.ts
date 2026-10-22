@@ -1,4 +1,4 @@
-import { importedTextAuthority, canUseImportedText, canUseImportedImages, canReadImportedSource } from './lib/cloudImportedAccess';
+import { importedTextAuthority, canUseImportedText, canUseImportedImages, canUseImportedStudio, canUseImportedProperties, canReadImportedSource } from './lib/cloudImportedAccess';
 import { getPreparedImport } from './lib/cloudImportedState';
 import { sourceProfileCapabilities, assertExecutableCloudProfile, assertContentCloudProfile } from './lib/cloudImportManifest';
 import { v } from 'convex/values';
@@ -68,6 +68,10 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
     const canApproveImportedText = canDesign && canEditImportedText;
     const canEditImportedImages = canUseImportedImages(role, importedAuthority);
     const canApproveImportedImages = canDesign && canEditImportedImages;
+    const canEditImportedStudio = canUseImportedStudio(role, importedAuthority);
+    const canApproveImportedStudio = canDesign && canEditImportedStudio;
+    const canEditImportedProperties = canUseImportedProperties(role, importedAuthority);
+    const canApproveImportedProperties = canDesign && canEditImportedProperties;
     const canReadSource = !profile.imported || canReadImportedSource(role, update, importedAuthority);
     const canEditContent = (profile.contentWrite && role !== null) || canEditImportedText;
     const canPreview = profile.preview && role !== null && (!profile.imported || canDesign || canEditImportedText);
@@ -89,7 +93,11 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
         ...(canEditImportedText ? { canEditImportedText: true as const } : {}),
         ...(canApproveImportedText ? { canApproveImportedText: true as const } : {}),
         ...(canEditImportedImages ? { canEditImportedImages: true as const } : {}),
-        ...(canApproveImportedImages ? { canApproveImportedImages: true as const } : {}) };
+        ...(canApproveImportedImages ? { canApproveImportedImages: true as const } : {}),
+        ...(canEditImportedStudio ? { canEditImportedStudio: true as const } : {}),
+        ...(canApproveImportedStudio ? { canApproveImportedStudio: true as const } : {}),
+        ...(canEditImportedProperties ? { canEditImportedProperties: true as const } : {}),
+        ...(canApproveImportedProperties ? { canApproveImportedProperties: true as const } : {}) };
 }
 
 /** Starter content/Studio transports cannot mutate prepared imported source. */
@@ -102,13 +110,17 @@ export async function requireStarterCloudAccess(...args: Parameters<typeof requi
 export const access = query({
     args: cloudScope,
     handler: async (ctx, scope) => {
-        const { user, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage, canEditImportedText, canApproveImportedText, canEditImportedImages, canApproveImportedImages } =
+        const { user, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage, canEditImportedText, canApproveImportedText, canEditImportedImages, canApproveImportedImages, canEditImportedStudio, canApproveImportedStudio, canEditImportedProperties, canApproveImportedProperties } =
             await requireCloudAccess(ctx, scope);
         return { actorId: user._id, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage,
             ...(canEditImportedText ? { canEditImportedText } : {}),
             ...(canApproveImportedText ? { canApproveImportedText } : {}),
             ...(canEditImportedImages ? { canEditImportedImages } : {}),
-            ...(canApproveImportedImages ? { canApproveImportedImages } : {}) };
+            ...(canApproveImportedImages ? { canApproveImportedImages } : {}),
+            ...(canEditImportedStudio ? { canEditImportedStudio } : {}),
+            ...(canApproveImportedStudio ? { canApproveImportedStudio } : {}),
+            ...(canEditImportedProperties ? { canEditImportedProperties } : {}),
+            ...(canApproveImportedProperties ? { canApproveImportedProperties } : {}) };
     },
 });
 

@@ -102,22 +102,25 @@ describe('cloud branch deletion cleanup', () => {
             f.put('cloudEditorFiles', `cloudEditorFiles:${name}`, { ...rowScope, path: `${name}.tsx` });
             f.put('cloudEditorOperations', `cloudEditorOperations:${name}`, { ...rowScope, operationId: name });
             f.put('cloudEditorContentContracts', `cloudEditorContentContracts:${name}`, { ...rowScope, path: `${name}.tsx` });
+            f.put('cloudEditorPropertyContracts', `cloudEditorPropertyContracts:${name}`, { ...rowScope, path: `${name}.tsx` });
             f.put('cloudPreviewTickets', `cloudPreviewTickets:${name}`, { ...rowScope, userId: name });
         }
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
         expect(f.get('cloudEditorStates:one')).toBeNull();
         expect(f.get('cloudEditorStates:other')).not.toBeNull();
-        expect(f.jobs).toHaveLength(8);
+        expect(f.jobs).toHaveLength(10);
         expect(f.pages).toHaveLength(0); // Cascade does not read large manifests.
         await f.flushCleanup();
         expect(f.get('cloudEditorFiles:own')).toBeNull();
         expect(f.get('cloudEditorOperations:own')).toBeNull();
         expect(f.get('cloudEditorContentContracts:own')).toBeNull();
+        expect(f.get('cloudEditorPropertyContracts:own')).toBeNull();
         expect(f.get('cloudPreviewTickets:own')).toBeNull();
         for (const suffix of ['otherBranch', 'otherProject']) {
             expect(f.get(`cloudEditorFiles:${suffix}`)).not.toBeNull();
             expect(f.get(`cloudEditorOperations:${suffix}`)).not.toBeNull();
             expect(f.get(`cloudEditorContentContracts:${suffix}`)).not.toBeNull();
+            expect(f.get(`cloudEditorPropertyContracts:${suffix}`)).not.toBeNull();
             expect(f.get(`cloudPreviewTickets:${suffix}`)).not.toBeNull();
         }
         expect(f.get(scope.branchId)).not.toBeNull(); // Caller owns branch deletion.
@@ -151,11 +154,23 @@ describe('cloud branch deletion cleanup', () => {
         expect(f.pages.filter(page => page.name === 'cloudEditorOperations').map(page => page.count)).toEqual([100, 100, 51]);
     });
 
+    it('cleans imported Studio authority only for the deleted branch and matching project', async () => {
+        const f = fixture();
+        f.put('cloudEditorImportedStudioApprovals', 'cloudEditorImportedStudioApprovals:owned', { ...scope });
+        f.put('cloudEditorImportedStudioApprovals', 'cloudEditorImportedStudioApprovals:otherBranch', { ...scope, branchId: 'branches:other' });
+        f.put('cloudEditorImportedStudioApprovals', 'cloudEditorImportedStudioApprovals:otherProject', { ...scope, projectId: 'projects:other' });
+        await cleanup.deleteCloudEditorBranch(f.ctx, scope);
+        await f.flushCleanup();
+        expect(f.get('cloudEditorImportedStudioApprovals:owned')).toBeNull();
+        expect(f.get('cloudEditorImportedStudioApprovals:otherBranch')).not.toBeNull();
+        expect(f.get('cloudEditorImportedStudioApprovals:otherProject')).not.toBeNull();
+    });
+
     it('is idempotent and fences old jobs from a recreated enrollment', async () => {
         const f = fixture();
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
-        expect(f.jobs).toHaveLength(11);
+        expect(f.jobs).toHaveLength(13);
         f.put('cloudEditorStates', 'cloudEditorStates:replacement', { ...scope, version: 1 });
         f.put('cloudEditorFiles', 'cloudEditorFiles:replacement', { ...scope, path: 'page.tsx' });
         f.put('cloudEditorOperations', 'cloudEditorOperations:replacement', { ...scope, operationId: 'new' });
@@ -185,11 +200,11 @@ describe('cloud branch deletion cleanup', () => {
         f.put('cloudEditorStates', 'cloudEditorStates:second', { ...second, version: 1 });
         f.put('cloudEditorGrants', 'cloudEditorGrants:one', { projectId: scope.projectId, userId: 'users:one' });
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
-        expect(f.jobs).toHaveLength(8);
+        expect(f.jobs).toHaveLength(10);
         await f.flushCleanup();
         expect(f.get('cloudEditorGrants:one')).not.toBeNull();
         await cleanup.deleteCloudEditorBranch(f.ctx, second);
-        expect(f.jobs).toHaveLength(11);
+        expect(f.jobs).toHaveLength(13);
         f.put('cloudEditorStates', 'cloudEditorStates:new', { ...scope, branchId: 'branches:new', version: 1 });
         await f.flushCleanup();
         expect(f.get('cloudEditorGrants:one')).not.toBeNull();

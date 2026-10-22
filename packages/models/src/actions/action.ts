@@ -89,6 +89,28 @@ export interface CloudTextApproval {
     readonly designRevision: number;
 }
 
+export interface CloudPropertyBinding {
+    readonly bindingId: string;
+    readonly label: string;
+    readonly target: Readonly<
+        { kind: 'component-literal-href'; exportName: string; oid: string; field: 'href' }
+        | { kind: 'mapped-callsite-enum'; exportName: string; oid: string; field: 'tone'; renderMapping: CloudImageBinding['renderMapping'] }
+    >;
+    readonly options: ReadonlyArray<Readonly<{ id: string; label: string; value: string }>>;
+}
+export interface CloudPropertyApproval {
+    readonly version: 1;
+    readonly projectId: string;
+    readonly branchId: string;
+    readonly actorId: string;
+    readonly path: string;
+    readonly generation: number;
+    readonly preparationId: string;
+    readonly designRevision: number;
+    readonly definitionHash: string;
+    readonly binding: CloudPropertyBinding;
+}
+
 export interface CloudImageAsset {
     readonly path: string;
     readonly hash: string;
@@ -223,6 +245,10 @@ export interface WriteCodeAction {
     previewStyle?: UpdateStyleAction;
     /** Revalidated from source and disk on initial save, Undo and Redo. */
     cssModuleStyle?: CssModuleStyleEdit;
+    /** Exact image approval and field survive undo/redo and selection changes. */
+    cloudImage?: { readonly pin: CloudImageApproval; readonly field: 'src' | 'alt' };
+    /** Semantic values survive history; source diffs are only one-dispatch proposals. */
+    cloudProperty?: { readonly pin: CloudPropertyApproval; readonly previousValue: string; readonly value: string };
 }
 
 export interface ImageContentData {
