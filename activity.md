@@ -21,3 +21,7 @@ Final direct-edit gate: 2,229 desktop tests passed (including 172 native-shell t
 Fixed empty-field reentry and retained a temporary one-line hit area without persisting style changes. Scoped regressions cover prior style values, priority and newer external styles. Final source passes all 2,229 desktop tests, lint and types.
 
 Final packaged empty-field acceptance passed: clear body text, Escape, double-click the retained target, type new text, Save into both frames, then Undo back to the exact original. Chromium placeholder line breaks no longer block reentry. Original hero/body text is visible in both frames and the local draft has no content overrides.
+
+## 2026-10-22
+
+Resumed native acceptance after the owner confirmed the app was free for testing. The acceptance process and local runner started, but native automation could not attach: macOS returned `NSOSStatusErrorDomain -600` (`procNotFound`) through the desktop control tool, including after resetting its connection. No UI input or content write ran. The local draft remains at revision 13 with zero overrides. The additional manual Reload-with-unsaved-text check remains unverified; the prior automated guard tests and packaged editing evidence are unchanged.
