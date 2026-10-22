@@ -8,6 +8,46 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+    // Local source only; full packaged edit/save/reopen acceptance is still pending.
+    {
+        slug: 'v5-7-local-edit-exit-protection',
+        version: '5.7',
+        title: 'Safer local editing and customer preparation',
+        description:
+            'Local close warnings cover unfinished text and history, and Quit honors them before stopping preview services. Customer preparation handles alternate document roots and supported middleware, while clean handoff preserves real code changes. These guards do not save edits automatically.',
+        date: '2026-10-22',
+        tags: ['Editor', 'Desktop', 'Recovery'],
+    },
+    // Local source only. Preview: /assets/changelog/local-sanity-preview.png
+    {
+        slug: 'v5-6-local-sanity-preview-settings',
+        version: '5.6',
+        title: 'Connect local previews to Sanity',
+        description:
+            'Local projects can preview published content from a public Sanity dataset using a project ID and dataset name. Settings stay on this Mac, outside customer code and exported patches. Saving restarts an already prepared preview.',
+        date: '2026-10-22',
+        tags: ['Desktop', 'Preview', 'Sanity'],
+    },
+    // Local source only. Preview: /assets/changelog/local-startup-help.svg
+    {
+        slug: 'v5-5-project-startup-recovery',
+        version: '5.5',
+        title: 'Safer project startup',
+        description:
+            'Project startup keeps one initialization in flight, offers Retry after a failed start and preserves the open editor when unsaved changes block a project switch. Prepared local sites also reopen with saved history, detect layouts inside language folders and route groups, and avoid overlapping folder refreshes.',
+        date: '2026-10-22',
+        tags: ['Editor', 'Desktop', 'Recovery'],
+    },
+    // Local source only. Full authenticated control/reopen acceptance is pending.
+    {
+        slug: 'v5-4-component-class-editing',
+        version: '5.4',
+        title: 'Edit supported component classes',
+        description:
+            'Supported local CSS Module classes have an explicit Apply control showing that changes affect every use at all sizes. Source checks protect saves and history replay. Text editing also protects authored line-break styles and content owned by props or HTML.',
+        date: '2026-10-22',
+        tags: ['Editor', 'Desktop', 'Safety'],
+    },
     {
         slug: 'v5-3-mac-site-organization',
         version: '5.3',

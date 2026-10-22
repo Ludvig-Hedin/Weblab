@@ -1,3 +1,5 @@
+import type { Id } from '@convex/_generated/dataModel';
+import type { CloudRemovalInspection, CloudRemovalResult, CloudRemovalBeginArgs, CloudRemovalContinueArgs, CloudRetainedVersionPage } from './version-removal';
 import { makeFunctionReference } from 'convex/server';
 import type { ApiFromModules, FunctionArgs, FunctionReturnType } from 'convex/server';
 import type * as Releases from '@convex/cloudReleases';
@@ -8,12 +10,17 @@ import type * as ReviewAccess from '@convex/cloudReleaseReviewAccess';
 
 type Api = ApiFromModules<{ releases: typeof Releases; actions: typeof Actions; backups: typeof Backups; backupActions: typeof BackupActions; reviewAccess: typeof ReviewAccess }>;
 export const cloudReleaseApi = {
+    inspectRemoval: makeFunctionReference<'query', { releaseId: Id<'cloudReleases'>; expectedActorId: Id<'users'> }, CloudRemovalInspection>('cloudReleaseRemoval:inspect'),
+    beginRemoval: makeFunctionReference<'mutation', CloudRemovalBeginArgs, CloudRemovalResult>('cloudReleaseRemoval:begin'),
+    continueRemoval: makeFunctionReference<'mutation', CloudRemovalContinueArgs, CloudRemovalResult>('cloudReleaseRemoval:continueRemoval'),
+    retainedVersions: makeFunctionReference<'query', { workspaceId: Id<'workspaces'>; expectedActorId: Id<'users'>; cursor: string | null }, CloudRetainedVersionPage>('cloudBackups:retainedVersions'),
     backups: makeFunctionReference<'query', FunctionArgs<Api['backups']['list']>, FunctionReturnType<Api['backups']['list']>>('cloudBackups:list'),
     issueReview: makeFunctionReference<'mutation', FunctionArgs<Api['reviewAccess']['issue']>, FunctionReturnType<Api['reviewAccess']['issue']>>('cloudReleaseReviewAccess:issue'),
     exchangeReview: makeFunctionReference<'mutation', FunctionArgs<Api['reviewAccess']['exchange']>, FunctionReturnType<Api['reviewAccess']['exchange']>>('cloudReleaseReviewAccess:exchange'),
     authorizeReview: makeFunctionReference<'query', FunctionArgs<Api['reviewAccess']['authorize']>, FunctionReturnType<Api['reviewAccess']['authorize']>>('cloudReleaseReviewAccess:authorize'),
     status: makeFunctionReference<'query', FunctionArgs<Api['releases']['status']>, FunctionReturnType<Api['releases']['status']>>('cloudReleases:status'),
     capture: makeFunctionReference<'mutation', FunctionArgs<Api['releases']['capture']>, FunctionReturnType<Api['releases']['capture']>>('cloudReleases:capture'),
+    prepareHosting: makeFunctionReference<'action', FunctionArgs<Api['actions']['prepareHosting']>, FunctionReturnType<Api['actions']['prepareHosting']>>('cloudReleaseActions:prepareHosting'),
     prepare: makeFunctionReference<'action', FunctionArgs<Api['actions']['prepare']>, FunctionReturnType<Api['actions']['prepare']>>('cloudReleaseActions:prepare'),
     review: makeFunctionReference<'mutation', FunctionArgs<Api['releases']['review']>, FunctionReturnType<Api['releases']['review']>>('cloudReleases:review'),
     request: makeFunctionReference<'mutation', FunctionArgs<Api['releases']['request']>, FunctionReturnType<Api['releases']['request']>>('cloudReleases:request'),

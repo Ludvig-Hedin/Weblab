@@ -75,6 +75,7 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
     const canReadSource = !profile.imported || canReadImportedSource(role, update, importedAuthority);
     const canEditContent = (profile.contentWrite && role !== null) || canEditImportedText;
     const canPreview = profile.preview && role !== null && (!profile.imported || canDesign || canEditImportedText);
+    const publicationGrant = hasCloudPublicationGrant(role, grant?.publish, creator);
     const canPublish = profile.release && (grant?.publish ?? creator);
     const canManage = role === 'responsible' && can('project.invite', resource);
     if (minRole) {
@@ -89,7 +90,7 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
         )
             return cloudError('CLOUD_ROLE_REQUIRED');
     }
-    return { ...legacy, state, branch, role, canDesign, canPrepareImport, canReadSource, canPreview, preparation, importedAuthority, canEditContent, canPublish, canManage,
+    return { ...legacy, state, branch, role, canDesign, canPrepareImport, canReadSource, canPreview, preparation, importedAuthority, canEditContent, canPublish, canManage, publicationGrant,
         ...(canEditImportedText ? { canEditImportedText: true as const } : {}),
         ...(canApproveImportedText ? { canApproveImportedText: true as const } : {}),
         ...(canEditImportedImages ? { canEditImportedImages: true as const } : {}),
@@ -105,6 +106,43 @@ export async function requireStarterCloudAccess(...args: Parameters<typeof requi
     const access = await requireCloudAccess(...args);
     assertContentCloudProfile(access.state.profile);
     return access;
+}
+
+/** Same independent grant rule for authenticated admission and canonical stored workers. */
+export function hasCloudPublicationGrant(role: CloudEditorRole | null, publish: boolean | undefined, creator: boolean): boolean {
+    return role !== null && (publish ?? creator);
+}
+export function importedPublicationEnabled(): boolean {
+    return process.env.WEBLAB_CLOUD_IMPORTED_PUBLICATION_ENABLED === 'true';
+}
+
+/** Frozen versions use current access, never today's editable source/preparation bytes. */
+export async function requireImportedReleaseAccess(ctx: Context, scope: Scope) {
+    const access = await requireCloudProjectCapability(ctx, scope);
+    const branch = await ctx.db.get(scope.branchId);
+    const state = await ctx.db.query('cloudEditorStates').withIndex('by_branchId', q => q.eq('branchId', scope.branchId)).unique();
+    if (!branch || branch.projectId !== scope.projectId || !state || state.projectId !== scope.projectId ||
+        state.workspaceId !== access.workspace._id || state.profile !== 'imported-next-v1' || state.version !== 1) cloudError('CLOUD_NOT_ENROLLED');
+    const grant = await ctx.db.query('cloudEditorGrants').withIndex('by_projectId_userId', q => q.eq('projectId', scope.projectId).eq('userId', access.user._id)).unique();
+    const creator = state.createdByUserId === access.user._id;
+    const role = grant?.role ?? (creator ? 'responsible' : null);
+    if (!role) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
+    const canDesign = (role === 'responsible' || role === 'designer') && can('project.update', {
+        workspace: { id: access.workspace._id, createdByUserId: access.workspace.createdByUserId }, workspaceRole: access.workspaceRole,
+        project: { id: scope.projectId, workspaceId: access.workspace._id, accessMode: access.project!.accessMode }, projectRole: access.projectRole,
+    });
+    return { ...access, state, branch, role, canDesign, publicationGrant: hasCloudPublicationGrant(role, grant?.publish, creator) };
+}
+export function assertImportedReleasePublisher(access: Pick<Awaited<ReturnType<typeof requireImportedReleaseAccess>>, 'publicationGrant' | 'canDesign'>, design = false): void {
+    if (!importedPublicationEnabled()) cloudError('CLOUD_IMPORTED_PUBLICATION_DISABLED');
+    if (!access.publicationGrant || (design && !access.canDesign)) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
+}
+
+/** Separate rollout and current grant; never enables the imported release capability. */
+export function assertImportedPublicationAccess(access: Awaited<ReturnType<typeof requireCloudAccess>>): void {
+    if (!importedPublicationEnabled()) cloudError('CLOUD_IMPORTED_PUBLICATION_DISABLED');
+    if (access.state.profile !== 'imported-next-v1' || access.state.version !== 1 || !access.preparation ||
+        !access.canDesign || !access.publicationGrant) cloudError('CLOUD_RELEASE_NOT_ALLOWED');
 }
 
 export const access = query({
