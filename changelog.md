@@ -2,6 +2,8 @@
 
 ## Unreleased — local desktop 0.2.2 candidate
 
+- Integration checks now include the folder dashboard in the optional-AI startup test setup.
+
 - Edit supported CMS text directly in the Mac app with local save, Undo and Redo.
 - Review exact text changes before publishing; restore published text as a local draft.
 - Review a test link and staged live build before switching the public site.

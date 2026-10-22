@@ -35,6 +35,7 @@ function setup({ connected = false, authFailure = false } = {}) {
     "auth.saveApiKey": () => ({ ok: true }),
     "auth.state": () =>
       authFailure ? Promise.reject(new Error("Unavailable")) : { connected },
+    "folders.list": () => [],
     "settings.get": () => [],
     "settings.needed": () => false,
     "site.open": () => ({ ok: true }),

@@ -1,5 +1,17 @@
 # Current Progress Snapshot
 
+## 2026-10-22 — Local editor synchronized for PR handoff
+
+This checkout pulled remote main `d124aea1e` into the local editor branch. PR #17
+also fixes the optional-AI test fixture after the folder dashboard merge. Desktop
+lint, types and 2,418 tests pass; a separate unsigned review package builds. The
+private client handoff preserves all 18 changed source files and four internal
+notes. The recovery sibling paths below describe another machine; those folders
+and historical recovery refs are absent here. Do not infer they were uploaded
+from this Mac. The owner now requests open PRs only: no merges or deployment.
+Fresh packaged acceptance also passed direct body typing, unsaved Reload refusal,
+Keep editing, Discard, and clean reload with original text in both frame sizes.
+
 ## 2026-10-21 — Current-main recovery integration
 
 PR #8 and desktop recovery PR #13 and parser PR #14 are merged; clean `../weblab-main` is synchronized to `854129c1d`. Further recovered work is local on `integration/recovered-work-2026-10-21` in `../weblab-project-location-recovery`. Original dirty source and historical checkpoints remain preserved. The idle HTML donor was normally retired after all 4,935 source fingerprints matched and its exact original edits were archived in `35126f8d8` on retained `recovery/html-original-2026-10-21`.
