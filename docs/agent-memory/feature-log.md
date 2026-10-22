@@ -16,6 +16,14 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-10-21 — Mac Sites folders and moved-source integration
+Author: Codex
+Area: `apps/desktop-local`
+Summary: Integrated metadata-only Sites folders and checked reconnect with current Content editing and immutable release flows. Source and session identity are rechecked after queued work and provider waits so moved or replaced folders cannot receive later writes. Source merge only; installed Mac/restart/offline-volume and provider acceptance remain open.
+Files: `apps/desktop/src/{sites,source-location,runner,content-ipc,content-publish,publish-ipc,release-flow,upload,github,deploy}.js`, `packages/server/src/{root-identity,index,assets,proxy}.ts` within desktop-local
+Links: PR #8, F-844, T-885, web changelog v5.3. Local focused regressions, server types and changed-file lint passed; no full suite or remote CI.
+
+
 ## 2026-10-05 — Team desktop editor 0.2.7 on weblab.build
 Author: Claude
 Area: `apps/desktop`, `apps/web/client`, Convex production, CI
@@ -1295,3 +1303,7 @@ Private customer-copy proof, known-Sanity publication refusal, bounded owner/sit
   Clerk prod sign-up set to Restricted. Guide: `docs/guides/local-app-mode.md`.
 - Follow-ups: backlog 178 (move weblab-local into `apps/desktop-local`),
   179 (SEO metadata still cloud-flavoured).
+
+## 2026-10-21 — Scoped invited cloud entry, source integration
+
+F-845 and T-887 recover exact enrolled-project entry for existing invited accounts, canonical issuer identity, personal viewport writes and initiating-session cancellation through editor startup and durable hydration. Ordinary settings/preview routes and shared offline-cache fallback retain ordinary admission. No public sign-up or imported-site activation. Fresh authority/frontend source reviews found no confirmed blocker. Checked: 198 focused cases, web/file-system types and focused lint (0 errors, 444 warnings). Connected invitation claim/reopen/revocation and deployed acceptance remain open; this is not a live release announcement.

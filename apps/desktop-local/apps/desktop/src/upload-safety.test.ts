@@ -19,10 +19,14 @@ interface UploadApi {
   parseStatus: (raw: string) => { files: FileStatus[] };
   upload: (
     cwd: string,
-    input: { paths: string[]; note?: string; newBranch?: boolean }
+    input: { paths: unknown; note?: string; newBranch?: boolean }
   ) => Promise<{ ok: boolean; code?: string }>;
 }
-function setup(entries = "? src/page.tsx\0", statusFails = false) {
+function setup(
+  entries = "? src/page.tsx\0",
+  statusFails = false,
+  gitAvailable = true
+) {
   const calls: string[][] = [];
   const module = { exports: {} };
   const raw = `# branch.head work\0# branch.upstream origin/work\0# branch.ab +0 -0\0${entries}`;
@@ -32,7 +36,8 @@ function setup(entries = "? src/page.tsx\0", statusFails = false) {
       gitAuthEnv: () => ({}),
       readToken: () => "fixture-token",
     },
-    "./runtime": { canUseGit: () => true, childEnv: () => ({}) },
+    "./runtime": { canUseGit: () => gitAvailable, childEnv: () => ({}) },
+    "./sites": { checkVerifiedPath: () => undefined },
     "node:child_process": {
       execFile: (
         _binary: string,
@@ -181,4 +186,167 @@ test("ordinary selected files still commit and push while private files stay uns
     "src/page.tsx",
   ]);
   expect(calls.some((args) => args.includes("push"))).toBe(true);
+});
+
+test.each(
+  [
+    null,
+    "src/page.tsx",
+    {},
+    [null],
+    [1],
+    [""],
+    ["."],
+    [".."],
+    ["../outside.txt"],
+    ["src/../outside.txt"],
+    ["/outside.txt"],
+    ["src//page.tsx"],
+    ["src/./page.tsx"],
+    ["src\\page.tsx"],
+    ["C:/outside.txt"],
+    ["src/page\0.tsx"],
+    ["src/page\n.tsx"],
+    [".git/config"],
+    ["nested/.GIT/config"],
+    [".env.local"],
+  ].map((paths) => ({ paths }))
+)(
+  "invalid/private selection $paths is refused before any Git command",
+  async ({ paths }) => {
+    const { api, calls } = setup();
+    expect(
+      await api.upload("/fixture", { newBranch: true, paths })
+    ).toMatchObject({ code: "private-files", ok: false });
+    expect(calls).toEqual([]);
+  }
+);
+
+test("Git unavailable reports no remote without executing a Git command", async () => {
+  const { api, calls } = setup("? src/page.tsx\0", false, false);
+  expect(
+    await api.upload("/fixture", { paths: ["src/page.tsx"] })
+  ).toMatchObject({ code: "no-remote", ok: false });
+  expect(calls).toEqual([]);
+});
+
+test("selected commits use literal commit-only paths without resetting the index", async () => {
+  const { api, calls } = setup("? src/page.tsx\0");
+  expect(
+    await api.upload("/fixture", { note: "Selection", paths: ["src/page.tsx"] })
+  ).toMatchObject({ ok: true });
+  expect(calls.some((args) => args.includes("reset"))).toBe(false);
+  expect(calls.find((args) => args.includes("commit"))).toEqual([
+    "--literal-pathspecs",
+    "commit",
+    "--only",
+    "-q",
+    "-m",
+    "Selection",
+    "--",
+    "src/page.tsx",
+  ]);
+});
+
+async function uploadRenderer(privateOnly = false) {
+  const requireOverlay = createRequire(
+    new URL("../../../packages/overlay/package.json", import.meta.url)
+  );
+  const { Window } = requireOverlay("happy-dom");
+  const window = new Window();
+  const { document } = window;
+  document.body.innerHTML =
+    '<header><div id="title">Site</div><div class="topbar-right"></div></header><section data-screen="editor"></section><div id="gh-dialog" hidden></div>';
+  const files = [
+    ...(privateOnly
+      ? []
+      : [
+          {
+            dir: "src",
+            kind: "edited",
+            name: "page.tsx",
+            path: "src/page.tsx",
+            secret: false,
+          },
+        ]),
+    {
+      dir: "",
+      kind: "new",
+      name: ".env.local",
+      path: ".env.local",
+      secret: true,
+    },
+  ];
+  window.weblab = {
+    deploy: { onLogin: () => undefined, onProgress: () => undefined },
+    publish: {
+      freeze: () => Promise.resolve(null),
+      note: () => Promise.resolve({ text: "Update page" }),
+      onJob: () => undefined,
+      status: () =>
+        Promise.resolve({
+          ahead: 0,
+          branch: "work",
+          defaultBranch: "main",
+          files,
+          git: true,
+          remote: { github: true },
+          repo: true,
+          signedIn: true,
+        }),
+    },
+  };
+  const context = vm.createContext({
+    CSS: window.CSS,
+    currentSite: { id: "site" },
+    document,
+    MutationObserver: window.MutationObserver,
+    navigator: window.navigator,
+    setInterval: () => 0,
+    window,
+  });
+  vm.runInContext(
+    fs.readFileSync(new URL("../renderer/publish.js", import.meta.url), "utf8"),
+    context
+  );
+  document.querySelector('[data-panel="upload"]').click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return { document, window };
+}
+
+test("Upload selection disables private files and counts only selectable files", async () => {
+  const { window, document } = await uploadRenderer();
+  try {
+    const secret = () =>
+      document.querySelector('[data-act="toggle"][data-path=".env.local"]');
+    const all = () => document.querySelector('[data-act="toggle-all"]');
+    expect(secret().disabled).toBe(true);
+    expect(secret().getAttribute("aria-checked")).toBe("false");
+    expect(all().textContent).toContain("1 of 1 file");
+    expect(all().getAttribute("aria-checked")).toBe("true");
+    // A forged DOM control still cannot select a private path through the handler.
+    secret().disabled = false;
+    secret().click();
+    expect(secret().getAttribute("aria-checked")).toBe("false");
+    all().click();
+    expect(all().textContent).toContain("0 of 1 file");
+    all().click();
+    expect(all().textContent).toContain("1 of 1 file");
+    expect(secret().getAttribute("aria-checked")).toBe("false");
+  } finally {
+    await window.happyDOM.abort();
+  }
+});
+
+test("Upload cannot select an all-private file list", async () => {
+  const { window, document } = await uploadRenderer(true);
+  try {
+    const all = document.querySelector('[data-act="toggle-all"]');
+    expect(all.disabled).toBe(true);
+    expect(all.textContent).toContain("0 of 0 files");
+    expect(document.querySelector('[data-act="upload"]').disabled).toBe(true);
+    expect(document.querySelector('[data-act="toggle"]').disabled).toBe(true);
+  } finally {
+    await window.happyDOM.abort();
+  }
 });

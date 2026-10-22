@@ -865,6 +865,9 @@ function undoPath(cwd: string, file: string): string {
   ) {
     throw new Error("undo requires a confined project-relative file path");
   }
+  if (parts.some((part) => part.toLowerCase() === ".git")) {
+    throw new Error("undo cannot change Git metadata");
+  }
   let abs = realpath(cwd);
   for (const [index, part] of parts.entries()) {
     abs = resolve(abs, part);

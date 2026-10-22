@@ -17,6 +17,7 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { getInitials } from '@weblab/utility';
 
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 import { useStateManager } from '@/components/store/state';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { transKeys } from '@/i18n/keys';
@@ -46,13 +47,15 @@ function deriveFirstNameFromEmail(email: string | null | undefined): string | nu
 
 export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const stateManager = useStateManager();
+    const scoped = useScopedProject();
     // `useSafeClerk` falls back to a no-op `signOut` in supabase mode so we
     // never invoke the raw Clerk hook outside its provider.
     const { signOut: clerkSignOut } = useSafeClerk();
     const t = useTranslations();
 
     const hasAuthCookie = useHasAuthCookie();
-    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
+    const legacyUser = useQuery(api.users.me, !scoped && hasAuthCookie === true ? {} : 'skip');
+    const user = scoped?.entry.user ?? legacyUser;
     // Pick the most flattering, least-email-y label available. If
     // `displayName` matches the email sentinel (OTP signup skipped), fall
     // back to firstName → derived name → "You" so we never display the raw
@@ -101,6 +104,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         } catch (err) {
             console.warn('[avatar-dropdown] failed to clear offline state on sign-out', err);
         }
+        if (scoped && !scoped.scope.isCurrent()) return;
         // `clerkSignOut` is a no-op in supabase mode (see useSafeClerk).
         // Wrap in try/finally so a thrown Clerk sign-out still hard-navigates
         // to the sign-in route — otherwise the user is stranded with cleared
@@ -130,16 +134,20 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     };
 
     const BUTTONS = [
-        {
-            label: t(transKeys.projects.actions.subscriptions),
-            icon: Icons.CreditCard,
-            onClick: handleOpenSubscription,
-        },
-        {
-            label: t(transKeys.projects.actions.settings),
-            icon: Icons.Gear,
-            onClick: handleOpenSettings,
-        },
+        ...(scoped
+            ? []
+            : [
+                  {
+                      label: t(transKeys.projects.actions.subscriptions),
+                      icon: Icons.CreditCard,
+                      onClick: handleOpenSubscription,
+                  },
+                  {
+                      label: t(transKeys.projects.actions.settings),
+                      icon: Icons.Gear,
+                      onClick: handleOpenSettings,
+                  },
+              ]),
         {
             label: t(transKeys.projects.actions.sendFeedback),
             icon: Icons.MessageSquare,
@@ -190,7 +198,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
                         <span className="text-mini text-foreground-secondary">{user?.email}</span>
                     </div>
                 </div>
-                <UsageSection open={open} />
+                {!scoped && <UsageSection open={open} />}
                 <div className="p-2">
                     {BUTTONS.map((button) => {
                         const IconComponent = button.icon;

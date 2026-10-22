@@ -16,8 +16,9 @@ i en separat källkodskopia med CMS-uttrycken kvar. Ingen extern publicering
 eller full native mappstart ingår i detta bevis. Detta är en lokal pilot,
 inte en lanserad eller generell Sanity-integration.
 
-Källkods-, schema- och sidkontrollerna gick igenom: 34 fokuserade testfall med
-exempelsvar. Studio byggs på en egen sida utan sajtens navigation eller CSS.
+Det tidigare lokala beviset omfattar 34 fokuserade kontroller: 21 för
+mallen och 13 för den separata editorkällan. Mallens CI-jobb kör de 21
+mallkontrollerna, lint, typkontroll och bygge i en separat miljö. Studio byggs på en egen sida utan sajtens navigation eller CSS.
 En separat kontroll med den riktiga innehållshämtningen gick igenom före ändring,
 efter ändring och efter återställning. Fokuserad lint, fristående typkontroll och
 produktionsbygge gick också igenom. Inga skarpa kundprojekt ändrades.
@@ -178,3 +179,9 @@ Teknisk referens: [Sanitys Query API](https://www.sanity.io/docs/http-reference/
 - Piloten klarar sina egna typ-, lint- och byggkontroller. Weblabs delade
   arbetskopia hade vid kontrollen typfel i andra pågående CMS- och tokenändringar.
   Ingen full Weblab-kontroll eller kundrelease påstås ha gått igenom.
+
+## Historiskt pilotprotokoll
+
+Se [testguiden från 2026-10-01](TESTA.md) för det avgränsade pilotflödet
+och dess dåvarande gränser. Guiden är inte ett bevis för en ny desktoprelease.
+Aktuell desktopstatus finns i [local-client-editor](../../docs/features/local-client-editor.md).

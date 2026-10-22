@@ -1,5 +1,29 @@
 # Current Progress Snapshot
 
+## 2026-10-21 — Current-main recovery integration
+
+PR #8 and desktop recovery PR #13 and parser PR #14 are merged; clean `../weblab-main` is synchronized to `854129c1d`. Further recovered work is local on `integration/recovered-work-2026-10-21` in `../weblab-project-location-recovery`. Original dirty source and historical checkpoints remain preserved. The idle HTML donor was normally retired after all 4,935 source fingerprints matched and its exact original edits were archived in `35126f8d8` on retained `recovery/html-original-2026-10-21`.
+
+The desktop recovery covers project-script key isolation, safe settings and HTML imports, selected GitHub Upload, failed-turn Undo and deployment-key rechecks. All five desktop recovery slices passed 227 focused source cases, four affected TypeScript projects and lint. Parser preparation and exact content-target helpers passed 65 focused cases, parser types and lint after formatting. These helpers do not yet complete the imported cloud flow.
+
+GitHub Actions is disabled and verified on all 224 currently owned repositories. Verification is local through the installed guards. Public web access remains invited. No new web deployment or 0.2.2 installer has shipped from this integration. The primary recovery task retains its dependencies for checks and packaging; its completed temporary install cache was removed after an idle check.
+
+## 2026-10-21 — Recovery checkpoints and folder integration continuation
+
+Five local `recovery/cloud-01-*` through `recovery/cloud-05-*` branches preserve the overlapping historical cloud source stack. They are not independently mergeable current-main feature branches. The private `../weblab-recovery-2026-10-21/cloud-checkpoints/` guide, Git bundle and per-checkpoint manifests point to the full saved unfinished source. Keep the original dirty recovery checkout and archives.
+
+The older team-release copy was fingerprint-verified, preserved in local archival commit `b3cbe8cc1` on retained `release/team-desktop`, and normally removed after activity checks and metadata archival. Its checkpoint is unvalidated and unpushed. Keep `weblab-html-dropdown`; all 21 dirty paths have unique later safety work.
+
+PR #8 is being integrated with current main in `../weblab-project-location-recovery`. Content, release, GitHub and delayed-note source boundaries are reconciled and independently reviewed. The four prerequisite libraries, focused root/session/provider regressions, server regressions, server types and 32-file lint now pass locally. Independent source review found no unresolved integration blocker. No full suite, hosted CI, provider publication, browser or installer release ran. Installed Mac/restart/offline-volume proof remains open.
+
+## 2026-10-21 — Local preservation and PR cleanup
+
+The original local checkout is preserved on `recovery/local-work-2026-10-21`, including its 39 unpublished commits and unchanged unfinished files. Verified private local backups cover all five dirty checkouts/repositories. A separate `../weblab-main` checkout tracks remote main cleanly; do not reset the recovery checkout to it.
+
+PR #12 is merged as source, with provider publishing, signing and clean-Mac acceptance still open. PRs #1 and #7 are closed as superseded; useful pilot CI and historical test guidance were recovered in `de0f33ced`. The idle Sanity release worktree was retired with its full branch retained. PR #2 is closed because the owner rejected remote runners. GitHub Actions is disabled on Weblab; local verification only now applies across projects. PR #8 has reconciled its folder guards with newer Content and release actions and passed local focused checks; installed Mac acceptance remains open in `BACKLOG.md`.
+
+This cleanup reused recorded app validation and added independent source review; no fresh local app suite, dependency install or installer release ran. Backup preservation, clean-main synchronization, workflow syntax and the unchanged pilot source were checked.
+
 ## 2026-10-21 — Local desktop client editing draft
 
 `feature/2026-10-21-local-client-editor` prepares the public Mac app in
@@ -369,3 +393,5 @@ A code task is not done until:
   updated if a new route / module / package / webhook landed
 - the final answer lists files changed, validation status, manual steps,
   and a confidence note
+
+Scoped invited cloud entry passed 198 focused local cases, web/file-system type checks and 51-file focused lint with zero errors and 444 warnings. Fresh authority and runtime source reviews found no confirmed blocker. Real invitation claim/reopen/revocation and deployed backend/web acceptance remain open. Happy DOM is a normal pinned test dependency. Under disk pressure, only this task’s idle desktop-local root dependencies were removed after desktop checks and merge, with 1,221 tracked source fingerprints unchanged. Reinstall those dependencies through the exact guarded integration-install operation before packaging. Root web dependencies remain held for cloud checks. The web and 0.2.2 installer have not been released.

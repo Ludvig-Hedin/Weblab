@@ -12,6 +12,7 @@ import { TooltipProvider } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import type { EditorBootstrapData } from '../_hooks/use-start-project';
+import { useScopedProject } from '@/components/cloud-editor/scoped-project-context';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { ProjectCapabilitiesProvider } from '@/hooks/use-project-capabilities-context';
@@ -92,6 +93,7 @@ const STARTUP_STALL_TIMEOUT_MS = 25_000;
 
 export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorBootstrapData }) => {
     const editorEngine = useEditorEngine();
+    const scoped = useScopedProject();
     const { isProjectReady, error, readyState, hasPendingCreation } =
         useStartProject(initialBootstrap);
     useEditorStatePersistence(editorEngine.projectId, editorEngine, isProjectReady);
@@ -249,7 +251,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         );
     }
 
-    if (isMobile && editorEngine.canUseDesign) {
+    if (isMobile && editorEngine.canUseDesign && !scoped) {
         return (
             <ProjectCapabilitiesProvider projectId={editorEngine.projectId}>
                 <TooltipProvider>
@@ -272,7 +274,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     // the (resizable, collapsible) right panel — VS-Code-like split.
     const canDesign = editorEngine.canUseDesign;
     const isCode = canDesign && editorEngine.state.editorMode === EditorMode.CODE;
-    const isCms = canDesign && editorEngine.state.editorMode === EditorMode.CMS;
+    const isCms = !scoped && canDesign && editorEngine.state.editorMode === EditorMode.CMS;
 
     return (
         <ProjectCapabilitiesProvider projectId={editorEngine.projectId}>
@@ -280,7 +282,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                 {/* First-run tour. Suppressed during the prompt-driven creation
                 flow — the user is busy watching the AI scaffold their site,
                 not in a normal editor session yet. */}
-                {EDITOR_SCOPE.onboardingTour && (
+                {!scoped && EDITOR_SCOPE.onboardingTour && (
                     <OnboardingTour suppressed={hasPendingCreation} />
                 )}
                 <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
@@ -307,7 +309,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                         style={isCode ? { right: toolbarRight } : undefined}
                     >
                         <CanvasErrorBoundary label="LeftPanel" fallback={null}>
-                            <LeftPanel />
+                            {canDesign && <LeftPanel />}
                         </CanvasErrorBoundary>
                     </div>
                     {/* EditorBar anchored between panels */}
@@ -331,7 +333,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     >
                         <div style={{ pointerEvents: 'auto' }}>
                             <CanvasErrorBoundary label="EditorBar" fallback={null}>
-                                <EditorBar availableWidth={editorBarAvailableWidth} />
+                                {canDesign && (
+                                    <EditorBar availableWidth={editorBarAvailableWidth} />
+                                )}
                             </CanvasErrorBoundary>
                         </div>
                     </div>
@@ -353,7 +357,7 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     {/* Per-page settings drawer — opened from the Pages tab cog.
                     Anchored to the right of the left panel via toolbarLeft.
                     Hidden in preview/CMS/code modes where the layout differs. */}
-                    {canDesign && !isPreview && !isCms && !isCode && (
+                    {!scoped && canDesign && !isPreview && !isCms && !isCode && (
                         <PageSettingsDrawer toolbarLeft={toolbarLeft} />
                     )}
 
@@ -405,18 +409,18 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
 
                     {/* CMS workspace — sits below the top bar (top-14) and replaces
                     the canvas/side panels while in CMS mode. */}
-                    {EDITOR_SCOPE.cms && isCms && <CmsWorkspace />}
+                    {!scoped && EDITOR_SCOPE.cms && isCms && <CmsWorkspace />}
                 </div>
-                {canDesign && <SettingsModalWithProjects />}
-                <SubscriptionModal />
+                {!scoped && canDesign && <SettingsModalWithProjects />}
+                {!scoped && <SubscriptionModal />}
                 <KeyboardShortcutsModal />
                 {canDesign && <ElementPalette />}
-                {canDesign && <CommandPalette />}
+                {!scoped && canDesign && <CommandPalette />}
                 {canDesign && <FileFinder />}
                 {canDesign && <ProjectSearch />}
-                {EDITOR_SCOPE.cms && <CmsBindDialog />}
-                {EDITOR_SCOPE.components && <CreateComponentDialog />}
-                {EDITOR_SCOPE.cms && <CmsDataPusher />}
+                {!scoped && EDITOR_SCOPE.cms && <CmsBindDialog />}
+                {!scoped && EDITOR_SCOPE.components && <CreateComponentDialog />}
+                {!scoped && EDITOR_SCOPE.cms && <CmsDataPusher />}
             </TooltipProvider>
         </ProjectCapabilitiesProvider>
     );

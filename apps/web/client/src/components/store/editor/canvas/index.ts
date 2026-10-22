@@ -9,7 +9,12 @@ import { DefaultDesktopFrame } from '@weblab/db';
 
 import type { EditorEngine } from '../engine';
 import type { Id } from '@convex/_generated/dataModel';
-import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
+import {
+    captureConvexAuthOwner,
+    getConvexHttpClient,
+    getConvexHttpClientForOwner,
+} from '@/components/store/lib/convex-http-client';
+import { cloudEditorEntryApi } from '@/lib/cloud-editor-entry-api';
 
 export class CanvasManager {
     private _id = '';
@@ -126,6 +131,10 @@ export class CanvasManager {
         // before bootstrap (e.g., the initial scale setter) would otherwise
         // throw inside Convex with an empty id.
         if (!this.id) return;
+        if (this.editorEngine.scopedProject) {
+            await this.saveScopedCanvas();
+            return;
+        }
         const canvasId = this.id as Id<'canvases'>;
         const attempt = async () =>
             this.convex.mutation(convexApi.users.upsertCanvasView, {
@@ -153,6 +162,53 @@ export class CanvasManager {
                     this.lastSaveErrorMessage = message;
                 }
             }
+        }
+    }
+
+    private async saveScopedCanvas() {
+        const scope = this.editorEngine.scopedProject;
+        const owner = captureConvexAuthOwner();
+        if (
+            !scope ||
+            !owner ||
+            owner.userId !== scope.clerkUserId ||
+            owner.sessionId !== scope.sessionId ||
+            !this.editorEngine.branches.hasActiveBranch
+        )
+            return;
+        const branch = this.editorEngine.branches.activeBranchData;
+        const branchId = branch.branch.id;
+        const request = {
+            projectId: this.editorEngine.projectId as Id<'projects'>,
+            branchId: branchId as Id<'branches'>,
+            actorId: scope.actorId as Id<'users'>,
+            canvasId: this.id as Id<'canvases'>,
+            scale: this.scale,
+            x: this.position.x,
+            y: this.position.y,
+            showRulers: this._showRulers,
+            showLayoutGuides: this._showLayoutGuides,
+        };
+        const current = () =>
+            owner.isCurrent() &&
+            scope.isCurrent(branchId) &&
+            !this.editorEngine.isClosing &&
+            this.id === request.canvasId &&
+            this.editorEngine.branches.hasActiveBranch &&
+            this.editorEngine.branches.activeBranchData === branch;
+        try {
+            if (!current()) return;
+            await owner.ready;
+            if (!current()) return;
+            await getConvexHttpClientForOwner(owner).mutation(
+                cloudEditorEntryApi.upsertCanvasView,
+                request,
+            );
+            if (!current()) return;
+            this.lastSaveErrorMessage = null;
+        } catch {
+            // Pan/zoom is optional view state. Do not retry with another actor,
+            // fall back to the generic mutation, or expose backend error data.
         }
     }
 

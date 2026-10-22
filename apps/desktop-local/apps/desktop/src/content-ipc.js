@@ -12,7 +12,8 @@ const { createContentPublisher } = require("./content-publish");
 
 const PROJECT_ID = /^[a-z0-9]{1,32}$/;
 const DATASET = /^[a-zA-Z0-9_-]{1,64}$/;
-function connection(root) {
+function connection(root, verify = () => undefined) {
+  verify();
   const keys = localKeys(root);
   const projectId = keys.get("NEXT_PUBLIC_SANITY_PROJECT_ID");
   const dataset = keys.get("NEXT_PUBLIC_SANITY_DATASET");
@@ -30,9 +31,11 @@ function connection(root) {
 async function publishedDocuments(
   root,
   includeDrafts = false,
-  pinned = connection(root)
+  pinned = null,
+  verify = () => undefined
 ) {
-  const { projectId, dataset, token } = pinned;
+  verify();
+  const { projectId, dataset, token } = pinned || connection(root, verify);
   const query =
     '*[_type in ["page", "siteContent", "pressArticle"] && !(_id in path("drafts.**")) && !(_id in path("versions.**"))][0...251]';
   const url = new URL(
@@ -45,12 +48,14 @@ async function publishedDocuments(
     redirect: "error",
     signal: AbortSignal.timeout(30_000),
   });
+  verify();
   if (!response.ok) {
     throw new Error(
       `Sanity could not load published content (${response.status}).`
     );
   }
   const text = await response.text();
+  verify();
   if (text.length > 8 * 1024 * 1024) {
     throw new Error("This site's content is too large for local editing.");
   }
@@ -65,15 +70,18 @@ async function publishedDocuments(
       '*[_id in path("drafts.**") && _type in ["page", "siteContent", "pressArticle"]][0...251]._id'
     );
     url.searchParams.set("perspective", "raw");
+    verify();
     const drafts = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
       redirect: "error",
       signal: AbortSignal.timeout(30_000),
     });
+    verify();
     if (!drafts.ok) {
       throw new Error("Sanity drafts could not be checked.");
     }
     draftIds = (await drafts.json()).result;
+    verify();
     if (!Array.isArray(draftIds) || draftIds.length > 250) {
       throw new Error("Sanity drafts could not be checked completely.");
     }
@@ -97,11 +105,26 @@ function register(ctx) {
     ) {
       throw new Error("Open content editing from this site's window.");
     }
-    const site = sites.get(session.openSiteId);
-    if (!site) {
+    const site = session.runner.boundSite;
+    if (!site || site.id !== session.openSiteId) {
       throw new Error("Open a site first.");
     }
-    return { session, site };
+    const verify = () => {
+      if (
+        ctx.sessionFor(event) !== session ||
+        session.openSiteId !== site.id ||
+        (editor ? session.editorView?.webContents : session.win.webContents) !==
+          sender ||
+        session.runner.boundSite?.path !== site.path ||
+        session.runner.boundSite?._location?.generation !==
+          site._location?.generation
+      ) {
+        throw new Error("The open site changed.");
+      }
+      sites.checkVerifiedSite(site);
+    };
+    verify();
+    return { session, site, verify };
   }
   function store(root) {
     if (!stores.has(root)) {
@@ -142,13 +165,15 @@ function register(ctx) {
       store: store(root),
     });
   }
-  function publisher(root) {
-    const pinned = connection(root);
+  function publisher(root, verify) {
+    const pinned = connection(root, verify);
+    verify();
     const writeToken = credentials.token(pinned);
     return createContentPublisher({
       provider: {
-        documents: () => publishedDocuments(root, true, pinned),
+        documents: () => publishedDocuments(root, true, pinned, verify),
         mutate: async (mutations, transactionId) => {
+          verify();
           const config = pinned;
           const token = writeToken;
           if (!token) {
@@ -172,6 +197,7 @@ function register(ctx) {
             redirect: "error",
             signal: AbortSignal.timeout(30_000),
           });
+          verify();
           if (!response.ok) {
             const error = new Error(
               response.status === 409
@@ -187,20 +213,26 @@ function register(ctx) {
       },
       root,
       store: store(root),
+      verify,
     });
   }
 
   function handle(name, operation) {
     ipcMain.handle(`content:${name}`, async (event, input) => {
       try {
-        const { session, site } = bound(event);
+        const { session, site, verify } = bound(event);
         if (
           !["status", "read", "commitInline", "cancelInline"].includes(name) &&
           hasPending(session)
         ) {
           throw new Error("Save or discard the page text first.");
         }
-        const perform = () => operation(session, site, input);
+        const perform = () => {
+          verify();
+          return sites.withVerified(site, () =>
+            operation(session, site, input, verify)
+          );
+        };
         const result = ["status", "read"].includes(name)
           ? await perform()
           : await exclusive(site.path, perform);
@@ -253,6 +285,7 @@ function register(ctx) {
       pending.editId !== editId ||
       pending.siteId !== site.id ||
       pending.root !== site.path ||
+      pending.generation !== site._location.generation ||
       pending.sender !== session.editorView?.webContents
     ) {
       throw new Error("This text edit has ended. Select the text again.");
@@ -262,8 +295,11 @@ function register(ctx) {
   function editorHandle(name, operation) {
     ipcMain.handle(`content:${name}`, (event, input) => {
       try {
-        const { session, site } = bound(event, true);
-        return { ok: true, ...operation(session, site, input) };
+        const { session, site, verify } = bound(event, true);
+        return sites.withVerified(site, () => {
+          verify();
+          return { ok: true, ...operation(session, site, input) };
+        });
       } catch (error) {
         return {
           message: error.message || "This text could not be edited.",
@@ -290,6 +326,7 @@ function register(ctx) {
     const pending = {
       documentId: input.documentId,
       editId: randomUUID(),
+      generation: site._location.generation,
       original: field.value,
       path: input.path,
       revision: field.revision,
@@ -346,15 +383,17 @@ function register(ctx) {
     return {};
   });
   handle("status", (_session, site) => status(site.path));
-  handle("prepare", async (session, site) => {
+  handle("prepare", async (session, site, _input, verify) => {
     if (!fs.existsSync(join(site.path, "src/sanity/weblab.ts"))) {
       throw new Error(
         "This site needs the local content adapter before text editing can start."
       );
     }
-    const source = await publishedDocuments(site.path);
+    const source = await publishedDocuments(site.path, false, null, verify);
+    verify();
     store(site.path).initialize(source);
     await session.runner.open(site);
+    verify();
     return status(site.path);
   });
   handle("connect", (_session, site, value) =>
@@ -374,7 +413,7 @@ function register(ctx) {
     return credentials.replace(pinned, value);
   });
   for (const action of ["review", "publish", "reconcile", "restore"]) {
-    handle(action, async (session, site, input) => {
+    handle(action, async (session, site, input, verify) => {
       if (
         ["review", "publish"].includes(action) &&
         !credentials.token(connection(site.path))
@@ -384,7 +423,8 @@ function register(ctx) {
           { definitelyRejected: true }
         );
       }
-      const result = await publisher(site.path)[action](input);
+      const result = await publisher(site.path, verify)[action](input);
+      verify();
       if (action !== "review") {
         session.editorView?.webContents.send("content:changed");
       }

@@ -39,7 +39,7 @@ interface Provider {
   mutate: (mutations: object[], transactionId: string) => Promise<void>;
 }
 
-function setup() {
+function setup(realPublisher = false) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "weblab-content-ipc-"));
   roots.push(root);
   fs.mkdirSync(path.join(root, "src/sanity"), { recursive: true });
@@ -58,6 +58,22 @@ function setup() {
     ],
     projectId: "example1",
   });
+  const rootStat = fs.statSync(root, { bigint: true });
+  const boundSite = {
+    _location: {
+      generation: 1,
+      identity: {
+        birthtimeNs: rootStat.birthtimeNs,
+        dev: rootStat.dev,
+        ino: rootStat.ino,
+      },
+    },
+    id: "site-a",
+    path: root,
+  };
+  let rejectMutation = false;
+  let initializeCalls = 0;
+  let admission: (() => Promise<void>) | null = null;
   let keys = new Map([
     ["NEXT_PUBLIC_SANITY_PROJECT_ID", "example1"],
     ["NEXT_PUBLIC_SANITY_DATASET", "production"],
@@ -86,13 +102,13 @@ function setup() {
     {
       editorView: { webContents: editor },
       openSiteId: "site-a",
-      runner: { open: () => Promise.resolve() },
+      runner: { boundSite, open: () => Promise.resolve() },
       win: { webContents: parentA },
     },
     {
       editorView: { webContents: editor },
       openSiteId: "site-a",
-      runner: { open: () => Promise.resolve() },
+      runner: { boundSite, open: () => Promise.resolve() },
       win: { webContents: parentB },
     },
   ];
@@ -102,15 +118,17 @@ function setup() {
   >();
   let publish = (_provider: Provider, _input: unknown): Promise<object> =>
     Promise.resolve({});
-  let onFetch = () => undefined;
+  let onFetch: () => void | Promise<void> = () => undefined;
   const mocks: Record<string, unknown> = {
     "./content": {
       createContentStore: (directory: string) => {
         const local = createContentStore(directory);
         return {
           ...local,
-          initialize: (value: unknown) =>
-            local.initialize(JSON.parse(JSON.stringify(value))),
+          initialize: (value: unknown) => {
+            initializeCalls += 1;
+            return local.initialize(JSON.parse(JSON.stringify(value)));
+          },
         };
       },
     },
@@ -146,25 +164,62 @@ function setup() {
         return writeToken;
       },
     },
-    "./content-publish": {
-      createContentPublisher: ({ provider }: { provider: Provider }) => ({
-        publish: (input: unknown) => publish(provider, input),
-        reconcile: () => Promise.resolve({}),
-        restore: () => Promise.resolve({}),
-        review: () =>
-          Promise.resolve({ review: { changes: [], id: "review1" } }),
-        status: () => ({ canRestore: false, pending, review: null }),
-      }),
-    },
+    "./content-publish": realPublisher
+      ? {
+          createContentPublisher: (options: {
+            provider: Provider;
+            root: string;
+            store: object;
+            verify: () => void;
+          }) =>
+            requireNative("./content-publish.js").createContentPublisher({
+              ...options,
+              provider: {
+                ...options.provider,
+                documents: async () =>
+                  JSON.parse(
+                    JSON.stringify(await options.provider.documents())
+                  ),
+              },
+            }),
+        }
+      : {
+          createContentPublisher: ({ provider }: { provider: Provider }) => ({
+            publish: (input: unknown) => publish(provider, input),
+            reconcile: () => Promise.resolve({}),
+            restore: () => Promise.resolve({}),
+            review: () =>
+              Promise.resolve({ review: { changes: [], id: "review1" } }),
+            status: () => ({ canRestore: false, pending, review: null }),
+          }),
+        },
     "./deploy": {
       localKeys: () => {
         environmentReads += 1;
         return keys;
       },
     },
-    "./site-operation": siteOperation,
+    "./site-operation": {
+      exclusive: (directory: string, action: () => unknown) =>
+        admission
+          ? admission().then(() => siteOperation.exclusive(directory, action))
+          : siteOperation.exclusive(directory, action),
+    },
     "./sites": {
-      get: (id: string) => (id === "site-a" ? { id, path: root } : null),
+      checkVerifiedSite: (verifiedSite: typeof boundSite) => {
+        const stat = fs.statSync(verifiedSite.path, { bigint: true });
+        const locationIdentity = verifiedSite._location.identity;
+        if (
+          stat.dev !== locationIdentity.dev ||
+          stat.ino !== locationIdentity.ino ||
+          stat.birthtimeNs !== locationIdentity.birthtimeNs
+        ) {
+          throw new Error("This site's source folder is unavailable.");
+        }
+        return verifiedSite;
+      },
+      get: (id: string) => (id === "site-a" ? boundSite : null),
+      withVerified: (_site: object, action: () => unknown) => action(),
     },
     electron: {
       ipcMain: {
@@ -181,7 +236,7 @@ function setup() {
   };
   vm.runInNewContext(source, {
     AbortSignal,
-    fetch: (
+    fetch: async (
       url: URL,
       options: { headers: { Authorization: string }; body?: string }
     ) => {
@@ -190,11 +245,24 @@ function setup() {
         body: options.body,
         url: url.toString(),
       });
-      onFetch();
+      await onFetch();
       return Promise.resolve({
         json: () => Promise.resolve({ result: [] }),
-        ok: true,
-        text: () => Promise.resolve(JSON.stringify({ result: [] })),
+        ok: !(rejectMutation && options.body),
+        status: rejectMutation && options.body ? 409 : 200,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              result: [
+                {
+                  _id: "home",
+                  _rev: "rev1",
+                  _type: "page",
+                  sections: [{ _key: "hero", title: "Original" }],
+                },
+              ],
+            })
+          ),
       });
     },
     module: exported,
@@ -228,6 +296,9 @@ function setup() {
       ]);
       writeToken = "write-two";
     },
+    changeSession: () => {
+      sessions[0].openSiteId = "site-other";
+    },
     connections,
     content,
     credentialReads: () => ({ environmentReads, tokenReads }),
@@ -235,19 +306,37 @@ function setup() {
       writeToken = null;
     },
     headers,
+    initializeCalls: () => initializeCalls,
     invoke: (name: string, event = parent, input?: object | string) =>
       Promise.resolve(handlers.get(`content:${name}`)?.(event, input)),
+    invokeSync: (name: string, event: Event, input?: object) =>
+      handlers.get(`content:${name}`)?.(event, input),
     lockKeychain: () => {
       keychainLocked = true;
     },
+    moveRoot: (replace = true) => {
+      const moved = `${root}-moved`;
+      fs.renameSync(root, moved);
+      roots.push(moved);
+      if (replace) {
+        fs.cpSync(moved, root, { recursive: true });
+      }
+      return moved;
+    },
     otherParent,
     parent,
+    rejectMutation: () => {
+      rejectMutation = true;
+    },
     removeEnvironment: () => {
       keys = new Map();
     },
     replacements,
     root,
     sends,
+    setAdmission: (operation: () => Promise<void>) => {
+      admission = operation;
+    },
     setFetch: (operation: typeof onFetch) => {
       onFetch = operation;
     },
@@ -769,4 +858,142 @@ test("clean inline reads can be abandoned without changing text or revision", as
       })
     )?.ok
   ).toBe(false);
+});
+
+function deferred() {
+  let resolve: () => void = () => undefined;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+for (const change of ["replacement", "move", "session"]) {
+  test(`content refuses ${change} while waiting for exclusive admission`, async () => {
+    const app = setup();
+    const waiting = deferred();
+    app.setAdmission(() => waiting.promise);
+    const save = app.invoke("save", app.parent, {
+      ...field,
+      revision: 0,
+      value: "Wrong folder",
+    });
+    if (change === "session") {
+      app.changeSession();
+    } else {
+      app.moveRoot(change === "replacement");
+    }
+    waiting.resolve();
+    expect((await save)?.ok).toBe(false);
+    if (change === "replacement") {
+      expect(app.content.read(field).value).toBe("Original");
+    }
+    expect(app.credentialReads()).toEqual({
+      environmentReads: 0,
+      tokenReads: 0,
+    });
+    expect(app.headers).toHaveLength(0);
+    expect(app.sends).toHaveLength(0);
+  });
+}
+
+for (const change of ["replacement", "move", "session"]) {
+  test(`prepare refuses ${change} during a pending content fetch`, async () => {
+    const app = setup();
+    const waiting = deferred();
+    const entered = deferred();
+    app.setFetch(() => {
+      entered.resolve();
+      return waiting.promise;
+    });
+    const prepare = app.invoke("prepare");
+    await entered.promise;
+    const moved =
+      change === "session" ? app.root : app.moveRoot(change === "replacement");
+    if (change === "session") {
+      app.changeSession();
+    }
+    waiting.resolve();
+    expect((await prepare)?.ok).toBe(false);
+    expect(app.initializeCalls()).toBe(0);
+    expect(createContentStore(moved).read(field).value).toBe("Original");
+    if (change === "replacement") {
+      expect(app.content.read(field).value).toBe("Original");
+    }
+    expect(app.sends).toHaveLength(0);
+  });
+}
+
+for (const change of ["replacement", "move", "session"]) {
+  for (const rejected of [false, true]) {
+    test(`publication keeps the original pending journal after ${change} during ${rejected ? "rejected" : "successful"} provider response`, async () => {
+      const app = setup(true);
+      await app.invoke("save", app.parent, {
+        ...field,
+        revision: 0,
+        value: "Published proposal",
+      });
+      const review = (await app.invoke("review")) as Reply & {
+        review: { id: string };
+      };
+      expect(review.ok).toBe(true);
+      const waiting = deferred();
+      const entered = deferred();
+      app.setFetch(() => {
+        if (app.headers.at(-1)?.body) {
+          entered.resolve();
+          return waiting.promise;
+        }
+      });
+      const publish = app.invoke("publish", app.parent, review.review.id);
+      await entered.promise;
+      const moved =
+        change === "session"
+          ? app.root
+          : app.moveRoot(change === "replacement");
+      if (change === "session") {
+        app.changeSession();
+      }
+      const file = path.join(moved, ".weblab/content-release.json");
+      const before = fs.readFileSync(file, "utf8");
+      // A rejected response is also unsafe to journal in the replacement root.
+      if (rejected) {
+        app.rejectMutation();
+      }
+      waiting.resolve();
+      expect((await publish)?.ok).toBe(false);
+      expect(fs.readFileSync(file, "utf8")).toBe(before);
+      if (change === "replacement") {
+        expect(
+          fs.readFileSync(
+            path.join(app.root, ".weblab/content-release.json"),
+            "utf8"
+          )
+        ).toBe(before);
+      }
+      expect(
+        JSON.parse(
+          fs.readFileSync(
+            path.join(moved, ".weblab/content-release.json"),
+            "utf8"
+          )
+        ).pending
+      ).toBeTruthy();
+      expect(createContentStore(moved).read(field).value).toBe(
+        "Published proposal"
+      );
+    });
+  }
+}
+
+test("inline staging stays synchronous and refuses a replaced source folder", async () => {
+  const app = setup();
+  const begun = await app.invoke("beginInline", app.site, field);
+  const input = { editId: begun?.editId, value: "Synchronous proposal" };
+  expect(app.invokeSync("stageInline", app.site, input)).toEqual({ ok: true });
+  app.moveRoot();
+  expect(app.invokeSync("stageInline", app.site, input)).toMatchObject({
+    ok: false,
+  });
+  expect(app.content.read(field).value).toBe("Original");
 });

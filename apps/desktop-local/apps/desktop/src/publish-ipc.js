@@ -38,12 +38,16 @@ function register(ctx) {
   const handle = (channel, fn) => {
     ipcMain.handle(channel, async (event, ...args) => {
       const session = fromWindow(event);
-      const open = site(session);
-      if (!(session && open)) {
+      const raw = site(session);
+      if (!(session && raw)) {
         return { message: "Open a site first.", ok: false };
       }
       try {
-        return await fn(session, open, ...args);
+        const open = await sites.verified(raw.id);
+        if (session.openSiteId !== open.id) {
+          return { message: "The open site changed.", ok: false };
+        }
+        return await sites.withVerified(open, () => fn(session, open, ...args));
       } catch (error) {
         return {
           message: error.message || "Something went wrong. Try again.",
@@ -57,9 +61,18 @@ function register(ctx) {
   const serial =
     (fn) =>
     (session, ...args) => {
-      const run = (queues.get(session) || Promise.resolve()).then(() =>
-        fn(session, ...args)
-      );
+      const run = (queues.get(session) || Promise.resolve()).then(async () => {
+        const [open] = args;
+        if (session.openSiteId !== open.id) {
+          throw new Error("The open site changed.");
+        }
+        await sites.assertVerified(open);
+        if (session.openSiteId !== open.id) {
+          throw new Error("The open site changed.");
+        }
+        sites.checkVerifiedSite(open);
+        return fn(session, ...args);
+      });
       queues.set(
         session,
         run.catch(() => undefined)
@@ -78,7 +91,7 @@ function register(ctx) {
     ...(await upload.status(open.path)),
     aiBusy: Boolean(jobs.get(session)),
   }));
-  handle("publish:note", async (_session, open, paths) => {
+  handle("publish:note", async (session, open, paths) => {
     const wanted = new Set(Array.isArray(paths) ? paths.map(String) : []);
     // Only changed files git reported, and never secret ones, reach Claude.
     const { files = [] } = await upload.status(open.path);
@@ -86,6 +99,10 @@ function register(ctx) {
       .filter((file) => wanted.has(file.path) && !file.secret)
       .map((file) => file.path);
     const summary = await upload.changeSummary(open.path, list);
+    if (session.openSiteId !== open.id) {
+      throw new Error("The open site changed.");
+    }
+    sites.checkVerifiedSite(open);
     return note.write(summary, list);
   });
   handle(
@@ -278,6 +295,7 @@ function register(ctx) {
 async function reinstall(runner, open) {
   await runner.stop();
   try {
+    await sites.assertVerified(open);
     await runner.runInstall(open.path);
   } finally {
     runner.open(open);
