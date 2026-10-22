@@ -123,5 +123,11 @@
     "prepareImport": "Förbered för redigering",
     "preparingImport": "Förbereder för redigering…",
     "prepareImportFailed": "Förberedelsen kunde inte bekräftas. Försök igen för att kontrollera samma begäran.",
-    "openPreview": "Öppna förhandsvisning"
+    "openPreview": "Öppna förhandsvisning",
+    "contentSharedComponent": "Ändringen gäller överallt där komponenten används.",
+    "contentSharedApprovalStale": "Designen har ändrats. Godkänn den här texten igen. Övriga fält behöver också godkännas.",
+    "contentFaqQuestion": "Fråga",
+    "contentFaqAnswer": "Svar",
+    "contentFaqItem": "Den här FAQ-posten",
+    "contentFaqUnsupported": "Texten kunde inte kopplas till en sparad FAQ-post. Välj frågan eller svaret igen."
 }

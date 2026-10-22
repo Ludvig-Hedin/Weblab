@@ -12,6 +12,8 @@ import type * as PreviewAccess from '@convex/cloudPreviewAccess';
 import type * as StudioActions from '@convex/cloudEditorStudioActions';
 import type * as JournalActions from '@convex/cloudEditorCmsActions';
 import type * as Images from '@convex/cloudEditorContentImages';
+import type * as Text from '@convex/cloudEditorText';
+import type * as TextActions from '@convex/cloudEditorTextActions';
 import type * as ImportPreparation from '@convex/cloudEditorImportPreparationActions';
 
 type BackendApi = ApiFromModules<{
@@ -33,9 +35,15 @@ type PreviewApi = ApiFromModules<{ preview: typeof PreviewAccess }>['preview'];
 type StudioApi = ApiFromModules<{ studio: typeof StudioActions; journal: typeof JournalActions }>;
 type ImagesApi = ApiFromModules<{ images: typeof Images }>['images'];
 
+type TextApi = ApiFromModules<{ text: typeof Text; actions: typeof TextActions }>;
 type ImportPreparationApi = ApiFromModules<{ preparation: typeof ImportPreparation }>['preparation'];
 
 export const cloudEditorApi = {
+    resolveTextSelection: makeFunctionReference<'action', FunctionArgs<TextApi['actions']['resolveSelection']>, FunctionReturnType<TextApi['actions']['resolveSelection']>>('cloudEditorTextActions:resolveSelection'),
+    textContracts: makeFunctionReference<'query', FunctionArgs<TextApi['text']['contracts']>, FunctionReturnType<TextApi['text']['contracts']>>('cloudEditorText:contracts'),
+    approveText: makeFunctionReference<'action', FunctionArgs<TextApi['actions']['approve']>, FunctionReturnType<TextApi['actions']['approve']>>('cloudEditorTextActions:approve'),
+    revokeText: makeFunctionReference<'mutation', FunctionArgs<TextApi['text']['revoke']>, FunctionReturnType<TextApi['text']['revoke']>>('cloudEditorText:revoke'),
+    commitText: makeFunctionReference<'action', FunctionArgs<TextApi['actions']['commit']>, FunctionReturnType<TextApi['actions']['commit']>>('cloudEditorTextActions:commit'),
     prepareImport: makeFunctionReference<'action', FunctionArgs<ImportPreparationApi['prepare']>, FunctionReturnType<ImportPreparationApi['prepare']>>('cloudEditorImportPreparationActions:prepare'),
     cancelImage: makeFunctionReference<'mutation', FunctionArgs<ImagesApi['cancelPreparation']>, null>('cloudEditorContentImages:cancelPreparation'),
     commitStudio: makeFunctionReference<'action', FunctionArgs<StudioApi['studio']['commit']>, FunctionReturnType<StudioApi['studio']['commit']>>('cloudEditorStudioActions:commit'),
@@ -117,4 +125,6 @@ export type CloudImageOperation = FunctionArgs<BackendApi['cloudEditorContentIma
 export type CloudStudioOperation = FunctionArgs<StudioApi['studio']['commit']> & { transport: 'studio'; transportVersion: 1; changes: [] };
 export type CloudJournalOperation = FunctionArgs<StudioApi['journal']['commit']> & { transport: 'journal'; transportVersion: 1; changes: [] };
 export type CloudSemanticOperation = CloudStudioOperation | CloudJournalOperation;
-export type CloudSourceOperation = CloudDesignerOperation | CloudEditorContentCommit | CloudImageOperation | CloudSemanticOperation;
+export type CloudTextContracts = FunctionReturnType<TextApi['text']['contracts']>;
+export type CloudTextOperation = FunctionArgs<TextApi['actions']['commit']>;
+export type CloudSourceOperation = CloudTextOperation | CloudDesignerOperation | CloudEditorContentCommit | CloudImageOperation | CloudSemanticOperation;

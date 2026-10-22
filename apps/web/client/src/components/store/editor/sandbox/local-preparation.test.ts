@@ -4,6 +4,7 @@ import { NodeFsProvider } from '@weblab/code-provider';
 import { EditorAttributes } from '@weblab/constants';
 import type { CodeFileSystem } from '@weblab/file-system';
 import type { Branch } from '@weblab/models';
+import type { Action } from '@weblab/models/actions';
 import { RouterType } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
@@ -14,6 +15,7 @@ import type { LocalPreparationApplyError as LocalPreparationApplyErrorType } fro
 import type { LocalPreparationPlan } from './preload-script';
 import { planLocalProjectPreparation } from './preload-script';
 import { LocalMirror } from './local-mirror';
+import { cleanHandoffFiles } from '../git/handoff-clean';
 
 void mock.module('../history/storage', () => ({
     loadHistory: async () => null,
@@ -23,6 +25,8 @@ void mock.module('../history/storage', () => ({
 void mock.module('@/components/store/lib/convex-http-client', () => ({
     getConvexHttpClient: () => ({}),
     whenConvexAuthReady: async () => undefined,
+    captureConvexAuthOwner: () => null,
+    getConvexHttpClientForOwner: () => { throw new Error('Fixture must not create a cloud client'); },
 }));
 
 // Each fixture supplies its source editor. Importing the real branch manager
@@ -41,7 +45,7 @@ void mock.module('@/lib/sandbox-server-client', () => ({
 
 const { HistoryManager } = await import('../history');
 const { BranchManager } = await import('../branch/manager');
-const { LocalPreparationApplyError, SandboxManager } = await import('./index');
+const { LocalPreparationApplyError, PreloadScriptState, SandboxManager } = await import('./index');
 
 function attachPreparationHistory(manager: SandboxManagerType, beforeHydration?: Promise<void>) {
     const engine = manager['editorEngine'];
@@ -79,9 +83,13 @@ function attachPreparationHistory(manager: SandboxManagerType, beforeHydration?:
     return { history, branches, ready, engine };
 }
 
-function preparationFixture(beforeHydration?: Promise<void>) {
+function preparationFixture(beforeHydration?: Promise<void>, initialFiles?: Map<string, string>) {
     const file = (content: string) => ({ content, sha256: `hash:${content}` });
     const disk = new Map([['index.html', file('original')], ['other.css', file('unchanged')]]);
+    if (initialFiles) {
+        disk.clear();
+        for (const [path, content] of initialFiles) disk.set(path, file(content));
+    }
     const provider = new NodeFsProvider({ rootPath: '/selected-project' });
     let writeHook: ((path: string, content: string) => void) | undefined;
     const writes: string[] = [];
@@ -106,7 +114,8 @@ function preparationFixture(beforeHydration?: Promise<void>) {
     provider.destroy = async () => undefined;
     let snapshots = 0;
     let localWrite: ((path: string, content: string) => Promise<void>) | undefined;
-    const fs = { replaceLocalSnapshot: async () => { snapshots++; },
+    const fs = { listAll: async () => [...disk.keys()].map((path) => ({ path, type: 'file' as const })),
+        replaceLocalSnapshot: async () => { snapshots++; },
         setLocalWriteHandler: (write: typeof localWrite) => { localWrite = write; } } as unknown as CodeFileSystem;
     const branch = { id: 'branch', runtime: { type: 'local' } } as unknown as Branch;
     const manager = new SandboxManager(branch, {} as EditorEngine, {} as ErrorManager, fs);
@@ -123,7 +132,230 @@ function preparationFixture(beforeHydration?: Promise<void>) {
         setWriteHook: (hook: (path: string, content: string) => void) => { writeHook = hook; } };
 }
 
+async function withPreparedHistory(test: (fixture: ReturnType<typeof preparationFixture>) => Promise<void>) {
+    const disk = new Map([['index.html', '<html><head></head><body><main>Hello</main></body></html>']]);
+    const provider = new NodeFsProvider({ rootPath: '/selected-project' });
+    provider.readFileWithHash = async (path) => {
+        const content = disk.get(path);
+        if (content === undefined) throw new Error(`Missing fixture file: ${path}`);
+        return { content, sha256: `hash:${content}` };
+    };
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+        async () => new Response('/* Weblab stale domId lookup blocked: */'),
+        { preconnect: originalFetch.preconnect },
+    );
+    let fixture: ReturnType<typeof preparationFixture> | undefined;
+    try {
+        const preparation = await planLocalProjectPreparation(provider, 'static-html', [...disk.keys()]);
+        for (const file of preparation.files) disk.set(file.path, file.updated);
+        const prepared = preparationFixture(undefined, disk);
+        fixture = prepared;
+        Object.assign(fixture.engine, { framework: 'static-html', posthog: { capture: () => undefined } });
+        fixture.engine.code.write = async () => true;
+        await fixture.ready;
+        const action: Action = { type: 'edit-text', targets: [], originalContent: 'before', newContent: 'after' };
+        await fixture.history.pushImmediate(action);
+        await fixture.history.pushImmediate({ ...action, newContent: 'second' });
+        await fixture.history.undo();
+        expect(fixture.history.canUndo).toBe(true);
+        expect(fixture.history.canRedo).toBe(true);
+        await test(fixture);
+    } finally {
+        globalThis.fetch = originalFetch;
+        fixture?.manager.clear();
+    }
+}
+
+async function planNextDocuments(disk: Map<string, string>) {
+    const provider = new NodeFsProvider({ rootPath: '/selected-project' });
+    provider.listFiles = async () => ({ files: [{ name: 'public', type: 'directory', isSymlink: false }] });
+    provider.readFileWithHash = async (path) => {
+        const content = disk.get(path);
+        if (content === undefined) throw new Error(`Missing fixture file: ${path}`);
+        return { content, sha256: `${path}:${content}` };
+    };
+    const originalFetch = globalThis.fetch;
+    let fetched = 0;
+    globalThis.fetch = (async () => {
+        fetched++;
+        return new Response('/* Weblab stale domId lookup blocked: */');
+    }) as unknown as typeof fetch;
+    try {
+        return await planLocalProjectPreparation(provider, 'nextjs', [...disk.keys()],
+            { type: RouterType.APP, basePath: 'src/app' });
+    } catch (error) {
+        expect(fetched).toBe(0);
+        throw error;
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+}
+
+describe('local document layout discovery', () => {
+    const document = 'export default function Layout({children}) { return <html><body>{children}</body></html>; }';
+
+    it('prepares locale and sibling roots without manufacturing a base document', async () => {
+        const disk = new Map([
+            ['src/app/[locale]/layout.tsx', document],
+            ['src/app/(auth)/layout.tsx', document],
+            ['src/app/(studio)/layout.tsx', document],
+            ['src/app/[locale]/nested/layout.tsx', 'export default function Nested({children}) { return <section>{children}</section>; }'],
+            ['src/application/layout.tsx', document],
+        ]);
+        const first = await planNextDocuments(disk);
+        expect(first.files.some((file) => file.path === 'src/app/layout.tsx')).toBe(false);
+        for (const root of ['[locale]', '(auth)', '(studio)']) {
+            const updated = first.files.find((file) => file.path === `src/app/${root}/layout.tsx`)?.updated;
+            expect(updated).toContain('src="/weblab-preload-script.js"');
+            expect(updated).toContain('src="/weblab-ix-runtime.js"');
+        }
+        for (const path of ['src/app/[locale]/nested/layout.tsx', 'src/application/layout.tsx']) {
+            expect(first.files.find((file) => file.path === path)?.updated).not.toContain('weblab-preload-script');
+        }
+        for (const file of first.files) disk.set(file.path, file.updated);
+        expect((await planNextDocuments(disk)).files).toEqual([]);
+    });
+
+    it('localizes aliased scripts in every alternative document and remains unchanged on retry', async () => {
+        const layout = 'import PreviewScript from "next/script"; export default function Layout({children, login}) { if (login) return <html><body>Login</body></html>; return <html><body>{children}</body></html>; }';
+        const disk = new Map([['src/app/layout.tsx', layout]]);
+        const first = await planNextDocuments(disk);
+        const updated = first.files.find((file) => file.path === 'src/app/layout.tsx')!.updated;
+        expect(updated.match(/src="\/weblab-preload-script.js"/g)).toHaveLength(2);
+        expect(updated.match(/src="\/weblab-ix-runtime.js"/g)).toHaveLength(2);
+        expect(updated).toContain('<PreviewScript');
+        expect(updated).not.toContain('cdn.jsdelivr.net');
+        for (const file of first.files) disk.set(file.path, file.updated);
+        expect((await planNextDocuments(disk)).files).toEqual([]);
+    });
+
+    it('rejects ancestor documents and incomplete document trees before fetching assets', async () => {
+        await expect(planNextDocuments(new Map([
+            ['src/app/layout.tsx', document], ['src/app/(site)/layout.tsx', document],
+        ]))).rejects.toThrow('Overlapping document layouts');
+        await expect(planNextDocuments(new Map([
+            ['src/app/layout.tsx', document], ['src/app/layout.jsx', 'export default ({children}) => <main>{children}</main>;'],
+        ]))).rejects.toThrow('Multiple layout files');
+        for (const layout of [
+            'export default () => <html><head /></html>;',
+            'export default () => <><html /><body /></>;',
+            'export default () => <html><body><html><body /></html></body></html>;',
+        ]) {
+            const disk = new Map([['src/app/[locale]/layout.tsx', layout]]);
+            await expect(planNextDocuments(disk)).rejects.toThrow('no files were changed');
+            expect(disk.get('src/app/[locale]/layout.tsx')).toBe(layout);
+        }
+    });
+
+    it('keeps wrapping compatibility only for an existing base layout', async () => {
+        const plain = 'export default function Layout({children}) { return <main>{children}</main>; }';
+        const disk = new Map([['src/app/layout.tsx', plain]]);
+        expect((await planNextDocuments(disk)).files.find((file) => file.path === 'src/app/layout.tsx')?.updated)
+            .toContain('<html');
+        await expect(planNextDocuments(new Map([['src/app/[locale]/layout.tsx', plain]])))
+            .rejects.toThrow('No existing App Router document layout');
+    });
+
+    it('reviews exact bridge asset exceptions in middleware and removes them from customer handoff', async () => {
+        const proxy = 'export function proxy(request) { return authenticate(request); } export const config = {matcher: ["/((?!_next/static|images).*)"]};';
+        const disk = new Map([['src/app/[locale]/layout.tsx', document], ['src/proxy.tsx', proxy]]);
+        const first = await planNextDocuments(disk);
+        expect(first.files.find((file) => file.path === 'src/proxy.tsx')?.updated).toContain('weblab-preload-script');
+        expect(cleanHandoffFiles(first.files)).toEqual([]);
+        for (const file of first.files) disk.set(file.path, file.updated);
+        expect((await planNextDocuments(disk)).files).toEqual([]);
+        await expect(planNextDocuments(new Map([
+            ['src/app/layout.tsx', document], ['src/proxy.ts', 'export const config = {matcher: getMatchers()};'],
+        ]))).rejects.toThrow('static');
+    });
+});
+
 describe('local project preparation', () => {
+    it('acknowledges a real no-op plan without changing restored undo or redo history', async () => {
+        await withPreparedHistory(async (fixture) => {
+            const plan = await fixture.manager.planLocalPreparation();
+            expect(plan.files).toEqual([]);
+            const undo = fixture.history['undoStack'];
+            const redo = fixture.history['redoStack'];
+            const mirror = fixture.manager['localMirror'];
+            const snapshots = fixture.snapshots();
+            fixture.history.beginDisposalPreparation = () => { throw new Error('No-op must not lease history'); };
+            fixture.engine.action.beginHistoryDisposalPreparation = () => { throw new Error('No-op must not lease actions'); };
+            await fixture.manager.applyLocalPreparation(plan);
+            expect(fixture.manager.preloadScriptState).toBe(PreloadScriptState.INJECTED);
+            expect(fixture.history['undoStack']).toBe(undo);
+            expect(fixture.history['redoStack']).toBe(redo);
+            expect(fixture.history.canUndo).toBe(true);
+            expect(fixture.history.canRedo).toBe(true);
+            expect(fixture.history.isPreparingForDisposal).toBe(false);
+            expect(fixture.manager['localMirror']).toBe(mirror);
+            expect(fixture.snapshots()).toBe(snapshots);
+            expect(fixture.writes).toEqual([]);
+            expect(fixture.manager['localPreparationApplying']).toBe(false);
+        });
+    });
+
+    it('refuses disk changes after a no-op review without clearing recovery history', async () => {
+        await withPreparedHistory(async (fixture) => {
+            const plan = await fixture.manager.planLocalPreparation();
+            fixture.disk.set('index.html', fixture.file('outside edit'));
+            await expect(fixture.manager.applyLocalPreparation(plan)).rejects.toThrow('source changed');
+            expect(fixture.history.canUndo).toBe(true);
+            expect(fixture.history.canRedo).toBe(true);
+            expect(fixture.writes).toEqual([]);
+            expect(fixture.manager.preloadScriptState).not.toBe(PreloadScriptState.INJECTED);
+            expect(fixture.manager['localPreparationApplying']).toBe(false);
+        });
+    });
+
+    it('still refuses a real changed plan with recovery history before any source mutation', async () => {
+        await withPreparedHistory(async (fixture) => {
+            globalThis.fetch = Object.assign(
+                async () => new Response('/* Weblab stale domId lookup blocked: newer asset */'),
+                { preconnect: globalThis.fetch.preconnect },
+            );
+            const plan = await fixture.manager.planLocalPreparation();
+            expect(plan.files.length).toBeGreaterThan(0);
+            await expect(fixture.manager.applyLocalPreparation(plan)).rejects.toThrow('empty history');
+            expect(fixture.history.canUndo).toBe(true);
+            expect(fixture.history.canRedo).toBe(true);
+            expect(fixture.writes).toEqual([]);
+            expect(fixture.history.isPreparingForDisposal).toBe(false);
+        });
+    });
+
+    it('refuses a replacement mirror even when its source bytes match the reviewed no-op', async () => {
+        await withPreparedHistory(async (fixture) => {
+            const plan = await fixture.manager.planLocalPreparation();
+            await fixture.manager['localMirror']!.stop();
+            const replacement = new LocalMirror(fixture.provider, fixture.fs);
+            await replacement.start();
+            fixture.manager['localMirror'] = replacement;
+            await expect(fixture.manager.applyLocalPreparation(plan)).rejects.toThrow('project changed');
+            expect(fixture.history.canUndo).toBe(true);
+            expect(fixture.history.canRedo).toBe(true);
+            expect(fixture.writes).toEqual([]);
+        });
+    });
+
+    it('refuses an owner change during no-op disk verification', async () => {
+        await withPreparedHistory(async (fixture) => {
+            const plan = await fixture.manager.planLocalPreparation();
+            const read = fixture.provider.readFileWithHash.bind(fixture.provider);
+            fixture.provider.readFileWithHash = async (path) => {
+                const value = await read(path);
+                fixture.branches['currentBranchId'] = null;
+                return value;
+            };
+            await expect(fixture.manager.applyLocalPreparation(plan)).rejects.toThrow();
+            expect(fixture.history.canUndo).toBe(true);
+            expect(fixture.history.canRedo).toBe(true);
+            expect(fixture.writes).toEqual([]);
+            expect(fixture.manager.preloadScriptState).not.toBe(PreloadScriptState.INJECTED);
+        });
+    });
+
     it('drains an old watcher read before restarting the prepared source mirror', async () => {
         const fixture = preparationFixture();
         await fixture.ready;

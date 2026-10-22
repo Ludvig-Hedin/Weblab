@@ -10,6 +10,7 @@ import {
     setMember,
 } from '../cloudEditorAccess';
 import { requireCap } from './permissions';
+import { canReadImportedSource, canUseImportedText } from './cloudImportedAccess';
 
 const scope = {
     projectId: 'projects:one' as Id<'projects'>,
@@ -163,6 +164,29 @@ afterEach(() => {
 });
 
 describe('cloud customer access foundation', () => {
+    it('requires both rollout gates and prepared authority before content members read imported source', () => {
+        const prior = process.env.WEBLAB_CLOUD_IMPORTED_CONTENT_ENABLED;
+        const authority = { preparationId: 'cloudEditorImportPreparations:ready' as Id<'cloudEditorImportPreparations'>, designRevision: 2 };
+        try {
+            delete process.env.WEBLAB_CLOUD_IMPORTED_CONTENT_ENABLED;
+            expect(canUseImportedText('content', authority)).toBe(false);
+            expect(canReadImportedSource('content', false, authority)).toBe(false);
+            expect(canReadImportedSource('designer', true, authority)).toBe(true);
+            process.env.WEBLAB_CLOUD_IMPORTED_CONTENT_ENABLED = 'true';
+            expect(canUseImportedText('content', authority)).toBe(true);
+            expect(canReadImportedSource('content', false, authority)).toBe(true);
+            expect(canUseImportedText('content', null)).toBe(false);
+            expect(canUseImportedText(null, authority)).toBe(false);
+            delete process.env.WEBLAB_CLOUD_EDITOR_ENABLED;
+            expect(canUseImportedText('content', authority)).toBe(false);
+            expect(canReadImportedSource('content', false, authority)).toBe(false);
+        } finally {
+            process.env.WEBLAB_CLOUD_EDITOR_ENABLED = 'true';
+            if (prior === undefined) delete process.env.WEBLAB_CLOUD_IMPORTED_CONTENT_ENABLED;
+            else process.env.WEBLAB_CLOUD_IMPORTED_CONTENT_ENABLED = prior;
+        }
+    });
+
     it('admits an exact scoped content member without opening ordinary project access', async () => {
         const prior = process.env.WEBLAB_SIGN_IN_ALLOWLIST;
         try {

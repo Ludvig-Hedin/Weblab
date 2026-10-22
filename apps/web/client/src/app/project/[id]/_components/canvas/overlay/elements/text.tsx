@@ -10,7 +10,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import {
     applyStylesToEditor,
     createEditorPlugins,
-    schema,
+    textEditorSchema,
     isTextInputTransaction,
     createNodesFromContent,
     extractContentWithNewlines,
@@ -27,7 +27,8 @@ export const TextEditor = observer(() => {
     if (!overlayState.textEditor) {
         return null;
     }
-    const { rect, styles, onChange, onStop, isComponent, content } = overlayState.textEditor;
+    const { rect, styles, onChange, onStop, isComponent, content, textRenderMode = 'legacy' } = overlayState.textEditor;
+    const schema = textEditorSchema(textRenderMode);
 
     // Update callback refs
     onChangeRef.current = onChange;
@@ -41,9 +42,13 @@ export const TextEditor = observer(() => {
 
         const state = EditorState.create({
             schema,
+            ...(textRenderMode === 'plain-string-v1' ? {
+                doc: schema.node('doc', null, schema.node('paragraph', null, createNodesFromContent(content, textRenderMode))),
+            } : {}),
             plugins: createEditorPlugins(
                 () => onStopRef.current?.(),
                 () => onStopRef.current?.(),
+                textRenderMode,
             ),
         });
 
@@ -60,7 +65,7 @@ export const TextEditor = observer(() => {
                 const newState = view.state.apply(transaction);
                 view.updateState(newState);
                 if (!seeding && onChangeRef.current && isTextInputTransaction(transaction)) {
-                    const textContent = extractContentWithNewlines(view.state.doc);
+                    const textContent = extractContentWithNewlines(view.state.doc, textRenderMode);
                     onChangeRef.current(textContent);
                 }
             },
@@ -73,19 +78,19 @@ export const TextEditor = observer(() => {
 
         // Set initial content with proper line break handling. Suppress
         // onChange while seeding — this is not a user edit.
-        const nodes = createNodesFromContent(content);
+        const nodes = createNodesFromContent(content, textRenderMode);
         const paragraph = schema.node('paragraph', null, nodes);
         const newDoc = schema.node('doc', null, [paragraph]);
         const tr = view.state.tr.replaceWith(0, view.state.doc.content.size, newDoc.content);
         seeding = true;
         try {
-            view.dispatch(tr);
+            if (textRenderMode !== 'plain-string-v1') view.dispatch(tr);
         } finally {
             seeding = false;
         }
 
         // Apply styles
-        applyStylesToEditor(view, styles);
+        applyStylesToEditor(view, styles, textRenderMode);
 
         // Focus the editor if not disabled
         if (!isDisabled) {
@@ -104,20 +109,20 @@ export const TextEditor = observer(() => {
             view.dom.removeEventListener('blur', handleBlur, true);
             view.destroy();
         };
-    }, []); // Only run on mount
+    }, [textRenderMode]); // A mode change requires its own schema and editor state.
 
     // Update content when it changes (but preserve cursor position and avoid disrupting ongoing edits)
     useEffect(() => {
         const view = editorViewRef.current;
         if (!view) return;
 
-        const currentContent = extractContentWithNewlines(view.state.doc);
+        const currentContent = extractContentWithNewlines(view.state.doc, textRenderMode);
         if (currentContent !== content) {
             // Only update if the editor doesn't have focus (to avoid disrupting user typing)
             // or if the content change is significant (not just from user typing)
             if (!view.hasFocus() || Math.abs(currentContent.length - content.length) > 1) {
                 const selection = view.state.selection;
-                const nodes = createNodesFromContent(content);
+                const nodes = createNodesFromContent(content, textRenderMode);
                 const paragraph = schema.node('paragraph', null, nodes);
                 const newDoc = schema.node('doc', null, [paragraph]);
                 const tr = view.state.tr.replaceWith(
@@ -133,6 +138,7 @@ export const TextEditor = observer(() => {
                         ? Selection.near(tr.doc.resolve(targetPos))
                         : Selection.atEnd(tr.doc);
                 tr.setSelection(newSelection);
+                if (textRenderMode === 'plain-string-v1') tr.setMeta('addToHistory', false);
 
                 view.dispatch(tr);
             }
@@ -143,7 +149,7 @@ export const TextEditor = observer(() => {
     useEffect(() => {
         const view = editorViewRef.current;
         if (view) {
-            applyStylesToEditor(view, styles);
+            applyStylesToEditor(view, styles, textRenderMode);
         }
     }, [styles]);
 

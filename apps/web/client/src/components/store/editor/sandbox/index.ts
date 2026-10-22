@@ -67,6 +67,7 @@ export class SandboxManager {
     localSourceReady = false;
     private localPreparationPlan: LocalPreparationPlan | null = null;
     private localPreparationProvider: NodeFsProvider | null = null;
+    private localPreparationSnapshot: { mirror: LocalMirror; version: string } | null = null;
     private localPreparationApplying = false;
     /**
      * Latched by `clear()`. `init()` is invoked from `BranchManager.init`'s
@@ -115,9 +116,10 @@ export class SandboxManager {
         this.gitManager = new GitManager(this);
         // The exact reviewed plan object is the apply token. Keep its identity
         // instead of letting MobX deep-convert it into a different object.
-        makeAutoObservable<this, 'localPreparationPlan' | 'localPreparationProvider'>(this, {
+        makeAutoObservable<this, 'localPreparationPlan' | 'localPreparationProvider' | 'localPreparationSnapshot'>(this, {
             localPreparationPlan: observable.ref,
             localPreparationProvider: observable.ref,
+            localPreparationSnapshot: observable.ref,
         });
     }
 
@@ -413,23 +415,19 @@ export class SandboxManager {
     /** Preview exact on-disk changes. This method never writes to the folder. */
     async planLocalPreparation(): Promise<LocalPreparationPlan> {
         const provider = this.session.provider;
-        if (
-            this.disposed ||
-            this.branch.runtime.type !== 'local' ||
-            !(provider instanceof NodeFsProvider)
-        ) {
+        if (this.disposed || this.branch.runtime.type !== 'local' || !(provider instanceof NodeFsProvider)) {
             throw new Error('A local project must finish loading before it can be prepared.');
         }
-        if (this.localPreparationApplying)
-            throw new Error('Local preparation is already applying.');
+        if (this.localPreparationApplying) throw new Error('Local preparation is already applying.');
         this.localPreparationPlan = null;
         this.localPreparationProvider = null;
+        this.localPreparationSnapshot = null;
         const framework = this.editorEngine.framework;
         if (framework !== 'nextjs' && framework !== 'static-html') {
-            throw new Error(
-                'Visual preparation currently supports Next.js and static HTML projects.',
-            );
+            throw new Error('Visual preparation currently supports Next.js and static HTML projects.');
         }
+        const mirror = this.localMirror;
+        const version = mirror?.sourceVersion();
         const entries = await this.fs.listAll();
         const routerConfig = framework === 'nextjs' ? await this.getRouterConfig() : null;
         const plan = await planLocalProjectPreparation(
@@ -438,6 +436,14 @@ export class SandboxManager {
             entries.filter((entry) => entry.type === 'file').map((entry) => entry.path),
             routerConfig,
         );
+        if (plan.files.length === 0 && !plan.createDirectories?.length) {
+            const diskVersion = await readMirroredLocalTextVersion(provider);
+            if (!mirror || version == null || this.disposed || this.session.provider !== provider ||
+                this.localMirror !== mirror || mirror.sourceVersion() !== version || diskVersion !== version) {
+                throw new Error('The local source changed while reviewing preparation. Prepare a fresh diff.');
+            }
+            this.localPreparationSnapshot = { mirror, version };
+        }
         for (const file of plan.files) Object.freeze(file);
         Object.freeze(plan.files);
         if (plan.createDirectories) Object.freeze(plan.createDirectories);
@@ -462,21 +468,49 @@ export class SandboxManager {
     /** Apply only the plan the user reviewed, using disk-hash guarded writes. */
     async applyLocalPreparation(plan: LocalPreparationPlan): Promise<void> {
         const provider = this.session.provider;
-        if (
-            this.disposed ||
-            this.branch.runtime.type !== 'local' ||
-            !(provider instanceof NodeFsProvider)
-        ) {
+        if (this.disposed || this.branch.runtime.type !== 'local' || !(provider instanceof NodeFsProvider)) {
             throw new Error('The local project is no longer available.');
         }
         if (plan !== this.localPreparationPlan || provider !== this.localPreparationProvider) {
             throw new Error('Review the current source changes before applying.');
         }
-        if (this.localPreparationApplying)
-            throw new Error('Local preparation is already applying.');
+        if (this.localPreparationApplying) throw new Error('Local preparation is already applying.');
+        const snapshot = this.localPreparationSnapshot;
         this.localPreparationPlan = null;
         this.localPreparationProvider = null;
+        this.localPreparationSnapshot = null;
         this.localPreparationApplying = true;
+        // Already prepared source needs acknowledgement, not a history handoff.
+        // Restored undo and redo entries must survive this read-only startup path.
+        if (plan.files.length === 0 && !plan.createDirectories?.length) {
+            try {
+                if (!snapshot) throw new Error('Review the current source changes before applying.');
+                const branchData = await this.editorEngine.branches.awaitBranchInitialization(this.branch.id);
+                const assertOwner = () => {
+                    if (this.disposed || this.editorEngine.isClosing ||
+                        branchData.history.isPreparingForDisposal || this.session.provider !== provider ||
+                        this.localMirror !== snapshot.mirror || snapshot.mirror.sourceVersion() !== snapshot.version ||
+                        this.editorEngine.branches.getBranchDataById(this.branch.id) !== branchData ||
+                        this.editorEngine.branches.activeBranchData !== branchData || branchData.sandbox !== this) {
+                        throw new Error('The local project changed during preparation.');
+                    }
+                };
+                assertOwner();
+                const diskVersion = await readMirroredLocalTextVersion(provider);
+                assertOwner();
+                if (diskVersion !== snapshot.version) {
+                    throw new Error('The mirrored local source changed since review. Prepare a fresh diff.');
+                }
+                runInAction(() => { this.preloadScriptState = PreloadScriptState.INJECTED; });
+                return;
+            } catch (error) {
+                throw new LocalPreparationApplyError(
+                    `Preparation stopped: ${error instanceof Error ? error.message : String(error)}`, [], [],
+                );
+            } finally {
+                this.localPreparationApplying = false;
+            }
+        }
         const written: Array<{ file: LocalPreparationFile; writtenHash: string }> = [];
         const createdDirectories: string[] = [];
         const rollbackIssues: string[] = [];
@@ -1070,6 +1104,7 @@ export class SandboxManager {
         this.localMirror = null;
         this.localPreparationPlan = null;
         this.localPreparationProvider = null;
+        this.localPreparationSnapshot = null;
         this.stopOfflineWatcher();
         if (this.preloadRetryTimeout) {
             clearTimeout(this.preloadRetryTimeout);

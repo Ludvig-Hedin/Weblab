@@ -617,7 +617,7 @@ export class FileSystem {
         };
     }
 
-    async listFiles(pattern = '**/*'): Promise<string[]> {
+    async listFiles(pattern = '**/*', options: { strict?: boolean } = {}): Promise<string[]> {
         if (!this.fs) throw new Error('File system not initialized');
 
         const files: string[] = [];
@@ -638,7 +638,8 @@ export class FileSystem {
                     }
                 }
             } catch (err) {
-                // Ignore errors
+                // Ownership requires a complete tree; browsing remains best-effort.
+                if (options.strict) throw err;
             }
         };
 

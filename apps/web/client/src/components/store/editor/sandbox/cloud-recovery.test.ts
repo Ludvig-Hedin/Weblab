@@ -143,3 +143,34 @@ describe('cloud recovery protocol ownership', () => {
         expect((f.stored() as CloudRecoveryRecord).operation.transport).toBe('design');
     });
 });
+
+describe('imported text recovery protocol', () => {
+    it('retains exact v2 epochs while unknown or downgraded protocols stay download-only', () => {
+        const record = contentRecord();
+        record.operation.transportVersion = 2;
+        record.operation.expectedContracts = [{ path: 'src/app/page.tsx', version: 2, generation: 3, designRevision: 1 }];
+        const restored = cloudRecoveryOperation(record);
+        expect(restored).not.toBeNull();
+        expect(JSON.stringify(restored)).toBe(JSON.stringify(record.operation));
+        expect(restored?.operationId).toBe(record.operation.operationId);
+        for (const version of [0, 1, 3]) {
+            const unknown = structuredClone(record);
+            unknown.operation.transportVersion = version;
+            expect(cloudRecoveryOperation(unknown)).toBeNull();
+            expect(unknown.operation.changes[0]?.content).toBe('saved candidate');
+        }
+    });
+    it('refuses absent, duplicate, stale, unexpected or cross-file v2 pins', () => {
+        const record = contentRecord();
+        record.operation.transportVersion = 2;
+        const pin = { path: 'src/app/page.tsx', version: 2 as const, generation: 3, designRevision: 1 };
+        for (const pins of [[], [pin, pin], [{ ...pin, path: 'src/app/other.tsx' }],
+            [{ ...pin, generation: 0 }], [{ ...pin, designRevision: 2 }], [{ path: pin.path, generation: 3 }]]) {
+            record.operation.expectedContracts = pins;
+            expect(cloudRecoveryOperation(record)).toBeNull();
+        }
+        record.operation.expectedContracts = [pin];
+        record.operation.changes[0]!.content = new Uint8Array([1]).buffer;
+        expect(cloudRecoveryOperation(record)).toBeNull();
+    });
+});

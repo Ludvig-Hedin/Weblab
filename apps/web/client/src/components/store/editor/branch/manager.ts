@@ -228,7 +228,7 @@ export class BranchManager {
         const revision = data.sandbox.getLocalExternalRevision();
         const ownRevision = data.sandbox.getLocalOwnRevision();
         const supported = this.editorEngine.framework === 'nextjs' &&
-            await hasLocalTailwindStyleWriter((path) => data.codeEditor.readFile(path));
+            await hasLocalTailwindStyleWriter((path) => data.codeEditor.readFile(path), await data.codeEditor.listFiles('**/*', { strict: true }));
         if (supported && revision !== null && revision === data.sandbox.getLocalExternalRevision() &&
             ownRevision === data.sandbox.getLocalOwnRevision()) {
             data.localStyleWriter = 'tailwind';

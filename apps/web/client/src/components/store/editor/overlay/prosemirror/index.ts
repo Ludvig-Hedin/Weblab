@@ -1,4 +1,6 @@
-import type { EditorState, Plugin, Transaction } from 'prosemirror-state';
+import type { EditorState, Transaction } from 'prosemirror-state';
+import { Plugin } from 'prosemirror-state';
+import type { TextRenderMode } from '@weblab/models';
 import type { EditorView } from 'prosemirror-view';
 import { baseKeymap } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
@@ -41,8 +43,32 @@ export const schema = new Schema({
     },
 });
 
+/** A React string is one textblock; CSS, not BR nodes, determines its line layout. */
+export const plainTextSchema = new Schema({
+    nodes: {
+        doc: { content: 'paragraph' },
+        paragraph: { content: 'text*', whitespace: 'pre',
+            toDOM: () => ['p', { style: 'margin: 0; padding: 0;' }, 0] },
+        text: { inline: true },
+    },
+    marks: schema.spec.marks,
+});
+
+export function textEditorSchema(mode: TextRenderMode = 'legacy'): Schema {
+    return mode === 'plain-string-v1' ? plainTextSchema : schema;
+}
+
+/** New clipboard input may canonicalize line endings; saved source and reseeds must not. */
+export function plainTextInput(content: string): string {
+    return content.replace(/\r\n?/g, '\n');
+}
+
 /** Preserve empty lines as breaks without constructing invalid empty text nodes. */
-export function createNodesFromContent(content: string): ProseMirrorNode[] {
+export function createNodesFromContent(content: string, mode: TextRenderMode = 'legacy'): ProseMirrorNode[] {
+    if (mode === 'plain-string-v1') {
+        if (content.includes('\r')) throw new Error('Carriage returns cannot be seeded into the plain text editor.');
+        return content ? [plainTextSchema.text(content)] : [];
+    }
     const nodes: ProseMirrorNode[] = [];
     const lines = content.split('\n');
     for (const [index, line] of lines.entries()) {
@@ -53,7 +79,13 @@ export function createNodesFromContent(content: string): ProseMirrorNode[] {
 }
 
 /** Pasted paragraphs and Shift+Enter breaks both represent a source newline. */
-export function extractContentWithNewlines(doc: ProseMirrorNode): string {
+export function extractContentWithNewlines(doc: ProseMirrorNode, mode: TextRenderMode = 'legacy'): string {
+    if (mode === 'plain-string-v1') {
+        if (doc.type.schema !== plainTextSchema || doc.childCount !== 1) throw new Error('Invalid plain text document.');
+        const content = doc.textContent;
+        if (content.includes('\r')) throw new Error('Carriage returns are unsupported in the plain text editor.');
+        return content;
+    }
     return doc.textBetween(0, doc.content.size, '\n', '\n');
 }
 
@@ -63,7 +95,7 @@ export function isTextInputTransaction(transaction: Transaction): boolean {
     return transaction.docChanged && !transaction.getMeta(STYLE_ONLY_TRANSACTION);
 }
 
-export function applyStylesToEditor(editorView: EditorView, styles: Record<string, string>) {
+export function applyStylesToEditor(editorView: EditorView, styles: Record<string, string>, mode: TextRenderMode = 'legacy') {
     const { state, dispatch } = editorView;
     const styleMark = state.schema.marks?.style;
     if (!styleMark) {
@@ -123,6 +155,10 @@ export function applyStylesToEditor(editorView: EditorView, styles: Record<strin
         paddingBottom: scalePx(styles.paddingBottom) || '0',
         paddingLeft: scalePx(styles.paddingLeft) || '0',
         fontFamily,
+        ...(mode === 'plain-string-v1' ? { whiteSpace: styles.whiteSpace || 'normal',
+            tabSize: styles.tabSize ?? '',
+            ...(styles.whiteSpaceCollapse ? { whiteSpaceCollapse: styles.whiteSpaceCollapse } : {}),
+            ...(styles.textWrapMode ? { textWrapMode: styles.textWrapMode } : {}) } : {}),
     });
     dispatch(tr);
 }
@@ -154,7 +190,26 @@ const createEnterHandler = (onExit: () => void) => (state: EditorState) => {
     return true;
 };
 
-export const createEditorPlugins = (onEscape?: () => void, onEnter?: () => void): Plugin[] => [
+const plainTextClipboard = () => new Plugin({
+    props: {
+        handlePaste(view, event) {
+            const content = event.clipboardData?.getData('text/plain');
+            if (content) view.dispatch(view.state.tr.insertText(plainTextInput(content)).scrollIntoView());
+            // No HTML or multi-paragraph fallback in the single-string contract.
+            return true;
+        },
+        handleDrop(view, event, _slice, moved) {
+            if (moved) return false; // Internal moves already have the plain schema.
+            const content = event.dataTransfer?.getData('text/plain');
+            const point = view.posAtCoords({ left: event.clientX, top: event.clientY });
+            if (content && point) view.dispatch(view.state.tr.insertText(plainTextInput(content), point.pos).scrollIntoView());
+            return true;
+        },
+    },
+});
+
+export const createEditorPlugins = (onEscape?: () => void, onEnter?: () => void, mode: TextRenderMode = 'legacy'): Plugin[] => [
+    ...(mode === 'plain-string-v1' ? [plainTextClipboard()] : []),
     history(),
     keymap({
         'Mod-z': undo,
@@ -164,7 +219,10 @@ export const createEditorPlugins = (onEscape?: () => void, onEnter?: () => void)
             return !!onEscape;
         },
         Enter: onEnter ? createEnterHandler(onEnter) : () => false,
-        'Shift-Enter': createLineBreakHandler(),
+        'Shift-Enter': mode === 'plain-string-v1' ? (state, dispatch) => {
+            dispatch?.(state.tr.insertText('\n'));
+            return true;
+        } : createLineBreakHandler(),
     }),
     keymap(baseKeymap),
 ];

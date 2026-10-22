@@ -98,7 +98,7 @@ export const commit = action({
         for (const candidate of sorted) {
             const file = files.get(candidate.path);
             const saved = contracts.get(candidate.path);
-            if (!file || typeof file.text !== 'string' || !saved) cloudError('CLOUD_CONTENT_INVALID_TARGET');
+            if (!file || typeof file.text !== 'string' || !saved || saved.version !== 1) cloudError('CLOUD_CONTENT_INVALID_TARGET');
             const contract: CloudContentContract = { version: saved.version, path: saved.path, bindings: saved.bindings, fingerprint: saved.fingerprint };
             const originalSource = file.text;
             const result = validated(() => validateCloudContentCandidate({ contract, originalSource,

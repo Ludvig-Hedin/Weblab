@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useAction } from 'convex/react';
+import type { DomElement } from '@weblab/models';
+import { readContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
+import { cloudEditorApi } from '@/lib/cloud-editor/api';
+import { validTextRenderMapping } from '@/components/store/editor/sandbox/cloud-source';
 import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
@@ -12,6 +17,12 @@ import type { CloudSource } from '@/components/store/editor/sandbox/cloud-source
 import { useEditorEngine } from '@/components/store/editor';
 import { useCloudEditorCopy } from '@/lib/cloud-editor/copy';
 import { CloudContentApproval } from './content-approval';
+import { selectedComponentTextTarget } from './component-text-selection';
+
+function selectedLeafKey(element: DomElement | undefined): string {
+    return JSON.stringify([element?.branchId, element?.frameId, element?.domId, element?.oid,
+        element?.contentIdentity?.mappingId, element?.contentIdentity?.itemId]);
+}
 
 /** Read literals from saved source, never from computed styles or arbitrary DOM attributes. */
 function selectedLiterals(
@@ -65,45 +76,100 @@ const ScopedContentPanel = observer(
         const engine = useEditorEngine();
         const copy = useCloudEditorCopy();
         const selected = engine.elements.selected[0];
+        const selectedKey = selectedLeafKey(selected);
+        const resolveSelection = useAction(cloudEditorApi.resolveTextSelection);
         const [selection, setSelection] = useState<CloudContentSelection | null>(null);
         const [pinnedDraft, setPinnedDraft] = useState<CloudContentSelection | null>(null);
         const oid = selected?.oid;
         const branchId = selected?.branchId;
         const revision = source?.state.savedRevision;
         const attributeWritePending = source.state.attributeWritePending;
+        const textSnapshot = source.state.textContracts;
+        const contentMode = source.isContentMode;
+        const selectionReady = !source.hasLocalWork && !source.state.pending && !source.state.needsReload && !source.state.loading;
         useEffect(() => {
             let current = true;
-            setSelection((previous) =>
-                previous?.scopeKey === scopeKey && previous.oid === oid ? previous : null,
-            );
+            setSelection(previous => previous?.scopeKey === scopeKey && previous.selectionKey === selectedKey ? previous : null);
             const branch = branchId ? engine.branches.getBranchDataById(branchId) : null;
-            if (oid && branch && source?.scope.branchId === branchId && revision) {
-                void branch.codeEditor
-                    .getJsxElementMetadata(oid)
-                    .then((metadata) => {
-                        if (!current || !metadata) return;
-                        const details = selectedLiterals(metadata.code, oid);
-                        setSelection({
-                            scopeKey,
-                            oid,
-                            path: metadata.path,
-                            revision,
-                            ...(details ?? {
-                                tag: '',
-                                attributes: {},
-                                plainText: false,
-                                unsupportedReason: copy.contentUnsupported,
-                            }),
-                        });
-                    })
-                    .catch(() => {
-                        if (current) setSelection(null);
-                    });
-            }
-            return () => {
-                current = false;
+            const codeEditor = branch?.codeEditor;
+            const hint = selected?.contentIdentity ? { ...selected.contentIdentity } : undefined;
+            const selectedFrame = selected?.frameId;
+            const selectedDom = selected?.domId;
+            const sourceVersion = source.getSourceVersion();
+            const stillCurrent = () => current && engine.activeSandbox.cloudSource === source &&
+                engine.elements.selected.length === 1 && selectedLeafKey(engine.elements.selected[0]) === selectedKey &&
+                branch?.codeEditor === codeEditor && branch?.sandbox.cloudSource === source &&
+                source.state.savedRevision === revision && source.getSourceVersion() === sourceVersion &&
+                source.isContentMode === contentMode && source.state.accessReady &&
+                (source.state.profile === 'imported-next-v1' ? source.state.textContracts?.actorId === actorId : source.state.contracts?.actorId === actorId) &&
+                !source.hasLocalWork && !source.state.pending && !source.state.needsReload && !source.state.loading;
+            // Repeated JSX OIDs are only useful with one current rendered record identity.
+            const currentLeaf = async (): Promise<boolean> => {
+                if (!stillCurrent() || !selectedFrame || !selectedDom || !hint) return false;
+                const frame = engine.frames.get(selectedFrame);
+                const layers = engine.ast.mappings.getMapping(selectedFrame);
+                if (!frame?.view || frame.frame.branchId !== branchId || !layers) return false;
+                const matches: DomElement[] = [];
+                for (const layer of layers.values()) {
+                    if (layer.oid !== oid) continue;
+                    const live = await frame.view.getElementByDomId(layer.domId, true);
+                    if (!stillCurrent() || !live || live.frameId !== selectedFrame || live.instanceId !== layer.instanceId) return false;
+                    if (live.branchId === branchId && live.oid === oid && live.contentIdentity?.mappingId === hint.mappingId &&
+                        live.contentIdentity.itemId === hint.itemId) matches.push(live);
+                }
+                return matches.length === 1 && matches[0]?.domId === selectedDom;
             };
-        }, [engine, oid, branchId, source, revision, attributeWritePending, copy, scopeKey]);
+            if (oid && branch && codeEditor && source.scope.branchId === branchId && revision && selectionReady) {
+                void (async () => {
+                    const metadata = await codeEditor.getJsxElementMetadata(oid);
+                    if (!stillCurrent() || !metadata) return;
+                    const details = selectedLiterals(metadata.code, oid);
+                    const base = { scopeKey, oid, revision, selectionKey: selectedKey,
+                        frameId: selectedFrame, domId: selectedDom, contentIdentity: hint,
+                        ...(details ?? { tag: '', attributes: {}, plainText: false }) };
+                    if (source.state.profile === 'imported-next-v1') {
+                        if (hint) {
+                            if (!await currentLeaf()) throw new Error('Unsupported rendered item');
+                            const pin = source.resolveTextApproval(metadata.path, oid, hint);
+                            const candidate = source.canDesign && !source.isContentMode
+                                ? await resolveSelection({ ...source.scope, expectedRevision: revision, oid, ...hint })
+                                : pin && source.isTextApprovalCurrent(pin)
+                                    ? { path: pin.path, target: pin.target, renderMapping: pin.renderMapping,
+                                        actorId: pin.actorId, revision, designRevision: pin.designRevision, generation: pin.generation }
+                                    : null;
+                            if (!candidate || !stillCurrent() || candidate.actorId !== actorId || candidate.revision !== revision ||
+                                candidate.target.kind !== 'data-leaf' || !validTextRenderMapping(candidate.renderMapping) ||
+                                candidate.renderMapping.mappingId !== hint.mappingId || candidate.target.itemId !== hint.itemId ||
+                                candidate.renderMapping.renderer.oid !== oid || candidate.renderMapping.renderer.path !== metadata.path.replace(/^\/+/, ''))
+                                throw new Error('Unsupported rendered item');
+                            const owner = await codeEditor.readFile(candidate.path);
+                            if (typeof owner !== 'string' || !await currentLeaf() || !stillCurrent() ||
+                                (pin && source.isContentMode && !source.isTextApprovalCurrent(pin))) return;
+                            readContentTextTarget(owner, candidate.target);
+                            const question = readContentTextTarget(owner, { ...candidate.target, property: 'question' });
+                            setSelection({ ...base, path: candidate.path, contractVersion: 2, textTarget: candidate.target,
+                                renderMapping: candidate.renderMapping, questionLabel: question,
+                                selectionActorId: candidate.actorId, selectionGeneration: candidate.generation,
+                                selectionDesignRevision: candidate.designRevision, plainText: true });
+                            return;
+                        }
+                        const code = await codeEditor.readFile(metadata.path);
+                        if (!stillCurrent()) return;
+                        const target = typeof code === 'string' ? selectedComponentTextTarget(code, oid) : null;
+                        setSelection({ ...base, path: metadata.path,
+                            ...(target ? { contractVersion: 2 as const, textTarget: target }
+                                : { unsupportedReason: copy.contentUnsupported }) });
+                        return;
+                    }
+                    setSelection({ ...base, path: metadata.path,
+                        ...(!details ? { unsupportedReason: copy.contentUnsupported } : {}) });
+                })().catch(() => {
+                    if (stillCurrent()) setSelection({ scopeKey, oid, path: '', revision, selectionKey: selectedKey,
+                        tag: '', attributes: {}, plainText: false, unsupportedReason: hint ? copy.contentFaqUnsupported : copy.contentUnsupported });
+                });
+            }
+            return () => { current = false; };
+        }, [engine, oid, branchId, source, revision, attributeWritePending, copy, scopeKey, selectionReady, selectedKey, resolveSelection, actorId, textSnapshot, contentMode]);
         const readAsset = useCallback(
             async (url: string): Promise<Blob | null> => {
                 if (
@@ -134,12 +200,13 @@ const ScopedContentPanel = observer(
             },
             [engine, source, attributeWritePending],
         );
+        const actorSnapshot = source.state.profile === 'imported-next-v1' ? source.state.textContracts : source.state.contracts;
         const activeScope =
             engine.activeSandbox.cloudSource === source &&
-            (source.state.contracts === null || source.state.contracts?.actorId === actorId);
+            (actorSnapshot === null || actorSnapshot?.actorId === actorId);
         const currentSelection =
             selection?.scopeKey === scopeKey &&
-            selection.oid === oid &&
+            selection.selectionKey === selectedKey &&
             branchId === source.scope.branchId
                 ? selection
                 : null;
@@ -167,7 +234,7 @@ const ScopedContentPanel = observer(
                     if (
                         !pinnedDraft &&
                         activeScope &&
-                        resolved?.oid === engine.elements.selected[0]?.oid
+                        resolved?.selectionKey === selectedLeafKey(engine.elements.selected[0])
                     )
                         void engine.text.editSelectedElement();
                 }}
@@ -219,7 +286,7 @@ export const CloudContentPanel = observer(() => {
         retained.current = null;
     }
     const sourceUsers = useRef(new WeakMap<CloudSource, string>());
-    const currentActor = source?.state.contracts?.actorId;
+    const currentActor = source?.state.profile === 'imported-next-v1' ? source.state.textContracts?.actorId : source?.state.contracts?.actorId;
     if (source && userId && currentActor && !sourceUsers.current.has(source)) {
         sourceUsers.current.set(source, userId);
     }

@@ -123,5 +123,11 @@
     "prepareImport": "Prepare for editing",
     "preparingImport": "Preparing for editing…",
     "prepareImportFailed": "Preparation could not be confirmed. Try again to check the same request.",
-    "openPreview": "Open preview"
+    "openPreview": "Open preview",
+    "contentSharedComponent": "Used everywhere this component appears.",
+    "contentSharedApprovalStale": "The design changed. Approve this text again. Other fields need their own approval.",
+    "contentFaqQuestion": "Question",
+    "contentFaqAnswer": "Answer",
+    "contentFaqItem": "This FAQ item",
+    "contentFaqUnsupported": "This FAQ text could not be matched to one saved item. Select its question or answer again."
 }

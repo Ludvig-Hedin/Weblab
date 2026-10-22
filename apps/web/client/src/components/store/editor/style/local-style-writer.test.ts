@@ -9,11 +9,11 @@ const valid = new Map<string, string>([
     ['src/app/globals.css', '@import "tailwindcss";'],
 ]);
 
-const detects = (files: Map<string, string>) => hasLocalTailwindStyleWriter(async (path) => {
+const detects = (files: Map<string, string>, sourcePaths?: readonly string[]) => hasLocalTailwindStyleWriter(async (path) => {
     const content = files.get(path);
     if (content === undefined) throw new Error('missing');
     return content;
-});
+}, sourcePaths);
 
 describe('responsive values without a round-trip writer', () => {
     const frames = [
@@ -59,7 +59,7 @@ describe('local visual style writer capability', () => {
         expect(await detects(files)).toBe(false);
         expect(affectsLocalTailwindStyleWriter('src/app/(site)/layout.tsx')).toBe(true);
         expect(affectsLocalTailwindStyleWriter('app/(site)/globals.css')).toBe(true);
-        expect(affectsLocalTailwindStyleWriter('src/app/(studio)/layout.tsx')).toBe(false);
+        expect(affectsLocalTailwindStyleWriter('src/app/(studio)/layout.tsx')).toBe(true);
     });
 
     it('rejects a dependency without a wired build plugin or imported stylesheet', async () => {
@@ -86,6 +86,36 @@ describe('local visual style writer capability', () => {
     it('tracks only files that can disconnect the style writer', () => {
         expect(affectsLocalTailwindStyleWriter('src/app/globals.css')).toBe(true);
         expect(affectsLocalTailwindStyleWriter('postcss.config.mjs')).toBe(true);
-        expect(affectsLocalTailwindStyleWriter('src/app/page.tsx')).toBe(false);
+        expect(affectsLocalTailwindStyleWriter('src/app/page.tsx')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('src/app/(studio)/page.tsx')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('app/[locale]/page.jsx')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('src/components/page.tsx')).toBe(false);
+        expect(affectsLocalTailwindStyleWriter('src/app/[locale]/layout.js')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('src/styles/tokens.css')).toBe(true);
+        expect(affectsLocalTailwindStyleWriter('src/components/hero.module.css')).toBe(true);
+    });
+
+    it('accepts locale-relative Tailwind wiring without promising CSS Modules writes', async () => {
+        const files = new Map(valid);
+        files.delete('src/app/layout.tsx');
+        files.set('src/app/[locale]/layout.tsx', 'import "../globals.css"; export default function Layout({children}) { return <html><body>{children}</body></html>; }');
+        files.set('src/app/globals.css', '@import "tailwindcss"; @import "../styles/tokens.css";');
+        files.set('src/styles/tokens.css', ':root { --brand: red; }');
+        expect(await detects(files, [...files.keys()])).toBe(true);
+        files.set('src/app/(studio)/layout.tsx', 'export default function Studio() { return <html><body /></html>; }');
+        expect(await detects(files, [...files.keys()])).toBe(false);
+    });
+
+    it('invalidates capability when an uncovered sibling page enters the inventory', async () => {
+        const files = new Map(valid);
+        files.delete('src/app/layout.tsx');
+        files.set('src/app/(site)/layout.tsx', 'import "../globals.css"; export default function Layout({children}) { return <html><body>{children}</body></html>; }');
+        expect(await detects(files, [...files.keys()])).toBe(true);
+        const sibling = 'src/app/(studio)/page.tsx';
+        expect(affectsLocalTailwindStyleWriter(sibling)).toBe(true);
+        files.set(sibling, 'export default function Studio() { return <main />; }');
+        expect(await detects(files, [...files.keys()])).toBe(false);
+        files.delete(sibling);
+        expect(await detects(files, [...files.keys()])).toBe(true);
     });
 });

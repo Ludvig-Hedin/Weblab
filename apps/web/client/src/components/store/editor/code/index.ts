@@ -1,3 +1,6 @@
+import { createEditorBeforeUnloadHandler } from './before-unload';
+import { replaceContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
+import { validCloudTextApproval, cloudTextRenderer, freezeCloudTextApproval } from '../sandbox/cloud-source';
 import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { makeAutoObservable } from 'mobx';
 
@@ -65,15 +68,23 @@ export class CodeManager {
     private attachBeforeUnload() {
         if (typeof window === 'undefined') return;
         if (this.beforeUnloadHandler) return;
-        const handler = (e: BeforeUnloadEvent) => {
-            // Fire any debounced source rebases NOW so they at least enqueue
-            // before the page goes away (best effort — unload won't await).
-            this.editorEngine.action.flushPendingRebases();
-            if (!this.hasPendingWrites && !this.editorEngine.action.hasPendingRebases && !this.editorEngine.action.hasPendingStylePreflights) return;
-            // In-flight source write: ask the browser to confirm leaving.
-            // An aborted write can persist a truncated, unparseable file.
-            e.preventDefault();
-        };
+        const handler = createEditorBeforeUnloadHandler(
+            () => this.editorEngine.action.flushPendingRebases(),
+            () => ({
+                pendingWrites: this.hasPendingWrites,
+                pendingRebases: this.editorEngine.action.hasPendingRebases,
+                pendingStylePreflights: this.editorEngine.action.hasPendingStylePreflights,
+                text: {
+                    pending: this.editorEngine.text?.hasPendingWork ?? false,
+                    branchId: this.editorEngine.text?.pendingWorkBranchId ?? null,
+                },
+                branches: this.editorEngine.branches.allBranches.map((branch) => ({
+                    id: branch.id,
+                    runtime: branch.runtime.type,
+                    historyOpen: this.editorEngine.branches.getBranchDataById(branch.id)?.history.isTransactionOpen ?? false,
+                })),
+            }),
+        );
         window.addEventListener('beforeunload', handler);
         this.beforeUnloadHandler = handler;
     }
@@ -93,8 +104,51 @@ export class CodeManager {
      * from the undo stack when its write fails so a later undo can't emit the
      * inverse of an edit that never landed.
      */
-    async write(action: Action, sourceContext?: { branchId: string; codeEditor: CodeFileSystem }): Promise<boolean> {
+    async write(action: Action, sourceContext?: { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean }): Promise<boolean> {
         try {
+            if (action.type === 'edit-text' && 'cloudText' in action) {
+                if (!validCloudTextApproval(action.cloudText) || action.textSlots !== undefined || action.targets.length === 0)
+                    throw new Error('This text edit has no valid original approval.');
+                const pin = freezeCloudTextApproval(action.cloudText);
+                const originalContent = action.originalContent, newContent = action.newContent;
+                if (action.targets.some(target => target.branchId !== pin.branchId || target.oid !== cloudTextRenderer(pin).oid))
+                    throw new Error('The text edit belongs to another source target.');
+                const branches = this.editorEngine.branches;
+                const branch = branches.getBranchDataById(pin.branchId);
+                const source = branch?.sandbox.cloudSource;
+                const codeEditor = sourceContext?.codeEditor ?? branch?.codeEditor;
+                if (!branch || !source || !codeEditor || !isCloudEditorRuntime(branch.branch.runtime) ||
+                    (sourceContext && sourceContext.branchId !== pin.branchId) || branch.codeEditor !== codeEditor)
+                    throw new Error('The approved text source is no longer available.');
+                const revision = source.state.savedRevision;
+                const version = source.getSourceVersion(), externalRevision = source.getExternalRevision();
+                const current = () => (sourceContext?.current?.() ?? true) && !this.editorEngine.isClosing &&
+                    branches.hasActiveBranch && branches.activeBranchData === branch && branches.getBranchDataById(pin.branchId) === branch &&
+                    branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor &&
+                    source.getExternalRevision() === externalRevision && source.getSourceVersion() === version &&
+                    source.state.savedRevision === revision && source.canWrite && !source.state.localDraftChanges && source.isTextApprovalCurrent(pin);
+                await this.enqueueWrite(async () => {
+                    if (!current()) throw new Error('The original text approval changed.');
+                    const metadata = await codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+                    if (!current()) throw new Error('The approved text source changed.');
+                    const original = await codeEditor.readFile(pin.path);
+                    if (!current() || metadata?.path.replace(/^\/+/, '') !== cloudTextRenderer(pin).path || typeof original !== 'string')
+                        throw new Error('The approved text source changed.');
+                    const candidate = replaceContentTextTarget(original, pin.target, originalContent, newContent);
+                    if (candidate === original) return;
+                    const saved = await source.withApprovedTextWrite({ pin, revision, candidate }, async () => {
+                        if (!current()) return false;
+                        await codeEditor.writeCloudTextFile(pin.path, candidate, original);
+                        return true;
+                    });
+                    if (!saved) throw new Error('The approved text could not be saved.');
+                });
+                return true;
+            }
+            if (action.type === 'edit-text' && action.targets.some(target => {
+                const source = this.editorEngine.branches.getBranchDataById(target.branchId)?.sandbox.cloudSource;
+                return source?.isContentMode && source.state.profile !== 'starter-v1';
+            })) throw new Error('Imported text edits require their original approval.');
             if (action.type === 'update-style' && this.editorEngine.framework === 'static-html') {
                 throw new Error('Visual style editing of static HTML requires a CSS source writer. No project file was changed.');
             }
