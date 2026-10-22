@@ -86,3 +86,17 @@ test('native cleanup retains its established path and permits its trailing index
     assert.equal(await fs.readFile('.weblab/index.json'), '{}');
     await ZenFS.promises.rm('/native-preserved', { recursive: true });
 });
+
+
+test('strict source inventories refuse unreadable subtrees instead of claiming partial ownership', async () => {
+    const fs = new FileSystem('/inventory');
+    Object.defineProperty(fs, 'backend', { value: { promises: {
+        readdir: async (path: string) => {
+            if (path.endsWith('/blocked')) throw new Error('Unreadable subtree');
+            return ['visible.txt', 'blocked'];
+        },
+        stat: async (path: string) => ({ isFile: () => !path.endsWith('/blocked'), isDirectory: () => path.endsWith('/blocked') }),
+    } } });
+    assert.deepEqual(await fs.listFiles(), ['visible.txt']);
+    await assert.rejects(fs.listFiles('**/*', { strict: true }), /Unreadable subtree/);
+});

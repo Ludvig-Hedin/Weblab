@@ -2,6 +2,8 @@ import { isImportedCloudProfile } from '@convex/lib/cloudImportManifest';
 import { validateCloudChanges } from '@convex/lib/cloudEditor';
 import { observable, runInAction } from 'mobx';
 
+import type { CloudTextApproval, CloudTextRenderMapping, PlainTextElementIdentity } from '@weblab/models/actions';
+import type { DomElement } from '@weblab/models';
 import type { CodeFileSystem, DurableSourceChange, DurableSourceFile } from '@weblab/file-system';
 
 import type { RejectedTextNavigationLease } from '../text';
@@ -18,6 +20,7 @@ import type {
     CloudEditorCommit,
     CloudEditorCommitResult,
     CloudEditorContracts,
+    CloudTextContracts,
     CloudEditorRuntimeStatus,
     CloudEditorScope,
     CloudEditorSnapshot,
@@ -69,6 +72,84 @@ export interface CloudAttributeWrite extends CloudAttributeApproval {
     revision: number;
     value: string;
     candidate: string;
+}
+export interface CloudTextWrite {
+    pin: CloudTextApproval;
+    revision: number;
+    candidate: string;
+}
+
+const textIdentifier = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 160 &&
+    /^[A-Za-z_$]/.test(value) && !/[^A-Za-z0-9_$]/.test(value);
+const textOid = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 160 && !/[^A-Za-z0-9_.:-]/.test(value);
+const textPath = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 240 &&
+    !/[\\\u0000-\u001f\u007f]/.test(value) && value.split('/').every(part => part !== '' && part !== '.' && part !== '..');
+const exactKeys = (value: object, keys: string[]) => Object.keys(value).length === keys.length && Object.keys(value).every(key => keys.includes(key));
+
+export function validTextRenderMapping(value: unknown): value is CloudTextRenderMapping {
+    if (!value || typeof value !== 'object' || !exactKeys(value, ['version', 'kind', 'mappingId', 'callsite', 'renderer'])) return false;
+    const mapping = value as Partial<CloudTextRenderMapping>;
+    return mapping.version === 1 && mapping.kind === 'keyed-prop-map' && textOid(mapping.mappingId) &&
+        [mapping.callsite, mapping.renderer].every(part => !!part && typeof part === 'object' &&
+            exactKeys(part, ['path', 'exportName', 'oid']) && textPath(part.path) && textIdentifier(part.exportName) && textOid(part.oid));
+}
+
+export function textBindingIdentity(target: CloudTextApproval['target'], mapping?: CloudTextApproval['renderMapping']): string {
+    return JSON.stringify([target.kind, target.exportName,
+        target.kind === 'component-literal' ? target.oid : [target.itemId, target.property],
+        mapping ? [mapping.version, mapping.kind, mapping.mappingId,
+            mapping.callsite.path, mapping.callsite.exportName, mapping.callsite.oid,
+            mapping.renderer.path, mapping.renderer.exportName, mapping.renderer.oid] : null]);
+}
+
+export function cloudTextIdentity(pin: CloudTextApproval): string {
+    return JSON.stringify([pin.version, pin.projectId, pin.branchId, pin.actorId, pin.path, pin.bindingId,
+        textBindingIdentity(pin.target, pin.renderMapping), pin.generation, pin.designRevision]);
+}
+
+export function freezeCloudTextApproval(pin: CloudTextApproval): CloudTextApproval {
+    return Object.freeze({ ...pin, target: Object.freeze({ ...pin.target }), ...(pin.renderMapping ? {
+        renderMapping: Object.freeze({ ...pin.renderMapping, callsite: Object.freeze({ ...pin.renderMapping.callsite }),
+            renderer: Object.freeze({ ...pin.renderMapping.renderer }) }),
+    } : {}) });
+}
+
+/** Rendered identity and saved owner differ for keyed data. */
+export function cloudTextRenderer(pin: CloudTextApproval): { path: string; oid: string } {
+    if (pin.target.kind === 'component-literal') return { path: pin.path, oid: pin.target.oid };
+    if (!pin.renderMapping) throw new Error('The approved text has no rendered identity.');
+    return pin.renderMapping.renderer;
+}
+
+/** Copy the identity before asynchronous frame calls can observe a changed element. */
+export function plainTextExpectedIdentity(element: DomElement): PlainTextElementIdentity {
+    return Object.freeze({ textRenderMode: 'plain-string-v1', domId: element.domId, oid: element.oid,
+        frameId: element.frameId, branchId: element.branchId, instanceId: element.instanceId,
+        ...(element.contentIdentity ? { contentIdentity: Object.freeze({ ...element.contentIdentity }) } : {}) });
+}
+
+export function matchesCloudTextElement(pin: CloudTextApproval, element: Pick<DomElement, 'oid' | 'branchId' | 'contentIdentity'>): boolean {
+    if (element.branchId !== pin.branchId || element.oid !== cloudTextRenderer(pin).oid) return false;
+    if (pin.target.kind === 'component-literal') return element.contentIdentity === undefined;
+    return element.contentIdentity?.mappingId === pin.renderMapping?.mappingId && element.contentIdentity?.itemId === pin.target.itemId;
+}
+
+/** Persisted history is untrusted input, including when replayed by a designer. */
+export function validCloudTextApproval(value: unknown): value is CloudTextApproval {
+    if (!value || typeof value !== 'object') return false;
+    const pin = value as Partial<CloudTextApproval>;
+    return pin.version === 2 && ['projectId', 'branchId', 'actorId', 'path', 'bindingId'].every((key) => {
+        const entry = pin[key as keyof CloudTextApproval];
+        return typeof entry === 'string' && entry.length > 0 && entry.length <= 300 && !/[\u0000-\u0020\u007f]/.test(entry);
+    }) && textPath(pin.path) &&
+        Number.isSafeInteger(pin.generation) && pin.generation! > 0 && pin.generation! < Number.MAX_SAFE_INTEGER &&
+        Number.isSafeInteger(pin.designRevision) && pin.designRevision! > 0 &&
+        !!pin.target && textIdentifier(pin.target.exportName) &&
+        (pin.target.kind === 'component-literal'
+            ? exactKeys(pin.target, ['kind', 'exportName', 'oid']) && textOid(pin.target.oid) && pin.renderMapping === undefined
+            : pin.target.kind === 'data-leaf' && exactKeys(pin.target, ['kind', 'exportName', 'itemId', 'property']) &&
+                typeof pin.target.itemId === 'string' && pin.target.itemId.length > 0 && pin.target.itemId.length <= 160 &&
+                !/[\u0000-\u001f\u007f]/.test(pin.target.itemId) && ['question', 'answer'].includes(pin.target.property) && validTextRenderMapping(pin.renderMapping));
 }
 const CONTENT_REJECTIONS_AFTER_RECEIPT = new Set([
     'CLOUD_CONTENT_INVALID_TARGET',
@@ -183,6 +264,7 @@ export class CloudSource {
         accessError: null as string | null,
         access: null as CloudEditorAccess | null,
         contracts: null as CloudEditorContracts | null,
+        textContracts: null as CloudTextContracts | null,
         contentMode: false,
         attributeWritePending: false,
         recoveryUnsupported: false,
@@ -252,6 +334,7 @@ export class CloudSource {
     private sourcePaths = new Set<string>();
     private listeners = new Set<(paths: string[], external: boolean) => void>();
     private attributeWrite: CloudAttributeWrite | null = null;
+    private textWrite: CloudTextWrite | null = null;
     private imageLease: {
         pin: CloudAttributeApproval;
         revision: number;
@@ -284,7 +367,9 @@ export class CloudSource {
             !this.state.preparingImport &&
             this.state.accessReady &&
             (this.isContentMode
-                ? this.canEditContent && this.state.contracts?.revision === this.state.savedRevision
+                ? this.canEditContent && (isImportedCloudProfile(this.state.profile)
+                    ? this.state.textContracts?.revision === this.state.savedRevision
+                    : this.state.contracts?.revision === this.state.savedRevision)
                 : this.canDesign) &&
             !this.state.loading &&
             !this.state.pending &&
@@ -316,7 +401,9 @@ export class CloudSource {
     }
     get canEditContent(): boolean {
         return (
-            !this.stopped && !isImportedCloudProfile(this.state.profile) && this.state.accessReady && this.state.access?.canEditContent === true
+            !this.stopped && this.state.accessReady && (isImportedCloudProfile(this.state.profile)
+                ? this.state.profile === 'imported-next-v1' && this.state.access?.canEditImportedText === true
+                : this.state.access?.canEditContent === true)
         );
     }
     get isContentMode(): boolean {
@@ -325,6 +412,37 @@ export class CloudSource {
             this.state.access?.role === 'content' ||
             (!this.canDesign && this.canEditContent)
         );
+    }
+    private get currentTextApprovals(): CloudTextApproval[] {
+        const snapshot = this.state.textContracts;
+        if (!this.canEditContent || !snapshot || snapshot.actorId !== this.actorId ||
+            snapshot.revision !== this.state.savedRevision) return [];
+        return snapshot.contracts.filter(contract => contract.version === 2 && contract.active && contract.current &&
+            contract.designRevision === snapshot.designRevision).flatMap(contract => contract.bindings.flatMap(binding => {
+                const pin = { version: 2 as const, ...this.scope, actorId: snapshot.actorId, path: contract.path,
+                    bindingId: binding.bindingId, target: binding.target, renderMapping: binding.renderMapping,
+                    generation: contract.generation, designRevision: contract.designRevision };
+                return validCloudTextApproval(pin) ? [freezeCloudTextApproval(pin)] : [];
+            }));
+    }
+    resolveRenderedTextApproval(element: Pick<DomElement, 'oid' | 'branchId' | 'contentIdentity'>): CloudTextApproval | null {
+        const matches = this.currentTextApprovals.filter(pin => matchesCloudTextElement(pin, element));
+        return matches.length === 1 ? matches[0]! : null;
+    }
+    /** Source-only lookup. Keyed leaves require the complete agency mapping identity. */
+    resolveTextApproval(path: string, oid: string, identity?: { mappingId: string; itemId: string }): CloudTextApproval | null {
+        const matches = this.currentTextApprovals.filter(pin => {
+            const renderer = cloudTextRenderer(pin);
+            return renderer.path === path.replace(/^\/+/, '') && renderer.oid === oid &&
+                (pin.target.kind === 'component-literal' ? identity === undefined :
+                    identity?.mappingId === pin.renderMapping?.mappingId && identity?.itemId === pin.target.itemId);
+        });
+        return matches.length === 1 ? matches[0]! : null;
+    }
+    isTextApprovalCurrent(pin: unknown): pin is CloudTextApproval {
+        if (!validCloudTextApproval(pin) || pin.projectId !== this.scope.projectId || pin.branchId !== this.scope.branchId ||
+            pin.actorId !== this.actorId) return false;
+        return this.currentTextApprovals.filter(current => cloudTextIdentity(current) === cloudTextIdentity(pin)).length === 1;
     }
     get approvedTextBindings(): Array<{
         path: string;
@@ -359,6 +477,24 @@ export class CloudSource {
                         generation: contract.generation,
                     })),
             );
+    }
+    async withApprovedTextWrite(write: CloudTextWrite, save: () => Promise<boolean>): Promise<boolean> {
+        this.assertOwner();
+        if (this.textWrite || this.attributeWrite || this.imageLease || !this.canWrite ||
+            this.state.localDraftChanges || write.revision !== this.state.savedRevision || !this.isTextApprovalCurrent(write.pin)) return false;
+        const owner = { ...write, pin: freezeCloudTextApproval(write.pin) };
+        this.textWrite = owner;
+        runInAction(() => { this.state.attributeWritePending = true; });
+        try {
+            this.assertOwner();
+            const saved = await save();
+            this.assertOwner();
+            return saved;
+        }
+        finally {
+            if (this.textWrite === owner) this.textWrite = null;
+            runInAction(() => { this.state.attributeWritePending = false; });
+        }
     }
     canEditAttribute(
         path: string,
@@ -396,7 +532,7 @@ export class CloudSource {
         write: CloudAttributeWrite,
         save: () => Promise<boolean>,
     ): Promise<boolean> {
-        if (this.attributeWrite || !this.attributeApprovalCurrent(write)) return false;
+        if (this.attributeWrite || this.textWrite || !this.attributeApprovalCurrent(write)) return false;
         const admitted = { ...write };
         this.attributeWrite = admitted;
         runInAction(() => {
@@ -481,10 +617,11 @@ export class CloudSource {
             this.syncUnloadWarning();
         }
     }
-    canEditText(path: string, oid: string): boolean {
+    canEditText(path: string, oid: string, contentIdentity?: DomElement['contentIdentity']): boolean {
         if (!this.canWrite) return false;
         return (
             !this.isContentMode ||
+            this.resolveTextApproval(path, oid, contentIdentity) !== null ||
             this.approvedTextBindings.some(
                 (binding) => binding.path === path.replace(/^\/+/, '') && binding.oid === oid,
             )
@@ -497,7 +634,10 @@ export class CloudSource {
         });
     }
     private maySend(operation: CloudSourceOperation): boolean {
-        return operation.transport === 'design' ? this.canDesign : this.canEditContent;
+        if (operation.transport === 'design') return this.canDesign;
+        if (isImportedCloudProfile(this.state.profile)) return this.canEditContent &&
+            this.state.access?.canEditImportedText === true && operation.transport === 'content' && operation.transportVersion === 2;
+        return this.canEditContent && operation.transportVersion === 1;
     }
     refreshCapabilities(): Promise<void> {
         this.capabilitiesPromise ??= this.loadCapabilities().finally(() => {
@@ -513,15 +653,23 @@ export class CloudSource {
             if (this.actorId && access.actorId !== this.actorId)
                 throw new Error('The signed-in account changed. Reopen this project.');
             const contracts =
-                access.role && access.canEditContent
+                access.role && access.canEditContent && !isImportedCloudProfile(this.state.profile)
                     ? await this.client.query(cloudEditorApi.contracts, this.scope)
                     : null;
             this.assertOwner();
-            if (contracts && contracts.actorId !== this.actorId)
+            let textContracts: CloudTextContracts | null = null;
+            if (isImportedCloudProfile(this.state.profile) &&
+                (access.canEditImportedText === true || access.canApproveImportedText === true)) {
+                try { textContracts = await this.client.query(cloudEditorApi.textContracts, this.scope); }
+                catch { /* Optional text discovery never grants permission or disables designer source writes. */ }
+            }
+            this.assertOwner();
+            if ((textContracts && textContracts.actorId !== this.actorId) || (contracts && contracts.actorId !== this.actorId))
                 throw new Error('The signed-in account changed. Reopen this project.');
             runInAction(() => {
                 this.state.access = access;
                 this.state.contracts = contracts;
+                this.state.textContracts = textContracts;
                 this.state.accessReady = true;
                 this.state.accessError = null;
             });
@@ -887,8 +1035,10 @@ export class CloudSource {
                 }
                 if (operation.transport === 'content-image')
                     return await this.client.action(cloudEditorApi.commitImage, operation);
-                if (operation.transport === 'content')
+                if (operation.transport === 'content') {
+                    if (operation.transportVersion === 2) return await this.client.action(cloudEditorApi.commitText, operation);
                     return await this.client.action(cloudEditorApi.commitContent, operation);
+                }
                 return await this.client.action(cloudEditorApi.commit, designRequest!);
             } catch (error) {
                 if (!errorCode(error)) {
@@ -953,6 +1103,9 @@ export class CloudSource {
                 this.state.contracts?.revision === operation.expectedRevision
             )
                 this.state.contracts.revision = result.revision;
+            if (operation.transport === 'content' && operation.transportVersion === 2 &&
+                this.state.textContracts?.revision === operation.expectedRevision)
+                this.state.textContracts.revision = result.revision;
         });
         if (operation.transport === 'content-image') {
             try {
@@ -1029,6 +1182,10 @@ export class CloudSource {
             throw new Error('Reload or retry the saved source before editing');
         if (!this.actorId) throw new Error('The authenticated source is not ready');
         const attribute = this.attributeWrite;
+        const text = this.textWrite;
+        if (text && (!this.isTextApprovalCurrent(text.pin) || text.revision !== this.state.savedRevision ||
+            changes.length !== 1 || changes[0]?.path !== text.pin.path || changes[0]?.content !== text.candidate ||
+            changes[0]?.directory !== undefined)) throw new Error('The approved text changed before this edit could be saved');
         if (
             attribute &&
             (!this.attributeApprovalCurrent(attribute) ||
@@ -1054,6 +1211,13 @@ export class CloudSource {
             })),
         };
         validateCloudChanges(candidate.changes);
+        if (text) {
+            return { ...candidate, transport: 'content', transportVersion: 2,
+                changes: [{ path: text.pin.path, content: text.candidate }],
+                expectedContracts: [{ path: text.pin.path, version: 2, generation: text.pin.generation, designRevision: text.pin.designRevision }] };
+        }
+        if (this.isContentMode && isImportedCloudProfile(this.state.profile))
+            throw new Error('Imported content edits require their original text approval');
         let operation: CloudSourceOperation;
         const image = this.imageLease;
         if (image?.prepared) {
@@ -1721,6 +1885,7 @@ export class CloudSource {
             this.state.accessReady = false;
             this.state.access = null;
             this.state.contracts = null;
+            this.state.textContracts = null;
             this.state.runtime = null;
         });
         const reload = this.rejectedReload;

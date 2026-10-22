@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test';
-import type { DomElement, EditTextAction, TextSlotEdit } from '@weblab/models';
+import type { CloudTextApproval, DomElement, EditTextAction, TextSlotEdit } from '@weblab/models';
 import type { EditorEngine } from '../engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 
@@ -69,7 +69,7 @@ function fixture(cloudSource?: { canWrite: boolean }) {
     } as unknown as EditorEngine;
     const manager = new TextEditingManager(engine);
     manager.isChildTextEditable = async () => true;
-    return { manager, target, view, pushedA, pushedB, counts: () => ({ startsA, commitsA, commitsB }),
+    return { engine: (manager as unknown as { editorEngine: EditorEngine }).editorEngine, manager, target, view, pushedA, pushedB, counts: () => ({ startsA, commitsA, commitsB }),
         finalized: () => ({ flushesA, stopCalls }),
         navigationEligible: (value: boolean) => { navigationEligible = value; },
         navigationReleases: () => navigationReleases,
@@ -105,12 +105,14 @@ describe('text source session', () => {
         await entering;
         expect(f.manager.isEditing).toBe(false);
         expect(f.manager.hasPendingWork).toBe(true);
+        expect(f.manager.pendingWorkBranchId).toBe('a');
         source.canWrite = false;
         release();
         await starting;
         expect(f.counts().startsA).toBe(0);
         expect(f.finalized().stopCalls).toBe(1);
         expect(f.manager.hasPendingWork).toBe(false);
+        expect(f.manager.pendingWorkBranchId).toBeNull();
     });
 
     test('latest input including hard breaks remains recoverable when the frame reply is lost', async () => {
@@ -315,4 +317,224 @@ describe('rejected cloud text navigation', () => {
         await expect(native.manager.finalizeForDisposal()).rejects.toThrow('rejected');
         expect(() => native.manager.prepareRejectedCloudNavigation('a')).toThrow('settled rejected');
     });
+});
+
+
+function importedTextFixture(faq = false) {
+    let pin: CloudTextApproval = { version: 2, projectId: 'project', branchId: 'a', actorId: 'actor',
+        path: 'src/components/hero.tsx', bindingId: 'heading-binding', generation: 1, designRevision: 1,
+        target: { kind: 'component-literal', exportName: 'Hero', oid: 'heading' } };
+    if (faq) pin = { ...pin, path: 'src/content/home-faq.ts',
+        target: { kind: 'data-leaf', exportName: 'homeFaqItems', itemId: 'audience', property: 'answer' },
+        renderMapping: { version: 1, kind: 'keyed-prop-map', mappingId: 'faq',
+            callsite: { path: 'src/components/home-faq.tsx', exportName: 'HomeFaq', oid: 'call' },
+            renderer: { path: 'src/components/chat-faq.tsx', exportName: 'ChatFaq', oid: 'heading' } } };
+    const source = { canWrite: true, isContentMode: true,
+        state: { profile: 'imported-next-v1', savedRevision: 1, localDraftChanges: false,
+            textContracts: { actorId: 'actor', contracts: [{ path: pin.path, current: true, bindings: [{ bindingId: pin.bindingId, target: pin.target }] }] } },
+        resolveRenderedTextApproval: (element: DomElement) => faq && (element.contentIdentity?.itemId !== 'audience' || element.contentIdentity.mappingId !== 'faq')
+            ? null : Object.freeze({ ...pin, target: Object.freeze({ ...pin.target }) }),
+        isTextApprovalCurrent: (candidate: CloudTextApproval) => JSON.stringify(candidate) === JSON.stringify(pin),
+        getExternalRevision: () => 'external-1' };
+    const f = fixture(source);
+    if (faq) f.target.contentIdentity = { mappingId: 'faq', itemId: 'audience' };
+    const original = f.engine.branches.getBranchDataById('a')!;
+    const codeEditor = { getJsxElementMetadata: async (_oid: string) => ({ path: pin.renderMapping?.renderer.path ?? pin.path }),
+        readFile: async (_path: string): Promise<string> => faq ? 'export const homeFaqItems = [{ id: "audience", question: "Why?", answer: "Hello" }];' : 'export function Hero() { return <span data-oid="heading">Hello</span>; }' };
+    const branch = { ...original, codeEditor };
+    f.engine.branches.getBranchDataById = () => branch as unknown as typeof original;
+    f.engine.action.previewApprovedText = async () => {};
+    f.engine.action.approvedTextElements = async () => [f.target];
+    const frameStarts: Array<boolean | undefined> = [];
+    f.view.startEditingPlainTextV1 = async () => { frameStarts.push(false); return { domEl: f.target, originalContent: 'Hello', rich: false, textRenderMode: 'plain-string-v1' }; };
+    let plainContent = 'Hello';
+    f.view.editPlainTextV1 = async (_domId, value) => { plainContent = value; return { domEl: f.target, newMap: null, textRenderMode: 'plain-string-v1' }; };
+    const legacyStop = f.view.stopEditingText;
+    f.view.stopEditingPlainTextV1 = async () => {
+        const result = await legacyStop(f.target.domId);
+        return result ? { domEl: result.domEl, newContent: plainContent, textRenderMode: 'plain-string-v1' } : null;
+    };
+    return { ...f, source, codeEditor, frameStarts, pin: () => pin,
+        renew: () => { pin = { ...pin, generation: pin.generation + 1 }; } };
+}
+
+describe('imported component text session', () => {
+    test('opens exactly the clicked leaf and carries the opening approval into edits and final save', async () => {
+        const f = importedTextFixture();
+        await f.manager.start(f.target, f.view);
+        expect(f.frameStarts).toEqual([false]);
+        expect(f.manager.isEditing).toBe(true);
+        await f.manager.edit('Updated');
+        await f.manager.end();
+        expect(f.pushedA.length).toBeGreaterThan(0);
+        for (const action of f.pushedA) expect(action.cloudText).toEqual(f.pin());
+        expect(f.pushedA.at(-1)).toMatchObject({ originalContent: 'Hello', newContent: 'Updated' });
+    });
+
+    test('refuses a renewed approval during metadata lookup instead of adopting its new generation', async () => {
+        const f = importedTextFixture();
+        let entered!: () => void;
+        let release!: () => void;
+        const started = new Promise<void>(resolve => { entered = resolve; });
+        const waiting = new Promise<void>(resolve => { release = resolve; });
+        f.codeEditor.getJsxElementMetadata = async () => { entered(); await waiting; return { path: f.pin().path }; };
+        const opening = f.manager.start(f.target, f.view);
+        await started; f.renew(); release(); await opening;
+        expect(f.frameStarts).toEqual([]);
+        expect(f.manager.isEditing).toBe(false);
+        expect(f.manager.hasPendingWork).toBe(false);
+        expect(f.pushedA).toEqual([]);
+    });
+
+    test('closes the hidden frame text if approval changes during the frame-style await', async () => {
+        const f = importedTextFixture();
+        f.view.getComputedStyleByDomId = async () => { f.renew(); return {}; };
+        await f.manager.start(f.target, f.view);
+        expect(f.frameStarts).toEqual([false]);
+        expect(f.finalized().stopCalls).toBe(1);
+        expect(f.manager.isEditing).toBe(false);
+        expect(f.pushedA).toEqual([]);
+    });
+});
+
+
+describe('keyed FAQ text session', () => {
+    test('opens the native data leaf and retains its owner, item and mapping through finalization', async () => {
+        const f = importedTextFixture(true);
+        await f.manager.start(f.target, f.view);
+        expect(f.frameStarts).toEqual([false]);
+        expect(f.manager.isEditing).toBe(true);
+        await f.manager.edit('Updated');
+        await f.manager.end();
+        expect(f.pushedA.length).toBeGreaterThan(0);
+        for (const action of f.pushedA) expect(action.cloudText).toEqual(f.pin());
+        expect(f.pushedA.at(-1)?.cloudText?.target).toMatchObject({ itemId: 'audience', property: 'answer' });
+    });
+    test('rejects missing metadata and duplicate rendered instances before hiding the leaf', async () => {
+        for (const duplicate of [false, true]) {
+            const f = importedTextFixture(true);
+            if (duplicate) f.engine.action.approvedTextElements = async () => null;
+            else delete f.target.contentIdentity;
+            await f.manager.start(f.target, f.view);
+            expect(f.frameStarts).toEqual([]);
+            expect(f.manager.isEditing).toBe(false);
+            expect(f.pushedA).toEqual([]);
+        }
+    });
+    test('cannot retarget a pinned item when its bridge identity changes during editing', async () => {
+        const f = importedTextFixture(true);
+        await f.manager.start(f.target, f.view);
+        f.view.editPlainTextV1 = async () => ({ domEl: { ...f.target, contentIdentity: { mappingId: 'faq', itemId: 'pricing' } }, newMap: null, textRenderMode: 'plain-string-v1' });
+        await f.manager.edit('Wrong item');
+        expect(f.pushedA).toEqual([]);
+    });
+});
+
+
+describe('approved plain-string bridge contract', () => {
+    test('preserves edge whitespace and repeated line breaks through opening and final readback', async () => {
+        const f = importedTextFixture();
+        const value = '  First\n\n\nSecond\t\u00a0 ';
+        f.codeEditor.readFile = async () => `export function Hero() { return <span data-oid="heading">{${JSON.stringify(value)}}</span>; }`;
+        f.view.startEditingPlainTextV1 = async () => ({ domEl: f.target, originalContent: value, textRenderMode: 'plain-string-v1' });
+        f.view.stopEditingPlainTextV1 = async () => ({ domEl: f.target, newContent: value, textRenderMode: 'plain-string-v1' });
+        await f.manager.start(f.target, f.view);
+        expect(f.manager.isEditing).toBe(true);
+        await f.manager.end();
+        expect(f.pushedA.at(-1)).toMatchObject({ originalContent: value, newContent: value });
+    });
+
+    test('an old bridge never falls back to legacy start or edit', async () => {
+        const f = importedTextFixture();
+        let legacyCalls = 0;
+        f.view.startEditingText = async () => { legacyCalls++; return null; };
+        f.view.editText = async () => { legacyCalls++; return null; };
+        Reflect.deleteProperty(f.view, 'startEditingPlainTextV1');
+        await f.manager.start(f.target, f.view);
+        expect(f.manager.isEditing).toBe(false);
+        expect(legacyCalls).toBe(0);
+        expect(f.pushedA).toEqual([]);
+    });
+
+    test('missing start marker and carriage-return source both refuse before opening an overlay', async () => {
+        for (const carriageReturn of [false, true]) {
+            const f = importedTextFixture();
+            if (carriageReturn) f.codeEditor.readFile = async () => 'export function Hero() { return <span data-oid="heading">{"Hello\\rWorld"}</span>; }';
+            else f.view.startEditingPlainTextV1 = async () => ({ domEl: f.target, originalContent: 'Hello' });
+            await f.manager.start(f.target, f.view);
+            expect(f.manager.isEditing).toBe(false);
+            expect(f.pushedA).toEqual([]);
+            if (carriageReturn) expect(f.frameStarts).toEqual([]);
+        }
+    });
+
+    test('a stop response with wrong frame identity cannot save, and input remains recoverable', async () => {
+        const f = importedTextFixture();
+        await f.manager.start(f.target, f.view);
+        f.view.stopEditingPlainTextV1 = async () => ({ domEl: { ...f.target, frameId: 'other' }, newContent: 'Wrong', textRenderMode: 'plain-string-v1' });
+        await expect(f.manager.finalizeForDisposal()).rejects.toThrow('captured safely');
+        expect(f.manager.recoverableText).toBe('Hello');
+        expect(f.pushedA).toEqual([]);
+    });
+});
+
+
+test('approved edit refuses a missing mode marker without recording changed text', async () => {
+    const f = importedTextFixture();
+    await f.manager.start(f.target, f.view);
+    f.view.editPlainTextV1 = async () => ({ domEl: f.target, newMap: null } as unknown as NonNullable<Awaited<ReturnType<IFrameView['editPlainTextV1']>>>);
+    await f.manager.edit('Keep recoverable');
+    expect(f.pushedA).toEqual([]);
+    expect(f.manager.recoverableText).toBe('Keep recoverable');
+});
+
+test('approved keystrokes stay ordered while an earlier keyed preflight is waiting', async () => {
+    const f = importedTextFixture(true);
+    await f.manager.start(f.target, f.view);
+    let release!: () => void;
+    let entered!: () => void;
+    const waiting = new Promise<void>(resolve => { release = resolve; });
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    let preflights = 0;
+    f.engine.action.approvedTextElements = async () => {
+        if (++preflights === 1) { entered(); await waiting; }
+        return [f.target];
+    };
+    let live = 'Hello';
+    const values: string[] = [];
+    f.view.editPlainTextV1 = async (_domId, value, expected) => {
+        expect(expected.contentIdentity).toEqual({ mappingId: 'faq', itemId: 'audience' });
+        expect(Object.isFrozen(expected)).toBe(true);
+        values.push(value); live = value;
+        return { domEl: f.target, newMap: null, textRenderMode: 'plain-string-v1' };
+    };
+    f.view.stopEditingPlainTextV1 = async () => ({ domEl: f.target, newContent: live, textRenderMode: 'plain-string-v1' });
+    const first = f.manager.edit('First');
+    await started;
+    const second = f.manager.edit('Second');
+    expect(preflights).toBe(1);
+    release();
+    await Promise.all([first, second]);
+    await f.manager.end();
+    expect(values).toEqual(['First', 'Second']);
+    expect(f.pushedA.at(-1)?.newContent).toBe('Second');
+});
+
+test('failed approved input cannot be replaced by older frame text when ending the edit', async () => {
+    const f = importedTextFixture();
+    await f.manager.start(f.target, f.view);
+    f.view.editPlainTextV1 = async () => null;
+    await f.manager.edit('Latest unsaved input');
+    await expect(f.manager.finalizeForDisposal()).rejects.toThrow('latest text could not be captured');
+    expect(f.manager.recoverableText).toBe('Latest unsaved input');
+    expect(f.manager.hasPendingWork).toBe(true);
+    expect(f.pushedA).toEqual([]);
+});
+
+test('unchanged approved text can finish without losing its source identity', async () => {
+    const f = importedTextFixture();
+    await f.manager.start(f.target, f.view);
+    await f.manager.finalizeForDisposal();
+    expect(f.manager.hasPendingWork).toBe(false);
+    expect(f.pushedA.at(-1)).toMatchObject({ originalContent: 'Hello', newContent: 'Hello', cloudText: f.pin() });
 });

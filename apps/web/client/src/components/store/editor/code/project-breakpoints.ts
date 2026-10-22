@@ -1,5 +1,5 @@
 import postcss from 'postcss';
-import { getAstFromContent, t } from '@weblab/parser';
+import { discoverProjectStylesheet } from './project-stylesheet-source';
 
 // Tailwind's default screens use rem. Their pixel threshold depends on the
 // browser's initial font, so exact canvas pixel scopes use arbitrary media.
@@ -31,34 +31,25 @@ export function parseProjectBreakpoints(css: string): Record<string, number> {
     return prefixes;
 }
 
-/** Use the stylesheet imported by a verified App Router layout, never a filename search. */
+/**
+ * Use the stylesheet imported by verified App Router documents. Token callers
+ * stay closed when imported declarations have no modeled write ownership.
+ */
 export async function readProjectStylesheet(
     readFile: (path: string) => Promise<string | Uint8Array>,
+    sourcePaths?: readonly string[],
+    options: { allowImportedTheme?: boolean } = {},
 ): Promise<{ path: string; content: string } | null> {
-    const candidates: Array<{ path: string; content: string }> = [];
-    for (const appRoot of ['src/app', 'app', 'src/app/(site)', 'app/(site)']) {
-        try {
-            const path = `${appRoot}/globals.css`;
-            const [layout, css] = await Promise.all([readFile(`${appRoot}/layout.tsx`), readFile(path)]);
-            if (typeof layout !== 'string' || typeof css !== 'string') continue;
-            const ast = getAstFromContent(layout);
-            if (!ast?.program.body.some((node) => t.isImportDeclaration(node) && node.source.value === './globals.css')) continue;
-            let tailwind = false;
-            postcss.parse(css).walkAtRules('import', (rule) => {
-                if (/^['"]tailwindcss(?:\/[^'"]*)?['"](?:\s|$)/.test(rule.params.trim())) tailwind = true;
-            });
-            if (tailwind) candidates.push({ path, content: css });
-        } catch {
-            // An unknown layout or theme never silently selects unused CSS.
-        }
-    }
-    return candidates.length === 1 ? candidates[0]! : null;
+    const stylesheet = await discoverProjectStylesheet(readFile, sourcePaths);
+    if (!stylesheet?.hasTailwindImport || stylesheet.hasImportedStylesheets && !options.allowImportedTheme) return null;
+    return { path: stylesheet.path, content: stylesheet.content };
 }
 
 export async function readProjectBreakpoints(
     readFile: (path: string) => Promise<string | Uint8Array>,
+    sourcePaths?: readonly string[],
 ): Promise<Record<string, number>> {
-    const stylesheet = await readProjectStylesheet(readFile);
+    const stylesheet = await readProjectStylesheet(readFile, sourcePaths, { allowImportedTheme: true });
     return stylesheet ? parseProjectBreakpoints(stylesheet.content) : {};
 }
 

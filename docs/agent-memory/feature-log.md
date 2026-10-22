@@ -1315,3 +1315,8 @@ F-846–848 and T-888–890 add immutable folder manifests, authenticated bounde
 ## 2026-10-22 — Public Mac 0.2.2
 
 Published [desktop-local-v0.2.2](https://github.com/Ludvig-Hedin/Weblab/releases/tag/desktop-local-v0.2.2) from main `d124aea1e`. Existing folder organization, local text editing and recovery changes now have a signed, Apple-notarized Apple Silicon DMG. Gatekeeper accepts the mounted app and the first-party download matches final SHA-256 `48ecb2bfad867ba178a339c4e66f53fda38c6b3b4539a639c978f67e1e7ac018`. Clean-Mac and real provider acceptance remain open. PRs #16–17 are next-release source only; automatic Railway source deploys are disabled to preserve that boundary.
+
+
+## 2026-10-22 — Next-release paused-editor and imported-text recovery
+
+Recovered separate imported v2 text approval/save endpoints and original actor/contract/revision pins through source writes, durable recovery and Undo/Redo. Saved canvas identity and plain-string wiring passed focused local checks, with web/preload/parser/filesystem types and zero-error scoped lint. The paused team shell now waits for actual window closure before stopping native services, preserving running previews/CLI work after a renderer veto. Both cloud rollout gates remain off, and the public release stays pinned to `d124aea1e`. Source integration is separate from packaged Electron and real customer acceptance. F-851 / T-895; F-813 unload continuation.

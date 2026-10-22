@@ -66,6 +66,29 @@ export interface TextSlotEdit {
     newText: string;
 }
 
+/** Original approval identity. Source revision is captured separately for each save attempt. */
+export interface CloudTextRenderMapping {
+    readonly version: 1;
+    readonly kind: 'keyed-prop-map';
+    readonly mappingId: string;
+    readonly callsite: Readonly<{ path: string; exportName: string; oid: string }>;
+    readonly renderer: Readonly<{ path: string; exportName: string; oid: string }>;
+}
+
+export interface CloudTextApproval {
+    readonly version: 2;
+    readonly projectId: string;
+    readonly branchId: string;
+    readonly actorId: string;
+    readonly path: string;
+    readonly bindingId: string;
+    readonly target: Readonly<{ kind: 'component-literal'; exportName: string; oid: string }
+        | { kind: 'data-leaf'; exportName: string; itemId: string; property: string }>;
+    readonly renderMapping?: CloudTextRenderMapping;
+    readonly generation: number;
+    readonly designRevision: number;
+}
+
 export interface EditTextAction {
     type: 'edit-text';
     targets: ActionTarget[];
@@ -77,6 +100,7 @@ export interface EditTextAction {
      * the inline elements, instead of replacing the element's text.
      */
     textSlots?: TextSlotEdit[];
+    cloudText?: CloudTextApproval;
 }
 
 /** A web font loaded inside the frame, shipped to the editor so the inline text editor renders in it. */
@@ -93,7 +117,17 @@ export interface EditTextFontFace {
     };
 }
 
+export type TextRenderMode = 'legacy' | 'plain-string-v1';
+
+/** Captured renderer identity must match before a plain-text RPC touches the DOM. */
+export type PlainTextElementIdentity = Readonly<Pick<DomElement,
+    'domId' | 'oid' | 'frameId' | 'branchId' | 'instanceId'> & {
+    textRenderMode: 'plain-string-v1';
+    contentIdentity?: Readonly<{ mappingId: string; itemId: string }>;
+}>;
+
 export interface EditTextResult {
+    textRenderMode?: TextRenderMode;
     originalContent: string;
     /** The element actually being edited (may be a text-block ancestor of the hit element). */
     domEl?: DomElement;

@@ -5,6 +5,7 @@ import { EditorAttributes } from '@weblab/constants';
 import { getInstanceId, getOid } from '../../helpers/ids';
 import { getBranchId, getFrameId } from '../state';
 import { getStyles } from './style';
+import { getContentIdentity } from './content-identity';
 
 export const getDeepElement = (x: number, y: number): Element | undefined => {
     const el = document.elementFromPoint(x, y);
@@ -45,6 +46,7 @@ export const getDomElement = (el: HTMLElement, getStyle: boolean): DomElement =>
 
     const rect = el.getBoundingClientRect();
     const styles = getStyle ? getStyles(el) : null;
+    const contentIdentity = getContentIdentity(el);
     const domElement: DomElement = {
         domId: el.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID)!,
         oid: el.getAttribute(EditorAttributes.DATA_WEBLAB_ID)!,
@@ -55,6 +57,7 @@ export const getDomElement = (el: HTMLElement, getStyle: boolean): DomElement =>
         tagName: el.tagName,
         parent: parentDomElement,
         styles,
+        ...(contentIdentity ? { contentIdentity } : {}),
     };
     return domElement;
 };

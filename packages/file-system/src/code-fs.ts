@@ -504,6 +504,23 @@ export class CodeFileSystem extends FileSystem {
         return run;
     }
 
+    /** Preserve approved cloud text bytes; remote admission still owns permission and validation. */
+    async writeCloudTextFile(path: string, content: string, expectedOriginal?: string): Promise<void> {
+        if (!this.options.durableCloud) throw new Error('A durable cloud source is required');
+        const normalized = durablePath(path);
+        return this.withWriteLock(async () => {
+            this.assertDurableOwner();
+            const current = this.requireDurableTree().get(normalized);
+            if (isDurableCachePath(normalized) || !current || current.directory ||
+                typeof current.content !== 'string' || typeof content !== 'string') {
+                throw new Error('An existing cloud text file is required');
+            }
+            if (expectedOriginal !== undefined && current.content !== expectedOriginal)
+                throw new Error('The cloud source changed before saving');
+            await this.commitDurableChanges([{ path: normalized, content }], false);
+        });
+    }
+
     async writeFile(path: string, content: string | Uint8Array): Promise<void> {
         if (this.options.durableCloud) return this.writeFiles([{ path, content }]);
         return this.withWriteLock(async () => {

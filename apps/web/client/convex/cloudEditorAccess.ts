@@ -1,4 +1,4 @@
-import { importedTextAuthority } from './lib/cloudImportedAccess';
+import { importedTextAuthority, canUseImportedText, canReadImportedSource } from './lib/cloudImportedAccess';
 import { getPreparedImport } from './lib/cloudImportedState';
 import { sourceProfileCapabilities, assertExecutableCloudProfile, assertContentCloudProfile } from './lib/cloudImportManifest';
 import { v } from 'convex/values';
@@ -64,9 +64,11 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
     const canPrepareImport = state.profile === 'imported-source-v1' && update &&
         (role === 'responsible' || role === 'designer') &&
         process.env.WEBLAB_CLOUD_IMPORTS_ENABLED === 'true' && process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true';
-    const canReadSource = !profile.imported || ((role === 'responsible' || role === 'designer') && update);
-    const canEditContent = profile.contentWrite && role !== null;
-    const canPreview = profile.preview && role !== null && (!profile.imported || canDesign);
+    const canEditImportedText = canUseImportedText(role, importedAuthority);
+    const canApproveImportedText = canDesign && canEditImportedText;
+    const canReadSource = !profile.imported || canReadImportedSource(role, update, importedAuthority);
+    const canEditContent = (profile.contentWrite && role !== null) || canEditImportedText;
+    const canPreview = profile.preview && role !== null && (!profile.imported || canDesign || canEditImportedText);
     const canPublish = profile.release && (grant?.publish ?? creator);
     const canManage = role === 'responsible' && can('project.invite', resource);
     if (minRole) {
@@ -81,7 +83,9 @@ export async function requireCloudAccess(ctx: Context, scope: Scope, minRole?: C
         )
             return cloudError('CLOUD_ROLE_REQUIRED');
     }
-    return { ...legacy, state, branch, role, canDesign, canPrepareImport, canReadSource, canPreview, preparation, canEditContent, canPublish, canManage };
+    return { ...legacy, state, branch, role, canDesign, canPrepareImport, canReadSource, canPreview, preparation, importedAuthority, canEditContent, canPublish, canManage,
+        ...(canEditImportedText ? { canEditImportedText: true as const } : {}),
+        ...(canApproveImportedText ? { canApproveImportedText: true as const } : {}) };
 }
 
 /** Starter content/Studio transports cannot mutate prepared imported source. */
@@ -94,9 +98,11 @@ export async function requireStarterCloudAccess(...args: Parameters<typeof requi
 export const access = query({
     args: cloudScope,
     handler: async (ctx, scope) => {
-        const { user, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage } =
+        const { user, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage, canEditImportedText, canApproveImportedText } =
             await requireCloudAccess(ctx, scope);
-        return { actorId: user._id, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage };
+        return { actorId: user._id, role, canDesign, canPrepareImport, canPreview, canEditContent, canPublish, canManage,
+            ...(canEditImportedText ? { canEditImportedText } : {}),
+            ...(canApproveImportedText ? { canApproveImportedText } : {}) };
     },
 });
 

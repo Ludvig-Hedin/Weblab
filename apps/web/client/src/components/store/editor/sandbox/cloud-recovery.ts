@@ -2,6 +2,7 @@ import { validateCloudChanges } from '@convex/lib/cloudEditor';
 
 import type {
     CloudEditorCommit,
+    CloudTextOperation,
     CloudImageOperation,
     CloudEditorScope,
     CloudSourceOperation,
@@ -12,7 +13,7 @@ export type CloudRecoveryKey = CloudEditorScope & { actorId: string };
 export type CloudRecoveryOperation = CloudEditorCommit & {
     transport?: string;
     transportVersion?: number;
-    expectedContracts?: Array<{ path: string; generation: number }>;
+    expectedContracts?: Array<{ path: string; generation: number; version?: 2; designRevision?: number }>;
     image?: CloudImageOperation['image'];
     expectedGeneration?: number;
     operation?: CloudSemanticOperation['operation'];
@@ -117,7 +118,23 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
             return null;
         return { ...operation, transport: 'design', transportVersion: 1 };
     }
-    if (record.version !== 2 || operation.transportVersion !== 1) return null;
+    if (record.version !== 2) return null;
+    if (operation.transport === 'content' && operation.transportVersion === 2) {
+        const pins = operation.expectedContracts;
+        if (!Array.isArray(pins) || !pins.length || pins.length !== operation.changes.length ||
+            operation.image !== undefined || operation.operation !== undefined || operation.expectedGeneration !== undefined ||
+            operation.changes.some(change => typeof change.content !== 'string' || change.directory !== undefined)) return null;
+        const paths = new Set(operation.changes.map(change => change.path));
+        for (const pin of pins) {
+            if (!pin || Object.keys(pin).sort().join(',') !== 'designRevision,generation,path,version' ||
+                !paths.delete(pin.path) || pin.version !== 2 ||
+                !Number.isSafeInteger(pin.generation) || pin.generation < 1 || pin.generation >= Number.MAX_SAFE_INTEGER ||
+                !Number.isSafeInteger(pin.designRevision) || pin.designRevision! < 1 ||
+                pin.designRevision! > operation.expectedRevision) return null;
+        }
+        return paths.size === 0 ? operation as CloudTextOperation : null;
+    }
+    if (operation.transportVersion !== 1) return null;
     if (operation.transport === 'studio' || operation.transport === 'journal')
         return validSemanticOperation(operation) ? operation as CloudSemanticOperation : null;
     if (operation.transport === 'content-image') {
@@ -144,7 +161,7 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
     const paths = new Set(operation.changes.map((change) => change.path));
     for (const contract of operation.expectedContracts) {
         if (
-            !contract ||
+            !contract || contract.version !== undefined || contract.designRevision !== undefined ||
             !paths.delete(contract.path) ||
             !Number.isSafeInteger(contract.generation) ||
             contract.generation < 1

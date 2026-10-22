@@ -13,6 +13,7 @@ const { isOAuthHost } = require('./auth-hosts');
 const { createLoginHandoff, externalHttpUrl, isTrustedSender } = require('./auth-policy');
 const { resolveDesktopProfile, desktopBootstrapArgument } = require('./desktop-profile');
 const { installDesktopLog } = require('./desktop-log');
+const { createQuitCoordinator } = require('./quit-coordinator');
 
 const DESKTOP_PROFILE = resolveDesktopProfile({
     packaged: app.isPackaged,
@@ -112,13 +113,25 @@ let pendingOpenFolderPath = null;
 
 async function deliverOpenFolder(folderPath) {
     if (!folderPath || typeof folderPath !== 'string') return;
-    if (rendererReady && mainWindow && !mainWindow.isDestroyed()) {
+    if (quitCoordinator.blocksWindows) return;
+    const window = mainWindow;
+    if (rendererReady && window && !window.isDestroyed() && !window.webContents.isDestroyed()) {
         let rootPath;
         try { rootPath = await grantLocalRoot(folderPath); }
         catch { return; }
-        mainWindow.webContents.send('weblab:open-folder', { rootPath });
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.focus();
+        if (quitCoordinator.blocksWindows || mainWindow !== window ||
+            window.isDestroyed() || window.webContents.isDestroyed()) return;
+        if (!rendererReady) {
+            pendingOpenFolderPath = folderPath;
+            return;
+        }
+        try {
+            window.webContents.send('weblab:open-folder', { rootPath });
+            if (window.isMinimized()) window.restore();
+            window.focus();
+        } catch {
+            // The target may finish closing while native delivery is pending.
+        }
     } else {
         // Keep only the most recent drop — we open one project at a time.
         pendingOpenFolderPath = folderPath;
@@ -156,22 +169,45 @@ registerLocalIpc({
     getWebContents: () => mainWindow?.webContents ?? null,
 });
 
-// Wait for the desktop-owned preview/install children to stop before the
-// Electron process exits, especially on Windows where descendants survive a
-// parent exit unless their process tree is terminated explicitly.
-let localShutdownStarted = false;
-app.on('before-quit', (event) => {
-    if (localShutdownStarted) return;
-    event.preventDefault();
-    localShutdownStarted = true;
-    // Stop CLI chat turns (Claude Code / Codex) first and wait briefly so
-    // their handoff journaling finishes and no journal lock is left behind.
-    Promise.resolve().then(() => disposeCli()).then(() => disposeLocal()).then(() => {
-        app.quit();
-    }).catch(() => {
-        localShutdownStarted = false;
-        dialog.showErrorBox('Cleanup is still pending',
-            'Weblab could not confirm that its AI or preview processes stopped. Keep the app open and try again.');
+// First let every renderer refuse closing. Stop native services only once
+// every real window has closed, then re-enter app.quit exactly once.
+const quitCoordinator = createQuitCoordinator({
+    app,
+    getWindows: () => BrowserWindow.getAllWindows(),
+    getMainWindow: () => mainWindow,
+    disposeCli,
+    disposeLocal,
+    quitOnWindowAllClosed: process.platform !== 'darwin',
+    showCloseCancelled: (reason, window) => {
+        const options = {
+            type: 'warning',
+            buttons: ['OK'],
+            defaultId: 0,
+            cancelId: 0,
+            title: 'Quit cancelled',
+            message: reason === 'beforeunload'
+                ? 'Finish or retry unsaved edits, then choose Quit again.'
+                : 'A window could not finish closing. Try Quit again.',
+            detail: `${APP_NAME} has not stopped your AI or preview processes. Some other windows may already have closed.`,
+        };
+        if (window && !window.isDestroyed()) dialog.showMessageBoxSync(window, options);
+        else dialog.showMessageBoxSync(options);
+    },
+    showCleanupError: () => dialog.showErrorBox('Cleanup is still pending',
+        `${APP_NAME} could not finish quitting. Background cleanup may have started. Choose Quit again to retry cleanup. Reopening windows is unavailable until cleanup finishes.`),
+});
+
+// Apply popup admission to every window, including popups opened by popups.
+app.on('browser-window-created', (_event, window) => {
+    window.webContents.setWindowOpenHandler(({ url }) => {
+        if (quitCoordinator.blocksWindows) return { action: 'deny' };
+        const safe = externalHttpUrl(url);
+        return safe && new URL(safe).origin === APP_ORIGIN
+            ? { action: 'allow', overrideBrowserWindowOptions: { webPreferences: {
+                preload: path.join(__dirname, 'preload.js'), nodeIntegration: false,
+                contextIsolation: true, partition: SESSION_PARTITION,
+                additionalArguments: [BOOTSTRAP_ARGUMENT],
+            } } } : { action: 'deny' };
     });
 });
 
@@ -183,6 +219,7 @@ if (!gotLock) {
     app.quit();
 } else {
     app.on('second-instance', (_event, argv) => {
+        if (quitCoordinator.blocksWindows) return;
         const url = argv.find((a) => a.startsWith(`${PROTOCOL}://`));
         if (url) handleDeepLink(url);
         if (mainWindow) {
@@ -227,6 +264,7 @@ app.on('open-url', (event, url) => {
  *    desktop-specific UI.
  */
 function handleDeepLink(rawUrl) {
+    if (quitCoordinator.blocksWindows) return false;
     if (!readyForWindows) {
         pendingDeepLink = rawUrl;
         return false;
@@ -279,6 +317,7 @@ function handleDeepLink(rawUrl) {
 }
 
 function createWindow(initialURL) {
+    if (quitCoordinator.blocksWindows) return;
     mainWindow = new BrowserWindow({
         width: WINDOW_WIDTH,
         height: WINDOW_HEIGHT,
@@ -370,17 +409,6 @@ function createWindow(initialURL) {
     // embedded Chromium (Google blocks it outright, others mis-construct the
     // OAuth `client_id` when not in a real browser context).
     const webContents = mainWindow.webContents;
-    webContents.setWindowOpenHandler(({ url }) => {
-        // This callback cannot prove which frame initiated a popup.
-        // External popups are denied; app controls use top-frame native IPC.
-        const safe = externalHttpUrl(url);
-        return safe && new URL(safe).origin === APP_ORIGIN
-            ? { action: 'allow', overrideBrowserWindowOptions: { webPreferences: {
-                preload: path.join(__dirname, 'preload.js'), nodeIntegration: false,
-                contextIsolation: true, partition: SESSION_PARTITION,
-                additionalArguments: [BOOTSTRAP_ARGUMENT],
-            } } } : { action: 'deny' };
-    });
 
     const guardOAuthNavigation = (event, url) => {
         try {
@@ -688,6 +716,7 @@ app.whenReady().then(() => {
     if (DESKTOP_PROFILE.updates) autoUpdater.checkForUpdatesAndNotify();
 
     app.on('activate', () => {
+        if (quitCoordinator.blocksWindows) return;
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         } else if (mainWindow) {
@@ -695,8 +724,4 @@ app.whenReady().then(() => {
             mainWindow.focus();
         }
     });
-});
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
 });

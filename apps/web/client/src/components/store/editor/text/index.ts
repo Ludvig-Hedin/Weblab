@@ -1,6 +1,8 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { DomElement, EditTextAction, EditTextResult, ElementPosition, TextSlotEdit } from '@weblab/models';
+import type { CloudTextApproval, DomElement, EditTextAction, EditTextResult, ElementPosition, TextSlotEdit } from '@weblab/models';
+import type { CodeFileSystem } from '@weblab/file-system';
+import { readContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
 import { toast } from '@weblab/ui/sonner';
 import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 
@@ -10,12 +12,24 @@ import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/vie
 import { adaptRectToCanvas } from '../overlay/utils';
 import { canEditJsxChildrenAsRichText, canEditJsxChildrenAsText, isHtmlSourcePath } from './editable';
 import { registerEditingFontFaces } from './fonts';
+import { cloudTextRenderer, matchesCloudTextElement, plainTextExpectedIdentity, type CloudSource } from '../sandbox/cloud-source';
+
+interface CloudTextSession {
+    pin: CloudTextApproval;
+    source: CloudSource;
+    codeEditor: CodeFileSystem;
+    history: HistoryManager;
+    revision: number;
+    externalRevision: string;
+    value: string;
+}
 
 interface TextEditSessionSnapshot {
     history: HistoryManager | null;
     targetDomEl: DomElement;
     originalContent: string | null;
     commitOverride: ((newContent: string) => Promise<void>) | null;
+    cloudText: CloudTextSession | null;
 }
 
 interface DisposalTextSession {
@@ -38,10 +52,13 @@ export class TextEditingManager {
     private targetDomEl: DomElement | null = null;
     private sessionHistory: HistoryManager | null = null;
     private originalContent: string | null = null;
+    private cloudTextSession: CloudTextSession | null = null;
     private latestInput: string | null = null;
+    private pendingWorkSourceBranchId: string | null = null;
     isFinalizing = false;
     private shouldNotStartEditing = false;
     private pendingSessionOperations = new Set<Promise<void>>();
+    private approvedEditChain: Promise<void> = Promise.resolve();
     private disposalSession: DisposalTextSession | null = null;
     private disposalPromise: Promise<void> | null = null;
     private rejectedNavigation: RejectedTextNavigationLease | null = null;
@@ -55,12 +72,15 @@ export class TextEditingManager {
     private commitOverride: ((newContent: string) => Promise<void>) | null = null;
 
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable<this, 'pendingSessionOperations' | 'disposalSession' | 'disposalPromise' | 'rejectedNavigation'>(this, {
+        makeAutoObservable<this, 'approvedEditChain' | 'pendingSessionOperations' | 'disposalSession' | 'disposalPromise' | 'rejectedNavigation' | 'cloudTextSession'>(this, {
             pendingSessionOperations: false,
+            approvedEditChain: false,
             disposalSession: false,
             disposalPromise: false,
             rejectedNavigation: false,
+            cloudTextSession: false,
             hasPendingWork: false,
+            pendingWorkBranchId: false,
             recoverableText: false,
         });
     }
@@ -74,6 +94,11 @@ export class TextEditingManager {
         return this.shouldNotStartEditing || this.targetDomEl !== null ||
             this.pendingSessionOperations.size > 0 || this.disposalSession !== null ||
             this.disposalPromise !== null;
+    }
+
+    /** Pending startup and failed finalization retain their original source owner. */
+    get pendingWorkBranchId(): string | null {
+        return this.hasPendingWork ? this.pendingWorkSourceBranchId : null;
     }
 
     /** Keep the final captured result, or input not yet acknowledged by the frame. */
@@ -140,7 +165,7 @@ export class TextEditingManager {
      * `null` = can't determine (no metadata / unparsable snippet).
      */
     async isChildTextEditable(
-        el: Pick<DomElement, 'oid' | 'branchId'>,
+        el: Pick<DomElement, 'oid' | 'branchId' | 'contentIdentity'>,
         rich = false,
     ): Promise<boolean | null> {
         if (!el.oid) {
@@ -156,7 +181,16 @@ export class TextEditingManager {
                 return null;
             }
             const cloud = branchData.sandbox?.cloudSource;
-            if (cloud && (!cloud.canDesign || cloud.isContentMode) && !cloud.canEditText(metadata.path, el.oid)) return false;
+            if (cloud && (!cloud.canDesign || cloud.isContentMode) && !cloud.canEditText(metadata.path, el.oid, el.contentIdentity)) return false;
+            if (cloud?.isContentMode && cloud.state.profile !== 'starter-v1') {
+                const pin = cloud.resolveTextApproval(metadata.path, el.oid, el.contentIdentity);
+                if (!pin || rich || cloud.state.localDraftChanges) return false;
+                const revision = cloud.state.savedRevision;
+                const source = await branchData.codeEditor.readFile(pin.path);
+                if (typeof source !== 'string' || cloud.state.savedRevision !== revision || !cloud.isTextApprovalCurrent(pin)) return false;
+                readContentTextTarget(source, pin.target);
+                return true;
+            }
             if (isHtmlSourcePath(metadata.path)) {
                 // Whole-block (span-preserving) writes are JSX-only.
                 return rich ? false : true;
@@ -179,7 +213,20 @@ export class TextEditingManager {
     private async beginFrameEdit(
         el: DomElement,
         frameView: IFrameView,
+        cloudText: CloudTextSession | null = null,
     ): Promise<{ target: DomElement; res: EditTextResult } | { blocked: boolean | null }> {
+        if (cloudText) {
+            this.assertCloudTextSession(cloudText);
+            await this.assertCloudTextElement(cloudText, el);
+            if (cloudText.value.includes('\r')) throw new Error('This source text contains unsupported carriage returns.');
+            const res = await frameView.startEditingPlainTextV1(el.domId, plainTextExpectedIdentity(el));
+            this.assertCloudTextSession(cloudText);
+            await this.assertCloudTextElement(cloudText, el);
+            if (!res || res.textRenderMode !== 'plain-string-v1' || res.rich || !res.domEl || res.domEl.domId !== el.domId || res.domEl.frameId !== el.frameId || res.domEl.instanceId !== el.instanceId || !matchesCloudTextElement(cloudText.pin, res.domEl) ||
+                res.domEl.branchId !== cloudText.pin.branchId || res.originalContent !== cloudText.value)
+                throw new Error('The rendered text no longer matches its approved source.');
+            return { target: res.domEl, res };
+        }
         const res = await frameView.startEditingText(el.domId);
         if (res) {
             const target = res.domEl ?? el;
@@ -219,6 +266,48 @@ export class TextEditingManager {
         try { await operation; } finally { this.pendingSessionOperations.delete(operation); }
     }
 
+    private assertCloudTextSession(session: CloudTextSession): void {
+        const branch = this.editorEngine.branches.getBranchDataById(session.pin.branchId);
+        if (!branch || branch.history !== session.history || branch.codeEditor !== session.codeEditor ||
+            branch.sandbox.cloudSource !== session.source || session.source.state.savedRevision !== session.revision ||
+            session.source.getExternalRevision() !== session.externalRevision || session.source.state.localDraftChanges ||
+            !session.source.canWrite || !session.source.isTextApprovalCurrent(session.pin))
+            throw new Error('The original text approval or saved source changed. Your text is still available.');
+    }
+
+    private async assertCloudTextElement(session: CloudTextSession, element: DomElement): Promise<void> {
+        if (!matchesCloudTextElement(session.pin, element)) throw new Error('The selected text belongs to a different approved item.');
+        if (session.pin.target.kind === 'component-literal') return;
+        const matches = await this.editorEngine.action.approvedTextElements(session.pin, element.frameId);
+        this.assertCloudTextSession(session);
+        if (!matches || matches.length !== 1 || matches[0]?.domId !== element.domId)
+            throw new Error('The selected FAQ item is missing or appears more than once.');
+    }
+
+    private async captureCloudTextSession(el: DomElement): Promise<CloudTextSession | null> {
+        const branch = this.editorEngine.branches.getBranchDataById(el.branchId);
+        const source = branch?.sandbox.cloudSource;
+        if (!source?.isContentMode || source.state.profile === 'starter-v1') return null;
+        if (!branch || !el.oid || !source.canWrite || source.state.localDraftChanges) throw new Error('Reload the saved source before editing text.');
+        const revision = source.state.savedRevision;
+        const externalRevision = source.getExternalRevision();
+        const oid = el.oid;
+        const actorId = source.state.textContracts?.actorId;
+        const pin = source.resolveRenderedTextApproval(el);
+        if (!pin || pin.actorId !== actorId) throw new Error('This text is not approved for editing.');
+        const codeEditor = branch.codeEditor;
+        const history = branch.history;
+        const metadata = await codeEditor.getJsxElementMetadata(oid);
+        if (metadata?.path.replace(/^\/+/, '') !== cloudTextRenderer(pin).path || !source.isTextApprovalCurrent(pin))
+            throw new Error('The original text approval changed.');
+        const content = await codeEditor.readFile(pin.path);
+        if (typeof content !== 'string') throw new Error('The approved text source is unavailable.');
+        const session = { pin, source, codeEditor, history, revision, externalRevision,
+            value: readContentTextTarget(content, pin.target) };
+        this.assertCloudTextSession(session);
+        return session;
+    }
+
     private async startSession(
         el: DomElement,
         frameView: IFrameView,
@@ -229,15 +318,20 @@ export class TextEditingManager {
             return;
         }
         this.shouldNotStartEditing = true;
+        this.pendingWorkSourceBranchId = el.branchId;
         this.latestInput = null;
 
         let started: DomElement | null = null;
+        let cloudText: CloudTextSession | null = null;
+        let frameStartAttempted = false;
         try {
             const history = this.editorEngine.branches.getBranchDataById(el.branchId)?.history;
             if (!history) throw new Error('The text source branch is no longer available.');
             this.commitOverride = commitOverride ?? null;
-
-            const begun = await this.beginFrameEdit(el, frameView);
+            cloudText = await this.captureCloudTextSession(el);
+            if (cloudText && commitOverride) throw new Error('Approved text requires its original save path.');
+            frameStartAttempted = true;
+            const begun = await this.beginFrameEdit(el, frameView, cloudText);
             if ('blocked' in begun) {
                 this.commitOverride = null;
                 this.shouldNotStartEditing = false;
@@ -263,21 +357,28 @@ export class TextEditingManager {
             // The editor overlay lives outside the frame: load the frame's own
             // web fonts here so the text keeps its real typeface while editing.
             await registerEditingFontFaces(res.fontFaces ?? []);
+            if (cloudText) {
+                this.assertCloudTextSession(cloudText);
+                await this.assertCloudTextElement(cloudText, target);
+            }
 
             // Source may have changed while the bridge/fonts were awaited.
             // Roll back this unstarted editor, never an existing active session.
             if (!this.canStartOnBranch(el.branchId)) throw new Error('Reload the saved source before editing text.');
             if (this.editorEngine.canUseDesign === false && (await this.isChildTextEditable(target, res.rich === true)) !== true) throw new Error('This text is not approved for editing.');
+            if (cloudText) this.assertCloudTextSession(cloudText);
 
             const { originalContent } = res;
             this.latestInput = originalContent;
             this.targetDomEl = target;
             this.originalContent = originalContent;
             this.sessionHistory = history;
+            this.cloudTextSession = cloudText;
             // This start was admitted before closing. Keep its frame session
             // for the strict finalizer instead of consuming it in rollback.
             if (this.editorEngine.isClosing || history.isPreparingForDisposal) return;
             await history.startTransaction();
+            if (cloudText) this.assertCloudTextSession(cloudText);
 
             const adjustedRect = adaptRectToCanvas(target.rect, frameView);
             const isComponent = target.instanceId !== null;
@@ -296,6 +397,7 @@ export class TextEditingManager {
                     void this.end();
                 },
                 isComponent,
+                cloudText ? 'plain-string-v1' : 'legacy',
             );
         } catch (error) {
             console.error('Error starting text edit:', error);
@@ -309,11 +411,21 @@ export class TextEditingManager {
             // clear the attribute here.
             try {
                 const frameData = this.editorEngine.frames.get(el.frameId);
-                await frameData?.view?.stopEditingText((started ?? el).domId);
+                if (frameStartAttempted) {
+                    if (cloudText) await frameData?.view?.stopEditingPlainTextV1((started ?? el).domId, plainTextExpectedIdentity(started ?? el));
+                    else await frameData?.view?.stopEditingText((started ?? el).domId);
+                }
             } catch (cleanupError) {
                 console.error('Error rolling back text edit start:', cleanupError);
             }
             this.editorEngine.overlay.state.removeTextEditor();
+            if (started && this.targetDomEl === started) {
+                this.targetDomEl = null;
+                this.sessionHistory = null;
+                this.originalContent = null;
+                this.cloudTextSession = null;
+                this.commitOverride = null;
+            }
             // Reset the guard so a failure after it was set doesn't permanently
             // block editSelectedElement() for the rest of the session — it is
             // otherwise only reset in clean().
@@ -327,7 +439,11 @@ export class TextEditingManager {
         // last keystroke even when that RPC or final source write fails.
         if (this.targetDomEl) this.latestInput = newContent;
         if (this.editorEngine.isClosing || this.disposalSession || this.disposalPromise) return;
-        const operation = this.editSession(newContent);
+        const target = this.targetDomEl;
+        const operation = this.cloudTextSession
+            ? this.approvedEditChain.then(() => this.targetDomEl === target ? this.editSession(newContent) : undefined)
+            : this.editSession(newContent);
+        if (this.cloudTextSession) this.approvedEditChain = operation.catch(() => undefined);
         this.pendingSessionOperations.add(operation);
         try { await operation; } finally { this.pendingSessionOperations.delete(operation); }
     }
@@ -343,14 +459,23 @@ export class TextEditingManager {
                 history: this.sessionHistory,
                 originalContent: this.originalContent,
                 commitOverride: this.commitOverride,
+                cloudText: this.cloudTextSession,
             };
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {
                 throw new Error('No frameView found for text editing');
             }
 
-            const res = await frameData.view.editText(target.domId, newContent);
-            if (!res) {
+            if (session.cloudText) {
+                this.assertCloudTextSession(session.cloudText);
+                await this.assertCloudTextElement(session.cloudText, target);
+            }
+
+            if (session.cloudText && newContent.includes('\r')) throw new Error('Carriage returns are unsupported in approved text.');
+            const res = session.cloudText
+                ? await frameData.view.editPlainTextV1(target.domId, newContent, plainTextExpectedIdentity(target))
+                : await frameData.view.editText(target.domId, newContent);
+            if (!res || (session.cloudText && (!('textRenderMode' in res) || res.textRenderMode !== 'plain-string-v1'))) {
                 throw new Error('Failed to edit text. No dom element returned');
             }
 
@@ -403,7 +528,7 @@ export class TextEditingManager {
             const view = this.editorEngine.frames.get(target.frameId)?.view;
             if (!view || !this.sessionHistory) throw new Error('The text source session cannot be saved yet.');
             this.disposalSession = {
-                session: { targetDomEl: target, history: this.sessionHistory, originalContent: this.originalContent, commitOverride: this.commitOverride },
+                session: { targetDomEl: target, history: this.sessionHistory, originalContent: this.originalContent, commitOverride: this.commitOverride, cloudText: this.cloudTextSession },
                 view, result: null, pushed: false, overrideSaved: false, overrideAcknowledged: false,
                 overrideExternalRevision: undefined, stopError: null,
             };
@@ -426,6 +551,7 @@ export class TextEditingManager {
             this.originalContent = null;
             this.latestInput = null;
             this.commitOverride = null;
+            this.cloudTextSession = null;
             this.shouldNotStartEditing = false;
             this.disposalSession = null;
             this.editorEngine.overlay.state.removeTextEditor();
@@ -442,13 +568,18 @@ export class TextEditingManager {
         if (captured.stopError) throw captured.stopError;
         if (!captured.result) {
             try {
-                const result = await captured.view.stopEditingText(session.targetDomEl.domId);
+                const result = session.cloudText
+                    ? await captured.view.stopEditingPlainTextV1(session.targetDomEl.domId, plainTextExpectedIdentity(session.targetDomEl))
+                    : await captured.view.stopEditingText(session.targetDomEl.domId);
                 if (!result || !result.domEl || typeof result.newContent !== 'string' ||
+                    (session.cloudText && (!('textRenderMode' in result) || result.textRenderMode !== 'plain-string-v1' || result.newContent.includes('\r') || result.domEl.frameId !== session.targetDomEl.frameId || result.domEl.instanceId !== session.targetDomEl.instanceId)) ||
                     result.domEl.branchId !== session.targetDomEl.branchId ||
                     result.domEl.domId !== session.targetDomEl.domId ||
                     (result.textSlots !== undefined && !Array.isArray(result.textSlots))) {
                     throw new Error('The final text could not be captured safely.');
                 }
+                if (session.cloudText && result.newContent !== this.latestInput)
+                    throw new Error('The latest text could not be captured safely. Your input is still available.');
                 captured.result = { domEl: result.domEl, newContent: result.newContent,
                     ...(result.textSlots !== undefined ? { textSlots: result.textSlots } : {}) };
             } catch (error) {
@@ -459,6 +590,12 @@ export class TextEditingManager {
             }
         }
         const { newContent, textSlots } = captured.result;
+        if (session.cloudText && !captured.pushed) {
+            this.assertCloudTextSession(session.cloudText);
+            await this.assertCloudTextElement(session.cloudText, session.targetDomEl);
+            if (textSlots !== undefined || !matchesCloudTextElement(session.cloudText.pin, captured.result.domEl))
+                throw new Error('Approved text cannot replace nested markup.');
+        }
         if (session.commitOverride) {
             if (!captured.overrideSaved) {
                 captured.overrideExternalRevision = history.getExternalRevisionForDisposal(lease);
@@ -474,6 +611,7 @@ export class TextEditingManager {
                 targets: [{ frameId: session.targetDomEl.frameId, branchId: session.targetDomEl.branchId,
                     domId: session.targetDomEl.domId, oid: session.targetDomEl.oid }],
                 originalContent: session.originalContent ?? '', newContent,
+                ...(session.cloudText ? { cloudText: session.cloudText.pin } : {}),
                 ...(textSlots !== undefined ? { textSlots } : {}) };
             if (!await history.pushForDisposal(action, lease)) throw new Error('The final text could not be saved.');
             captured.pushed = true;
@@ -497,6 +635,13 @@ export class TextEditingManager {
             }
             const commitOverride = session ? session.commitOverride : this.commitOverride;
             const originalContent = session ? session.originalContent : this.originalContent;
+            const cloudText = session ? session.cloudText : this.cloudTextSession;
+            if (cloudText) {
+                this.assertCloudTextSession(cloudText);
+                await this.assertCloudTextElement(cloudText, domEl);
+                if (textSlots !== undefined || !matchesCloudTextElement(cloudText.pin, domEl) || domEl.domId !== session?.targetDomEl.domId || domEl.frameId !== session?.targetDomEl.frameId || domEl.instanceId !== session?.targetDomEl.instanceId)
+                    throw new Error('Approved text cannot replace another element or nested markup.');
+            }
             // Per-instance prop edits don't persist the master text — the
             // override (run on end) writes the instance attribute instead, so
             // skip the edit-text history push but keep live visual feedback.
@@ -515,6 +660,7 @@ export class TextEditingManager {
                     ],
                     originalContent: originalContent ?? '',
                     newContent,
+                    ...(cloudText ? { cloudText: cloudText.pin } : {}),
                     // Whole-block edits (element with inline children) write
                     // per-run so spans/<strong> survive; undefined otherwise.
                     ...(textSlots ? { textSlots } : {}),
@@ -523,6 +669,8 @@ export class TextEditingManager {
             if (session && this.targetDomEl !== session.targetDomEl) {
                 return;
             }
+            if (cloudText) await this.editorEngine.action.previewApprovedText(cloudText.pin, newContent,
+                { frameId: frameView.id, domId: domEl.domId });
             const adjustedRect = adaptRectToCanvas(domEl.rect, frameView);
             this.editorEngine.overlay.state.updateTextEditor(adjustedRect, {
                 content: newContent,

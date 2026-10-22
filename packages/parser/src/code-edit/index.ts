@@ -11,3 +11,4 @@ export * from './responsive-rebase';
 export * from './style';
 export * from './text';
 export * from './transform';
+export * from './local-middleware';

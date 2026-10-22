@@ -1,10 +1,12 @@
-import type { DomElement, EditTextResult, LayerNode, TextSlotEdit } from '@weblab/models';
+import type { DomElement, EditTextResult, LayerNode, PlainTextElementIdentity, TextSlotEdit } from '@weblab/models';
 import { EditorAttributes } from '@weblab/constants';
 
 import { getHtmlElement } from '../../helpers';
 import { buildLayerTree } from '../dom';
 import { collectEditingFontFaces, getEditingTypography } from './font-faces';
 import { getDomElement, restoreElementStyle } from './helpers';
+import { getContentIdentity } from './content-identity';
+import { getBranchId, getFrameId } from '../state';
 import {
     applyGapTexts,
     collectRichText,
@@ -22,6 +24,66 @@ import {
  * source write is expressed as per-gap changes relative to this snapshot.
  */
 const richSessions = new WeakMap<HTMLElement, Map<string, string>>();
+
+/** Exact React-string targets contain no element children. CR is unsupported by the overlay parser. */
+export function readPlainTextV1(el: HTMLElement): string | null {
+    if (!Array.from(el.childNodes).every(node => node.nodeType === 3 || node.nodeType === 8)) return null;
+    const value = el.textContent ?? '';
+    return value.includes('\r') ? null : value;
+}
+
+export function writePlainTextV1(el: HTMLElement, content: string): boolean {
+    if (content.includes('\r') || readPlainTextV1(el) === null) return false;
+    el.textContent = content;
+    return true;
+}
+
+/** Run synchronously in the frame, immediately before any DOM change. */
+function hasPlainTextIdentity(el: HTMLElement, domId: string, expected: PlainTextElementIdentity): boolean {
+    if (!expected || expected.textRenderMode !== 'plain-string-v1' || expected.domId !== domId ||
+        !expected.oid || !expected.frameId || !expected.branchId ||
+        el.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) !== expected.domId ||
+        el.getAttribute(EditorAttributes.DATA_WEBLAB_ID) !== expected.oid ||
+        el.getAttribute(EditorAttributes.DATA_WEBLAB_INSTANCE_ID) !== expected.instanceId ||
+        getFrameId() !== expected.frameId || getBranchId() !== expected.branchId) return false;
+    const identity = getContentIdentity(el);
+    return expected.contentIdentity
+        ? identity?.mappingId === expected.contentIdentity.mappingId && identity?.itemId === expected.contentIdentity.itemId
+        : identity === undefined;
+}
+
+export async function startEditingPlainTextV1(domId: string, expected: PlainTextElementIdentity): Promise<EditTextResult | null> {
+    const el = getHtmlElement(domId);
+    if (!el || !hasPlainTextIdentity(el, domId, expected)) return null;
+    const originalContent = readPlainTextV1(el);
+    if (originalContent === null) return null;
+    prepareElementForEditing(el);
+    return { originalContent, domEl: getDomElement(el, true), rich: false,
+        textRenderMode: 'plain-string-v1', typography: getEditingTypography(el),
+        fontFaces: await collectEditingFontFaces(el) };
+}
+
+/** Preview/history must not hide a copy that has no active editor overlay. */
+export function editPlainTextV1(domId: string, content: string, expected: PlainTextElementIdentity): {
+    domEl: DomElement; newMap: Map<string, LayerNode> | null;
+    textRenderMode: 'plain-string-v1'; textSlots?: never;
+} | null {
+    const el = getHtmlElement(domId);
+    if (!el || !hasPlainTextIdentity(el, domId, expected) || !writePlainTextV1(el, content)) return null;
+    return { domEl: getDomElement(el, true), newMap: buildLayerTree(el), textRenderMode: 'plain-string-v1' };
+}
+
+export function stopEditingPlainTextV1(domId: string, expected: PlainTextElementIdentity): {
+    newContent: string; domEl: DomElement; textRenderMode: 'plain-string-v1'; textSlots?: never;
+} | null {
+    const el = getHtmlElement(domId);
+    if (!el || !hasPlainTextIdentity(el, domId, expected)) return null;
+    // Cleanup is unconditional for the owned element even if React replaced the text with unsupported markup.
+    cleanUpElementAfterEditing(el);
+    const newContent = readPlainTextV1(el);
+    if (newContent === null) return null;
+    return { newContent, domEl: getDomElement(el, true), textRenderMode: 'plain-string-v1' };
+}
 
 export function editTextByDomId(domId: string, content: string): DomElement | null {
     const el: HTMLElement | null = getHtmlElement(domId);

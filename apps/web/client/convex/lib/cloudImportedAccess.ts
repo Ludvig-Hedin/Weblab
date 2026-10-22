@@ -19,3 +19,14 @@ export function importedTextAuthority(
         revision < preparation.preparedRevision || revision > state.revision) return null;
     return { preparationId: preparation._id, designRevision: revision };
 }
+
+/** Callers must separately establish current project access. */
+export function canUseImportedText(role: Role, authority: ImportedTextAuthority | null): boolean {
+    return role !== null && authority !== null &&
+        process.env.WEBLAB_CLOUD_EDITOR_ENABLED === 'true' &&
+        process.env.WEBLAB_CLOUD_IMPORTED_CONTENT_ENABLED === 'true';
+}
+
+export function canReadImportedSource(role: Role, update: boolean, authority: ImportedTextAuthority | null): boolean {
+    return ((role === 'responsible' || role === 'designer') && update) || canUseImportedText(role, authority);
+}

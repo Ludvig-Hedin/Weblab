@@ -1,3 +1,4 @@
+import { cloudTextIdentity, freezeCloudTextApproval, validCloudTextApproval } from '../sandbox/cloud-source';
 import type {
     Action,
     ActionElement,
@@ -95,6 +96,7 @@ export function undoAction(action: Action): Action {
                 ...action,
                 originalContent: action.newContent,
                 newContent: action.originalContent,
+                ...(action.cloudText ? { cloudText: freezeCloudTextApproval(action.cloudText) } : {}),
                 ...(action.textSlots
                     ? {
                           textSlots: action.textSlots.map((slot) => ({
@@ -252,8 +254,10 @@ function actionTargetKeys(action: Action): string[] | null {
             // The element being inserted/removed IS the identity — `targets`
             // only carries the frame fan-out.
             return [action.element.oid];
-        case 'move-element':
         case 'edit-text':
+            if ('cloudText' in action) return validCloudTextApproval(action.cloudText) ? [cloudTextIdentity(action.cloudText)] : [];
+            return action.targets.map((target) => target.oid ?? target.domId).sort();
+        case 'move-element':
         case 'insert-image':
         case 'remove-image':
             return action.targets.map((t) => t.oid ?? t.domId).sort();
@@ -273,6 +277,7 @@ function sameTargetKeys(existing: string[] | null, incoming: string[]): boolean 
 }
 
 export function updateTransactionActions(actions: Action[], newAction: Action): Action[] {
+    if (newAction.type === 'edit-text' && 'cloudText' in newAction && !validCloudTextApproval(newAction.cloudText)) return [...actions, newAction];
     if (newAction.type === 'update-style') {
         // Style updates keep type-only matching: handleUpdateStyleAction
         // already merges per-target, appending targets it hasn't seen.
@@ -417,6 +422,7 @@ export function transformRedoAction(action: Action): Action {
                 targets: action.targets ? [...action.targets] : [],
                 originalContent: action.originalContent,
                 newContent: action.newContent,
+                ...(action.cloudText ? { cloudText: freezeCloudTextApproval(action.cloudText) } : {}),
                 ...(action.textSlots
                     ? { textSlots: action.textSlots.map((slot) => ({ ...slot })) }
                     : {}),

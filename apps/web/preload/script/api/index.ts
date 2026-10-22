@@ -33,7 +33,7 @@ import {
     startDrag,
 } from './elements/move/drag';
 import { getComputedStyleByDomId } from './elements/style';
-import { editText, isChildTextEditable, startEditingText, stopEditingText } from './elements/text';
+import { editText, isChildTextEditable, startEditingText, stopEditingText, startEditingPlainTextV1, editPlainTextV1, stopEditingPlainTextV1 } from './elements/text';
 import {
     applyInitialStates,
     applyInteractionsConfig,
@@ -119,6 +119,9 @@ const rawMethods = {
     endAllDrag,
 
     // Edit text
+    startEditingPlainTextV1,
+    editPlainTextV1,
+    stopEditingPlainTextV1,
     startEditingText,
     editText,
     stopEditingText,

@@ -23,12 +23,13 @@ import type {
     CloudEditorCommit,
     CloudEditorCommitResult,
     CloudEditorContracts,
+    CloudTextContracts,
     CloudEditorImportPreparation,
     CloudEditorImportPreparationResult,
     CloudEditorRuntimeStatus,
     CloudEditorSnapshot,
 } from '@/lib/cloud-editor/api';
-import { CloudSource } from './cloud-source';
+import { CloudSource, validCloudTextApproval } from './cloud-source';
 
 class MemoryRecoveryStore implements CloudRecoveryStore {
     readonly records = new Map<string, CloudRecoveryRecord>();
@@ -173,6 +174,10 @@ async function fixture(
             },
         ],
     };
+    let textContracts: CloudTextContracts = { actorId: snapshot.actorId, revision: 1, designRevision: 1,
+        contracts: [{ path, version: 2, generation: 1, designRevision: 1, active: true, current: true,
+            bindings: [{ bindingId: 'heading-binding', target: { kind: 'component-literal', exportName: 'Hero', oid: 'heading' } }], fingerprint: 'approved' }] };
+    let readTextContracts = async () => {};
     let readAccess = async () => {};
     let readAsset = async () => {};
     let readSnapshot = async () => {};
@@ -203,6 +208,7 @@ async function fixture(
                 await readAccess();
                 return access;
             }
+            if (getFunctionName(ref) === 'cloudEditorText:contracts') { await readTextContracts(); return structuredClone(textContracts); }
             if (getFunctionName(ref) === 'cloudEditorContent:contracts')
                 return structuredClone(contracts);
             if (getFunctionName(ref) === 'cloudEditor:snapshot') {
@@ -310,6 +316,8 @@ async function fixture(
         contracts: (change: Partial<CloudEditorContracts>) => {
             contracts = { ...contracts, ...change };
         },
+        textContracts: (change: Partial<CloudTextContracts>) => { textContracts = { ...textContracts, ...change }; },
+        onTextContracts: (handler: typeof readTextContracts) => { readTextContracts = handler; },
         onAccess: (handler: typeof readAccess) => {
             readAccess = handler;
         },
@@ -325,6 +333,7 @@ async function fixture(
             runtime = { ...runtime, revision };
             snapshot = { ...snapshot, revision };
             contracts = { ...contracts, revision };
+            textContracts = { ...textContracts, revision };
         },
         runtime: (change: Partial<CloudEditorRuntimeStatus>) => {
             runtime = { ...runtime, ...change };
@@ -1912,4 +1921,151 @@ describe('private imported source hydration lifetime', () => {
             expect(f.counts().previewRequests).toBe(0);
         } finally { release.resolve(); await f.source.stop(); }
     });
+});
+
+describe("imported text transport prerequisites", () => {
+    it('pins imported text writes even while the designer view remains active', async () => {
+        const path = 'src/components/hero.tsx';
+        const f = await fixture(undefined, { profile: 'imported-next-v1', path, start: false });
+        f.access({ canEditImportedText: true, canEditContent: true, canApproveImportedText: true });
+        try {
+            await f.source.start();
+            expect(f.source.state.contracts).toBeNull();
+            const pin = f.source.resolveTextApproval(path, 'heading')!;
+            expect(pin).toMatchObject({ version: 2, bindingId: 'heading-binding', generation: 1, designRevision: 1 });
+            expect(f.source.isContentMode).toBe(false);
+            f.save(async () => { f.revision(2); return { revision: 2, currentRevision: 2 }; });
+            expect(await f.source.withApprovedTextWrite({ pin, revision: 1, candidate: 'after' }, async () => {
+                await f.commit(); return true;
+            })).toBe(true);
+            expect(f.endpoints).toEqual(['cloudEditorTextActions:commit']);
+            expect(f.submitted[0]).toMatchObject({ actorId: 'actor', transportVersion: 2,
+                expectedContracts: [{ path, version: 2, generation: 1, designRevision: 1 }] });
+            expect(f.source.isTextApprovalCurrent(pin)).toBe(true);
+        } finally { await f.source.stop(); }
+    });
+
+    it('refuses stale imported text pins and exact-candidate substitution without a fallback save', async () => {
+        const path = 'src/components/hero.tsx';
+        const f = await fixture(undefined, { profile: 'imported-next-v1', path, start: false });
+        f.access({ canEditImportedText: true, canEditContent: true });
+        try {
+            await f.source.start();
+            const pin = f.source.resolveTextApproval(path, 'heading')!;
+            for (const changed of [{ ...pin, actorId: 'other' }, { ...pin, generation: 2 },
+                { ...pin, designRevision: 2 }, { ...pin, bindingId: 'recreated' },
+                { ...pin, target: { ...pin.target, exportName: 'Other' } }]) {
+                let called = false;
+                expect(await f.source.withApprovedTextWrite({ pin: changed, revision: 1, candidate: 'after' }, async () => { called = true; return true; })).toBe(false);
+                expect(called).toBe(false);
+            }
+            await expect(f.source.withApprovedTextWrite({ pin, revision: 1, candidate: 'exact' }, async () => {
+                await f.commit('different'); return true;
+            })).rejects.toThrow('approved text changed');
+            expect(f.submitted).toEqual([]);
+        } finally { await f.source.stop(); }
+    });
+
+    it('keeps designer source usable if optional v2 approval discovery is disabled', async () => {
+        const f = await fixture(undefined, { profile: 'imported-next-v1', start: false });
+        f.access({ canApproveImportedText: true });
+        f.onTextContracts(async () => { throw Object.assign(new Error('Disabled'), { data: 'CLOUD_DISABLED' }); });
+        try {
+            await f.source.start();
+            expect(f.source.canDesign).toBe(true);
+            expect(f.source.canWrite).toBe(true);
+            expect(f.source.state.textContracts).toBeNull();
+            expect(f.source.resolveTextApproval('notes.txt', 'heading')).toBeNull();
+        } finally { await f.source.stop(); }
+    });
+
+    it('retries imported v2 recovery through only its original text endpoint and epoch', async () => {
+        const recovery = new MemoryRecoveryStore();
+        const first = await fixture(undefined, { recovery });
+        first.save(async () => { throw new Error('Lost reply'); });
+        await expect(first.commit()).rejects.toThrow('Lost reply');
+        await first.source.stop();
+        const record = [...recovery.records.values()][0]!;
+        record.operation.transport = 'content';
+        record.operation.transportVersion = 2;
+        record.operation.expectedContracts = [{ path: 'notes.txt', generation: 4, version: 2, designRevision: 1 }];
+        const original = structuredClone(record.operation);
+        const reopened = await fixture(undefined, { recovery, profile: 'imported-next-v1', role: 'content', start: false });
+        // Model future capability activation, without opening production access.
+        reopened.access({ canEditImportedText: true, canEditContent: true });
+        try {
+            await reopened.source.start();
+            reopened.revision(3);
+            await reopened.source.retryPending();
+            expect(reopened.endpoints).toEqual(['cloudEditorTextActions:commit']);
+            expect(reopened.submitted[0]).toEqual(original);
+            expect(recovery.records.size).toBe(0);
+        } finally { await reopened.source.stop(); }
+    });
+
+
+});
+
+it('resolves FAQ grants by full renderer/item identity and never infers an unmapped data row', async () => {
+    const path = 'src/content/home-faq.ts';
+    const f = await fixture(undefined, { profile: 'imported-next-v1', path, start: false });
+    f.access({ canEditImportedText: true, canEditContent: true });
+    const mapping = { version: 1 as const, kind: 'keyed-prop-map' as const, mappingId: 'faq',
+        callsite: { path: 'src/components/home-faq.tsx', exportName: 'HomeFaq', oid: 'call' },
+        renderer: { path: 'src/components/chat-faq.tsx', exportName: 'ChatFaq', oid: 'answer' } };
+    const bindings = ['audience', 'pricing'].map(itemId => ({ bindingId: itemId,
+        target: { kind: 'data-leaf' as const, exportName: 'homeFaqItems', itemId, property: 'answer' }, renderMapping: mapping }));
+    f.textContracts({ contracts: [{ path, version: 2, generation: 1, active: true, current: true,
+        designRevision: 1, fingerprint: 'approved', bindings }] });
+    try {
+        await f.source.start();
+        const pin = f.source.resolveTextApproval(mapping.renderer.path, 'answer', { mappingId: 'faq', itemId: 'audience' });
+        expect(pin?.path).toBe(path);
+        expect(pin?.target).toMatchObject({ itemId: 'audience', property: 'answer' });
+        expect(f.source.resolveTextApproval(mapping.renderer.path, 'answer')).toBeNull();
+        expect(f.source.resolveTextApproval(path, 'answer', { mappingId: 'faq', itemId: 'audience' })).toBeNull();
+        expect(f.source.resolveTextApproval(mapping.renderer.path, 'answer', { mappingId: 'other', itemId: 'audience' })).toBeNull();
+        expect(validCloudTextApproval({ ...pin, renderMapping: undefined })).toBe(false);
+        expect(validCloudTextApproval({ ...pin, renderMapping: { ...mapping, extra: true } })).toBe(false);
+        expect(validCloudTextApproval({ ...pin, renderMapping: { ...mapping, mappingId: 'faq\n' } })).toBe(false);
+        expect(validCloudTextApproval({ ...pin, renderMapping: { ...mapping,
+            renderer: { ...mapping.renderer, oid: 'answer\n' } } })).toBe(false);
+        expect(validCloudTextApproval({ ...pin, target: { ...pin!.target, exportName: 'homeFaqItems\n' } })).toBe(false);
+        expect(f.source.isTextApprovalCurrent({ ...pin, renderMapping: { ...mapping,
+            callsite: { ...mapping.callsite, oid: 'different' } } })).toBe(false);
+        expect(Object.isFrozen(pin?.renderMapping?.renderer)).toBe(true);
+    } finally { await f.source.stop(); }
+});
+
+
+
+it('does not restore text authority after the owning session is lost during approval discovery', async () => {
+    const f = await fixture(undefined, { profile: 'imported-next-v1', start: false });
+    f.access({ canEditImportedText: true });
+    f.onTextContracts(async () => { f.revokeOwner(); });
+    try {
+        await expect(f.source.start()).rejects.toThrow();
+        expect(f.source.canWrite).toBe(false);
+        expect(f.source.resolveTextApproval('notes.txt', 'heading')).toBeNull();
+        expect(f.submitted).toEqual([]);
+    } finally { await f.source.stop(); }
+});
+
+it('keeps imported starter-v1 recovery download-only after a text grant is activated', async () => {
+    const recovery = new MemoryRecoveryStore();
+    const first = await fixture(undefined, { recovery, role: 'content' });
+    first.save(async () => { throw new Error('Lost reply'); });
+    await expect(first.commit()).rejects.toThrow('Lost reply');
+    await first.source.stop();
+    const original = structuredClone([...recovery.records.values()][0]!.operation);
+    const next = await fixture(undefined, { recovery, role: 'content', profile: 'imported-next-v1', start: false });
+    next.access({ canEditImportedText: true });
+    try {
+        await next.source.start();
+        expect(next.source.canRetrySave).toBe(false);
+        await expect(next.source.retryPending()).rejects.toThrow('original project permission');
+        expect(next.submitted).toEqual([]);
+        expect([...recovery.records.values()][0]!.operation).toEqual(original);
+        expect(next.source.pendingChangesBackup().changes[0]?.content).toBe('after');
+    } finally { await next.source.stop(); }
 });

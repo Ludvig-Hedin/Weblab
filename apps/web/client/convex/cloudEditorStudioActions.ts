@@ -34,8 +34,8 @@ export const commit = action({
             const additions = result.addedBindings.get(change.path) ?? [];
             if (!previous && !additions.length) continue;
             if (previous?.active) {
-                if (typeof original?.text !== 'string') cloudError('CLOUD_CONTENT_STALE_CONTRACT');
-                validateCloudContentCandidate({ contract: previous, originalSource: original.text, candidateSource: original.text, approvedAssetPaths: assets });
+                if (typeof original?.text !== 'string' || previous.version !== 1) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
+                validateCloudContentCandidate({ contract: { version: previous.version, path: previous.path, bindings: previous.bindings, fingerprint: previous.fingerprint }, originalSource: original.text, candidateSource: original.text, approvedAssetPaths: assets });
             }
             const bindings = [...(previous?.active ? previous.bindings : []).filter(binding => !result.removedOids.has(binding.oid)), ...additions];
             const fingerprint = bindings.length ? approveCloudContentBindings({ path: change.path, source: change.content,

@@ -515,3 +515,8 @@ Self-selected Content/Full is presentation, never project authority. Known Sanit
 Implementation: an imported folder first uses `imported-source-v1`. An explicit preparation transaction validates its retained original manifest and creates an immutable receipt plus pinned `imported-next-v1` runtime policy. Every runtime admission revalidates provenance; only explicit preview can provision compute. Existing starter content/Studio/backup/release transports refuse imported profiles until their corresponding recovery slice preserves those contracts.
 Context: source-only storage, designer source saves and provider execution have different authority and integrity requirements. An imported folder must not acquire unrestricted starter semantics through an older API or backup copy.
 Status: local recovery source with 273 focused cases; flags off and connected acceptance pending. This records the implemented saved recovery contract, not additional rollout or spending authority. See F-846–848, T-888–890 and BACKLOG.
+
+
+## 2026-10-22 — Imported text keeps an independent protocol
+
+Recovered imported text uses version-two endpoints and actor-bound approval, revision, generation and design-epoch pins. Starter-v1 APIs reject these contracts. Retry journals retain their original protocol and payload; unrecognized or imported legacy journals remain downloadable without automatic replay. Source/history pins are immutable, rendered keyed identities are checked before DOM mutation, and failed finalization retains the newest text. Both cloud rollout gates remain required and disabled. This is source integration for the owner-approved next release, not production activation.

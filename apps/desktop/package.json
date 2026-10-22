@@ -46,6 +46,7 @@
         "files": [
             "package.json",
             "main.js",
+            "quit-coordinator.js",
             "preload.js",
             "desktop-profile.js",
             "desktop-log.js",

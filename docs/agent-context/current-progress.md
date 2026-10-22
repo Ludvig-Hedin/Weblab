@@ -1,3 +1,7 @@
+## 2026-10-22 — Next-release imported text recovery
+
+Owner explicitly included the paused team web editor in remaining recovery. The public Mac release remains pinned to `d124aea1e`; do not deploy these next-release merges. PR #23 restored source-location handling and inactive contract validators. Imported version-two text backend and source/history transport are being reconciled on `integration/next-release-2026-10-22`. Both rollout gates remain off. Keep newer main import/preparation protections, actor-bound recovery and legacy starter separation. Canvas wiring, images, retained releases and remaining team CSS Modules/Sanity slices are still pending. Local text/native/preparation batches and web/parser/filesystem types pass; preload types also pass. Seventy-file lint has zero errors and 3,579 warnings. No connected acceptance or backend deployment is claimed. CSS Modules, public preview settings and images are separate local continuations.
+
 # Current Progress Snapshot
 
 ## 2026-10-22 — Main release and next-release integration

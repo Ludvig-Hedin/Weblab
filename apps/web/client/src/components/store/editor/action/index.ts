@@ -1,3 +1,6 @@
+import { plainTextExpectedIdentity } from '../sandbox/cloud-source';
+import { readContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
+import { validCloudTextApproval, cloudTextRenderer, freezeCloudTextApproval, cloudTextIdentity, matchesCloudTextElement } from '../sandbox/cloud-source';
 import { cloneDeep, debounce } from 'lodash';
 import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { EditorAttributes } from '@weblab/constants';
@@ -5,7 +8,7 @@ import { parse, t, type T } from '@weblab/parser/src/packages';
 import { getContentFromAst } from '@weblab/parser/src/parse';
 import { formatContent } from '@weblab/parser/src/prettier';
 
-import type { DomElement, LayerNode } from '@weblab/models';
+import type { CloudTextApproval, DomElement, LayerNode } from '@weblab/models';
 import { EditorMode } from '@weblab/models';
 import {
     type Action,
@@ -137,6 +140,7 @@ export class ActionManager {
 
     private queuedStyleDispatches = new Set<Promise<void>>();
     /** Newest optimistic style edit per `${frameId}:${domId}::${property}`. */
+    private textPreviewRuns = new Map<string, symbol>();
     private latestStyleEdit = new Map<string, UpdateStyleAction>();
     private optimisticStyleRuns = new Set<Promise<boolean>>();
     private stylePreflights = new Set<Promise<void>>();
@@ -437,6 +441,30 @@ export class ActionManager {
 
     /** Build history must still refer to currently approved source identities. */
     private async admitHistoryReplay(action: Action, history: HistoryManager): Promise<boolean> {
+        if (action.type === 'edit-text' && 'cloudText' in action) {
+            if (!validCloudTextApproval(action.cloudText)) return false;
+            const pin = freezeCloudTextApproval(action.cloudText);
+            if (action.textSlots !== undefined || action.targets.length === 0 ||
+                action.targets.some(target => target.branchId !== pin.branchId || target.oid !== cloudTextRenderer(pin).oid)) return false;
+            const branches = this.editorEngine.branches;
+            const branch = branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+            if (!branch || !source || branch.history !== history) return false;
+            const version = source.getSourceVersion(), externalRevision = source.getExternalRevision();
+            const revision = source.state.savedRevision, codeEditor = branch.codeEditor;
+            const current = () => !this.editorEngine.isClosing && branches.hasActiveBranch && branches.activeBranchData === branch &&
+                branches.getBranchDataById(pin.branchId) === branch && branch.history === history &&
+                branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source && source.canWrite &&
+                !source.state.localDraftChanges && source.state.savedRevision === revision && source.getSourceVersion() === version &&
+                source.getExternalRevision() === externalRevision && source.isTextApprovalCurrent(pin);
+            if (!current()) return false;
+            try {
+                const metadata = await codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+                if (!current()) return false;
+                const content = await codeEditor.readFile(pin.path);
+                return current() && typeof content === 'string' && metadata?.path.replace(/^\/+/, '') === cloudTextRenderer(pin).path &&
+                    readContentTextTarget(content, pin.target) === action.originalContent;
+            } catch { return false; }
+        }
         if ('cloudAttribute' in action) return (await this.prepareAttributeHistory(action, history)) !== null;
         const branches = this.editorEngine.branches;
         const branch = branches?.hasActiveBranch ? branches.activeBranchData : null;
@@ -950,7 +978,81 @@ export class ActionManager {
         }
     }
 
-    private async editText({ targets, newContent, textSlots }: EditTextAction) {
+    /** Reacquire keyed leaves from live frame metadata; duplicate instances are unsupported. */
+    async approvedTextElements(pin: CloudTextApproval, frameId: string): Promise<DomElement[] | null> {
+        if (!validCloudTextApproval(pin)) return null;
+        const branch = this.editorEngine.branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        const frame = this.editorEngine.frames.get(frameId);
+        const view = frame?.view;
+        const layers = this.editorEngine.ast.mappings.getMapping(frameId);
+        if (!branch || !source?.isTextApprovalCurrent(pin) || !frame || !view || frame.frame.branchId !== pin.branchId || !layers) return null;
+        const revision = source.getSourceVersion();
+        const found: DomElement[] = [];
+        for (const layer of layers.values()) {
+            if (layer.oid !== cloudTextRenderer(pin).oid) continue;
+            const dom = await view.getElementByDomId(layer.domId, true);
+            if (this.editorEngine.branches.getBranchDataById(pin.branchId) !== branch ||
+                branch.sandbox.cloudSource !== source || source.getSourceVersion() !== revision ||
+                !source.isTextApprovalCurrent(pin)) return null;
+            if (!dom) return null;
+            if (dom.frameId !== frameId || dom.instanceId !== layer.instanceId) return null;
+            if (matchesCloudTextElement(pin, dom)) found.push(dom);
+        }
+        return pin.target.kind === 'data-leaf' && found.length > 1 ? null : found;
+    }
+
+    /** Fan out only within the original source owner and complete rendered identity. */
+    async previewApprovedText(pin: CloudTextApproval, value: string, exclude?: { frameId: string; domId: string }): Promise<void> {
+        if (!validCloudTextApproval(pin) || value.includes('\r')) return;
+        const branch = this.editorEngine.branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        if (!branch || !source?.isTextApprovalCurrent(pin)) return;
+        const identity = cloudTextIdentity(pin);
+        const run = Symbol('approved-text-preview');
+        this.textPreviewRuns.set(identity, run);
+        const codeEditor = branch.codeEditor;
+        const revision = source.getSourceVersion();
+        const externalRevision = source.getExternalRevision();
+        const current = () => this.editorEngine.branches.getBranchDataById(pin.branchId) === branch &&
+            branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor &&
+            this.textPreviewRuns.get(identity) === run && source.getSourceVersion() === revision &&
+            source.getExternalRevision() === externalRevision && source.isTextApprovalCurrent(pin);
+        try {
+            const metadata = await branch.codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+            const content = await branch.codeEditor.readFile(pin.path);
+            if (!current() || metadata?.path.replace(/^\/+/, '') !== cloudTextRenderer(pin).path || typeof content !== 'string') return;
+            readContentTextTarget(content, pin.target);
+            await Promise.allSettled(this.editorEngine.frames.getAll()
+                .filter(frame => frame.frame.branchId === pin.branchId && frame.view)
+                .map(async frame => {
+                    const view = frame.view!;
+                    const matches = await this.approvedTextElements(pin, frame.frame.id);
+                    if (!matches || !current()) return;
+                    for (const match of matches) {
+                        if (!current()) return;
+                        if (exclude?.frameId === frame.frame.id && exclude.domId === match.domId) continue;
+                        const dom = await view.getElementByDomId(match.domId, true);
+                        if (!current() || !dom || !matchesCloudTextElement(pin, dom) || dom.frameId !== frame.frame.id ||
+                            dom.instanceId !== match.instanceId) continue;
+                        const result = await view.editPlainTextV1(dom.domId, value, plainTextExpectedIdentity(dom));
+                        if (!result || result.textRenderMode !== 'plain-string-v1' || !current() ||
+                            result.domEl.domId !== dom.domId || result.domEl.frameId !== dom.frameId ||
+                            result.domEl.branchId !== pin.branchId || result.domEl.instanceId !== dom.instanceId ||
+                            !matchesCloudTextElement(pin, result.domEl)) continue;
+                        if (result.newMap) this.editorEngine.ast.updateMap(frame.frame.id, result.newMap, result.domEl.domId);
+                    }
+                }));
+        } catch { /* Saved source remains authoritative when a preview frame is unavailable. */ }
+        finally { if (this.textPreviewRuns.get(identity) === run) this.textPreviewRuns.delete(identity); }
+    }
+
+    private async editText(action: EditTextAction) {
+        if ('cloudText' in action) {
+            if (validCloudTextApproval(action.cloudText)) await this.previewApprovedText(action.cloudText, action.newContent);
+            return;
+        }
+        const { targets, newContent, textSlots } = action;
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {

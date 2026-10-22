@@ -59,7 +59,7 @@ async function checkedContracts(ctx: Context, scope: Scope, expected: Array<{ pa
         if (seen.has(entry.path)) cloudError('CLOUD_DUPLICATE_PATH');
         seen.add(entry.path);
         const row = await contractFor(ctx, scope, entry.path);
-        if (!row || !row.active || row.generation !== entry.generation) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
+        if (!row || row.version !== 1 || !row.active || row.generation !== entry.generation) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         return row;
     }));
 }
@@ -74,7 +74,7 @@ export const contracts = query({
         if (rows.length > MAX_CLOUD_FILES) cloudError('CLOUD_FILE_LIMIT');
         if (rows.some(row => row.projectId !== scope.projectId)) cloudError('CLOUD_NOT_ENROLLED');
         return { actorId: access.user._id, revision: access.state.revision,
-            contracts: rows.map(({ path, generation, bindings, fingerprint, active }) => ({ path, generation, bindings, fingerprint, active })) };
+            contracts: rows.filter(row => row.version === 1).map(({ path, generation, bindings, fingerprint, active }) => ({ path, generation, bindings, fingerprint, active })) };
     },
 });
 
@@ -85,6 +85,7 @@ export const _approvalInput = internalQuery({
         assertCloudRevision(args.expectedRevision); generation(args.expectedGeneration, true);
         if (state.revision !== args.expectedRevision) cloudError('CLOUD_CONFLICT');
         const prior = await contractFor(ctx, args, args.path);
+        if (prior && prior.version !== 1) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         if ((prior?.generation ?? 0) !== args.expectedGeneration) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         const files = await filesFor(ctx, args);
         const file = files.find(file => file.path === args.path);
@@ -102,6 +103,7 @@ export const _approve = internalMutation({
         assertCloudRevision(args.expectedRevision); generation(args.expectedGeneration, true); assertHash(args.fingerprint);
         if (state.revision !== args.expectedRevision) cloudError('CLOUD_CONFLICT');
         const prior = await contractFor(ctx, args, args.path);
+        if (prior && prior.version !== 1) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         if ((prior?.generation ?? 0) !== args.expectedGeneration) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         if (!args.bindings.length || args.bindings.length > 100 || new Set(args.bindings.map(b => b.oid)).size !== args.bindings.length ||
             args.bindings.some(b => !b.fields.length || new Set(b.fields).size !== b.fields.length)) cloudError('CLOUD_CONTENT_INVALID_TARGET');
@@ -127,7 +129,7 @@ export const revoke = mutation({
         await requireCloudAccess(ctx, args, 'designer');
         generation(args.expectedGeneration);
         const row = await contractFor(ctx, args, args.path);
-        if (!row || row.generation !== args.expectedGeneration) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
+        if (!row || row.version !== 1 || row.generation !== args.expectedGeneration) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         const next = row.generation + 1;
         await ctx.db.patch(row._id, { active: false, generation: next, updatedAt: Date.now() });
         return { path: args.path, generation: next };

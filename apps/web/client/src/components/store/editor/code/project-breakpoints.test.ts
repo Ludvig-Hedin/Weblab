@@ -66,4 +66,20 @@ describe('one exact project breakpoint scope', () => {
         expect(width).toBe(1200);
         expect(tailwindPrefixForWidth(width, {}, true)).toBe(`[@media(min-width:${width}px)]:`);
     });
+
+    test('locale source inventory discovers the shared entry but keeps imported tokens protected', async () => {
+        const files: Record<string, string> = {
+            'src/app/[locale]/layout.tsx': 'import "../globals.css"; export default function Layout({children}) { return <html><body>{children}</body></html>; }',
+            'src/app/globals.css': '@import "tailwindcss"; @import "../styles/tokens.css"; @theme { --breakpoint-lg: 1200px; }',
+            'src/styles/tokens.css': ':root { --brand: red; }',
+        };
+        const read = async (path: string) => files[path] ?? '';
+        const paths = Object.keys(files);
+        expect(await readProjectStylesheet(read, paths)).toBeNull();
+        expect((await readProjectStylesheet(read, paths, { allowImportedTheme: true }))?.path).toBe('src/app/globals.css');
+        expect(await readProjectBreakpoints(read, paths)).toEqual({});
+        files['src/app/globals.css'] = '@import "tailwindcss"; @theme { --breakpoint-lg: 1200px; }';
+        expect((await readProjectStylesheet(read, paths))?.path).toBe('src/app/globals.css');
+        expect(await readProjectBreakpoints(read, paths)).toEqual({ lg: 1200 });
+    });
 });

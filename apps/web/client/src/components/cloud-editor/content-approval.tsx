@@ -11,8 +11,11 @@ import { Input } from '@weblab/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { Textarea } from '@weblab/ui/textarea';
 
-import type { CloudSource } from '@/components/store/editor/sandbox/cloud-source';
-import type { CloudEditorScope } from '@/lib/cloud-editor/api';
+import { textBindingIdentity, validCloudTextApproval, type CloudSource } from '@/components/store/editor/sandbox/cloud-source';
+import type { KeyedTextRenderMapping } from '@weblab/parser/src/code-edit/content-render-mapping';
+import type { DomElement } from '@weblab/models';
+import { cloudEditorApi, type CloudEditorScope } from '@/lib/cloud-editor/api';
+import type { ContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
 import { useCloudEditorCopy } from '@/lib/cloud-editor/copy';
 import { cloudContentApi } from './content-api';
 import { CloudImageUpload, useCloudImageCopy } from './image-upload';
@@ -36,7 +39,14 @@ export type CloudContentSelection = {
     attributes: Record<string, string>;
     plainText: boolean;
     unsupportedReason?: string;
-};
+    selectionKey?: string;
+    frameId?: string;
+    domId?: string;
+    contentIdentity?: DomElement['contentIdentity'];
+} & ({ contractVersion?: 1; textTarget?: never; renderMapping?: never; questionLabel?: never;
+    selectionActorId?: never; selectionGeneration?: never; selectionDesignRevision?: never }
+    | { contractVersion: 2; textTarget: ContentTextTarget; renderMapping?: KeyedTextRenderMapping; questionLabel?: string;
+        selectionActorId?: string; selectionGeneration?: number; selectionDesignRevision?: number });
 type AssetReader = (url: string) => Promise<Blob | null>;
 type ApprovalOptions = {
     allowImageUploads?: boolean;
@@ -694,7 +704,7 @@ class ApprovalBoundary extends Component<
     }
 }
 
-export const CloudContentApproval = observer(
+const LegacyContentApproval = observer(
     ({
         source,
         scope,
@@ -882,3 +892,79 @@ export const CloudContentApproval = observer(
         );
     },
 );
+
+
+/** Shared component text uses the same canvas and never exposes unrestricted properties. */
+const ComponentTextApproval = observer(({ source, scope, selection, onEditText }: Props) => {
+    const copy = useCloudEditorCopy();
+    const approve = useAction(cloudEditorApi.approveText);
+    const revoke = useMutation(cloudEditorApi.revokeText);
+    const [pending, setPending] = useState(false);
+    const [failed, setFailed] = useState(false);
+    const inFlight = useRef(false);
+    const snapshot = source.state.textContracts;
+    const path = selection?.path.replace(/^\/+/, '') ?? '';
+    const target = selection?.contractVersion === 2 ? selection.textTarget : null;
+    const contract = snapshot?.contracts.find(row => row.path === path);
+    const mapping = selection?.contractVersion === 2 ? selection.renderMapping : undefined;
+    const matches = (binding: NonNullable<typeof contract>['bindings'][number]) => !!target &&
+        textBindingIdentity(binding.target, binding.renderMapping) === textBindingIdentity(target, mapping);
+    const binding = contract?.bindings.find(matches);
+    const approved = contract?.active === true && contract.current === true && !!binding;
+    const busy = pending || source.state.pending || source.state.loading || source.state.needsReload || !source.state.accessReady || source.hasLocalWork;
+    const ready = !!snapshot && snapshot.revision === source.state.savedRevision && selection?.revision === snapshot.revision &&
+        (target?.kind !== 'data-leaf' || (selection?.selectionActorId === snapshot.actorId &&
+            selection?.selectionGeneration === (contract?.generation ?? 0) && selection?.selectionDesignRevision === snapshot.designRevision));
+    const canApprove = source.canDesign && source.state.access?.canApproveImportedText === true;
+    const unsupported = !target || !!selection?.unsupportedReason || !validCloudTextApproval({
+        version: 2, ...scope, actorId: snapshot?.actorId, path, bindingId: binding?.bindingId ?? 'selection',
+        target, renderMapping: mapping, generation: contract?.generation || 1, designRevision: snapshot?.designRevision,
+    });
+    async function change() {
+        if (!selection || !target || unsupported || !canApprove || !ready || busy || inFlight.current) return;
+        inFlight.current = true; setPending(true); setFailed(false);
+        const actorId = snapshot!.actorId;
+        try {
+            // Only current sibling approvals survive. A stale design requires each field to be reviewed again.
+            const bindings = contract?.current ? contract.bindings.filter(row => !matches(row) && validCloudTextApproval({
+                version: 2, ...scope, actorId, path, bindingId: row.bindingId, target: row.target, renderMapping: row.renderMapping,
+                generation: contract.generation, designRevision: contract.designRevision,
+            })) : [];
+            if (!approved) bindings.push({ bindingId: binding?.bindingId ?? crypto.randomUUID(), target, ...(mapping ? { renderMapping: mapping } : {}) });
+            if (!bindings.length && contract) {
+                await revoke({ ...scope, actorId, path, expectedGeneration: contract.generation });
+            } else {
+                await approve({ ...scope, actorId, path, expectedRevision: selection.revision,
+                    expectedGeneration: contract?.generation ?? 0, bindings });
+            }
+            if (source.state.textContracts?.actorId !== actorId) return;
+            await source.refreshCapabilities();
+        } catch { setFailed(true); }
+        finally { inFlight.current = false; setPending(false); }
+    }
+    return <section className="space-y-3 border-b p-3 text-xs" aria-label={copy.contentTitle}>
+        <h2 className="font-medium">{copy.contentTitle}</h2>
+        {!selection ? <p className="text-foreground-secondary">{copy.contentSelect}</p>
+            : unsupported ? <p className="text-foreground-secondary">{selection?.unsupportedReason ?? copy.contentUnsupported}</p>
+            : <>
+                {target?.kind === 'data-leaf' ? <>
+                    <p className="font-medium break-words">{selection?.questionLabel}</p>
+                    <p className="text-foreground-secondary">{target.property === 'question' ? copy.contentFaqQuestion : copy.contentFaqAnswer} · {copy.contentFaqItem}</p>
+                </> : <p className="text-foreground-secondary">{copy.contentSharedComponent}</p>}
+                {contract?.active && !contract.current && <p role="status">{copy.contentSharedApprovalStale}</p>}
+                {canApprove && !source.isContentMode ? <Button size="sm" variant="outline" className="w-full"
+                    disabled={busy || !ready} loading={pending} onClick={() => void change()}>
+                    {approved ? copy.contentRemoveApproval : copy.contentAllow}
+                </Button> : approved ? <Button size="sm" variant="outline" className="w-full"
+                    disabled={busy || !ready || !source.canEditText(mapping?.renderer.path ?? path, selection!.oid, selection?.contentIdentity)} onClick={onEditText}>
+                    {copy.contentEdit}
+                </Button> : <p className="text-foreground-secondary">{copy.contentElementLocked}</p>}
+            </>}
+        {failed && <p role="alert" className="text-destructive">{copy.contentApprovalFailed}</p>}
+    </section>;
+});
+
+export const CloudContentApproval = observer((props: Props) =>
+    props.source.state.profile === 'imported-next-v1'
+        ? <ComponentTextApproval key={`${props.selection?.scopeKey}:${props.selection?.path}:${props.selection?.selectionKey ?? props.selection?.oid}`} {...props} />
+        : <LegacyContentApproval {...props} />);

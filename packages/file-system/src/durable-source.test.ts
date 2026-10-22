@@ -24,6 +24,23 @@ async function source(project = `durable-${Math.random().toString(36).slice(2)}`
 }
 
 describe('durable cloud source', () => {
+    it('persists approved text bytes exactly and rejects stale baselines before remote submission', async () => {
+        const fs = await source();
+        const submitted: DurableSourceChange[][] = [];
+        fs.setDurableCommitHandler(async changes => { submitted.push(changes); });
+        const original = page('Before');
+        const candidate = original.replace('>Before<', '>{"After\\nline"}<');
+        try {
+            await fs.writeCloudTextFile('app/page.tsx', candidate, original);
+            expect(await fs.readFile('app/page.tsx')).toBe(candidate);
+            expect(submitted).toEqual([[{ path: 'app/page.tsx', content: candidate }]]);
+            await expect(fs.writeCloudTextFile('app/page.tsx', original, original)).rejects.toThrow('changed before saving');
+            await expect(fs.writeCloudTextFile('public/image.bin', 'replacement')).rejects.toThrow('existing cloud text file');
+            expect(submitted).toHaveLength(1);
+            expect(await fs.readFile('app/page.tsx')).toBe(candidate);
+        } finally { await fs.cleanup(); }
+    });
+
     it('rechecks cancellation after waiting for the source write lock without invalidating the ready tree', async () => {
         const fs = await source();
         let enter!: () => void, release!: () => void;
