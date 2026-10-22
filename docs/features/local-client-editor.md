@@ -62,6 +62,12 @@ A saved heading survived an app restart; the restored header Undo returned it to
 Desktop lint, typecheck and all 2,229 tests pass (172 native-shell tests). Rich text ranges and arbitrary CMS
 structures are outside this plain-text field contract.
 
+After synchronization with remote main on 2026-10-22, all 2,418 desktop tests
+(322 native-shell tests), lint and typecheck pass. A fresh unsigned review app
+also passed direct body typing, Cmd+R refusal while unsaved, Keep editing with
+the exact draft retained, Discard, and normal reload with original heading/body
+text in both frames. This source integration remains in open PR #17.
+
 ## Resume on another Mac
 
 Check out the PR branch in a separate Weblab checkout. Use Bun and Node 22.13+
