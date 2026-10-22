@@ -24,6 +24,23 @@ async function source(project = `durable-${Math.random().toString(36).slice(2)}`
 }
 
 describe('durable cloud source', () => {
+    it('submits normalized image bytes and exact owner source in one durable commit', async () => {
+        const fs = await source();
+        const submitted: DurableSourceChange[][] = [];
+        fs.setDurableCommitHandler(async changes => { submitted.push(changes); });
+        const candidate = page('Exact image owner');
+        const path = `public/weblab-upload-${'a'.repeat(64)}.webp`;
+        const bytes = new Uint8Array([1, 2, 3, 4]);
+        try {
+            await fs.writeCloudImageFiles('app/page.tsx', candidate, { path, bytes });
+            expect(submitted).toHaveLength(1);
+            expect(submitted[0]).toEqual([{ path: 'app/page.tsx', content: candidate }, { path, content: bytes }]);
+            expect(await fs.readFile('app/page.tsx')).toBe(candidate);
+            await expect(fs.writeCloudImageFiles('missing.tsx', candidate, { path, bytes })).rejects.toThrow('existing cloud text owner');
+            expect(submitted).toHaveLength(1);
+        } finally { await fs.cleanup(); }
+    });
+
     it('persists approved text bytes exactly and rejects stale baselines before remote submission', async () => {
         const fs = await source();
         const submitted: DurableSourceChange[][] = [];

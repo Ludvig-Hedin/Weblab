@@ -45,6 +45,8 @@ export function reverseWriteCodeAction(action: WriteCodeAction): WriteCodeAction
             generated: diff.original,
         })),
         ...(action.previewStyle ? { previewStyle: reverseStyleAction(action.previewStyle) } : {}),
+        ...(action.cssModuleStyle ? { cssModuleStyle: { ...action.cssModuleStyle,
+            previousValue: action.cssModuleStyle.value, value: action.cssModuleStyle.previousValue } } : {}),
     };
 }
 
@@ -292,6 +294,7 @@ export function updateTransactionActions(actions: Action[], newAction: Action): 
     // SAME element(s). Two edit-text (or remove-element, …) actions on
     // different elements inside one transaction must BOTH survive — wholesale
     // replace-by-type silently dropped the first.
+    if (newAction.type === 'write-code' && ('cssModuleStyle' in newAction || actions.some(action => action.type === 'write-code' && 'cssModuleStyle' in action))) return [...actions, newAction];
     const newKeys = actionTargetKeys(newAction);
     const existingActionIndex = actions.findIndex(
         (a) =>

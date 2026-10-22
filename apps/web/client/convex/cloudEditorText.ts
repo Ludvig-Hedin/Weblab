@@ -60,7 +60,7 @@ async function filesFor(ctx: Context, scope: Scope) {
     return files;
 }
 function isTextContract(row: Doc<'cloudEditorContentContracts'>): boolean {
-    return row.version === 2 && !!row.textBindings?.length && !row.bindings.length;
+    return row.version === 2 && !!row.textBindings?.length && !row.bindings.length && !row.imageBindings?.length;
 }
 async function checkedContracts(ctx: Context, scope: Scope, expected: Expected[], designRevision: number) {
     if (!expected.length || expected.length > MAX_CLOUD_FILES) cloudError('CLOUD_INVALID_CHANGES');
@@ -72,7 +72,7 @@ async function checkedContracts(ctx: Context, scope: Scope, expected: Expected[]
         const row = await contractFor(ctx, scope, entry.path);
         if (entry.version !== 2 || entry.designRevision !== designRevision || !row || row.version !== 2 ||
             !row.active || row.generation !== entry.generation || row.designRevision !== designRevision ||
-            !row.textBindings?.length || row.bindings.length) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
+            !row.textBindings?.length || row.bindings.length || row.imageBindings?.length) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         return row;
     }));
 }
@@ -99,6 +99,7 @@ export const _approvalInput = internalQuery({
         if (state.revision !== args.expectedRevision) cloudError('CLOUD_CONFLICT');
         const prior = await contractFor(ctx, args, args.path);
         if ((prior && prior.version !== 2) || (prior?.generation ?? 0) !== args.expectedGeneration) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
+        if (prior?.active && prior.imageBindings?.length) cloudError('CLOUD_CONTENT_IMAGE_APPROVAL_EXISTS');
         const files = await filesFor(ctx, args);
         const file = files.find(file => file.path === args.path);
         if (!file || file.kind !== 'file' || typeof file.text !== 'string' || file.storageId) cloudError('CLOUD_CONTENT_INVALID_TARGET');
@@ -131,6 +132,7 @@ export const _approve = internalMutation({
         if (args.designRevision !== designRevision) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
         const prior = await contractFor(ctx, args, args.path);
         if ((prior && prior.version !== 2) || (prior?.generation ?? 0) !== args.expectedGeneration) cloudError('CLOUD_CONTENT_STALE_CONTRACT');
+        if (prior?.active && prior.imageBindings?.length) cloudError('CLOUD_CONTENT_IMAGE_APPROVAL_EXISTS');
         if (!args.bindings.length || args.bindings.length > 100 || new Set(args.bindings.map(binding => binding.bindingId)).size !== args.bindings.length)
             cloudError('CLOUD_CONTENT_INVALID_TARGET');
         const files = await filesFor(ctx, args);

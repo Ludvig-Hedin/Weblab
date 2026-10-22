@@ -1,9 +1,11 @@
+import { validCloudImageApproval, validCloudImageValue } from './cloud-image-approval';
 import { validateCloudChanges } from '@convex/lib/cloudEditor';
 
 import type {
     CloudEditorCommit,
     CloudTextOperation,
     CloudImageOperation,
+    CloudImageV2Operation,
     CloudEditorScope,
     CloudSourceOperation,
     CloudSemanticOperation,
@@ -14,7 +16,9 @@ export type CloudRecoveryOperation = CloudEditorCommit & {
     transport?: string;
     transportVersion?: number;
     expectedContracts?: Array<{ path: string; generation: number; version?: 2; designRevision?: number }>;
-    image?: CloudImageOperation['image'];
+    image?: CloudImageOperation['image'] | CloudImageV2Operation['image'];
+    pin?: CloudImageV2Operation['pin'];
+    previous?: CloudImageV2Operation['previous'];
     expectedGeneration?: number;
     operation?: CloudSemanticOperation['operation'];
 };
@@ -110,6 +114,7 @@ export function storedCloudRecoveryRecord(
 export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSourceOperation | null {
     const operation = record.operation;
     if (record.version === 1) {
+        if (operation.pin !== undefined || operation.previous !== undefined) return null;
         if (
             operation.transport !== undefined ||
             operation.transportVersion !== undefined ||
@@ -119,6 +124,25 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
         return { ...operation, transport: 'design', transportVersion: 1 };
     }
     if (record.version !== 2) return null;
+    if (operation.transport === 'content-image' && operation.transportVersion === 2) {
+        const pin = operation.pin, image = operation.image, previous = operation.previous;
+        if (!pin || typeof pin !== 'object' || Array.isArray(pin) || !('binding' in pin) || Object.keys(pin).sort().join(',') !== 'binding,designRevision,fingerprint,generation,path,version' ||
+            !validCloudImageApproval({ ...pin, projectId: operation.projectId, branchId: operation.branchId, actorId: operation.actorId }) ||
+            pin.designRevision > operation.expectedRevision || !image || typeof image !== 'object' || !('kind' in image) || !validCloudImageValue(previous) ||
+            operation.expectedContracts !== undefined || operation.operation !== undefined || operation.expectedGeneration !== undefined ||
+            operation.changes.filter(change => change.path === pin.path && typeof change.content === 'string' && change.directory === undefined).length !== 1) return null;
+        if (image.kind === 'values') {
+            if (Object.keys(image).join(',') !== 'kind' || operation.changes.length !== 1) return null;
+        } else if (image.kind === 'upload') {
+            if (Object.keys(image).sort().join(',') !== 'attemptId,kind' || typeof image.attemptId !== 'string' || !image.attemptId.length ||
+                image.attemptId.length > 160 || /[^A-Za-z0-9_:-]/.test(image.attemptId) || operation.changes.length > 2 ||
+                operation.changes.some(change => change.path !== pin.path && (change.directory !== undefined ||
+                    !/^public\/weblab-upload-[a-f0-9]{64}\.webp$/.test(change.path) || change.path.length !== 90 ||
+                    !(change.content instanceof ArrayBuffer) || change.content.byteLength < 1 || change.content.byteLength > 600_000))) return null;
+        } else return null;
+        return operation as CloudImageV2Operation;
+    }
+    if (operation.pin !== undefined || operation.previous !== undefined) return null;
     if (operation.transport === 'content' && operation.transportVersion === 2) {
         const pins = operation.expectedContracts;
         if (!Array.isArray(pins) || !pins.length || pins.length !== operation.changes.length ||
@@ -139,7 +163,7 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
         return validSemanticOperation(operation) ? operation as CloudSemanticOperation : null;
     if (operation.transport === 'content-image') {
         const pin = operation.image;
-        if (!pin || typeof pin.attemptId !== 'string' || typeof pin.path !== 'string' || typeof pin.oid !== 'string' ||
+        if (!pin || typeof pin !== 'object' || !('attemptId' in pin) || typeof pin.attemptId !== 'string' || typeof pin.path !== 'string' || typeof pin.oid !== 'string' ||
             !Number.isSafeInteger(pin.generation) || pin.generation < 1 ||
             !/^public\/weblab-upload-[a-f0-9]{64}\.webp$/.test(pin.assetPath) || operation.expectedContracts !== undefined ||
             operation.changes.length < 1 || operation.changes.length > 2 ||
@@ -173,7 +197,7 @@ export function cloudRecoveryOperation(record: CloudRecoveryRecord): CloudSource
 
 /** A restored semantic request can only select one of the two fixed, validated server actions. */
 export function validSemanticOperation(operation: CloudRecoveryOperation): boolean {
-    if (operation.changes.length !== 0 || operation.image !== undefined || operation.expectedContracts !== undefined ||
+    if (operation.changes.length !== 0 || operation.pin !== undefined || operation.previous !== undefined || operation.image !== undefined || operation.expectedContracts !== undefined ||
         !Number.isSafeInteger(operation.expectedGeneration) || operation.expectedGeneration! < 0 ||
         !operation.operation || typeof operation.operation !== 'object' || Array.isArray(operation.operation)) return false;
     const kinds = operation.transport === 'studio'

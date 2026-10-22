@@ -80,6 +80,10 @@ const localfsBridge = IS_APP_ORIGIN
               ipcRenderer.invoke('weblab:localfs:writeIfUnchanged', {
                   root, path: p, content, expectedSha256,
               }),
+          writeIfUnchangedWithDependencies: (root, p, content, expectedSha256, dependencies) =>
+              ipcRenderer.invoke('weblab:localfs:writeIfUnchangedWithDependencies', {
+                  root, path: p, content, expectedSha256, dependencies,
+              }),
           deleteFileIfUnchanged: (root, p, expectedSha256) =>
               ipcRenderer.invoke('weblab:localfs:deleteFileIfUnchanged', {
                   root, path: p, expectedSha256,
@@ -103,6 +107,8 @@ const localfsBridge = IS_APP_ORIGIN
 
 const localdevBridge = IS_APP_ORIGIN
     ? {
+          getPreviewSettings: (root) => ipcRenderer.invoke('weblab:localdev:getPreviewSettings', { root }),
+          setPreviewSettings: (root, settings) => ipcRenderer.invoke('weblab:localdev:setPreviewSettings', { root, settings }),
           installDependencies: (root) =>
               ipcRenderer.invoke('weblab:localdev:installDependencies', { root }),
           dependenciesReady: (root) =>

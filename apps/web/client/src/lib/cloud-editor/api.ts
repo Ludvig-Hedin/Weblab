@@ -39,6 +39,13 @@ type TextApi = ApiFromModules<{ text: typeof Text; actions: typeof TextActions }
 type ImportPreparationApi = ApiFromModules<{ preparation: typeof ImportPreparation }>['preparation'];
 
 export const cloudEditorApi = {
+    imageContracts: makeFunctionReference<'query', FunctionArgs<ImagesApi['imageContracts']>, FunctionReturnType<ImagesApi['imageContracts']>>('cloudEditorContentImages:imageContracts'),
+    resolveImageSelection: makeFunctionReference<'action', FunctionArgs<BackendApi['cloudEditorContentImageActions']['resolveSelection']>, FunctionReturnType<BackendApi['cloudEditorContentImageActions']['resolveSelection']>>('cloudEditorContentImageActions:resolveSelection'),
+    approveImage: makeFunctionReference<'action', FunctionArgs<BackendApi['cloudEditorContentImageActions']['approveV2']>, FunctionReturnType<BackendApi['cloudEditorContentImageActions']['approveV2']>>('cloudEditorContentImageActions:approveV2'),
+    revokeImage: makeFunctionReference<'mutation', FunctionArgs<ImagesApi['revokeV2']>, FunctionReturnType<ImagesApi['revokeV2']>>('cloudEditorContentImages:revokeV2'),
+    commitImageV2: makeFunctionReference<'action', FunctionArgs<BackendApi['cloudEditorContentImageActions']['commitV2']>, FunctionReturnType<BackendApi['cloudEditorContentImageActions']['commitV2']>>('cloudEditorContentImageActions:commitV2'),
+    cancelImageV2: makeFunctionReference<'mutation', FunctionArgs<ImagesApi['cancelPreparationV2']>, FunctionReturnType<ImagesApi['cancelPreparationV2']>>('cloudEditorContentImages:cancelPreparationV2'),
+
     resolveTextSelection: makeFunctionReference<'action', FunctionArgs<TextApi['actions']['resolveSelection']>, FunctionReturnType<TextApi['actions']['resolveSelection']>>('cloudEditorTextActions:resolveSelection'),
     textContracts: makeFunctionReference<'query', FunctionArgs<TextApi['text']['contracts']>, FunctionReturnType<TextApi['text']['contracts']>>('cloudEditorText:contracts'),
     approveText: makeFunctionReference<'action', FunctionArgs<TextApi['actions']['approve']>, FunctionReturnType<TextApi['actions']['approve']>>('cloudEditorTextActions:approve'),
@@ -127,4 +134,6 @@ export type CloudJournalOperation = FunctionArgs<StudioApi['journal']['commit']>
 export type CloudSemanticOperation = CloudStudioOperation | CloudJournalOperation;
 export type CloudTextContracts = FunctionReturnType<TextApi['text']['contracts']>;
 export type CloudTextOperation = FunctionArgs<TextApi['actions']['commit']>;
-export type CloudSourceOperation = CloudTextOperation | CloudDesignerOperation | CloudEditorContentCommit | CloudImageOperation | CloudSemanticOperation;
+export type CloudImageV2Contracts = FunctionReturnType<ImagesApi['imageContracts']>;
+export type CloudImageV2Operation = FunctionArgs<BackendApi['cloudEditorContentImageActions']['commitV2']>;
+export type CloudSourceOperation = CloudImageV2Operation | CloudTextOperation | CloudDesignerOperation | CloudEditorContentCommit | CloudImageOperation | CloudSemanticOperation;

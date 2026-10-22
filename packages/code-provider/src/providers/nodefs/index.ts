@@ -59,6 +59,11 @@ export interface NodeFsProviderOptions {
     port?: number | null;
 }
 
+export interface LocalPreviewSettings {
+    NEXT_PUBLIC_SANITY_PROJECT_ID: string;
+    NEXT_PUBLIC_SANITY_DATASET: string;
+}
+
 export interface LocalHandoffFile {
     path: string;
     original: string | null;
@@ -118,6 +123,10 @@ interface LocalFsBridge {
         error?: string;
         recoveryPath?: string;
     }>;
+    writeIfUnchangedWithDependencies?(
+        root: string, path: string, content: string, expectedSha256: string,
+        dependencies: Array<{ path: string; sha256: string }>,
+    ): Promise<{ success?: boolean; hash?: string | null; conflict?: boolean; error?: string; recoveryPath?: string }>;
     deleteFileIfUnchanged(
         root: string,
         path: string,
@@ -160,6 +169,13 @@ interface LocalFsBridge {
 }
 
 interface LocalDevBridge {
+    getPreviewSettings?(root: string): Promise<{ settings?: LocalPreviewSettings | null; error?: string }>;
+    setPreviewSettings?(root: string, settings: LocalPreviewSettings | null): Promise<{
+        success?: boolean;
+        settings?: LocalPreviewSettings | null;
+        error?: string;
+    }>;
+
     start(
         root: string,
         command?: string | null,
@@ -297,6 +313,29 @@ export class NodeFsProvider extends Provider {
         return root;
     }
 
+    async getPreviewSettings(): Promise<LocalPreviewSettings | null> {
+        const get = requireLocalDev().getPreviewSettings;
+        if (!get) throw new Error('Update the Weblab desktop app to configure preview settings.');
+        const result = await get(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        if (result.settings === undefined) throw new Error('Native preview settings response is incomplete.');
+        return result.settings;
+    }
+
+    async setPreviewSettings(settings: LocalPreviewSettings | null): Promise<void> {
+        const set = requireLocalDev().setPreviewSettings;
+        if (!set) throw new Error('Update the Weblab desktop app to configure preview settings.');
+        const result = await set(this.requireRoot(), settings);
+        if (result.error) throw new Error(result.error);
+        if (result.success !== true) throw new Error('Native preview settings were not saved.');
+    }
+
+    async stopPreview(): Promise<void> {
+        const result = await requireLocalDev().stop(this.requireRoot());
+        if (result.error) throw new Error(result.error);
+        if (result.success !== true) throw new Error('The preview did not confirm it stopped.');
+    }
+
     async initialize(_input: InitializeInput): Promise<InitializeOutput> {
         return {};
     }
@@ -341,6 +380,18 @@ export class NodeFsProvider extends Provider {
             throw new Error(`Local file write did not return a hash: ${path}`);
         }
         return { sha256: res.hash };
+    }
+
+    /** Dedicated capability refuses older desktop bridges that cannot verify read dependencies. */
+    async writeFileIfUnchangedWithDependencies(path: string, content: string, expectedSha256: string,
+        dependencies: Array<{ path: string; sha256: string }>): Promise<{ sha256: string }> {
+        const write = requireLocalFs().writeIfUnchangedWithDependencies;
+        if (!write) throw new Error('Update the desktop app to save source-dependent edits.');
+        const result = await write(this.requireRoot(), path, content, expectedSha256, dependencies);
+        if (result.conflict) throw new LocalFileConflictError(path, result.hash ?? null, result.recoveryPath);
+        if (result.error) throw new Error(result.recoveryPath ? `${result.error}. On-disk snapshot: ${result.recoveryPath}` : result.error);
+        if (!result.success || !result.hash) throw new Error(`Local file write did not return a hash: ${path}`);
+        return { sha256: result.hash };
     }
 
     /** Undo a recent native-created file only while its exact disk version remains. */

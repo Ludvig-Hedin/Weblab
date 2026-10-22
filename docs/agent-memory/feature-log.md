@@ -1320,3 +1320,8 @@ Published [desktop-local-v0.2.2](https://github.com/Ludvig-Hedin/Weblab/releases
 ## 2026-10-22 — Next-release paused-editor and imported-text recovery
 
 Recovered separate imported v2 text approval/save endpoints and original actor/contract/revision pins through source writes, durable recovery and Undo/Redo. Saved canvas identity and plain-string wiring passed focused local checks, with web/preload/parser/filesystem types and zero-error scoped lint. The paused team shell now waits for actual window closure before stopping native services, preserving running previews/CLI work after a renderer veto. Both cloud rollout gates remain off, and the public release stays pinned to `d124aea1e`. Source integration is separate from packaged Electron and real customer acceptance. F-851 / T-895; F-813 unload continuation.
+
+
+## 2026-10-22 — Next-release CSS, preview and image source checkpoint
+
+Recovered the saved narrow CSS Module controls and immutable source owner through Apply/Undo/Redo, with final native JSX dependency checks. Public Sanity preview settings coexist with private Preview Keys outside project source/export. Imported-image v2 backend/HTTP/source transport retains explicit gates, original actors, storage provenance and exact recovery operations. Fresh source reviews and focused batches pass; web types are still unverified after two RAM-guard terminations and scoped lint is queued. No current-package/customer acceptance, deployment or activation is claimed. F-849/F-850/F-852, T-893/T-894/T-898.

@@ -107,7 +107,7 @@ describe('cloud branch deletion cleanup', () => {
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
         expect(f.get('cloudEditorStates:one')).toBeNull();
         expect(f.get('cloudEditorStates:other')).not.toBeNull();
-        expect(f.jobs).toHaveLength(6);
+        expect(f.jobs).toHaveLength(8);
         expect(f.pages).toHaveLength(0); // Cascade does not read large manifests.
         await f.flushCleanup();
         expect(f.get('cloudEditorFiles:own')).toBeNull();
@@ -155,7 +155,7 @@ describe('cloud branch deletion cleanup', () => {
         const f = fixture();
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
-        expect(f.jobs).toHaveLength(9);
+        expect(f.jobs).toHaveLength(11);
         f.put('cloudEditorStates', 'cloudEditorStates:replacement', { ...scope, version: 1 });
         f.put('cloudEditorFiles', 'cloudEditorFiles:replacement', { ...scope, path: 'page.tsx' });
         f.put('cloudEditorOperations', 'cloudEditorOperations:replacement', { ...scope, operationId: 'new' });
@@ -185,11 +185,11 @@ describe('cloud branch deletion cleanup', () => {
         f.put('cloudEditorStates', 'cloudEditorStates:second', { ...second, version: 1 });
         f.put('cloudEditorGrants', 'cloudEditorGrants:one', { projectId: scope.projectId, userId: 'users:one' });
         await cleanup.deleteCloudEditorBranch(f.ctx, scope);
-        expect(f.jobs).toHaveLength(6);
+        expect(f.jobs).toHaveLength(8);
         await f.flushCleanup();
         expect(f.get('cloudEditorGrants:one')).not.toBeNull();
         await cleanup.deleteCloudEditorBranch(f.ctx, second);
-        expect(f.jobs).toHaveLength(9);
+        expect(f.jobs).toHaveLength(11);
         f.put('cloudEditorStates', 'cloudEditorStates:new', { ...scope, branchId: 'branches:new', version: 1 });
         await f.flushCleanup();
         expect(f.get('cloudEditorGrants:one')).not.toBeNull();
@@ -225,5 +225,24 @@ describe('cloud branch deletion cleanup', () => {
         expect(f.get(attemptId)).toBeNull();
         expect(f.deletedBlobs).toEqual(['_storage:own', '_storage:shared']);
         expect(f.blobs.has('_storage:unknown')).toBe(true);
+    });
+});
+
+
+describe('imported image cleanup', () => {
+    it('drains both ownership tables in bounded pages without touching another project', async () => {
+        const f = fixture();
+        for (const name of ['cloudEditorImportedMedia', 'cloudEditorImportedImageAdmissions']) {
+            for (let i = 0; i < 205; i++) f.put(name, `${name}:${i}`, { ...scope });
+            f.put(name, `${name}:foreign`, { ...scope, projectId: 'projects:other' });
+        }
+        await cleanup.deleteCloudEditorBranch(f.ctx, scope);
+        await f.flushCleanup();
+        for (const name of ['cloudEditorImportedMedia', 'cloudEditorImportedImageAdmissions']) {
+            expect(f.table(name).size).toBe(1);
+            expect(f.get(`${name}:foreign`)).not.toBeNull();
+            expect(f.pages.filter(page => page.name === name).every(page => page.count <= 100)).toBe(true);
+        }
+        expect(f.deletedBlobs).toEqual([]);
     });
 });

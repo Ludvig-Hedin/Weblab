@@ -30,3 +30,8 @@ export function canUseImportedText(role: Role, authority: ImportedTextAuthority 
 export function canReadImportedSource(role: Role, update: boolean, authority: ImportedTextAuthority | null): boolean {
     return ((role === 'responsible' || role === 'designer') && update) || canUseImportedText(role, authority);
 }
+
+/** Image edits retain the separate imported text/content prerequisite. */
+export function canUseImportedImages(role: Role, authority: ImportedTextAuthority | null): boolean {
+    return canUseImportedText(role, authority) && process.env.WEBLAB_CLOUD_IMPORTED_IMAGES_ENABLED === 'true';
+}

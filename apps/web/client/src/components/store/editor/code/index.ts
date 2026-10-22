@@ -5,7 +5,9 @@ import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { makeAutoObservable } from 'mobx';
 
 import type { CodeFileSystem } from '@weblab/file-system';
-import type { BreakpointId } from '@weblab/models';
+import type { BreakpointId, DomElement } from '@weblab/models';
+import type { CssModuleProperty, CssModuleStyleEdit } from '@weblab/models/actions';
+import { NodeFsProvider } from '@weblab/code-provider';
 import type { BreakpointEntry } from '@weblab/parser';
 import { type Action, type CodeDiff, type CodeDiffRequest, type FileToRequests, type UpdateStyleAction } from '@weblab/models';
 import { assertStaticClassName, getAstFromCodeblock, getAstFromContent, selectPipeline } from '@weblab/parser';
@@ -13,6 +15,7 @@ import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
 import { type EditorEngine } from '@/components/store/editor/engine';
+import type { BranchData } from '../branch/manager';
 import type { HistoryDisposalLease } from '../history';
 import { getOrCreateCodeDiffRequest } from './helpers';
 import {
@@ -32,6 +35,21 @@ import { addResponsiveTailwindToRequest, getTailwindClasses, tailwindPrefixForWi
 import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
 import { breakpointMinWidth, readProjectBreakpoints } from './project-breakpoints';
 
+import { CSS_MODULE_PROPERTIES, readCssModuleDeclaration, replaceCssModuleDeclaration, resolveCssModuleBinding, validateCssModuleStyleEdit } from './css-module-declaration';
+
+export interface CssModuleStyleInspection {
+    branchId: string;
+    oid: string;
+    frameId: string;
+    domId: string;
+    sourcePath: string;
+    source: string;
+    cssPath: string;
+    css: string;
+    className: string;
+    properties: Partial<Record<CssModuleProperty, string>>;
+}
+
 interface ElementMetadataUpdate {
     oid: string;
     branchId: string;
@@ -41,6 +59,9 @@ interface ElementMetadataUpdate {
 }
 
 export class CodeManager {
+    private cssModuleInspectionOwners = new WeakMap<CssModuleStyleInspection, {
+        branch: BranchData; codeEditor: CodeFileSystem; provider: NodeFsProvider; version: string | null;
+    }>();
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
         this.attachBeforeUnload();
@@ -54,12 +75,16 @@ export class CodeManager {
      * failing at parse). The beforeunload guard below warns instead.
      */
     private pendingWrites = 0;
+    private moduleApplyPending = false;
+    private moduleApplyRun: Promise<void> | null = null;
+    cssModulePreview: { branchId: string; status: 'requested' | 'pending' | 'failed' } | null = null;
 
     get hasPendingWrites(): boolean {
-        return this.pendingWrites > 0;
+        return this.pendingWrites > 0 || this.moduleApplyPending;
     }
 
     async waitForPendingWrites(): Promise<void> {
+        while (this.moduleApplyRun) await this.moduleApplyRun.catch(() => undefined);
         await this.writeChain;
     }
 
@@ -195,6 +220,53 @@ export class CodeManager {
                 // whole-file AI-apply outputs that may target non-JSX files
                 // (css, json, md, …) the JSX re-parse would falsely reject.
                 await this.enqueueWrite(async () => {
+                    let assertModuleSourceCurrent: (() => void) | null = null;
+                    let moduleWrite: { expectedSha256: string; dependencies: Array<{ path: string; sha256: string }> } | null = null;
+                    if ('cssModuleStyle' in action) {
+                        const edit = action.cssModuleStyle;
+                        if (!edit || action.previewStyle || action.refreshTokens || action.diffs.length !== 1 ||
+                            'cloudProperty' in action || 'cloudImage' in action || action.diffs[0]?.path !== edit.cssPath ||
+                            action.branchId !== branchId || branchData.codeEditor !== codeEditor) {
+                            throw new Error('This component-class edit has no valid source target.');
+                        }
+                        this.assertCssModuleReady(branchId, true);
+                        validateCssModuleStyleEdit(edit);
+                        const provider = branchData.sandbox.session.provider;
+                        if (!(provider instanceof NodeFsProvider)) throw new Error('The private source folder is no longer available.');
+                        const sourceVersion = branchData.sandbox.getLocalSourceVersion();
+                        const externalRevision = branchData.sandbox.getLocalExternalRevision();
+                        const ownRevision = branchData.sandbox.getLocalOwnRevision();
+                        if (sourceVersion === null || externalRevision === null || ownRevision === null) {
+                            throw new Error('The private source version could not be verified.');
+                        }
+                        assertModuleSourceCurrent = () => {
+                            this.assertCssModuleReady(branchId, true);
+                            if (branchData.codeEditor !== codeEditor || branchData.sandbox.session.provider !== provider ||
+                                this.editorEngine.branches.getBranchDataById(branchId) !== branchData || sourceContext?.current?.() === false ||
+                                branchData.sandbox.getLocalSourceVersion() !== sourceVersion ||
+                                branchData.sandbox.getLocalExternalRevision() !== externalRevision ||
+                                branchData.sandbox.getLocalOwnRevision() !== ownRevision) {
+                                throw new Error('The source changed before this edit could be saved. Your draft has been kept.');
+                            }
+                        };
+                        const diff = action.diffs[0]!;
+                        // This read dependency is checked on DISK inside the final
+                        // write queue on initial save and every history replay.
+                        const [diskSource, diskCss, mirrorSource] = await Promise.all([
+                            provider.readFileWithHash(edit.sourcePath), provider.readFileWithHash(edit.cssPath), codeEditor.readFile(edit.sourcePath),
+                        ]);
+                        if (diskSource.content !== edit.source || mirrorSource !== edit.source || diskCss.content !== diff.original ||
+                            replaceCssModuleDeclaration(diff.original, edit.className, edit.property, edit.previousValue, edit.value) !== diff.generated) {
+                            throw new Error('The component or stylesheet changed. Your draft has been kept.');
+                        }
+                        moduleWrite = { expectedSha256: diskCss.sha256,
+                            dependencies: [{ path: edit.sourcePath, sha256: diskSource.sha256 }] };
+                        this.assertCssModuleReady(branchId, true);
+                        if (branchData.codeEditor !== codeEditor || branchData.sandbox.session.provider !== provider ||
+                            this.editorEngine.branches.getBranchDataById(branchId) !== branchData || sourceContext?.current?.() === false) {
+                            throw new Error('The source session changed before this edit could be saved.');
+                        }
+                    }
                     // Check EVERY expected original before touching ANY file.
                     // The same path runs for initial saves, Undo and Redo.
                     for (const diff of action.diffs) {
@@ -206,7 +278,12 @@ export class CodeManager {
                     const durableCloud = isCloudEditorRuntime(branchData.branch.runtime);
                     if (durableCloud) await codeEditor.writeFiles(action.diffs.map(diff => ({ path: diff.path, content: diff.generated })));
                     for (const diff of action.diffs) {
-                        if (!durableCloud) await codeEditor.writeFile(diff.path, diff.generated);
+                        if (!durableCloud) {
+                            assertModuleSourceCurrent?.();
+                            if (moduleWrite) await codeEditor.writeFileIfUnchangedWithDependencies(diff.path, diff.generated,
+                                moduleWrite.expectedSha256, moduleWrite.dependencies);
+                            else await codeEditor.writeFile(diff.path, diff.generated);
+                        }
                         // Cloud writers may format/instrument source. The
                         // next replay must compare with what actually landed.
                         const saved = await codeEditor.readFile(diff.path);
@@ -216,6 +293,7 @@ export class CodeManager {
                 if (action.refreshTokens && this.editorEngine.branches.activeBranch.id === branchId) {
                     await this.editorEngine.tokens.scan();
                 }
+                if (action.cssModuleStyle) this.refreshCssModulePreview(branchId);
             } else if (
                 action.type === 'add-interaction' ||
                 action.type === 'update-interaction' ||
@@ -284,16 +362,127 @@ export class CodeManager {
         refreshTokens = false,
         capturedEditor?: CodeFileSystem,
         previewStyle?: UpdateStyleAction,
+        cssModuleStyle?: CssModuleStyleEdit,
+        sourceCurrent?: () => boolean,
     ): Promise<void> {
         const branchData = this.editorEngine.branches.getBranchDataById(branchId);
         if (!branchData) throw new Error('The source branch is no longer available.');
         const codeEditor = capturedEditor ?? branchData.codeEditor;
         if (!previewStyle && diffs.every((diff) => diff.original === diff.generated)) return;
-        const action: Action = { type: 'write-code', branchId, diffs, refreshTokens, previewStyle };
+        const action: Action = { type: 'write-code', branchId, diffs, refreshTokens, previewStyle,
+            ...(cssModuleStyle ? { cssModuleStyle } : {}) };
         const saved = await branchData.history.pushImmediate(action, (entry) =>
-            this.write(entry, { branchId, codeEditor }));
+            this.write(entry, { branchId, codeEditor, current: sourceCurrent }));
         if (!saved) throw new Error('The edit could not be saved. Your source was not changed.');
         if (previewStyle) await this.editorEngine.action.applySourcePreview(previewStyle);
+    }
+
+    private assertCssModuleReady(branchId: string, insideWrite = false): void {
+        const branch = this.editorEngine.branches.getBranchDataById(branchId);
+        if (!branch || branch.branch.runtime.type !== 'local' || this.editorEngine.framework && this.editorEngine.framework !== 'nextjs' ||
+            !this.editorEngine.canUseDesign || this.editorEngine.isClosing || !this.editorEngine.branches.hasActiveBranch ||
+            this.editorEngine.branches.activeBranchData !== branch || branch.history.isPreparingForDisposal ||
+            branch.history.isTransactionOpen || this.editorEngine.text.hasPendingWork ||
+            this.editorEngine.action.hasPendingStylePreflights || this.editorEngine.action.hasPendingRebases ||
+            this.pendingWrites > (insideWrite ? 1 : 0)) {
+            throw new Error('Finish the current edit before changing this component class.');
+        }
+    }
+
+    async inspectCssModuleStyle(selection: Pick<DomElement, 'branchId' | 'oid' | 'frameId' | 'domId'>): Promise<CssModuleStyleInspection> {
+        this.assertCssModuleReady(selection.branchId);
+        if (!selection.oid || this.editorEngine.style.mode !== 'root') throw new Error('Select the component source to edit its shared class.');
+        const branch = this.editorEngine.branches.getBranchDataById(selection.branchId)!;
+        const codeEditor = branch.codeEditor;
+        const provider = branch.sandbox.session.provider;
+        if (!(provider instanceof NodeFsProvider)) throw new Error('A private local source folder is required.');
+        const owner = { branch, codeEditor, provider, version: branch.sandbox.getLocalSourceVersion() };
+        const assertOwner = () => {
+            this.assertCssModuleReady(selection.branchId);
+            if (this.editorEngine.branches.getBranchDataById(selection.branchId) !== branch ||
+                branch.codeEditor !== codeEditor || branch.sandbox.session.provider !== provider ||
+                branch.sandbox.getLocalSourceVersion() !== owner.version)
+                throw new Error('The source session changed. Review the component class again.');
+        };
+        const metadata = await codeEditor.getJsxElementMetadata(selection.oid);
+        assertOwner();
+        if (!metadata) throw new Error('The selected source is unavailable.');
+        // CodeFS indexes project-root paths as /src/…, while native reads and
+        // persisted dependency pins must stay relative to the private folder.
+        const sourcePath = metadata.path.startsWith('/') ? metadata.path.slice(1) : metadata.path;
+        const source = await codeEditor.readFile(sourcePath);
+        assertOwner();
+        if (typeof source !== 'string') throw new Error('The selected source is unavailable.');
+        const properties: Partial<Record<CssModuleProperty, string>> = {};
+        let target: { cssPath: string; className: string } | null = null;
+        let css = '';
+        for (const property of CSS_MODULE_PROPERTIES) {
+            try {
+                const binding = resolveCssModuleBinding(sourcePath, source, selection.oid, property);
+                const content = await codeEditor.readFile(binding.cssPath);
+                if (typeof content !== 'string') continue;
+                properties[property] = readCssModuleDeclaration(content, binding.className, property);
+                target = binding;
+                css = content;
+            } catch { /* Unsupported declarations are unavailable, never approximated. */ }
+        }
+        this.assertCssModuleReady(selection.branchId);
+        if (!target || branch.codeEditor !== codeEditor || this.editorEngine.branches.getBranchDataById(selection.branchId) !== branch) {
+            throw new Error('This element has no supported component-class declarations.');
+        }
+        assertOwner();
+        const inspection = { ...selection, oid: selection.oid, sourcePath, source, ...target, css, properties };
+        this.cssModuleInspectionOwners.set(inspection, owner);
+        return inspection;
+    }
+
+    async applyCssModuleStyle(inspection: CssModuleStyleInspection, property: CssModuleProperty, value: string): Promise<'saved' | 'saved-refresh-pending'> {
+        if (this.moduleApplyPending) throw new Error('This component class is still saving.');
+        this.assertCssModuleReady(inspection.branchId);
+        const owner = this.cssModuleInspectionOwners.get(inspection);
+        const branch = this.editorEngine.branches.getBranchDataById(inspection.branchId);
+        if (!owner || branch !== owner.branch || branch.codeEditor !== owner.codeEditor ||
+            branch.sandbox.session.provider !== owner.provider || branch.sandbox.getLocalSourceVersion() !== owner.version)
+            throw new Error('The source session changed. Review the component class again.');
+        const selected = this.editorEngine.elements.selected;
+        if (selected.length !== 1 || selected[0]?.oid !== inspection.oid || selected[0]?.branchId !== inspection.branchId ||
+            selected[0]?.frameId !== inspection.frameId || selected[0]?.domId !== inspection.domId || this.editorEngine.style.mode !== 'root') {
+            throw new Error('The selected source changed. Your draft has been kept.');
+        }
+        const previousValue = inspection.properties[property];
+        if (previousValue === undefined) throw new Error('This property is unavailable for the selected class.');
+        const edit: CssModuleStyleEdit = { version: 1, sourcePath: inspection.sourcePath, source: inspection.source, oid: inspection.oid,
+            cssPath: inspection.cssPath, className: inspection.className, property, previousValue, value };
+        validateCssModuleStyleEdit(edit);
+        const generated = replaceCssModuleDeclaration(inspection.css, inspection.className, property, previousValue, value);
+        if (generated === inspection.css) return 'saved';
+        const codeEditor = this.editorEngine.branches.getBranchDataById(inspection.branchId)!.codeEditor;
+        this.moduleApplyPending = true;
+        const save = this.saveSourceDiffs(inspection.branchId, [{ path: inspection.cssPath, original: inspection.css, generated }], false, codeEditor, undefined, edit,
+            () => this.editorEngine.branches.getBranchDataById(inspection.branchId) === owner.branch &&
+                owner.branch.codeEditor === owner.codeEditor && owner.branch.sandbox.session.provider === owner.provider &&
+                owner.branch.sandbox.getLocalSourceVersion() === owner.version);
+        this.moduleApplyRun = save;
+        try {
+            await save;
+            return this.cssModulePreview?.branchId === inspection.branchId && this.cssModulePreview.status === 'requested' ? 'saved' : 'saved-refresh-pending';
+        } finally { this.moduleApplyPending = false; this.moduleApplyRun = null; }
+    }
+
+    /** Source CSS, rather than a per-instance override, owns the shared preview. */
+    refreshCssModulePreview(branchId: string): boolean {
+        this.cssModulePreview = { branchId, status: 'pending' };
+        try {
+            this.assertCssModuleReady(branchId);
+            const frames = this.editorEngine.frames.getAll().filter(frame => frame.frame.branchId === branchId);
+            if (!frames.length || frames.some(frame => !frame.view)) return false;
+            this.editorEngine.frames.reloadByBranchId(branchId);
+            this.cssModulePreview = { branchId, status: 'requested' };
+            return true;
+        } catch {
+            this.cssModulePreview = { branchId, status: 'failed' };
+            return false;
+        }
     }
 
     async resetResponsiveStyle(previewStyle: UpdateStyleAction): Promise<void> {

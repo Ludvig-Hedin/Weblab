@@ -86,7 +86,7 @@ export class CodeFileSystem extends FileSystem {
     private projectId: string;
     private branchId: string;
     private options: Required<CodeEditorOptions>;
-    private localWrite: ((path: string, content: string) => Promise<void>) | null = null;
+    private localWrite: ((path: string, content: string, guard?: { expectedSha256: string; dependencies: Array<{ path: string; sha256: string }> }) => Promise<void>) | null = null;
     private durableCommit: DurableCommitHandler | null = null;
     private durableRecovery: DurableRecoveryHandler | null = null;
     private durableTree: DurableTree | null = null;
@@ -448,7 +448,7 @@ export class CodeFileSystem extends FileSystem {
         if (componentsChanged) await this.saveComponentIndex(nextComponentIndex);
     }
 
-    setLocalWriteHandler(write: (path: string, content: string) => Promise<void>): void {
+    setLocalWriteHandler(write: (path: string, content: string, guard?: { expectedSha256: string; dependencies: Array<{ path: string; sha256: string }> }) => Promise<void>): void {
         if (!this.options.localProject) throw new Error('Not a local project');
         this.localWrite = write;
     }
@@ -521,6 +521,22 @@ export class CodeFileSystem extends FileSystem {
         });
     }
 
+    async writeFileIfUnchangedWithDependencies(path: string, content: string, expectedSha256: string,
+        dependencies: Array<{ path: string; sha256: string }>): Promise<void> {
+        if (!this.options.localProject || this.options.durableCloud) throw new Error('A private local source is required');
+        return this.withWriteLock(async () => {
+            if (!this.localWrite || typeof content !== 'string') throw new Error('Local source is not ready for a text write');
+            const guard = { expectedSha256, dependencies: dependencies.map(dependency => ({ ...dependency })) };
+            try { await this.localWrite(path, content, guard); }
+            catch (error) {
+                const recoveryPath = await this.saveRecoveryCopy(path, content);
+                throw new Error(`Local write failed for ${path}. Your attempted source is saved in ${recoveryPath}. ${error instanceof Error ? error.message : String(error)}`);
+            }
+            await super.writeFile(path, content);
+            await this.reindexLocalFile(path, content);
+        });
+    }
+
     async writeFile(path: string, content: string | Uint8Array): Promise<void> {
         if (this.options.durableCloud) return this.writeFiles([{ path, content }]);
         return this.withWriteLock(async () => {
@@ -551,6 +567,21 @@ export class CodeFileSystem extends FileSystem {
                 processedContent = await this.processHtmlFile(path, content);
             }
             await super.writeFile(path, processedContent);
+        });
+    }
+
+    async writeCloudImageFiles(path: string, content: string, image?: { path: string; bytes: Uint8Array }): Promise<void> {
+        if (!this.options.durableCloud) throw new Error('A durable cloud source is required');
+        const normalized = durablePath(path);
+        const imagePath = image?.path, imageBytes = image?.bytes;
+        if (image && (typeof imagePath !== 'string' || imagePath.length !== 90 || !/^public\/weblab-upload-[a-f0-9]{64}\.webp$/.test(imagePath) ||
+            imagePath === normalized || !(imageBytes instanceof Uint8Array) || imageBytes.byteLength < 1 || imageBytes.byteLength > 600_000)) throw new Error('A normalized cloud image is required');
+        const picture = image ? { path: imagePath!, bytes: Uint8Array.from(imageBytes!) } : undefined;
+        return this.withWriteLock(async () => {
+            const tree = this.requireDurableTree(), current = tree.get(normalized);
+            if (isDurableCachePath(normalized) || !current || current.directory || typeof current.content !== 'string' || typeof content !== 'string' ||
+                (picture && tree.get(picture.path)?.directory)) throw new Error('An existing cloud text owner is required');
+            await this.commitDurableChanges([{ path: normalized, content }, ...(picture ? [{ path: picture.path, content: picture.bytes }] : [])], false);
         });
     }
 
