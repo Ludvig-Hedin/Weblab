@@ -1,5 +1,8 @@
+import { freezeCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
+import { freezeCloudTextApproval } from '../sandbox/cloud-source';
 import { debounce } from 'lodash';
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { Action } from '@weblab/models/actions';
 import { jsonClone } from '@weblab/utility';
@@ -7,6 +10,17 @@ import { jsonClone } from '@weblab/utility';
 import type { EditorEngine } from '../engine';
 import { transformRedoAction, undoAction, updateTransactionActions } from './helpers';
 import { clearHistory, loadHistory, saveHistory } from './storage';
+
+/** Keep a copied authority pin immutable while the stack remains observable. */
+function retainCloudTextHistoryPin(action: Action): Action {
+    if (action.type === 'write-code' && action.cloudProperty) return { ...action, cloudProperty: observable.object({
+        previousValue: action.cloudProperty.previousValue, value: action.cloudProperty.value, pin: freezeCloudPropertyApproval(action.cloudProperty.pin) }, { pin: observable.ref }) };
+    if (action.type === 'write-code' && action.cloudImage) return { ...action, cloudImage: observable.object({
+        field: action.cloudImage.field, pin: freezeCloudImageApproval(action.cloudImage.pin) }, { pin: observable.ref }) };
+    return action.type === 'edit-text' && action.cloudText
+        ? { ...action, cloudText: freezeCloudTextApproval(action.cloudText) }
+        : action;
+}
 
 enum TransactionType {
     IN_TRANSACTION = 'in-transaction',
@@ -73,6 +87,8 @@ export class HistoryManager {
             type: TransactionType.NOT_IN_TRANSACTION,
         },
     ) {
+        this.undoStack = this.undoStack.map(retainCloudTextHistoryPin);
+        this.redoStack = this.redoStack.map(retainCloudTextHistoryPin);
         makeAutoObservable<this, 'persistDebounced' | 'commitPromise' | 'pendingWrites' | 'pendingPushes' | 'sourceVersion' | 'externalRevision' | 'ownRevision' | 'lastExternalRevision' | 'lastOwnRevision' | 'storageChain' | 'disposalFlushInProgress' | 'disposalLease' | 'disposalFailure' | 'mutationGeneration' | 'disposed' | 'hydrating' | 'hydrationFailed' | 'sourcePreparationFailure'>(this, {
             persistDebounced: false,
             // Async plumbing, not UI state: `commitPromise` is reassigned
@@ -395,8 +411,8 @@ export class HistoryManager {
                     // B13: MERGE, don't replace — actions pushed while
                     // IndexedDB was resolving must survive. Persisted entries
                     // are older, so they go below anything already in memory.
-                    this.undoStack = [...saved.undoStack, ...this.undoStack];
-                    this.redoStack = [...saved.redoStack, ...this.redoStack];
+                    this.undoStack = [...saved.undoStack.map(retainCloudTextHistoryPin), ...this.undoStack];
+                    this.redoStack = [...saved.redoStack.map(retainCloudTextHistoryPin), ...this.redoStack];
                 });
             }
         } catch (err) {
@@ -609,11 +625,12 @@ export class HistoryManager {
         await Promise.allSettled(Array.from(this.pendingWrites.values()));
         this.sourceIsCurrent();
         const expectedExternalRevision = this.externalRevision?.() ?? null;
-        const previousRedo = this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action ? [...this.redoStack] : null;
+        const previousRedo = this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action || 'cloudImage' in action || 'cloudProperty' in action || (action.type === 'edit-text' && 'cloudText' in action) ? [...this.redoStack] : null;
         if (this.redoStack.length > 0) {
             this.redoStack = [];
         }
 
+        action = retainCloudTextHistoryPin(action);
         this.undoStack.push(action);
         this.mutationGeneration++;
         // MobX deep-observes the stack, so the entry just pushed is an
@@ -629,7 +646,7 @@ export class HistoryManager {
         try {
             written = await writePromise;
         } catch (error) {
-            if (this.disposalFlushInProgress || this.disposalLease) {
+            if (this.disposalFlushInProgress || this.disposalLease || (action.type === 'edit-text' && 'cloudText' in action)) {
                 runInAction(() => {
                     this.mutationGeneration++;
                     const index = this.undoStack.lastIndexOf(stored);
@@ -671,7 +688,7 @@ export class HistoryManager {
         // Source preparation can capture wrapper snapshots or the writer's
         // final formatted contents. MobX cloned the plain input on insertion;
         // record those successful-write details on the stored entry too.
-        runInAction(() => { this.mutationGeneration++; Object.assign(stored, jsonClone(action)); });
+        runInAction(() => { this.mutationGeneration++; Object.assign(stored, retainCloudTextHistoryPin(jsonClone(action))); });
 
         if (this.externalRevision && this.externalRevision() !== expectedExternalRevision) {
             // The edit already landed. The strict flush will reject the new
@@ -836,7 +853,8 @@ export class HistoryManager {
             if (top == null) {
                 return null;
             }
-            const forward = forwardCandidate;
+            const forward = forwardCandidate.type === 'write-code' && (forwardCandidate.cloudImage || forwardCandidate.cloudProperty)
+                ? retainCloudTextHistoryPin(forwardCandidate) : forwardCandidate;
             this.undoStack.push(forward);
             this.mutationGeneration++;
             // MobX wraps a plain replay action on insertion. Return the actual

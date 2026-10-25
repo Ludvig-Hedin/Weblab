@@ -17,6 +17,7 @@ import { BackgroundSection } from './sections/background';
 import { BorderSection } from './sections/border';
 import { ComponentInstanceSection } from './sections/component-instance';
 import { ComponentMasterSection } from './sections/component-master';
+import { ComponentClassSection } from './sections/component-class';
 import { CursorSection } from './sections/cursor';
 import { EffectsSection } from './sections/effects';
 import { ElementSection } from './sections/element';
@@ -30,6 +31,7 @@ import { TransformsSection } from './sections/transforms';
 import { TransitionsSection } from './sections/transitions';
 
 const DEFAULT_OPEN_SECTIONS = [
+    'component-class',
     'component',
     'element',
     'position',
@@ -114,6 +116,7 @@ export const StyleTabV4 = observer(function StyleTabV4() {
                 >
                     {EDITOR_SCOPE.components && <ComponentInstanceSection />}
                     {EDITOR_SCOPE.components && <ComponentMasterSection />}
+                    <ComponentClassSection />
                     <ElementSection />
                     <PositionSection />
                     <LayoutSection />

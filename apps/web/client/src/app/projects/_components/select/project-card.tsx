@@ -26,6 +26,7 @@ import {
     getProjectSiteUrl,
 } from './project-card-utils';
 import { ProjectPreviewSurface } from './project-preview-surface';
+import { useSourceLocation } from './use-source-location';
 
 export function ProjectCard({
     project,
@@ -86,6 +87,10 @@ export function ProjectCard({
     // Block opening only in the browser. Inside the desktop app the NodeFs
     // bridge is present, so local projects open normally.
     const openBlocked = isLocalProject && !isDesktop;
+    const source = useSourceLocation(
+        isLocalProject ? (project.metadata.runtime?.local?.rootPath ?? undefined) : undefined,
+    );
+    const organization = { folders, onMoveToFolder, onCreateFolder };
 
     const lastUpdated = useMemo(
         () => timeAgo(project.metadata?.updatedAt),
@@ -182,7 +187,9 @@ export function ProjectCard({
                 <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
             )}
             <span
-                title={project.metadata.runtime?.local?.rootPath ?? undefined}
+                title={source.location?.sourcePath}
+                onMouseEnter={() => void source.refresh()}
+                onFocus={() => void source.refresh()}
                 className="text-foreground truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current"
             >
                 {HighlightText ? (
@@ -200,7 +207,10 @@ export function ProjectCard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
             onMouseEnter={handleHoverPrefetch}
-            onFocus={handleHoverPrefetch}
+            onFocus={() => {
+                handleHoverPrefetch();
+                void source.refresh();
+            }}
             className="group/card w-full"
         >
             <div
@@ -309,12 +319,10 @@ export function ProjectCard({
                             >
                                 <SettingsDropdown
                                     project={project as Project}
+                                    {...organization}
                                     refetch={() => {
                                         void refetch();
                                     }}
-                                    folders={folders}
-                                    onMoveToFolder={onMoveToFolder}
-                                    onCreateFolder={onCreateFolder}
                                     open={menuOpen}
                                     onOpenChange={setMenuOpen}
                                     onSelect={() => onSelectionChange?.(true)}

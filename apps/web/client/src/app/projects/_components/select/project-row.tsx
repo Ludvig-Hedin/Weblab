@@ -23,6 +23,7 @@ import {
     getProjectSiteUrl,
 } from './project-card-utils';
 import { formatTechLabel } from './projects-toolbar';
+import { useSourceLocation } from './use-source-location';
 
 interface ProjectRowProps extends ProjectOrganizationProps {
     project: ProjectListItem;
@@ -85,6 +86,10 @@ export const ProjectRow = ({
     useEffect(() => setIsDesktop(isDesktopLocalAvailable()), []);
     const isLocalProject = project.metadata?.storageMode === 'local';
     const openBlocked = isLocalProject && !isDesktop;
+    const source = useSourceLocation(
+        isLocalProject ? (project.metadata.runtime?.local?.rootPath ?? undefined) : undefined,
+    );
+    const organization = { folders, onMoveToFolder, onCreateFolder };
 
     // Row-level navigation. In selection mode the same click toggles the
     // checkbox instead. Buttons / dropdowns inside the row stop propagation
@@ -155,7 +160,12 @@ export const ProjectRow = ({
     );
 
     const nameCell = (
-        <div className="flex min-w-0 items-center gap-2">
+        <div
+            title={source.location?.sourcePath}
+            onMouseEnter={() => void source.refresh()}
+            onFocus={() => void source.refresh()}
+            className="flex min-w-0 items-center gap-2"
+        >
             {faviconUrl && !faviconFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -168,10 +178,7 @@ export const ProjectRow = ({
             ) : (
                 <Icons.Globe className="text-foreground-tertiary h-4 w-4 shrink-0" />
             )}
-            <span
-                title={project.metadata.runtime?.local?.rootPath ?? undefined}
-                className="text-foreground truncate text-sm font-medium"
-            >
+            <span className="text-foreground truncate text-sm font-medium">
                 {HighlightText ? (
                     <HighlightText text={project.name} searchQuery={searchQuery} />
                 ) : (
@@ -254,10 +261,8 @@ export const ProjectRow = ({
             )}
             <SettingsDropdown
                 project={project as Project}
+                {...organization}
                 refetch={() => void refetch()}
-                folders={folders}
-                onMoveToFolder={onMoveToFolder}
-                onCreateFolder={onCreateFolder}
             />
         </div>
     );
@@ -288,10 +293,8 @@ export const ProjectRow = ({
         return (
             <ProjectCardContextMenu
                 project={project as Project}
+                {...organization}
                 refetch={refetch}
-                folders={folders}
-                onMoveToFolder={onMoveToFolder}
-                onCreateFolder={onCreateFolder}
             >
                 <motion.div
                     layout
@@ -299,7 +302,10 @@ export const ProjectRow = ({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                     onMouseEnter={handleHoverPrefetch}
-                    onFocus={handleHoverPrefetch}
+                    onFocus={() => {
+                        handleHoverPrefetch();
+                        void source.refresh();
+                    }}
                     className="relative"
                 >
                     <div
@@ -339,20 +345,17 @@ export const ProjectRow = ({
     }
 
     return (
-        <ProjectCardContextMenu
-            project={project as Project}
-            refetch={refetch}
-            folders={folders}
-            onMoveToFolder={onMoveToFolder}
-            onCreateFolder={onCreateFolder}
-        >
+        <ProjectCardContextMenu project={project as Project} {...organization} refetch={refetch}>
             <motion.div
                 layout
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                 onMouseEnter={handleHoverPrefetch}
-                onFocus={handleHoverPrefetch}
+                onFocus={() => {
+                    handleHoverPrefetch();
+                    void source.refresh();
+                }}
                 className="relative"
             >
                 <div

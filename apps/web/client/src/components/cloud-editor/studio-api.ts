@@ -10,6 +10,7 @@ import type * as StudioActions from '@convex/cloudEditorStudioActions';
 import type * as Cms from '@convex/cloudEditorCms';
 import type * as CmsActions from '@convex/cloudEditorCmsActions';
 import type { studioOperation, journalOperation } from '@convex/cloudEditorStudioSchema';
+import type { ImportedStudioOperation } from '@convex/lib/cloudImportedStudioState';
 import en from '../../../messages/cloud-studio/en.json';
 import sv from '../../../messages/cloud-studio/sv.json';
 
@@ -28,6 +29,18 @@ export type CloudStudioRequest = RequestScope & (
     { kind: 'structure'; operation: StudioOperation } | { kind: 'journal'; operation: JournalOperation }
 );
 export type CloudStudioOnOperation = (request: CloudStudioRequest) => Promise<void>;
+export type CloudImportedStudioPinRequest = {
+    projectId: Id<'projects'>; branchId: Id<'branches'>; actorId: Id<'users'>;
+    expectedRevision: number; expectedGeneration: number;
+    expectedPreparationId: Id<'cloudEditorImportPreparations'>;
+    expectedDesignRevision: number; expectedRecipeFingerprint: string;
+    /** Local dispatch guard only. Never serialize it into a receipt or history. */
+    current: () => boolean;
+};
+export type CloudImportedStudioRequest = CloudImportedStudioPinRequest & {
+    kind: 'imported-structure'; operation: ImportedStudioOperation;
+};
+export type CloudImportedStudioApprovalRequest = CloudImportedStudioPinRequest & { kind: 'reapprove' | 'pause' };
 export function useCloudStudioCopy(): typeof en { return useLocale().startsWith('sv') ? sv : en; }
 
 export {

@@ -1,14 +1,12 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
-import { Button } from '@weblab/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
-import { Icons } from '@weblab/ui/icons';
 
 import { formatTechLabel } from './projects-toolbar';
+import { SourceLocationControls } from './source-location-controls';
 
 export function ProjectDetailsDialog({
     project,
@@ -23,23 +21,13 @@ export function ProjectDetailsDialog({
 }) {
     const t = useTranslations('selectProject');
     const format = useFormatter();
-    const path = project.metadata.runtime?.local?.rootPath;
+    const root = project.metadata.runtime?.local?.rootPath;
     const framework = project.metadata.runtime?.framework;
     const date = (value: Date) =>
         format.dateTime(new Date(value), {
             dateStyle: 'medium',
             timeStyle: 'short',
         });
-
-    const copyPath = async () => {
-        if (!path) return;
-        try {
-            await navigator.clipboard.writeText(path);
-            toast.success(t('pathCopied'));
-        } catch {
-            toast.error(t('copyPathFailed'));
-        }
-    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,22 +42,11 @@ export function ProjectDetailsDialog({
                 <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-4 text-sm">
                     <dt className="text-foreground-tertiary">{t('filterFolder')}</dt>
                     <dd>{folderName ?? t('filterFolderNone')}</dd>
-                    {path && (
+                    {root && project.metadata.storageMode === 'local' && (
                         <>
                             <dt className="text-foreground-tertiary">{t('localFolderPath')}</dt>
-                            <dd className="flex min-w-0 items-start gap-2">
-                                <span className="font-mono text-xs leading-5 break-all select-text">
-                                    {path}
-                                </span>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 shrink-0"
-                                    aria-label={t('copyPath')}
-                                    onClick={() => void copyPath()}
-                                >
-                                    <Icons.Copy className="h-3.5 w-3.5" />
-                                </Button>
+                            <dd className="min-w-0">
+                                <SourceLocationControls rootPath={root} active={open} />
                             </dd>
                         </>
                     )}

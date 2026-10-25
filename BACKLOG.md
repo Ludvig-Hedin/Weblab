@@ -38,6 +38,15 @@ later without re-discovering the context.
 
 ## Open
 
+### Next-release recovery is not fully integrated or locally checked
+
+- **Discovered:** 2026-10-22, owner requested the current-main release first, then all retained work including the paused team editor for the next release.
+- **Where:** `integration/next-release-2026-10-22`; `apps/desktop/source-location*`, project source-location controls, `convex/lib/cloudContent{Text,Image}Contract*`; archival PRs #18–22.
+- **State:** PRs #16–17 and #23–24 are merged, unreleased. The next verified snapshot includes imported-v2 text backend, actor-bound source/history/canvas edits, separate paused-team safe Quit and local document-root/stylesheet preparation. Fresh reviews corrected initiating-account substitution, reused DOM identity, reversed input ordering, stale final input and unsafe bootstrap cleanup. Local batches pass: 166 preparation cases, 139 initial canvas/source cases, 78 final text/actor/inventory cases, 77 native/backend cases and one isolated CLI shutdown case. Web, parser and filesystem types pass; preload types also pass. Scoped 70-file lint has zero errors and 3,579 warnings. Source is separate from real customer/canvas/package acceptance. CSS Modules, public Sanity preview settings and imported-image backend/HTTP/source transport have passed fresh source reviews and focused batches. The 59-path checkpoint scoped lint now passes with zero errors and7,996 warnings. Combined types exposed legacy image-union narrowing and actor-fixture drift, repaired locally; the14-case legacy rerun passes. Image controls/history, Studio, property backend36/frontend30 and general parser/filesystem/inventory52 cases pass. Final combined types/scoped lint and retained-version/publication recovery remain in progress. Guards and remote-CI disablement remain unchanged.
+- **Next step:** The normal generator has updated the translation declarations. Finish native/visible source-relink acceptance and validate each later text transport/history slice independently before merging it. Recover the remaining cloud source/history, Pages/blocks, protected builds, publication/recovery and approved-property slices against current main; keep activation flags off. Older #20–22 implementations are preserved donors and must not replace newer main code. The paused team editor’s remaining CSS Modules/Sanity work is included in owner scope.
+- **Risk if ignored:** Archived code regresses newer work, untested reconnection permits stale operations, or an inactive validator is mistaken for complete imported editing.
+- **Tags:** `#test-gap` `#release-blocker` `#desktop` `#cloud`
+
 ### Recovered cloud import needs final local and connected acceptance
 
 - **Discovered:** 2026-10-22 (F-846–848 source recovery)
@@ -47,12 +56,12 @@ later without re-discovering the context.
 - **Risk if ignored:** Helper or mounted checks are mistaken for a ready connected cloud editor, or imported runtime is activated before its actual provenance and account boundaries are accepted.
 - **Tags:** `#release-blocker` `#test-gap` `#cloud`
 
-### Railway deployment pause and credential incident block web release
+### Railway credential incident needs owner-scoped response
 
 - **Discovered:** 2026-10-22, official Railway incident and production deployment history
 - **Where:** Weblab Railway production; https://status.railway.com/incident/QH8L8B3E
-- **State:** Railway paused all deployments during its October 21 security investigation. It recommends rotating stored credentials and reviewing service logs; account-specific exposure is not established. The web service still serves the October 5 release. Credential values were not revealed or copied; the scoped inventory and proposed response remain private, awaiting owner approval.
-- **Next step:** Resolve owner-approved credential containment/replacement with verified provider scope and shared consumers, restore Weblab backend access, then deploy and verify exact checked source when Railway restores builds. Revocation during the pause may interrupt live features; do not silently choose that tradeoff or enable remote CI.
+- **State:** Railway paused all deployments during its October 21 security investigation. It recommends rotating stored credentials and reviewing service logs; account-specific exposure is not established. Production builds resumed for this Pro workspace; exact main `d124aea1e` was deployed and checked on 2026-10-22. The separate credential response remains open. Credential values were not revealed or copied; the scoped inventory and proposed response remain private, awaiting owner approval.
+- **Next step:** Resolve owner-approved credential containment/replacement with verified provider scope and shared consumers, restore Weblab backend access, then verify affected integrations. The current web deploy is complete; automatic source deploys remain off while preparing the next release. Revocation during the pause may interrupt live features; do not silently choose that tradeoff or enable remote CI.
 - **Risk if ignored:** Old potentially affected credentials remain usable, or an old deployment is incorrectly reported as the new release.
 - **Tags:** `#release-blocker` `#security` `#infra`
 

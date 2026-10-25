@@ -22,6 +22,8 @@ import {
     getContentFromAst,
     htmlPipeline,
     injectWeblabBootstrapScripts,
+    isLocalMiddlewareFile,
+    prepareLocalMiddleware,
     t,
     traverse,
 } from '@weblab/parser';
@@ -83,39 +85,92 @@ function sourceOids(content: string): string[] {
 function localizeBootstrapScripts(ast: NonNullable<ReturnType<typeof getAstFromContent>>): void {
     traverse(ast, {
         JSXOpeningElement(path) {
-            if (!t.isJSXIdentifier(path.node.name, { name: 'Script' })) return;
+            if (!t.isJSXIdentifier(path.node.name)) return;
+            const binding = path.scope.getBinding(path.node.name.name);
+            if (!binding?.path.isImportDefaultSpecifier() ||
+                !binding.path.parentPath?.isImportDeclaration() ||
+                binding.path.parentPath.node.source.value !== 'next/script' ||
+                binding.path.parentPath.node.importKind === 'type') return;
             const attributes = path.node.attributes.filter((attr) => t.isJSXAttribute(attr));
             const id = attributes.find((attr) => t.isJSXIdentifier(attr.name, { name: 'id' }));
             const src = attributes.find((attr) => t.isJSXIdentifier(attr.name, { name: 'src' }));
-            if (!src || !t.isStringLiteral(src.value) || !id || !t.isStringLiteral(id.value)) return;
-            if (id.value.value === 'weblab-preload-script') {
-                src.value.value = WEBLAB_DEV_PRELOAD_SCRIPT_SRC;
-            } else if (id.value.value === 'weblab-ix-runtime') {
-                src.value.value = WEBLAB_DEV_IX_RUNTIME_SRC;
+            const idValue = t.isStringLiteral(id?.value) ? id.value.value
+                : t.isJSXExpressionContainer(id?.value) && t.isStringLiteral(id.value.expression)
+                    ? id.value.expression.value : null;
+            if (!src) return;
+            if (idValue === 'weblab-preload-script') {
+                src.value = t.stringLiteral(WEBLAB_DEV_PRELOAD_SCRIPT_SRC);
+            } else if (idValue === 'weblab-ix-runtime') {
+                src.value = t.stringLiteral(WEBLAB_DEV_IX_RUNTIME_SRC);
             }
         },
     });
 }
 
-function hasLocalBootstrapScripts(ast: NonNullable<ReturnType<typeof getAstFromContent>>): boolean {
-    let preloadCount = 0;
-    let runtimeCount = 0;
-    traverse(ast, {
-        JSXOpeningElement(path) {
-            if (!t.isJSXIdentifier(path.node.name, { name: 'Script' })) return;
-            const attributes = path.node.attributes.filter((attr) => t.isJSXAttribute(attr));
-            const id = attributes.find((attr) => t.isJSXIdentifier(attr.name, { name: 'id' }));
-            const src = attributes.find((attr) => t.isJSXIdentifier(attr.name, { name: 'src' }));
-            if (!src || !t.isStringLiteral(src.value) || !id || !t.isStringLiteral(id.value)) return;
-            if (id.value.value === 'weblab-preload-script' && src.value.value === WEBLAB_DEV_PRELOAD_SCRIPT_SRC) {
-                preloadCount++;
+/** All document roots are reviewed in the private copy, including separate login/Studio roots. */
+function localDocumentLayouts(
+    originals: Map<string, { content: string; sha256: string }>,
+    routerConfig: RouterConfig,
+): Set<string> {
+    const base = routerConfig.basePath.replace(/^\/+|\/+$/g, '');
+    if (base !== 'app' && base !== 'src/app') {
+        throw new Error('Local preparation requires a canonical app or src/app directory.');
+    }
+    const roots = new Set<string>();
+    const layoutDirectories = new Set<string>();
+    let fallback: string | null = null;
+    for (const [filePath, file] of originals) {
+        if (!filePath.startsWith(`${base}/`) || !/^layout\.[jt]sx?$/.test(path.posix.basename(filePath))) continue;
+        const directory = path.posix.dirname(filePath);
+        if (layoutDirectories.has(directory)) {
+            throw new Error(`Multiple layout files in ${directory}; no files were changed.`);
+        }
+        layoutDirectories.add(directory);
+        const ast = getAstFromContent(file.content);
+        if (!ast) throw new Error(`Could not parse ${filePath}; no files were changed.`);
+        let documents = 0;
+        let bodies = 0;
+        traverse(ast, {
+            JSXElement(element) {
+                const name = element.node.openingElement.name;
+                if (t.isJSXIdentifier(name, { name: 'html' })) {
+                    if (element.findParent((parent) => parent.isJSXElement() &&
+                        (t.isJSXIdentifier(parent.node.openingElement.name, { name: 'html' }) ||
+                            t.isJSXIdentifier(parent.node.openingElement.name, { name: 'body' })))) {
+                        throw new Error(`Nested document markup in ${filePath}; no files were changed.`);
+                    }
+                    const directBodies = element.node.children.filter((child) => t.isJSXElement(child) &&
+                        t.isJSXIdentifier(child.openingElement.name, { name: 'body' }));
+                    if (directBodies.length !== 1) {
+                        throw new Error(`Each document in ${filePath} must have one direct body; no files were changed.`);
+                    }
+                    documents++;
+                } else if (t.isJSXIdentifier(name, { name: 'body' })) {
+                    if (!element.parentPath.isJSXElement() ||
+                        !t.isJSXIdentifier(element.parentPath.node.openingElement.name, { name: 'html' })) {
+                        throw new Error(`A body in ${filePath} is outside its document; no files were changed.`);
+                    }
+                    bodies++;
+                }
+            },
+        });
+        if (documents > 0 && bodies === documents) roots.add(filePath);
+        else if (documents === 0 && bodies === 0 && path.posix.dirname(filePath) === base) {
+            if (fallback) throw new Error('Multiple base layout files were found; no files were changed.');
+            fallback = filePath;
+        }
+    }
+    if (roots.size === 0 && fallback) roots.add(fallback);
+    if (roots.size === 0) throw new Error('No existing App Router document layout was found.');
+    for (const root of roots) {
+        const directory = path.posix.dirname(root);
+        for (const other of roots) {
+            if (other !== root && (path.posix.dirname(other) === directory || other.startsWith(`${directory}/`))) {
+                throw new Error(`Overlapping document layouts ${root} and ${other}; no files were changed.`);
             }
-            if (id.value.value === 'weblab-ix-runtime' && src.value.value === WEBLAB_DEV_IX_RUNTIME_SRC) {
-                runtimeCount++;
-            }
-        },
-    });
-    return preloadCount === 1 && runtimeCount === 1;
+        }
+    }
+    return roots;
 }
 
 async function fetchCurrentAsset(source: string): Promise<string> {
@@ -142,15 +197,10 @@ export async function planLocalProjectPreparation(
     if (sourcePaths.length > 500) throw new Error('This project has over 500 source files to review.');
     if (sourcePaths.length === 0) throw new Error('No supported source files were found.');
 
-    let layoutPath: string | null = null;
     const createDirectories: string[] = [];
     if (framework === 'nextjs') {
         if (!routerConfig || routerConfig.type !== RouterType.APP) {
             throw new Error('Local preparation currently supports Next.js App Router projects.');
-        }
-        layoutPath = await getLayoutPath(routerConfig, async (path) => available.has(path));
-        if (!layoutPath || !available.has(layoutPath)) {
-            throw new Error('A root app/layout file is required for local preparation.');
         }
         const rootEntries = await provider.listFiles({ args: { path: '' } });
         const publicEntry = rootEntries.files.find((entry) => entry.name === 'public');
@@ -175,6 +225,11 @@ export async function planLocalProjectPreparation(
         }
         originals.set(path, file);
     }
+    const layoutPaths = framework === 'nextjs' && routerConfig
+        ? localDocumentLayouts(originals, routerConfig)
+        : new Set<string>();
+    const middlewarePaths = framework === 'nextjs' ? sourcePaths.filter(isLocalMiddlewareFile) : [];
+    if (middlewarePaths.length > 1) throw new Error('Multiple middleware entry points require review before local preparation.');
     const globalOids = new Set<string>();
     for (const [path, file] of originals) {
         for (const oid of sourceOids(file.content)) {
@@ -192,12 +247,13 @@ export async function planLocalProjectPreparation(
         if (framework === 'nextjs') {
             const ast = getAstFromContent(updated);
             if (!ast) throw new Error(`Could not parse ${path}; no files were changed.`);
-            if (path === layoutPath) {
-                if (!hasLocalBootstrapScripts(ast)) injectWeblabBootstrapScripts(ast);
+            if (layoutPaths.has(path)) {
+                injectWeblabBootstrapScripts(ast);
                 localizeBootstrapScripts(ast);
             }
+            if (middlewarePaths.includes(path)) prepareLocalMiddleware(ast);
             const { modified } = addOidsToAst(ast, globalOids);
-            if (modified || path === layoutPath) {
+            if (modified || layoutPaths.has(path) || middlewarePaths.includes(path)) {
                 updated = await getContentFromAst(ast, updated);
             }
         } else {

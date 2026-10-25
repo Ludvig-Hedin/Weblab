@@ -79,7 +79,9 @@ describe('review authority behind the app proxy', () => {
         const incoming = request('release123.review.example.com');
         const route = resolveReleaseReviewRequest(incoming, suffix);
         if (route.kind !== 'review') throw new Error('Expected isolated review');
-        const target = { deploymentUrl: 'https://frozen-site.vercel.app', deploymentId: 'deployment', hash: 'hash' };
+        const target = { deploymentUrl: 'https://frozen-site.vercel.app', deploymentId: 'deployment', hash: 'hash',
+            destinationId: 'destination', generation: 1, credentialId: 'credential', credentialVersion: 1,
+            credentialHash: 'a'.repeat(64), providerProof: 'b'.repeat(64), teamId: 'team_test', providerProjectId: 'prj_test', hostname: 'live-test.vercel.app' };
         const originalFetch = globalThis.fetch;
         const mocked = spyOn(globalThis, 'fetch').mockImplementation(Object.assign(async () =>
             new Response(null, { status: 302, headers: { Location: '/next?more=1' } }), { preconnect: originalFetch.preconnect }));

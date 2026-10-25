@@ -65,6 +65,10 @@ const IS_APP_ORIGIN = !!(APP_ORIGIN_AT_PRELOAD && ALLOWED_ORIGINS.has(APP_ORIGIN
 const localfsBridge = IS_APP_ORIGIN
     ? {
           pickFolder: () => ipcRenderer.invoke('weblab:localfs:pickFolder'),
+          sourceLocation: (root, resolve = false) => ipcRenderer.invoke('weblab:localfs:sourceLocation', { root, resolve }),
+          locateSource: (root) => ipcRenderer.invoke('weblab:localfs:locateSource', { root }),
+          confirmSource: (root, token) => ipcRenderer.invoke('weblab:localfs:confirmSource', { root, token }),
+          revealSource: (root) => ipcRenderer.invoke('weblab:localfs:revealSource', { root }),
           createPrivateWorkingCopy: (sourceRoot) =>
               ipcRenderer.invoke('weblab:localfs:createPrivateWorkingCopy', { sourceRoot }),
           planPrivateHandoff: (root) =>
@@ -75,6 +79,10 @@ const localfsBridge = IS_APP_ORIGIN
           writeIfUnchanged: (root, p, content, expectedSha256) =>
               ipcRenderer.invoke('weblab:localfs:writeIfUnchanged', {
                   root, path: p, content, expectedSha256,
+              }),
+          writeIfUnchangedWithDependencies: (root, p, content, expectedSha256, dependencies) =>
+              ipcRenderer.invoke('weblab:localfs:writeIfUnchangedWithDependencies', {
+                  root, path: p, content, expectedSha256, dependencies,
               }),
           deleteFileIfUnchanged: (root, p, expectedSha256) =>
               ipcRenderer.invoke('weblab:localfs:deleteFileIfUnchanged', {
@@ -99,6 +107,8 @@ const localfsBridge = IS_APP_ORIGIN
 
 const localdevBridge = IS_APP_ORIGIN
     ? {
+          getPreviewSettings: (root) => ipcRenderer.invoke('weblab:localdev:getPreviewSettings', { root }),
+          setPreviewSettings: (root, settings) => ipcRenderer.invoke('weblab:localdev:setPreviewSettings', { root, settings }),
           installDependencies: (root) =>
               ipcRenderer.invoke('weblab:localdev:installDependencies', { root }),
           dependenciesReady: (root) =>

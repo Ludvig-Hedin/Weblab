@@ -1,3 +1,11 @@
+import type { CodeFileSystem } from '@weblab/file-system';
+import { cloudPropertyApprovalIdentity, freezeCloudPropertyApproval, reconstructCloudPropertyAction, validCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { readContentPropertyTarget, replaceContentPropertyTarget } from '@weblab/parser/src/code-edit/content-property-target';
+import { validCloudImageApproval, freezeCloudImageApproval, copyCloudImageBinding } from '../sandbox/cloud-image-approval';
+import { readContentImageTarget, replaceContentImageTarget } from '@weblab/parser/src/code-edit/content-image-target';
+import { plainTextExpectedIdentity } from '../sandbox/cloud-source';
+import { readContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
+import { validCloudTextApproval, cloudTextRenderer, freezeCloudTextApproval, cloudTextIdentity, matchesCloudTextElement } from '../sandbox/cloud-source';
 import { cloneDeep, debounce } from 'lodash';
 import { isCloudEditorRuntime } from '@convex/lib/cloudEditor';
 import { EditorAttributes } from '@weblab/constants';
@@ -5,7 +13,7 @@ import { parse, t, type T } from '@weblab/parser/src/packages';
 import { getContentFromAst } from '@weblab/parser/src/parse';
 import { formatContent } from '@weblab/parser/src/prettier';
 
-import type { DomElement, LayerNode } from '@weblab/models';
+import type { CloudPropertyApproval, CloudImageApproval, CloudTextApproval, DomElement, LayerNode } from '@weblab/models';
 import { EditorMode } from '@weblab/models';
 import {
     type Action,
@@ -29,7 +37,7 @@ import type { BranchDisposalPreparation } from '../branch/manager';
 import type { HistoryDisposalLease, HistoryManager } from '../history';
 import type { FrameData } from '../frames';
 import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
-import type { CloudAttributeApproval, CloudAttributeField, CloudAttributeWrite } from '../sandbox/cloud-source';
+import type { CloudAttributeApproval, CloudAttributeField, CloudAttributeWrite, CloudImagePrepared, CloudImagePrepareTarget, CloudImagePrepareCallback } from '../sandbox/cloud-source';
 
 export interface ApprovedAttributeEdit {
     branchId: string;
@@ -137,6 +145,7 @@ export class ActionManager {
 
     private queuedStyleDispatches = new Set<Promise<void>>();
     /** Newest optimistic style edit per `${frameId}:${domId}::${property}`. */
+    private textPreviewRuns = new Map<string, symbol>();
     private latestStyleEdit = new Map<string, UpdateStyleAction>();
     private optimisticStyleRuns = new Set<Promise<boolean>>();
     private stylePreflights = new Set<Promise<void>>();
@@ -316,6 +325,138 @@ export class ActionManager {
         }
     }
 
+    async editApprovedImportedImage(edit: { pin: CloudImageApproval; field: 'src' | 'alt'; value: string; expectedRevision: number; current: () => boolean }): Promise<boolean> {
+        if (!validCloudImageApproval(edit.pin)) return false;
+        const pin = freezeCloudImageApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || !source.isContentMode || !source.canWrite || source.hasLocalWork || source.state.savedRevision !== edit.expectedRevision ||
+            !source.isImageApprovalCurrent(pin) || !pin.binding.fields.includes(edit.field) || this.editorEngine.isClosing) return false;
+        const codeEditor = branch.codeEditor, history = branch.history;
+        const externalRevision = source.getExternalRevision();
+        const current = () => edit.current() && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch && this.editorEngine.branches.activeBranchData === branch &&
+            branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor && branch.history === history &&
+            !history.isPreparingForDisposal && source.getExternalRevision() === externalRevision && source.isContentMode && source.canWrite && source.state.savedRevision === edit.expectedRevision && source.isImageApprovalCurrent(pin);
+        try {
+            const original = await codeEditor.readFile(pin.path);
+            if (typeof original !== 'string' || !current()) return false;
+            const previous = readContentImageTarget(original, pin.binding.target);
+            const generated = replaceContentImageTarget(original, pin.binding.target, previous, { ...previous, [edit.field]: edit.value });
+            if (generated === original) return true;
+            const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }], cloudImage: { pin, field: edit.field } };
+            return await history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry, { branchId: pin.branchId, codeEditor, current: edit.current }) : Promise.resolve(false),
+                async entry => current() && await this.prepareImportedImageHistory(entry, history) !== null && current());
+        } catch { return false; }
+    }
+
+    async uploadApprovedImportedImage(edit: { pin: CloudImageApproval; expectedRevision: number; current: () => boolean }, file: File, prepare: CloudImagePrepareCallback): Promise<boolean> {
+        if (!validCloudImageApproval(edit.pin) || file.size < 1 || file.size > 4_000_000) return false;
+        const pin = freezeCloudImageApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || !source.isContentMode || !source.canWrite || source.hasLocalWork || source.state.savedRevision !== edit.expectedRevision ||
+            !source.isImageApprovalCurrent(pin) || this.editorEngine.isClosing) return false;
+        const codeEditor = branch.codeEditor, history = branch.history;
+        const externalRevision = source.getExternalRevision();
+        const active = () => edit.current() && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch && this.editorEngine.branches.activeBranchData === branch &&
+            branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor && branch.history === history &&
+            !history.isPreparingForDisposal && source.getExternalRevision() === externalRevision && source.isContentMode && source.isImageApprovalCurrent(pin);
+        const original = await codeEditor.readFile(pin.path);
+        if (typeof original !== 'string' || !active() || source.state.savedRevision !== edit.expectedRevision) return false;
+        const previous = readContentImageTarget(original, pin.binding.target);
+        return source.withApprovedImageWrite({ pin, field: 'src', revision: edit.expectedRevision, previous, upload: true, current: edit.current }, async lease => {
+            let preparedAttempt: CloudImagePrepared['attemptId'] | null = null, commitStarted = false;
+            try {
+                const current = () => active() && lease.current();
+                if (!current()) return false;
+                const target: CloudImagePrepareTarget = { ...source.scope, actorId: pin.actorId as CloudImagePrepareTarget['actorId'],
+                    expectedRevision: edit.expectedRevision, operationId: lease.operationId,
+                    pin: { version: 2, path: pin.path, generation: pin.generation, designRevision: pin.designRevision, fingerprint: pin.fingerprint, binding: copyCloudImageBinding(pin.binding) } };
+                const image = await prepare(target, current); preparedAttempt = image.attemptId;
+                if (!current() || await codeEditor.readFile(pin.path) !== original || !current()) return false;
+                const generated = replaceContentImageTarget(original, pin.binding.target, previous, { ...previous, src: image.assetPath.slice('public'.length) });
+                if (generated === original) return true;
+                const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }], cloudImage: { pin, field: 'src' } };
+                return await history.pushImmediate(action, async () => {
+                    if (!current()) return false;
+                    commitStarted = true;
+                    return lease.commit(generated, image);
+                }, () => current());
+            } catch { return false; }
+            finally {
+                if (preparedAttempt && !commitStarted) try { await source.cancelImportedImagePreparation(preparedAttempt, pin.actorId); } catch { /* Exact attempt expiry owns cleanup. */ }
+            }
+        });
+    }
+
+    private async prepareImportedImageHistory(action: Action, history: HistoryManager) {
+        if (action.type !== 'write-code' || !action.cloudImage || !validCloudImageApproval(action.cloudImage.pin) ||
+            !['src', 'alt'].includes(action.cloudImage.field) || action.diffs.length !== 1 || action.previewStyle || action.refreshTokens || action.cssModuleStyle || 'cloudAttribute' in action || 'cloudProperty' in action) return null;
+        const pin = action.cloudImage.pin, field = action.cloudImage.field, branches = this.editorEngine.branches;
+        const branch = branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || branch.history !== history || !branches.hasActiveBranch || branches.activeBranchData !== branch ||
+            action.branchId !== pin.branchId || !source.isContentMode || !source.canWrite || source.state.localDraftChanges || !source.isImageApprovalCurrent(pin) || !pin.binding.fields.includes(field)) return null;
+        const codeEditor = branch.codeEditor, externalRevision = source.getExternalRevision();
+        const revision = source.state.savedRevision, version = source.getSourceVersion(), diff = action.diffs[0]!;
+        try {
+            if (diff.path !== pin.path || await codeEditor.readFile(pin.path) !== diff.original) return null;
+            const previous = readContentImageTarget(diff.original, pin.binding.target), value = readContentImageTarget(diff.generated, pin.binding.target);
+            const other = field === 'src' ? 'alt' : 'src';
+            if (previous[other] !== value[other] || replaceContentImageTarget(diff.original, pin.binding.target, previous, value) !== diff.generated) return null;
+            return !this.editorEngine.isClosing && !history.isPreparingForDisposal && branches.hasActiveBranch && branches.activeBranchData === branch &&
+                branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor && branch.history === history && source.isContentMode && source.canWrite &&
+                source.getExternalRevision() === externalRevision && source.state.savedRevision === revision && source.getSourceVersion() === version &&
+                source.isImageApprovalCurrent(pin) ? { branch, source } : null;
+        } catch { return null; }
+    }
+
+    async editApprovedProperty(edit: { pin: CloudPropertyApproval; previousValue: string; choiceId: string; expectedRevision: number; current: () => boolean; validate?: () => Promise<boolean> }): Promise<boolean> {
+        if (!validCloudPropertyApproval(edit.pin)) return false;
+        const pin = freezeCloudPropertyApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        const choice = pin.binding.options.find(option => option.id === edit.choiceId);
+        if (!branch || !source || !choice || !source.isContentMode || !source.canWrite || source.hasLocalWork ||
+            source.state.savedRevision !== edit.expectedRevision || !source.isPropertyApprovalCurrent(pin) || this.editorEngine.isClosing || branch.history.isPreparingForDisposal) return false;
+        const history = branch.history, codeEditor = branch.codeEditor, version = source.getSourceVersion(), external = source.getExternalRevision();
+        const current = () => edit.current() && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch &&
+            this.editorEngine.branches.activeBranchData === branch && branch.history === history && !history.isPreparingForDisposal && branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source &&
+            source.isContentMode && source.state.savedRevision === edit.expectedRevision && source.getSourceVersion() === version &&
+            source.getExternalRevision() === external && source.isPropertyApprovalCurrent(pin);
+        try {
+            const original = await codeEditor.readFile(pin.path);
+            if (typeof original !== 'string' || !current() || readContentPropertyTarget(original, pin.binding.target) !== edit.previousValue) return false;
+            if (choice.value === edit.previousValue) return true;
+            const generated = replaceContentPropertyTarget(original, pin.binding.target, edit.previousValue, choice.value);
+            const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }],
+                cloudProperty: { pin, previousValue: edit.previousValue, value: choice.value } };
+            return await history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry,
+                { branchId: pin.branchId, codeEditor, current, validate: edit.validate }) : Promise.resolve(false),
+                async entry => current() && await this.preparePropertyHistory(entry, history) && current());
+        } catch { return false; }
+    }
+
+    private propertyHistoryOwners = new WeakMap<HistoryManager, { identity: string; branchId: string; codeEditor: CodeFileSystem; current: () => boolean }>();
+    private propertyHistoryIdentity(action: WriteCodeAction): string {
+        const edit = action.cloudProperty!;
+        return JSON.stringify([action.branchId, cloudPropertyApprovalIdentity(edit.pin), edit.previousValue, edit.value]);
+    }
+    private async preparePropertyHistory(action: Action, history: HistoryManager): Promise<boolean> {
+        this.propertyHistoryOwners.delete(history);
+        if (action.type !== 'write-code' || !action.cloudProperty || !validCloudPropertyApproval(action.cloudProperty.pin)) return false;
+        const pin = action.cloudProperty.pin, branches = this.editorEngine.branches, branch = branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+        if (!branch || !source || branch.history !== history || !branches.hasActiveBranch || branches.activeBranchData !== branch ||
+            !isCloudEditorRuntime(branch.branch.runtime) || !source.isContentMode || !source.canWrite || source.hasLocalWork || !source.isPropertyApprovalCurrent(pin)) return false;
+        const revision = source.state.savedRevision, version = source.getSourceVersion(), external = source.getExternalRevision(), codeEditor = branch.codeEditor;
+        const current = () => !this.editorEngine.isClosing && !history.isPreparingForDisposal && branches.hasActiveBranch &&
+            branches.activeBranchData === branch && branches.getBranchDataById(pin.branchId) === branch && branch.history === history &&
+            branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source && !source.state.loading && !source.state.needsReload && source.isContentMode &&
+            source.state.savedRevision === revision && source.getSourceVersion() === version &&
+            source.getExternalRevision() === external && source.isPropertyApprovalCurrent(pin);
+        try {
+            if (!current()) return false;
+            const original = await codeEditor.readFile(pin.path);
+            if (typeof original !== 'string' || !current()) return false;
+            reconstructCloudPropertyAction(action, original);
+            this.propertyHistoryOwners.set(history, { identity: this.propertyHistoryIdentity(action), branchId: pin.branchId, codeEditor, current });
+            return true;
+        } catch { return false; }
+    }
+
     async uploadApprovedImage(edit: Omit<ApprovedAttributeEdit, 'field' | 'value'>, file: File): Promise<boolean> {
         const branch = this.editorEngine.branches.getBranchDataById(edit.branchId);
         const source = branch?.sandbox.cloudSource;
@@ -432,11 +573,43 @@ export class ActionManager {
     }
 
     private writeHistoryReplay(action: Action, history: HistoryManager): Promise<boolean> {
+        if (action.type === 'write-code' && 'cloudProperty' in action) {
+            const owner = this.propertyHistoryOwners.get(history);
+            this.propertyHistoryOwners.delete(history);
+            if (!owner || !action.cloudProperty || owner.identity !== this.propertyHistoryIdentity(action) || !owner.current()) return Promise.resolve(false);
+            return this.editorEngine.code.write(action, owner);
+        }
         return 'cloudAttribute' in action ? this.writeAttributeHistory(action, history) : this.editorEngine.code.write(action);
     }
 
     /** Build history must still refer to currently approved source identities. */
     private async admitHistoryReplay(action: Action, history: HistoryManager): Promise<boolean> {
+        if (action.type === 'write-code' && 'cloudProperty' in action) return this.preparePropertyHistory(action, history);
+        if (action.type === 'write-code' && 'cloudImage' in action) return await this.prepareImportedImageHistory(action, history) !== null;
+        if (action.type === 'edit-text' && 'cloudText' in action) {
+            if (!validCloudTextApproval(action.cloudText)) return false;
+            const pin = freezeCloudTextApproval(action.cloudText);
+            if (action.textSlots !== undefined || action.targets.length === 0 ||
+                action.targets.some(target => target.branchId !== pin.branchId || target.oid !== cloudTextRenderer(pin).oid)) return false;
+            const branches = this.editorEngine.branches;
+            const branch = branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
+            if (!branch || !source || branch.history !== history) return false;
+            const version = source.getSourceVersion(), externalRevision = source.getExternalRevision();
+            const revision = source.state.savedRevision, codeEditor = branch.codeEditor;
+            const current = () => !this.editorEngine.isClosing && branches.hasActiveBranch && branches.activeBranchData === branch &&
+                branches.getBranchDataById(pin.branchId) === branch && branch.history === history &&
+                branch.codeEditor === codeEditor && branch.sandbox.cloudSource === source && source.canWrite &&
+                !source.state.localDraftChanges && source.state.savedRevision === revision && source.getSourceVersion() === version &&
+                source.getExternalRevision() === externalRevision && source.isTextApprovalCurrent(pin);
+            if (!current()) return false;
+            try {
+                const metadata = await codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+                if (!current()) return false;
+                const content = await codeEditor.readFile(pin.path);
+                return current() && typeof content === 'string' && metadata?.path.replace(/^\/+/, '') === cloudTextRenderer(pin).path &&
+                    readContentTextTarget(content, pin.target) === action.originalContent;
+            } catch { return false; }
+        }
         if ('cloudAttribute' in action) return (await this.prepareAttributeHistory(action, history)) !== null;
         const branches = this.editorEngine.branches;
         const branch = branches?.hasActiveBranch ? branches.activeBranchData : null;
@@ -950,7 +1123,81 @@ export class ActionManager {
         }
     }
 
-    private async editText({ targets, newContent, textSlots }: EditTextAction) {
+    /** Reacquire keyed leaves from live frame metadata; duplicate instances are unsupported. */
+    async approvedTextElements(pin: CloudTextApproval, frameId: string): Promise<DomElement[] | null> {
+        if (!validCloudTextApproval(pin)) return null;
+        const branch = this.editorEngine.branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        const frame = this.editorEngine.frames.get(frameId);
+        const view = frame?.view;
+        const layers = this.editorEngine.ast.mappings.getMapping(frameId);
+        if (!branch || !source?.isTextApprovalCurrent(pin) || !frame || !view || frame.frame.branchId !== pin.branchId || !layers) return null;
+        const revision = source.getSourceVersion();
+        const found: DomElement[] = [];
+        for (const layer of layers.values()) {
+            if (layer.oid !== cloudTextRenderer(pin).oid) continue;
+            const dom = await view.getElementByDomId(layer.domId, true);
+            if (this.editorEngine.branches.getBranchDataById(pin.branchId) !== branch ||
+                branch.sandbox.cloudSource !== source || source.getSourceVersion() !== revision ||
+                !source.isTextApprovalCurrent(pin)) return null;
+            if (!dom) return null;
+            if (dom.frameId !== frameId || dom.instanceId !== layer.instanceId) return null;
+            if (matchesCloudTextElement(pin, dom)) found.push(dom);
+        }
+        return pin.target.kind === 'data-leaf' && found.length > 1 ? null : found;
+    }
+
+    /** Fan out only within the original source owner and complete rendered identity. */
+    async previewApprovedText(pin: CloudTextApproval, value: string, exclude?: { frameId: string; domId: string }): Promise<void> {
+        if (!validCloudTextApproval(pin) || value.includes('\r')) return;
+        const branch = this.editorEngine.branches.getBranchDataById(pin.branchId);
+        const source = branch?.sandbox.cloudSource;
+        if (!branch || !source?.isTextApprovalCurrent(pin)) return;
+        const identity = cloudTextIdentity(pin);
+        const run = Symbol('approved-text-preview');
+        this.textPreviewRuns.set(identity, run);
+        const codeEditor = branch.codeEditor;
+        const revision = source.getSourceVersion();
+        const externalRevision = source.getExternalRevision();
+        const current = () => this.editorEngine.branches.getBranchDataById(pin.branchId) === branch &&
+            branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor &&
+            this.textPreviewRuns.get(identity) === run && source.getSourceVersion() === revision &&
+            source.getExternalRevision() === externalRevision && source.isTextApprovalCurrent(pin);
+        try {
+            const metadata = await branch.codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
+            const content = await branch.codeEditor.readFile(pin.path);
+            if (!current() || metadata?.path.replace(/^\/+/, '') !== cloudTextRenderer(pin).path || typeof content !== 'string') return;
+            readContentTextTarget(content, pin.target);
+            await Promise.allSettled(this.editorEngine.frames.getAll()
+                .filter(frame => frame.frame.branchId === pin.branchId && frame.view)
+                .map(async frame => {
+                    const view = frame.view!;
+                    const matches = await this.approvedTextElements(pin, frame.frame.id);
+                    if (!matches || !current()) return;
+                    for (const match of matches) {
+                        if (!current()) return;
+                        if (exclude?.frameId === frame.frame.id && exclude.domId === match.domId) continue;
+                        const dom = await view.getElementByDomId(match.domId, true);
+                        if (!current() || !dom || !matchesCloudTextElement(pin, dom) || dom.frameId !== frame.frame.id ||
+                            dom.instanceId !== match.instanceId) continue;
+                        const result = await view.editPlainTextV1(dom.domId, value, plainTextExpectedIdentity(dom));
+                        if (!result || result.textRenderMode !== 'plain-string-v1' || !current() ||
+                            result.domEl.domId !== dom.domId || result.domEl.frameId !== dom.frameId ||
+                            result.domEl.branchId !== pin.branchId || result.domEl.instanceId !== dom.instanceId ||
+                            !matchesCloudTextElement(pin, result.domEl)) continue;
+                        if (result.newMap) this.editorEngine.ast.updateMap(frame.frame.id, result.newMap, result.domEl.domId);
+                    }
+                }));
+        } catch { /* Saved source remains authoritative when a preview frame is unavailable. */ }
+        finally { if (this.textPreviewRuns.get(identity) === run) this.textPreviewRuns.delete(identity); }
+    }
+
+    private async editText(action: EditTextAction) {
+        if ('cloudText' in action) {
+            if (validCloudTextApproval(action.cloudText)) await this.previewApprovedText(action.cloudText, action.newContent);
+            return;
+        }
+        const { targets, newContent, textSlots } = action;
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {

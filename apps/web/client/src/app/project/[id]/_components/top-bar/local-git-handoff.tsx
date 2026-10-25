@@ -20,6 +20,7 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import { SourceLocationControls } from '@/app/projects/_components/select/source-location-controls';
 import type { CleanHandoffFile } from '@/components/store/editor/git/handoff-clean';
 import type { HandoffFileSummary } from '@/components/store/editor/git/handoff-summary';
 import { useEditorEngine } from '@/components/store/editor';
@@ -312,9 +313,12 @@ export function LocalGitHandoff({ rootPath }: LocalGitHandoffProps) {
                         </p>
                     )}
                     {error && (
-                        <p className="text-foreground-warning text-mini break-words" role="alert">
-                            {error}
-                        </p>
+                        <>
+                            <p className="text-foreground-warning text-mini break-words" role="alert">
+                                {error}
+                            </p>
+                            <SourceLocationControls rootPath={rootPath} active={open} />
+                        </>
                     )}
                     {patchPath && (
                         <p className="text-mini flex items-center gap-2" role="status">

@@ -1315,3 +1315,17 @@ F-846–848 and T-888–890 add immutable folder manifests, authenticated bounde
 ## 2026-10-22 — Public Mac 0.2.2
 
 Published [desktop-local-v0.2.2](https://github.com/Ludvig-Hedin/Weblab/releases/tag/desktop-local-v0.2.2) from main `d124aea1e`. Existing folder organization, local text editing and recovery changes now have a signed, Apple-notarized Apple Silicon DMG. Gatekeeper accepts the mounted app and the first-party download matches final SHA-256 `48ecb2bfad867ba178a339c4e66f53fda38c6b3b4539a639c978f67e1e7ac018`. Clean-Mac and real provider acceptance remain open. PRs #16–17 are next-release source only; automatic Railway source deploys are disabled to preserve that boundary.
+
+
+## 2026-10-22 — Next-release paused-editor and imported-text recovery
+
+Recovered separate imported v2 text approval/save endpoints and original actor/contract/revision pins through source writes, durable recovery and Undo/Redo. Saved canvas identity and plain-string wiring passed focused local checks, with web/preload/parser/filesystem types and zero-error scoped lint. The paused team shell now waits for actual window closure before stopping native services, preserving running previews/CLI work after a renderer veto. Both cloud rollout gates remain off, and the public release stays pinned to `d124aea1e`. Source integration is separate from packaged Electron and real customer acceptance. F-851 / T-895; F-813 unload continuation.
+
+
+## 2026-10-22 — Next-release CSS, preview and image source checkpoint
+
+Recovered the saved narrow CSS Module controls and immutable source owner through Apply/Undo/Redo, with final native JSX dependency checks. Public Sanity preview settings coexist with private Preview Keys outside project source/export. Imported-image v2 backend/HTTP/source transport retains explicit gates, original actors, storage provenance and exact recovery operations. Fresh source reviews and focused batches pass; web types are still unverified after two RAM-guard terminations and scoped lint is queued. No current-package/customer acceptance, deployment or activation is claimed. F-849/F-850/F-852, T-893/T-894/T-898.
+
+### 2026-10-22 — Imported controls, Pages and approved properties, next-release source
+
+Recovered image controls with immutable history, imported Pages/approved-block recipes and separate approved link/component properties. Current actor, source and live DOM-instance identity are checked around asynchronous work and recovery. Focused source checks pass; final combined types/lint and connected acceptance remain separate. Frozen snapshots and protected/private-review work continue locally; no activation or deployment. F-852–854, T-899–901.

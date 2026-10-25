@@ -1,3 +1,6 @@
+import { freezeCloudPropertyApproval } from '../sandbox/cloud-property-approval';
+import { freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
+import { cloudTextIdentity, freezeCloudTextApproval, validCloudTextApproval } from '../sandbox/cloud-source';
 import type {
     Action,
     ActionElement,
@@ -44,6 +47,10 @@ export function reverseWriteCodeAction(action: WriteCodeAction): WriteCodeAction
             generated: diff.original,
         })),
         ...(action.previewStyle ? { previewStyle: reverseStyleAction(action.previewStyle) } : {}),
+        ...(action.cloudProperty ? { cloudProperty: { pin: freezeCloudPropertyApproval(action.cloudProperty.pin), previousValue: action.cloudProperty.value, value: action.cloudProperty.previousValue } } : {}),
+        ...(action.cloudImage ? { cloudImage: { field: action.cloudImage.field, pin: freezeCloudImageApproval(action.cloudImage.pin) } } : {}),
+        ...(action.cssModuleStyle ? { cssModuleStyle: { ...action.cssModuleStyle,
+            previousValue: action.cssModuleStyle.value, value: action.cssModuleStyle.previousValue } } : {}),
     };
 }
 
@@ -95,6 +102,7 @@ export function undoAction(action: Action): Action {
                 ...action,
                 originalContent: action.newContent,
                 newContent: action.originalContent,
+                ...(action.cloudText ? { cloudText: freezeCloudTextApproval(action.cloudText) } : {}),
                 ...(action.textSlots
                     ? {
                           textSlots: action.textSlots.map((slot) => ({
@@ -252,8 +260,10 @@ function actionTargetKeys(action: Action): string[] | null {
             // The element being inserted/removed IS the identity — `targets`
             // only carries the frame fan-out.
             return [action.element.oid];
-        case 'move-element':
         case 'edit-text':
+            if ('cloudText' in action) return validCloudTextApproval(action.cloudText) ? [cloudTextIdentity(action.cloudText)] : [];
+            return action.targets.map((target) => target.oid ?? target.domId).sort();
+        case 'move-element':
         case 'insert-image':
         case 'remove-image':
             return action.targets.map((t) => t.oid ?? t.domId).sort();
@@ -273,6 +283,7 @@ function sameTargetKeys(existing: string[] | null, incoming: string[]): boolean 
 }
 
 export function updateTransactionActions(actions: Action[], newAction: Action): Action[] {
+    if (newAction.type === 'edit-text' && 'cloudText' in newAction && !validCloudTextApproval(newAction.cloudText)) return [...actions, newAction];
     if (newAction.type === 'update-style') {
         // Style updates keep type-only matching: handleUpdateStyleAction
         // already merges per-target, appending targets it hasn't seen.
@@ -287,6 +298,7 @@ export function updateTransactionActions(actions: Action[], newAction: Action): 
     // SAME element(s). Two edit-text (or remove-element, …) actions on
     // different elements inside one transaction must BOTH survive — wholesale
     // replace-by-type silently dropped the first.
+    if (newAction.type === 'write-code' && ('cloudProperty' in newAction || 'cloudImage' in newAction || 'cssModuleStyle' in newAction || actions.some(action => action.type === 'write-code' && ('cloudProperty' in action || 'cloudImage' in action || 'cssModuleStyle' in action)))) return [...actions, newAction];
     const newKeys = actionTargetKeys(newAction);
     const existingActionIndex = actions.findIndex(
         (a) =>
@@ -417,6 +429,7 @@ export function transformRedoAction(action: Action): Action {
                 targets: action.targets ? [...action.targets] : [],
                 originalContent: action.originalContent,
                 newContent: action.newContent,
+                ...(action.cloudText ? { cloudText: freezeCloudTextApproval(action.cloudText) } : {}),
                 ...(action.textSlots
                     ? { textSlots: action.textSlots.map((slot) => ({ ...slot })) }
                     : {}),
@@ -424,6 +437,8 @@ export function transformRedoAction(action: Action): Action {
         case 'write-code':
             return {
                 ...action,
+                ...(action.cloudProperty ? { cloudProperty: { ...action.cloudProperty, pin: freezeCloudPropertyApproval(action.cloudProperty.pin) } } : {}),
+                ...(action.cloudImage ? { cloudImage: { field: action.cloudImage.field, pin: freezeCloudImageApproval(action.cloudImage.pin) } } : {}),
                 ...(action.previewStyle ? { previewStyle: transformRedoAction(action.previewStyle) as UpdateStyleAction } : {}),
                 diffs: action.diffs.map((diff) => ({
                     ...diff,

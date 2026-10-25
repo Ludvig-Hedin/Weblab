@@ -48,6 +48,8 @@ export enum EditorAttributes {
     DATA_WEBLAB_EDITING_TEXT = 'data-weblab-editing-text',
     DATA_WEBLAB_DYNAMIC_TYPE = 'data-weblab-dynamic-type',
     DATA_WEBLAB_CORE_ELEMENT_TYPE = 'data-weblab-core-element-type',
+    DATA_WEBLAB_CONTENT_MAP = 'data-weblab-content-map',
+    DATA_WEBLAB_CONTENT_ITEM = 'data-weblab-content-item',
 
     // Legacy aliases — projects edited under the previous "Onlook" branding may
     // still carry these attribute names in their committed JSX or live DOM.

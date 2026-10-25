@@ -65,9 +65,11 @@ async function resolveWorkingDirectory(dir) {
 }
 
 const turns = createTurnRegistry();
+let shuttingDown = false;
 
 /** Abort every running CLI turn and wait (≤ timeoutMs) for cleanup (app quit). */
 function disposeStreams(timeoutMs = 5000) {
+    shuttingDown = true;
     return turns.abortAll(timeoutMs);
 }
 
@@ -91,6 +93,7 @@ function registerStreamingHandlers({ ipcMain, allowedOrigins, getWebContents }) 
         if (!isTrustedSender(event, allowedOrigins, getWebContents)) {
             return { ok: false, error: 'origin_mismatch' };
         }
+        if (shuttingDown) return { ok: false, error: 'shutting_down' };
         if (!request || typeof request.streamId !== 'string' || !request.provider) {
             return { ok: false, error: 'invalid_request' };
         }
@@ -109,6 +112,8 @@ function registerStreamingHandlers({ ipcMain, allowedOrigins, getWebContents }) 
                 error: 'Open a local folder to use a CLI model. This project has no local working copy.',
             };
         }
+        // Folder validation can finish after Quit has already drained turns.
+        if (shuttingDown) return { ok: false, error: 'shutting_down' };
         const busy = turns.acquire(request.streamId, cwd);
         if (busy) return { ok: false, error: busy };
         const { streamId } = request;

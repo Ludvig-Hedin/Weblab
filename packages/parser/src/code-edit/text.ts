@@ -1,3 +1,4 @@
+import { EditorAttributes } from '@weblab/constants';
 import type { T } from '../packages';
 import { t } from '../packages';
 
@@ -6,16 +7,40 @@ import { t } from '../packages';
 // (removed/replaced), not as "preserved markup" — otherwise every repeated
 // multi-line edit to the same node leaves its previous <br/> behind and they
 // accumulate without bound.
-function isTextRunLineBreak(child: T.JSXElement['children'][number]): boolean {
+export function isTextRunLineBreak(child: T.JSXElement['children'][number]): boolean {
     return (
         t.isJSXElement(child) &&
         child.openingElement.selfClosing &&
         t.isJSXIdentifier(child.openingElement.name) &&
-        child.openingElement.name.name === 'br'
+        child.openingElement.name.name === 'br' &&
+        (child.openingElement.attributes.length === 0 ||
+            (child.openingElement.attributes.length === 1 &&
+                child.openingElement.attributes.every(attribute =>
+                    t.isJSXAttribute(attribute) &&
+                    t.isJSXIdentifier(attribute.name, { name: EditorAttributes.DATA_WEBLAB_ID }) &&
+                    t.isStringLiteral(attribute.value))))
     );
 }
 
+/** Source text cannot take ownership from props or become children of a void BR. */
+export function canOwnJsxTextChildren(node: T.JSXElement): boolean {
+    return !t.isJSXIdentifier(node.openingElement.name, { name: 'br' }) &&
+        !node.openingElement.attributes.some(attribute =>
+            t.isJSXSpreadAttribute(attribute) ||
+            (t.isJSXAttribute(attribute) && t.isJSXIdentifier(attribute.name) &&
+                ['children', 'dangerouslySetInnerHTML'].includes(attribute.name.name)));
+}
+
+function isAuthoredLineBreak(child: T.JSXElement['children'][number]): boolean {
+    return t.isJSXElement(child) &&
+        t.isJSXIdentifier(child.openingElement.name, { name: 'br' }) &&
+        !isTextRunLineBreak(child);
+}
+
 export function updateNodeTextContent(node: T.JSXElement, textContent: string): void {
+    if (!canOwnJsxTextChildren(node) || node.children.some(isAuthoredLineBreak)) {
+        throw new Error('Inline text edit refused: authored text ownership or line break');
+    }
     const isText = (child: T.JSXElement['children'][number]) =>
         t.isJSXText(child) ||
         isTextRunLineBreak(child) ||
@@ -80,6 +105,7 @@ interface JsxTextGap {
  * see (e.g. `{expression}`), so callers refuse the edit.
  */
 export function getJsxTextGaps(node: T.JSXElement): JsxTextGap[] | null {
+    if (!canOwnJsxTextChildren(node) || node.children.some(isAuthoredLineBreak)) return null;
     const gaps: JsxTextGap[] = [{ childIndices: [], text: '', closingIndex: null }];
     for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i]!;

@@ -7,9 +7,10 @@ import { Button } from '@weblab/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
 import { useEditorEngine } from '@/components/store/editor';
 import type { CloudSource } from '@/components/store/editor/sandbox/cloud-source';
+import { ImportedTemplatesPanel } from './imported-templates-panel';
 import { CloudStudioTemplatesPanel } from './templates-panel';
 import { CloudStudioCmsPanel } from './cms-panel';
-import { useCloudStudioCopy, type CloudStudioRequest } from './studio-api';
+import { useCloudStudioCopy, type CloudStudioRequest, type CloudImportedStudioRequest, type CloudImportedStudioApprovalRequest } from './studio-api';
 
 export const CloudStudioTools = observer(({ source }: { source: CloudSource }) => {
     const engine = useEditorEngine();
@@ -47,20 +48,48 @@ export const CloudStudioTools = observer(({ source }: { source: CloudSource }) =
             setFailedReload(false); setReloadRequested(true);
         } finally { inflight.current = false; }
     }
+    async function onImportedOperation(request: CloudImportedStudioRequest) {
+        if (inflight.current || engine.activeSandbox.cloudSource !== source) throw new Error('Source changed');
+        const { kind: _kind, current, projectId: _projectId, branchId: _branchId, ...pin } = request;
+        if (request.projectId !== source.scope.projectId || request.branchId !== source.scope.branchId) throw new Error('Source changed');
+        inflight.current = true;
+        try {
+            await source.commitSemantic({ ...pin, transport: 'studio', transportVersion: 2 },
+                () => engine.activeSandbox.cloudSource === source && current());
+            setFailedReload(false); setReloadRequested(true);
+        } finally { inflight.current = false; }
+    }
+    async function onImportedApproval(request: CloudImportedStudioApprovalRequest) {
+        if (inflight.current || engine.activeSandbox.cloudSource !== source) throw new Error('Source changed');
+        const { kind, current, ...pin } = request;
+        inflight.current = true;
+        try {
+            await source.updateImportedStudioApproval(pin, kind, () => engine.activeSandbox.cloudSource === source && current());
+            setFailedReload(false); setReloadRequested(true);
+        } finally { inflight.current = false; }
+    }
+    function openPage(path: string) {
+        const frame = engine.frames.selected[0]?.frame ?? engine.frames.getAll()[0]?.frame;
+        if (!frame || dirty || inflight.current || engine.activeSandbox.cloudSource !== source) return;
+        void engine.frames.navigateToPath(frame.id, path).then(close).catch(() => setFailedReload(true));
+    }
     function close() {
         if (inflight.current) return;
         const url = new URL(window.location.href); url.searchParams.delete('cloudPanel');
         window.history.replaceState(window.history.state, '', url);
         setView(null);
     }
+    const imported = source.state.profile === 'imported-next-v1' && source.state.access?.canEditImportedStudio === true;
+    if ((!imported && source.state.profile !== 'starter-v1') || !source.canEditContent) return null;
     return <>
         <Button size="sm" variant="ghost" onClick={() => setView('structure')}>{copy.templates}</Button>
-        <Button size="sm" variant="ghost" onClick={() => setView('journal')}>{copy.journal}</Button>
+        {!imported && <Button size="sm" variant="ghost" onClick={() => setView('journal')}>{copy.journal}</Button>}
         <Dialog open={view !== null} onOpenChange={open => { if (!open) close(); }}>
             <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-                <DialogHeader><DialogTitle>{view === 'journal' ? copy.journal : copy.templates}</DialogTitle></DialogHeader>
-                {view === 'structure' && <CloudStudioTemplatesPanel scope={source.scope} selection={selection} disabled={!source.canWrite} onOperation={onOperation} />}
-                {view === 'journal' && <CloudStudioCmsPanel scope={source.scope} disabled={!source.canWrite} onOperation={onOperation} onDirtyChange={setDirty} onOpenPage={path => {
+                <DialogHeader><DialogTitle>{!imported && view === 'journal' ? copy.journal : copy.templates}</DialogTitle></DialogHeader>
+                {imported && <ImportedTemplatesPanel source={source} disabled={!source.canWrite} onOperation={onImportedOperation} onApproval={onImportedApproval} onOpenPage={openPage} />}
+                {!imported && view === 'structure' && <CloudStudioTemplatesPanel scope={source.scope} selection={selection} disabled={!source.canWrite} onOperation={onOperation} />}
+                {!imported && view === 'journal' && <CloudStudioCmsPanel scope={source.scope} disabled={!source.canWrite} onOperation={onOperation} onDirtyChange={setDirty} onOpenPage={path => {
                     const frame = engine.frames.selected[0]?.frame ?? engine.frames.getAll()[0]?.frame;
                     if (!frame || dirty || inflight.current) return;
                     void engine.frames.navigateToPath(frame.id, path).then(close).catch(() => setFailedReload(true));

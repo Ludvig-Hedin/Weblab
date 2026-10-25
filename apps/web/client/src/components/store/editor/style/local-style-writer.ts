@@ -1,3 +1,5 @@
+import { discoverProjectStylesheet } from '../code/project-stylesheet-source';
+
 /**
  * A local project may contain Tailwind dependencies without compiling the
  * classes the editor writes. Enable visual styling only for the known Next.js
@@ -5,6 +7,7 @@
  */
 export async function hasLocalTailwindStyleWriter(
     readFile: (path: string) => Promise<string | Uint8Array>,
+    sourcePaths?: readonly string[],
 ): Promise<boolean> {
     const readText = async (path: string): Promise<string | null> => {
         try {
@@ -50,19 +53,8 @@ export async function hasLocalTailwindStyleWriter(
         return false;
     }
 
-    for (const appRoot of ['src/app', 'app', 'src/app/(site)', 'app/(site)']) {
-        const [layout, css] = await Promise.all([
-            readText(`${appRoot}/layout.tsx`),
-            readText(`${appRoot}/globals.css`),
-        ]);
-        if (
-            layout && css &&
-            /\bimport\s*['"]\.\/globals\.css['"]/.test(uncommented(layout)) &&
-            /@import\s+['"]tailwindcss['"]/.test(uncommented(css)) &&
-            !/source\s*\(\s*none\s*\)/.test(css)
-        ) return true;
-    }
-    return false;
+    const stylesheet = await discoverProjectStylesheet(readFile, sourcePaths);
+    return Boolean(stylesheet?.hasTailwindImport && !stylesheet.hasDisabledSourceScanning);
 }
 
 /** A change to these files can disconnect the editor's generated classes. */
@@ -70,7 +62,8 @@ export function affectsLocalTailwindStyleWriter(path: string): boolean {
     const normalized = path.replace(/^\/+/, '').replace(/\\/g, '/');
     return normalized === 'package.json' ||
         /^postcss\.config\.(?:mjs|js|cjs|ts)$/.test(normalized) ||
-        /^(?:src\/)?app\/(?:\(site\)\/)?(?:layout\.[jt]sx|globals\.css)$/.test(normalized);
+        /^(?:src\/)?app\/(?:[^/]+\/)*(?:layout|page)\.[jt]sx?$/.test(normalized) ||
+        /\.css$/i.test(normalized);
 }
 
 /**
