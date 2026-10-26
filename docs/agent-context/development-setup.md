@@ -167,7 +167,7 @@ config errors remain unaddressed or undocumented.
 
 ## Next-release merge checks
 
-The current integration is PR #25, based on main `e1ce64f1e`. Keep it draft until required local verification passes. Preserve archive PRs #18–22/#26 as donor source; do not merge the overlapping archives wholesale. Source review and production/customer acceptance are distinct from these checks. No deployment or rollout activation is implied by a merge.
+The current integration is PR #25, based on main `e1ce64f1e`. The owner explicitly allowed this PR to merge with final checks pending on2026-10-27. This exception does not mark any check passed or authorize deployment; the checks below remain release gates. Preserve archive PRs #18–22/#26 as donor source; do not merge the overlapping archives wholesale. Source review and production/customer acceptance are distinct from these checks. No deployment or rollout activation is implied by a merge.
 
 The primary integration owner serializes checks in the registered recovery checkout, with source compared against the integration checkout. Preserve existing dirty source before synchronizing only owned repairs. Restore dependencies through the existing guarded `weblab-install` lane when RAM and disk permit.
 
