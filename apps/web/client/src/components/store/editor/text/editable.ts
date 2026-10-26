@@ -1,5 +1,5 @@
 import { INLINE_TEXT_TAGS } from '@weblab/constants';
-import { getAstFromCodeblock, getJsxTextGaps, t } from '@weblab/parser';
+import { canOwnJsxTextChildren, getAstFromCodeblock, getJsxTextGaps, isTextRunLineBreak, t } from '@weblab/parser';
 
 import type { T } from '@weblab/parser';
 
@@ -22,7 +22,7 @@ export function canEditJsxChildrenAsText(code: string): boolean | null {
     if (!jsxElement) {
         return null;
     }
-    return jsxElement.children.every(isPlainTextChild);
+    return canOwnJsxTextChildren(jsxElement) && jsxElement.children.every(isPlainTextChild);
 }
 
 const INLINE_TEXT_TAG_SET = new Set(INLINE_TEXT_TAGS);
@@ -42,7 +42,7 @@ export function canEditJsxChildrenAsRichText(code: string): boolean | null {
 }
 
 function isRichTextElement(node: T.JSXElement): boolean {
-    if (!getJsxTextGaps(node)) {
+    if (!canOwnJsxTextChildren(node) || !getJsxTextGaps(node)) {
         return false;
     }
     return node.children.every((child) => {
@@ -69,12 +69,7 @@ function isPlainTextChild(child: T.JSXElement['children'][number]): boolean {
         return true;
     }
     // <br/> is the line-break marker the text write path itself manages.
-    if (
-        t.isJSXElement(child) &&
-        child.openingElement.selfClosing &&
-        t.isJSXIdentifier(child.openingElement.name) &&
-        child.openingElement.name.name === 'br'
-    ) {
+    if (isTextRunLineBreak(child)) {
         return true;
     }
     if (t.isJSXExpressionContainer(child)) {

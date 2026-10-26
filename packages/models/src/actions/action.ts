@@ -89,6 +89,60 @@ export interface CloudTextApproval {
     readonly designRevision: number;
 }
 
+export interface CloudPropertyBinding {
+    readonly bindingId: string;
+    readonly label: string;
+    readonly target: Readonly<
+        { kind: 'component-literal-href'; exportName: string; oid: string; field: 'href' }
+        | { kind: 'mapped-callsite-enum'; exportName: string; oid: string; field: 'tone'; renderMapping: CloudImageBinding['renderMapping'] }
+    >;
+    readonly options: ReadonlyArray<Readonly<{ id: string; label: string; value: string }>>;
+}
+export interface CloudPropertyApproval {
+    readonly version: 1;
+    readonly projectId: string;
+    readonly branchId: string;
+    readonly actorId: string;
+    readonly path: string;
+    readonly generation: number;
+    readonly preparationId: string;
+    readonly designRevision: number;
+    readonly definitionHash: string;
+    readonly binding: CloudPropertyBinding;
+}
+
+export interface CloudImageAsset {
+    readonly path: string;
+    readonly hash: string;
+    readonly bytes: number;
+}
+/** The full agency policy stays with history, not just the currently selected image. */
+export interface CloudImageBinding {
+    readonly bindingId: string;
+    readonly target: Readonly<{ kind: 'object-image'; exportName: string; srcProperty: 'imageSrc'; altProperty: 'imageAlt' }>;
+    readonly fields: ReadonlyArray<'src' | 'alt'>;
+    readonly allowImageUploads: boolean;
+    readonly originalAsset: CloudImageAsset;
+    readonly aspectRatio: Readonly<{ width: number; height: number }>;
+    readonly allowedAssets: ReadonlyArray<CloudImageAsset>;
+    readonly renderMapping: Readonly<{
+        version: 1; kind: 'object-prop-image'; mappingId: string;
+        callsite: Readonly<{ path: string; exportName: string; oid: string }>;
+        renderer: Readonly<{ path: string; exportName: string; oid: string }>;
+    }>;
+}
+export interface CloudImageApproval {
+    readonly version: 2;
+    readonly projectId: string;
+    readonly branchId: string;
+    readonly actorId: string;
+    readonly path: string;
+    readonly generation: number;
+    readonly designRevision: number;
+    readonly fingerprint: string;
+    readonly binding: CloudImageBinding;
+}
+
 export interface EditTextAction {
     type: 'edit-text';
     targets: ActionTarget[];
@@ -165,6 +219,21 @@ export interface UngroupElementsAction extends BaseGroupAction {
     type: 'ungroup-elements';
 }
 
+export type CssModuleProperty = 'margin-top' | 'max-width' | 'color' | 'font-weight';
+
+/** A local, single-declaration edit with an unchanged JSX read dependency. */
+export interface CssModuleStyleEdit {
+    version: 1;
+    sourcePath: string;
+    source: string;
+    oid: string;
+    cssPath: string;
+    className: string;
+    property: CssModuleProperty;
+    previousValue: string;
+    value: string;
+}
+
 export interface WriteCodeAction {
     type: 'write-code';
     diffs: CodeDiff[];
@@ -174,6 +243,12 @@ export interface WriteCodeAction {
     refreshTokens?: boolean;
     /** Preview-only style change paired with an exact source snapshot. */
     previewStyle?: UpdateStyleAction;
+    /** Revalidated from source and disk on initial save, Undo and Redo. */
+    cssModuleStyle?: CssModuleStyleEdit;
+    /** Exact image approval and field survive undo/redo and selection changes. */
+    cloudImage?: { readonly pin: CloudImageApproval; readonly field: 'src' | 'alt' };
+    /** Semantic values survive history; source diffs are only one-dispatch proposals. */
+    cloudProperty?: { readonly pin: CloudPropertyApproval; readonly previousValue: string; readonly value: string };
 }
 
 export interface ImageContentData {

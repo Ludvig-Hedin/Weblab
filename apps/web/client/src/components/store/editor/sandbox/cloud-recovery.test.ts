@@ -174,3 +174,48 @@ describe('imported text recovery protocol', () => {
         expect(cloudRecoveryOperation(record)).toBeNull();
     });
 });
+
+
+describe('imported image recovery protocol', () => {
+    it('preserves an exact imported image operation and refuses mixed or malformed replay pins', async () => {
+        const record = contentRecord();
+        delete record.operation.expectedContracts;
+        record.operation.transport = 'content-image'; record.operation.transportVersion = 2; record.operation.expectedRevision = 4;
+        const asset = { path: 'public/about.webp', hash: 'a'.repeat(64), bytes: 100 };
+        record.operation.pin = { version: 2, path: 'src/content/about.ts', generation: 2, designRevision: 3, fingerprint: 'b'.repeat(64),
+            binding: { bindingId: 'about', target: { kind: 'object-image', exportName: 'aboutHero', srcProperty: 'imageSrc', altProperty: 'imageAlt' },
+                fields: ['src', 'alt'], allowImageUploads: true, originalAsset: asset, allowedAssets: [asset], aspectRatio: { width: 16, height: 9 },
+                renderMapping: { version: 1, kind: 'object-prop-image', mappingId: 'about-hero',
+                    callsite: { path: 'src/app/about/page.tsx', exportName: 'AboutPage', oid: 'mount' },
+                    renderer: { path: 'src/components/page-hero.tsx', exportName: 'PageHero', oid: 'image' } } } };
+        record.operation.previous = { src: '/about.webp', alt: 'Previous photo' };
+        record.operation.image = { kind: 'values' };
+        record.operation.changes = [{ path: 'src/content/about.ts', content: 'exact approved candidate' }];
+        const f = storageFixture(undefined);
+        await f.recovery.save(key, record);
+        expect<unknown>(cloudRecoveryOperation((await f.recovery.load(key))!)).toEqual(record.operation);
+        const upload = structuredClone(record);
+        upload.operation.image = { kind: 'upload', attemptId: 'attempt' as Extract<NonNullable<CloudRecoveryRecord['operation']['image']>, { kind: 'upload' }>['attemptId'] };
+        upload.operation.changes.push({ path: `public/weblab-upload-${'c'.repeat(64)}.webp`, content: new Uint8Array([1, 2, 3]).buffer });
+        expect<unknown>(cloudRecoveryOperation(upload)).toEqual(upload.operation);
+        for (const change of [
+            (r: CloudRecoveryRecord) => { Reflect.set(r.operation, 'pin', 'broken'); },
+            (r: CloudRecoveryRecord) => { r.operation.pin!.designRevision = 5; },
+            (r: CloudRecoveryRecord) => { const pin = r.operation.pin!; if (!('binding' in pin)) throw Error('Expected image pin'); pin.binding.allowedAssets = new Array(1); },
+            (r: CloudRecoveryRecord) => { r.operation.previous!.alt = '\ud800'; },
+            (r: CloudRecoveryRecord) => { r.operation.transportVersion = 1; },
+            (r: CloudRecoveryRecord) => { r.operation.expectedContracts = []; },
+            (r: CloudRecoveryRecord) => { r.operation.image = { kind: 'values' }; },
+            (r: CloudRecoveryRecord) => { r.operation.changes[1]!.path += '\n'; },
+            (r: CloudRecoveryRecord) => { r.operation.changes[1]!.content = new ArrayBuffer(600001); },
+            (r: CloudRecoveryRecord) => { Reflect.set(r.operation.pin!, 'actorId', 'other'); },
+        ]) {
+            const invalid = structuredClone(upload); change(invalid);
+            expect(cloudRecoveryOperation(invalid)).toBeNull();
+        }
+        const changed = structuredClone(record); changed.operation.pin!.generation++;
+        await expect(f.recovery.save(key, changed)).rejects.toThrow('Browser recovery');
+        expect((f.stored() as CloudRecoveryRecord).operation).toEqual(record.operation);
+    });
+
+});

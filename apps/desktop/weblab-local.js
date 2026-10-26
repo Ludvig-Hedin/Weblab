@@ -331,9 +331,38 @@ async function markBackupSuccessful(recoveryPath) {
  * or openat/renameat to pin parent directories. The checks and private exact
  * backup reduce this risk but cannot make concurrent external writes safe.
  */
-async function writeIfUnchanged(root, rel, content, expectedSha256) {
+function checkedWriteDependencies(root, rel, dependencies) {
+    if (!Array.isArray(dependencies) || dependencies.length > 8) throw new Error('invalid_write_dependencies');
+    const seen = new Set([resolveWithin(root, rel)]);
+    return dependencies.map((dependency) => {
+        if (!dependency || Object.keys(dependency).sort().join(',') !== 'path,sha256' ||
+            typeof dependency.path !== 'string' || typeof dependency.sha256 !== 'string' ||
+            dependency.sha256.length !== 64 || /[^a-f0-9]/.test(dependency.sha256)) throw new Error('invalid_write_dependencies');
+        const abs = resolveWithin(root, dependency.path);
+        rejectGitMetadataMutation(root, abs);
+        if (seen.has(abs)) throw new Error('invalid_write_dependencies');
+        seen.add(abs);
+        return { abs, sha256: dependency.sha256 };
+    });
+}
+
+async function readWriteDependencies(root, dependencies) {
+    const versions = [];
+    for (const dependency of dependencies) {
+        await rejectSymlinkPath(root, dependency.abs);
+        await verifyExistingParent(root, dependency.abs);
+        const current = await currentFile(dependency.abs, 750_000);
+        if (current.bytes === null || current.hash !== dependency.sha256) throw new Error('write_dependency_changed');
+        versions.push(current.stat);
+    }
+    return versions;
+}
+
+async function writeIfUnchanged(root, rel, content, expectedSha256, dependencies = []) {
     let abs;
+    let checkedDependencies;
     try {
+        checkedDependencies = checkedWriteDependencies(root, rel, dependencies);
         abs = resolveWithin(root, rel);
         rejectGitMetadataMutation(root, abs);
     } catch (err) {
@@ -348,6 +377,7 @@ async function writeIfUnchanged(root, rel, content, expectedSha256) {
         let createdIdentity;
         let creationLinked = false;
         try {
+            const dependencyVersions = await readWriteDependencies(root, checkedDependencies);
             await rejectSymlinkPath(root, abs);
             try { await verifyExistingParent(root, abs); }
             catch (err) { if (err.code !== 'ENOENT') throw err; }
@@ -386,6 +416,10 @@ async function writeIfUnchanged(root, rel, content, expectedSha256) {
             // best-effort only; an external process can still swap a parent or
             // target after this check and before link()/rename().
             await verifyExistingParent(root, abs);
+            const latestDependencies = await readWriteDependencies(root, checkedDependencies);
+            if (latestDependencies.some((stat, index) => !sameFileVersion(dependencyVersions[index], stat))) {
+                throw new Error('write_dependency_changed');
+            }
             if (cmsInstallContext.getStore()?.root === root) assertSiteInstallActive();
             if (expectedSha256 === null) {
                 // link() is no-replace: an external creator wins atomically.
@@ -619,7 +653,7 @@ async function updatePreviewEnv(container, { set = {}, remove = [] } = {}) {
     return Object.keys(next).sort();
 }
 
-function projectDevEnvironment(root, port, bunPath = null, previewEnv = {}) {
+function projectDevEnvironment(root, port, bunPath = null, previewEnv = {}, publicSettings = null) {
     const source = syncedEnv();
     const allowed = [
         'HOME', 'TMPDIR', 'TMP', 'TEMP', 'USER', 'LOGNAME', 'SHELL',
@@ -628,7 +662,7 @@ function projectDevEnvironment(root, port, bunPath = null, previewEnv = {}) {
         'LOCALAPPDATA', 'USERPROFILE',
     ];
     // Preview settings go first so they can never replace an app-managed value.
-    const env = { ...normalizePreviewEnv(previewEnv) };
+    const env = { ...normalizePreviewEnv(previewEnv), ...validatePreviewSettings(publicSettings) };
     for (const key of allowed) {
         if (typeof source[key] === 'string') env[key] = source[key];
     }
@@ -657,6 +691,7 @@ async function localBunExecutable() {
 // user's HOME/cache. Only a registered private Git copy can reach this path.
 const dependencyInstalls = new Map();
 const startingDevServers = new Set();
+const pendingPreviewSettingsWrites = new Map();
 // In-flight starts, so a reloaded editor joins the running start instead of
 // failing with "already starting".
 const pendingDevServerStarts = new Map();
@@ -1006,6 +1041,7 @@ async function installDependencies(root, base = privateWorkingCopyBase()) {
     try {
         if (localShuttingDown) return { error: 'Weblab is closing.' };
         canonical = await requirePrivateWorkingRoot(root, base);
+        if (pendingPreviewSettingsWrites.has(canonical)) return { error: 'Preview settings are being saved. Try again when saving finishes.' };
         await assertPrivateCredentialsAbsent(canonical);
         if (dependencyInstalls.size) return { error: 'Another dependency install is already running.' };
         if (devServers.has(canonical) || startingDevServers.has(canonical)) {
@@ -1430,7 +1466,29 @@ function isDevServerRunning(rec) {
         (rec.child && rec.child.exitCode === null && rec.child.signalCode === null)));
 }
 
+// Next dev treats an incoming no-cache document request as a hard refresh of
+// its server fetch cache. Only our live private previews receive this header.
+function previewRequestHeaders(details) {
+    const headers = details.requestHeaders;
+    if (details.method !== 'GET' || details.resourceType !== 'subFrame') return headers;
+    let url;
+    try { url = new URL(details.url); } catch { return headers; }
+    if (url.protocol !== 'http:' || !['localhost', '127.0.0.1'].includes(url.hostname) ||
+        url.username || url.password || !url.port) return headers;
+    const port = Number(url.port);
+    const owned = [...devServers].some(([root, rec]) => privateWorkingRoots.has(root) &&
+        privateWorkingCopyRecords.has(root) && rec.port === port && isDevServerRunning(rec));
+    if (!owned) return headers;
+    const updated = { ...headers };
+    for (const key of Object.keys(updated)) {
+        if (key.toLowerCase() === 'cache-control') delete updated[key];
+    }
+    updated['Cache-Control'] = 'no-cache';
+    return updated;
+}
+
 async function startDevServer(root, command, requestedPort, getWebContents) {
+    if (pendingPreviewSettingsWrites.has(root)) return { error: 'Preview settings are being saved. Try again when saving finishes.' };
     const ownStart = !startingDevServers.has(root);
     if (ownStart) startingDevServers.add(root);
     try { return await startDevServerUnlocked(root, command, requestedPort, getWebContents); }
@@ -1438,6 +1496,7 @@ async function startDevServer(root, command, requestedPort, getWebContents) {
 }
 
 async function startDevServerUnlocked(root, command, requestedPort, getWebContents) {
+    let previewSettings = null;
     try {
         if (privateWorkingCopyRecords.has(root)) await assertRetainedSanitySiteReady(root);
         else if (path.basename(root) === 'project') {
@@ -1449,6 +1508,8 @@ async function startDevServerUnlocked(root, command, requestedPort, getWebConten
             }
         }
         await assertPrivateCredentialsAbsent(root);
+        const privateCopy = privateWorkingCopyRecords.get(root);
+        if (privateCopy) previewSettings = await getPreviewSettings(root, path.dirname(privateCopy.container));
     }
     catch (error) { return { error: error.message }; }
     const existing = devServers.get(root);
@@ -1523,7 +1584,7 @@ async function startDevServerUnlocked(root, command, requestedPort, getWebConten
             // editor's frame URL was built from. Scripts with an explicit flag
             // (the static-HTML scaffold's `serve -l <port>`) override it. Keeps
             // localhost:<port> on the canvas matching the actual dev server.
-            env: projectDevEnvironment(root, port, bunExecutable, previewEnv),
+            env: projectDevEnvironment(root, port, bunExecutable, previewEnv, previewSettings),
             shell: !bunExecutable, // Bun runs the packaged script without an outer shell
             // New process group (POSIX) so stopDevServer can kill the shell AND
             // the dev server it spawns. Without this, shell:true leaves the real
@@ -1652,6 +1713,15 @@ async function stopDevServer(root, forceAfterTimeout = false) {
         await new Promise((resolve) => setTimeout(resolve, 250));
     }
     return { error: 'Dev server did not release its port. Wait for it to stop before restarting.' };
+}
+
+// UI stop must not report success before an in-flight start registers its child.
+// Internal failed-start cleanup still calls stopDevServer directly.
+async function stopPreview(root) {
+    if (startingDevServers.has(root) || pendingDevServerStarts.has(root)) {
+        return { error: 'The preview is still starting. Wait for it to finish before stopping it.' };
+    }
+    return stopDevServer(root);
 }
 
 function git(args, root, timeout = 0, maxBuffer = 10 * 1024 * 1024) {
@@ -1907,6 +1977,86 @@ async function privateCopyRecordForRoot(root, base = privateWorkingCopyBase()) {
     const container = path.join(base, record.copyId);
     privateWorkingCopyRecords.set(root, { sourceRootPath, record, container });
     return { sourceRootPath, record, manifest, container };
+}
+
+
+const PREVIEW_SETTINGS_FILE = 'preview-settings.json';
+const PREVIEW_SETTINGS_KEYS = ['NEXT_PUBLIC_SANITY_PROJECT_ID', 'NEXT_PUBLIC_SANITY_DATASET'];
+
+function validatePreviewSettings(settings) {
+    if (settings === null) return null;
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
+        Object.keys(settings).length !== 2 || PREVIEW_SETTINGS_KEYS.some((key) =>
+            !Object.prototype.hasOwnProperty.call(settings, key)) ||
+        typeof settings.NEXT_PUBLIC_SANITY_PROJECT_ID !== 'string' ||
+        (!settings.NEXT_PUBLIC_SANITY_PROJECT_ID.length || settings.NEXT_PUBLIC_SANITY_PROJECT_ID.length > 32 || /[^a-z0-9]/.test(settings.NEXT_PUBLIC_SANITY_PROJECT_ID)) ||
+        typeof settings.NEXT_PUBLIC_SANITY_DATASET !== 'string' ||
+        (!settings.NEXT_PUBLIC_SANITY_DATASET.length || settings.NEXT_PUBLIC_SANITY_DATASET.length > 64 || !/^[a-z0-9]/.test(settings.NEXT_PUBLIC_SANITY_DATASET) || /[^a-z0-9_-]/.test(settings.NEXT_PUBLIC_SANITY_DATASET))) {
+        throw new Error('Enter a valid Sanity project ID and dataset, or clear both fields. Only public Sanity settings are supported.');
+    }
+    return Object.fromEntries(PREVIEW_SETTINGS_KEYS.map((key) => [key, settings[key]]));
+}
+
+async function previewSettingsContext(root, base) {
+    root = await requirePrivateWorkingRoot(root, base);
+    const context = await privateCopyRecordForRoot(root, base);
+    const info = await fsp.lstat(context.container);
+    if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o077) ||
+        (process.getuid && info.uid !== process.getuid())) {
+        throw new Error('Private preview settings directory is unsafe.');
+    }
+    return { ...context, root };
+}
+
+async function readPreviewSettings(context) {
+    const file = await currentFile(path.join(context.container, PREVIEW_SETTINGS_FILE), 4096);
+    if (file.bytes === null) return null;
+    if (file.mode !== 0o600 || (process.getuid && file.stat.uid !== BigInt(process.getuid()))) {
+        throw new Error('Private preview settings file is unsafe.');
+    }
+    const value = JSON.parse(file.bytes.toString('utf8'));
+    if (value.version !== 1 || value.copyId !== context.record.copyId ||
+        Object.keys(value).sort().join(',') !== 'copyId,settings,version') {
+        throw new Error('Private preview settings do not match this copy.');
+    }
+    return validatePreviewSettings(value.settings);
+}
+
+function assertPreviewSettingsIdle(root) {
+    if (localShuttingDown) throw new Error('Weblab is closing.');
+    if (startingDevServers.has(root) || pendingDevServerStarts.has(root)) {
+        throw new Error('The preview is still starting. Wait for it to finish before saving settings.');
+    }
+    if (isDevServerRunning(devServers.get(root))) throw new Error('Stop the preview before saving settings.');
+    if (dependencyInstalls.has(root)) throw new Error('Wait for dependency installation to finish before saving settings.');
+}
+
+async function getPreviewSettings(root, base = privateWorkingCopyBase()) {
+    return readPreviewSettings(await previewSettingsContext(root, base));
+}
+
+async function setPreviewSettings(root, settings, base = privateWorkingCopyBase()) {
+    settings = validatePreviewSettings(settings);
+    root = await requireGrantedRoot(root);
+    // Reserve before settings/provenance I/O. Starts and installs cannot enter
+    // while this setter (or another queued setter) is saving the child env.
+    pendingPreviewSettingsWrites.set(root, (pendingPreviewSettingsWrites.get(root) ?? 0) + 1);
+    try {
+        return await withWriteLock(`preview-settings:${root}`, async () => {
+            assertPreviewSettingsIdle(root);
+            const context = await previewSettingsContext(root, base);
+            await readPreviewSettings(context); // Refuse unsafe/foreign existing metadata.
+            assertPreviewSettingsIdle(root);
+            await writePrivateJsonFile(context.container, PREVIEW_SETTINGS_FILE, {
+                version: 1, copyId: context.record.copyId, settings,
+            }, 0o600, () => assertPreviewSettingsIdle(root));
+            return settings;
+        });
+    } finally {
+        const count = pendingPreviewSettingsWrites.get(root) - 1;
+        if (count) pendingPreviewSettingsWrites.set(root, count);
+        else pendingPreviewSettingsWrites.delete(root);
+    }
 }
 
 
@@ -4064,20 +4214,23 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
         ipcMain.handle(`weblab:localfs:${operation}`, async () => ({ error: 'unsupported_mutation' }));
     }
 
-    ipcMain.handle('weblab:localfs:writeIfUnchanged', async (event, {
-        root, path: rel, content, expectedSha256,
-    } = {}) => {
+    const guardedPrivateWrite = async (event, {
+        root, path: rel, content, expectedSha256, dependencies,
+    } = {}, requireDependencies = false) => {
         try {
             if (expectedSha256 !== null && !/^[a-f0-9]{64}$/.test(expectedSha256)) {
                 return { error: 'invalid_expected_sha256' };
             }
             root = await requirePrivateWorkingRoot(await granted(event, root));
+            if (requireDependencies && (!Array.isArray(dependencies) || dependencies.length < 1)) return { error: 'invalid_write_dependencies' };
+            const readDependencies = requireDependencies ? dependencies : [];
+            checkedWriteDependencies(root, rel, readDependencies);
             return await withWriteLock(`journal:${root}`, () => withJournalLease(root, privateWorkingCopyBase(), async () => {
                 const intent = await beginPrivateWriteIntent(
                     root, rel, expectedSha256, sha256(toBytes(content)),
                 );
                 if (intent.conflict) return intent;
-                const result = await writeIfUnchanged(root, rel, content, expectedSha256);
+                const result = await writeIfUnchanged(root, rel, content, expectedSha256, readDependencies);
                 try { await reconcilePrivateWriteIntent(root); }
                 catch (err) {
                     return { error: `Private write needs recovery before handoff: ${err.message}`,
@@ -4087,7 +4240,9 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
             }));
         }
         catch (err) { return { error: err.message }; }
-    });
+    };
+    ipcMain.handle('weblab:localfs:writeIfUnchanged', (event, args) => guardedPrivateWrite(event, args));
+    ipcMain.handle('weblab:localfs:writeIfUnchangedWithDependencies', (event, args) => guardedPrivateWrite(event, args, true));
 
     ipcMain.handle('weblab:localfs:deleteFileIfUnchanged', async (event, {
         root, path: rel, expectedSha256,
@@ -4180,6 +4335,7 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
         try {
             if (localShuttingDown) return { error: 'Weblab is closing.' };
             root = await requirePrivateWorkingRoot(await granted(event, root));
+            if (pendingPreviewSettingsWrites.has(root)) return { error: 'Preview settings are being saved. Try again when saving finishes.' };
             if (dependencyInstalls.has(root)) return { error: 'Wait for dependency installation to finish before starting the preview.' };
             const pending = pendingDevServerStarts.get(root);
             if (pending) return await pending;
@@ -4265,7 +4421,16 @@ function registerLocalIpc({ allowedOrigins, getWebContents }) {
     });
 
     ipcMain.handle('weblab:localdev:stop', async (event, { root } = {}) => {
-        try { return await stopDevServer(await granted(event, root)); }
+        try { return await stopPreview(await granted(event, root)); }
+        catch (err) { return { error: err.message }; }
+    });
+
+    ipcMain.handle('weblab:localdev:getPreviewSettings', async (event, { root } = {}) => {
+        try { return { settings: await getPreviewSettings(await granted(event, root)) }; }
+        catch (err) { return { error: err.message }; }
+    });
+    ipcMain.handle('weblab:localdev:setPreviewSettings', async (event, { root, settings } = {}) => {
+        try { return { success: true, settings: await setPreviewSettings(await granted(event, root), settings) }; }
         catch (err) { return { error: err.message }; }
     });
 
@@ -4406,6 +4571,10 @@ module.exports = {
     deletePreparationPublicDirectory,
     startDevServer,
     projectDevEnvironment,
+    previewRequestHeaders,
+    getPreviewSettings,
+    setPreviewSettings,
+    stopPreview,
     normalizePreviewEnv,
     readPreviewEnv,
     updatePreviewEnv,

@@ -209,6 +209,7 @@ async function fixture(
                 return access;
             }
             if (getFunctionName(ref) === 'cloudEditorText:contracts') { await readTextContracts(); return structuredClone(textContracts); }
+            if (getFunctionName(ref) === 'cloudEditorContentImages:imageContracts') return { actorId: access.actorId, revision: snapshot.revision, designRevision: 1, contracts: [] };
             if (getFunctionName(ref) === 'cloudEditorContent:contracts')
                 return structuredClone(contracts);
             if (getFunctionName(ref) === 'cloudEditor:snapshot') {
@@ -2068,4 +2069,23 @@ it('keeps imported starter-v1 recovery download-only after a text grant is activ
         expect([...recovery.records.values()][0]!.operation).toEqual(original);
         expect(next.source.pendingChangesBackup().changes[0]?.content).toBe('after');
     } finally { await next.source.stop(); }
+});
+
+
+it('keeps gated image snapshots writable after an approved text save advances source CAS', async () => {
+    const path = 'src/components/hero.tsx';
+    const f = await fixture(undefined, { profile: 'imported-next-v1', path, start: false });
+    f.access({ canEditImportedText: true, canEditImportedImages: true, canEditContent: true });
+    try {
+        await f.source.start();
+        f.source.setContentMode(true);
+        expect(f.source.canWrite).toBe(true);
+        const pin = f.source.resolveTextApproval(path, 'heading')!;
+        f.save(async () => { f.revision(2); return { revision: 2, currentRevision: 2 }; });
+        expect(await f.source.withApprovedTextWrite({ pin, revision: 1, candidate: 'after' }, async () => {
+            await f.commit(); return true;
+        })).toBe(true);
+        expect(f.source.state.imageContracts?.revision).toBe(2);
+        expect(f.source.canWrite).toBe(true);
+    } finally { await f.source.stop(); }
 });

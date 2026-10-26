@@ -397,3 +397,14 @@ describe('NodeFsProvider (local-first)', () => {
         expect(startCalls).toBe(1);
     });
 });
+
+
+describe('native read-dependency write capability', () => {
+    test('refuses an older bridge instead of falling back to an unchecked write', async () => {
+        installMockBridge({ 'hero.module.css': 'before' });
+        const provider = new NodeFsProvider({ rootPath: '/private/project' });
+        await expect(provider.writeFileIfUnchangedWithDependencies('hero.module.css', 'after', hashFor('before'),
+            [{ path: 'hero.tsx', sha256: hashFor('source') }])).rejects.toThrow('Update the desktop app');
+        expect((await provider.readFile({ args: { path: 'hero.module.css' } })).file.content).toBe('before');
+    });
+});

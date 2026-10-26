@@ -216,7 +216,7 @@ export class TokensManager {
     private async findGlobalsCssPath(branchId = this.editorEngine.branches.activeBranch.id, capturedEditor?: CodeFileSystem): Promise<string | null> {
         const codeEditor = capturedEditor ?? this.editorEngine.branches.getBranchDataById(branchId)?.codeEditor;
         if (!codeEditor) return null;
-        return (await readProjectStylesheet((path) => codeEditor.readFile(path)))?.path ?? null;
+        return (await readProjectStylesheet((path) => codeEditor.readFile(path), await codeEditor.listFiles('**/*', { strict: true })))?.path ?? null;
     }
 
     private async readCss(): Promise<CssSource | null> {

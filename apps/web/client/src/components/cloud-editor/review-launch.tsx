@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { SignInButton, useSession } from '@clerk/nextjs';
+import { SignInButton, useClerk, useSession } from '@clerk/nextjs';
 import { ConvexHttpClient } from 'convex/browser';
 import { useLocale } from 'next-intl';
 import { Button } from '@weblab/ui/button';
@@ -15,9 +15,10 @@ import sv from '../../../messages/cloud-releases/sv.json';
 export function CloudReviewLaunch({ releaseId, reviewUrl }: { releaseId: string; reviewUrl: string | null }) {
     const locale = useLocale(), copy = locale.startsWith('sv') ? sv : en;
     const { isLoaded, session } = useSession();
+    const clerk = useClerk();
     const [attempt, setAttempt] = useState(0);
     const [failedIdentity, setFailedIdentity] = useState<string | null>(null);
-    const identity = `${session?.id ?? ''}/${releaseId}/${attempt}`;
+    const identity = `${session?.id ?? ''}/${session?.user.id ?? ''}/${releaseId}/${attempt}`;
     const current = useRef<string | null>(identity);
     current.current = identity;
     const pending = useRef<{ identity: string; ticket: Promise<ReviewTicket> } | null>(null);
@@ -25,26 +26,30 @@ export function CloudReviewLaunch({ releaseId, reviewUrl }: { releaseId: string;
     useEffect(() => {
         if (!isLoaded || !session || !reviewUrl) return;
         current.current = identity;
+        const ownerCurrent = () => current.current === identity && clerk.session?.id === session.id && clerk.user?.id === session.user.id;
         if (pending.current?.identity !== identity) {
             // Bind the HTTP call to this Clerk session, not a changing shared Convex client.
             const ticket = (async () => {
                 const backend = env.NEXT_PUBLIC_CONVEX_URL;
                 if (!backend) throw new Error('CLOUD_RELEASE_REVIEW_UNAVAILABLE');
+                if (!ownerCurrent()) throw new Error('CLOUD_RELEASE_NOT_ALLOWED');
                 const token = await session.getToken({ template: 'convex' });
-                if (!token || current.current !== identity) throw new Error('CLOUD_RELEASE_NOT_ALLOWED');
+                if (!token || !ownerCurrent()) throw new Error('CLOUD_RELEASE_NOT_ALLOWED');
                 const client = new ConvexHttpClient(backend);
                 client.setAuth(token);
-                return client.mutation(cloudReleaseApi.issueReview, { releaseId: releaseId as Id<'cloudReleases'> });
+                const issued = await client.mutation(cloudReleaseApi.issueReview, { releaseId: releaseId as Id<'cloudReleases'> });
+                if (!ownerCurrent()) throw new Error('CLOUD_RELEASE_NOT_ALLOWED');
+                return issued;
             })();
             pending.current = { identity, ticket };
         }
-        const cancel = observeReviewTicket(pending.current.ticket, () => current.current === identity,
+        const cancel = observeReviewTicket(pending.current.ticket, ownerCurrent,
             issued => submitReviewTicket(document, issued, reviewUrl), () => setFailedIdentity(identity));
         return () => {
             cancel();
             if (current.current === identity) current.current = null;
         };
-    }, [identity, isLoaded, session, releaseId, reviewUrl]);
+    }, [identity, isLoaded, session, releaseId, reviewUrl, clerk]);
 
     const unavailable = !reviewUrl;
     return <main className="flex min-h-screen items-center justify-center p-6">

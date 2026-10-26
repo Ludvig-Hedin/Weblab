@@ -691,6 +691,11 @@ app.whenReady().then(() => {
         },
     });
 
+    // Only live desktop-owned preview iframe documents bypass Next's fetch cache.
+    session.fromPartition(SESSION_PARTITION).webRequest.onBeforeSendHeaders((details, callback) => {
+        callback({ requestHeaders: local.previewRequestHeaders(details) });
+    });
+
     // Same partition as the BrowserWindow below.
     session.fromPartition(SESSION_PARTITION).webRequest.onHeadersReceived((details, callback) => {
         let origin = null;

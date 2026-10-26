@@ -99,7 +99,7 @@ export class LocalMirror {
         }
         await this.fs.replaceLocalSnapshot(files.map(({ path, content }) => ({ path, content })));
         if (this.disposed) return;
-        this.fs.setLocalWriteHandler((path, content) => this.write(path, content));
+        this.fs.setLocalWriteHandler((path, content, guard) => this.write(path, content, guard));
         const { watcher } = await this.provider.watchFiles({
             args: { path: '', recursive: true, excludes: Array.from(EXCLUDED_DIRECTORIES) },
             onFileChange: (event) => this.onDiskChange(event),
@@ -111,14 +111,17 @@ export class LocalMirror {
         this.watcher = watcher;
     }
 
-    private async write(rawPath: string, content: string): Promise<void> {
+    private async write(rawPath: string, content: string, guard?: { expectedSha256: string; dependencies: Array<{ path: string; sha256: string }> }): Promise<void> {
         const path = normalizedPath(rawPath);
         if (this.disposed) throw new Error('Local project was closed');
         if (!shouldMirror(path)) throw new Error(`Unsupported local text path: ${path}`);
         const expected = this.editBaselines.get(path) ?? null;
         this.pending.add(path);
         try {
-            const { sha256 } = await this.provider.writeFileIfUnchanged(path, content, expected);
+            if (guard && expected !== guard.expectedSha256) throw new Error('The mirrored source changed before saving.');
+            const { sha256 } = guard
+                ? await this.provider.writeFileIfUnchangedWithDependencies(path, content, guard.expectedSha256, guard.dependencies)
+                : await this.provider.writeFileIfUnchanged(path, content, expected);
             this.editBaselines.set(path, sha256);
             this.mirroredHashes.set(path, sha256);
             this.ownWrites++;

@@ -1,6 +1,6 @@
 import type { T } from 'src/packages';
 import { describe, expect, test } from 'bun:test';
-import { getJsxTextGaps, updateNodeTextContent } from 'src/code-edit/text';
+import { getJsxTextGaps, updateNodeTextContent, updateNodeTextSlots } from 'src/code-edit/text';
 import { t } from 'src/packages';
 import { getAstFromCodeblock, getContentFromAst } from 'src/parse';
 
@@ -134,5 +134,36 @@ describe('updateNodeTextContent', () => {
             expect(out).toContain('L5');
             expect(out).toContain('L6');
         });
+    });
+});
+
+
+describe('text source ownership', () => {
+    const refused = [
+        '<p dangerouslySetInnerHTML={{__html: cms}} />',
+        '<p children={cms} />',
+        '<p {...props}>old</p>',
+        '<br />',
+        '<p>one<br className="mobile-only" />two</p>',
+        '<p>one<br style={{display: "none"}} />two</p>',
+        '<p>one<br {...props} />two</p>',
+        '<p>one<br data-oid={id} />two</p>',
+    ];
+    test.each(refused)('refuses without mutation: %s', async (code) => {
+        const node = parseJsx(code);
+        const before = await generate(node);
+        expect(() => updateNodeTextContent(node, 'changed')).toThrow();
+        expect(await generate(node)).toBe(before);
+        expect(getJsxTextGaps(node)).toBeNull();
+        expect(() => updateNodeTextSlots(node, [{index: 0, oldText: '', newText: 'changed'}])).toThrow();
+        expect(await generate(node)).toBe(before);
+    });
+    test('prepared line breaks remain replaceable across repeated edits', async () => {
+        const node = parseJsx('<p>one<br data-oid="generated" />two</p>');
+        expect(getJsxTextGaps(node)?.[0]?.text).toBe('one\ntwo');
+        updateNodeTextContent(node, 'three\nfour');
+        updateNodeTextContent(node, 'five\nsix');
+        expect(getJsxTextGaps(node)?.[0]?.text).toBe('five\nsix');
+        expect(node.children.filter(child => t.isJSXElement(child))).toHaveLength(1);
     });
 });

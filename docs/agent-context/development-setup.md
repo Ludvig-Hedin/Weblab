@@ -164,3 +164,37 @@ Choose the narrowest validation that proves the change:
 
 Never finish while known avoidable type, lint, build, runtime, migration, or
 config errors remain unaddressed or undocumented.
+
+## Next-release merge checks
+
+The current integration is PR #25, based on main `e1ce64f1e`. The owner explicitly allowed this PR to merge with final checks pending on2026-10-27. This exception does not mark any check passed or authorize deployment; the checks below remain release gates. Preserve archive PRs #18–22/#26 as donor source; do not merge the overlapping archives wholesale. Source review and production/customer acceptance are distinct from these checks. No deployment or rollout activation is implied by a merge.
+
+The primary integration owner serializes checks in the registered recovery checkout, with source compared against the integration checkout. Preserve existing dirty source before synchronizing only owned repairs. Restore dependencies through the existing guarded `weblab-install` lane when RAM and disk permit.
+
+The older temporary retained-test log and lint manifest are gone. This focused lifecycle batch is reconstructed from changed source; do not borrow the old test count:
+
+```sh
+agent-heavy-run weblab-focused-test bun test \
+apps/web/client/convex/lib/cloudImportedHosting.test.ts \
+apps/web/client/convex/lib/cloudImportedHostingBackend.test.ts \
+apps/web/client/convex/lib/cloudReleaseRemoval.test.ts \
+apps/web/client/convex/lib/cloudReleaseState.test.ts \
+apps/web/client/convex/lib/cloudReleaseReviewAccess.test.ts \
+apps/web/client/convex/lib/cloudReleaseCredentials.test.ts
+```
+
+Run affected package types through the installed guard. The web-client script generates translation declarations normally:
+
+```sh
+agent-heavy-run weblab-typecheck bun --filter @weblab/web-client typecheck
+agent-heavy-run weblab-typecheck bun --filter @weblab/file-system typecheck
+agent-heavy-run weblab-typecheck bun --filter @weblab/web-preload typecheck
+```
+
+The remaining release lint scope is the 54 source paths from:
+
+```sh
+git diff --name-only 75a13c394..77c63481b -- "*.ts" "*.tsx" "*.js"
+```
+
+Pass those explicit paths to `agent-heavy-run focused-lint` in two batches of27, using the existing project ESLint config. This is not a whole-repo lint/suite request. Reuse valid checks on unchanged source. A guard refusal leaves the corresponding check pending; do not weaken limits or treat it as passed.

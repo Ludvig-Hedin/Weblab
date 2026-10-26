@@ -31,6 +31,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { LocalGitHandoff } from './local-git-handoff';
+import { LocalPreviewSettings } from './local-preview-settings';
 
 type CommitAction = 'commit' | 'commit-push' | 'commit-pr';
 
@@ -399,7 +400,10 @@ export const GitActionsButton = observer(() => {
     if (activeRuntime?.type === 'local') {
         return (
             activeRuntime.local?.rootPath
-                ? <LocalGitHandoff key={activeRuntime.local.rootPath} rootPath={activeRuntime.local.rootPath} />
+                ? <div key={activeRuntime.local.rootPath} className="flex items-center gap-1">
+                    <LocalPreviewSettings rootPath={activeRuntime.local.rootPath} />
+                    <LocalGitHandoff rootPath={activeRuntime.local.rootPath} />
+                </div>
                 : <span className="text-foreground-secondary text-mini">{t('localGitHandoff')}</span>
         );
     }

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { getFunctionName } from 'convex/server';
 import type { Id } from '../_generated/dataModel';
 import type { ActionCtx, MutationCtx } from '../_generated/server';
-import { reserve, _input, _commit } from '../cloudEditorContentImages';
+import { reserve, _input, _commit, _preparation, _ready } from '../cloudEditorContentImages';
 import { commit } from '../cloudEditorContentImageActions';
 import { approveCloudContentBindings } from './cloudContentContract';
 import { imageHash, imagePath } from './cloudContentImage';
@@ -137,5 +137,17 @@ describe('customer image atomic boundary', () => {
         contract.bindings = [{ oid: 'photo-one', fields: ['src'], allowedValues: { src: ['/one.png'] } }];
         await expect(reserve._handler(f.ctx, { ...f.target, operationId: 'preparation_operation_02' })).rejects.toThrow('CLOUD_CONTENT_STALE_CONTRACT');
         expect(f.writes).toEqual([]);
+    });
+});
+
+
+describe('legacy image attempt version isolation', () => {
+    it('never treats an imported v2 attempt as legacy preparation or storage registration', async () => {
+        const f = imageFixture(), id = f.request().image.attemptId;
+        Object.assign(f.get(id)!, { version: 2, pin: { version: 2 } });
+        await expect(_preparation._handler(f.ctx, { attemptId: id })).rejects.toThrow('CLOUD_INVALID_UPLOAD');
+        expect(await _ready._handler(f.ctx, { attemptId: id, storageId: '_storage:other' as Id<'_storage'>,
+            hash: 'a'.repeat(64), bytes: 3, assetPath: `public/weblab-upload-${'a'.repeat(64)}.webp` })).toBe(false);
+        expect(f.writes).toHaveLength(0);
     });
 });
