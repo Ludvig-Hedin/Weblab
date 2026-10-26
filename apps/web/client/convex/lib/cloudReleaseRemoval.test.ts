@@ -195,5 +195,3 @@ describe('explicit saved version removal', () => {
         await expect(begin._handler(f.ctx, args)).rejects.toThrow('CLOUD_IMPORTED_IMAGE_TOO_LARGE'); expect(f.effects).toEqual([]);
     });
 });
-
-

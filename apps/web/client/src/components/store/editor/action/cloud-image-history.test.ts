@@ -257,5 +257,3 @@ describe('immutable image history copies', () => {
         }
     });
 });
-
-
