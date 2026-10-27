@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import type { EditorEngine } from '..';
+import type { EditorEngine } from '../engine';
 import type { CloudPropertyApproval, WriteCodeAction } from '@weblab/models/actions';
 import { CodeManager } from '../code';
 import { HistoryManager } from '../history';

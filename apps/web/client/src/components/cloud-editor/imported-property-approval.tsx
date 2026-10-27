@@ -96,7 +96,7 @@ export const ImportedPropertyApproval = observer(({ source, actorId, blocked }: 
         setSelection(null); setOptions([]); setError(value => value === 'savedReload' || value === 'unknownReload' ? value : null);
         const branch = engine.branches.getBranchDataById(source.scope.branchId), fs = branch?.codeEditor;
         const owner = captureConvexAuthOwner(), sourceVersion = source.getSourceVersion();
-        const current = () => live && owner?.isCurrent() && !currentUi.current.blocked &&
+        const current = () => live && !!owner?.isCurrent() && !currentUi.current.blocked &&
             engine.activeSandbox.cloudSource === source && branch?.codeEditor === fs &&
             engine.elements.selected.length === 1 && key(engine.elements.selected[0]) === selectedKey &&
             source.state.savedRevision === revision && source.getSourceVersion() === sourceVersion && !source.hasLocalWork &&

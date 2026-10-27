@@ -28,7 +28,7 @@ function releaseView(value: Status | undefined) {
     if (!value) return undefined;
     const imported = 'profile' in value && value.profile === 'imported-next-v1';
     return { ...value, profile: imported ? 'imported-next-v1' as const : 'starter-v1' as const,
-        canRestoreBackup: 'canRestoreBackup' in value ? value.canRestoreBackup : value.canBackup,
+        canRestoreBackup: value.canRestoreBackup,
         canFreezePrivateArtifact: 'canFreezePrivateArtifact' in value && value.canFreezePrivateArtifact,
         publicationReason: 'publicationReason' in value ? value.publicationReason : null,
         canSavePublicationVersion: 'canSavePublicationVersion' in value && value.canSavePublicationVersion,
@@ -36,7 +36,7 @@ function releaseView(value: Status | undefined) {
         privateBuildReason: 'privateBuildReason' in value ? value.privateBuildReason : null,
         canBuildPrivateReview: 'canBuildPrivateReview' in value && value.canBuildPrivateReview,
         releases: value.releases.map(row => ({ ...row,
-            kind: 'kind' in row ? row.kind : row.purpose === 'backup' ? 'backup' as const : 'version' as const,
+            kind: row.kind,
             canFinishPreparing: 'canFinishPreparing' in row && row.canFinishPreparing,
             preparationOwnerRequired: 'preparationOwnerRequired' in row && row.preparationOwnerRequired,
             canPreparePrivateReview: 'canPreparePrivateReview' in row && row.canPreparePrivateReview,

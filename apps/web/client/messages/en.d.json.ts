@@ -2,6 +2,28 @@
 // See: https://next-intl.dev/docs/workflows/typescript#messages-arguments
 
 declare const messages: {
+  "componentClass": {
+    "title": "Component class",
+    "allSizes": "All sizes",
+    "shared": "Changes every use of {className}.",
+    "loading": "Reading the source…",
+    "unavailable": "This element has no class properties that can be edited safely here. Use code for this element.",
+    "property": "Property",
+    "value": "Value",
+    "marginTop": "Space above",
+    "maxWidth": "Maximum width",
+    "color": "Text color",
+    "fontWeight": "Font weight",
+    "colorHint": "Use a hex color, for example #ff5479.",
+    "weightHint": "Use 100 to 900 in steps of 100, normal or bold.",
+    "lengthHint": "Use a length, for example 24px or 1.5rem.",
+    "apply": "Apply",
+    "saving": "Saving…",
+    "saved": "Saved. Preview refresh requested.",
+    "failed": "Couldn’t save this change. Your draft is kept. Finish other edits or check the source, then try again.",
+    "refreshPending": "Saved to source. Preview has not refreshed. Finish any open edits, then refresh.",
+    "refresh": "Refresh preview"
+  },
   "workingLevel": {
     "title": "Choose your workspace",
     "firstOpen": "Can be changed in Settings.",
@@ -2121,6 +2143,18 @@ declare const messages: {
     },
     "git": {
       "copyCredentialsOmitted": "Original keys and account settings were left out. Add test keys under Settings, Project, Preview keys so the preview can use connected services.",
+      "previewSettingsTitle": "Preview settings",
+      "previewSettingsDescription": "Preview published content from a public Sanity dataset. These settings stay on this Mac and are left out of your code and exports.",
+      "previewSettingsDelay": "Newly published changes may take time to appear. Preview drafts in Sanity.",
+      "previewSettingsProject": "Sanity project ID",
+      "previewSettingsDataset": "Dataset",
+      "previewSettingsClear": "Leave both fields empty to use the site's default content. No API token is needed.",
+      "previewSettingsBoth": "Enter both a project ID and a dataset, or clear both fields.",
+      "previewSettingsInvalid": "Use a Sanity project ID and dataset name, without URLs or API tokens.",
+      "previewSettingsNotReady": "Wait for the project to finish opening, then try again.",
+      "previewSettingsFailed": "Could not save preview settings.",
+      "previewSettingsRestartFailed": "Settings saved, but the preview could not restart. Close this dialog and try starting the preview again.",
+      "previewSettingsSave": "Save and restart preview",
       "localGitHandoff": "Commit in your Git client",
       "handoffButton": "Upload",
       "handoffTitle": "Upload changes",
