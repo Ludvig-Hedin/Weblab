@@ -1,3 +1,9 @@
+## 2026-10-28 — Native release preparation continues
+
+Public private0.2.2 artifacts were signed and Apple accepted submission34c3c57b-b621-401c-ae0a-793c5de13878. Staple and ticket validation pass. The build command itself returned1 without a logged error; source diagnosis did not establish its cause. Keep the command-exit pass unclaimed. The existing published0.2.2 asset is unchanged and verified. No new public release or app install.
+
+The exact Team lane's two safety findings are repaired and a fresh source review is clear. The lane and both RAM shedding entries are installed with unchanged admission, registration and heap limits. Team package/lock0.2.8 now match after normal guarded Bun lock-only generation; no manual lock edit. Setup/build/signing/notarization/package acceptance remain pending the shared scheduler. Web deployment stays held for unavailable Convex access. Primary release owner owns continuation and task-generated data cleanup.
+
 ## 2026-10-27 — Both latest Mac apps requested
 
 Ludvig selected both Mac apps and cannot access Convex now. Keep the web deployment held on that access; continue independent native work. Public 0.2.2 source is already main-equivalent in the guarded recovery subtree and can be rebuilt privately without changing the published tag/asset. GitHub asset SHA-256 and size match the accepted/stapled release receipt; the existing public installer remains available. Team 0.2.8 is a proposed release candidate, not built or shipped. Keep the package version at0.2.7 with its matching frozen lock until a guarded normal Bun lock refresh can prepare both together; no dependency lock is edited by hand. The installed stable-team guard path must be added and independently reviewed before building. No automatic app replacement or new cloud/provider activation.
