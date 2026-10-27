@@ -38,6 +38,14 @@ later without re-discovering the context.
 
 ## Open
 
+### Two-app native delivery needs an app/profile decision and guarded signing
+
+- **Discovered:** 2026-10-28, owner selected both latest Mac apps.
+- **Where:** `apps/desktop/desktop-profile.js`, `apps/desktop-local/apps/desktop/src/main.js`, native release preparation.
+- **State:** Both stable apps use the name Weblab and the default Weblab settings folder. No name/default/profile change is approved yet. Asked whether Team should have a separate name/settings for side-by-side use, with a new sign-in, or retain the current setup. Team0.2.8 source is saved at644de5c4e;14 focused checks pass and lint has zero errors. Setup/unsigned build pass. Exact native resource and certificate-check syntax repairs have clear fresh reviews. The corrected signing rerun was RAM-terminated143, so Team signing/notarization/installer remain incomplete. Public private0.2.2 DMG was Apple accepted, stapled and ticket-validated; initial public command exit1 remains separately unresolved, and the existing public release is unchanged.
+- **Next step:** Primary release owner gets the app/profile choice before changing defaults or distributing both, then finishes the guarded native build/sign/notary/validation and delivery. Preserve all existing user settings and source. Web deployment remains held for unavailable Convex access. Reuse valid checks; keep hosted CI disabled.
+- **Tags:** `#product-decision` `#desktop` `#release-blocker`
+
 ### Next-release recovery requires final guarded checks before release
 
 - **Headless native check repair, 2026-10-28:** Electron42 auto-installs its runtime from a plain Node/Bun require. The local helper now requires Electron only inside an actual Electron process, preserving its existing headless contract. Fresh source review is clear;14 focused packaging/snapshot tests pass, lint has zero errors (3,844 warnings), and runtime distribution/path files remain absent. Parent owns guarded Team repinning/build; earlier public build exit1 remains a separate unresolved diagnostic.
