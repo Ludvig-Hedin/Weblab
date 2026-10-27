@@ -3,7 +3,15 @@
 The Weblab desktop app is an Electron wrapper around [weblab.build](https://weblab.build).  
 This doc covers three paths: building locally, sharing with friends, and publishing an official release.
 
+## Current release workflow
+
+Owner policy (2026-10-21): build, check, sign and notarize locally through the installed RAM/process guards. GitHub Actions stays disabled. Historical hosted-workflow instructions below are superseded. A Mac-only build is not a complete Windows/Linux release. Team releases remain non-latest so the public download keeps its separate channel.
+
 ## Changelog
+
+### v0.2.8 (candidate, not released)
+
+Latest native team source from main, including source-folder recovery and coordinated Quit handling. The hosted editor remains on its existing production version until matching Convex and Railway delivery can complete. Build, signing, notarization and packaged acceptance are pending; do not treat this version bump as a downloadable release.
 
 ### v0.2.7
 

@@ -1,3 +1,9 @@
+## 2026-10-27 — Both latest Mac apps requested
+
+Ludvig selected both Mac apps and cannot access Convex now. Keep the web deployment held on that access; continue independent native work. Public 0.2.2 source is already main-equivalent in the guarded recovery subtree and can be rebuilt privately without changing the published tag/asset. GitHub asset SHA-256 and size match the accepted/stapled release receipt; the existing public installer remains available. Team 0.2.8 is local release preparation, not built or shipped. The installed stable-team guard path must be added and independently reviewed before building. No automatic app replacement or new cloud/provider activation.
+
+Dependency restoration repeatedly refused the shared scheduler and then RAM admission at18–19% against the unchanged20% floor. No successful new native build is claimed. Parent owns guarded retries, source/lock consistency, stable-team build setup, signing/notarization/package acceptance, release delivery and cleanup. Preserve unrelated global guard/dotfiles edits and recovery workspace source.
+
 ## 2026-10-27 — Release preparation after PR #25 merge
 
 PR #25 is merged at `f432251799439e2e68b98c7fd19918735c9676ff`. Ludvig now separately requests deployment and a Mac rebuild. No new production or native release has shipped. Six remaining PRs (#18–22/#26) preserve overlapping donor archives; their saved audits identify no additional approved application implementation to merge wholesale.
