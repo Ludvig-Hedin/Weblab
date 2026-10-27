@@ -11,6 +11,8 @@ Owner policy (2026-10-21): build, check, sign and notarize locally through the i
 
 ### v0.2.8 (candidate, not released)
 
+- Headless filesystem checks no longer fetch an Electron runtime. Normal app startup is unchanged.
+
 Latest native team source from main, including source-folder recovery and coordinated Quit handling. The hosted editor remains on its existing production version until matching Convex and Railway delivery can complete. Build, signing, notarization and packaged acceptance are pending. Package/lock are prepared together at0.2.8 through normal guarded Bun generation; this section remains a release plan, not a downloadable release.
 
 ### v0.2.7

@@ -1,5 +1,7 @@
 ## 2026-10-28 — Native release preparation continues
 
+The headless local helper no longer loads Electron under Bun/Node, which had triggered the Electron42 install script during filesystem checks. Normal Electron startup is unchanged. Fresh source review is clear; the serialized packaging/snapshot checks pass14 tests, and focused lint has zero errors (3,844 warnings). Electron distribution/path files stay absent throughout the checks. Parent owns repinning this checked source and continuing the Team build.
+
 Public private0.2.2 artifacts were signed and Apple accepted submission34c3c57b-b621-401c-ae0a-793c5de13878. Staple and ticket validation pass. The build command itself returned1 without a logged error; source diagnosis did not establish its cause. Keep the command-exit pass unclaimed. The existing published0.2.2 asset is unchanged and verified. No new public release or app install.
 
 The exact Team lane's two safety findings are repaired and a fresh source review is clear. The lane and both RAM shedding entries are installed with unchanged admission, registration and heap limits. Team package/lock0.2.8 now match after normal guarded Bun lock-only generation; no manual lock edit. Setup/build/signing/notarization/package acceptance remain pending the shared scheduler. Web deployment stays held for unavailable Convex access. Primary release owner owns continuation and task-generated data cleanup.

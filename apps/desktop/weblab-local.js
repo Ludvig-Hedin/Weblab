@@ -24,7 +24,7 @@ let dialog;
 let app;
 let shell;
 try {
-    ({ ipcMain, dialog, app, shell } = require('electron'));
+    if (process.versions.electron) ({ ipcMain, dialog, app, shell } = require('electron'));
 } catch {
     // Non-Electron context (e.g. a headless node integration test). The core
     // fs / dev-server / watch functions need no electron; registerLocalIpc()
