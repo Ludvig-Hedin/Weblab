@@ -21,6 +21,9 @@ import type {
 import { CodeActionType } from '@weblab/models';
 import {
     getAstFromContent,
+    getOidFromJsxElement,
+    t,
+    type T,
     getContentFromAst,
     selectPipeline,
     transformAst,
@@ -30,7 +33,31 @@ import { getOrCreateCodeDiffRequest } from './helpers';
 import { getInsertedElement } from './insert';
 import { addTailwindToRequest } from './tailwind';
 
-export async function processGroupedRequests(groupedRequests: FileToRequests): Promise<CodeDiff[]> {
+/** The rendered img may be the shared root of a component even without an instance marker. */
+function assertLiteralImages(ast: T.File, expected: Set<string>): void {
+    const seen = new Set<string>();
+    t.traverseFast(ast, node => {
+        if (!t.isJSXOpeningElement(node)) return;
+        const oid = getOidFromJsxElement(node);
+        if (!oid || !expected.has(oid)) return;
+        const fields = new Set<string>();
+        const ambiguous = !t.isJSXIdentifier(node.name, { name: 'img' }) || seen.has(oid) ||
+            node.attributes.some(attr => {
+                if (t.isJSXSpreadAttribute(attr)) return true;
+                const name = attr.name.name;
+                if (name !== 'src' && name !== 'alt') return false;
+                if (fields.has(name)) return true;
+                fields.add(name);
+                return !t.isStringLiteral(attr.value) &&
+                    !(t.isJSXExpressionContainer(attr.value) && t.isStringLiteral(attr.value.expression));
+            });
+        if (ambiguous) throw new Error('Edit bound image properties at their source.');
+        seen.add(oid);
+    });
+    if (seen.size !== expected.size) throw new Error('The image properties could not be located.');
+}
+
+export async function processGroupedRequests(groupedRequests: FileToRequests, literalImageOids?: ReadonlySet<string>): Promise<CodeDiff[]> {
     const diffs: CodeDiff[] = [];
     for (const [path, request] of groupedRequests) {
         const { oidToRequest, content } = request;
@@ -56,6 +83,10 @@ export async function processGroupedRequests(groupedRequests: FileToRequests): P
             throw new Error('No ast found for file');
         }
 
+        if (literalImageOids?.size) {
+            const expected = new Set([...oidToRequest.keys()].filter(oid => literalImageOids.has(oid)));
+            if (expected.size) assertLiteralImages(ast, expected);
+        }
         const original = await getContentFromAst(ast, content);
         transformAst(ast, oidToRequest);
         const generated = await getContentFromAst(ast, content);

@@ -487,7 +487,10 @@ export class HistoryManager {
         const runs = this.gestureRuns.get(gesture) ?? new Set<Promise<boolean>>();
         this.gestureRuns.set(gesture, runs);
         const result = run(action => {
-            if (this.refusesAdmission) return false;
+            // Admission already happened above. A close lease must drain this
+            // sample, while new gestures remain excluded by refusesAdmission.
+            if (this.disposed) return false;
+            if (this.disposalLease) this.assertSourceCurrentForDisposal();
             runInAction(() => {
                 this.mutationGeneration++;
                 gesture.actions = updateTransactionActions(gesture.actions, action);
@@ -508,10 +511,10 @@ export class HistoryManager {
         }
         const gesture = this.inTransaction;
         if (gesture.type !== TransactionType.IN_TRANSACTION) return;
-        const runs = this.gestureRuns.get(gesture);
+        const runs = Array.from(this.gestureRuns.get(gesture) ?? []);
         this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
         this.mutationGeneration++;
-        if (!gesture.actions.length && !runs?.size) return;
+        if (!gesture.actions.length && !runs.length) return;
 
         // A7: expose the push chain via `commitPromise` so undo/redo/
         // startTransaction can await it. Chain onto any still-running commit
@@ -524,7 +527,12 @@ export class HistoryManager {
                 if (previous) {
                     await (strict ? previous : previous.catch(() => undefined));
                 }
-                if (runs?.size) await Promise.allSettled(runs);
+                if (runs.length) {
+                    const results = await Promise.allSettled(runs);
+                    if (this.disposalLease && results.some(result => result.status === 'rejected' || !result.value)) {
+                        this.disposalFailure = new Error('An admitted edit could not be saved.');
+                    }
+                }
                 actionsToCommit = gesture.actions;
                 if (actionsToCommit.some((action) => action.type === 'update-style')) {
                     await this.editorEngine.action.waitForQueuedStyleDispatches();
@@ -538,14 +546,14 @@ export class HistoryManager {
                     // transaction — they'd be silently lost if that gesture never
                     // commits (e.g. image swap: remove persists, insert swallowed).
                     const saved = await this.pushDirect(action);
-                    if (strict && !saved) throw new Error('An unfinished edit could not be saved.');
+                    if ((strict || this.disposalLease) && !saved) throw new Error('An unfinished edit could not be saved.');
                     nextAction += 1;
                     if (action.type === 'update-style') {
                         await this.editorEngine.action.finishQueuedStyleAction(action, saved);
                     }
                 }
             } catch (error) {
-                if (strict && nextAction < actionsToCommit.length) {
+                if ((strict || this.disposalLease) && nextAction < actionsToCommit.length) {
                     runInAction(() => {
                         this.mutationGeneration++;
                         const remaining = actionsToCommit.slice(nextAction);
@@ -553,6 +561,10 @@ export class HistoryManager {
                             ? this.inTransaction.actions : [];
                         this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [...remaining, ...newer] };
                     });
+                }
+                if (!strict && this.disposalLease) {
+                    this.disposalFailure = error instanceof Error ? error : new Error('An admitted edit could not be saved.');
+                    return;
                 }
                 throw error;
             }
@@ -917,6 +929,7 @@ export class HistoryManager {
     commitForDisposal = async (lease: HistoryDisposalLease): Promise<void> => {
         this.assertDisposalOwner(lease);
         if (this.commitPromise) await this.commitPromise;
+        if (this.disposalFailure) throw this.disposalFailure;
         await this.waitForPendingPushes();
         await Promise.allSettled(Array.from(this.pendingWrites.values()));
         await this.editorEngine.code.waitForPendingWrites();

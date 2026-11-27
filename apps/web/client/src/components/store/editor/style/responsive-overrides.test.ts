@@ -19,6 +19,7 @@ const element = (frameId: string, computed: Record<string, string>) =>
 function setup(
     siblingElement: DomElement | Promise<DomElement> = element('tablet-frame', { color: 'blue' }),
     includeOtherGroup = false,
+    desktopOnly = false,
 ) {
     const selected = element('desktop-frame', { color: 'red' });
     const desktop = {
@@ -43,7 +44,7 @@ function setup(
     };
     const engine = {
         elements: { selected: [selected] },
-        breakpoints: { activeId: 'tablet' },
+        breakpoints: { activeId: desktopOnly ? 'desktop' : 'tablet' },
         frames: {
             get: (id: string) => id === desktop.frame.id ? desktop : tablet,
             getAll: () => includeOtherGroup ? [
@@ -51,7 +52,7 @@ function setup(
                 { frame: { ...tablet.frame, groupId: 'other', breakpoint: { id: 'tablet', width: 900 } } },
                 desktop, tablet,
             ] : [desktop, tablet],
-            getByGroupId: () => [desktop, tablet],
+            getByGroupId: () => desktopOnly ? [desktop] : [desktop, tablet],
         },
         action: { resetResponsiveStyle: async (action: UpdateStyleAction) => {
             for (const target of action.targets) {
@@ -67,7 +68,12 @@ function setup(
 describe('StyleManager responsive overrides', () => {
     it('resolves reused breakpoint ids inside the selected frame group', () => {
         const { manager } = setup(undefined, true);
-        expect(manager.activeBreakpointContext()?.minWidth).toBe(0);
+        expect(manager.activeBreakpointContext()?.minWidth).toBe(768);
+    });
+
+    it('preserves the 1024px threshold for a one-frame Desktop group sharing narrower source frames', () => {
+        const { manager } = setup(undefined, false, true);
+        expect(manager.activeBreakpointContext()?.minWidth).toBe(1024);
     });
 
     it('shows a computed sibling difference without writing it into source', async () => {

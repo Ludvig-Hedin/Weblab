@@ -20,6 +20,7 @@ import {
     type UpdateStyleAction,
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
+import { toast } from '@weblab/ui/sonner';
 import { colors } from '@weblab/ui/tokens';
 import { canHaveBackgroundImage, createDomId, createOid, urlToRelativePath } from '@weblab/utility';
 
@@ -379,6 +380,12 @@ export class InsertManager {
         imageData: ImageContentData,
     ) {
         if (!this.editorEngine.canUseDesign || !targetElement.oid) return;
+        if (targetElement.instanceId) {
+            // The rendered image identifies its component root, but does not
+            // identify which props supply src and alt at this call site.
+            toast.error('Replace this component image through its instance properties.');
+            return;
+        }
         const url = imageData.originPath.replace(
             new RegExp(`^${DefaultSettings.IMAGE_FOLDER}/`),
             '',
@@ -389,6 +396,7 @@ export class InsertManager {
             oid: targetElement.oid,
             branchId: frame.frame.branchId,
             attributes: { src: `/${url}`, alt: imageData.fileName },
+            requireLiteralImage: true,
         });
     }
 

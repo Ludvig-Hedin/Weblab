@@ -36,7 +36,7 @@ import {
 } from './requests';
 import { addResponsiveTailwindToRequest, getTailwindClasses, tailwindPrefixForWidth } from './tailwind';
 import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer';
-import { breakpointMinWidth, readProjectBreakpoints } from './project-breakpoints';
+import { branchBaseWidth, breakpointMinWidth, readProjectBreakpoints } from './project-breakpoints';
 
 import { CSS_MODULE_PROPERTIES, readCssModuleDeclaration, replaceCssModuleDeclaration, resolveCssModuleBinding, validateCssModuleStyleEdit } from './css-module-declaration';
 
@@ -57,6 +57,7 @@ interface ElementMetadataUpdate {
     oid: string;
     branchId: string;
     attributes?: Record<string, string>;
+    requireLiteralImage?: boolean;
     tagName?: string | null;
     overrideClasses?: boolean | null;
 }
@@ -332,6 +333,10 @@ export class CodeManager {
                             this.editorEngine.branches.getBranchDataById(branchId) !== branchData || sourceContext?.current?.() === false) {
                             throw new Error('The source session changed before this edit could be saved.');
                         }
+                    }
+                    if (action.previewStyle) {
+                        await this.commitStyleDiffs(codeEditor, action.diffs);
+                        return;
                     }
                     // Check EVERY expected original before touching ANY file.
                     // The same path runs for initial saves, Undo and Redo.
@@ -686,6 +691,15 @@ export class CodeManager {
         ) {
             throw new Error('Multi-file local edits need a transaction and are unavailable');
         }
+        if (capture) {
+            const destination = validated[0]?.codeEditor;
+            if (!destination || validated.some(diff => diff.codeEditor !== destination)) {
+                throw new Error('A style edit must belong to one source branch.');
+            }
+            const diffs = validated.map(({ path, original, generated }) => ({ path, original, generated }));
+            capture(await this.commitStyleDiffs(destination, diffs));
+            return;
+        }
         for (const { codeEditor, path, original } of validated) {
             if (await codeEditor.readFile(path) !== original) {
                 throw new Error(`File changed on disk: ${path}. Reload before retrying this edit.`);
@@ -700,13 +714,12 @@ export class CodeManager {
         } else {
             for (const { codeEditor, path, generated } of validated) await codeEditor.writeFile(path, generated);
         }
-        if (capture) {
-            const diffs = await Promise.all(validated.map(async ({ codeEditor, path, original, generated }) => {
-                const saved = await codeEditor.readFile(path);
-                return { path, original, generated: typeof saved === 'string' ? saved : generated };
-            }));
-            capture(diffs);
-        }
+    }
+
+    private async commitStyleDiffs(editor: CodeFileSystem, diffs: CodeDiff[]): Promise<CodeDiff[]> {
+        const receipt = await editor.writeExactStyleDiffs(diffs);
+        if (receipt.needsReload) toast.error('Style saved. Reload the source to continue editing.');
+        return receipt.diffs;
     }
 
     private async collectRequests(action: Action, editors?: Map<string, CodeFileSystem>): Promise<CodeDiffRequest[]> {
@@ -881,11 +894,7 @@ export class CodeManager {
 
     /** Smallest frame width in the branch; edits there are the unprefixed base. */
     private baseFrameWidth(branchId: string): number | null {
-        const widths = (this.editorEngine.frames?.getAll() ?? [])
-            .filter((f) => f.frame.branchId === branchId)
-            .map((f) => f.frame.breakpoint?.width)
-            .filter((width): width is number => width !== undefined);
-        return widths.length > 0 ? Math.min(...widths) : null;
+        return branchBaseWidth(this.editorEngine.frames?.getAll() ?? [], branchId);
     }
 
     /** Tailwind prefix matching the preview's `@media (min-width)` scope. */
@@ -957,7 +966,8 @@ export class CodeManager {
         }
 
         const grouped = await this.groupRequestByFile(Array.from(requests.values()), new Map([[branchId, codeEditor]]));
-        const diffs = await processGroupedRequests(grouped);
+        const imageOids = new Set(updates.filter(update => update.requireLiteralImage).map(update => update.oid));
+        const diffs = await processGroupedRequests(grouped, imageOids);
         for (const diff of diffs) {
             const pipeline = selectPipeline(diff.path);
             const reparses = pipeline && pipeline.id !== 'jsx'

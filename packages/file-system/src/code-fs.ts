@@ -1,6 +1,6 @@
 import debounce from 'lodash.debounce';
 
-import type { ComponentDef } from '@weblab/models';
+import type { CodeDiff, ComponentDef } from '@weblab/models';
 import {
     EditorAttributes,
     WEBLAB_CACHE_DIRECTORY,
@@ -91,6 +91,7 @@ export class CodeFileSystem extends FileSystem {
     private durableRecovery: DurableRecoveryHandler | null = null;
     private durableTree: DurableTree | null = null;
     private durableNeedsHydration = false;
+    private staleStylePaths = new Set<string>();
     private readonly durableOwner = Symbol('durable-source');
     private durableClosed = false;
     private durableCacheErrorHandler: ((error: DurableCacheError) => void) | null = null;
@@ -394,6 +395,7 @@ export class CodeFileSystem extends FileSystem {
                 await super.writeFile(file.path, file.content);
             }
             await this.performRebuildIndex();
+            this.staleStylePaths.clear();
         });
     }
 
@@ -402,6 +404,7 @@ export class CodeFileSystem extends FileSystem {
         return this.withWriteLock(async () => {
             await super.writeFile(path, content);
             await this.reindexLocalFile(path, content);
+            this.staleStylePaths.delete(durablePath(path));
         });
     }
 
@@ -504,6 +507,65 @@ export class CodeFileSystem extends FileSystem {
         return run;
     }
 
+    /** Save existing, identified style targets without reformatting or restamping the file. */
+    async writeExactStyleDiffs(diffs: readonly CodeDiff[]): Promise<{ diffs: CodeDiff[]; needsReload: boolean }> {
+        const receipt = diffs.map(({ path, original, generated }) => ({
+            path: durablePath(path), original, generated,
+        }));
+        if (!receipt.length || new Set(receipt.map(diff => diff.path)).size !== receipt.length ||
+            receipt.some(diff => isDurableCachePath(diff.path))) throw new Error('Invalid style source targets.');
+        return this.withWriteLock(async () => {
+            let needsReload = false;
+            const tree = this.options.durableCloud ? this.requireDurableTree() : null;
+            for (const { path, original } of receipt) {
+                if (this.staleStylePaths.has(path)) throw new Error('Reload the saved source before editing.');
+                const current = tree ? tree.get(path)?.content : await super.readFile(path);
+                if (typeof current !== 'string' || current !== original) {
+                    throw new Error(`File changed on disk: ${path}. Reload before retrying this edit.`);
+                }
+            }
+            if (tree) {
+                try {
+                    await this.commitDurableChanges(receipt.map(({ path, generated }) => ({ path, content: generated })), false);
+                } catch (error) {
+                    // Source is already acknowledged. The durability layer has
+                    // marked the mirror stale and notified its recovery handler.
+                    if (!(error instanceof DurableCacheError) || !this.durableNeedsHydration) throw error;
+                    needsReload = true;
+                }
+            } else {
+                if (this.options.localProject && receipt.length > 1) throw new Error('Multi-file local edits need a transaction.');
+                for (const { path, generated } of receipt) {
+                    if (this.options.localProject) await this.persistLocalText(path, generated);
+                    else await super.writeFile(path, generated);
+                    // Disk (local) or the in-browser filesystem (legacy) now
+                    // owns the new bytes. A failed mirror/index needs refresh,
+                    // but the history entry still describes a committed edit.
+                    try {
+                        if (this.options.localProject) await super.writeFile(path, generated);
+                        await this.reindexLocalFile(path, generated);
+                    } catch (error) {
+                        console.error('Could not refresh the saved style source', path, error);
+                        this.staleStylePaths.add(path);
+                        needsReload = true;
+                    }
+                }
+            }
+            return { diffs: receipt, needsReload };
+        });
+    }
+
+    private async persistLocalText(path: string, content: string): Promise<void> {
+        if (!this.localWrite) throw new Error('Local source is not ready for a text write');
+        if (this.staleStylePaths.has(durablePath(path))) throw new Error('Reload the saved source before editing.');
+        try {
+            await this.localWrite(path, content);
+        } catch (error) {
+            const recoveryPath = await this.saveRecoveryCopy(path, content);
+            throw new Error(`Local write failed for ${path}. Your attempted source is saved in ${recoveryPath}. ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
     /** Preserve approved cloud text bytes; remote admission still owns permission and validation. */
     async writeCloudTextFile(path: string, content: string, expectedOriginal?: string): Promise<void> {
         if (!this.options.durableCloud) throw new Error('A durable cloud source is required');
@@ -548,14 +610,7 @@ export class CodeFileSystem extends FileSystem {
                 // The cloud path below stamps OIDs, injects scripts, and formats
                 // whole JSX files. Those broad changes require a separate
                 // reviewed preparation step for an existing Git project.
-                try {
-                    await this.localWrite!(path, content as string);
-                } catch (error) {
-                    const recoveryPath = await this.saveRecoveryCopy(path, content as string);
-                    throw new Error(
-                        `Local write failed for ${path}. Your attempted source is saved in ${recoveryPath}. ${error instanceof Error ? error.message : String(error)}`,
-                    );
-                }
+                await this.persistLocalText(path, content as string);
                 await super.writeFile(path, content);
                 await this.reindexLocalFile(path, content as string);
                 return;

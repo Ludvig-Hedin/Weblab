@@ -24,6 +24,44 @@ async function source(project = `durable-${Math.random().toString(36).slice(2)}`
 }
 
 describe('durable cloud source', () => {
+    it('commits exact style batches and refuses an entire stale replay before any write', async () => {
+        const fs = await source();
+        const original = 'export default ()=> <div data-oid="x" className="p-2"/>;\n';
+        const sibling = 'export const S=()=> <aside data-oid="y" />;\n';
+        const diffs = [
+            { path: 'app/page.tsx', original, generated: original.replace('p-2', 'md:p-4') },
+            { path: 'app/sibling.tsx', original: sibling, generated: sibling.replace(' />', ' className="mt-2" />') },
+        ];
+        const commits: DurableSourceChange[][] = [];
+        fs.setDurableCommitHandler(async changes => { commits.push(changes); });
+        try {
+            await fs.hydrateDurableSnapshot(diffs.map(diff => ({ path: diff.path, content: diff.original })));
+            await fs.writeExactStyleDiffs(diffs);
+            const inverse = diffs.map(diff => ({ ...diff, original: diff.generated, generated: diff.original }));
+            await expect(fs.writeExactStyleDiffs([inverse[0]!, { ...inverse[1]!, original: 'stale' }])).rejects.toThrow('changed');
+            expect(commits).toHaveLength(1);
+            await fs.writeExactStyleDiffs(inverse);
+            expect(commits).toEqual([diffs, inverse].map(batch => batch.map(diff => ({ path: diff.path, content: diff.generated }))));
+            for (const diff of diffs) expect(await fs.readFile(diff.path)).toBe(diff.original);
+        } finally { await fs.cleanup(); }
+    });
+
+    it('returns an acknowledged style receipt even when the post-commit mirror fails', async () => {
+        const fs = await source();
+        const commit = mock(async (_changes: DurableSourceChange[]) => {});
+        fs.setDurableCommitHandler(commit);
+        const cacheError = mock((_error: Error) => {});
+        fs.setDurableCacheErrorHandler(cacheError);
+        const diff = { path: 'app/page.tsx', original: page('Before'), generated: page('After') };
+        const write = spyOn(FileSystem.prototype, 'writeFile').mockRejectedValue(new Error('Cache quota'));
+        try {
+            expect(await fs.writeExactStyleDiffs([diff])).toEqual({ diffs: [diff], needsReload: true });
+            expect(commit).toHaveBeenCalledTimes(1);
+            expect(cacheError).toHaveBeenCalledTimes(1);
+            await expect(fs.writeExactStyleDiffs([diff])).rejects.toThrow('Reload');
+        } finally { write.mockRestore(); await fs.cleanup(); }
+    });
+
     it('submits normalized image bytes and exact owner source in one durable commit', async () => {
         const fs = await source();
         const submitted: DurableSourceChange[][] = [];

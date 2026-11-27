@@ -14,7 +14,7 @@ import { toast } from '@weblab/ui/sonner';
 import { convertFontString } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
-import { breakpointMinWidth } from '../code/project-breakpoints';
+import { branchBaseWidth, breakpointMinWidth } from '../code/project-breakpoints';
 
 export interface SelectedStyle {
     styles: DomElementStyles;
@@ -263,9 +263,7 @@ export class StyleManager {
         const width =
             sample?.frame.breakpoint?.width ?? this.editorEngine.breakpoints.activeWidth();
         const name = sample?.frame.breakpoint?.name ?? id;
-        const widths = frames.map((frame) => frame.frame.breakpoint?.width)
-            .filter((value): value is number => value !== undefined);
-        const base = widths.length > 0 ? Math.min(...widths) : null;
+        const base = branchBaseWidth(this.editorEngine.frames.getAll(), selected?.branchId);
         return { id, name, minWidth: breakpointMinWidth(width, base) };
     }
 
@@ -521,12 +519,11 @@ export class StyleManager {
             .filter(frame => frame.frame.branchId === selected.branchId);
         const sample = frames.find((frame) => frame.frame.breakpoint?.id === breakpointId);
         if (!sample?.frame.breakpoint) return false;
-        const widths = frames.map((frame) => frame.frame.breakpoint?.width)
-            .filter((width): width is number => width !== undefined);
+        const base = branchBaseWidth(this.editorEngine.frames.getAll(), selected.branchId);
         const context = {
             id: breakpointId,
             name: sample.frame.breakpoint.name ?? breakpointId,
-            minWidth: breakpointMinWidth(sample.frame.breakpoint.width, widths.length > 0 ? Math.min(...widths) : null),
+            minWidth: breakpointMinWidth(sample.frame.breakpoint.width, base),
         };
         const change = {
             original: { [key]: { value: previous.value, type: previous.type } },

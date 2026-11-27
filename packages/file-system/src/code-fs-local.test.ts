@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it, mock, spyOn } from 'bun:test';
 
 import { MemoryFileSystem } from './test-memory-fs';
 
@@ -42,4 +42,20 @@ describe('local project index', () => {
         expect(await fs.getJsxElementMetadata('card')).toBeUndefined();
         expect(await fs.getJsxElementMetadata('title')).toBeUndefined();
     });
+});
+
+it('retains a disk write receipt when the local mirror fails, then recovers after refresh', async () => {
+    const fs = await localFs();
+    const diff = { path: 'app/page.tsx', original: page('Hello'), generated: page('Edited') };
+    const diskWrite = mock(async () => undefined);
+    fs.setLocalWriteHandler(diskWrite);
+    const mirror = spyOn(MemoryFileSystem.prototype, 'writeFile').mockRejectedValueOnce(new Error('Mirror is full'));
+    try {
+        expect(await fs.writeExactStyleDiffs([diff])).toEqual({ diffs: [diff], needsReload: true });
+        await expect(fs.writeExactStyleDiffs([diff])).rejects.toThrow('Reload');
+        expect(diskWrite).toHaveBeenCalledTimes(1);
+        await fs.replaceLocalFile(diff.path, diff.generated);
+        await fs.writeExactStyleDiffs([{ ...diff, original: diff.generated, generated: diff.original }]);
+        expect(await fs.readFile(diff.path)).toBe(diff.original);
+    } finally { mirror.mockRestore(); await fs.cleanup(); }
 });

@@ -91,3 +91,40 @@ describe('HistoryManager new gesture source baseline', () => {
         }
     });
 });
+
+describe('released gesture during close', () => {
+    for (const saved of [true, false]) {
+        it(`drains the admitted sample and ${saved ? 'closes after save' : 'refuses close after failure'}`, async () => {
+            const writes: Action[] = [];
+            let writable = saved;
+            const engine = {
+                code: { write: async (entry: Action) => { writes.push(entry); return writable; },
+                    waitForPendingWrites: async () => undefined },
+                posthog: { capture: () => undefined },
+                action: { waitForQueuedStyleDispatches: async () => undefined, finishQueuedStyleAction: async () => undefined },
+            } as unknown as ConstructorParameters<typeof HistoryManager>[0];
+            const history = new HistoryManager(engine, 'released');
+            let release!: () => void;
+            const gate = new Promise<void>(done => { release = done; });
+            await history.startTransaction();
+            const sample = history.runStyleInGesture(async queue => {
+                await gate;
+                return queue({ type: 'update-style', targets: [] });
+            });
+            const committed = history.commitTransaction();
+            const close = history.dispose();
+            release();
+            expect(await sample).toBe(true);
+            await committed;
+            if (saved) await close;
+            else await expect(close).rejects.toThrow('could not be saved');
+            expect(writes).toHaveLength(1);
+            if (!saved) {
+                expect(history.isInTransaction).toBe(true);
+                writable = true;
+                await history.dispose();
+                expect(writes).toHaveLength(2);
+            }
+        });
+    }
+});

@@ -53,6 +53,17 @@ export async function readProjectBreakpoints(
     return stylesheet ? parseProjectBreakpoints(stylesheet.content) : {};
 }
 
+/** Frames in separate canvas groups can still edit the same branch source. */
+export function branchBaseWidth(
+    frames: readonly { frame: { branchId: string; breakpoint?: { width: number } } }[],
+    branchId: string | undefined,
+): number | null {
+    const widths = frames.filter(({ frame }) => frame.branchId === branchId)
+        .map(({ frame }) => frame.breakpoint?.width)
+        .filter((width): width is number => width !== undefined);
+    return widths.length ? Math.min(...widths) : null;
+}
+
 /** The smallest frame is the base. Every other frame retains its exact scope. */
 export function breakpointMinWidth(width: number, baseWidth: number | null): number {
     if (!Number.isFinite(width) || width < 0) throw new Error('This breakpoint width is invalid.');

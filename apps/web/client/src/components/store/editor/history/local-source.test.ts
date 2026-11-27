@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
+import type { CodeDiff } from '@weblab/models';
 import type { Action, UpdateStyleAction } from '@weblab/models/actions';
 
 import type { FrameData } from '../frames';
@@ -206,6 +207,14 @@ function sourceFixture() {
     const filesystem = (files: Map<string, string>) => ({
         readFile: async (path: string) => files.get(path) ?? '',
         writeFile: async (path: string, content: string) => { await beforeWrite?.(path); files.set(path, content); },
+        writeExactStyleDiffs: async (diffs: CodeDiff[]) => {
+            for (const diff of diffs) {
+                if (files.get(diff.path) !== diff.original) throw new Error('Stale source');
+                await beforeWrite?.(diff.path);
+                files.set(diff.path, diff.generated);
+            }
+            return { diffs, needsReload: false };
+        },
         getJsxElementMetadata: async (oid: string) => ({ path: 'page.tsx', code: metadata.get(oid) ?? '' }),
     });
     const fsA = filesystem(filesA);
@@ -232,7 +241,7 @@ function sourceFixture() {
     const history = new HistoryManager(engine, 'a');
     dataA.history = history;
     dataB.history = new HistoryManager(engine, 'b');
-    return { engine, code, history, filesA, filesB, metadata, setBeforeWrite: (hook: (path: string) => Promise<void>) => { beforeWrite = hook; }, scans: () => scans, switchBranch: () => { activeId = 'b'; } };
+    return { engine, code, history, dataA, filesA, filesB, metadata, setBeforeWrite: (hook: (path: string) => Promise<void>) => { beforeWrite = hook; }, scans: () => scans, switchBranch: () => { activeId = 'b'; } };
 }
 
 describe('exact source history', () => {
@@ -319,6 +328,87 @@ describe('exact source history', () => {
         expect(f.filesA.get('page.tsx')).toBe(original);
         f.code.clear();
         await f.history.dispose();
+    });
+
+    test('an instance image drop leaves the shared root and both call sites intact', async () => {
+        const f = sourceFixture();
+        const source = 'const Pic = ({src, label}) => <img data-oid="element" src={src} alt={label} />; export default () => <><Pic data-oid="one" src="1" label="One" /><Pic data-oid="two" src="2" label="Two" /></>;';
+        f.filesA.set('page.tsx', source);
+        Object.defineProperty(f.engine, 'canUseDesign', { value: true });
+        const frame = { frame: { branchId: 'a' }, view: {
+            getInsertLocation: async () => ({}),
+            getElementAtLoc: async () => ({ oid: 'element', instanceId: 'one', tagName: 'img' }),
+        } } as unknown as FrameData;
+        await new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
+            originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',
+        });
+        expect(f.filesA.get('page.tsx')).toBe(source);
+        expect(f.history.length).toBe(0);
+    });
+
+    test('a missing instance marker cannot turn bound image props into shared literals', async () => {
+        const f = sourceFixture();
+        const source = 'export const Image = ({src, label}) => <img data-oid="element" src={src} alt={label}/>;';
+        f.filesA.set('page.tsx', source);
+        Object.defineProperty(f.engine, 'canUseDesign', { value: true });
+        const frame = { frame: { branchId: 'a' }, view: {
+            getInsertLocation: async () => ({}),
+            getElementAtLoc: async () => ({ oid: 'element', instanceId: null, tagName: 'img' }),
+        } } as unknown as FrameData;
+        await expect(new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
+            originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',
+        })).rejects.toThrow('image properties');
+        expect(f.filesA.get('page.tsx')).toBe(source);
+        expect(f.history.length).toBe(0);
+    });
+
+    const padding: UpdateStyleAction = { type: 'update-style', targets: [{
+        oid: 'element', frameId: 'frame', domId: 'element', branchId: 'a',
+        change: { original: {}, updated: { padding: { value: '13px', type: StyleChangeType.Value } } },
+    }] };
+
+    test('a mirror read failure after commit preserves the saved style and its Undo', async () => {
+        const f = sourceFixture();
+        const original = f.filesA.get('page.tsx');
+        const read = f.dataA.codeEditor.readFile;
+        let offline = false;
+        f.setBeforeWrite(async () => { offline = true; });
+        f.dataA.codeEditor.readFile = async path => {
+            if (offline) throw new Error('Mirror temporarily unavailable');
+            return read(path);
+        };
+        expect(await f.history.push(padding)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toContain('p-[13px]');
+        offline = false;
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(original);
+    });
+
+    test('cloud style forward, Undo and Redo all commit the exact source bytes', async () => {
+        const f = sourceFixture();
+        const original = f.filesA.get('page.tsx')!;
+        const edited = original.replace('p-2', 'p-[13px]');
+        const commits: string[] = [];
+        Object.assign(f.dataA.branch.runtime, { type: 'cloud', cloud: { sourceVersion: 1 } });
+        Object.assign(f.dataA.codeEditor, {
+            writeFiles: async (files: Array<{ path: string; content: string }>) => {
+                for (const { path, content } of files) {
+                    const formatted = content.replace('(){return', '() { return');
+                    commits.push(formatted); f.filesA.set(path, formatted);
+                }
+            },
+            writeExactStyleDiffs: async (diffs: Array<{ path: string; original: string; generated: string }>) => {
+                for (const diff of diffs) {
+                    expect(f.filesA.get(diff.path)).toBe(diff.original);
+                    commits.push(diff.generated); f.filesA.set(diff.path, diff.generated);
+                }
+                return { diffs, needsReload: false };
+            },
+        });
+        expect(await f.history.push(padding)).toBe(true);
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(await f.code.write((await f.history.redo())!.forward)).toBe(true);
+        expect(commits).toEqual([edited, original, edited]);
     });
 
     test('reset replay retains source branch, token refresh and typed preview inversion', () => {
