@@ -545,7 +545,7 @@ At least one smoke test per shared package.
 | T-680 | F-680 | U | `APP_NAME === 'Weblab'` | True | `[ ]` |
 | T-687 | F-687 | U | Provider router picks correct adapter per model | True per model | `[ ]` |
 | T-689 | F-689 | U | AST round-trip on Onlook legacy fixtures | Output stable | `[ ]` |
-| T-905 | F-689 | U | [Class engine](../packages/parser/test/class-engine.test.ts) | Source ranges, comment-preserving patches, Webflow and mobile-first cascade, global tags, combos, states, create, detach and nine-page safe rename | `[x]` |
+| T-905 | F-689 | U | [Class engine](../packages/parser/test/class-engine.test.ts) | Source ranges, comment-preserving patches, Webflow and mobile-first cascade, global tags, combos, states, create, detach and nine-page safe rename. [Review regressions](../packages/parser/test/class-engine-review.test.ts) cover linked stylesheets, computed references, helper provenance, CSS trivia, priority and ineffective overrides. | `[x]` |
 | T-691 | F-691 | I | Vercel `scaffoldNextProject` | File tree matches expected | `[ ]` |
 | T-700 | F-700 | M | Every export has demo on `/design-system` | Manual review | `[ ]` |
 | T-703 | F-703 | I | Penpal handshake timeout | Surfaces error after threshold | `[ ]` |

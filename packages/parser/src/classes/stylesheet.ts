@@ -1,12 +1,15 @@
 import type { AtRule, ChildNode, Root, Rule } from 'postcss';
 import postcss from 'postcss';
 
+import { selectorInventory } from './selector-inventory';
+
 export type ClassState = 'hover' | 'focus-visible' | 'active' | 'current';
 export interface ClassTarget {
     selector: string;
     state?: ClassState;
     width?: number;
     direction?: 'min' | 'max';
+    currentConvention?: 'webflow' | 'aria';
 }
 export const WEBFLOW_WIDTHS = [991, 767, 479] as const;
 export interface TextPatch {
@@ -27,7 +30,13 @@ function difference(before: string, after: string): TextPatch | null {
         end--;
         nextEnd--;
     }
-    return { start, end, text: after.slice(start, nextEnd) };
+    let text = after.slice(start, nextEnd);
+    if (before.includes('\r\n') && !/(?<!\r)\n/.test(before)) {
+        text = text.replace(/(?<!\r)\n/g, (lf, index: number) =>
+            index === 0 && before[start - 1] === '\r' ? lf : '\r\n',
+        );
+    }
+    return { start, end, text };
 }
 export function assertClassName(name: string) {
     if (!/^-?[a-zA-Z_][\w-]*$/.test(name) || name === 'w--current')
@@ -51,6 +60,12 @@ function selectorParts(raw: string) {
         return {
             selector,
             state,
+            currentConvention:
+                state === 'current'
+                    ? raw.endsWith('.w--current')
+                        ? ('webflow' as const)
+                        : ('aria' as const)
+                    : undefined,
             classes: selector.startsWith('.') ? selector.slice(1).split('.') : [],
         };
 }
@@ -124,6 +139,9 @@ function matches(row: ClassTarget, target: ClassTarget) {
     return (
         row.selector === target.selector &&
         row.state === target.state &&
+        (!target.currentConvention ||
+            target.state !== 'current' ||
+            row.currentConvention === target.currentConvention) &&
         row.width === target.width &&
         (row.width === undefined || row.direction === (target.direction ?? 'max'))
     );
@@ -148,7 +166,7 @@ export function detachStyles(source: string, target: ClassTarget): Record<string
     const matching = rows(postcss.parse(source)).filter((r) => matches(r, target));
     return Object.fromEntries(
         orderedDeclarations(matching).map((d) => [
-            d.prop,
+            propertyKey(d.prop),
             d.value + (d.important ? ' !important' : ''),
         ]),
     );
@@ -185,7 +203,7 @@ function containerFor(root: Root, target: ClassTarget): Root | AtRule {
 }
 function prune(node: Rule | AtRule) {
     const parent = node.parent;
-    if (node.nodes?.length) return;
+    if (node.nodes?.length || node.toString().includes('/*')) return;
     node.remove();
     if (parent?.type === 'rule' || (parent?.type === 'atrule' && parent.name === 'media'))
         prune(parent);
@@ -206,11 +224,88 @@ function validateDeclaration(property: string, value: string) {
         throw Error('Expected one declaration');
     return rule.first;
 }
+function propertyKey(property: string) {
+    return property.startsWith('--') ? property : property.toLowerCase();
+}
+
+function verifyBreakpoint(css: string, target: ClassTarget, property: string) {
+    if (target.width === undefined) return;
+    const width = target.width;
+    const candidates = [];
+    const root = postcss.parse(css);
+    const indexed = rows(root);
+    const supported = new Set(indexed.map((row) => row.rule));
+    // A complex selector or conditional wrapper may outrank the editable rule.
+    // Without a rendered element its applicability cannot be determined.
+    root.walkDecls((d) => {
+        if (propertyKey(d.prop) !== propertyKey(property) || supported.has(d.parent as Rule))
+            return;
+        let container = d.parent;
+        while (container && container.type !== 'root') {
+            if (container.type === 'rule') {
+                const names = selectorInventory(container.selector + '{}').names;
+                if (
+                    target.selector.split('.').some((c) => names.has(c)) ||
+                    (!target.selector.startsWith('.') &&
+                        container.selector.includes(target.selector))
+                ) {
+                    throw Error(
+                        'Cascade conflict: a complex selector may override this breakpoint',
+                    );
+                }
+            }
+            container = container.parent;
+        }
+    });
+    for (const row of indexed) {
+        if (
+            row.width !== undefined &&
+            (row.direction === 'max' ? width > row.width : width < row.width)
+        )
+            continue;
+        if (row.state && row.state !== target.state) continue;
+        if (
+            row.state === 'current' &&
+            target.currentConvention &&
+            row.currentConvention !== target.currentConvention
+        )
+            continue;
+        if (
+            row.selector !== target.selector &&
+            !row.classes.some((c) => target.selector.split('.').includes(c))
+        )
+            continue;
+        for (const d of declarations(row.rule)) {
+            if (propertyKey(d.prop) !== propertyKey(property)) continue;
+            const priority = d.important
+                ? row.scope.type === 'root'
+                    ? 2
+                    : 3
+                : Number(row.scope.type === 'root');
+            const specificity = row.classes.length + Number(!!row.state);
+            candidates.push({
+                priority,
+                specificity,
+                offset: range(d).start,
+                target: matches(row, target),
+            });
+        }
+    }
+    const winner = candidates
+        .sort(
+            (a, b) =>
+                a.priority - b.priority || a.specificity - b.specificity || a.offset - b.offset,
+        )
+        .at(-1);
+    if (winner && !winner.target)
+        throw Error('Cascade conflict: another applicable declaration wins at this breakpoint');
+}
 export function editDeclaration(
     source: string,
     target: ClassTarget,
     property: string,
     value: string | null,
+    priority: 'preserve' | 'normal' | 'important' = 'preserve',
 ): TextPatch | null {
     const parts = selectorParts(target.selector);
     if (
@@ -223,7 +318,9 @@ export function editDeclaration(
         throw Error('Invalid target');
     const root = postcss.parse(source);
     const matching = rows(root).filter((r) => matches(r, target));
-    const existing = orderedDeclarations(matching).filter((d) => d.prop === property);
+    const existing = orderedDeclarations(matching).filter(
+        (d) => propertyKey(d.prop) === propertyKey(property),
+    );
     if (value === null) {
         for (const decl of existing) {
             if (decl.toString().includes('/*'))
@@ -236,17 +333,35 @@ export function editDeclaration(
         const parsed = validateDeclaration(property, value);
         const decl = existing.at(-1);
         if (decl) {
-            if (decl.value === parsed.value && !!decl.important === !!parsed.important) return null;
-            if (decl.raws.value?.raw.includes('/*'))
-                throw Error('Value contains embedded comments');
+            const important =
+                priority === 'preserve'
+                    ? !!(parsed.important || decl.important)
+                    : priority === 'important';
+            if (decl.value === parsed.value && !!decl.important === important) {
+                verifyBreakpoint(source, target, property);
+                return null;
+            }
+            const raw = decl.raws.value?.raw ?? decl.value;
+            if (
+                raw.includes('/*') ||
+                raw.trim() !== decl.value ||
+                (decl.important && !important && decl.raws.important?.includes('/*'))
+            )
+                throw Error('Editing this declaration would remove embedded comments');
+            decl.raws.value = {
+                value: parsed.value,
+                raw: raw.replace(decl.value, () => parsed.value),
+            };
             decl.value = parsed.value;
-            decl.important = parsed.important;
+            decl.important = important;
         } else {
             let rule = matching.at(-1)?.rule;
             if (!rule) {
                 const suffix =
                     target.state === 'current'
-                        ? '[aria-current]'
+                        ? target.currentConvention === 'webflow'
+                            ? '.w--current'
+                            : '[aria-current]'
                         : target.state
                           ? ':' + target.state
                           : '';
@@ -259,16 +374,22 @@ export function editDeclaration(
                 else scope.append(rule);
             }
             rule.append(
-                postcss.decl({ prop: property, value: parsed.value, important: parsed.important }),
+                postcss.decl({
+                    prop: property,
+                    value: parsed.value,
+                    important:
+                        priority === 'preserve' ? parsed.important : priority === 'important',
+                }),
             );
         }
     }
-    return difference(source, (root.source?.input.hasBOM ? source[0] : '') + root.toString());
+    const next = (root.source?.input.hasBOM ? source[0] : '') + root.toString();
+    if (value !== null) verifyBreakpoint(next, target, property);
+    return difference(source, next);
 }
 export function createClass(source: string, name: string, styles: Record<string, string>) {
     assertClassName(name);
-    if (indexStylesheet(source).some((row) => row.classes.includes(name)))
-        throw Error('Class already exists');
+    if (selectorInventory(source).names.has(name)) throw Error('Class already exists');
     if (!Object.keys(styles).length) {
         const root = postcss.parse(source);
         const selector = '.' + name;

@@ -57,6 +57,8 @@ test('creates states and ordered media in both directions and prunes empty rules
 });
 
 test('renames a nine-page project and accounts for every remaining occurrence', () => {
+    const imports =
+        'import {cn} from "@weblab/ui/utils"; import clsx from "clsx"; import {twMerge} from "tailwind-merge"; ';
     const expr = [
         '"button"',
         "{'button large'}",
@@ -69,7 +71,10 @@ test('renames a nine-page project and accounts for every remaining occurrence', 
         '"buttonish"',
     ];
     const files = Object.fromEntries(
-        expr.map((x, i) => ['page' + i + '.tsx', 'export default <a className=' + x + ' />']),
+        expr.map((x, i) => [
+            'page' + i + '.tsx',
+            imports + 'export default <a className=' + x + ' />',
+        ]),
     );
     const result = renameClass(webflow, files, 'button', 'action');
     expect(result.css).toBe(webflow.replaceAll('.button', '.action'));
@@ -142,12 +147,12 @@ test('renames complex CSS selector tokens and nested helpers, and flags script s
     const css = '.button, article > .button:hover { content: ".button"; }';
     const files = {
         'site.tsx':
-            'const s = twMerge(clsx("button")); document.querySelector(".button"); function f(cn: Function) { return cn("button"); }',
+            'import clsx from "clsx"; import {twMerge} from "tailwind-merge"; const s = <div className={twMerge(clsx("button"))}/>; document.querySelector(".button"); function f(cn: Function) { return cn("button"); }',
     };
     const result = renameClass(css, files, 'button', 'action');
     expect(result.css).toBe('.action, article > .action:hover { content: ".button"; }');
     expect(result.files['site.tsx']).toBe(
         files['site.tsx'].replace('clsx("button")', 'clsx("action")'),
     );
-    expect(result.unsafe).toHaveLength(2);
+    expect(result.unsafe).toHaveLength(3);
 });

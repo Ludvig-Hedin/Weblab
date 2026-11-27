@@ -1,11 +1,9 @@
-import postcss from 'postcss';
-import selectorParser from 'postcss-selector-parser';
-
 import type { NodePath, T } from '../packages';
 import type { TextPatch } from './stylesheet';
 import { t, traverse } from '../packages';
 import { getAstFromContent } from '../parse';
-import { applyPatch, assertClassName, indexStylesheet } from './stylesheet';
+import { selectorInventory } from './selector-inventory';
+import { applyPatch, assertClassName } from './stylesheet';
 
 type Site = { path: string; start: number; end: number; reason: string };
 interface Reference extends Site {
@@ -14,9 +12,38 @@ interface Reference extends Site {
     usage: boolean;
 }
 type Files = Readonly<Record<string, string>>;
-const helpers = new Set(['cn', 'clsx', 'twMerge']);
+function isClassHelper(scope: NodePath['scope'], name: string) {
+    const binding = scope.getBinding(name)?.path;
+    if (!binding?.parentPath?.isImportDeclaration()) return false;
+    const module = binding.parentPath.node.source.value;
+    const imported = binding.isImportDefaultSpecifier()
+        ? 'default'
+        : binding.isImportSpecifier() && t.isIdentifier(binding.node.imported)
+          ? binding.node.imported.name
+          : '';
+    return (
+        (module === 'clsx' && (imported === 'clsx' || imported === 'default')) ||
+        (module === 'tailwind-merge' && imported === 'twMerge') ||
+        (module === '@weblab/ui/utils' && imported === 'cn')
+    );
+}
 
-function references(files: Files) {
+function possibleClasses(node: T.Node): string[] {
+    if (t.isStringLiteral(node)) return node.value.split(/[ \t\n\r\f]+/);
+    if (t.isConditionalExpression(node))
+        return [...possibleClasses(node.consequent), ...possibleClasses(node.alternate)];
+    if (t.isLogicalExpression(node)) return possibleClasses(node.right);
+    if (t.isTemplateLiteral(node))
+        return node.quasis.flatMap((q, i) => {
+            const words = (q.value.cooked ?? q.value.raw).split(/[ \t\n\r\f]+/);
+            if (i > 0) words.shift();
+            if (!q.tail) words.pop();
+            return words;
+        });
+    return [];
+}
+
+function references(files: Files, requireLinkedSheets = false) {
     const sites: Reference[] = [];
     for (const [path, source] of Object.entries(files)) {
         if (!/\.[cm]?[jt]sx?$/.test(path)) continue;
@@ -51,12 +78,12 @@ function references(files: Files) {
                     start,
                     node.end! - 1,
                     'encoded class literal',
-                    node.value.split(/\s+/),
+                    node.value.split(/[ \t\n\r\f]+/),
                     false,
                     true,
                 );
             } else {
-                for (const token of raw.matchAll(/\S+/g)) {
+                for (const token of raw.matchAll(/[^ \t\n\r\f]+/g)) {
                     record(
                         start + token.index,
                         start + token.index + token[0].length,
@@ -73,41 +100,114 @@ function references(files: Files) {
             if (
                 t.isCallExpression(node) &&
                 t.isIdentifier(node.callee) &&
-                helpers.has(node.callee.name)
+                isClassHelper(scope, node.callee.name)
             ) {
-                const binding = scope.getBinding(node.callee.name);
-                // A locally shadowed function may interpret its arguments as selectors or other data.
-                if (!binding || binding.kind === 'module') {
-                    for (const arg of node.arguments) classExpression(arg, scope);
-                    return;
-                }
+                for (const arg of node.arguments) classExpression(arg, scope);
+                return;
             }
-            const raw = source.slice(node.start!, node.end!);
             record(
                 node.start!,
                 node.end!,
                 'dynamic expression',
-                raw.match(/[\w-]+/g) ?? [],
+                possibleClasses(node),
                 false,
-                !t.isCallExpression(node),
+                true,
             );
         }
         traverse(ast, {
+            JSXOpeningElement(element) {
+                if (!requireLinkedSheets || !t.isJSXIdentifier(element.node.name, { name: 'link' }))
+                    return;
+                const attr = (name: string) =>
+                    element.node.attributes.find(
+                        (a) => t.isJSXAttribute(a) && t.isJSXIdentifier(a.name, { name }),
+                    );
+                const literalValue = (attribute: ReturnType<typeof attr>) => {
+                    if (!t.isJSXAttribute(attribute)) return;
+                    const value = attribute.value;
+                    if (t.isStringLiteral(value)) return value.value;
+                    if (t.isJSXExpressionContainer(value) && t.isStringLiteral(value.expression))
+                        return value.expression.value;
+                };
+                const rel = attr('rel');
+                if (
+                    !rel ||
+                    (literalValue(rel) !== undefined &&
+                        !literalValue(rel)!
+                            .toLowerCase()
+                            .split(/[ \t\n\r\f]+/)
+                            .includes('stylesheet'))
+                )
+                    return;
+                const href = literalValue(attr('href'))?.split(/[?#]/)[0];
+                if (!href || !/^\/(?!\/)/.test(href) || !Object.hasOwn(files, 'public' + href)) {
+                    throw Error(
+                        'Rename requires the complete linked stylesheet inventory at ' + path,
+                    );
+                }
+            },
             JSXAttribute(attr) {
                 if (!t.isJSXIdentifier(attr.node.name, { name: 'className' })) return;
                 const value = attr.node.value;
                 if (!value) return;
+                const owner = attr.parent;
+                if (
+                    !t.isJSXOpeningElement(owner) ||
+                    !t.isJSXIdentifier(owner.name) ||
+                    !/^[a-z]/.test(owner.name.name)
+                ) {
+                    record(
+                        value.start!,
+                        value.end!,
+                        'dynamic expression',
+                        possibleClasses(
+                            t.isJSXExpressionContainer(value) ? value.expression : value,
+                        ),
+                        false,
+                        true,
+                    );
+                    attr.skip();
+                    return;
+                }
                 classExpression(
                     t.isJSXExpressionContainer(value) ? value.expression : value,
                     attr.scope,
                 );
                 attr.skip();
             },
+            JSXSpreadAttribute(attr) {
+                record(attr.node.start!, attr.node.end!, 'dynamic expression', []);
+            },
             CallExpression(call) {
-                if (!t.isIdentifier(call.node.callee) || !helpers.has(call.node.callee.name))
-                    return;
-                classExpression(call.node, call.scope);
-                call.skip();
+                const callee = call.node.callee;
+                if (!t.isMemberExpression(callee)) return;
+                const object = callee.object;
+                const classList =
+                    t.isMemberExpression(object) &&
+                    t.isIdentifier(object.property, { name: 'classList' });
+                if (
+                    classList ||
+                    (t.isIdentifier(callee.property) &&
+                        [
+                            'querySelector',
+                            'querySelectorAll',
+                            'matches',
+                            'closest',
+                            'getElementsByClassName',
+                            'setAttribute',
+                        ].includes(callee.property.name))
+                ) {
+                    const names = classList ? call.node.arguments.flatMap(possibleClasses) : [];
+                    record(
+                        call.node.start!,
+                        call.node.end!,
+                        'dynamic expression',
+                        names,
+                        false,
+                        classList,
+                    );
+                    call.skip();
+                }
             },
             'StringLiteral|TemplateElement'(p: NodePath) {
                 const { start, end } = p.node;
@@ -120,7 +220,11 @@ function references(files: Files) {
 }
 
 export function classUsage(css: string, files: Files) {
-    const names = new Set(indexStylesheet(css).flatMap((row) => row.classes));
+    const names = selectorInventory(css).names;
+    for (const [path, text] of Object.entries(files)) {
+        if (/\.css$/i.test(path)) for (const name of selectorInventory(text).names) names.add(name);
+    }
+    names.delete('w--current');
     const counts: Record<string, number> = Object.fromEntries([...names].map((n) => [n, 0]));
     const dynamic: Site[] = [];
     for (const site of references(files)) {
@@ -131,46 +235,83 @@ export function classUsage(css: string, files: Files) {
     return { counts, unused: [...names].filter((n) => !counts[n]), dynamic };
 }
 
-function cssRenamePatches(css: string, from: string, to: string) {
-    const patches: TextPatch[] = [];
-    postcss.parse(css).walkRules((rule) => {
-        const raw = rule.raws.selector?.raw ?? rule.selector;
-        selectorParser((selectors) => {
-            selectors.walkClasses((node) => {
-                if (node.value === to) throw Error('Destination class already exists');
-                if (node.value !== from) return;
-                const token = node.toString().trim();
-                const start =
-                    rule.source!.start!.offset +
-                    Number(rule.source!.input.hasBOM) +
-                    node.sourceIndex;
-                if (css.slice(start, start + token.length) !== token)
-                    throw Error('Ambiguous CSS selector range');
-                patches.push({ start, end: start + token.length, text: '.' + to });
+// Audit every literal token in original coordinates, including unsupported syntax and file types.
+function residualSites(
+    path: string,
+    source: string,
+    name: string,
+    patches: TextPatch[],
+    unsafe: Site[],
+) {
+    const covered = [...patches, ...unsafe.filter((site) => site.path === path)].sort(
+        (a, b) => a.start - b.start,
+    );
+    let index = 0;
+    let coveredUntil = -1;
+    for (const match of source.matchAll(new RegExp('(?<![\\w-])' + name + '(?![\\w-])', 'g'))) {
+        const start = match.index;
+        const end = start + name.length;
+        while (index < covered.length && covered[index]!.start <= start) {
+            coveredUntil = Math.max(coveredUntil, covered[index++]!.end);
+        }
+        if (coveredUntil < end) unsafe.push({ path, start, end, reason: 'unverified reference' });
+    }
+}
+function cssRenamePatches(css: string, from: string, to: string, path: string, unsafe: Site[]) {
+    const { names, tokens, uncertain } = selectorInventory(css);
+    if (names.has(to)) throw Error('Destination class already exists');
+    for (const token of uncertain) {
+        if (token.name.toLowerCase() === to.toLowerCase())
+            throw Error('Possible destination class collision');
+        if (token.name.toLowerCase() === from.toLowerCase())
+            unsafe.push({
+                path,
+                start: token.start,
+                end: token.end,
+                reason: 'ambiguous attribute selector',
             });
-        }).processSync(raw);
-    });
-    return patches;
+    }
+    return tokens
+        .filter((token) => token.name === from)
+        .map(({ start, end }) => ({ start, end, text: to }));
 }
 
-export function renameClass(css: string, files: Files, from: string, to: string) {
+export function renameClass(
+    css: string,
+    files: Files,
+    from: string,
+    to: string,
+    cssPath = '<stylesheet>',
+) {
     assertClassName(from);
     assertClassName(to);
-    const cssPatches = cssRenamePatches(css, from, to);
-    const next = { ...files };
+    if (files[cssPath] !== undefined && files[cssPath] !== css)
+        throw Error('Selected stylesheet has changed');
     const unsafe: Site[] = [];
+    const cssPatches = cssRenamePatches(css, from, to, cssPath, unsafe);
+    const next = { ...files };
     const patches: Record<string, TextPatch[]> = Object.fromEntries(
-        Object.keys(files).map((path) => [path, [] as TextPatch[]]),
+        Object.entries(files).map(([path, source]) => [
+            path,
+            path === cssPath
+                ? cssPatches
+                : /(?<!\.module)\.css$/i.test(path)
+                  ? cssRenamePatches(source, from, to, path, unsafe)
+                  : [],
+        ]),
     );
-    for (const { path, start, end, reason, names, safe } of references(files)) {
+    for (const { path, start, end, reason, names, safe, usage } of references(files, true)) {
+        if (usage && names.includes(to)) throw Error('Destination class is already used');
         if (!names.includes(from) && reason !== 'unparsed file' && reason !== 'dynamic expression')
             continue;
-        if (safe) (patches[path] ??= []).push({ start, end, text: to });
+        if (safe) patches[path]!.push({ start, end, text: to });
         else unsafe.push({ path, start, end, reason });
     }
     for (const [path, edits] of Object.entries(patches)) {
+        residualSites(path, next[path]!, from, edits, unsafe);
         for (const patch of edits.toReversed()) next[path] = applyPatch(next[path]!, patch);
     }
+    if (!(cssPath in files)) residualSites(cssPath, css, from, cssPatches, unsafe);
     for (const patch of cssPatches.toReversed()) css = applyPatch(css, patch);
     return { css, files: next, unsafe, patches, cssPatches };
 }
