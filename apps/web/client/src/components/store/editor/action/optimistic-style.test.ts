@@ -93,6 +93,24 @@ describe('optimistic style edits', () => {
         expect(await run).toBe(true);
     });
 
+    it('retains drag order when the final preflight returns first', async () => {
+        const { engine, manager, painted, saves } = setup();
+        const first = deferred<void>();
+        let checked = 0;
+        Object.defineProperty(engine, 'code', { value: {
+            preflightStyleAction: () => checked++ === 0 ? first.promise : Promise.resolve(),
+        } });
+        const early = manager.run(styleAction('red', 'blue'));
+        const late = manager.run(styleAction('blue', 'green'));
+        await Promise.resolve();
+        expect(painted).toEqual([]);
+        first.resolve(undefined);
+        await manager.waitForStylePreflights();
+        expect(painted).toEqual(['blue', 'green']);
+        for (const save of saves) save.resolve(true);
+        await Promise.all([early, late]);
+    });
+
     it('paints the frame before the source save finishes', async () => {
         const { manager, painted, saves } = setup();
         let applied = false;
@@ -143,4 +161,18 @@ describe('optimistic style edits', () => {
         expect(await second).toBe(true);
         expect(painted).toEqual(['blue', 'green']);
     });
+});
+
+it('saves a named color once for both a direct edit and a released drag', async () => {
+    const { manager, saves } = setup();
+    const action = styleAction('rgb(0, 0, 0)', 'brand');
+    action.targets[0]!.oid = 'heading';
+    action.targets[0]!.change.updated.color!.type = StyleChangeType.Custom;
+    const run = manager.run(action);
+    saves[0]!.resolve(true);
+    expect(await run).toBe(true);
+    expect(manager.hasPendingRebases).toBe(false);
+    await manager.finishQueuedStyleAction(action, true);
+    expect(manager.hasPendingRebases).toBe(false);
+    expect(saves).toHaveLength(1);
 });

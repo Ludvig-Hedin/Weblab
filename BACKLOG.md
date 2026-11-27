@@ -147,6 +147,14 @@ later without re-discovering the context.
 
 > Full context + fixed items: [`docs/editor-stability-audit-2026-07-04.md`](docs/editor-stability-audit-2026-07-04.md). 23 issues fixed this pass; the items below are confirmed real but carry a regression risk that can't be validated without a live sandbox / responsive-frame browser session, or need a larger design change.
 
+#### Responsive edit, reload and Undo acceptance on three sites
+
+- **Discovered:** 2026-11-27, Webflow parity slice 0.
+- **Where:** responsive style editing, gesture history and image replacement.
+- **Next step:** on an isolated blank Next starter and private copies of Stilta and Magma, script the same token, multi-property and drag edits at three widths. Reload, Undo and Redo. Compare the edited source with the baseline outside the edited lines and require a byte-identical file after Undo. Measure first open against 60 seconds.
+- **Scope:** style samples coalesce per gesture. Image replacement is one attribute edit. Generic transactions containing unrelated action types still commit each action independently. Navigator visibility, deletion without an element ID and the viewport-height loop have separate owners.
+- **Risk:** unit fixtures do not exercise real preview HMR, cloud formatting, persisted preview overrides or first-open performance.
+
 #### Responsive-rebase source-write corruption cluster (P1)
 
 - **Discovered:** 2026-07-04 (editor stability audit)

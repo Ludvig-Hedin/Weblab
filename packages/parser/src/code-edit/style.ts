@@ -3,6 +3,50 @@ import { customTwMerge } from '@weblab/utility';
 import type { T } from '../packages';
 import { t } from '../packages';
 import { getAstFromContent } from '../parse';
+import { getOidFromJsxElement } from './helpers';
+
+/** Replace only static class literals, leaving the surrounding source byte-for-byte intact. */
+export function patchStyleClasses(source: string, additions: ReadonlyMap<string, string>): string {
+    const ast = getAstFromContent(source);
+    if (!ast) throw new Error('The selected source could not be parsed.');
+    const seen = new Set<string>();
+    const edits: Array<{ start: number; end: number; value: string }> = [];
+    t.traverseFast(ast, node => {
+        if (!t.isJSXElement(node)) return;
+        const opening = node.openingElement;
+        const oid = getOidFromJsxElement(opening);
+        if (!oid || !additions.has(oid)) return;
+        if (seen.has(oid)) throw new Error('The selected source identity is ambiguous.');
+        seen.add(oid);
+        assertStaticClassName(node);
+        const attribute = opening.attributes.find((attr): attr is T.JSXAttribute =>
+            t.isJSXAttribute(attr) && attr.name.name === 'className');
+        const current = attribute ? staticClassValue(attribute) : '';
+        // Merge each existing utility against the incoming edit independently.
+        // A whole-list merge would also normalize unrelated authored fallback classes.
+        const incoming = additions.get(oid)!;
+        const added = new Set(incoming.split(/\s+/));
+        const retained = current.split(/\s+/).filter(token => token &&
+            !added.has(token) &&
+            customTwMerge(token, incoming).split(/\s+/).includes(token));
+        const merged = [...retained, incoming].join(' ');
+        if (current === merged) return;
+        if (opening.end == null) throw new Error('The class position could not be verified.');
+        const insertAt = opening.end - (opening.selfClosing ? 2 : 1);
+        const literal = attribute?.value;
+        const start = literal?.start ?? insertAt;
+        const end = literal?.end ?? insertAt;
+        const quote = source[start] === "'" ? "'" : '"';
+        const encoded = merged.replaceAll('&', '&amp;').replaceAll(quote, quote === '"' ? '&quot;' : '&#39;');
+        const value = t.isJSXExpressionContainer(literal) ? `{${JSON.stringify(merged)}}` : quote + encoded + quote;
+        edits.push({ start, end, value: attribute ? value : ' className=' + value });
+    });
+    if (seen.size !== additions.size) throw new Error('The selected element is missing from source.');
+    for (const { start, end, value } of edits.sort((a, b) => b.start - a.start)) {
+        source = source.slice(0, start) + value + source.slice(end);
+    }
+    return source;
+}
 
 /** Only a proven static class value can be edited from a rendered element. */
 export function assertStaticClassName(node: T.JSXElement): void {

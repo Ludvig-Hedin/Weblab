@@ -148,6 +148,7 @@ export class ActionManager {
     private textPreviewRuns = new Map<string, symbol>();
     private latestStyleEdit = new Map<string, UpdateStyleAction>();
     private optimisticStyleRuns = new Set<Promise<boolean>>();
+    private lastStylePreflight: Promise<void> = Promise.resolve();
     private stylePreflights = new Set<Promise<void>>();
 
     get hasPendingStylePreflights(): boolean {
@@ -207,8 +208,25 @@ export class ActionManager {
             ? this.editorEngine.branches.getBranchDataById(action.targets[0]?.branchId ?? '')?.history
             : this.editorEngine.history;
         if (!sourceHistory) return false;
+        if (action.type === 'update-style' && sourceHistory.isInTransaction && sourceHistory.runStyleInGesture) {
+            return sourceHistory.runStyleInGesture(queue => this.runAdmitted(action, sourceHistory, onApplied, queue));
+        }
+        return this.runAdmitted(action, sourceHistory, onApplied);
+    }
+
+    private async runAdmitted(
+        action: Action,
+        sourceHistory: HistoryManager,
+        onApplied?: () => void,
+        queue?: (action: UpdateStyleAction) => boolean,
+    ): Promise<boolean> {
         if (action.type === 'update-style' && this.editorEngine.code?.preflightStyleAction) {
-            const preflight = this.editorEngine.code.preflightStyleAction(action);
+            // Start validation immediately, but admit drag samples in input order.
+            const validation = this.editorEngine.code.preflightStyleAction(action);
+            const preflight = Promise.allSettled([this.lastStylePreflight, validation]).then(([, result]) => {
+                if (result.status === 'rejected') throw result.reason;
+            });
+            this.lastStylePreflight = preflight.catch(() => undefined);
             this.stylePreflights.add(preflight);
             try {
                 await preflight;
@@ -229,12 +247,12 @@ export class ActionManager {
         // source writes stay in sequence instead of being dropped.
         if (
             action.type === 'update-style' &&
-            !sourceHistory.isInTransaction &&
+            !queue && !sourceHistory.isInTransaction &&
             sourceHistory.isCommitPending
         ) {
             await sourceHistory.waitForCommit();
         }
-        const queuedStyle = action.type === 'update-style' && sourceHistory.isInTransaction;
+        const queuedStyle = action.type === 'update-style' && (queue !== undefined || sourceHistory.isInTransaction);
         let finishQueued: (() => void) | undefined;
         const queuedCompletion = queuedStyle ? new Promise<void>((resolve) => {
             finishQueued = () => resolve(undefined);
@@ -249,7 +267,7 @@ export class ActionManager {
                 ? this.editorEngine.branches.getBranchDataById(action.parent.branchId)?.history
                 : sourceHistory;
             if (!actionHistory) return false;
-            const pushed = structural
+            const pushed = queue && action.type === 'update-style' ? queue(action) : structural
                 ? await actionHistory.pushImmediate(action)
                 : await actionHistory.push(action);
             if (!pushed) {
@@ -310,11 +328,6 @@ export class ActionManager {
             return false;
         }
         onApplied?.();
-        // Same debounced responsive rebase the old write-then-dispatch path
-        // scheduled once the write had landed.
-        if (!history.isInTransaction) {
-            this.scheduleRebasesForTargets(action.targets);
-        }
         return true;
     }
 
@@ -749,10 +762,8 @@ export class ActionManager {
     }
 
     async finishQueuedStyleAction(action: UpdateStyleAction, saved: boolean): Promise<void> {
-        if (saved) {
-            this.scheduleRebasesForTargets(action.targets);
-            return;
-        }
+        // The history write already includes the final breakpoint and token.
+        if (saved) return;
         for (const target of action.targets) {
             if (!target.oid) continue;
             for (const property of Object.keys(target.change.updated)) {

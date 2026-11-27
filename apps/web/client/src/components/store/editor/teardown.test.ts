@@ -710,7 +710,7 @@ describe('recoverable editor teardown', () => {
         f.action.clear();
     });
 
-    test('normal text finalization drains the responsive rebase created by its strict gesture commit', async () => {
+    test('normal text finalization persists its strict gesture without a second responsive write', async () => {
         const f = textRebaseFixture();
         await f.text.start(f.target, f.view);
         await f.history.push({
@@ -730,7 +730,7 @@ describe('recoverable editor teardown', () => {
         });
         expect(f.writes).toEqual([]);
         await f.text.end();
-        expect(f.writes).toHaveLength(1);
+        expect(f.writes).toEqual([]);
         expect(f.text.isEditing).toBe(false);
         expect(f.action.hasPendingRebases).toBe(false);
         expect(f.history.isPreparingForDisposal).toBe(false);

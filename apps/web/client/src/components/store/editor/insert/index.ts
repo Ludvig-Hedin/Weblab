@@ -17,7 +17,6 @@ import {
     type ActionLocation,
     type ActionTarget,
     type InsertElementAction,
-    type RemoveElementAction,
     type UpdateStyleAction,
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
@@ -379,83 +378,18 @@ export class InsertManager {
         targetElement: DomElement,
         imageData: ImageContentData,
     ) {
-        if (!frame.view) {
-            console.error('No frame view found');
-            return;
-        }
-
-        const actionElement = await frame.view.getActionElement(targetElement.domId);
-        if (!actionElement) {
-            console.error('Failed to get action element for target');
-            return;
-        }
-
+        if (!this.editorEngine.canUseDesign || !targetElement.oid) return;
         const url = imageData.originPath.replace(
-            new RegExp(`^${DefaultSettings.IMAGE_FOLDER}\/`),
+            new RegExp(`^${DefaultSettings.IMAGE_FOLDER}/`),
             '',
         );
-
-        const currentLocation = await frame.view.getActionLocation(targetElement.domId);
-        if (!currentLocation) {
-            console.error('Failed to get current element location');
-            return;
-        }
-
-        const removeAction: RemoveElementAction = {
-            type: 'remove-element',
-            targets: [
-                {
-                    frameId: frame.frame.id,
-                    branchId: frame.frame.branchId,
-                    domId: actionElement.domId,
-                    oid: actionElement.oid,
-                },
-            ],
-            location: currentLocation,
-            element: actionElement,
-            editText: false,
-            pasteParams: null,
-            codeBlock: null,
-        };
-
-        // Create new image element with updated src
-        const updatedImageElement: ActionElement = {
-            ...actionElement,
-            attributes: {
-                ...actionElement.attributes,
-                src: `/${url}`,
-                alt: imageData.fileName,
-            },
-        };
-
-        const insertAction: InsertElementAction = {
-            type: 'insert-element',
-            targets: [
-                {
-                    frameId: frame.frame.id,
-                    branchId: frame.frame.branchId,
-                    domId: actionElement.domId,
-                    oid: actionElement.oid,
-                },
-            ],
-            element: updatedImageElement,
-            location: currentLocation,
-            editText: false,
-            pasteParams: null,
-            codeBlock: null,
-        };
-
-        // Run remove + insert inside one history transaction so the swap is
-        // batched through a single commit instead of landing as two
-        // independent pushes — a remove that saved while the insert failed
-        // would otherwise silently delete the image.
-        this.editorEngine.history.startTransaction();
-        try {
-            await this.editorEngine.action.run(removeAction);
-            await this.editorEngine.action.run(insertAction);
-        } finally {
-            await this.editorEngine.history.commitTransaction();
-        }
+        // A replacement changes two attributes on the existing node. Store the
+        // single source diff so a failed save cannot leave the old image deleted.
+        await this.editorEngine.code.updateElementMetadata({
+            oid: targetElement.oid,
+            branchId: frame.frame.branchId,
+            attributes: { src: `/${url}`, alt: imageData.fileName },
+        });
     }
 
     insertImageElement(frame: FrameData, location: ActionLocation, imageData: ImageContentData) {

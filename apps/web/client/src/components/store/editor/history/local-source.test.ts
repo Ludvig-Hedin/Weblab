@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import type { Action, UpdateStyleAction } from '@weblab/models/actions';
 
+import type { FrameData } from '../frames';
+import { ActionManager } from '../action';
+import { InsertManager } from '../insert';
 import { HistoryManager } from './index';
 import { CodeManager } from '../code';
 import type { EditorEngine } from '../engine';
@@ -214,11 +217,13 @@ function sourceFixture() {
     const engine = {
         framework: 'nextjs',
         branches: {
+            getStyleWriterForBranch: () => 'tailwind',
+            getBranchById: (id: string) => id === 'a' ? dataA.branch : dataB.branch,
             get activeBranch() { return activeId === 'a' ? dataA.branch : dataB.branch; },
             getBranchDataById: (id: string) => id === 'a' ? dataA : dataB,
             activeError: { addCodeApplicationError: () => undefined },
         },
-        action: { flushPendingRebases: () => undefined },
+        action: { flushPendingRebases: () => undefined, waitForQueuedStyleDispatches: async () => undefined, finishQueuedStyleAction: async () => undefined },
         tokens: { scan: async () => { scans++; } },
         posthog: { capture: () => undefined },
     } as unknown as EditorEngine;
@@ -227,10 +232,95 @@ function sourceFixture() {
     const history = new HistoryManager(engine, 'a');
     dataA.history = history;
     dataB.history = new HistoryManager(engine, 'b');
-    return { code, history, filesA, filesB, metadata, setBeforeWrite: (hook: (path: string) => Promise<void>) => { beforeWrite = hook; }, scans: () => scans, switchBranch: () => { activeId = 'b'; } };
+    return { engine, code, history, filesA, filesB, metadata, setBeforeWrite: (hook: (path: string) => Promise<void>) => { beforeWrite = hook; }, scans: () => scans, switchBranch: () => { activeId = 'b'; } };
 }
 
 describe('exact source history', () => {
+    test('a breakpoint drag writes once and a quick Undo restores the original source bytes', async () => {
+        const f = sourceFixture();
+        const before = f.filesA.get('page.tsx')!.replace('p-2', 'p-2 p-4 bg-black');
+        f.filesA.set('page.tsx', before);
+        const writes: string[] = [];
+        f.setBeforeWrite(async path => { writes.push(path); });
+        await f.history.startTransaction();
+        for (const color of ['primary', 'brand']) {
+            await f.history.push({ type: 'update-style', targets: [{
+                oid: 'element', domId: 'element', branchId: 'a', frameId: 'tablet',
+                breakpoint: { id: 'tablet', name: 'Tablet', minWidth: 780 },
+                change: {
+                    original: { color: { value: 'rgb(0, 0, 0)', type: StyleChangeType.Value } },
+                    updated: { color: { value: color, type: StyleChangeType.Custom } },
+                },
+            }] });
+        }
+        expect(writes).toEqual([]);
+        const commit = f.history.commitTransaction();
+        const undo = f.history.undo();
+        await commit;
+        const edited = f.filesA.get('page.tsx');
+        expect(edited).toBe(before.replace('bg-black', 'bg-black [@media(min-width:780px)]:text-brand'));
+        expect(writes).toEqual(['page.tsx']);
+        expect(await f.code.write((await undo)!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(before);
+        expect(f.history.length).toBe(0);
+        expect(await f.code.write((await f.history.redo())!.forward)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(edited);
+        f.code.clear();
+        await f.history.dispose();
+    });
+
+    test('a second gesture starting during preflight keeps an independent undo entry', async () => {
+        const f = sourceFixture();
+        const action = new ActionManager(f.engine);
+        Object.assign(f.engine, { action, elements: { selected: [] }, frames: {
+            getAll: () => [], get: () => ({ view: { updateStyle: async () => null } }),
+        }, theme: { getColorByName: () => '#fff' } });
+        let release!: () => void;
+        const gate = new Promise<void>(done => { release = done; });
+        f.code.preflightStyleAction = async () => gate;
+        const change = (value: string): UpdateStyleAction => ({ type: 'update-style', targets: [{
+            oid: 'element', frameId: 'frame', domId: 'dom', branchId: 'a',
+            change: { original: {}, updated: { color: { value, type: StyleChangeType.Custom } } },
+        }] });
+        await f.history.startTransaction();
+        const early = action.run(change('early'));
+        const first = action.run(change('primary'));
+        const firstCommit = f.history.commitTransaction();
+        void f.history.startTransaction();
+        const second = action.run(change('secondary'));
+        const secondCommit = f.history.commitTransaction();
+        release();
+        await Promise.all([early, first, second, firstCommit, secondCommit]);
+        expect(f.history.length).toBe(2);
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toContain('text-primary');
+        f.code.clear();
+        await f.history.dispose();
+    });
+
+    test('dropping a replacement image keeps the node and restores both attributes in one Undo', async () => {
+        const f = sourceFixture();
+        const original = 'export default () => <img data-oid="element" src="/old.png" alt="Old" loading="lazy" />;';
+        f.filesA.set('page.tsx', original);
+        Object.defineProperty(f.engine, 'canUseDesign', { value: true });
+        const frame = { frame: { branchId: 'a' }, view: {
+            getInsertLocation: async () => ({}),
+            getElementAtLoc: async () => ({ oid: 'element', tagName: 'img' }),
+        } } as unknown as FrameData;
+        await new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
+            originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',
+        });
+        const edited = f.filesA.get('page.tsx');
+        expect(edited).toContain('src="/new.png"');
+        expect(edited).toContain('alt="New"');
+        expect(edited).toContain('loading="lazy"');
+        expect(f.history.length).toBe(1);
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(original);
+        f.code.clear();
+        await f.history.dispose();
+    });
+
     test('reset replay retains source branch, token refresh and typed preview inversion', () => {
         const previewStyle: UpdateStyleAction = { type: 'update-style', targets: [{
             oid: 'element', domId: 'dom', branchId: 'a', frameId: 'frame',

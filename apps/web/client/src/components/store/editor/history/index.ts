@@ -4,7 +4,7 @@ import { freezeCloudTextApproval } from '../sandbox/cloud-source';
 import { debounce } from 'lodash';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 
-import type { Action } from '@weblab/models/actions';
+import type { Action, UpdateStyleAction } from '@weblab/models/actions';
 import { jsonClone } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
@@ -478,6 +478,27 @@ export class HistoryManager {
         }
     };
 
+    private gestureRuns = new WeakMap<InTransaction, Set<Promise<boolean>>>();
+
+    /** Bind each input sample to its gesture before source validation yields. */
+    runStyleInGesture(run: (queue: (action: UpdateStyleAction) => boolean) => Promise<boolean>): Promise<boolean> {
+        const gesture = this.inTransaction;
+        if (this.refusesAdmission || gesture.type !== TransactionType.IN_TRANSACTION) return Promise.resolve(false);
+        const runs = this.gestureRuns.get(gesture) ?? new Set<Promise<boolean>>();
+        this.gestureRuns.set(gesture, runs);
+        const result = run(action => {
+            if (this.refusesAdmission) return false;
+            runInAction(() => {
+                this.mutationGeneration++;
+                gesture.actions = updateTransactionActions(gesture.actions, action);
+            });
+            return true;
+        });
+        runs.add(result);
+        void result.finally(() => runs.delete(result)).catch(() => undefined);
+        return result;
+    }
+
     commitTransaction = async (strict = false, lease?: HistoryDisposalLease) => {
         if (strict) {
             if (!lease) throw new Error('Strict history commit needs its preparation owner.');
@@ -485,21 +506,12 @@ export class HistoryManager {
         } else if (this.refusesAdmission) {
             throw new Error('This editor is saving before it closes.');
         }
-        if (this.editorEngine.action?.hasPendingStylePreflights) {
-            await this.editorEngine.action.waitForStylePreflights();
-        }
-        if (
-            this.inTransaction.type === TransactionType.NOT_IN_TRANSACTION ||
-            this.inTransaction.actions.length === 0
-        ) {
-            this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
-            this.mutationGeneration++;
-            return;
-        }
-
-        const actionsToCommit = this.inTransaction.actions;
+        const gesture = this.inTransaction;
+        if (gesture.type !== TransactionType.IN_TRANSACTION) return;
+        const runs = this.gestureRuns.get(gesture);
         this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
         this.mutationGeneration++;
+        if (!gesture.actions.length && !runs?.size) return;
 
         // A7: expose the push chain via `commitPromise` so undo/redo/
         // startTransaction can await it. Chain onto any still-running commit
@@ -507,10 +519,13 @@ export class HistoryManager {
         const previous = this.commitPromise;
         const commit = (async () => {
             let nextAction = 0;
+            let actionsToCommit = gesture.actions;
             try {
                 if (previous) {
                     await (strict ? previous : previous.catch(() => undefined));
                 }
+                if (runs?.size) await Promise.allSettled(runs);
+                actionsToCommit = gesture.actions;
                 if (actionsToCommit.some((action) => action.type === 'update-style')) {
                     await this.editorEngine.action.waitForQueuedStyleDispatches();
                     // StyleManager's completion callback records the override map
@@ -640,7 +655,10 @@ export class HistoryManager {
         const stored = this.undoStack[this.undoStack.length - 1] ?? action;
         // B2: expose the in-flight write so `undo()` can wait for it to settle
         // before popping this action off the stack.
-        const writePromise = write ? write(action) : this.editorEngine.code.write(action);
+        let historyEntry = action;
+        const writePromise = write ? write(action) : this.editorEngine.code.write(action, undefined, entry => {
+            historyEntry = entry;
+        });
         this.pendingWrites.set(stored, writePromise);
         let written: boolean;
         try {
@@ -688,7 +706,12 @@ export class HistoryManager {
         // Source preparation can capture wrapper snapshots or the writer's
         // final formatted contents. MobX cloned the plain input on insertion;
         // record those successful-write details on the stored entry too.
-        runInAction(() => { this.mutationGeneration++; Object.assign(stored, retainCloudTextHistoryPin(jsonClone(action))); });
+        runInAction(() => {
+            this.mutationGeneration++;
+            const index = this.undoStack.lastIndexOf(stored);
+            if (historyEntry === action) Object.assign(stored, retainCloudTextHistoryPin(jsonClone(action)));
+            else if (index !== -1) this.undoStack[index] = jsonClone(historyEntry);
+        });
 
         if (this.externalRevision && this.externalRevision() !== expectedExternalRevision) {
             // The edit already landed. The strict flush will reject the new

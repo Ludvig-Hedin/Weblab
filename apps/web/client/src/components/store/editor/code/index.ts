@@ -12,8 +12,8 @@ import type { BreakpointId, DomElement } from '@weblab/models';
 import type { CssModuleProperty, CssModuleStyleEdit } from '@weblab/models/actions';
 import { NodeFsProvider } from '@weblab/code-provider';
 import type { BreakpointEntry } from '@weblab/parser';
-import { type Action, type CodeDiff, type CodeDiffRequest, type FileToRequests, type UpdateStyleAction } from '@weblab/models';
-import { assertStaticClassName, getAstFromCodeblock, getAstFromContent, selectPipeline } from '@weblab/parser';
+import { type Action, type CodeDiff, type CodeDiffRequest, type FileToRequests, type UpdateStyleAction, type WriteCodeAction } from '@weblab/models';
+import { assertStaticClassName, getAstFromCodeblock, getAstFromContent, patchStyleClasses, selectPipeline } from '@weblab/parser';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
 
@@ -132,7 +132,11 @@ export class CodeManager {
      * from the undo stack when its write fails so a later undo can't emit the
      * inverse of an edit that never landed.
      */
-    async write(action: Action, sourceContext?: { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean; validate?: () => Promise<boolean> }): Promise<boolean> {
+    async write(
+        action: Action,
+        sourceContext?: { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean; validate?: () => Promise<boolean> },
+        captureStyleHistory?: (entry: WriteCodeAction) => void,
+    ): Promise<boolean> {
         try {
             if (action.type === 'write-code' && 'cloudProperty' in action) {
                 const edit = action.cloudProperty;
@@ -373,7 +377,9 @@ export class CodeManager {
                 }
                 await this.enqueueWrite(async () => {
                     const requests = await this.collectRequests(action, editors);
-                    await this.processWriteRequest(requests, editors);
+                    await this.processWriteRequest(requests, editors, action.type === 'update-style' && captureStyleHistory
+                        ? (diffs) => captureStyleHistory({ type: 'write-code', branchId: branchIds[0], diffs, previewStyle: action })
+                        : undefined);
                 });
             }
             return true;
@@ -600,9 +606,21 @@ export class CodeManager {
         return run;
     }
 
-    private async processWriteRequest(requests: CodeDiffRequest[], editors: Map<string, CodeFileSystem>) {
+    private async processWriteRequest(
+        requests: CodeDiffRequest[],
+        editors: Map<string, CodeFileSystem>,
+        capture?: (diffs: CodeDiff[]) => void,
+    ) {
         const groupedRequests = await this.groupRequestByFile(requests, editors);
-        const codeDiffs = await processGroupedRequests(groupedRequests);
+        const codeDiffs = capture ? Array.from(groupedRequests, ([path, group]) => {
+            const additions = new Map<string, string>();
+            for (const [oid, request] of group.oidToRequest) {
+                const classes: unknown = request.attributes.className;
+                if (typeof classes !== 'string' || !classes) throw new Error('This style has no writable Tailwind class.');
+                additions.set(oid, classes);
+            }
+            return { path, original: group.content, generated: patchStyleClasses(group.content, additions) };
+        }) : await processGroupedRequests(groupedRequests);
 
         // Validate EVERY diff before writing ANY file. A multi-file action
         // (multi-select edit across components) that failed validation on
@@ -681,6 +699,13 @@ export class CodeManager {
             if (destination) await destination.writeFiles(validated.map(diff => ({ path: diff.path, content: diff.generated })));
         } else {
             for (const { codeEditor, path, generated } of validated) await codeEditor.writeFile(path, generated);
+        }
+        if (capture) {
+            const diffs = await Promise.all(validated.map(async ({ codeEditor, path, original, generated }) => {
+                const saved = await codeEditor.readFile(path);
+                return { path, original, generated: typeof saved === 'string' ? saved : generated };
+            }));
+            capture(diffs);
         }
     }
 
