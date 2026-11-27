@@ -38,6 +38,8 @@
     "dependencies": {
         "@babel/standalone": "^7.27.0",
         "@babel/types": "^7.27.0",
-        "@weblab/models": "*"
+        "@weblab/models": "*",
+        "postcss": "8.5.15",
+        "postcss-selector-parser": "7.1.1"
     }
 }
