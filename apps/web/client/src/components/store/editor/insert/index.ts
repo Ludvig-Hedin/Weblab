@@ -25,24 +25,27 @@ import { colors } from '@weblab/ui/tokens';
 import { canHaveBackgroundImage, createDomId, createOid, urlToRelativePath } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
+import { SharedImageError } from '../code/requests';
 import type { FrameData } from '../frames';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { getRelativeMousePositionToFrameView } from '../overlay/utils';
 
-// Only a complete, unmarked chain to the document root identifies an image
-// outside an instance. A stale DOM id during the walk leaves ownership unknown.
-async function isStandaloneImage(view: IFrameView, image: DomElement): Promise<boolean> {
+// Source validation matches each marked ancestor against an enclosing JSX call.
+async function imageInstanceAncestors(view: IFrameView, image: DomElement): Promise<string[] | null> {
+    if (image.instanceId) return null;
+    const instances: string[] = [];
     let node = image;
     const visited = new Set<string>();
-    while (!node.instanceId && !node.parent?.instanceId) {
-        if (node.tagName.toLowerCase() === 'html' && node.parent === null) return true;
-        if (!node.domId || !node.parent || visited.has(node.domId)) return false;
+    while (node.tagName.toLowerCase() !== 'html' || node.parent !== null) {
+        if (!node.domId || !node.parent || visited.has(node.domId)) return null;
         visited.add(node.domId);
         const parent = await view.getParentElement(node.domId);
-        if (!parent || parent.domId !== node.parent.domId) return false;
+        if (!parent || parent.domId !== node.parent.domId ||
+            (parent.instanceId ?? null) !== (node.parent.instanceId ?? null)) return null;
+        if (parent.instanceId) instances.push(parent.instanceId);
         node = parent;
     }
-    return false;
+    return instances;
 }
 
 export class InsertManager {
@@ -396,7 +399,8 @@ export class InsertManager {
         imageData: ImageContentData,
     ) {
         if (!this.editorEngine.canUseDesign || !targetElement.oid || !frame.view) return;
-        if (!await isStandaloneImage(frame.view, targetElement)) {
+        const instances = await imageInstanceAncestors(frame.view, targetElement);
+        if (!instances) {
             toast.error('Replace this component image through its instance properties.');
             return;
         }
@@ -406,12 +410,17 @@ export class InsertManager {
         );
         // A replacement changes two attributes on the existing node. Store the
         // single source diff so a failed save cannot leave the old image deleted.
-        await this.editorEngine.code.updateElementMetadata({
-            oid: targetElement.oid,
-            branchId: frame.frame.branchId,
-            attributes: { src: `/${url}`, alt: imageData.fileName },
-            requireLiteralImage: true,
-        });
+        try {
+            await this.editorEngine.code.updateElementMetadata({
+                oid: targetElement.oid,
+                branchId: frame.frame.branchId,
+                attributes: { src: `/${url}`, alt: imageData.fileName },
+                imageInstanceAncestors: instances,
+            });
+        } catch (error) {
+            if (!(error instanceof SharedImageError)) throw error;
+            toast.error('Replace this component image through its instance properties.');
+        }
     }
 
     insertImageElement(frame: FrameData, location: ActionLocation, imageData: ImageContentData) {

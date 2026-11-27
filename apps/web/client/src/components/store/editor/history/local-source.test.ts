@@ -333,6 +333,31 @@ describe('exact source history', () => {
         await f.history.dispose();
     });
 
+    test.each(['literal', 'conditional'])('a %s image passed as Figure children replaces only its call site and undoes exactly', async kind => {
+        const f = sourceFixture();
+        const second = '<Figure data-oid="two"><img data-oid="other" src="/two.png" alt="Two" /></Figure>';
+        const image = '<img data-oid="element" src="/one.png" alt="One" />';
+        const first = `<Figure data-oid="one">${kind === 'literal' ? image : `{ready && ${image}}`}</Figure>`;
+        const original = `const Figure = ({children}) => <figure>{children}</figure>; export default () => <>${first}${second}</>;`;
+        f.filesA.set('page.tsx', original);
+        Object.defineProperty(f.engine, 'canUseDesign', { value: true });
+        const figure = { domId: 'figure', instanceId: 'one', tagName: 'FIGURE', parent: { domId: 'html' } };
+        const frame = { frame: { branchId: 'a' }, view: {
+            getInsertLocation: async () => ({}),
+            getElementAtLoc: async () => ({ domId: 'img', oid: 'element', tagName: 'IMG', parent: figure }),
+            getParentElement: async (id: string) => id === 'img' ? figure : { domId: 'html', tagName: 'HTML', parent: null },
+        } } as unknown as FrameData;
+        await new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
+            originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',
+        });
+        expect(f.filesA.get('page.tsx')).toContain(first.replace('/one.png', '/new.png').replace('alt="One"', 'alt="New"'));
+        expect(f.filesA.get('page.tsx')).toContain(second);
+        expect(f.history.length).toBe(1);
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(original);
+        await f.history.dispose();
+    });
+
     test('an instance image drop leaves the shared root and both call sites intact', async () => {
         const f = sourceFixture();
         const source = 'const Pic = ({src, label}) => <img data-oid="element" src={src} alt={label} />; export default () => <><Pic data-oid="one" src="1" label="One" /><Pic data-oid="two" src="2" label="Two" /></>;';
@@ -357,15 +382,21 @@ describe('exact source history', () => {
             const original = `const Photo = () => <figure data-oid="figure">${child}</figure>; export default () => <><Photo data-oid="one" /><Photo data-oid="two" /></>;`;
             f.filesA.set('page.tsx', original);
             Object.defineProperty(f.engine, 'canUseDesign', { value: true });
-            const figure = { domId: 'figure-one', instanceId: 'one' };
+            const html = { domId: 'html', tagName: 'HTML', parent: null };
+            const figure = { domId: 'figure-one', instanceId: 'one', tagName: 'FIGURE', parent: html };
+            const span = { domId: 'span-one', tagName: 'SPAN', parent: figure };
             const frame = { frame: { branchId: 'a' }, view: {
                 getInsertLocation: async () => ({}),
                 getElementAtLoc: async () => ({
                     domId: 'img-one', oid: 'element', tagName: 'IMG', instanceId: null,
                     parent: ancestry === 'marked parent' ? figure : { domId: 'span-one' },
                 }),
-                getParentElement: async () => ancestry === 'detached parent' ? null
-                    : { domId: 'span-one', tagName: 'SPAN', parent: figure },
+                getParentElement: async (id: string) => {
+                    if (ancestry === 'detached parent') return null;
+                    if (id === figure.domId) return html;
+                    if (id === span.domId || ancestry === 'marked parent') return figure;
+                    return span;
+                },
             } } as unknown as FrameData;
             await new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
                 originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',

@@ -57,7 +57,7 @@ interface ElementMetadataUpdate {
     oid: string;
     branchId: string;
     attributes?: Record<string, string>;
-    requireLiteralImage?: boolean;
+    imageInstanceAncestors?: readonly string[];
     tagName?: string | null;
     overrideClasses?: boolean | null;
 }
@@ -966,7 +966,10 @@ export class CodeManager {
         }
 
         const grouped = await this.groupRequestByFile(Array.from(requests.values()), new Map([[branchId, codeEditor]]));
-        const imageOids = new Set(updates.filter(update => update.requireLiteralImage).map(update => update.oid));
+        const imageOids = new Map<string, readonly string[]>();
+        for (const update of updates) {
+            if (update.imageInstanceAncestors) imageOids.set(update.oid, update.imageInstanceAncestors);
+        }
         const diffs = await processGroupedRequests(grouped, imageOids);
         for (const diff of diffs) {
             const pipeline = selectPipeline(diff.path);

@@ -27,37 +27,69 @@ import {
     getContentFromAst,
     selectPipeline,
     transformAst,
+    traverse,
+    type NodePath,
 } from '@weblab/parser';
 
 import { getOrCreateCodeDiffRequest } from './helpers';
 import { getInsertedElement } from './insert';
 import { addTailwindToRequest } from './tailwind';
 
-/** The rendered img may be the shared root of a component even without an instance marker. */
-function assertLiteralImages(ast: T.File, expected: Set<string>): void {
+export class SharedImageError extends Error {}
+
+function assertImageCallSites(path: NodePath<T.JSXElement>, instances: readonly string[]): void {
+    let child: NodePath | null = path;
+    for (const instance of instances) {
+        let matched = false;
+        while (child?.parentPath) {
+            const parent: NodePath = child.parentPath;
+            // A conditional child is still authored at the call site. Stop at
+            // functions, calls and props, where ownership is no longer clear.
+            if (child.listKey !== 'children' &&
+                !(parent.isJSXExpressionContainer() ||
+                    (parent.isConditionalExpression() && child.key !== 'test') ||
+                    (parent.isLogicalExpression() && child.key === 'right'))) break;
+            child = parent;
+            if (!child?.isJSXElement()) continue;
+            const opening = child.node.openingElement;
+            if (getOidFromJsxElement(opening) === instance &&
+                (t.isJSXMemberExpression(opening.name) ||
+                    (t.isJSXIdentifier(opening.name) && /^[A-Z]/.test(opening.name.name)))) {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) throw new SharedImageError();
+    }
+}
+
+function assertLiteralImages(ast: T.File, expected: ReadonlyMap<string, readonly string[]>): void {
     const seen = new Set<string>();
-    t.traverseFast(ast, node => {
-        if (!t.isJSXOpeningElement(node)) return;
-        const oid = getOidFromJsxElement(node);
-        if (!oid || !expected.has(oid)) return;
-        const fields = new Set<string>();
-        const ambiguous = !t.isJSXIdentifier(node.name, { name: 'img' }) || seen.has(oid) ||
-            node.attributes.some(attr => {
-                if (t.isJSXSpreadAttribute(attr)) return true;
-                const name = attr.name.name;
-                if (name !== 'src' && name !== 'alt') return false;
-                if (fields.has(name)) return true;
-                fields.add(name);
-                return !t.isStringLiteral(attr.value) &&
-                    !(t.isJSXExpressionContainer(attr.value) && t.isStringLiteral(attr.value.expression));
-            });
-        if (ambiguous) throw new Error('Edit bound image properties at their source.');
-        seen.add(oid);
+    traverse(ast, {
+        JSXElement(path) {
+            const node = path.node.openingElement;
+            const oid = getOidFromJsxElement(node);
+            if (!oid || !expected.has(oid)) return;
+            assertImageCallSites(path, expected.get(oid)!);
+            const fields = new Set<string>();
+            const ambiguous = !t.isJSXIdentifier(node.name, { name: 'img' }) || seen.has(oid) ||
+                node.attributes.some(attr => {
+                    if (t.isJSXSpreadAttribute(attr)) return true;
+                    const name = attr.name.name;
+                    if (name !== 'src' && name !== 'alt') return false;
+                    if (fields.has(name)) return true;
+                    fields.add(name);
+                    return !t.isStringLiteral(attr.value) &&
+                        !(t.isJSXExpressionContainer(attr.value) && t.isStringLiteral(attr.value.expression));
+                });
+            if (ambiguous) throw new Error('Edit bound image properties at their source.');
+            seen.add(oid);
+        },
     });
     if (seen.size !== expected.size) throw new Error('The image properties could not be located.');
 }
 
-export async function processGroupedRequests(groupedRequests: FileToRequests, literalImageOids?: ReadonlySet<string>): Promise<CodeDiff[]> {
+export async function processGroupedRequests(groupedRequests: FileToRequests, literalImageOids?: ReadonlyMap<string, readonly string[]>): Promise<CodeDiff[]> {
     const diffs: CodeDiff[] = [];
     for (const [path, request] of groupedRequests) {
         const { oidToRequest, content } = request;
@@ -67,6 +99,7 @@ export async function processGroupedRequests(groupedRequests: FileToRequests, li
         // files failed at "No ast found for file".
         const pipeline = selectPipeline(path);
         if (pipeline && pipeline.id !== 'jsx') {
+            if ([...oidToRequest.keys()].some(oid => literalImageOids?.get(oid)?.length)) throw new SharedImageError();
             const pipelineAst = pipeline.parse(content);
             if (!pipelineAst) {
                 throw new Error('No ast found for file');
@@ -84,7 +117,7 @@ export async function processGroupedRequests(groupedRequests: FileToRequests, li
         }
 
         if (literalImageOids?.size) {
-            const expected = new Set([...oidToRequest.keys()].filter(oid => literalImageOids.has(oid)));
+            const expected = new Map([...literalImageOids].filter(([oid]) => oidToRequest.has(oid)));
             if (expected.size) assertLiteralImages(ast, expected);
         }
         const original = await getContentFromAst(ast, content);
