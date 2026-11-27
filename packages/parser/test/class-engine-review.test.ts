@@ -78,7 +78,7 @@ test('refuses known destination usage', () => {
 });
 test('keeps CSS whitespace, header comments and priority comments', () => {
     const css = '.a{color : red ;}';
-    expect(applyPatch(css, editDeclaration(css, target, 'color', 'blue'))).toBe(
+    expect(applyPatch(css, editDeclaration(css, target, 'color', 'blue').patch)).toBe(
         css.replace('red', 'blue'),
     );
     for (const source of [
@@ -92,13 +92,13 @@ test('keeps CSS whitespace, header comments and priority comments', () => {
                 { ...target, width: source.startsWith('@') ? 767 : undefined },
                 'color',
                 null,
-            ),
+            ).patch,
         );
         expect(next).toContain('/* keep rationale */');
         expect(next).not.toContain('color:red');
     }
     const annotation = '.a{color:red !/* keep rationale */important}';
-    expect(applyPatch(annotation, editDeclaration(annotation, target, 'color', 'blue'))).toBe(
+    expect(applyPatch(annotation, editDeclaration(annotation, target, 'color', 'blue').patch)).toBe(
         annotation.replace('red', 'blue'),
     );
 });
@@ -113,26 +113,27 @@ test('warns when a breakpoint edit would lose to another applicable declaration'
         const matchesSelector = css.startsWith('#wrapper')
             ? (selector: string) => ['#wrapper .a', '.a'].includes(selector)
             : undefined;
-        expect(() =>
-            editDeclaration(css, { ...target, width: 767, matchesSelector }, 'color', 'blue'),
-        ).toThrow(/cascade/i);
+        expect(
+            editDeclaration(css, { ...target, width: 767, matchesSelector }, 'color', 'blue')
+                .effect,
+        ).toBe('loses');
     }
 });
 test('preserves priority and matches ordinary property names case insensitively', () => {
     const css = '.a{COLOR:red!important} .a{color:blue}';
-    expect(applyPatch(base, editDeclaration(base, target, 'color', 'blue', 'important'))).toContain(
-        '!important',
-    );
+    expect(
+        applyPatch(base, editDeclaration(base, target, 'color', 'blue', 'important').patch),
+    ).toContain('!important');
     expect(
         applyPatch(
             '.a{color:red!important}',
-            editDeclaration('.a{color:red!important}', target, 'color', 'blue', 'normal'),
+            editDeclaration('.a{color:red!important}', target, 'color', 'blue', 'normal').patch,
         ),
     ).toBe('.a{color:blue}');
-    expect(applyPatch(css, editDeclaration(css, target, 'color', 'green'))).toBe(
+    expect(applyPatch(css, editDeclaration(css, target, 'color', 'green').patch)).toBe(
         css.replace('red', 'green'),
     );
-    expect(applyPatch(css, editDeclaration(css, target, 'color', null))).toBe('');
+    expect(applyPatch(css, editDeclaration(css, target, 'color', null).patch)).toBe('');
 });
 test('creates the selected current state convention', () => {
     expect(
@@ -143,7 +144,7 @@ test('creates the selected current state convention', () => {
                 { ...target, state: 'current', currentConvention: 'webflow' },
                 'color',
                 'blue',
-            ),
+            ).patch,
         ),
     ).toContain('.a.w--current');
 });

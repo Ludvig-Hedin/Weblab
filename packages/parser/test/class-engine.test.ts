@@ -22,7 +22,7 @@ test('edits only the source value, including in an unlayered imported combo', ()
         { selector: '.button.is-secondary', state: 'hover' },
         'color',
         'black',
-    );
+    ).patch;
     expect(applyPatch(webflow, patch)).toBe(webflow.replace('blue', 'black'));
     expect(patch).toEqual({
         start: webflow.indexOf('blue') + 2,
@@ -45,11 +45,13 @@ test('creates states and ordered media in both directions and prunes empty rules
         [mobile, 'h1', 480, 'min'],
     ] as const) {
         const target = { selector, width, direction, state: 'active' } as const;
-        const changed = applyPatch(source, editDeclaration(source, target, 'opacity', '1'));
+        const changed = applyPatch(source, editDeclaration(source, target, 'opacity', '1').patch);
         expect(detachStyles(changed, target)).toEqual({ opacity: '1' });
         const widths = indexStylesheet(changed).flatMap((row) => row.width ?? []);
         expect(widths).toEqual(direction === 'min' ? [480, 768] : [991, 479]);
-        expect(applyPatch(changed, editDeclaration(changed, target, 'opacity', null))).toBe(source);
+        expect(applyPatch(changed, editDeclaration(changed, target, 'opacity', null).patch)).toBe(
+            source,
+        );
     }
     const added = applyPatch('', createClass('', 'card', { display: 'grid', gap: '1rem' }));
     expect(added).toContain('@layer components');
@@ -109,7 +111,7 @@ test('creates an empty class and writes every supported global tag in the compon
     const css = applyPatch('', createClass('', 'card', {}));
     expect(indexStylesheet(css)[0]?.classes).toEqual(['card']);
     for (const selector of ['body', 'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']) {
-        const next = applyPatch(css, editDeclaration(css, { selector }, 'color', 'inherit'));
+        const next = applyPatch(css, editDeclaration(css, { selector }, 'color', 'inherit').patch);
         expect(indexStylesheet(next).find((row) => row.selector === selector)?.layer).toBe(
             'components',
         );
@@ -122,20 +124,20 @@ test('preserves BOM, CRLF, comments and nested current-state rules', () => {
     const target = { selector: '.link', state: 'current', width: 767 } as const;
     const row = indexStylesheet(css).find((rule) => rule.state === 'current')!;
     expect(css.slice(row.start, row.end)).toBe('&[aria-current] { color : red; /* keep */ }');
-    expect(applyPatch(css, editDeclaration(css, target, 'color', 'blue'))).toBe(
+    expect(applyPatch(css, editDeclaration(css, target, 'color', 'blue').patch)).toBe(
         css.replace('red;', 'blue;'),
     );
-    expect(applyPatch(css, editDeclaration(css, target, 'color', null))).toBe(
+    expect(applyPatch(css, editDeclaration(css, target, 'color', null).patch)).toBe(
         css.replace(' color : red;', ''),
     );
-    expect(editDeclaration(css, target, 'color', 'red')).toBeNull();
+    expect(editDeclaration(css, target, 'color', 'red').patch).toBeNull();
 });
 
 test('uses layer and important precedence across duplicate rules', () => {
     const target = { selector: '.title' };
     const css = '.title { color:red; } @layer components { .title { color:blue; } }';
     expect(detachStyles(css, target)).toEqual({ color: 'red' });
-    expect(applyPatch(css, editDeclaration(css, target, 'color', 'green'))).toBe(
+    expect(applyPatch(css, editDeclaration(css, target, 'color', 'green').patch)).toBe(
         css.replace('red', 'green'),
     );
     const important = css.replaceAll(';', ' !important;');

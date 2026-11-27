@@ -6,8 +6,26 @@ export function selectorInventory(css: string) {
     const uncertain: { name: string; start: number; end: number }[] = [];
     const names = new Set<string>();
     const root = postcss.parse(css);
-    function scan(raw: string, offset: number) {
+    const defined = new Set<string>();
+    function collectSubject(selector: selectorParser.Selector) {
+        const last = selector.nodes.findLastIndex((n) => n.type === 'combinator');
+        for (const node of selector.nodes.slice(last + 1)) {
+            if (node.type === 'class') defined.add(node.value);
+            if (
+                node.type === 'attribute' &&
+                node.attribute.toLowerCase() === 'class' &&
+                ['=', '~='].includes(node.operator ?? '')
+            ) {
+                for (const name of (node.value ?? '').split(/[ \t\n\r\f]+/))
+                    if (name) defined.add(name);
+            }
+            if (node.type === 'pseudo' && [':is', ':where'].includes(node.value))
+                node.nodes.forEach(collectSubject);
+        }
+    }
+    function scan(raw: string, offset: number, styleRule = false) {
         selectorParser((selectors) => {
+            if (styleRule) selectors.nodes.forEach(collectSubject);
             selectors.walkClasses((node) => {
                 names.add(node.value);
                 const text = node.toString().trim();
@@ -50,6 +68,7 @@ export function selectorInventory(css: string) {
         scan(
             rule.raws.selector?.raw ?? rule.selector,
             rule.source!.start!.offset + Number(rule.source!.input.hasBOM),
+            true,
         ),
     );
     // Simple scope roots and limits can use the same selector-token offsets as normal rules.
@@ -65,5 +84,5 @@ export function selectorInventory(css: string) {
         for (const part of raw.matchAll(/\(([^()]+)\)/g)) scan(part[1]!, start + part.index + 1);
     });
     tokens.sort((a, b) => a.start - b.start);
-    return { names, tokens, uncertain };
+    return { names, tokens, uncertain, defined };
 }

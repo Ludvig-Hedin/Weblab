@@ -73,19 +73,21 @@ test('applies valid breakpoint edits to grouped classes, base of combo and disjo
         '@layer components{.a{color:red}.a.is-secondary{color:green}}',
         '@layer components{.a{color:red}@media(max-width:479px){#wrapper .a{color:green}}}',
     ]) {
-        expect(applyPatch(css, editDeclaration(css, target, 'color', 'blue'))).toContain('blue');
+        expect(applyPatch(css, editDeclaration(css, target, 'color', 'blue').patch)).toContain(
+            'blue',
+        );
     }
 });
 test('recognizes shorthand overrides in the same matching breakpoint', () => {
     const css = '@media (min-width:768px){.a{margin-left:10px;margin:0}}';
-    expect(() =>
+    expect(
         editDeclaration(
             css,
             { selector: '.a', width: 768, direction: 'min' },
             'margin-left',
             '20px',
-        ),
-    ).toThrow(/cascade/i);
+        ).effect,
+    ).toBe('loses');
 });
 test('reports optional DOM class mutations without rewriting them', () => {
     const src = 'el?.classList?.add("but" + "ton")';
@@ -124,12 +126,12 @@ test('ranks applicable layer, importance, specificity, order and width for the s
     ]) {
         const prop = css.includes('margin') ? 'margin-left' : 'color';
         const value = prop === 'color' ? 'blue' : '20px';
-        expect(applyPatch(css, editDeclaration(css, target, prop, value))).toContain(value);
+        expect(applyPatch(css, editDeclaration(css, target, prop, value).patch)).toContain(value);
     }
     for (const css of [
         '@layer components,theme; @layer theme{.a{color:red}} @layer components{.a{color:black}}',
         '@layer theme,components; @layer theme{.a{color:red!important}} @layer components{.a{color:black!important}}',
         '@media(min-width:768px){#wrapper .a{color:red}} .a{color:black}',
     ])
-        expect(() => editDeclaration(css, target, 'color', 'blue')).toThrow(/cascade/i);
+        expect(editDeclaration(css, target, 'color', 'blue').effect).toBe('loses');
 });

@@ -105,6 +105,27 @@ function resolveGraph(
         const ast = getAstFromContent(source);
         if (!ast) throw Error('Unable to parse stylesheet entry ' + path);
         function moduleImport(specifier: string) {
+            if (specifier.startsWith('@/') && !Object.hasOwn(resolutions, specifier)) {
+                const suffix = specifier.slice(2);
+                const matches = [suffix, 'src/' + suffix]
+                    .flatMap((base) => [
+                        base,
+                        ...[
+                            '.tsx',
+                            '.ts',
+                            '.jsx',
+                            '.js',
+                            '/index.tsx',
+                            '/index.ts',
+                            '/index.jsx',
+                            '/index.js',
+                        ].map((ext) => base + ext),
+                    ])
+                    .filter((candidate) => Object.hasOwn(files, candidate));
+                if (matches.length === 1) visit(matches[0]!);
+                else unresolved.push({ importer: path, specifier });
+                return;
+            }
             if (/\.css(?:[?#]|$)/i.test(specifier)) {
                 if (!specifier.startsWith('.') && !Object.hasOwn(resolutions, specifier))
                     unresolved.push({ importer: path, specifier });
@@ -140,6 +161,16 @@ function resolveGraph(
             else unresolved.push({ importer: path, specifier });
         }
         traverse(ast, {
+            CallExpression({ node }) {
+                if (!t.isImport(node.callee)) return;
+                const arg = node.arguments[0];
+                if (t.isStringLiteral(arg)) moduleImport(arg.value);
+                else
+                    unresolved.push({
+                        importer: path,
+                        specifier: source.slice(node.start!, node.end!),
+                    });
+            },
             ImportDeclaration({ node }) {
                 if (node.importKind !== 'type') moduleImport(node.source.value);
             },

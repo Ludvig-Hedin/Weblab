@@ -274,11 +274,16 @@ export function renameClass(
         throw Error('Pass the resolved stylesheet set for this project');
     for (const [path, source] of graph.sources)
         if (sources[path] !== source) throw Error('Stylesheet inventory changed at ' + path);
+    if (![...graph.paths].some((path) => selectorInventory(sources[path]!).defined.has(from)))
+        throw Error('Class is not defined in the project stylesheets');
+    const owned = Object.fromEntries(
+        Object.entries(files).filter(([path]) => graph.sources.has(path)),
+    );
     const unsafe: Site[] = [];
     const cssPatches = cssRenamePatches(css, from, to, cssPath, unsafe);
     const next = { ...files };
     const patches: Record<string, TextPatch[]> = Object.fromEntries(
-        Object.entries(files)
+        Object.entries(owned)
             .filter(([path]) => !/\.css$/i.test(path) || graph.paths.has(path))
             .map(([path, source]) => [
                 path,
@@ -289,7 +294,7 @@ export function renameClass(
                       : [],
             ]),
     );
-    for (const { path, start, end, reason, names, safe, usage } of references(files)) {
+    for (const { path, start, end, reason, names, safe, usage } of references(owned)) {
         if (usage && names.includes(to)) throw Error('Destination class is already used');
         if (!names.includes(from) && reason !== 'unparsed file' && reason !== 'dynamic expression')
             continue;

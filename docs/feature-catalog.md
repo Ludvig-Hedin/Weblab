@@ -803,7 +803,7 @@ See F-151 to F-160. Plus:
 | F-686 | `#package` | `@weblab/auth` | [packages/auth](packages/auth) | Auth capability layer |
 | F-687 | `#package` `#ai` | `@weblab/ai` | [packages/ai](packages/ai) | LLM SDK / OpenRouter / multi-provider |
 | F-688 | `#package` `#ai` | `@weblab/ai-cli` | [packages/ai-cli](packages/ai-cli) | Local CLI adapters (Codex, Claude Code, Gemini, OpenCode, Cursor) |
-| F-689 | `#package` | `@weblab/parser` | [packages/parser](packages/parser) | Babel JSX/TSX AST, responsive class rebase, source-preserving named class and global tag edits, project usage and rename |
+| F-689 | `#package` | `@weblab/parser` | [packages/parser](packages/parser) | Babel JSX/TSX AST, responsive class rebase, [source-preserving class edits, cascade effects and project-scoped rename](../packages/parser/src/classes/README.md) |
 | F-690 | `#package` | `@weblab/framework` | [packages/framework](packages/framework) | Framework detect/configure (Next/Vite/Remix/Astro/TanStack/static) |
 | F-691 | `#package` `#integration` | `@weblab/code-provider` | [packages/code-provider](packages/code-provider) | Sandbox provider (Vercel Sandbox primary; CSB `#deprecated`) |
 | F-692 | `#package` | `@weblab/file-system` | [packages/file-system](packages/file-system) | Browser-compatible FS abstraction |
@@ -962,6 +962,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-11-28 | F-689 | Expose the cascade effect separately from each proposed edit and restrict project rename to owned source files. |
 | 2026-11-27 | F-689 | Add the stylesheet class engine and JSX usage and rename operations. |
 | 2026-11-27 | F-707 | Add the Webflow code-export converter and import report. |
 | 2026-10-22 | F-849, F-850, F-852 | Recover saved CSS Module controls, public preview settings and inactive imported-image backend/transport. Historical IDs are preserved; current local checks and actual package/provider proof stay distinct. |

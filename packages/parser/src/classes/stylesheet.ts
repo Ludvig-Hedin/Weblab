@@ -1,7 +1,8 @@
 import type { AtRule, ChildNode, Root, Rule } from 'postcss';
 import postcss from 'postcss';
 
-import { verifyBreakpoint } from './breakpoint-cascade';
+import type { DeclarationEffect } from './breakpoint-cascade';
+import { declarationEffect } from './breakpoint-cascade';
 import { selectorInventory } from './selector-inventory';
 
 export type ClassState = 'hover' | 'focus-visible' | 'active' | 'current';
@@ -11,13 +12,15 @@ export interface ClassTarget {
     width?: number;
     direction?: 'min' | 'max';
     /** A preview element can supply matches() for selectors that need DOM context. */
-    matchesSelector?: (selector: string) => boolean;
+    matchesSelector?: (selector: string) => boolean | undefined;
+    /** Other linked sheets whose declarations are outside the supplied source. */
+    linkedStylesheets?: readonly string[];
     /** Resolve additional preview conditions, e.g. supports() or non-width media features. */
     matchesCondition?: (
-        name: 'supports' | 'media' | 'container',
+        name: 'supports' | 'media' | 'container' | 'scope',
         params: string,
         width: number,
-    ) => boolean;
+    ) => boolean | undefined;
     currentConvention?: 'webflow' | 'aria';
 }
 export const WEBFLOW_WIDTHS = [991, 767, 479] as const;
@@ -242,13 +245,15 @@ function propertyKey(property: string) {
     return property.startsWith('--') ? property : property.toLowerCase();
 }
 
+export type DeclarationEdit = { patch: TextPatch | null } & DeclarationEffect;
+
 export function editDeclaration(
     source: string,
     target: ClassTarget,
     property: string,
     value: string | null,
     priority: 'preserve' | 'normal' | 'important' = 'preserve',
-): TextPatch | null {
+): DeclarationEdit {
     const parts = selectorParts(target.selector);
     if (
         (target.state && !['hover', 'focus-visible', 'active', 'current'].includes(target.state)) ||
@@ -263,7 +268,13 @@ export function editDeclaration(
     const existing = orderedDeclarations(matching).filter(
         (d) => propertyKey(d.prop) === propertyKey(property),
     );
+    let outcome: DeclarationEffect = {
+        effect: 'unknown',
+        reason: 'No matching declaration to remove',
+    };
     if (value === null) {
+        const removed = existing.at(-1);
+        if (removed) outcome = declarationEffect(root, target, removed);
         for (const decl of existing) {
             if (decl.toString().includes('/*'))
                 throw Error('Declaration contains embedded comments');
@@ -280,8 +291,7 @@ export function editDeclaration(
                     ? !!(parsed.important || decl.important)
                     : priority === 'important';
             if (decl.value === parsed.value && !!decl.important === important) {
-                verifyBreakpoint(root, target, decl);
-                return null;
+                return { patch: null, ...declarationEffect(root, target, decl) };
             }
             const raw = decl.raws.value?.raw ?? decl.value;
             if (
@@ -296,7 +306,7 @@ export function editDeclaration(
             };
             decl.value = parsed.value;
             decl.important = important;
-            verifyBreakpoint(root, target, decl);
+            outcome = declarationEffect(root, target, decl);
         } else {
             let rule = matching.at(-1)?.rule;
             if (!rule) {
@@ -322,11 +332,11 @@ export function editDeclaration(
                 important: priority === 'preserve' ? parsed.important : priority === 'important',
             });
             rule.append(added);
-            verifyBreakpoint(root, target, added);
+            outcome = declarationEffect(root, target, added);
         }
     }
     const next = (root.source?.input.hasBOM ? source[0] : '') + root.toString();
-    return difference(source, next);
+    return { patch: difference(source, next), ...outcome };
 }
 export function createClass(source: string, name: string, styles: Record<string, string>) {
     assertClassName(name);
@@ -339,7 +349,10 @@ export function createClass(source: string, name: string, styles: Record<string,
     }
     let next = source;
     for (const [property, value] of Object.entries(styles)) {
-        next = applyPatch(next, editDeclaration(next, { selector: '.' + name }, property, value));
+        next = applyPatch(
+            next,
+            editDeclaration(next, { selector: '.' + name }, property, value).patch,
+        );
     }
     return difference(source, next);
 }
