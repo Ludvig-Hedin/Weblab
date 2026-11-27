@@ -1,7 +1,7 @@
 import { freezeCloudPropertyApproval } from '../sandbox/cloud-property-approval';
 import { freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
 import { freezeCloudTextApproval } from '../sandbox/cloud-source';
-import { debounce } from 'lodash';
+import { debounce, isEqual } from 'lodash';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { Action, UpdateStyleAction } from '@weblab/models/actions';
@@ -38,6 +38,15 @@ interface NotInTransaction {
 
 type TransactionState = InTransaction | NotInTransaction;
 
+interface SourceWrite {
+    actions: Action[];
+    gesture?: InTransaction;
+    prepare?: () => Promise<void>;
+    write?: (action: Action) => Promise<boolean>;
+    retryAdmission?: (action: Action) => boolean | Promise<boolean>;
+    waiters: Array<(saved: boolean) => void>;
+}
+
 export interface HistoryDisposalLease { readonly owner: symbol }
 export interface HistoryDisposalCheckpoint {
     readonly generation: number;
@@ -47,12 +56,13 @@ export interface HistoryDisposalCheckpoint {
 }
 
 export class HistoryManager {
-    // Only the serialized commit chain drains this queue. A new gesture can
-    // open or release while an earlier retry is still writing.
-    private retainedActions: Action[] = [];
+    // Entries stay in admission order, including the in-flight head. A failed
+    // close pauses this same queue; retry never reconstructs a second queue.
+    private writeQueue: SourceWrite[] = [];
+    private paused = false;
 
     get isCommitPending(): boolean {
-        return this.commitPromise !== null;
+        return this.writeQueue.length > 0 && !this.paused;
     }
 
     /** Read-only eligibility for discarding one rejected cloud text session by document reload. */
@@ -60,12 +70,13 @@ export class HistoryManager {
         target: Extract<Action, { type: 'edit-text' }>['targets'][number],
         lease?: HistoryDisposalLease,
     ): boolean {
-        if (this.disposed || this.commitPromise || this.pendingPushes.size || this.pendingWrites.size ||
+        if (this.disposed || this.drainPromise ||
             this.disposalFlushInProgress || this.editorEngine.code.hasPendingWrites ||
             (lease ? this.disposalLease !== lease : this.disposalLease !== null) ||
             target.branchId !== this.branchId) return false;
         const open = this.inTransaction.type === TransactionType.IN_TRANSACTION ? this.inTransaction.actions : [];
-        return [...this.retainedActions, ...open].every((action) => action.type === 'edit-text' &&
+        if (this.writeQueue.some(job => job.prepare)) return false;
+        return [...this.writeQueue.flatMap(job => job.gesture?.actions ?? job.actions), ...open].every((action) => action.type === 'edit-text' &&
                 action.targets.length === 1 && action.targets.every((item) =>
                     item.branchId === target.branchId && item.frameId === target.frameId &&
                     item.domId === target.domId && item.oid === target.oid));
@@ -73,13 +84,13 @@ export class HistoryManager {
 
     /** Resolves once every committed transaction has landed on the undo stack. */
     waitForCommit = async (): Promise<void> => {
-        while (this.commitPromise) {
-            await this.commitPromise.catch(() => undefined);
+        while (this.drainPromise) {
+            await this.drainPromise.catch(() => undefined);
         }
     };
 
     get isTransactionOpen(): boolean {
-        return this.isInTransaction || this.hasRetainedActions || this.isCommitPending;
+        return this.isInTransaction || this.hasRetainedActions || this.writeQueue.some(job => job.gesture);
     }
 
     constructor(
@@ -93,14 +104,10 @@ export class HistoryManager {
     ) {
         this.undoStack = this.undoStack.map(retainCloudTextHistoryPin);
         this.redoStack = this.redoStack.map(retainCloudTextHistoryPin);
-        makeAutoObservable<this, 'persistDebounced' | 'commitPromise' | 'pendingWrites' | 'pendingPushes' | 'sourceVersion' | 'externalRevision' | 'ownRevision' | 'lastExternalRevision' | 'lastOwnRevision' | 'storageChain' | 'disposalFlushInProgress' | 'disposalLease' | 'disposalFailure' | 'mutationGeneration' | 'disposed' | 'hydrating' | 'hydrationFailed' | 'sourcePreparationFailure'>(this, {
+        makeAutoObservable<this, 'persistDebounced' | 'drainPromise' | 'writeQueue' | 'sourceVersion' | 'externalRevision' | 'ownRevision' | 'lastExternalRevision' | 'lastOwnRevision' | 'storageChain' | 'disposalFlushInProgress' | 'disposalLease' | 'disposalFailure' | 'mutationGeneration' | 'disposed' | 'hydrating' | 'hydrationFailed' | 'sourcePreparationFailure'>(this, {
             persistDebounced: false,
-            // Async plumbing, not UI state: `commitPromise` is reassigned
-            // after `await`s (outside any action) and `pendingWrites` must
-            // stay a plain Map, so both are excluded from observability.
-            commitPromise: false,
-            pendingWrites: false,
-            pendingPushes: false,
+            drainPromise: false,
+            writeQueue: observable.shallow,
             sourceVersion: false,
             externalRevision: false,
             ownRevision: false,
@@ -144,9 +151,6 @@ export class HistoryManager {
         const lease = { owner: Symbol('history-disposal') };
         this.disposalLease = lease;
         this.disposalFailure = null;
-        for (const pending of [...this.pendingPushes, ...this.pendingWrites.values()]) {
-            this.observePreparedWrite(pending, lease);
-        }
         return lease;
     }
 
@@ -161,20 +165,12 @@ export class HistoryManager {
         if (this.disposalLease !== lease || this.disposed) throw new Error('The history preparation owner changed.');
     }
 
-    private observePreparedWrite(pending: Promise<boolean>, lease: HistoryDisposalLease): void {
-        void pending.then((saved) => {
-            if (!saved && this.disposalLease === lease) this.disposalFailure = new Error('An admitted edit could not be saved.');
-        }, (error: unknown) => {
-            if (this.disposalLease === lease) this.disposalFailure = error instanceof Error ? error : new Error('An admitted edit could not be saved.');
-        });
-    }
-
     assertDisposalCheckpoint(lease: HistoryDisposalLease, checkpoint: HistoryDisposalCheckpoint): void {
         this.assertDisposalOwner(lease);
         this.assertSourceCurrentForDisposal();
         if (this.disposalFailure) throw this.disposalFailure;
         if (this.mutationGeneration !== checkpoint.generation ||
-            this.pendingPushes.size > 0 || this.pendingWrites.size > 0 || this.isTransactionOpen ||
+            this.writeQueue.length > 0 || this.isTransactionOpen ||
             this.editorEngine.code.hasPendingWrites || this.sourceVersion?.() !== checkpoint.sourceVersion ||
             this.externalRevision?.() !== checkpoint.externalRevision || this.ownRevision?.() !== checkpoint.ownRevision) {
             throw new Error('The editor changed while saving. Keep it open and retry.');
@@ -197,7 +193,7 @@ export class HistoryManager {
         this.assertDisposalOwner(lease);
         if (!this.hasHydrated || this.hydrating || this.hydrationFailed || this.disposalFailure || this.editorEngine.isClosing ||
             this.undoStack.length || this.redoStack.length || this.isTransactionOpen ||
-            this.pendingPushes.size || this.pendingWrites.size || this.disposalFlushInProgress ||
+            this.writeQueue.length || this.disposalFlushInProgress ||
             this.editorEngine.code.hasPendingWrites || this.editorEngine.text?.hasPendingWork ||
             this.editorEngine.action?.hasPendingStylePreflights || this.editorEngine.action?.hasPendingRebases) {
             throw new Error('Local preparation requires a settled editor with empty history.');
@@ -339,33 +335,8 @@ export class HistoryManager {
         await this.persist();
     }
 
-    /**
-     * A7: the in-flight `commitTransaction` push chain. `undo()`, `redo()`,
-     * `startTransaction()` and the next commit await this so a gesture right
-     * after a slider release can't observe — or interleave with — a commit
-     * whose pushes haven't landed on the undo stack yet.
-     */
-    private commitPromise: Promise<void> | null = null;
-
-    /**
-     * B2: the in-flight `code.write` promise for each pushed action. `undo()`
-     * peeks at this so it never pops an action whose write hasn't settled —
-     * if the write fails, the push path rolls the action back and undo skips
-     * it instead of emitting the inverse of an edit that never landed.
-     */
-    private pendingWrites = new Map<Action, Promise<boolean>>();
-    /**
-     * Direct pushes that have not landed yet. A push waits for earlier writes
-     * before it reaches the undo stack, so undo/redo must wait for it too or
-     * they pop the previous action and the late push clears the redo stack.
-     */
-    private pendingPushes = new Set<Promise<boolean>>();
-
-    private waitForPendingPushes = async (): Promise<void> => {
-        while (this.pendingPushes.size > 0) {
-            await Promise.allSettled(Array.from(this.pendingPushes));
-        }
-    };
+    private drainPromise: Promise<void> | null = null;
+    private writingSource = false;
 
     /** B13: set once so a repeated hydrate can't re-prepend persisted entries. */
     private hasHydrated = false;
@@ -383,7 +354,7 @@ export class HistoryManager {
     }
 
     get hasRetainedActions() {
-        return this.retainedActions.length > 0;
+        return this.paused;
     }
 
     get length() {
@@ -433,7 +404,7 @@ export class HistoryManager {
 
     private persist = async (): Promise<void> => {
         try {
-            if (this.pendingWrites.size > 0 || this.editorEngine.code.hasPendingWrites) {
+            if (this.writingSource || this.editorEngine.code.hasPendingWrites) {
                 this.persistDebounced();
                 return;
             }
@@ -464,7 +435,7 @@ export class HistoryManager {
         // Startup assets and manual code saves can finish between gestures.
         // Adopt only completed own writes before opening a fresh transaction;
         // a remote change or retained failed edit must keep its old baseline.
-        if (!this.isTransactionOpen && this.pendingPushes.size === 0 && this.pendingWrites.size === 0 &&
+        if (!this.isTransactionOpen && this.writeQueue.length === 0 &&
             !this.editorEngine.code.hasPendingWrites && !this.editorEngine.action?.hasPendingRebases &&
             !this.editorEngine.action?.hasPendingStylePreflights && !this.editorEngine.text?.isFinalizing &&
             this.sourceVersion && this.sourceVersion() !== null && this.externalRevision && this.ownRevision &&
@@ -478,13 +449,10 @@ export class HistoryManager {
         // gap here would leak per-push code writes.
         // After a failed close, release retained actions before opening the
         // next gesture. Its samples must stay attached to their own transaction.
-        const previous = this.retainedActions.length
-            ? this.commitTransaction() : this.commitPromise;
+        const previous = this.hasRetainedActions
+            ? this.commitTransaction() : this.drainPromise;
         this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
-        // A7: if a previous commit is still flushing its pushes, wait for it,
-        // so callers that await see a stack where that commit fully landed.
-        // (The commit pushes via `pushDirect`, so it can never be captured by
-        // the transaction opened above.)
+        // Opening a new gesture cannot capture writes already in the queue.
         if (previous) {
             await previous.catch(() => undefined);
         }
@@ -521,142 +489,146 @@ export class HistoryManager {
         } else if (this.refusesAdmission) {
             throw new Error('This editor is saving before it closes.');
         }
-        if (!this.isInTransaction && !this.hasRetainedActions) return;
+        if (!this.isInTransaction && !this.hasRetainedActions) {
+            await this.waitForCommit();
+            return !this.hasRetainedActions;
+        }
         const gesture = this.inTransaction.type === TransactionType.IN_TRANSACTION ? this.inTransaction : undefined;
         this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
         this.mutationGeneration++;
-        await this.commitActions(strict, gesture);
-    };
-
-    // A retry started by a direct input drains only released actions. An open
-    // gesture keeps its samples until its own release calls commitTransaction.
-    private commitActions = async (strict: boolean, gesture?: InTransaction): Promise<void> => {
-        const runs = gesture ? Array.from(this.gestureRuns.get(gesture) ?? []) : [];
-        if (!this.hasRetainedActions && !gesture?.actions.length && !runs.length) return;
-
-        // A7: expose the push chain via `commitPromise` so undo/redo/
-        // startTransaction can await it. Chain onto any still-running commit
-        // so overlapping commits keep their undo-stack order.
-        const previous = this.commitPromise;
-        const commit = (async () => {
-            let nextAction = 0;
-            let actionsToCommit: Action[] = [];
-            let retrying = false;
-            try {
-                if (previous) {
-                    await (strict ? previous : previous.catch(() => undefined));
-                }
-                if (runs.length) {
+        const runs = gesture ? [...(this.gestureRuns.get(gesture) ?? [])] : [];
+        let saved: boolean;
+        if (gesture && (gesture.actions.length || runs.length)) {
+            saved = await this.enqueueWrite({
+                gesture, actions: [], waiters: [],
+                prepare: async () => {
                     const results = await Promise.allSettled(runs);
                     if (this.disposalLease && results.some(result => result.status === 'rejected' || !result.value)) {
-                        this.disposalFailure = new Error('An admitted edit could not be saved.');
+                        throw new Error('An admitted edit could not be saved.');
                     }
-                }
-                retrying = this.retainedActions.length > 0;
-                actionsToCommit = [...this.retainedActions, ...(gesture?.actions ?? [])];
-                runInAction(() => { this.retainedActions = []; });
-                // Earlier released work must land first. Defer this gesture
-                // behind it until close retries with a fresh lease.
-                if (this.disposalFailure) throw this.disposalFailure;
-                if (actionsToCommit.some((action) => action.type === 'update-style')) {
-                    await this.editorEngine.action.waitForQueuedStyleDispatches();
-                    // StyleManager's completion callback records the override map
-                    // after the queued iframe dispatch resolves.
-                    await Promise.resolve();
-                }
-                for (const action of actionsToCommit) {
-                    // pushDirect, NOT push: a startTransaction() racing this loop
-                    // must not re-capture these pending pushes into its NEW
-                    // transaction — they'd be silently lost if that gesture never
-                    // commits (e.g. image swap: remove persists, insert swallowed).
-                    const saved = await this.pushDirect(action, undefined, retrying);
-                    if ((retrying || strict || this.disposalLease) && !saved) throw new Error('An unfinished edit could not be saved.');
-                    nextAction += 1;
-                    if (action.type === 'update-style') {
-                        await this.editorEngine.action.finishQueuedStyleAction(action, saved);
+                    if (gesture.actions.some(action => action.type === 'update-style')) {
+                        await this.editorEngine.action.waitForQueuedStyleDispatches();
                     }
-                }
-            } catch (error) {
-                if ((retrying || strict || this.disposalLease) && nextAction < actionsToCommit.length) {
-                    runInAction(() => {
-                        this.mutationGeneration++;
-                        this.retainedActions = actionsToCommit.slice(nextAction);
-                    });
-                }
-                if (!strict && this.disposalLease) {
-                    this.disposalFailure = error instanceof Error ? error : new Error('An admitted edit could not be saved.');
-                    return;
-                }
-                throw error;
-            }
-        })();
-        this.commitPromise = commit;
-        try {
-            await commit;
-        } finally {
-            if (this.commitPromise === commit) {
-                this.commitPromise = null;
-            }
+                },
+            });
+        } else {
+            await this.drainWrites();
+            saved = !this.hasRetainedActions;
         }
+        if (strict && this.disposalFailure) throw this.disposalFailure;
+        return saved;
     };
 
-    /**
-     * Returns `true` when the action landed (or was queued into an open
-     * transaction) and `false` when its code write failed — callers like
-     * `ActionManager.run` use this to skip the optimistic iframe dispatch of
-     * an edit that was never saved.
-     */
+    private enqueueWrite(job: SourceWrite): Promise<boolean> {
+        // A refused optimistic input can be resubmitted verbatim. If it is
+        // already last in the paused queue, join that exact write on retry.
+        const last = this.writeQueue.at(-1);
+        if (this.paused && last && !last.gesture && !job.gesture && !last.write && !job.write &&
+            job.actions[0]?.type === 'update-style' && isEqual(last.actions, job.actions)) {
+            job = last;
+        } else {
+            this.writeQueue.push(job);
+        }
+        const completion = new Promise<boolean>(resolve => job.waiters.push(resolve));
+        void this.drainWrites();
+        return completion;
+    }
+
+    private drainWrites(): Promise<void> {
+        if (this.drainPromise) return this.drainPromise;
+        if (!this.writeQueue.length || this.disposalFailure) return Promise.resolve();
+        const recovering = this.paused;
+        this.paused = false;
+        this.drainPromise = Promise.resolve().then(async () => {
+            try {
+                while (this.writeQueue.length) {
+                    const job = this.writeQueue[0]!;
+                    try {
+                        await this.writeEntry(job, recovering);
+                    } catch (error) {
+                        if (this.disposalLease) this.disposalFailure = error instanceof Error ? error : new Error('An admitted edit could not be saved.');
+                        if (this.disposalLease || recovering || (!job.write && (job.gesture?.actions ?? job.actions)[0]?.type === 'update-style')) {
+                            runInAction(() => { this.paused = true; });
+                            for (const pending of this.writeQueue) {
+                                for (const resolve of pending.waiters.splice(0)) resolve(false);
+                            }
+                            return;
+                        }
+                        // A refused ordinary command has reported its failure to the
+                        // caller. Continue processing separately admitted commands.
+                        this.finishEntry(job, false);
+                        continue;
+                    }
+                    this.finishEntry(job, true);
+                }
+            } finally {
+                this.drainPromise = null;
+            }
+        });
+        return this.drainPromise;
+    }
+
+    private finishEntry(job: SourceWrite, saved: boolean): void {
+        this.writeQueue.shift();
+        for (const resolve of job.waiters.splice(0)) resolve(saved);
+    }
+
+    private async writeEntry(job: SourceWrite, recovering: boolean): Promise<void> {
+        if (job.prepare) {
+            const prepare = job.prepare;
+            job.prepare = undefined;
+            await prepare();
+        }
+        const actions = job.gesture?.actions ?? job.actions;
+        while (actions.length) {
+            const action = actions[0]!;
+            if (recovering && job.retryAdmission && !(await job.retryAdmission(action))) {
+                throw new Error('The source edit could not be revalidated.');
+            }
+            const saved = await this.writeAndRecord(action, job.write, recovering);
+            if (!saved) {
+                if (job.gesture && action.type === 'update-style' && !recovering && !this.disposalLease) {
+                    await this.editorEngine.action.finishQueuedStyleAction(action, false);
+                }
+                throw new Error(job.gesture ? 'An unfinished edit could not be saved.' : 'An admitted edit could not be saved.');
+            }
+            // Advance before running preview callbacks: a committed write
+            // must never replay because a later callback failed.
+            runInAction(() => { actions.shift(); });
+            if (job.gesture && action.type === 'update-style') {
+                await this.editorEngine.action.finishQueuedStyleAction(action, true);
+            }
+        }
+    }
+
     push = async (action: Action, options?: { direct: boolean }): Promise<boolean> => {
         if (this.refusesAdmission) return false;
-        const waitsForEarlierSave = (options?.direct || !this.isInTransaction) &&
-            (this.hasRetainedActions || this.isCommitPending);
-        const push = this.pushAdmitted(action, options?.direct);
-        // Close must wait for the new edit as well as the earlier save that
-        // currently owns the writer. pushDirect tracks the write itself.
-        return waitsForEarlierSave ? this.trackPendingPush(push) : push;
+        return this.pushAdmitted(action, options?.direct);
     };
 
-    private pushAdmitted = async (action: Action, direct = false, lease?: HistoryDisposalLease): Promise<boolean> => {
+    private pushAdmitted = async (action: Action, direct = false): Promise<boolean> => {
         if (!direct && this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             this.mutationGeneration++;
-            this.inTransaction.actions = updateTransactionActions(
-                this.inTransaction.actions,
-                action,
-            );
+            this.inTransaction.actions = updateTransactionActions(this.inTransaction.actions, action);
             return true;
         }
-
-        if (this.commitPromise) await this.waitForCommit();
-        if (this.hasRetainedActions) {
-            try {
-                await this.commitActions(Boolean(lease));
-            } catch (error) {
-                if (lease) throw error;
-                return false;
-            }
-            if (this.hasRetainedActions) return false;
-        }
-        return this.pushDirect(action);
+        return this.enqueueWrite({ actions: [action], waiters: [] });
     };
 
     /** Final captured text must not erase history on an external source conflict. */
     pushForDisposal = async (action: Action, lease: HistoryDisposalLease): Promise<boolean> => {
         this.assertDisposalOwner(lease);
+        if (this.disposalFailure) throw this.disposalFailure;
         const previous = this.disposalFlushInProgress;
         this.disposalFlushInProgress = true;
         try {
             this.assertSourceCurrentForDisposal();
-            return await this.pushAdmitted(action, false, lease);
+            return await this.pushAdmitted(action);
         } finally {
             this.disposalFlushInProgress = previous;
         }
     };
 
-    /**
-     * The non-transaction push path. Split out of `push` (A7) so
-     * `commitTransaction` can land its actions on the stacks even when a NEW
-     * transaction was opened while the commit's writes were still in flight.
-     */
     /** Source/structure edits must finish saving before their preview changes. */
     pushImmediate = async (
         action: Action,
@@ -664,112 +636,58 @@ export class HistoryManager {
         admit?: (action: Action) => boolean | Promise<boolean>,
     ): Promise<boolean> => {
         if (this.refusesAdmission) return false;
-        await this.commitTransaction();
-        await this.waitForCommit();
-        if (this.refusesAdmission || this.retainedActions.length) return false;
+        if (this.isInTransaction) void this.commitTransaction();
         if (admit) {
-            await this.waitForPendingPushes();
+            if (this.hasRetainedActions) await this.drainWrites();
+            await this.waitForCommit();
+            if (this.refusesAdmission || this.hasRetainedActions) return false;
             const generation = this.mutationGeneration;
             if (!(await admit(action)) || this.refusesAdmission || this.isTransactionOpen ||
-                this.pendingPushes.size > 0 || this.pendingWrites.size > 0 || generation !== this.mutationGeneration) return false;
+                this.writeQueue.length > 0 || generation !== this.mutationGeneration) return false;
         }
-        return this.pushDirect(action, write);
+        return this.enqueueWrite({ actions: [action], write, retryAdmission: admit, waiters: [] });
     };
 
-    private pushDirect = (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
-        return this.trackPendingPush(this.pushDirectNow(action, write, retrying));
-    };
-
-    private trackPendingPush(push: Promise<boolean>): Promise<boolean> {
-        this.pendingPushes.add(push);
-        if (this.disposalLease) this.observePreparedWrite(push, this.disposalLease);
-        void push.finally(() => this.pendingPushes.delete(push)).catch(() => undefined);
-        return push;
-    }
-
-    private pushDirectNow = async (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
-        await Promise.allSettled(Array.from(this.pendingWrites.values()));
+    private writeAndRecord = async (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
         if (retrying) this.assertSourceCurrentForDisposal();
         else this.sourceIsCurrent();
         const expectedExternalRevision = this.externalRevision?.() ?? null;
-        const previousRedo = retrying || this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action || 'cloudImage' in action || 'cloudProperty' in action || (action.type === 'edit-text' && 'cloudText' in action) ? [...this.redoStack] : null;
-        if (this.redoStack.length > 0) {
-            this.redoStack = [];
-        }
-
         action = retainCloudTextHistoryPin(action);
-        this.undoStack.push(action);
-        this.mutationGeneration++;
-        // MobX deep-observes the stack, so the entry just pushed is an
-        // observable PROXY of `action` — every identity operation below
-        // (pendingWrites key, failure cleanup via lastIndexOf) must use the
-        // stored reference or the lookups silently miss.
-        const stored = this.undoStack[this.undoStack.length - 1] ?? action;
-        // B2: expose the in-flight write so `undo()` can wait for it to settle
-        // before popping this action off the stack.
         let historyEntry = action;
-        let written: boolean;
+        this.writingSource = true;
         try {
-            const writePromise = write ? write(action) : this.editorEngine.code.write(action, undefined, entry => {
+            const written = write ? await write(action) : await this.editorEngine.code.write(action, undefined, entry => {
                 historyEntry = entry;
             });
-            this.pendingWrites.set(stored, writePromise);
-            written = await writePromise;
-        } catch (error) {
-            if (retrying || this.disposalFlushInProgress || this.disposalLease || (action.type === 'edit-text' && 'cloudText' in action)) {
-                runInAction(() => {
-                    this.mutationGeneration++;
-                    const index = this.undoStack.lastIndexOf(stored);
-                    if (index !== -1) this.undoStack.splice(index, 1);
-                    if (previousRedo) this.redoStack = previousRedo;
-                });
-            }
-            throw error;
+            if (!written) return false;
         } finally {
-            this.pendingWrites.delete(stored);
+            this.writingSource = false;
         }
 
-        if (!written) {
-            // The code write failed (the error was already surfaced to the
-            // user by `code.write`). Remove this action from the undo stack —
-            // leaving it would let a later undo emit the inverse of an edit
-            // that never landed, corrupting the file. Remove by reference
-            // (not a blind pop) so a concurrent push isn't dropped instead.
-            // This runs after the `await` above, outside the implicit action —
-            // mutate inside runInAction or MobX strict-mode rejects it.
-            runInAction(() => {
-                this.mutationGeneration++;
-                const idx = this.undoStack.lastIndexOf(stored);
-                if (idx !== -1) {
-                    this.undoStack.splice(idx, 1);
-                }
-                // B2: an undo issued while the write was in flight may have
-                // moved this action onto the redo stack — purge it there too,
-                // or a later redo would replay an edit that never landed.
-                const redoIdx = this.redoStack.lastIndexOf(stored);
-                if (redoIdx !== -1) {
-                    this.redoStack.splice(redoIdx, 1);
-                }
-                if (previousRedo) this.redoStack = previousRedo;
-            });
-            return false;
-        }
-
-        // Source preparation can capture wrapper snapshots or the writer's
-        // final formatted contents. MobX cloned the plain input on insertion;
-        // record those successful-write details on the stored entry too.
+        // Publish the exact diff returned by the writer after its save lands.
         runInAction(() => {
+            this.undoStack.push(retainCloudTextHistoryPin(jsonClone(historyEntry)));
+            this.redoStack = [];
             this.mutationGeneration++;
-            const index = this.undoStack.lastIndexOf(stored);
-            if (historyEntry === action) Object.assign(stored, retainCloudTextHistoryPin(jsonClone(action)));
-            else if (index !== -1) this.undoStack[index] = jsonClone(historyEntry);
         });
 
+        try {
+            await this.afterSourceWrite(action, expectedExternalRevision);
+        } catch (error) {
+            // Source and Undo have landed. A later tracking failure can block
+            // close, but replaying this queue entry would duplicate the write.
+            if (this.disposalLease) this.disposalFailure = error instanceof Error ? error : new Error('Could not confirm the saved history.');
+            console.warn('[HistoryManager] Could not confirm the saved history', error);
+        }
+        return true;
+    };
+
+    private async afterSourceWrite(action: Action, expectedExternalRevision: string | null | undefined): Promise<void> {
         if (this.externalRevision && this.externalRevision() !== expectedExternalRevision) {
             // The edit already landed. The strict flush will reject the new
             // source revision without treating this action as an unsaved retry.
             if (!this.disposalFlushInProgress) this.sourceIsCurrent();
-            return true;
+            return;
         }
         if (this.ownRevision) this.lastOwnRevision = this.ownRevision();
 
@@ -800,49 +718,16 @@ export class HistoryManager {
         } else {
             this.persistDebounced();
         }
-        return true;
-    };
+    }
 
     undo = async (admit?: (action: Action) => boolean | Promise<boolean>): Promise<{ inverse: Action; redoEntry: Action; externalRevision: string | null } | null> => {
         if (this.refusesAdmission) return null;
-        // A7: an undo right after a slider release must not run while the
-        // release's commit is still pushing — it would pop the PREVIOUS action
-        // instead of the one the user just committed.
-        if (this.commitPromise) {
-            await this.commitPromise.catch(() => undefined);
-        }
+        await this.waitForCommit();
         if (this.isInTransaction || this.hasRetainedActions) {
             await this.commitTransaction();
         }
-        await this.waitForPendingPushes();
-        if (this.refusesAdmission) return null;
-
-        // B2: if the top action's code write is still in flight, wait for it
-        // to settle before popping. On failure the action was already rolled
-        // back by the push path — skip it and inspect the new top. Removal is
-        // by reference via lastIndexOf on BOTH sides, so whichever
-        // continuation runs first wins and the other is a no-op.
-        while (this.undoStack.length > 0) {
-            const top = this.undoStack[this.undoStack.length - 1];
-            if (!top) {
-                break;
-            }
-            const pendingWrite = this.pendingWrites.get(top);
-            if (!pendingWrite) {
-                break;
-            }
-            const written = await pendingWrite.catch(() => false);
-            if (written) {
-                break;
-            }
-            runInAction(() => {
-                this.mutationGeneration++;
-                const idx = this.undoStack.lastIndexOf(top);
-                if (idx !== -1) {
-                    this.undoStack.splice(idx, 1);
-                }
-            });
-        }
+        await this.waitForCommit();
+        if (this.refusesAdmission || this.hasRetainedActions) return null;
 
         if (!this.sourceIsCurrent()) return null;
 
@@ -852,7 +737,7 @@ export class HistoryManager {
         if (admit) {
             const generation = this.mutationGeneration;
             if (!(await admit(inverse)) || this.refusesAdmission || this.isTransactionOpen ||
-                this.pendingPushes.size > 0 || this.pendingWrites.size > 0 ||
+                this.writeQueue.length > 0 ||
                 generation !== this.mutationGeneration ||
                 this.undoStack[this.undoStack.length - 1] !== candidate || !this.sourceIsCurrent()) return null;
         }
@@ -899,16 +784,12 @@ export class HistoryManager {
 
     redo = async (admit?: (action: Action) => boolean | Promise<boolean>): Promise<{ forward: Action; redoEntry: Action; externalRevision: string | null } | null> => {
         if (this.refusesAdmission) return null;
-        // A7: same guard as undo() — don't race an in-flight commit's pushes.
-        if (this.commitPromise) {
-            await this.commitPromise.catch(() => undefined);
-        }
+        await this.waitForCommit();
         if (this.isInTransaction || this.hasRetainedActions) {
             await this.commitTransaction();
         }
-        await this.waitForPendingPushes();
-        await Promise.allSettled(Array.from(this.pendingWrites.values()));
-        if (this.refusesAdmission) return null;
+        await this.waitForCommit();
+        if (this.refusesAdmission || this.hasRetainedActions) return null;
         if (!this.sourceIsCurrent()) return null;
 
         const candidate = this.redoStack[this.redoStack.length - 1];
@@ -917,7 +798,7 @@ export class HistoryManager {
         if (admit) {
             const generation = this.mutationGeneration;
             if (!(await admit(forwardCandidate)) || this.refusesAdmission || this.isTransactionOpen ||
-                this.pendingPushes.size > 0 || this.pendingWrites.size > 0 ||
+                this.writeQueue.length > 0 ||
                 generation !== this.mutationGeneration ||
                 this.redoStack[this.redoStack.length - 1] !== candidate || !this.sourceIsCurrent()) return null;
         }
@@ -968,20 +849,18 @@ export class HistoryManager {
     /** Commit pending intentions without dropping their recoverable history. */
     commitForDisposal = async (lease: HistoryDisposalLease): Promise<void> => {
         this.assertDisposalOwner(lease);
-        if (this.commitPromise) await this.commitPromise;
+        await this.waitForCommit();
         if (this.disposalFailure) throw this.disposalFailure;
-        await this.waitForPendingPushes();
-        await Promise.allSettled(Array.from(this.pendingWrites.values()));
         await this.editorEngine.code.waitForPendingWrites();
         this.persistDebounced.cancel();
         this.disposalFlushInProgress = true;
         try {
             this.assertSourceCurrentForDisposal();
             await this.commitTransaction(true, lease);
-            await this.waitForPendingPushes();
+            await this.waitForCommit();
             await this.editorEngine.code.waitForPendingWrites();
             this.assertSourceCurrentForDisposal();
-            if (this.pendingWrites.size > 0 || this.editorEngine.code.hasPendingWrites) {
+            if (this.writingSource || this.editorEngine.code.hasPendingWrites) {
                 throw new Error('Source writes are still pending. Keep this editor open.');
             }
             if (this.disposalFailure) throw this.disposalFailure;

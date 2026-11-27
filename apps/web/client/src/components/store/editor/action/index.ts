@@ -243,16 +243,6 @@ export class ActionManager {
         if (action.type === 'update-style' && this.editorEngine.code?.prepareStyleAction) {
             action = this.editorEngine.code.prepareStyleAction(action);
         }
-        // A released slider or drag may still be committing. A new transaction
-        // queues into its own commit; a direct edit waits so undo order and
-        // source writes stay in sequence instead of being dropped.
-        if (
-            action.type === 'update-style' &&
-            !queuedStyle &&
-            sourceHistory.isCommitPending
-        ) {
-            await sourceHistory.waitForCommit();
-        }
         let finishQueued: (() => void) | undefined;
         const queuedCompletion = queuedStyle ? new Promise<void>((resolve) => {
             finishQueued = () => resolve(undefined);

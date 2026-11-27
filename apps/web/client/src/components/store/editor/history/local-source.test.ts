@@ -508,6 +508,92 @@ describe('exact source history', () => {
         await f.history.dispose();
     });
 
+    // Every schedule starts with a failed close on a released 13px resize.
+    // Hold the retry at the writer while admitting one or two later edits:
+    // D is a direct input and G is a released gesture.
+    for (const inputs of ['D', 'G', 'DD', 'DG', 'GD', 'GG']) {
+        // Attempt 1 failed during the initial close. Fault any subsequent
+        // source write, or let all of them succeed (failureAt = 0).
+        for (const failureAt of [0, ...Array.from(inputs, (_, i) => i + 2), inputs.length + 2]) {
+            for (const closeFirst of [false, true]) {
+                test(`recovery order ${inputs}, fault at attempt ${failureAt}, close before retry settles=${closeFirst}`, async () => {
+                    const f = sourceFixture();
+                    const initial = f.filesA.get('page.tsx')!;
+                    const manager = new ActionManager(f.engine);
+                    Object.assign(f.engine, { action: manager, elements: { selected: [] },
+                        frames: { getAll: () => [], get: () => ({ view: { updateStyle: async () => null } }) },
+                        theme: { getColorByName: () => undefined } });
+                    Object.assign(f.engine.tokens, { resolveVariableValue: () => undefined });
+                    const resize = (px: number): UpdateStyleAction => ({ ...padding, targets: [{
+                        ...padding.targets[0]!, change: { original: {}, updated: {
+                            padding: { type: StyleChangeType.Value, value: `${px}px` },
+                        } },
+                    }] });
+                    const landed: string[] = [];
+                    const write = f.dataA.codeEditor.writeExactStyleDiffs;
+                    f.dataA.codeEditor.writeExactStyleDiffs = async diffs => {
+                        const result = await write(diffs);
+                        landed.push(f.filesA.get('page.tsx')!);
+                        return result;
+                    };
+                    let attempts = 0;
+                    let resume!: () => void;
+                    const gate = new Promise<void>(resolve => { resume = resolve; });
+                    f.setBeforeWrite(async () => {
+                        const attempt = ++attempts;
+                        if (attempt === 2) await gate;
+                        if (attempt === 1 || attempt === failureAt) throw new Error('injected write failure');
+                    });
+                    await f.history.startTransaction();
+                    await f.history.push(resize(13));
+                    const released = f.history.commitTransaction();
+                    const firstClose = f.history.dispose();
+                    expect(await released).toBe(false);
+                    await expect(firstClose).rejects.toThrow();
+                    const submissions: Promise<void>[] = [];
+                    const values = [13, ...[27, 39].slice(0, inputs.length)];
+                    for (const [i, kind] of [...inputs].entries()) {
+                        const value = values[i + 1]!;
+                        const expected = initial.replace('p-2', `p-[${value}px]`);
+                        if (kind === 'G') {
+                            void f.history.startTransaction();
+                            // A gesture sample acknowledges preview admission; release owns its save.
+                            await manager.run(resize(value));
+                            submissions.push(f.history.commitTransaction().then(success => {
+                                if (success) expect(landed).toContain(expected);
+                                if (!failureAt) expect(success).toBe(true);
+                            }));
+                        } else {
+                            submissions.push(manager.run(resize(value)).then(success => {
+                                if (success) expect(landed).toContain(expected);
+                                if (!failureAt) expect(success).toBe(true);
+                            }));
+                            await manager.waitForStylePreflights();
+                        }
+                    }
+                    const closing = closeFirst ? f.history.dispose() : undefined;
+                    resume();
+                    if (closing && failureAt) await expect(closing).rejects.toThrow();
+                    else await closing;
+                    await Promise.all(submissions);
+                    if (!closing || failureAt) await f.history.dispose();
+                    const versions = values.map(value => initial.replace('p-2', `p-[${value}px]`));
+                    expect(landed).toEqual(versions);
+                    expect(f.filesA.get('page.tsx')).toBe(versions.at(-1));
+                    const reopened = new HistoryManager(f.engine, 'a');
+                    f.dataA.history = reopened;
+                    await reopened.hydrate();
+                    expect(reopened.length).toBe(values.length);
+                    for (const before of [initial, ...versions.slice(0, -1)].reverse()) {
+                        expect(await f.code.write((await reopened.undo())!.inverse)).toBe(true);
+                        expect(f.filesA.get('page.tsx')).toBe(before);
+                    }
+                    await reopened.dispose();
+                });
+            }
+        }
+    }
+
     test('a mirror read failure after commit preserves the saved style and its Undo', async () => {
         const f = sourceFixture();
         const original = f.filesA.get('page.tsx');
