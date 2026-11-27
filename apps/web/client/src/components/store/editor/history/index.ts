@@ -30,9 +30,6 @@ enum TransactionType {
 interface InTransaction {
     type: TransactionType.IN_TRANSACTION;
     actions: Action[];
-    // Released gestures retained after a failed close, in release order. Keep
-    // these separate so an open gesture can still merge its own late samples.
-    released?: Action[];
 }
 
 interface NotInTransaction {
@@ -50,6 +47,10 @@ export interface HistoryDisposalCheckpoint {
 }
 
 export class HistoryManager {
+    // Only the serialized commit chain drains this queue. A new gesture can
+    // open or release while an earlier retry is still writing.
+    private retainedActions: Action[] = [];
+
     get isCommitPending(): boolean {
         return this.commitPromise !== null;
     }
@@ -63,8 +64,8 @@ export class HistoryManager {
             this.disposalFlushInProgress || this.editorEngine.code.hasPendingWrites ||
             (lease ? this.disposalLease !== lease : this.disposalLease !== null) ||
             target.branchId !== this.branchId) return false;
-        return this.inTransaction.type !== TransactionType.IN_TRANSACTION ||
-            [...(this.inTransaction.released ?? []), ...this.inTransaction.actions].every((action) => action.type === 'edit-text' &&
+        const open = this.inTransaction.type === TransactionType.IN_TRANSACTION ? this.inTransaction.actions : [];
+        return [...this.retainedActions, ...open].every((action) => action.type === 'edit-text' &&
                 action.targets.length === 1 && action.targets.every((item) =>
                     item.branchId === target.branchId && item.frameId === target.frameId &&
                     item.domId === target.domId && item.oid === target.oid));
@@ -78,7 +79,7 @@ export class HistoryManager {
     };
 
     get isTransactionOpen(): boolean {
-        return this.inTransaction.type === TransactionType.IN_TRANSACTION || this.isCommitPending;
+        return this.isInTransaction || this.isCommitPending;
     }
 
     constructor(
@@ -378,7 +379,7 @@ export class HistoryManager {
     }
 
     get isInTransaction() {
-        return this.inTransaction.type === TransactionType.IN_TRANSACTION;
+        return this.inTransaction.type === TransactionType.IN_TRANSACTION || this.retainedActions.length > 0;
     }
 
     get length() {
@@ -471,10 +472,9 @@ export class HistoryManager {
         // Open the transaction synchronously so pushes from this gesture merge
         // immediately — callers fire-and-forget from pointer handlers, and a
         // gap here would leak per-push code writes.
-        const current = this.inTransaction;
         // After a failed close, release retained actions before opening the
         // next gesture. Its samples must stay attached to their own transaction.
-        const previous = current.type === TransactionType.IN_TRANSACTION && current.released?.length
+        const previous = this.retainedActions.length
             ? this.commitTransaction() : this.commitPromise;
         this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
         // A7: if a previous commit is still flushing its pushes, wait for it,
@@ -490,6 +490,9 @@ export class HistoryManager {
 
     /** Bind each input sample to its gesture before source validation yields. */
     runStyleInGesture(run: (queue: (action: UpdateStyleAction) => boolean) => Promise<boolean>): Promise<boolean> {
+        if (!this.refusesAdmission && this.retainedActions.length && this.inTransaction.type !== TransactionType.IN_TRANSACTION) {
+            this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
+        }
         const gesture = this.inTransaction;
         if (this.refusesAdmission || gesture.type !== TransactionType.IN_TRANSACTION) return Promise.resolve(false);
         const runs = this.gestureRuns.get(gesture) ?? new Set<Promise<boolean>>();
@@ -517,12 +520,13 @@ export class HistoryManager {
         } else if (this.refusesAdmission) {
             throw new Error('This editor is saving before it closes.');
         }
-        const gesture = this.inTransaction;
-        if (gesture.type !== TransactionType.IN_TRANSACTION) return;
+        if (!this.isInTransaction) return;
+        const gesture: InTransaction = this.inTransaction.type === TransactionType.IN_TRANSACTION
+            ? this.inTransaction : { type: TransactionType.IN_TRANSACTION, actions: [] };
         const runs = Array.from(this.gestureRuns.get(gesture) ?? []);
         this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
         this.mutationGeneration++;
-        if (!gesture.released?.length && !gesture.actions.length && !runs.length) return;
+        if (!this.retainedActions.length && !gesture.actions.length && !runs.length) return;
 
         // A7: expose the push chain via `commitPromise` so undo/redo/
         // startTransaction can await it. Chain onto any still-running commit
@@ -531,6 +535,7 @@ export class HistoryManager {
         const commit = (async () => {
             let nextAction = 0;
             let actionsToCommit: Action[] = [];
+            let retrying = false;
             try {
                 if (previous) {
                     await (strict ? previous : previous.catch(() => undefined));
@@ -541,7 +546,9 @@ export class HistoryManager {
                         this.disposalFailure = new Error('An admitted edit could not be saved.');
                     }
                 }
-                actionsToCommit = [...(gesture.released ?? []), ...gesture.actions];
+                retrying = this.retainedActions.length > 0;
+                actionsToCommit = [...this.retainedActions, ...gesture.actions];
+                runInAction(() => { this.retainedActions = []; });
                 // Earlier released work must land first. Defer this gesture
                 // behind it until close retries with a fresh lease.
                 if (this.disposalFailure) throw this.disposalFailure;
@@ -556,22 +563,18 @@ export class HistoryManager {
                     // must not re-capture these pending pushes into its NEW
                     // transaction — they'd be silently lost if that gesture never
                     // commits (e.g. image swap: remove persists, insert swallowed).
-                    const saved = await this.pushDirect(action);
-                    if ((strict || this.disposalLease) && !saved) throw new Error('An unfinished edit could not be saved.');
+                    const saved = await this.pushDirect(action, undefined, retrying);
+                    if ((retrying || strict || this.disposalLease) && !saved) throw new Error('An unfinished edit could not be saved.');
                     nextAction += 1;
                     if (action.type === 'update-style') {
                         await this.editorEngine.action.finishQueuedStyleAction(action, saved);
                     }
                 }
             } catch (error) {
-                if ((strict || this.disposalLease) && nextAction < actionsToCommit.length) {
+                if ((retrying || strict || this.disposalLease) && nextAction < actionsToCommit.length) {
                     runInAction(() => {
                         this.mutationGeneration++;
-                        const remaining = actionsToCommit.slice(nextAction);
-                        if (this.inTransaction.type !== TransactionType.IN_TRANSACTION) {
-                            this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
-                        }
-                        this.inTransaction.released = [...(this.inTransaction.released ?? []), ...remaining];
+                        this.retainedActions = actionsToCommit.slice(nextAction);
                     });
                 }
                 if (!strict && this.disposalLease) {
@@ -612,6 +615,10 @@ export class HistoryManager {
             return true;
         }
 
+        if (this.commitPromise) await this.waitForCommit();
+        if (this.retainedActions.length) {
+            await this.commitTransaction(Boolean(this.disposalLease), this.disposalLease ?? undefined);
+        }
         return this.pushDirect(action);
     };
 
@@ -642,7 +649,7 @@ export class HistoryManager {
         if (this.refusesAdmission) return false;
         await this.commitTransaction();
         await this.waitForCommit();
-        if (this.refusesAdmission) return false;
+        if (this.refusesAdmission || this.retainedActions.length) return false;
         if (admit) {
             await this.waitForPendingPushes();
             const generation = this.mutationGeneration;
@@ -652,19 +659,20 @@ export class HistoryManager {
         return this.pushDirect(action, write);
     };
 
-    private pushDirect = (action: Action, write?: (action: Action) => Promise<boolean>): Promise<boolean> => {
-        const push = this.pushDirectNow(action, write);
+    private pushDirect = (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
+        const push = this.pushDirectNow(action, write, retrying);
         this.pendingPushes.add(push);
         if (this.disposalLease) this.observePreparedWrite(push, this.disposalLease);
         void push.finally(() => this.pendingPushes.delete(push)).catch(() => undefined);
         return push;
     };
 
-    private pushDirectNow = async (action: Action, write?: (action: Action) => Promise<boolean>): Promise<boolean> => {
+    private pushDirectNow = async (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
         await Promise.allSettled(Array.from(this.pendingWrites.values()));
-        this.sourceIsCurrent();
+        if (retrying) this.assertSourceCurrentForDisposal();
+        else this.sourceIsCurrent();
         const expectedExternalRevision = this.externalRevision?.() ?? null;
-        const previousRedo = this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action || 'cloudImage' in action || 'cloudProperty' in action || (action.type === 'edit-text' && 'cloudText' in action) ? [...this.redoStack] : null;
+        const previousRedo = retrying || this.disposalFlushInProgress || this.disposalLease || 'cloudAttribute' in action || 'cloudImage' in action || 'cloudProperty' in action || (action.type === 'edit-text' && 'cloudText' in action) ? [...this.redoStack] : null;
         if (this.redoStack.length > 0) {
             this.redoStack = [];
         }
@@ -680,15 +688,15 @@ export class HistoryManager {
         // B2: expose the in-flight write so `undo()` can wait for it to settle
         // before popping this action off the stack.
         let historyEntry = action;
-        const writePromise = write ? write(action) : this.editorEngine.code.write(action, undefined, entry => {
-            historyEntry = entry;
-        });
-        this.pendingWrites.set(stored, writePromise);
         let written: boolean;
         try {
+            const writePromise = write ? write(action) : this.editorEngine.code.write(action, undefined, entry => {
+                historyEntry = entry;
+            });
+            this.pendingWrites.set(stored, writePromise);
             written = await writePromise;
         } catch (error) {
-            if (this.disposalFlushInProgress || this.disposalLease || (action.type === 'edit-text' && 'cloudText' in action)) {
+            if (retrying || this.disposalFlushInProgress || this.disposalLease || (action.type === 'edit-text' && 'cloudText' in action)) {
                 runInAction(() => {
                     this.mutationGeneration++;
                     const index = this.undoStack.lastIndexOf(stored);
@@ -783,7 +791,7 @@ export class HistoryManager {
         if (this.commitPromise) {
             await this.commitPromise.catch(() => undefined);
         }
-        if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
+        if (this.isInTransaction) {
             await this.commitTransaction();
         }
         await this.waitForPendingPushes();
@@ -875,7 +883,7 @@ export class HistoryManager {
         if (this.commitPromise) {
             await this.commitPromise.catch(() => undefined);
         }
-        if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
+        if (this.isInTransaction) {
             await this.commitTransaction();
         }
         await this.waitForPendingPushes();

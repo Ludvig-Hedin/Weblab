@@ -150,6 +150,36 @@ describe('released gesture during close', () => {
         expect(saveHistoryCalls.at(-1)?.undo.map(valueOf)).toEqual(values);
     });
 
+    it.each(['refuse', 'throw'])('retains a released gesture through repeated %s on resume and close', async failure => {
+        const attempts: string[] = [];
+        const resize = (value: string): UpdateStyleAction => ({
+            type: 'update-style', targets: [{ oid: 'box', frameId: 'frame', domId: 'box', branchId: 'released',
+                change: { original: {}, updated: { width: { type: StyleChangeType.Value, value } } } }],
+        });
+        const engine = {
+            code: { write: async (action: UpdateStyleAction) => {
+                attempts.push(action.targets[0]!.change.updated.width!.value);
+                if (attempts.length >= 4) return true;
+                if (failure === 'throw') throw new Error('could not be saved');
+                return false;
+            }, waitForPendingWrites: async () => undefined },
+            action: { waitForQueuedStyleDispatches: async () => undefined, finishQueuedStyleAction: async () => undefined },
+            posthog: { capture: () => undefined },
+        } as unknown as ConstructorParameters<typeof HistoryManager>[0];
+        const history = new HistoryManager(engine, 'released');
+        await history.startTransaction();
+        await history.push(resize('13px'));
+        await expect(history.dispose()).rejects.toThrow('could not be saved');
+        await history.startTransaction();
+        expect(attempts).toEqual(['13px', '13px']);
+        await history.push(resize('27px'));
+        await expect(history.dispose()).rejects.toThrow('could not be saved');
+        expect(history.length).toBe(0);
+        await history.dispose();
+        expect(attempts).toEqual(['13px', '13px', '13px', '13px', '27px']);
+        expect(saveHistoryCalls.at(-1)?.undo).toHaveLength(2);
+    });
+
     for (const saved of [true, false]) {
         it(`drains the admitted sample and ${saved ? 'closes after save' : 'refuses close after failure'}`, async () => {
             const writes: Action[] = [];
