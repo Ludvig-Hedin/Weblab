@@ -356,7 +356,8 @@ describe('recoverable editor teardown', () => {
         await history.startTransaction();
         await history.push(edit());
         await expect(history.flushForDisposal()).rejects.toThrow('unfinished edit');
-        expect(history.isInTransaction).toBe(true);
+        expect(history.isInTransaction).toBe(false);
+        expect(history.hasRetainedActions).toBe(true);
         expect(history.canRedo).toBe(true);
         expect(saved).toEqual([]);
         await history.flushForDisposal();
@@ -398,7 +399,8 @@ describe('recoverable editor teardown', () => {
         await history.push(edit());
         await expect(history.flushForDisposal()).rejects.toThrow('transport refused');
         expect(history.length).toBe(1);
-        expect(history.isInTransaction).toBe(true);
+        expect(history.isInTransaction).toBe(false);
+        expect(history.hasRetainedActions).toBe(true);
         expect(history.canRedo).toBe(true);
         refuse = false;
         await history.flushForDisposal();

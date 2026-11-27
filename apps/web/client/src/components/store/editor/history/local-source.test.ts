@@ -430,6 +430,84 @@ describe('exact source history', () => {
         change: { original: {}, updated: { padding: { value: '13px', type: StyleChangeType.Value } } },
     }] };
 
+    test.each(['retry', 'another save failure', 'another gesture', 'close during retry'])('a direct input after failed close with %s', async recovery => {
+        const f = sourceFixture();
+        const original = f.filesA.get('page.tsx')!;
+        const action = new ActionManager(f.engine);
+        const painted: string[] = [];
+        Object.assign(f.engine.tokens, { resolveVariableValue: () => undefined });
+        Object.assign(f.engine, { action, elements: { selected: [] }, frames: {
+            getAll: () => [], get: () => ({ view: { updateStyle: async (_id: string, change: UpdateStyleAction['targets'][number]['change']) => {
+                painted.push(change.updated.margin?.value ?? '');
+                return null;
+            } } }),
+        }, theme: { getColorByName: () => null } });
+        const margin: UpdateStyleAction = { type: 'update-style', targets: [{ ...padding.targets[0]!,
+            change: {
+                original: { margin: { value: '0px', type: StyleChangeType.Value } },
+                updated: { margin: { value: '27px', type: StyleChangeType.Value } },
+            },
+        }] };
+        let offline = true;
+        let attempts = 0;
+        f.setBeforeWrite(async () => {
+            attempts++;
+            if (offline) throw new Error('offline');
+        });
+        await f.history.startTransaction();
+        await f.history.push(padding);
+        const release = f.history.commitTransaction();
+        const close = f.history.dispose();
+        await release;
+        await expect(close).rejects.toThrow();
+        if (recovery === 'another save failure') {
+            expect(await action.run(margin)).toBe(false);
+            expect(painted.at(-1)).toBe('0px');
+            expect(f.filesA.get('page.tsx')).toBe(original);
+            expect(attempts).toBe(2);
+        }
+        if (recovery === 'another gesture') {
+            let finishPreflight!: () => void;
+            const gate = new Promise<void>(done => { finishPreflight = done; });
+            const preflight = f.code.preflightStyleAction.bind(f.code);
+            f.code.preflightStyleAction = async change => { await gate; await preflight(change); };
+            const direct = action.run(margin);
+            await f.history.startTransaction();
+            offline = false;
+            finishPreflight();
+            expect(await direct).toBe(true);
+            expect(f.history.isInTransaction).toBe(true);
+        } else if (recovery === 'close during retry') {
+            let entered!: () => void;
+            let resume!: () => void;
+            const started = new Promise<void>(done => { entered = done; });
+            const gate = new Promise<void>(done => { resume = done; });
+            f.setBeforeWrite(async () => { attempts++; entered(); await gate; });
+            const direct = action.run(margin);
+            await started;
+            const closing = f.history.dispose();
+            resume();
+            const [result] = await Promise.all([direct, closing]);
+            expect(result).toBe(true);
+            expect(attempts).toBe(3);
+            expect(f.filesA.get('page.tsx')).toContain('m-[27px]');
+            expect(saved?.undoStack).toHaveLength(2);
+            return;
+        } else {
+            offline = false;
+            expect(await action.run(margin)).toBe(true);
+        }
+        expect(painted.at(-1)).toBe('27px');
+        expect(f.filesA.get('page.tsx')).toContain('m-[27px]');
+        expect(attempts).toBe(recovery === 'retry' ? 3 : 4);
+        expect(f.history.length).toBe(2);
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(original.replace('p-2', 'p-[13px]'));
+        expect(await f.code.write((await f.history.undo())!.inverse)).toBe(true);
+        expect(f.filesA.get('page.tsx')).toBe(original);
+        await f.history.dispose();
+    });
+
     test('a mirror read failure after commit preserves the saved style and its Undo', async () => {
         const f = sourceFixture();
         const original = f.filesA.get('page.tsx');

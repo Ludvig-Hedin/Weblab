@@ -220,6 +220,7 @@ export class ActionManager {
         onApplied?: () => void,
         queue?: (action: UpdateStyleAction) => boolean,
     ): Promise<boolean> {
+        const queuedStyle = action.type === 'update-style' && (queue !== undefined || sourceHistory.isInTransaction);
         if (action.type === 'update-style' && this.editorEngine.code?.preflightStyleAction) {
             // Start validation immediately, but admit drag samples in input order.
             const validation = this.editorEngine.code.preflightStyleAction(action);
@@ -247,12 +248,11 @@ export class ActionManager {
         // source writes stay in sequence instead of being dropped.
         if (
             action.type === 'update-style' &&
-            !queue && !sourceHistory.isInTransaction &&
+            !queuedStyle &&
             sourceHistory.isCommitPending
         ) {
             await sourceHistory.waitForCommit();
         }
-        const queuedStyle = action.type === 'update-style' && (queue !== undefined || sourceHistory.isInTransaction);
         let finishQueued: (() => void) | undefined;
         const queuedCompletion = queuedStyle ? new Promise<void>((resolve) => {
             finishQueued = () => resolve(undefined);
@@ -310,7 +310,7 @@ export class ActionManager {
     ): Promise<boolean> {
         const keys = styleKeys(action);
         for (const key of keys) this.latestStyleEdit.set(key, action);
-        const pushed = history.push(action);
+        const pushed = history.push(action, { direct: true });
         const preview = this.dispatch(action, { scheduleRebase: false, skipWriteGuard: true });
         const [saved] = await Promise.all([pushed, preview.catch((error: unknown) => {
             console.error('Style preview failed', error);

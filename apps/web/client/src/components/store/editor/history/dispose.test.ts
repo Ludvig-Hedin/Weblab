@@ -207,7 +207,8 @@ describe('released gesture during close', () => {
             else await expect(close).rejects.toThrow('could not be saved');
             expect(writes).toHaveLength(1);
             if (!saved) {
-                expect(history.isInTransaction).toBe(true);
+                expect(history.isInTransaction).toBe(false);
+                expect(history.hasRetainedActions).toBe(true);
                 writable = true;
                 await history.dispose();
                 expect(writes).toHaveLength(2);

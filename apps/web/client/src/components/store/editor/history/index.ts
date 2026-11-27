@@ -79,7 +79,7 @@ export class HistoryManager {
     };
 
     get isTransactionOpen(): boolean {
-        return this.isInTransaction || this.isCommitPending;
+        return this.isInTransaction || this.hasRetainedActions || this.isCommitPending;
     }
 
     constructor(
@@ -173,8 +173,8 @@ export class HistoryManager {
         this.assertDisposalOwner(lease);
         this.assertSourceCurrentForDisposal();
         if (this.disposalFailure) throw this.disposalFailure;
-        if (this.mutationGeneration !== checkpoint.generation || this.commitPromise ||
-            this.pendingPushes.size > 0 || this.pendingWrites.size > 0 || this.isInTransaction ||
+        if (this.mutationGeneration !== checkpoint.generation ||
+            this.pendingPushes.size > 0 || this.pendingWrites.size > 0 || this.isTransactionOpen ||
             this.editorEngine.code.hasPendingWrites || this.sourceVersion?.() !== checkpoint.sourceVersion ||
             this.externalRevision?.() !== checkpoint.externalRevision || this.ownRevision?.() !== checkpoint.ownRevision) {
             throw new Error('The editor changed while saving. Keep it open and retry.');
@@ -379,7 +379,11 @@ export class HistoryManager {
     }
 
     get isInTransaction() {
-        return this.inTransaction.type === TransactionType.IN_TRANSACTION || this.retainedActions.length > 0;
+        return this.inTransaction.type === TransactionType.IN_TRANSACTION;
+    }
+
+    get hasRetainedActions() {
+        return this.retainedActions.length > 0;
     }
 
     get length() {
@@ -490,9 +494,6 @@ export class HistoryManager {
 
     /** Bind each input sample to its gesture before source validation yields. */
     runStyleInGesture(run: (queue: (action: UpdateStyleAction) => boolean) => Promise<boolean>): Promise<boolean> {
-        if (!this.refusesAdmission && this.retainedActions.length && this.inTransaction.type !== TransactionType.IN_TRANSACTION) {
-            this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
-        }
         const gesture = this.inTransaction;
         if (this.refusesAdmission || gesture.type !== TransactionType.IN_TRANSACTION) return Promise.resolve(false);
         const runs = this.gestureRuns.get(gesture) ?? new Set<Promise<boolean>>();
@@ -520,13 +521,18 @@ export class HistoryManager {
         } else if (this.refusesAdmission) {
             throw new Error('This editor is saving before it closes.');
         }
-        if (!this.isInTransaction) return;
-        const gesture: InTransaction = this.inTransaction.type === TransactionType.IN_TRANSACTION
-            ? this.inTransaction : { type: TransactionType.IN_TRANSACTION, actions: [] };
-        const runs = Array.from(this.gestureRuns.get(gesture) ?? []);
+        if (!this.isInTransaction && !this.hasRetainedActions) return;
+        const gesture = this.inTransaction.type === TransactionType.IN_TRANSACTION ? this.inTransaction : undefined;
         this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
         this.mutationGeneration++;
-        if (!this.retainedActions.length && !gesture.actions.length && !runs.length) return;
+        await this.commitActions(strict, gesture);
+    };
+
+    // A retry started by a direct input drains only released actions. An open
+    // gesture keeps its samples until its own release calls commitTransaction.
+    private commitActions = async (strict: boolean, gesture?: InTransaction): Promise<void> => {
+        const runs = gesture ? Array.from(this.gestureRuns.get(gesture) ?? []) : [];
+        if (!this.hasRetainedActions && !gesture?.actions.length && !runs.length) return;
 
         // A7: expose the push chain via `commitPromise` so undo/redo/
         // startTransaction can await it. Chain onto any still-running commit
@@ -547,7 +553,7 @@ export class HistoryManager {
                     }
                 }
                 retrying = this.retainedActions.length > 0;
-                actionsToCommit = [...this.retainedActions, ...gesture.actions];
+                actionsToCommit = [...this.retainedActions, ...(gesture?.actions ?? [])];
                 runInAction(() => { this.retainedActions = []; });
                 // Earlier released work must land first. Defer this gesture
                 // behind it until close retries with a fresh lease.
@@ -600,13 +606,18 @@ export class HistoryManager {
      * `ActionManager.run` use this to skip the optimistic iframe dispatch of
      * an edit that was never saved.
      */
-    push = async (action: Action): Promise<boolean> => {
+    push = async (action: Action, options?: { direct: boolean }): Promise<boolean> => {
         if (this.refusesAdmission) return false;
-        return this.pushAdmitted(action);
+        const waitsForEarlierSave = (options?.direct || !this.isInTransaction) &&
+            (this.hasRetainedActions || this.isCommitPending);
+        const push = this.pushAdmitted(action, options?.direct);
+        // Close must wait for the new edit as well as the earlier save that
+        // currently owns the writer. pushDirect tracks the write itself.
+        return waitsForEarlierSave ? this.trackPendingPush(push) : push;
     };
 
-    private pushAdmitted = async (action: Action): Promise<boolean> => {
-        if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
+    private pushAdmitted = async (action: Action, direct = false, lease?: HistoryDisposalLease): Promise<boolean> => {
+        if (!direct && this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             this.mutationGeneration++;
             this.inTransaction.actions = updateTransactionActions(
                 this.inTransaction.actions,
@@ -616,8 +627,14 @@ export class HistoryManager {
         }
 
         if (this.commitPromise) await this.waitForCommit();
-        if (this.retainedActions.length) {
-            await this.commitTransaction(Boolean(this.disposalLease), this.disposalLease ?? undefined);
+        if (this.hasRetainedActions) {
+            try {
+                await this.commitActions(Boolean(lease));
+            } catch (error) {
+                if (lease) throw error;
+                return false;
+            }
+            if (this.hasRetainedActions) return false;
         }
         return this.pushDirect(action);
     };
@@ -629,7 +646,7 @@ export class HistoryManager {
         this.disposalFlushInProgress = true;
         try {
             this.assertSourceCurrentForDisposal();
-            return await this.pushAdmitted(action);
+            return await this.pushAdmitted(action, false, lease);
         } finally {
             this.disposalFlushInProgress = previous;
         }
@@ -660,12 +677,15 @@ export class HistoryManager {
     };
 
     private pushDirect = (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
-        const push = this.pushDirectNow(action, write, retrying);
+        return this.trackPendingPush(this.pushDirectNow(action, write, retrying));
+    };
+
+    private trackPendingPush(push: Promise<boolean>): Promise<boolean> {
         this.pendingPushes.add(push);
         if (this.disposalLease) this.observePreparedWrite(push, this.disposalLease);
         void push.finally(() => this.pendingPushes.delete(push)).catch(() => undefined);
         return push;
-    };
+    }
 
     private pushDirectNow = async (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
         await Promise.allSettled(Array.from(this.pendingWrites.values()));
@@ -791,7 +811,7 @@ export class HistoryManager {
         if (this.commitPromise) {
             await this.commitPromise.catch(() => undefined);
         }
-        if (this.isInTransaction) {
+        if (this.isInTransaction || this.hasRetainedActions) {
             await this.commitTransaction();
         }
         await this.waitForPendingPushes();
@@ -883,7 +903,7 @@ export class HistoryManager {
         if (this.commitPromise) {
             await this.commitPromise.catch(() => undefined);
         }
-        if (this.isInTransaction) {
+        if (this.isInTransaction || this.hasRetainedActions) {
             await this.commitTransaction();
         }
         await this.waitForPendingPushes();
