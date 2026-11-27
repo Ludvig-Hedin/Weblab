@@ -1,6 +1,7 @@
 import type { AtRule, ChildNode, Root, Rule } from 'postcss';
 import postcss from 'postcss';
 
+import { verifyBreakpoint } from './breakpoint-cascade';
 import { selectorInventory } from './selector-inventory';
 
 export type ClassState = 'hover' | 'focus-visible' | 'active' | 'current';
@@ -9,6 +10,14 @@ export interface ClassTarget {
     state?: ClassState;
     width?: number;
     direction?: 'min' | 'max';
+    /** A preview element can supply matches() for selectors that need DOM context. */
+    matchesSelector?: (selector: string) => boolean;
+    /** Resolve additional preview conditions, e.g. supports() or non-width media features. */
+    matchesCondition?: (
+        name: 'supports' | 'media' | 'container',
+        params: string,
+        width: number,
+    ) => boolean;
     currentConvention?: 'webflow' | 'aria';
 }
 export const WEBFLOW_WIDTHS = [991, 767, 479] as const;
@@ -177,7 +186,12 @@ function containerFor(root: Root, target: ClassTarget): Root | AtRule {
     const existing =
         all.findLast((r) => r.selector === target.selector) ??
         all.findLast((r) => r.selector === '.' + base);
-    let scope = existing?.scope ?? root.nodes.filter(isComponents).at(-1);
+    // A grouped imported rule owns its unlayered class too. Add a dedicated
+    // rule for this selector so the other list members keep their styles.
+    const unlayered = root.nodes.some(
+        (n) => n.type === 'rule' && n.selectors.includes(target.selector),
+    );
+    let scope = existing?.scope ?? (unlayered ? root : root.nodes.filter(isComponents).at(-1));
     if (!scope) {
         scope = postcss.atRule({ name: 'layer', params: 'components' });
         root.append(scope);
@@ -228,78 +242,6 @@ function propertyKey(property: string) {
     return property.startsWith('--') ? property : property.toLowerCase();
 }
 
-function verifyBreakpoint(css: string, target: ClassTarget, property: string) {
-    if (target.width === undefined) return;
-    const width = target.width;
-    const candidates = [];
-    const root = postcss.parse(css);
-    const indexed = rows(root);
-    const supported = new Set(indexed.map((row) => row.rule));
-    // A complex selector or conditional wrapper may outrank the editable rule.
-    // Without a rendered element its applicability cannot be determined.
-    root.walkDecls((d) => {
-        if (propertyKey(d.prop) !== propertyKey(property) || supported.has(d.parent as Rule))
-            return;
-        let container = d.parent;
-        while (container && container.type !== 'root') {
-            if (container.type === 'rule') {
-                const names = selectorInventory(container.selector + '{}').names;
-                if (
-                    target.selector.split('.').some((c) => names.has(c)) ||
-                    (!target.selector.startsWith('.') &&
-                        container.selector.includes(target.selector))
-                ) {
-                    throw Error(
-                        'Cascade conflict: a complex selector may override this breakpoint',
-                    );
-                }
-            }
-            container = container.parent;
-        }
-    });
-    for (const row of indexed) {
-        if (
-            row.width !== undefined &&
-            (row.direction === 'max' ? width > row.width : width < row.width)
-        )
-            continue;
-        if (row.state && row.state !== target.state) continue;
-        if (
-            row.state === 'current' &&
-            target.currentConvention &&
-            row.currentConvention !== target.currentConvention
-        )
-            continue;
-        if (
-            row.selector !== target.selector &&
-            !row.classes.some((c) => target.selector.split('.').includes(c))
-        )
-            continue;
-        for (const d of declarations(row.rule)) {
-            if (propertyKey(d.prop) !== propertyKey(property)) continue;
-            const priority = d.important
-                ? row.scope.type === 'root'
-                    ? 2
-                    : 3
-                : Number(row.scope.type === 'root');
-            const specificity = row.classes.length + Number(!!row.state);
-            candidates.push({
-                priority,
-                specificity,
-                offset: range(d).start,
-                target: matches(row, target),
-            });
-        }
-    }
-    const winner = candidates
-        .sort(
-            (a, b) =>
-                a.priority - b.priority || a.specificity - b.specificity || a.offset - b.offset,
-        )
-        .at(-1);
-    if (winner && !winner.target)
-        throw Error('Cascade conflict: another applicable declaration wins at this breakpoint');
-}
 export function editDeclaration(
     source: string,
     target: ClassTarget,
@@ -338,7 +280,7 @@ export function editDeclaration(
                     ? !!(parsed.important || decl.important)
                     : priority === 'important';
             if (decl.value === parsed.value && !!decl.important === important) {
-                verifyBreakpoint(source, target, property);
+                verifyBreakpoint(root, target, decl);
                 return null;
             }
             const raw = decl.raws.value?.raw ?? decl.value;
@@ -354,6 +296,7 @@ export function editDeclaration(
             };
             decl.value = parsed.value;
             decl.important = important;
+            verifyBreakpoint(root, target, decl);
         } else {
             let rule = matching.at(-1)?.rule;
             if (!rule) {
@@ -373,18 +316,16 @@ export function editDeclaration(
                 if (firstMedia) scope.insertBefore(firstMedia, rule);
                 else scope.append(rule);
             }
-            rule.append(
-                postcss.decl({
-                    prop: property,
-                    value: parsed.value,
-                    important:
-                        priority === 'preserve' ? parsed.important : priority === 'important',
-                }),
-            );
+            const added = postcss.decl({
+                prop: property,
+                value: parsed.value,
+                important: priority === 'preserve' ? parsed.important : priority === 'important',
+            });
+            rule.append(added);
+            verifyBreakpoint(root, target, added);
         }
     }
     const next = (root.source?.input.hasBOM ? source[0] : '') + root.toString();
-    if (value !== null) verifyBreakpoint(next, target, property);
     return difference(source, next);
 }
 export function createClass(source: string, name: string, styles: Record<string, string>) {

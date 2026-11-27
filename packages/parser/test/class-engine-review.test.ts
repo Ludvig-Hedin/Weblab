@@ -1,6 +1,13 @@
 import { expect, test } from 'bun:test';
 
-import { applyPatch, classUsage, createClass, editDeclaration, renameClass } from '../src/classes';
+import {
+    applyPatch,
+    classUsage,
+    createClass,
+    editDeclaration,
+    renameClass,
+    resolveClassStylesheets,
+} from '../src/classes';
 
 const base = '.a{color:red}';
 const target = { selector: '.a' };
@@ -31,7 +38,14 @@ test('plans patches for each supplied stylesheet', () => {
     expect(() =>
         renameClass(files['public/site.css'], { 'page.tsx': files['page.tsx'] }, 'a', 'z'),
     ).toThrow(/inventory/);
-    const r = renameClass(files['public/site.css'], files, 'a', 'z', 'public/site.css');
+    const r = renameClass(
+        files['public/site.css'],
+        files,
+        'a',
+        'z',
+        'public/site.css',
+        resolveClassStylesheets(files, ['page.tsx']),
+    );
     expect(r.files['public/base.css']).toBe('.z{color:red}');
     expect(r.files['public/site.css']).toBe('.z{padding:1rem}');
 });
@@ -95,9 +109,13 @@ test('warns when a breakpoint edit would lose to another applicable declaration'
         '.a.a{color:red} .a{display:block}',
         '#wrapper .a{color:red} .a{display:block}',
     ]) {
-        expect(() => editDeclaration(css, { ...target, width: 767 }, 'color', 'blue')).toThrow(
-            /cascade/i,
-        );
+        // The descendant rule only competes for an element inside #wrapper.
+        const matchesSelector = css.startsWith('#wrapper')
+            ? (selector: string) => ['#wrapper .a', '.a'].includes(selector)
+            : undefined;
+        expect(() =>
+            editDeclaration(css, { ...target, width: 767, matchesSelector }, 'color', 'blue'),
+        ).toThrow(/cascade/i);
     }
 });
 test('preserves priority and matches ordinary property names case insensitively', () => {

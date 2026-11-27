@@ -1,9 +1,11 @@
 import type { NodePath, T } from '../packages';
 import type { TextPatch } from './stylesheet';
+import type { ClassStylesheetSet } from './stylesheet-graph';
 import { t, traverse } from '../packages';
 import { getAstFromContent } from '../parse';
 import { selectorInventory } from './selector-inventory';
 import { applyPatch, assertClassName } from './stylesheet';
+import { singleSheetInventory } from './stylesheet-graph';
 
 type Site = { path: string; start: number; end: number; reason: string };
 interface Reference extends Site {
@@ -43,7 +45,7 @@ function possibleClasses(node: T.Node): string[] {
     return [];
 }
 
-function references(files: Files, requireLinkedSheets = false) {
+function references(files: Files) {
     const sites: Reference[] = [];
     for (const [path, source] of Object.entries(files)) {
         if (!/\.[cm]?[jt]sx?$/.test(path)) continue;
@@ -115,37 +117,6 @@ function references(files: Files, requireLinkedSheets = false) {
             );
         }
         traverse(ast, {
-            JSXOpeningElement(element) {
-                if (!requireLinkedSheets || !t.isJSXIdentifier(element.node.name, { name: 'link' }))
-                    return;
-                const attr = (name: string) =>
-                    element.node.attributes.find(
-                        (a) => t.isJSXAttribute(a) && t.isJSXIdentifier(a.name, { name }),
-                    );
-                const literalValue = (attribute: ReturnType<typeof attr>) => {
-                    if (!t.isJSXAttribute(attribute)) return;
-                    const value = attribute.value;
-                    if (t.isStringLiteral(value)) return value.value;
-                    if (t.isJSXExpressionContainer(value) && t.isStringLiteral(value.expression))
-                        return value.expression.value;
-                };
-                const rel = attr('rel');
-                if (
-                    !rel ||
-                    (literalValue(rel) !== undefined &&
-                        !literalValue(rel)!
-                            .toLowerCase()
-                            .split(/[ \t\n\r\f]+/)
-                            .includes('stylesheet'))
-                )
-                    return;
-                const href = literalValue(attr('href'))?.split(/[?#]/)[0];
-                if (!href || !/^\/(?!\/)/.test(href) || !Object.hasOwn(files, 'public' + href)) {
-                    throw Error(
-                        'Rename requires the complete linked stylesheet inventory at ' + path,
-                    );
-                }
-            },
             JSXAttribute(attr) {
                 if (!t.isJSXIdentifier(attr.node.name, { name: 'className' })) return;
                 const value = attr.node.value;
@@ -178,12 +149,14 @@ function references(files: Files, requireLinkedSheets = false) {
             JSXSpreadAttribute(attr) {
                 record(attr.node.start!, attr.node.end!, 'dynamic expression', []);
             },
-            CallExpression(call) {
+            'CallExpression|OptionalCallExpression'(call: NodePath) {
+                if (!t.isCallExpression(call.node) && !t.isOptionalCallExpression(call.node))
+                    return;
                 const callee = call.node.callee;
-                if (!t.isMemberExpression(callee)) return;
+                if (!t.isMemberExpression(callee) && !t.isOptionalMemberExpression(callee)) return;
                 const object = callee.object;
                 const classList =
-                    t.isMemberExpression(object) &&
+                    (t.isMemberExpression(object) || t.isOptionalMemberExpression(object)) &&
                     t.isIdentifier(object.property, { name: 'classList' });
                 if (
                     classList ||
@@ -282,25 +255,41 @@ export function renameClass(
     from: string,
     to: string,
     cssPath = '<stylesheet>',
+    stylesheetSet?: ClassStylesheetSet,
 ) {
     assertClassName(from);
     assertClassName(to);
     if (files[cssPath] !== undefined && files[cssPath] !== css)
         throw Error('Selected stylesheet has changed');
+    const sources = { ...files, [cssPath]: css };
+    // Single-sheet callers remain supported. A multi-sheet write requires explicit ownership.
+    const graph = stylesheetSet ?? singleSheetInventory(sources, cssPath);
+    if (graph.status === 'incomplete') {
+        throw Error(
+            'Incomplete stylesheet inventory: ' +
+                graph.unresolved.map((i) => i.importer + ' imports ' + i.specifier).join(', '),
+        );
+    }
+    if (!graph.paths.has(cssPath) || (!stylesheetSet && graph.paths.size !== 1))
+        throw Error('Pass the resolved stylesheet set for this project');
+    for (const [path, source] of graph.sources)
+        if (sources[path] !== source) throw Error('Stylesheet inventory changed at ' + path);
     const unsafe: Site[] = [];
     const cssPatches = cssRenamePatches(css, from, to, cssPath, unsafe);
     const next = { ...files };
     const patches: Record<string, TextPatch[]> = Object.fromEntries(
-        Object.entries(files).map(([path, source]) => [
-            path,
-            path === cssPath
-                ? cssPatches
-                : /(?<!\.module)\.css$/i.test(path)
-                  ? cssRenamePatches(source, from, to, path, unsafe)
-                  : [],
-        ]),
+        Object.entries(files)
+            .filter(([path]) => !/\.css$/i.test(path) || graph.paths.has(path))
+            .map(([path, source]) => [
+                path,
+                path === cssPath
+                    ? cssPatches
+                    : graph.paths.has(path)
+                      ? cssRenamePatches(source, from, to, path, unsafe)
+                      : [],
+            ]),
     );
-    for (const { path, start, end, reason, names, safe, usage } of references(files, true)) {
+    for (const { path, start, end, reason, names, safe, usage } of references(files)) {
         if (usage && names.includes(to)) throw Error('Destination class is already used');
         if (!names.includes(from) && reason !== 'unparsed file' && reason !== 'dynamic expression')
             continue;

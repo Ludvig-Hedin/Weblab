@@ -39,7 +39,9 @@
         "@babel/standalone": "^7.27.0",
         "@babel/types": "^7.27.0",
         "@weblab/models": "*",
+        "mdn-data": "2.27.1",
         "postcss": "8.5.15",
+        "postcss-value-parser": "4.2.0",
         "postcss-selector-parser": "7.1.1"
     }
 }
