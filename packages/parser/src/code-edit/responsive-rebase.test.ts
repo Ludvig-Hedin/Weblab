@@ -19,3 +19,15 @@ describe('responsive source prefixes', () => {
         ).toEqual(['', 'md:', 'lg:']);
     });
 });
+
+test('exact source scopes ignore unauthored frames below the first edit', () => {
+    const entries = [
+        { id: 'phone', minWidth: 0, value: undefined },
+        { id: 'tablet', minWidth: 780, value: 'brand' },
+        { id: 'desktop', minWidth: 1200, value: undefined },
+    ];
+    expect(rebaseToMobileFirst(entries, { exactThresholds: true })).toEqual([
+        { id: 'tablet', minWidth: 780, value: 'brand', tailwindPrefix: '[@media(min-width:780px)]:' },
+    ]);
+    expect(entries[2]?.value).toBeUndefined();
+});

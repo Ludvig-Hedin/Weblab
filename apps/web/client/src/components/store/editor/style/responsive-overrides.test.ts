@@ -18,6 +18,7 @@ const element = (frameId: string, computed: Record<string, string>) =>
 
 function setup(
     siblingElement: DomElement | Promise<DomElement> = element('tablet-frame', { color: 'blue' }),
+    includeOtherGroup = false,
 ) {
     const selected = element('desktop-frame', { color: 'red' });
     const desktop = {
@@ -45,7 +46,11 @@ function setup(
         breakpoints: { activeId: 'tablet' },
         frames: {
             get: (id: string) => id === desktop.frame.id ? desktop : tablet,
-            getAll: () => [desktop, tablet],
+            getAll: () => includeOtherGroup ? [
+                { frame: { ...tablet.frame, groupId: 'other', breakpoint: { id: 'phone', width: 400 } } },
+                { frame: { ...tablet.frame, groupId: 'other', breakpoint: { id: 'tablet', width: 900 } } },
+                desktop, tablet,
+            ] : [desktop, tablet],
             getByGroupId: () => [desktop, tablet],
         },
         action: { resetResponsiveStyle: async (action: UpdateStyleAction) => {
@@ -60,6 +65,11 @@ function setup(
 }
 
 describe('StyleManager responsive overrides', () => {
+    it('resolves reused breakpoint ids inside the selected frame group', () => {
+        const { manager } = setup(undefined, true);
+        expect(manager.activeBreakpointContext()?.minWidth).toBe(0);
+    });
+
     it('shows a computed sibling difference without writing it into source', async () => {
         const { manager, selected } = setup();
 

@@ -28,6 +28,15 @@ describe('responsive source classes', () => {
         })).toContain('visible');
     });
 
+    test('every utility from one multi-property edit stays in its breakpoint', () => {
+        const target = request('p-2');
+        addTailwindToRequest(target, {
+            padding: { type: StyleChangeType.Value, value: '16px' },
+            margin: { type: StyleChangeType.Value, value: '8px' },
+        }, 'md:');
+        expect(target.attributes.className.split(' ').sort()).toEqual(['md:m-[8px]', 'md:p-[16px]', 'p-2']);
+    });
+
     test('a Desktop edit keeps the Phone base class', () => {
         const target = request('p-2 text-lg');
         addTailwindToRequest(target, {

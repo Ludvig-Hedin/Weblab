@@ -43,7 +43,7 @@ export function getTailwindClasses(oid: string, styles: Record<string, StyleChan
 
     const css = createCSSRuleString(oid, normalColors);
     const tw = CssToTailwindTranslator(css);
-    const twClasses = tw.data.map((res) => res.resultVal);
+    const twClasses = tw.data.flatMap((res) => res.resultVal.split(/\s+/)).filter(Boolean);
 
     const customClasses = Object.entries(customColors)
         .map(([key, style]) => {

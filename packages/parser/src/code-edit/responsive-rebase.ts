@@ -104,7 +104,8 @@ export function rebaseToMobileFirst(
 
     // Sort largest → smallest so we can fill smaller-undefined slots from the
     // closest larger defined slot.
-    const sortedDesc = [...entries].sort((a, b) => b.minWidth - a.minWidth);
+    const sourceEntries = options.exactThresholds ? entries.filter(entry => entry.value !== undefined) : entries;
+    const sortedDesc = [...sourceEntries].sort((a, b) => b.minWidth - a.minWidth);
     let lastDefined: string | undefined;
     const filledDesc: BreakpointEntry[] = [];
     for (const entry of sortedDesc) {
@@ -116,7 +117,7 @@ export function rebaseToMobileFirst(
         } else {
             // No larger defined value yet — leave unset; the next pass might
             // fill it from a smaller defined value.
-            filledDesc.push(entry);
+            filledDesc.push({ ...entry });
         }
     }
 
