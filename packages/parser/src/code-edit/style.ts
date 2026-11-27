@@ -6,7 +6,10 @@ import { getAstFromContent } from '../parse';
 import { getOidFromJsxElement } from './helpers';
 
 /** Replace only static class literals, leaving the surrounding source byte-for-byte intact. */
-export function patchStyleClasses(source: string, additions: ReadonlyMap<string, string>): string {
+export function patchStyleClasses(
+    source: string, additions: ReadonlyMap<string, string>,
+    removals: ReadonlyMap<string, { prefix: string; probeClass: string }[]> = new Map(),
+): string {
     const ast = getAstFromContent(source);
     if (!ast) throw new Error('The selected source could not be parsed.');
     const seen = new Set<string>();
@@ -25,11 +28,15 @@ export function patchStyleClasses(source: string, additions: ReadonlyMap<string,
         // Merge each existing utility against the incoming edit independently.
         // A whole-list merge would also normalize unrelated authored fallback classes.
         const incoming = additions.get(oid)!;
+        const probes = removals.get(oid) ?? [];
+        const existing = current.split(/\s+/).filter(Boolean);
+        const remaining = probes.length ? existing.filter(token => !matchesRemoval(token, probes)) : existing;
+        if (!incoming && remaining.length === existing.length) return;
         const added = new Set(incoming.split(/\s+/));
-        const retained = current.split(/\s+/).filter(token => token &&
+        const retained = remaining.filter(token =>
             !added.has(token) &&
             customTwMerge(token, incoming).split(/\s+/).includes(token));
-        const merged = [...retained, incoming].join(' ');
+        const merged = incoming ? [...retained, incoming].join(' ') : retained.join(' ');
         if (current === merged) return;
         if (opening.end == null) throw new Error('The class position could not be verified.');
         const insertAt = opening.end - (opening.selfClosing ? 2 : 1);
@@ -92,18 +99,19 @@ function classVariant(token: string): { prefix: string; utility: string } {
     return { prefix: token.slice(0, separator + 1), utility: token.slice(separator + 1) };
 }
 
+function matchesRemoval(token: string, removals: { prefix: string; probeClass: string }[]): boolean {
+    const { prefix, utility } = classVariant(token);
+    // Important syntax changes priority, not the CSS property family.
+    const plain = utility.replace(/^!|!$/g, '');
+    return removals.some(removal => prefix === removal.prefix &&
+        customTwMerge(plain, removal.probeClass).trim() === removal.probeClass.trim());
+}
+
 export function removeMatchingClasses(
     className: string,
     removals: { prefix: string; probeClass: string }[],
 ): string {
-    return className.split(/\s+/).filter((token) => {
-        if (!token) return false;
-        const { prefix, utility } = classVariant(token);
-        // Important syntax changes priority, not the CSS property family.
-        const plain = utility.replace(/^!|!$/g, '');
-        return !removals.some((removal) => prefix === removal.prefix &&
-            customTwMerge(plain, removal.probeClass).trim() === removal.probeClass.trim());
-    }).join(' ');
+    return className.split(/\s+/).filter(token => token && !matchesRemoval(token, removals)).join(' ');
 }
 
 export function removeClassesFromNode(

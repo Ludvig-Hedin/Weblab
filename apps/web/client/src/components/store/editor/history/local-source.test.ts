@@ -508,13 +508,45 @@ describe('exact source history', () => {
         await f.history.dispose();
     });
 
+    test.each(['missing class', 'unsupported value', 'existing class'])('a %s does not block the next margin edit or close', async kind => {
+        const f = sourceFixture();
+        const initial = f.filesA.get('page.tsx')!.replace('p-2', kind === 'existing class' ? 'p-2 hover:p-4' : 'flex  hover:p-4');
+        f.filesA.set('page.tsx', initial);
+        const manager = new ActionManager(f.engine);
+        const previews: string[] = [];
+        Object.assign(f.engine, { action: manager, elements: { selected: [] }, frames: {
+            getAll: () => [], get: () => ({ view: { updateStyle: async (_id: string, change: UpdateStyleAction['targets'][number]['change']) => {
+                previews.push(Object.values(change.updated)[0]!.value);
+                return null;
+            } } }),
+        }, theme: { getColorByName: () => undefined } });
+        Object.assign(f.engine.tokens, { resolveVariableValue: () => undefined });
+        let writes = 0;
+        f.setBeforeWrite(async () => { writes++; });
+        const edit = (property: string, value: string): UpdateStyleAction => ({ ...padding, targets: [{
+            ...padding.targets[0]!, change: { original: { [property]: { type: StyleChangeType.Value, value: property === 'display' ? 'flex' : '8px' } },
+                updated: { [property]: { type: StyleChangeType.Value, value } } },
+        }] });
+        const unsupported = kind === 'unsupported value';
+        expect(await manager.run(unsupported ? edit('display', 'unsupported-display-mode') : edit('padding', ''))).toBe(!unsupported);
+        expect(f.history.hasRetainedActions).toBe(false);
+        expect(writes).toBe(kind === 'existing class' ? 1 : 0);
+        expect(f.history.length).toBe(writes);
+        if (unsupported) expect(previews.at(-1)).toBe('flex');
+        expect(f.filesA.get('page.tsx')).toBe(kind === 'existing class' ? initial.replace('p-2 ', '') : initial);
+        expect(await manager.run(edit('margin', '27px'))).toBe(true);
+        expect(f.filesA.get('page.tsx')).toContain('m-[27px]');
+        await f.history.dispose();
+    });
+
     // Every schedule starts with a failed close on a released 13px resize.
     // Hold the retry at the writer while admitting one or two later edits:
-    // D is a direct input and G is a released gesture.
-    for (const inputs of ['D', 'G', 'DD', 'DG', 'GD', 'GG']) {
+    // D is a direct input, G a released gesture, N an absent-class reset and U an unsupported input.
+    for (const inputs of ['D', 'G', 'DD', 'DG', 'GD', 'GG', 'ND', 'UD', 'DN', 'GU', 'NUD', 'UNG']) {
         // Attempt 1 failed during the initial close. Fault any subsequent
         // source write, or let all of them succeed (failureAt = 0).
-        for (const failureAt of [0, ...Array.from(inputs, (_, i) => i + 2), inputs.length + 2]) {
+        const writes = [...inputs].filter(kind => kind === 'D' || kind === 'G').length;
+        for (const failureAt of [0, ...Array.from({ length: writes + 1 }, (_, i) => i + 2)]) {
             for (const closeFirst of [false, true]) {
                 test(`recovery order ${inputs}, fault at attempt ${failureAt}, close before retry settles=${closeFirst}`, async () => {
                     const f = sourceFixture();
@@ -551,9 +583,23 @@ describe('exact source history', () => {
                     expect(await released).toBe(false);
                     await expect(firstClose).rejects.toThrow();
                     const submissions: Promise<void>[] = [];
-                    const values = [13, ...[27, 39].slice(0, inputs.length)];
+                    const values = [13];
                     for (const [i, kind] of [...inputs].entries()) {
-                        const value = values[i + 1]!;
+                        if (kind === 'N' || kind === 'U') {
+                            const property = kind === 'N' ? 'margin' : 'display';
+                            const candidate = resize(0);
+                            candidate.targets[0]!.change = {
+                                original: { [property]: { type: StyleChangeType.Value, value: kind === 'N' ? '0px' : 'block' } },
+                                updated: { [property]: { type: StyleChangeType.Value, value: kind === 'N' ? '' : 'unsupported-display-mode' } },
+                            };
+                            submissions.push(manager.run(candidate).then(success => {
+                                if (!failureAt || success) expect(success).toBe(kind === 'N');
+                            }));
+                            await manager.waitForStylePreflights();
+                            continue;
+                        }
+                        const value = 27 + 12 * i;
+                        values.push(value);
                         const expected = initial.replace('p-2', `p-[${value}px]`);
                         if (kind === 'G') {
                             void f.history.startTransaction();

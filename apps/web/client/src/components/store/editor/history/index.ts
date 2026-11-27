@@ -7,6 +7,7 @@ import { makeAutoObservable, observable, runInAction } from 'mobx';
 import type { Action, UpdateStyleAction } from '@weblab/models/actions';
 import { jsonClone } from '@weblab/utility';
 
+import type { SourceWriteResult } from '../code/write-result';
 import type { EditorEngine } from '../engine';
 import { transformRedoAction, undoAction, updateTransactionActions } from './helpers';
 import { clearHistory, loadHistory, saveHistory } from './storage';
@@ -38,11 +39,16 @@ interface NotInTransaction {
 
 type TransactionState = InTransaction | NotInTransaction;
 
+class RetryableWriteError extends Error {}
+
+type WriteSource = (action: Action, reportResult: (result: SourceWriteResult) => void) => Promise<boolean>;
+
 interface SourceWrite {
+    rejected?: boolean;
     actions: Action[];
     gesture?: InTransaction;
     prepare?: () => Promise<void>;
-    write?: (action: Action) => Promise<boolean>;
+    write?: WriteSource;
     retryAdmission?: (action: Action) => boolean | Promise<boolean>;
     waiters: Array<(saved: boolean) => void>;
 }
@@ -547,7 +553,7 @@ export class HistoryManager {
                         await this.writeEntry(job, recovering);
                     } catch (error) {
                         if (this.disposalLease) this.disposalFailure = error instanceof Error ? error : new Error('An admitted edit could not be saved.');
-                        if (this.disposalLease || recovering || (!job.write && (job.gesture?.actions ?? job.actions)[0]?.type === 'update-style')) {
+                        if (error instanceof RetryableWriteError || this.disposalLease || recovering || (!job.write && (job.gesture?.actions ?? job.actions)[0]?.type === 'update-style')) {
                             runInAction(() => { this.paused = true; });
                             for (const pending of this.writeQueue) {
                                 for (const resolve of pending.waiters.splice(0)) resolve(false);
@@ -559,7 +565,7 @@ export class HistoryManager {
                         this.finishEntry(job, false);
                         continue;
                     }
-                    this.finishEntry(job, true);
+                    this.finishEntry(job, !job.rejected);
                 }
             } finally {
                 this.drainPromise = null;
@@ -582,21 +588,20 @@ export class HistoryManager {
         const actions = job.gesture?.actions ?? job.actions;
         while (actions.length) {
             const action = actions[0]!;
-            if (recovering && job.retryAdmission && !(await job.retryAdmission(action))) {
-                throw new Error('The source edit could not be revalidated.');
-            }
-            const saved = await this.writeAndRecord(action, job.write, recovering);
-            if (!saved) {
+            const admitted = !recovering || !job.retryAdmission || await job.retryAdmission(action);
+            const result = admitted ? await this.writeAndRecord(action, job.write, recovering) : 'rejected';
+            if (result === 'retryable') {
                 if (job.gesture && action.type === 'update-style' && !recovering && !this.disposalLease) {
                     await this.editorEngine.action.finishQueuedStyleAction(action, false);
                 }
-                throw new Error(job.gesture ? 'An unfinished edit could not be saved.' : 'An admitted edit could not be saved.');
+                throw new RetryableWriteError(job.gesture ? 'An unfinished edit could not be saved.' : 'An admitted edit could not be saved.');
             }
+            if (result === 'rejected') job.rejected = true;
             // Advance before running preview callbacks: a committed write
             // must never replay because a later callback failed.
             runInAction(() => { actions.shift(); });
             if (job.gesture && action.type === 'update-style') {
-                await this.editorEngine.action.finishQueuedStyleAction(action, true);
+                await this.editorEngine.action.finishQueuedStyleAction(action, result !== 'rejected');
             }
         }
     }
@@ -632,7 +637,7 @@ export class HistoryManager {
     /** Source/structure edits must finish saving before their preview changes. */
     pushImmediate = async (
         action: Action,
-        write?: (action: Action) => Promise<boolean>,
+        write?: WriteSource,
         admit?: (action: Action) => boolean | Promise<boolean>,
     ): Promise<boolean> => {
         if (this.refusesAdmission) return false;
@@ -648,7 +653,7 @@ export class HistoryManager {
         return this.enqueueWrite({ actions: [action], write, retryAdmission: admit, waiters: [] });
     };
 
-    private writeAndRecord = async (action: Action, write?: (action: Action) => Promise<boolean>, retrying = false): Promise<boolean> => {
+    private writeAndRecord = async (action: Action, write?: WriteSource, retrying = false): Promise<SourceWriteResult> => {
         if (retrying) this.assertSourceCurrentForDisposal();
         else this.sourceIsCurrent();
         const expectedExternalRevision = this.externalRevision?.() ?? null;
@@ -656,10 +661,17 @@ export class HistoryManager {
         let historyEntry = action;
         this.writingSource = true;
         try {
-            const written = write ? await write(action) : await this.editorEngine.code.write(action, undefined, entry => {
-                historyEntry = entry;
-            });
-            if (!written) return false;
+            let outcome: SourceWriteResult | undefined;
+            const reportResult = (result: SourceWriteResult) => { outcome = result; };
+            const saved = write ? await write(action, reportResult) : await this.editorEngine.code.write(
+                action, undefined, entry => { historyEntry = entry; }, reportResult,
+            );
+            if (outcome && outcome !== 'saved') return outcome;
+            if (!saved) {
+                // A writer with its own admission check can decline before reaching the filesystem.
+                if (write) return 'rejected';
+                return retrying || this.disposalLease || action.type === 'update-style' ? 'retryable' : 'rejected';
+            }
         } finally {
             this.writingSource = false;
         }
@@ -679,7 +691,7 @@ export class HistoryManager {
             if (this.disposalLease) this.disposalFailure = error instanceof Error ? error : new Error('Could not confirm the saved history.');
             console.warn('[HistoryManager] Could not confirm the saved history', error);
         }
-        return true;
+        return 'saved';
     };
 
     private async afterSourceWrite(action: Action, expectedExternalRevision: string | null | undefined): Promise<void> {

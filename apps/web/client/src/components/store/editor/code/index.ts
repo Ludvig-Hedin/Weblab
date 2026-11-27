@@ -1,6 +1,7 @@
 import { freezeCloudPropertyApproval, reconstructCloudPropertyAction, validCloudPropertyApproval } from '../sandbox/cloud-property-approval';
 import { validCloudImageApproval, freezeCloudImageApproval } from '../sandbox/cloud-image-approval';
 import { readContentImageTarget, replaceContentImageTarget } from '@weblab/parser/src/code-edit/content-image-target';
+import { RejectedSourceEdit, type SourceWriteResult } from './write-result';
 import { createEditorBeforeUnloadHandler } from './before-unload';
 import { replaceContentTextTarget } from '@weblab/parser/src/code-edit/content-target';
 import { validCloudTextApproval, cloudTextRenderer, freezeCloudTextApproval } from '../sandbox/cloud-source';
@@ -39,6 +40,9 @@ import { hasUnsupportedResponsiveStyleValue } from '../style/local-style-writer'
 import { branchBaseWidth, breakpointMinWidth, readProjectBreakpoints } from './project-breakpoints';
 
 import { CSS_MODULE_PROPERTIES, readCssModuleDeclaration, replaceCssModuleDeclaration, resolveCssModuleBinding, validateCssModuleStyleEdit } from './css-module-declaration';
+
+type SourceContext = { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean; validate?: () => Promise<boolean> };
+type CaptureStyleHistory = (entry: WriteCodeAction) => void;
 
 export interface CssModuleStyleInspection {
     branchId: string;
@@ -135,45 +139,52 @@ export class CodeManager {
      */
     async write(
         action: Action,
-        sourceContext?: { branchId: string; codeEditor: CodeFileSystem; current?: () => boolean; validate?: () => Promise<boolean> },
-        captureStyleHistory?: (entry: WriteCodeAction) => void,
+        sourceContext?: SourceContext,
+        capture?: CaptureStyleHistory,
+        reportResult?: (result: SourceWriteResult) => void,
     ): Promise<boolean> {
+        const result = await this.writeResult(action, sourceContext, capture);
+        reportResult?.(result);
+        return result === 'saved' || result === 'noop';
+    }
+
+    private async writeResult(action: Action, sourceContext?: SourceContext, captureStyleHistory?: CaptureStyleHistory): Promise<SourceWriteResult> {
         try {
             if (action.type === 'write-code' && 'cloudProperty' in action) {
                 const edit = action.cloudProperty;
-                if (!edit || !validCloudPropertyApproval(edit.pin)) throw new Error('This property edit has no valid original approval.');
+                if (!edit || !validCloudPropertyApproval(edit.pin)) throw new RejectedSourceEdit('This property edit has no valid original approval.');
                 const pin = freezeCloudPropertyApproval(edit.pin), branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
                 const codeEditor = sourceContext?.codeEditor ?? branch?.codeEditor;
                 if (!branch || !source || !codeEditor || !isCloudEditorRuntime(branch.branch.runtime) || branch.codeEditor !== codeEditor ||
-                    (sourceContext && sourceContext.branchId !== pin.branchId)) throw new Error('The property source is no longer available.');
+                    (sourceContext && sourceContext.branchId !== pin.branchId)) throw new RejectedSourceEdit('The property source is no longer available.');
                 const revision = source.state.savedRevision, version = source.getSourceVersion(), externalRevision = source.getExternalRevision();
                 const current = () => (sourceContext?.current?.() ?? true) && !this.editorEngine.isClosing && this.editorEngine.branches.hasActiveBranch &&
                     this.editorEngine.branches.activeBranchData === branch && this.editorEngine.branches.getBranchDataById(pin.branchId) === branch &&
                     branch.sandbox.cloudSource === source && branch.codeEditor === codeEditor && source.isContentMode &&
                     source.state.savedRevision === revision && source.getSourceVersion() === version && source.getExternalRevision() === externalRevision;
                 const original = await codeEditor.readFile(pin.path);
-                if (typeof original !== 'string' || !current()) return false;
+                if (typeof original !== 'string' || !current()) return 'rejected';
                 const reconstructed = reconstructCloudPropertyAction(action, original), diff = reconstructed.diffs[0]!;
                 const choice = pin.binding.options.find(option => option.value === edit.value);
-                if (!choice) return false;
+                if (!choice) return 'rejected';
                 const saved = await source.withApprovedPropertyWrite({ pin, revision, previousValue: edit.previousValue, choiceId: choice.id,
                     original, candidate: diff.generated, current, validate: sourceContext?.validate }, lease => this.enqueueWrite(async () => {
                         if (!lease.current() || await codeEditor.readFile(pin.path) !== original || !lease.current()) return false;
                         return lease.commit();
                     }));
-                if (!saved) throw new Error('The approved property could not be saved.');
-                return true;
+                if (!saved) throw new RejectedSourceEdit('The approved property could not be saved.');
+                return 'saved';
             }
             if (action.type === 'write-code' && 'cloudImage' in action) {
                 const edit = action.cloudImage;
                 if (!edit || !validCloudImageApproval(edit.pin) || !['src', 'alt'].includes(edit.field) ||
                     !edit.pin.binding.fields.includes(edit.field) || action.diffs.length !== 1 || action.branchId !== edit.pin.branchId ||
-                    action.previewStyle || action.refreshTokens || action.cssModuleStyle || 'cloudAttribute' in action || 'cloudProperty' in action) throw new Error('This image edit has no valid original approval.');
+                    action.previewStyle || action.refreshTokens || action.cssModuleStyle || 'cloudAttribute' in action || 'cloudProperty' in action) throw new RejectedSourceEdit('This image edit has no valid original approval.');
                 const pin = freezeCloudImageApproval(edit.pin), diff = action.diffs[0]!;
                 const branch = this.editorEngine.branches.getBranchDataById(pin.branchId), source = branch?.sandbox.cloudSource;
                 const codeEditor = sourceContext?.codeEditor ?? branch?.codeEditor;
                 if (!branch || !source || !codeEditor || !isCloudEditorRuntime(branch.branch.runtime) || diff.path !== pin.path ||
-                    (sourceContext && sourceContext.branchId !== pin.branchId) || branch.codeEditor !== codeEditor) throw new Error('The image source is no longer available.');
+                    (sourceContext && sourceContext.branchId !== pin.branchId) || branch.codeEditor !== codeEditor) throw new RejectedSourceEdit('The image source is no longer available.');
                 const externalRevision = source.getExternalRevision(), mode = source.isContentMode;
                 const revision = source.state.savedRevision;
                 const ownerCurrent = () => (sourceContext?.current?.() ?? true) && !this.editorEngine.isClosing &&
@@ -184,7 +195,7 @@ export class CodeManager {
                 const previous = readContentImageTarget(diff.original, pin.binding.target), value = readContentImageTarget(diff.generated, pin.binding.target);
                 const other = edit.field === 'src' ? 'alt' : 'src';
                 if (value[other] !== previous[other] || replaceContentImageTarget(diff.original, pin.binding.target, previous, value) !== diff.generated)
-                    throw new Error('The image edit changes unapproved source.');
+                    throw new RejectedSourceEdit('The image edit changes unapproved source.');
                 // Acquire before this write enters the queue, so pending-work admission
                 // still rejects unrelated writes without rejecting this write itself.
                 const saved = await source.withApprovedImageWrite({ pin, field: edit.field, revision, previous, current: ownerCurrent }, lease =>
@@ -195,23 +206,23 @@ export class CodeManager {
                         if (!current() || await codeEditor.readFile(pin.path) !== diff.original || !current()) return false;
                         return lease.commit(diff.generated);
                     }));
-                if (!saved) throw new Error('The approved image could not be saved.');
-                return true;
+                if (!saved) throw new RejectedSourceEdit('The approved image could not be saved.');
+                return 'saved';
             }
             if (action.type === 'edit-text' && 'cloudText' in action) {
                 if (!validCloudTextApproval(action.cloudText) || action.textSlots !== undefined || action.targets.length === 0)
-                    throw new Error('This text edit has no valid original approval.');
+                    throw new RejectedSourceEdit('This text edit has no valid original approval.');
                 const pin = freezeCloudTextApproval(action.cloudText);
                 const originalContent = action.originalContent, newContent = action.newContent;
                 if (action.targets.some(target => target.branchId !== pin.branchId || target.oid !== cloudTextRenderer(pin).oid))
-                    throw new Error('The text edit belongs to another source target.');
+                    throw new RejectedSourceEdit('The text edit belongs to another source target.');
                 const branches = this.editorEngine.branches;
                 const branch = branches.getBranchDataById(pin.branchId);
                 const source = branch?.sandbox.cloudSource;
                 const codeEditor = sourceContext?.codeEditor ?? branch?.codeEditor;
                 if (!branch || !source || !codeEditor || !isCloudEditorRuntime(branch.branch.runtime) ||
                     (sourceContext && sourceContext.branchId !== pin.branchId) || branch.codeEditor !== codeEditor)
-                    throw new Error('The approved text source is no longer available.');
+                    throw new RejectedSourceEdit('The approved text source is no longer available.');
                 const revision = source.state.savedRevision;
                 const version = source.getSourceVersion(), externalRevision = source.getExternalRevision();
                 const current = () => (sourceContext?.current?.() ?? true) && !this.editorEngine.isClosing &&
@@ -220,12 +231,12 @@ export class CodeManager {
                     source.getExternalRevision() === externalRevision && source.getSourceVersion() === version &&
                     source.state.savedRevision === revision && source.canWrite && !source.state.localDraftChanges && source.isTextApprovalCurrent(pin);
                 await this.enqueueWrite(async () => {
-                    if (!current()) throw new Error('The original text approval changed.');
+                    if (!current()) throw new RejectedSourceEdit('The original text approval changed.');
                     const metadata = await codeEditor.getJsxElementMetadata(cloudTextRenderer(pin).oid);
-                    if (!current()) throw new Error('The approved text source changed.');
+                    if (!current()) throw new RejectedSourceEdit('The approved text source changed.');
                     const original = await codeEditor.readFile(pin.path);
                     if (!current() || metadata?.path.replace(/^\/+/, '') !== cloudTextRenderer(pin).path || typeof original !== 'string')
-                        throw new Error('The approved text source changed.');
+                        throw new RejectedSourceEdit('The approved text source changed.');
                     const candidate = replaceContentTextTarget(original, pin.target, originalContent, newContent);
                     if (candidate === original) return;
                     const saved = await source.withApprovedTextWrite({ pin, revision, candidate }, async () => {
@@ -233,24 +244,24 @@ export class CodeManager {
                         await codeEditor.writeCloudTextFile(pin.path, candidate, original);
                         return true;
                     });
-                    if (!saved) throw new Error('The approved text could not be saved.');
+                    if (!saved) throw new RejectedSourceEdit('The approved text could not be saved.');
                 });
-                return true;
+                return 'saved';
             }
             if (action.type === 'edit-text' && action.targets.some(target => {
                 const source = this.editorEngine.branches.getBranchDataById(target.branchId)?.sandbox.cloudSource;
                 return source?.isContentMode && source.state.profile !== 'starter-v1';
-            })) throw new Error('Imported text edits require their original approval.');
+            })) throw new RejectedSourceEdit('Imported text edits require their original approval.');
             if (action.type === 'update-style' && this.editorEngine.framework === 'static-html') {
-                throw new Error('Visual style editing of static HTML requires a CSS source writer. No project file was changed.');
+                throw new RejectedSourceEdit('Visual style editing of static HTML requires a CSS source writer. No project file was changed.');
             }
             if (action.type === 'update-style' && action.targets.some((target) =>
                 this.editorEngine.branches.getStyleWriterForBranch(target.branchId) === 'none')) {
-                throw new Error('Visual style editing requires a wired Tailwind v4 App Router stylesheet. No project file was changed.');
+                throw new RejectedSourceEdit('Visual style editing requires a wired Tailwind v4 App Router stylesheet. No project file was changed.');
             }
             if (action.type === 'update-style' && hasUnsupportedResponsiveStyleValue(
                 action.targets, this.editorEngine.frames?.getAll() ?? [])) {
-                throw new Error('Breakpoint font stacks are not supported yet. No project file was changed.');
+                throw new RejectedSourceEdit('Breakpoint font stacks are not supported yet. No project file was changed.');
             }
             // TODO: This is a hack to write code, we should refactor this
             if (action.type === 'write-code') {
@@ -259,19 +270,19 @@ export class CodeManager {
                 // this save or its Undo/Redo to the newly active project.
                 const branchId = action.branchId ?? sourceContext?.branchId ?? this.editorEngine.branches.activeBranch.id;
                 const branchData = this.editorEngine.branches.getBranchDataById(branchId);
-                if (!branchData) throw new Error('The source branch is no longer available.');
+                if (!branchData) throw new RejectedSourceEdit('The source branch is no longer available.');
                 const codeEditor = sourceContext?.codeEditor ?? branchData.codeEditor;
                 if (sourceContext && sourceContext.branchId !== branchId) {
-                    throw new Error('The edit belongs to a different source branch.');
+                    throw new RejectedSourceEdit('The edit belongs to a different source branch.');
                 }
                 if (action.diffs.length === 0) {
-                    throw new Error('write-code action has no diffs');
+                    throw new RejectedSourceEdit('write-code action has no diffs');
                 }
                 if (
                     branchData.branch.runtime.type === 'local' &&
                     action.diffs.length > 1
                 ) {
-                    throw new Error('Multi-file local edits need a transaction and are unavailable');
+                    throw new RejectedSourceEdit('Multi-file local edits need a transaction and are unavailable');
                 }
                 // Apply EVERY diff using the captured source context — reverseWriteCodeAction reverses all
                 // of them, so writing only diffs[0] would make the inverse
@@ -294,17 +305,17 @@ export class CodeManager {
                         if (!edit || action.previewStyle || action.refreshTokens || action.diffs.length !== 1 ||
                             'cloudProperty' in action || 'cloudImage' in action || action.diffs[0]?.path !== edit.cssPath ||
                             action.branchId !== branchId || branchData.codeEditor !== codeEditor) {
-                            throw new Error('This component-class edit has no valid source target.');
+                            throw new RejectedSourceEdit('This component-class edit has no valid source target.');
                         }
                         this.assertCssModuleReady(branchId, true);
                         validateCssModuleStyleEdit(edit);
                         const provider = branchData.sandbox.session.provider;
-                        if (!(provider instanceof NodeFsProvider)) throw new Error('The private source folder is no longer available.');
+                        if (!(provider instanceof NodeFsProvider)) throw new RejectedSourceEdit('The private source folder is no longer available.');
                         const sourceVersion = branchData.sandbox.getLocalSourceVersion();
                         const externalRevision = branchData.sandbox.getLocalExternalRevision();
                         const ownRevision = branchData.sandbox.getLocalOwnRevision();
                         if (sourceVersion === null || externalRevision === null || ownRevision === null) {
-                            throw new Error('The private source version could not be verified.');
+                            throw new RejectedSourceEdit('The private source version could not be verified.');
                         }
                         assertModuleSourceCurrent = () => {
                             this.assertCssModuleReady(branchId, true);
@@ -313,7 +324,7 @@ export class CodeManager {
                                 branchData.sandbox.getLocalSourceVersion() !== sourceVersion ||
                                 branchData.sandbox.getLocalExternalRevision() !== externalRevision ||
                                 branchData.sandbox.getLocalOwnRevision() !== ownRevision) {
-                                throw new Error('The source changed before this edit could be saved. Your draft has been kept.');
+                                throw new RejectedSourceEdit('The source changed before this edit could be saved. Your draft has been kept.');
                             }
                         };
                         const diff = action.diffs[0]!;
@@ -324,14 +335,14 @@ export class CodeManager {
                         ]);
                         if (diskSource.content !== edit.source || mirrorSource !== edit.source || diskCss.content !== diff.original ||
                             replaceCssModuleDeclaration(diff.original, edit.className, edit.property, edit.previousValue, edit.value) !== diff.generated) {
-                            throw new Error('The component or stylesheet changed. Your draft has been kept.');
+                            throw new RejectedSourceEdit('The component or stylesheet changed. Your draft has been kept.');
                         }
                         moduleWrite = { expectedSha256: diskCss.sha256,
                             dependencies: [{ path: edit.sourcePath, sha256: diskSource.sha256 }] };
                         this.assertCssModuleReady(branchId, true);
                         if (branchData.codeEditor !== codeEditor || branchData.sandbox.session.provider !== provider ||
                             this.editorEngine.branches.getBranchDataById(branchId) !== branchData || sourceContext?.current?.() === false) {
-                            throw new Error('The source session changed before this edit could be saved.');
+                            throw new RejectedSourceEdit('The source session changed before this edit could be saved.');
                         }
                     }
                     if (action.previewStyle) {
@@ -343,7 +354,7 @@ export class CodeManager {
                     for (const diff of action.diffs) {
                         const current = await codeEditor.readFile(diff.path);
                         if (current !== diff.original) {
-                            throw new Error(`File changed on disk: ${diff.path}. Reload before retrying this edit.`);
+                            throw new RejectedSourceEdit(`File changed on disk: ${diff.path}. Reload before retrying this edit.`);
                         }
                     }
                     const durableCloud = isCloudEditorRuntime(branchData.branch.runtime);
@@ -377,17 +388,18 @@ export class CodeManager {
                 const editors = new Map<string, CodeFileSystem>();
                 for (const branchId of branchIds) {
                     const branchData = this.editorEngine.branches.getBranchDataById(branchId);
-                    if (!branchData) throw new Error('The source branch is no longer available.');
+                    if (!branchData) throw new RejectedSourceEdit('The source branch is no longer available.');
                     editors.set(branchId, branchData.codeEditor);
                 }
-                await this.enqueueWrite(async () => {
+                const changed = await this.enqueueWrite(async () => {
                     const requests = await this.collectRequests(action, editors);
-                    await this.processWriteRequest(requests, editors, action.type === 'update-style' && captureStyleHistory
-                        ? (diffs) => captureStyleHistory({ type: 'write-code', branchId: branchIds[0], diffs, previewStyle: action })
+                    return this.processWriteRequest(requests, editors, action.type === 'update-style'
+                        ? (diffs) => captureStyleHistory?.({ type: 'write-code', branchId: branchIds[0], diffs, previewStyle: action })
                         : undefined);
                 });
+                if (changed === false) return 'noop';
             }
-            return true;
+            return 'saved';
         } catch (error) {
             console.error('Error writing requests:', error);
             const message = error instanceof Error ? error.message : 'Unknown error';
@@ -404,7 +416,7 @@ export class CodeManager {
                 message,
                 action,
             );
-            return false;
+            return error instanceof RejectedSourceEdit ? 'rejected' : 'retryable';
         }
     }
 
@@ -425,7 +437,7 @@ export class CodeManager {
             if (!data) throw new Error('The source branch is no longer available.');
             editors.set(request.branchId, data.codeEditor);
         }
-        return this.enqueueWrite(() => this.processWriteRequest(requests, editors));
+        await this.enqueueWrite(() => this.processWriteRequest(requests, editors));
     }
 
     /** Record an exact single-file source change through the normal Undo stack. */
@@ -444,8 +456,8 @@ export class CodeManager {
         if (!previewStyle && diffs.every((diff) => diff.original === diff.generated)) return;
         const action: Action = { type: 'write-code', branchId, diffs, refreshTokens, previewStyle,
             ...(cssModuleStyle ? { cssModuleStyle } : {}) };
-        const saved = await branchData.history.pushImmediate(action, (entry) =>
-            this.write(entry, { branchId, codeEditor, current: sourceCurrent }));
+        const saved = await branchData.history.pushImmediate(action, (entry, reportResult) =>
+            this.write(entry, { branchId, codeEditor, current: sourceCurrent }, undefined, reportResult));
         if (!saved) throw new Error('The edit could not be saved. Your source was not changed.');
         if (previewStyle) await this.editorEngine.action.applySourcePreview(previewStyle);
     }
@@ -615,16 +627,22 @@ export class CodeManager {
         requests: CodeDiffRequest[],
         editors: Map<string, CodeFileSystem>,
         capture?: (diffs: CodeDiff[]) => void,
-    ) {
+    ): Promise<boolean> {
         const groupedRequests = await this.groupRequestByFile(requests, editors);
         const codeDiffs = capture ? Array.from(groupedRequests, ([path, group]) => {
             const additions = new Map<string, string>();
+            const removals = new Map<string, NonNullable<CodeDiffRequest['classRemovals']>>();
             for (const [oid, request] of group.oidToRequest) {
                 const classes: unknown = request.attributes.className;
-                if (typeof classes !== 'string' || !classes) throw new Error('This style has no writable Tailwind class.');
+                if (typeof classes !== 'string' || (!classes && !request.classRemovals?.length)) throw new RejectedSourceEdit('This style has no writable Tailwind class.');
                 additions.set(oid, classes);
+                if (request.classRemovals) removals.set(oid, request.classRemovals);
             }
-            return { path, original: group.content, generated: patchStyleClasses(group.content, additions) };
+            try {
+                return { path, original: group.content, generated: patchStyleClasses(group.content, additions, removals) };
+            } catch (error) {
+                throw new RejectedSourceEdit(error instanceof Error ? error.message : 'Cannot edit this source safely.');
+            }
         }) : await processGroupedRequests(groupedRequests);
 
         // Validate EVERY diff before writing ANY file. A multi-file action
@@ -636,17 +654,17 @@ export class CodeManager {
         for (const diff of codeDiffs) {
             const fileGroup = groupedRequests.get(diff.path);
             if (!fileGroup) {
-                throw new Error(`No request group found for file: ${diff.path}`);
+                throw new RejectedSourceEdit(`No request group found for file: ${diff.path}`);
             }
 
             const firstRequest = Array.from(fileGroup.oidToRequest.values())[0];
             if (!firstRequest) {
-                throw new Error(`No requests found in group for file: ${diff.path}`);
+                throw new RejectedSourceEdit(`No requests found in group for file: ${diff.path}`);
             }
 
             const branchData = this.editorEngine.branches.getBranchDataById(firstRequest.branchId);
             if (!branchData) {
-                throw new Error(`Branch not found for ID: ${firstRequest.branchId}`);
+                throw new RejectedSourceEdit(`Branch not found for ID: ${firstRequest.branchId}`);
             }
 
             // Corruption guard: editor-action output comes from Babel
@@ -667,7 +685,7 @@ export class CodeManager {
                         ? pipeline.parse(diff.generated) !== null
                         : getAstFromContent(diff.generated) !== null;
                 if (!reparses) {
-                    throw new Error(
+                    throw new RejectedSourceEdit(
                         `Refusing to write ${diff.path}: generated content does not parse. The edit was not saved — your source files are untouched.`,
                     );
                 }
@@ -681,39 +699,42 @@ export class CodeManager {
             });
         }
 
+        const changed = capture ? validated.filter(diff => diff.original !== diff.generated) : validated;
         if (
-            validated.length > 1 &&
+            changed.length > 1 &&
             requests.some(
                 (request) =>
                     this.editorEngine.branches.getBranchById(request.branchId)?.runtime.type ===
                     'local',
             )
         ) {
-            throw new Error('Multi-file local edits need a transaction and are unavailable');
+            throw new RejectedSourceEdit('Multi-file local edits need a transaction and are unavailable');
         }
         if (capture) {
             const destination = validated[0]?.codeEditor;
             if (!destination || validated.some(diff => diff.codeEditor !== destination)) {
-                throw new Error('A style edit must belong to one source branch.');
+                throw new RejectedSourceEdit('A style edit must belong to one source branch.');
             }
-            const diffs = validated.map(({ path, original, generated }) => ({ path, original, generated }));
+            if (!changed.length) return false;
+            const diffs = changed.map(({ path, original, generated }) => ({ path, original, generated }));
             capture(await this.commitStyleDiffs(destination, diffs));
-            return;
+            return true;
         }
         for (const { codeEditor, path, original } of validated) {
             if (await codeEditor.readFile(path) !== original) {
-                throw new Error(`File changed on disk: ${path}. Reload before retrying this edit.`);
+                throw new RejectedSourceEdit(`File changed on disk: ${path}. Reload before retrying this edit.`);
             }
         }
         const cloudBranches = new Set(requests.filter(request => isCloudEditorRuntime(this.editorEngine.branches.getBranchById(request.branchId)?.runtime)).map(request => request.branchId));
         if (cloudBranches.size) {
             const destinations = new Set(validated.map(diff => diff.codeEditor));
-            if (destinations.size !== 1) throw new Error('An edit across cloud branches cannot be saved atomically.');
+            if (destinations.size !== 1) throw new RejectedSourceEdit('An edit across cloud branches cannot be saved atomically.');
             const destination = validated[0]?.codeEditor;
             if (destination) await destination.writeFiles(validated.map(diff => ({ path: diff.path, content: diff.generated })));
         } else {
             for (const { codeEditor, path, generated } of validated) await codeEditor.writeFile(path, generated);
         }
+        return true;
     }
 
     private async commitStyleDiffs(editor: CodeFileSystem, diffs: CodeDiff[]): Promise<CodeDiff[]> {
@@ -728,7 +749,7 @@ export class CodeManager {
                 const prefixes = new Map<string, Record<string, number>>();
                 for (const branchId of new Set(action.targets.map((target) => target.branchId))) {
                     const editor = editors?.get(branchId) ?? this.editorEngine.branches.getBranchDataById(branchId)?.codeEditor;
-                    if (!editor) throw new Error('The source branch is no longer available.');
+                    if (!editor) throw new RejectedSourceEdit('The source branch is no longer available.');
                     prefixes.set(branchId, await readProjectBreakpoints((path) => editor.readFile(path)));
                 }
                 return await getStyleRequests(action, (target) =>
@@ -769,15 +790,15 @@ export class CodeManager {
         for (const request of requests) {
             const branchData = this.editorEngine.branches.getBranchDataById(request.branchId);
             const codeEditor = editors?.get(request.branchId) ?? branchData?.codeEditor;
-            if (!codeEditor) throw new Error('The source branch is no longer available.');
+            if (!codeEditor) throw new RejectedSourceEdit('The source branch is no longer available.');
 
             const metadata = await codeEditor.getJsxElementMetadata(request.oid);
             if (!metadata) {
-                throw new Error(`Metadata not found for oid: ${request.oid}`);
+                throw new RejectedSourceEdit(`Metadata not found for oid: ${request.oid}`);
             }
             const fileContent = await codeEditor.readFile(metadata.path);
             if (fileContent instanceof Uint8Array) {
-                throw new Error(`File is binary: ${metadata.path}`);
+                throw new RejectedSourceEdit(`File is binary: ${metadata.path}`);
             }
             const path = metadata.path;
 

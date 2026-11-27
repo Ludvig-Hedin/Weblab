@@ -1,9 +1,24 @@
 import { describe, expect, test } from 'bun:test';
+import { patchStyleClasses } from 'src/code-edit/style';
 import {
     applyResponsiveTailwind,
     removeUtilityClasses,
     tailwindClassFor,
 } from 'src/code-edit/responsive-classes';
+
+describe('scoped source resets', () => {
+    const source = "export default () => <div data-oid='a' className='text-lg  md:p-4 hover:p-2' />;\r\n";
+    const clear = (prefix: string) => patchStyleClasses(source, new Map([['a', '']]),
+        new Map([['a', [{ prefix, probeClass: 'p-0' }]]]));
+
+    test('an absent base class preserves literal whitespace and line endings', () => {
+        expect(clear('')).toBe(source);
+    });
+
+    test('a matching reset keeps classes in other scopes', () => {
+        expect(clear('md:')).toBe(source.replace('text-lg  md:p-4 ', 'text-lg '));
+    });
+});
 
 describe('tailwindClassFor', () => {
     test('padding 16px → p-4', () => {

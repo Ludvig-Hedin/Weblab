@@ -345,7 +345,7 @@ export class ActionManager {
             const generated = replaceContentImageTarget(original, pin.binding.target, previous, { ...previous, [edit.field]: edit.value });
             if (generated === original) return true;
             const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }], cloudImage: { pin, field: edit.field } };
-            return await history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry, { branchId: pin.branchId, codeEditor, current: edit.current }) : Promise.resolve(false),
+            return await history.pushImmediate(action, (entry, reportResult) => current() ? this.editorEngine.code.write(entry, { branchId: pin.branchId, codeEditor, current: edit.current }, undefined, reportResult) : Promise.resolve(false),
                 async entry => current() && await this.prepareImportedImageHistory(entry, history) !== null && current());
         } catch { return false; }
     }
@@ -427,8 +427,8 @@ export class ActionManager {
             const generated = replaceContentPropertyTarget(original, pin.binding.target, edit.previousValue, choice.value);
             const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }],
                 cloudProperty: { pin, previousValue: edit.previousValue, value: choice.value } };
-            return await history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry,
-                { branchId: pin.branchId, codeEditor, current, validate: edit.validate }) : Promise.resolve(false),
+            return await history.pushImmediate(action, (entry, reportResult) => current() ? this.editorEngine.code.write(entry,
+                { branchId: pin.branchId, codeEditor, current, validate: edit.validate }, undefined, reportResult) : Promise.resolve(false),
                 async entry => current() && await this.preparePropertyHistory(entry, history) && current());
         } catch { return false; }
     }

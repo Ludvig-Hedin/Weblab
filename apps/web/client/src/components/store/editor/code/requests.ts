@@ -34,6 +34,7 @@ import {
 import { getOrCreateCodeDiffRequest } from './helpers';
 import { getInsertedElement } from './insert';
 import { addTailwindToRequest } from './tailwind';
+import { RejectedSourceEdit } from './write-result';
 
 export class SharedImageError extends Error {}
 
@@ -136,7 +137,7 @@ export async function getStyleRequests(
 
     for (const target of targets) {
         if (!target.oid) {
-            throw new Error('No oid found for style change');
+            throw new RejectedSourceEdit('No oid found for style change');
         }
 
         const request = await getOrCreateCodeDiffRequest(
@@ -144,7 +145,7 @@ export async function getStyleRequests(
             target.branchId,
             oidToCodeChange,
         );
-        addTailwindToRequest(request, target.change.updated, prefixForTarget(target));
+        addTailwindToRequest(request, target.change.updated, prefixForTarget(target), target.change.original);
     }
 
     return Array.from(oidToCodeChange.values());
