@@ -30,6 +30,9 @@ enum TransactionType {
 interface InTransaction {
     type: TransactionType.IN_TRANSACTION;
     actions: Action[];
+    // Released gestures retained after a failed close, in release order. Keep
+    // these separate so an open gesture can still merge its own late samples.
+    released?: Action[];
 }
 
 interface NotInTransaction {
@@ -61,7 +64,7 @@ export class HistoryManager {
             (lease ? this.disposalLease !== lease : this.disposalLease !== null) ||
             target.branchId !== this.branchId) return false;
         return this.inTransaction.type !== TransactionType.IN_TRANSACTION ||
-            this.inTransaction.actions.every((action) => action.type === 'edit-text' &&
+            [...(this.inTransaction.released ?? []), ...this.inTransaction.actions].every((action) => action.type === 'edit-text' &&
                 action.targets.length === 1 && action.targets.every((item) =>
                     item.branchId === target.branchId && item.frameId === target.frameId &&
                     item.domId === target.domId && item.oid === target.oid));
@@ -468,13 +471,18 @@ export class HistoryManager {
         // Open the transaction synchronously so pushes from this gesture merge
         // immediately — callers fire-and-forget from pointer handlers, and a
         // gap here would leak per-push code writes.
+        const current = this.inTransaction;
+        // After a failed close, release retained actions before opening the
+        // next gesture. Its samples must stay attached to their own transaction.
+        const previous = current.type === TransactionType.IN_TRANSACTION && current.released?.length
+            ? this.commitTransaction() : this.commitPromise;
         this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
         // A7: if a previous commit is still flushing its pushes, wait for it,
         // so callers that await see a stack where that commit fully landed.
         // (The commit pushes via `pushDirect`, so it can never be captured by
         // the transaction opened above.)
-        if (this.commitPromise) {
-            await this.commitPromise.catch(() => undefined);
+        if (previous) {
+            await previous.catch(() => undefined);
         }
     };
 
@@ -514,7 +522,7 @@ export class HistoryManager {
         const runs = Array.from(this.gestureRuns.get(gesture) ?? []);
         this.inTransaction = { type: TransactionType.NOT_IN_TRANSACTION };
         this.mutationGeneration++;
-        if (!gesture.actions.length && !runs.length) return;
+        if (!gesture.released?.length && !gesture.actions.length && !runs.length) return;
 
         // A7: expose the push chain via `commitPromise` so undo/redo/
         // startTransaction can await it. Chain onto any still-running commit
@@ -522,7 +530,7 @@ export class HistoryManager {
         const previous = this.commitPromise;
         const commit = (async () => {
             let nextAction = 0;
-            let actionsToCommit = gesture.actions;
+            let actionsToCommit: Action[] = [];
             try {
                 if (previous) {
                     await (strict ? previous : previous.catch(() => undefined));
@@ -533,7 +541,10 @@ export class HistoryManager {
                         this.disposalFailure = new Error('An admitted edit could not be saved.');
                     }
                 }
-                actionsToCommit = gesture.actions;
+                actionsToCommit = [...(gesture.released ?? []), ...gesture.actions];
+                // Earlier released work must land first. Defer this gesture
+                // behind it until close retries with a fresh lease.
+                if (this.disposalFailure) throw this.disposalFailure;
                 if (actionsToCommit.some((action) => action.type === 'update-style')) {
                     await this.editorEngine.action.waitForQueuedStyleDispatches();
                     // StyleManager's completion callback records the override map
@@ -557,9 +568,10 @@ export class HistoryManager {
                     runInAction(() => {
                         this.mutationGeneration++;
                         const remaining = actionsToCommit.slice(nextAction);
-                        const newer = this.inTransaction.type === TransactionType.IN_TRANSACTION
-                            ? this.inTransaction.actions : [];
-                        this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [...remaining, ...newer] };
+                        if (this.inTransaction.type !== TransactionType.IN_TRANSACTION) {
+                            this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
+                        }
+                        this.inTransaction.released = [...(this.inTransaction.released ?? []), ...remaining];
                     });
                 }
                 if (!strict && this.disposalLease) {
