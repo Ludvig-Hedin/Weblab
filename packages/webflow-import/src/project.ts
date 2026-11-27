@@ -3,6 +3,7 @@ import type { readMetadata } from './metadata';
 import type { ImportFile, ImportReport } from './types';
 import {
     childElements,
+    elements,
     emitAttributes,
     emitNode,
     getAttr,
@@ -24,16 +25,27 @@ export type PageDocument = ImportReport['pages'][number] & {
 };
 
 export function scriptsIn(element: Element): Element[] {
-    return childElements(element).filter((child) => {
-        if (child.tagName !== 'script') return false;
-        const type = getAttr(child, 'type')?.trim().toLowerCase() ?? '';
-        return !type || /^(module|(?:text|application)\/(?:java|ecma)script)$/.test(type);
-    });
+    return childElements(element).filter(isExecutableScript);
 }
 
-export function isWebflowRuntime(script: Element) {
+function isExecutableScript(element: Element) {
+    if (element.tagName !== 'script') return false;
+    const type = getAttr(element, 'type')?.trim().toLowerCase() ?? '';
+    return !type || /^(module|(?:text|application)\/(?:java|ecma)script)$/.test(type);
+}
+
+function isWebflowRuntime(script: Element) {
     const src = getAttr(script, 'src')?.trim() ?? '';
     return /(?:^|\/)(?:webflow(?:\.[\w-]+)*|jquery(?:[.-][\w-]+)*)\.js(?:[?#]|$)/i.test(src);
+}
+
+export function scriptsToHoist(head: Element, body: Element) {
+    const eligible = new Set([...scriptsIn(head), ...scriptsIn(body)].filter(isWebflowRuntime));
+    const ordered = [...elements(head), ...elements(body)].filter(isExecutableScript);
+    // A native script can depend on any preceding runtime. Only queue the
+    // trailing runtimes so parser-executed code still sees its dependencies.
+    const lastNative = ordered.findLastIndex((script) => !eligible.has(script));
+    return ordered.slice(lastNative + 1);
 }
 
 function usesSharedChrome(page: PageDocument) {

@@ -208,6 +208,24 @@ test('keeps a position-dependent script inside its embed', () => {
     expect(textFile(files, 'app/layout.tsx')).not.toContain('document.currentScript');
 });
 
+test('keeps jQuery ahead of a following custom script in the original document', () => {
+    const { files } = convertWebflowExport([
+        {
+            path: 'index.html',
+            content:
+                '<body><script src="jquery.js"></script><script>jQuery("body").addClass("ready")</script><script src="js/webflow.js"></script>',
+        },
+        { path: 'jquery.js', content: '' },
+        { path: 'js/webflow.js', content: '' },
+    ]);
+    const page = textFile(files, 'app/page.tsx');
+    expect(page).toContain('<script src="/jquery.js"');
+    expect(page.indexOf('src="/jquery.js"')).toBeLessThan(page.indexOf('jQuery('));
+    const layout = textFile(files, 'app/layout.tsx');
+    expect(layout).not.toContain('/jquery.js');
+    expect(layout).toContain('strategy="beforeInteractive" src="/js/webflow.js"');
+});
+
 test('opts an async embed script out of React hoisting without dropping async', () => {
     const { files } = convertWebflowExport([
         {
@@ -257,13 +275,33 @@ test('uses the exported root 404 design and document styles for missing routes',
         },
         { path: 'css/gone.css', content: '.gone {color:red}' },
     ]);
-    expect(textFile(files, 'app/not-found.tsx')).toContain('export { default } from "./404/page"');
+    expect(textFile(files, 'app/not-found.tsx')).toContain(
+        'export { default, metadata } from "./404/page"',
+    );
     expect(textFile(files, 'app/404/page.tsx')).toContain('{"Gone"}');
     const layout = textFile(files, 'app/layout.tsx');
     expect(layout).toContain('layouts.get(path) ?? layouts.get("/404")');
     expect(layout).toContain('"data-wf-page":"gone"');
     expect(layout).toContain('className="gone"');
     expect(layout).toContain('href="/css/gone.css"');
+});
+
+test('forwards custom 404 title and viewport to unmatched routes', () => {
+    const { files } = convertWebflowExport([
+        { path: 'index.html', content: '<title>Home</title><h1>Home</h1>' },
+        {
+            path: '404.html',
+            content: '<title>Lost</title><meta name="viewport" content="width=960"><h1>Gone</h1>',
+        },
+    ]);
+    expect(textFile(files, 'app/not-found.tsx')).toContain(
+        'export { default, metadata, viewport } from "./404/page"',
+    );
+    const page = textFile(files, 'app/404/page.tsx');
+    expect(page).toContain('"title":"Lost"');
+    expect(page).toContain(
+        'export const viewport: Viewport = {"width":960,"initialScale":undefined}',
+    );
 });
 
 test('generates a page viewport with custom mobile layout settings', () => {

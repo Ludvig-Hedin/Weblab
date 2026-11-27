@@ -15,11 +15,11 @@ import { planFonts } from './fonts';
 import { childElements, elements, getAttr, rewriteAttributes, textContent } from './html';
 import { readMetadata } from './metadata';
 import {
-    isWebflowRuntime,
     layoutSource,
     pageSource,
     projectFiles,
     scriptsIn,
+    scriptsToHoist,
     takeSharedChrome,
 } from './project';
 
@@ -200,7 +200,7 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
             head,
             body,
             context,
-            scripts: [...scriptsIn(head), ...scriptsIn(body)].filter(isWebflowRuntime),
+            scripts: scriptsToHoist(head, body),
         };
         pages.push(page);
         report.pages.push({ source, route, kind });
@@ -301,10 +301,12 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
     for (const document of documents) {
         files.push({ path: document.page.file, content: pageSource(document.page, document) });
     }
-    if (pages.some((page) => page.route === '/404')) {
+    const notFound = documents.find(({ page }) => page.route === '/404');
+    if (notFound) {
+        const exports = notFound.viewport ? 'default, metadata, viewport' : 'default, metadata';
         files.push({
             path: 'app/not-found.tsx',
-            content: 'export { default } from "./404/page";\n',
+            content: `export { ${exports} } from "./404/page";\n`,
         });
     }
     for (const entry of entries.values()) {
