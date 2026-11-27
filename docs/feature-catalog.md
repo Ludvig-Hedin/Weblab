@@ -822,6 +822,7 @@ See F-151 to F-160. Plus:
 | F-704 | `#package` | `@weblab/growth` | [packages/growth](packages/growth) | Referrals / attribution / share |
 | F-705 | `#package` | `@weblab/scripts` | [packages/scripts](packages/scripts) | Build + setup scripts |
 | F-706 | `#package` `#ai` | `@weblab/wireframe-blocks` | [packages/wireframe-blocks](packages/wireframe-blocks) | AI wireframes block registry: ~15 prop-driven self-contained section blocks (all 13 categories), Zod content schemas + defaults, `coerceBlockId`/`variantsForBlock`, browser renderers (`/browser`), pure code emitter + bundled block-source assets, style-guide token helpers. Backs both the canvas render and code emit (F-790…F-794) |
+| F-707 | `#package` `#integration` | `@weblab/webflow-import` | [packages/webflow-import](../packages/webflow-import) | Converts an unpacked Webflow export into Next.js App Router files with original styles, assets, and interaction scripts. Returns breakpoint suggestions and a report for forms, CMS templates, missing assets and refused exports. Used by future Webflow import integration. |
 
 ---
 
@@ -961,6 +962,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-11-27 | F-707 | Add the Webflow code-export converter and import report. |
 | 2026-10-22 | F-849, F-850, F-852 | Recover saved CSS Module controls, public preview settings and inactive imported-image backend/transport. Historical IDs are preserved; current local checks and actual package/provider proof stay distinct. |
 | 2026-10-22 | F-786, F-813 | Recover paused-editor safe Quit, document-layout preparation and stylesheet ownership; source checks and packaged acceptance stay distinct. |
 | 2026-10-22 | F-851 | Recover imported text backend and source/history transport separately from starter-v1; flags remain off, connected acceptance pending. |

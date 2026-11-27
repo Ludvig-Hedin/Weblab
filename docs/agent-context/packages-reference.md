@@ -14,7 +14,7 @@ section before importing from a package or adding a new one. Last refreshed:
 |-------|----------|
 | Core / Infra | `constants`, `models`, `types`, `db`, `utility`, `rpc`, `auth` |
 | AI & LLM | `ai`, `ai-cli`, `parser` |
-| Framework / Runtime | `framework`, `code-provider`, `file-system`, `mcp` |
+| Framework / Runtime | `framework`, `code-provider`, `file-system`, `mcp`, `webflow-import` |
 | Integrations | `github`, `figma`, `figma-plugin`, `git`, `stripe`, `email` |
 | UI & Assets | `ui`, `fonts`, `image-server` |
 | Communication | `penpal` |
@@ -129,6 +129,16 @@ preview frames.
 Model Context Protocol server. Exposes file, bash, and project tools to AI
 agents (Claude, Cursor, etc.) so they can interact with a Weblab project from
 outside the editor.
+
+### `@weblab/webflow-import`
+
+Converts an unpacked Webflow code export into Next.js App Router project files.
+`importWebflowExport(directory)` reads the export from disk and calls the
+pure `convertWebflowExport(entries)` converter. Both return files, breakpoint
+suggestions and a structured import report. Package fixtures exercise the
+converter locally without editor or backend dependencies.
+- Source: `packages/webflow-import/src/`
+- Contract and limits: [README](../../packages/webflow-import/README.md)
 
 ## Integrations
 
