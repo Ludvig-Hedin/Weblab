@@ -1,0 +1,2 @@
+@font-face { font-family: Local; src: url('../fonts/local.woff2'); }
+body { font-family: Inter, Local, sans-serif; background-image: url('../images/hero.svg'); }

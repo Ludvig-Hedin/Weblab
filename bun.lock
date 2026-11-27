@@ -767,6 +767,23 @@
         "typescript": "^5.5.4",
       },
     },
+    "packages/webflow-import": {
+      "name": "@weblab/webflow-import",
+      "version": "0.0.0",
+      "dependencies": {
+        "parse5": "7.3.0",
+        "postcss": "8.5.15",
+        "postcss-value-parser": "4.2.0",
+        "property-information": "7.1.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "eslint": "^9.0.0",
+        "typescript": "^5.5.4",
+      },
+    },
     "packages/wireframe-blocks": {
       "name": "@weblab/wireframe-blocks",
       "version": "0.0.0",
@@ -2757,6 +2774,8 @@
     "@weblab/web-preload": ["@weblab/web-preload@workspace:apps/web/preload"],
 
     "@weblab/web-server": ["@weblab/web-server@workspace:apps/web/server"],
+
+    "@weblab/webflow-import": ["@weblab/webflow-import@workspace:packages/webflow-import"],
 
     "@weblab/wireframe-blocks": ["@weblab/wireframe-blocks@workspace:packages/wireframe-blocks"],
 

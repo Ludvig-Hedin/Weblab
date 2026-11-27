@@ -1,0 +1,233 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`converts the full fixture deterministically 1`] = `
+"{
+  "files": [
+    [
+      "package.json",
+      "{\\n  \\"name\\": \\"webflow-imported-site\\",\\n  \\"private\\": true,\\n  \\"scripts\\": {\\n    \\"dev\\": \\"next dev\\",\\n    \\"build\\": \\"next build\\",\\n    \\"start\\": \\"next start\\"\\n  },\\n  \\"dependencies\\": {\\n    \\"next\\": \\"^15.5.0\\",\\n    \\"react\\": \\"^19.1.0\\",\\n    \\"react-dom\\": \\"^19.1.0\\"\\n  },\\n  \\"devDependencies\\": {\\n    \\"typescript\\": \\"^5.5.4\\",\\n    \\"@types/node\\": \\"^22\\",\\n    \\"@types/react\\": \\"^19\\",\\n    \\"@types/react-dom\\": \\"^19\\"\\n  }\\n}\\n"
+    ],
+    [
+      "middleware.ts",
+      "import { NextResponse, type NextRequest } from \\"next/server\\";\\n\\nexport function middleware(request: NextRequest) {\\n    const headers = new Headers(request.headers);\\n    const pathname = request.nextUrl.pathname.split(\\"/\\").map((segment) => {\\n        try { return encodeURIComponent(decodeURIComponent(segment)); }\\n        catch { return segment; }\\n    }).join(\\"/\\");\\n    headers.set(\\"x-webflow-import-path\\", pathname.replace(/\\\\/$/, \\"\\") || \\"/\\");\\n    return NextResponse.next({ request: { headers } });\\n}\\n\\nexport const config = { matcher: [\\"/((?!_next/).*)\\"] };\\n"
+    ],
+    [
+      "app/layout.tsx",
+      "import type { ReactNode } from \\"react\\";\\nimport { headers } from \\"next/headers\\";\\nimport Script from \\"next/script\\";\\nimport { Inter } from \\"next/font/google\\";\\nconst font0 = Inter({\\"weight\\":[\\"400\\",\\"600\\"],\\"style\\":[\\"normal\\"],\\"subsets\\":[\\"latin\\"],\\"display\\":\\"swap\\",\\"adjustFontFallback\\":false,\\"variable\\":\\"--webflow-font-0\\"});\\nconst fontClasses = [\\"wf-active\\", font0.variable].join(\\" \\");\\n\\nconst scripts: ReactNode[] = [\\n    <Script key={0} id={\\"webflow-script-0\\"} strategy=\\"beforeInteractive\\" src=\\"https://code.jquery.com/jquery-3.5.1.min.js\\" crossOrigin=\\"anonymous\\" />,\\n    <Script key={1} id={\\"webflow-script-1\\"} strategy=\\"beforeInteractive\\" src=\\"/js/webflow.js\\" />,\\n    <Script key={2} id={\\"webflow-script-2\\"} strategy=\\"beforeInteractive\\" crossOrigin=\\"anonymous\\" src=\\"https://code.jquery.com/jquery-3.5.1.min.js\\" />,\\n];\\nfunction siteChrome(children: ReactNode) {\\n    return <><div className=\\"w-nav\\" data-w-id=\\"nav\\">{\\"\\\\n    \\"}<a href=\\"/\\">{\\"Home\\"}</a><a href=\\"/work\\">{\\"Work\\"}</a>{\\"\\\\n  \\"}</div>{children}<footer><a href=\\"/\\">{\\"Home\\"}</a></footer></>;\\n}\\n\\nconst layouts = new Map<string, (children: ReactNode, script: (index: number) => ReactNode) => ReactNode>([\\n    [\\"/\\", (children, script) => (\\n        <html {...{\\"data-wf-page\\":\\"home\\",\\"data-wf-site\\":\\"site\\"}} lang=\\"en\\" className={[\\"\\", fontClasses].filter(Boolean).join(\\" \\")}>\\n            <head>\\n                <link rel=\\"stylesheet\\" href=\\"/css/normalize.css\\" />\\n                <link rel=\\"stylesheet\\" href=\\"/css/webflow.css\\" />\\n                <link rel=\\"stylesheet\\" href=\\"/css/studio.webflow.css\\" />\\n            </head>\\n            <body className=\\"homepage\\">\\n                {siteChrome(children)}\\n                {[0,1].map(script)}\\n            </body>\\n        </html>\\n    )],\\n    [\\"/detail_project\\", (children, script) => (\\n        <html {...{\\"data-wf-site\\":\\"site\\",\\"data-wf-page\\":\\"cms\\"}} lang=\\"en\\" className={[\\"\\", fontClasses].filter(Boolean).join(\\" \\")}>\\n            <head></head>\\n            <body>\\n                {children}\\n                {[].map(script)}\\n            </body>\\n        </html>\\n    )],\\n    [\\"/work\\", (children, script) => (\\n        <html {...{\\"data-wf-site\\":\\"site\\",\\"data-wf-page\\":\\"work\\"}} lang=\\"en\\" className={[\\"\\", fontClasses].filter(Boolean).join(\\" \\")}>\\n            <head>\\n                <link rel=\\"stylesheet\\" href=\\"/css/normalize.css\\" />\\n                <link rel=\\"stylesheet\\" href=\\"/css/webflow.css\\" />\\n                <link rel=\\"stylesheet\\" href=\\"/css/studio.webflow.css\\" />\\n            </head>\\n            <body className=\\"work\\">\\n                {siteChrome(children)}\\n                {[2,1].map(script)}\\n            </body>\\n        </html>\\n    )],\\n]);\\n\\nexport default async function RootLayout({ children }: { children: ReactNode }) {\\n    const path = (await headers()).get(\\"x-webflow-import-path\\") ?? \\"/\\";\\n    const layout = layouts.get(path) ?? layouts.values().next().value!;\\n    return layout(children, (index) => scripts[index]);\\n}\\n"
+    ],
+    [
+      "app/page.tsx",
+      "import type { Metadata } from \\"next\\";\\nimport type { CSSProperties } from \\"react\\";\\n\\n\\nexport const metadata = { ...{\\"title\\":\\"Home & Studio\\",\\"description\\":\\"A \\\\\\"small\\\\\\" studio\\",\\"openGraph\\":{\\"title\\":\\"Studio\\",\\"images\\":[{\\"url\\":\\"/images/hero.svg\\",\\"alt\\":\\"A red square\\"}]}} } as Metadata;\\n\\nexport default function Page() {\\n    return <>{\\"\\\\n  \\"}{\\"\\\\n  \\"}<main>{\\"\\\\n    \\"}{/* Hero */}{\\"\\\\n    \\"}<img className=\\"hero\\" src=\\"/images/hero.svg\\" srcSet=\\"/images/hero.svg 1x, /images/missing.svg 2x\\" alt=\\"A &amp; B\\" />{\\"\\\\n    \\"}<h1 data-w-id=\\"intro\\" style={{\\"opacity\\":\\"0\\",\\"transform\\":\\"translate3d(0, 12px, 0)\\",\\"--accent\\":\\"red\\"} as CSSProperties}>{\\"Hello & {world}\\"}</h1>{\\"\\\\n    \\"}<svg viewBox=\\"0 0 10 10\\"><path strokeWidth=\\"2\\" fillRule=\\"evenodd\\" d=\\"M0 0\\"></path><use xlinkHref=\\"/images/hero.svg#shape\\"></use></svg>{\\"\\\\n    \\"}<form id=\\"contact\\"><label htmlFor=\\"email\\">{\\"Email\\"}</label><input id=\\"email\\" type=\\"email\\" required /><input defaultValue=\\"Company\\" /></form>{\\"\\\\n  \\"}</main>{\\"\\\\n  \\"}{\\"\\\\n  \\"}{\\"\\\\n  \\"}{\\"\\\\n\\\\n\\\\n\\"}</>;\\n}\\n"
+    ],
+    [
+      "app/detail_project/page.tsx",
+      "import type { Metadata } from \\"next\\";\\n\\n\\nexport const metadata = { ...{\\"title\\":\\"Project template\\"} } as Metadata;\\n\\nexport default function Page() {\\n    return <><main><h1>CMS template</h1><p>Connect a CMS collection to render entries on this route.</p></main></>;\\n}\\n"
+    ],
+    [
+      "app/work/page.tsx",
+      "import type { Metadata } from \\"next\\";\\n\\n\\nexport const metadata = { ...{\\"title\\":\\"Work\\"} } as Metadata;\\n\\nexport default function Page() {\\n    return <>{\\"\\\\n  \\"}{\\"\\\\n  \\"}<main><a href=\\"/?q=1#intro\\">{\\"Back\\"}</a><img src=\\"/images/hero.svg\\" alt=\\"\\" /></main>{\\"\\\\n  \\"}{\\"\\\\n  \\"}{\\"\\\\n  \\"}{\\"\\\\n\\\\n\\\\n\\"}</>;\\n}\\n"
+    ],
+    [
+      "public/css/normalize.css",
+      "html { line-height: 1.15; }\\n"
+    ],
+    [
+      "public/css/studio.webflow.css",
+      "@font-face { font-family: Local; src: url('/fonts/local.woff2'); }\\nbody { font-family: var(--webflow-font-0, \\"Inter\\"), Local, sans-serif; background-image: url('/images/hero.svg'); }\\n"
+    ],
+    [
+      "public/css/webflow.css",
+      ".w-nav { position: relative; }\\n"
+    ],
+    [
+      "public/fonts/local.woff2",
+      [
+        119,
+        79,
+        70,
+        50,
+        0,
+        255
+      ]
+    ],
+    [
+      "public/images/hero.svg",
+      [
+        60,
+        115,
+        118,
+        103,
+        32,
+        120,
+        109,
+        108,
+        110,
+        115,
+        61,
+        34,
+        104,
+        116,
+        116,
+        112,
+        58,
+        47,
+        47,
+        119,
+        119,
+        119,
+        46,
+        119,
+        51,
+        46,
+        111,
+        114,
+        103,
+        47,
+        50,
+        48,
+        48,
+        48,
+        47,
+        115,
+        118,
+        103,
+        34,
+        62,
+        60,
+        114,
+        101,
+        99,
+        116,
+        32,
+        105,
+        100,
+        61,
+        34,
+        115,
+        104,
+        97,
+        112,
+        101,
+        34,
+        32,
+        119,
+        105,
+        100,
+        116,
+        104,
+        61,
+        34,
+        49,
+        48,
+        34,
+        32,
+        104,
+        101,
+        105,
+        103,
+        104,
+        116,
+        61,
+        34,
+        49,
+        48,
+        34,
+        32,
+        102,
+        105,
+        108,
+        108,
+        61,
+        34,
+        114,
+        101,
+        100,
+        34,
+        47,
+        62,
+        60,
+        47,
+        115,
+        118,
+        103,
+        62,
+        10
+      ]
+    ],
+    [
+      "public/js/webflow.js",
+      [
+        119,
+        105,
+        110,
+        100,
+        111,
+        119,
+        46,
+        87,
+        101,
+        98,
+        102,
+        108,
+        111,
+        119,
+        32,
+        61,
+        32,
+        119,
+        105,
+        110,
+        100,
+        111,
+        119,
+        46,
+        87,
+        101,
+        98,
+        102,
+        108,
+        111,
+        119,
+        32,
+        124,
+        124,
+        32,
+        91,
+        93,
+        59,
+        10
+      ]
+    ],
+    [
+      "weblab-import-report.json",
+      "{\\n  \\"pages\\": [\\n    {\\n      \\"source\\": \\"detail_project.html\\",\\n      \\"route\\": \\"/detail_project\\",\\n      \\"kind\\": \\"cms-template\\"\\n    },\\n    {\\n      \\"source\\": \\"index.html\\",\\n      \\"route\\": \\"/\\",\\n      \\"kind\\": \\"page\\"\\n    },\\n    {\\n      \\"source\\": \\"work/index.html\\",\\n      \\"route\\": \\"/work\\",\\n      \\"kind\\": \\"page\\"\\n    }\\n  ],\\n  \\"forms\\": [\\n    {\\n      \\"page\\": \\"/\\",\\n      \\"id\\": \\"contact\\",\\n      \\"name\\": null,\\n      \\"action\\": null\\n    }\\n  ],\\n  \\"refused\\": [],\\n  \\"missingAssets\\": [\\n    {\\n      \\"source\\": \\"index.html\\",\\n      \\"path\\": \\"images/missing.svg\\"\\n    }\\n  ],\\n  \\"warnings\\": [\\n    \\"detail_project.html: CMS template placeholder. Collection data and bindings must be connected separately.\\",\\n    \\"Review each listed form. Submissions hosted by Webflow stop working after import.\\"\\n  ]\\n}\\n"
+    ]
+  ],
+  "frames": [
+    {
+      "width": 991,
+      "direction": "down"
+    },
+    {
+      "width": 767,
+      "direction": "down"
+    },
+    {
+      "width": 479,
+      "direction": "down"
+    },
+    {
+      "width": 1280,
+      "direction": "up"
+    },
+    {
+      "width": 1440,
+      "direction": "up"
+    },
+    {
+      "width": 1920,
+      "direction": "up"
+    }
+  ]
+}"
+`;
