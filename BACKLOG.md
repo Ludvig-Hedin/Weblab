@@ -38,6 +38,14 @@ later without re-discovering the context.
 
 ## Open
 
+### Webflow import editor integration and fidelity checks
+
+- **Discovered:** 2026-11-27, Webflow parity slice 6.
+- **Where:** F-707 and `packages/webflow-import`.
+- **State:** The core converter has synthetic fixtures. CMS routes are placeholders, and Webflow-hosted forms are flagged for reconnection.
+- **Next step:** Add the export upload and CMS integration, enable plain CSS editing for imported sites, and compare deployed originals and imports on real templates and an agency site at three widths.
+- **Tags:** `#test-gap` `#integration`
+
 ### Two-app native delivery needs an app/profile decision and guarded signing
 
 - **Discovered:** 2026-10-28, owner selected both latest Mac apps.

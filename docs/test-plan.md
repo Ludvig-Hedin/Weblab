@@ -538,7 +538,7 @@ Per manager (F-630 … F-670), at least one unit test asserting:
 
 ## 28. Shared Packages
 
-Per package (F-680 … F-705) at least one smoke test.
+At least one smoke test per shared package.
 
 | ID | Targets | Scope | How | Pass | Status |
 |---|---|---|---|---|---|
@@ -548,6 +548,7 @@ Per package (F-680 … F-705) at least one smoke test.
 | T-691 | F-691 | I | Vercel `scaffoldNextProject` | File tree matches expected | `[ ]` |
 | T-700 | F-700 | M | Every export has demo on `/design-system` | Manual review | `[ ]` |
 | T-703 | F-703 | I | Penpal handshake timeout | Surfaces error after threshold | `[ ]` |
+| T-707 | F-707 | U | `bun test packages/webflow-import` | Fixture routes, metadata, document IDs, shared markup, styles, scripts, assets and diagnostics match the expected project. Unsupported exports emit only the report. | `[x]` |
 
 ---
 

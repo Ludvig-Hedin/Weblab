@@ -1,0 +1,4 @@
+{
+    "extends": "@weblab/typescript/base.json",
+    "include": ["src", "test/**/*.test.ts"]
+}
