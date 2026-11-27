@@ -215,6 +215,15 @@ export function emitNode(node: HtmlNode, context: MarkupContext): string {
     if (node.namespaceURI === parse5Html.NS.HTML && voidTags.has(tagName)) {
         return `<${tagName}${props} />`;
     }
+    if (
+        tagName === 'script' &&
+        getAttr(node, 'src') &&
+        getAttr(node, 'async') !== undefined &&
+        getAttr(node, 'itemprop') === undefined
+    ) {
+        // React treats scripts with itemProp as ordinary elements and keeps them here.
+        props += ' itemProp=""';
+    }
     if (['script', 'style', 'noscript'].includes(tagName)) {
         const raw = textContent(node);
         const content =
@@ -238,20 +247,21 @@ export function emitNode(node: HtmlNode, context: MarkupContext): string {
     return `<${tagName}${props}>${contents}</${tagName}>`;
 }
 
-export function normalizedMarkup(node: HtmlNode): unknown {
+export function normalizedMarkup(node: HtmlNode, context: MarkupContext): unknown {
     if (isText(node)) return node.value;
     if (!isElement(node)) return null;
+    const sorted = {
+        ...node,
+        attrs: [...node.attrs].sort((left, right) =>
+            qualifiedName(left).localeCompare(qualifiedName(right)),
+        ),
+    };
+    if (['script', 'style', 'noscript'].includes(node.tagName)) return emitNode(sorted, context);
     return [
         node.tagName,
-        node.attrs
-            .map((attribute) => [qualifiedName(attribute), attribute.value])
-            .sort(([left], [right]) => String(left).localeCompare(String(right))),
+        emitAttributes(sorted, context),
         children(node)
-            .filter(
-                (child) =>
-                    !isComment(child) &&
-                    !(isText(child) && /^\s+$/.test(child.value) && child.value.includes('\n')),
-            )
-            .map(normalizedMarkup),
+            .filter((child) => !isComment(child))
+            .map((child) => normalizedMarkup(child, context)),
     ];
 }

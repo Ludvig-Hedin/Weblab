@@ -49,7 +49,11 @@ function buildFont(spec: string, index: number) {
     };
 }
 
-export function planFonts(documents: Element[][], warn: (message: string) => void) {
+export function planFonts(
+    documents: Element[][],
+    externalStylesheets: boolean,
+    warn: (message: string) => void,
+) {
     const calls = documents.map((scripts) =>
         scripts.filter((script) => /\bWebFont\.load\s*\(/.test(textContent(script))),
     );
@@ -77,13 +81,16 @@ export function planFonts(documents: Element[][], warn: (message: string) => voi
     const supported = candidates.filter((font) => font !== null);
     const unsupported = specs.filter((_, index) => !candidates[index]);
     const convert =
+        !externalStylesheets &&
         supported.length > 0 &&
         unsupported.length === 0 &&
         new Set(supported.map((font) => font.name)).size === supported.length;
     if (matched.length && !convert) {
-        const detail = unsupported.length
-            ? ' Unsupported families or variants: ' + unsupported.join(', ') + '.'
-            : '';
+        const detail = externalStylesheets
+            ? ' External or unparseable stylesheets may reference the original font family names.'
+            : unsupported.length
+              ? ' Unsupported families or variants: ' + unsupported.join(', ') + '.'
+              : '';
         warn(
             'Kept the original WebFont loader because its configuration could not be fully converted.' +
                 detail,

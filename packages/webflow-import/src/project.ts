@@ -1,4 +1,5 @@
 import type { Element, HtmlNode, MarkupContext } from './html';
+import type { readMetadata } from './metadata';
 import type { ImportFile, ImportReport } from './types';
 import {
     childElements,
@@ -23,24 +24,28 @@ export type PageDocument = ImportReport['pages'][number] & {
 };
 
 export function scriptsIn(element: Element): Element[] {
-    return childElements(element).flatMap((child) => {
-        if (child.tagName !== 'script') return child.tagName === 'template' ? [] : scriptsIn(child);
+    return childElements(element).filter((child) => {
+        if (child.tagName !== 'script') return false;
         const type = getAttr(child, 'type')?.trim().toLowerCase() ?? '';
-        return !type || /^(module|(?:text|application)\/(?:java|ecma)script)$/.test(type)
-            ? [child]
-            : [];
+        return !type || /^(module|(?:text|application)\/(?:java|ecma)script)$/.test(type);
     });
 }
 
-function withoutScripts(parent: Element, scripts: ReadonlySet<Element>): HtmlNode[] {
-    parent.childNodes = parent.childNodes.filter((node) => !isElement(node) || !scripts.has(node));
-    for (const child of childElements(parent)) withoutScripts(child, scripts);
-    return parent.childNodes;
+export function isWebflowRuntime(script: Element) {
+    const src = getAttr(script, 'src')?.trim() ?? '';
+    return /(?:^|\/)(?:webflow(?:\.[\w-]+)*|jquery(?:[.-][\w-]+)*)\.js(?:[?#]|$)/i.test(src);
+}
+
+function usesSharedChrome(page: PageDocument) {
+    return page.kind === 'page' && page.route !== '/404';
 }
 
 export function takeSharedChrome(pages: PageDocument[]) {
-    const normal = pages.filter((page) => page.kind === 'page');
-    for (const page of pages) withoutScripts(page.body, new Set(page.scripts));
+    const normal = pages.filter(usesSharedChrome);
+    for (const { body, scripts } of pages) {
+        const hoisted = new Set(scripts);
+        body.childNodes = body.childNodes.filter((node) => !isElement(node) || !hoisted.has(node));
+    }
     if (normal.length < 2) return {};
 
     const significance = (node: HtmlNode) =>
@@ -80,8 +85,13 @@ export function takeSharedChrome(pages: PageDocument[]) {
         });
         const first = candidates[0];
         if (!first || !isElement(first) || !isChrome(first)) return;
-        const normalized = literal(normalizedMarkup(first));
-        if (candidates.some((node) => !node || literal(normalizedMarkup(node)) !== normalized))
+        const normalized = literal(normalizedMarkup(first, normal[0]!.context));
+        if (
+            candidates.some(
+                (node, index) =>
+                    !node || literal(normalizedMarkup(node, normal[index]!.context)) !== normalized,
+            )
+        )
             return;
 
         containers.forEach((container, index) => {
@@ -113,16 +123,29 @@ function hasClass(element: Element, name: string) {
     return (getAttr(element, 'class') ?? '').split(/\s+/).includes(name);
 }
 
-export function pageSource(page: PageDocument, metadata: Record<string, unknown>, base?: string) {
+export function pageSource(
+    page: PageDocument,
+    {
+        metadata,
+        base,
+        viewport,
+    }: Pick<ReturnType<typeof readMetadata>, 'metadata' | 'base' | 'viewport'>,
+) {
     const content =
         page.kind === 'cms-template'
             ? '<main><h1>CMS template</h1><p>Connect a CMS collection to render entries on this route.</p></main>'
             : page.body.childNodes.map((node) => emitNode(node, page.context)).join('');
     const metadataBase = base ? `metadataBase: new URL(${literal(base)}), ` : '';
-    return `import type { Metadata } from "next";
+    // An explicit undefined clears a Next default the export did not specify.
+    const viewportExport = viewport
+        ? `\nexport const viewport: Viewport = ${literal(viewport).slice(0, -1)}${
+              viewport.width === undefined ? ',"width":undefined' : ''
+          }${viewport.initialScale === undefined ? ',"initialScale":undefined' : ''}};`
+        : '';
+    return `import type { Metadata${viewport ? ', Viewport' : ''} } from "next";
 ${content.includes(' as CSSProperties}') ? 'import type { CSSProperties } from "react";\n' : ''}
 
-export const metadata = { ${metadataBase}...${literal(metadata)} } as Metadata;
+export const metadata = { ${metadataBase}...${literal(metadata)} } as Metadata;${viewportExport}
 
 export default function Page() {
     return <>${content}</>;
@@ -133,7 +156,7 @@ export default function Page() {
 export function layoutSource(
     documents: { page: PageDocument; head: Element[] }[],
     chrome: ReturnType<typeof takeSharedChrome>,
-    fonts: { imports: string; skipScript: (script: Element) => boolean },
+    fonts: { imports: string },
 ) {
     const scripts = new Map<
         string,
@@ -144,7 +167,6 @@ export function layoutSource(
         const seenSources = new Set<string>();
         const indices: number[] = [];
         for (const script of page.scripts) {
-            if (fonts.skipScript(script)) continue;
             const src = getAttr(script, 'src');
             if (src && seenSources.has(src)) continue;
             if (src) seenSources.add(src);
@@ -178,7 +200,7 @@ export function layoutSource(
             .map((node) => '\n                ' + emitNode(node, context))
             .join('');
         const body =
-            page.kind === 'page' && chrome.context ? '{siteChrome(children)}' : '{children}';
+            usesSharedChrome(page) && chrome.context ? '{siteChrome(children)}' : '{children}';
         return `    [${literal(page.route)}, (children, script) => (
         <html {...${literal(rawAttributes)}}${htmlAttributes}${className}>
             <head>${headMarkup}${headMarkup ? '\n            ' : ''}</head>
@@ -224,7 +246,7 @@ ${shells.join('\n')}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
     const path = (await headers()).get("x-webflow-import-path") ?? "/";
-    const layout = layouts.get(path) ?? layouts.values().next().value!;
+    const layout = layouts.get(path) ?? ${documents.some(({ page }) => page.route === '/404') ? 'layouts.get("/404") ?? ' : ''}layouts.values().next().value!;
     return layout(children, (index) => scripts[index]);
 }
 `;

@@ -33,12 +33,47 @@ const supportedOgTypes = new Set([
     'video.other',
 ]);
 
+const numericViewportFields = new Map([
+    ['width', 'width'],
+    ['height', 'height'],
+    ['initial-scale', 'initialScale'],
+    ['minimum-scale', 'minimumScale'],
+    ['maximum-scale', 'maximumScale'],
+]);
+
+function readViewport(content: string) {
+    const fields: Record<string, string | number | boolean> = {};
+    for (const match of content.toLowerCase().matchAll(/([a-z-]+)\s*=\s*([^,;\s]+)/g)) {
+        const [, name = '', value = ''] = match;
+        const numericField = numericViewportFields.get(name);
+        if (numericField && /^\d*\.?\d+$/.test(value) && Number.isFinite(Number(value))) {
+            fields[numericField] = Number(value);
+        } else if (
+            (name === 'width' && value === 'device-width') ||
+            (name === 'height' && value === 'device-height')
+        ) {
+            fields[name] = value;
+        } else if (name === 'user-scalable' && ['yes', 'no', '0', '1'].includes(value)) {
+            fields.userScalable = value === 'yes' || value === '1';
+        } else if (name === 'viewport-fit' && ['auto', 'contain', 'cover'].includes(value)) {
+            fields.viewportFit = value;
+        } else if (
+            name === 'interactive-widget' &&
+            ['resizes-visual', 'resizes-content', 'overlays-content'].includes(value)
+        ) {
+            fields.interactiveWidget = value;
+        }
+    }
+    return Object.keys(fields).length ? fields : undefined;
+}
+
 export function readMetadata(head: Element, rewrite: RewriteReference) {
     const metadata: Record<string, unknown> = {};
     const openGraph: Record<string, unknown> = {};
     const retained: Element[] = [];
     const media = new Map<string, Record<string, string | number>[]>();
     let base: string | undefined;
+    let viewport: ReturnType<typeof readViewport>;
     for (const element of childElements(head)) {
         if (element.tagName === 'title') {
             metadata.title ??= textContent(element);
@@ -52,7 +87,11 @@ export function readMetadata(head: Element, rewrite: RewriteReference) {
                 metadata.description ??= content;
                 continue;
             }
-            if (name === 'viewport' || getAttr(element, 'charset') !== undefined) continue;
+            if (name === 'viewport') {
+                viewport ??= readViewport(content ?? '');
+                continue;
+            }
+            if (getAttr(element, 'charset') !== undefined) continue;
             if (content !== undefined && property) {
                 const field = ogFields.get(property);
                 if (field && (field !== 'type' || supportedOgTypes.has(content))) {
@@ -106,7 +145,7 @@ export function readMetadata(head: Element, rewrite: RewriteReference) {
     }
     Object.assign(openGraph, Object.fromEntries(media));
     if (Object.keys(openGraph).length) metadata.openGraph = openGraph;
-    return { metadata, retained, base };
+    return { metadata, retained, base, viewport };
 }
 
 function originOf(value: string) {

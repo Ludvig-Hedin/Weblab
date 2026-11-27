@@ -4,11 +4,24 @@ import { parse } from 'parse5';
 
 import type { PageDocument } from './project';
 import type { ImportFile, ImportReport, WebflowImportResult } from './types';
-import { createReferenceRewriter, encodePath, rewriteStylesheet } from './assets';
+import {
+    createReferenceRewriter,
+    encodePath,
+    hasExternalStylesheetImport,
+    isExternalStylesheetUrl,
+    rewriteStylesheet,
+} from './assets';
 import { planFonts } from './fonts';
-import { childElements, elements, getAttr, rewriteAttributes } from './html';
+import { childElements, elements, getAttr, rewriteAttributes, textContent } from './html';
 import { readMetadata } from './metadata';
-import { layoutSource, pageSource, projectFiles, scriptsIn, takeSharedChrome } from './project';
+import {
+    isWebflowRuntime,
+    layoutSource,
+    pageSource,
+    projectFiles,
+    scriptsIn,
+    takeSharedChrome,
+} from './project';
 
 export type { ImportFile, ImportReport, WebflowImportResult } from './types';
 
@@ -152,6 +165,7 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
     const locales = new Map<string, string>();
     const languages = new Map<string, string>();
     const pages: PageDocument[] = [];
+    let externalStylesheets = false;
 
     for (const entry of sources) {
         const source = entry.path;
@@ -186,7 +200,7 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
             head,
             body,
             context,
-            scripts: [...scriptsIn(head), ...scriptsIn(body)],
+            scripts: [...scriptsIn(head), ...scriptsIn(body)].filter(isWebflowRuntime),
         };
         pages.push(page);
         report.pages.push({ source, route, kind });
@@ -196,6 +210,16 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
         const language = getAttr(html, 'lang')?.toLowerCase();
         if (language) languages.set(language, source);
         for (const element of elements(html)) {
+            if (
+                element.tagName === 'link' &&
+                getAttr(element, 'rel')?.toLowerCase().split(/\s+/).includes('stylesheet') &&
+                isExternalStylesheetUrl(getAttr(element, 'href') ?? '')
+            ) {
+                externalStylesheets = true;
+            }
+            if (element.tagName === 'style') {
+                externalStylesheets ||= hasExternalStylesheetImport(textContent(element));
+            }
             const className = getAttr(element, 'class') ?? '';
             const attrNames = element.attrs.map(({ name }) => name);
             if (
@@ -249,8 +273,12 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
         left.route < right.route ? -1 : left.route === right.route ? 0 : 1,
     );
     const normalPages = pages.filter((page) => page.kind === 'page');
+    externalStylesheets ||= [...entries.values()].some(
+        (entry) => /\.css$/i.test(entry.path) && hasExternalStylesheetImport(readText(entry)),
+    );
     const fonts = planFonts(
-        (normalPages.length ? normalPages : pages).map((page) => page.scripts),
+        (normalPages.length ? normalPages : pages).map((page) => scriptsIn(page.head)),
+        externalStylesheets,
         (message) => warnings.add(message),
     );
     const documents = pages.map((page) => {
@@ -258,16 +286,26 @@ export function convertWebflowExport(input: readonly ImportFile[]): WebflowImpor
         const seo = readMetadata(page.head, page.context.rewrite);
         rewriteAttributes(page.head, page.context);
         rewriteAttributes(page.body, page.context);
-        const head = seo.retained.filter((node) => !page.scripts.includes(node));
-        return { page, head, metadata: seo.metadata, base: seo.base };
+        const head = seo.retained.filter(
+            (node) =>
+                !page.scripts.includes(node) &&
+                !(node.tagName === 'script' && fonts.skipScript(node)),
+        );
+        return { ...seo, page, head };
     });
     const chrome = takeSharedChrome(pages);
     files.push(...projectFiles, {
         path: 'app/layout.tsx',
         content: layoutSource(documents, chrome, fonts),
     });
-    for (const { page, metadata, base } of documents) {
-        files.push({ path: page.file, content: pageSource(page, metadata, base) });
+    for (const document of documents) {
+        files.push({ path: document.page.file, content: pageSource(document.page, document) });
+    }
+    if (pages.some((page) => page.route === '/404')) {
+        files.push({
+            path: 'app/not-found.tsx',
+            content: 'export { default } from "./404/page";\n',
+        });
     }
     for (const entry of entries.values()) {
         if (routes.has(entry.path)) continue;

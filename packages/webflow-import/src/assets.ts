@@ -86,6 +86,30 @@ export function rewriteCssUrls(value: string, rewrite: RewriteReference, importR
     return valueParser.stringify(parsed.nodes);
 }
 
+export function isExternalStylesheetUrl(value: string) {
+    return /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(value.trim());
+}
+
+export function hasExternalStylesheetImport(content: string) {
+    let external = false;
+    try {
+        postcss.parse(content).walkAtRules(/^import$/i, (rule) => {
+            rewriteCssUrls(
+                rule.params,
+                (url) => {
+                    external ||= isExternalStylesheetUrl(url);
+                    return url;
+                },
+                true,
+            );
+        });
+    } catch {
+        // The converter cannot rewrite family names in an unparseable stylesheet.
+        return true;
+    }
+    return external;
+}
+
 export function rewriteStylesheet(
     content: string,
     source: string,

@@ -179,6 +179,116 @@ describe('unsupported exports', () => {
     });
 });
 
+test('keeps WebFont for an external stylesheet that uses original family names', () => {
+    const { files } = convertWebflowExport([
+        {
+            path: 'index.html',
+            content: `<link rel="stylesheet" href="//cdn.example.com/site.css">
+            <script src="https://cdn.example.com/webfont.js"></script>
+            <script>WebFont.load({google:{families:["Montserrat:400,600"]}});</script>
+            <main>Home</main>`,
+        },
+    ]);
+    const layout = textFile(files, 'app/layout.tsx');
+    expect(layout).toContain('src="https://cdn.example.com/webfont.js"');
+    expect(layout).toContain('WebFont.load');
+    expect(layout).not.toContain('next/font/google');
+});
+
+test('keeps a position-dependent script inside its embed', () => {
+    const { files } = convertWebflowExport([
+        {
+            path: 'index.html',
+            content: `<div class="w-embed"><script>document.currentScript.parentElement.classList.add("ready")</script></div>`,
+        },
+    ]);
+    const page = textFile(files, 'app/page.tsx');
+    expect(page).toContain('<div className="w-embed"><script');
+    expect(page).toContain('document.currentScript.parentElement');
+    expect(textFile(files, 'app/layout.tsx')).not.toContain('document.currentScript');
+});
+
+test('opts an async embed script out of React hoisting without dropping async', () => {
+    const { files } = convertWebflowExport([
+        {
+            path: 'index.html',
+            content: '<div class="w-embed"><script src="js/embed.js" async></script></div>',
+        },
+        {
+            path: 'js/embed.js',
+            content: 'document.currentScript.parentElement.classList.add("ready")',
+        },
+    ]);
+    expect(textFile(files, 'app/page.tsx')).toContain(
+        '<script src="/js/embed.js" async itemProp=""',
+    );
+});
+
+test('shares navigation only when its inline CSS resolves to the same assets', () => {
+    const nav = '<nav style="background-image:url(bg.png)">Home</nav><main>Content</main>';
+    const { files } = convertWebflowExport([
+        { path: 'index.html', content: nav },
+        { path: 'sub/work.html', content: nav },
+        { path: 'bg.png', content: new Uint8Array([1]) },
+        { path: 'sub/bg.png', content: new Uint8Array([2]) },
+    ]);
+    expect(textFile(files, 'app/page.tsx')).toContain('url(/bg.png)');
+    expect(textFile(files, 'app/sub/work/page.tsx')).toContain('url(/sub/bg.png)');
+    expect(textFile(files, 'app/layout.tsx')).not.toContain('<nav');
+});
+
+test('keeps a newline between inline navigation links on the page that has it', () => {
+    const { files } = convertWebflowExport([
+        { path: 'index.html', content: '<nav><a>A</a>\n<a>B</a></nav>' },
+        { path: 'about.html', content: '<nav><a>A</a><a>B</a></nav>' },
+    ]);
+    expect(textFile(files, 'app/page.tsx')).toContain('</a>{"\\n"}<a>');
+    expect(textFile(files, 'app/about/page.tsx')).toContain('</a><a>');
+    expect(textFile(files, 'app/layout.tsx')).not.toContain('<nav>');
+});
+
+test('uses the exported root 404 design and document styles for missing routes', () => {
+    const { files } = convertWebflowExport([
+        { path: 'index.html', content: '<body class="home"><h1>Home</h1>' },
+        {
+            path: '404.html',
+            content:
+                '<html data-wf-page="gone"><link rel="stylesheet" href="css/gone.css"><body class="gone"><h1>Gone</h1>',
+        },
+        { path: 'css/gone.css', content: '.gone {color:red}' },
+    ]);
+    expect(textFile(files, 'app/not-found.tsx')).toContain('export { default } from "./404/page"');
+    expect(textFile(files, 'app/404/page.tsx')).toContain('{"Gone"}');
+    const layout = textFile(files, 'app/layout.tsx');
+    expect(layout).toContain('layouts.get(path) ?? layouts.get("/404")');
+    expect(layout).toContain('"data-wf-page":"gone"');
+    expect(layout).toContain('className="gone"');
+    expect(layout).toContain('href="/css/gone.css"');
+});
+
+test('generates a page viewport with custom mobile layout settings', () => {
+    const { files } = convertWebflowExport([
+        { path: 'index.html', content: '<main>Home</main>' },
+        {
+            path: 'fixed.html',
+            content: '<meta name="viewport" content="width=960"><main>Fixed</main>',
+        },
+        {
+            path: 'work.html',
+            content:
+                '<meta name="viewport" content="width=960, initial-scale=0.5, maximum-scale=3, user-scalable=no, viewport-fit=cover"><main>Work</main>',
+        },
+    ]);
+    expect(textFile(files, 'app/work/page.tsx')).toContain(
+        'export const viewport: Viewport = {"width":960,"initialScale":0.5,"maximumScale":3,"userScalable":false,"viewportFit":"cover"}',
+    );
+    expect(textFile(files, 'app/page.tsx')).not.toContain('export const viewport');
+    expect(textFile(files, 'app/fixed/page.tsx')).toContain(
+        'export const viewport: Viewport = {"width":960,"initialScale":undefined}',
+    );
+    expect(textFile(files, 'app/layout.tsx')).not.toContain('name="viewport"');
+});
+
 test('converts the full fixture deterministically', async () => {
     const { files, frames } = await result();
     const snapshot = {
