@@ -314,7 +314,10 @@ describe('exact source history', () => {
         Object.defineProperty(f.engine, 'canUseDesign', { value: true });
         const frame = { frame: { branchId: 'a' }, view: {
             getInsertLocation: async () => ({}),
-            getElementAtLoc: async () => ({ oid: 'element', tagName: 'img' }),
+            getElementAtLoc: async () => ({ oid: 'element', domId: 'img', tagName: 'img', parent: { domId: 'body' } }),
+            getParentElement: async (id: string) => id === 'img'
+                ? { domId: 'body', tagName: 'BODY', parent: { domId: null } }
+                : { domId: null, tagName: 'HTML', parent: null },
         } } as unknown as FrameData;
         await new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
             originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',
@@ -346,6 +349,32 @@ describe('exact source history', () => {
         expect(f.history.length).toBe(0);
     });
 
+    for (const ancestry of ['marked parent', 'marked grandparent', 'detached parent'] as const) {
+        test(`a literal image drop with a ${ancestry} preserves both Photo instances`, async () => {
+            const f = sourceFixture();
+            const image = '<img data-oid="element" src="/old.png" alt="Old" />';
+            const child = ancestry === 'marked parent' ? image : `<span>${image}</span>`;
+            const original = `const Photo = () => <figure data-oid="figure">${child}</figure>; export default () => <><Photo data-oid="one" /><Photo data-oid="two" /></>;`;
+            f.filesA.set('page.tsx', original);
+            Object.defineProperty(f.engine, 'canUseDesign', { value: true });
+            const figure = { domId: 'figure-one', instanceId: 'one' };
+            const frame = { frame: { branchId: 'a' }, view: {
+                getInsertLocation: async () => ({}),
+                getElementAtLoc: async () => ({
+                    domId: 'img-one', oid: 'element', tagName: 'IMG', instanceId: null,
+                    parent: ancestry === 'marked parent' ? figure : { domId: 'span-one' },
+                }),
+                getParentElement: async () => ancestry === 'detached parent' ? null
+                    : { domId: 'span-one', tagName: 'SPAN', parent: figure },
+            } } as unknown as FrameData;
+            await new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
+                originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',
+            });
+            expect(f.filesA.get('page.tsx')).toBe(original);
+            expect(f.history.length).toBe(0);
+        });
+    }
+
     test('a missing instance marker cannot turn bound image props into shared literals', async () => {
         const f = sourceFixture();
         const source = 'export const Image = ({src, label}) => <img data-oid="element" src={src} alt={label}/>;';
@@ -353,7 +382,10 @@ describe('exact source history', () => {
         Object.defineProperty(f.engine, 'canUseDesign', { value: true });
         const frame = { frame: { branchId: 'a' }, view: {
             getInsertLocation: async () => ({}),
-            getElementAtLoc: async () => ({ oid: 'element', instanceId: null, tagName: 'img' }),
+            getElementAtLoc: async () => ({ oid: 'element', domId: 'img', tagName: 'img', parent: { domId: 'body' } }),
+            getParentElement: async (id: string) => id === 'img'
+                ? { domId: 'body', tagName: 'BODY', parent: { domId: null } }
+                : { domId: null, tagName: 'HTML', parent: null },
         } } as unknown as FrameData;
         await expect(new InsertManager(f.engine).insertDroppedImage(frame, { x: 0, y: 0 }, {
             originPath: 'public/new.png', fileName: 'New', content: '', mimeType: 'image/png',

@@ -29,6 +29,22 @@ import type { FrameData } from '../frames';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { getRelativeMousePositionToFrameView } from '../overlay/utils';
 
+// Only a complete, unmarked chain to the document root identifies an image
+// outside an instance. A stale DOM id during the walk leaves ownership unknown.
+async function isStandaloneImage(view: IFrameView, image: DomElement): Promise<boolean> {
+    let node = image;
+    const visited = new Set<string>();
+    while (!node.instanceId && !node.parent?.instanceId) {
+        if (node.tagName.toLowerCase() === 'html' && node.parent === null) return true;
+        if (!node.domId || !node.parent || visited.has(node.domId)) return false;
+        visited.add(node.domId);
+        const parent = await view.getParentElement(node.domId);
+        if (!parent || parent.domId !== node.parent.domId) return false;
+        node = parent;
+    }
+    return false;
+}
+
 export class InsertManager {
     isDrawing = false;
     private drawOrigin: ElementPosition | undefined;
@@ -379,10 +395,8 @@ export class InsertManager {
         targetElement: DomElement,
         imageData: ImageContentData,
     ) {
-        if (!this.editorEngine.canUseDesign || !targetElement.oid) return;
-        if (targetElement.instanceId) {
-            // The rendered image identifies its component root, but does not
-            // identify which props supply src and alt at this call site.
+        if (!this.editorEngine.canUseDesign || !targetElement.oid || !frame.view) return;
+        if (!await isStandaloneImage(frame.view, targetElement)) {
             toast.error('Replace this component image through its instance properties.');
             return;
         }
