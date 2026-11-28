@@ -3,6 +3,57 @@ import { customTwMerge } from '@weblab/utility';
 import type { T } from '../packages';
 import { t } from '../packages';
 import { getAstFromContent } from '../parse';
+import { getOidFromJsxElement } from './helpers';
+
+/** Replace only static class literals, leaving the surrounding source byte-for-byte intact. */
+export function patchStyleClasses(
+    source: string, additions: ReadonlyMap<string, string>,
+    removals: ReadonlyMap<string, { prefix: string; probeClass: string }[]> = new Map(),
+): string {
+    const ast = getAstFromContent(source);
+    if (!ast) throw new Error('The selected source could not be parsed.');
+    const seen = new Set<string>();
+    const edits: Array<{ start: number; end: number; value: string }> = [];
+    t.traverseFast(ast, node => {
+        if (!t.isJSXElement(node)) return;
+        const opening = node.openingElement;
+        const oid = getOidFromJsxElement(opening);
+        if (!oid || !additions.has(oid)) return;
+        if (seen.has(oid)) throw new Error('The selected source identity is ambiguous.');
+        seen.add(oid);
+        assertStaticClassName(node);
+        const attribute = opening.attributes.find((attr): attr is T.JSXAttribute =>
+            t.isJSXAttribute(attr) && attr.name.name === 'className');
+        const current = attribute ? staticClassValue(attribute) : '';
+        // Merge each existing utility against the incoming edit independently.
+        // A whole-list merge would also normalize unrelated authored fallback classes.
+        const incoming = additions.get(oid)!;
+        const probes = removals.get(oid) ?? [];
+        const existing = current.split(/\s+/).filter(Boolean);
+        const remaining = probes.length ? existing.filter(token => !matchesRemoval(token, probes)) : existing;
+        if (!incoming && remaining.length === existing.length) return;
+        const added = new Set(incoming.split(/\s+/));
+        const retained = remaining.filter(token =>
+            !added.has(token) &&
+            customTwMerge(token, incoming).split(/\s+/).includes(token));
+        const merged = incoming ? [...retained, incoming].join(' ') : retained.join(' ');
+        if (current === merged) return;
+        if (opening.end == null) throw new Error('The class position could not be verified.');
+        const insertAt = opening.end - (opening.selfClosing ? 2 : 1);
+        const literal = attribute?.value;
+        const start = literal?.start ?? insertAt;
+        const end = literal?.end ?? insertAt;
+        const quote = source[start] === "'" ? "'" : '"';
+        const encoded = merged.replaceAll('&', '&amp;').replaceAll(quote, quote === '"' ? '&quot;' : '&#39;');
+        const value = t.isJSXExpressionContainer(literal) ? `{${JSON.stringify(merged)}}` : quote + encoded + quote;
+        edits.push({ start, end, value: attribute ? value : ' className=' + value });
+    });
+    if (seen.size !== additions.size) throw new Error('The selected element is missing from source.');
+    for (const { start, end, value } of edits.sort((a, b) => b.start - a.start)) {
+        source = source.slice(0, start) + value + source.slice(end);
+    }
+    return source;
+}
 
 /** Only a proven static class value can be edited from a rendered element. */
 export function assertStaticClassName(node: T.JSXElement): void {
@@ -48,18 +99,19 @@ function classVariant(token: string): { prefix: string; utility: string } {
     return { prefix: token.slice(0, separator + 1), utility: token.slice(separator + 1) };
 }
 
+function matchesRemoval(token: string, removals: { prefix: string; probeClass: string }[]): boolean {
+    const { prefix, utility } = classVariant(token);
+    // Important syntax changes priority, not the CSS property family.
+    const plain = utility.replace(/^!|!$/g, '');
+    return removals.some(removal => prefix === removal.prefix &&
+        customTwMerge(plain, removal.probeClass).trim() === removal.probeClass.trim());
+}
+
 export function removeMatchingClasses(
     className: string,
     removals: { prefix: string; probeClass: string }[],
 ): string {
-    return className.split(/\s+/).filter((token) => {
-        if (!token) return false;
-        const { prefix, utility } = classVariant(token);
-        // Important syntax changes priority, not the CSS property family.
-        const plain = utility.replace(/^!|!$/g, '');
-        return !removals.some((removal) => prefix === removal.prefix &&
-            customTwMerge(plain, removal.probeClass).trim() === removal.probeClass.trim());
-    }).join(' ');
+    return className.split(/\s+/).filter(token => token && !matchesRemoval(token, removals)).join(' ');
 }
 
 export function removeClassesFromNode(

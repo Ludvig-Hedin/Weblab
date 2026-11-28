@@ -14,7 +14,7 @@ import { toast } from '@weblab/ui/sonner';
 import { convertFontString } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
-import { breakpointMinWidth } from '../code/project-breakpoints';
+import { branchBaseWidth, breakpointMinWidth } from '../code/project-breakpoints';
 
 export interface SelectedStyle {
     styles: DomElementStyles;
@@ -179,13 +179,12 @@ export class StyleManager {
         const filteredSelected =
             domIds.length > 0 ? selected.filter((el) => domIds.includes(el.domId)) : selected;
 
-        const breakpointCtx = this.activeBreakpointContext();
-
         // For every selected element, also fan out to its sibling frames in the
         // same breakpoint group so all responsive views update together. The
         // per-target breakpoint context records WHERE the edit applies.
         const targets: StyleActionTarget[] = [];
         for (const selectedEl of filteredSelected) {
+            const breakpointCtx = this.activeBreakpointContext(selectedEl);
             const change: Change<Record<string, StyleChange>> = {
                 updated: Object.fromEntries(
                     Object.keys(styles).map((style) => [
@@ -254,18 +253,17 @@ export class StyleManager {
         };
     }
 
-    activeBreakpointContext(): BreakpointActionContext | undefined {
+    activeBreakpointContext(selected = this.editorEngine.elements.selected[0]): BreakpointActionContext | undefined {
         const id = this.editorEngine.breakpoints?.activeId;
         if (!id) return undefined;
-        const branchId = this.editorEngine.elements.selected[0]?.branchId;
-        const frames = this.editorEngine.frames.getAll().filter((frame) => !branchId || frame.frame.branchId === branchId);
+        const primary = selected && this.editorEngine.frames.get(selected.frameId);
+        const frames = primary ? this.editorEngine.frames.getByGroupId(primary.frame.groupId)
+            .filter(frame => frame.frame.branchId === selected?.branchId) : [];
         const sample = frames.find((f) => f.frame.breakpoint?.id === id);
         const width =
             sample?.frame.breakpoint?.width ?? this.editorEngine.breakpoints.activeWidth();
         const name = sample?.frame.breakpoint?.name ?? id;
-        const widths = frames.map((frame) => frame.frame.breakpoint?.width)
-            .filter((value): value is number => value !== undefined);
-        const base = widths.length > 0 ? Math.min(...widths) : null;
+        const base = branchBaseWidth(this.editorEngine.frames.getAll(), selected?.branchId);
         return { id, name, minWidth: breakpointMinWidth(width, base) };
     }
 
@@ -516,15 +514,16 @@ export class StyleManager {
             element.oid === oid || element.instanceId === oid);
         if (!selected) return false;
         const primary = this.editorEngine.frames.get(selected.frameId);
-        const frames = this.editorEngine.frames.getAll().filter((frame) => frame.frame.branchId === selected.branchId);
+        if (!primary) return false;
+        const frames = this.editorEngine.frames.getByGroupId(primary.frame.groupId)
+            .filter(frame => frame.frame.branchId === selected.branchId);
         const sample = frames.find((frame) => frame.frame.breakpoint?.id === breakpointId);
-        if (!sample?.frame.breakpoint || !primary) return false;
-        const widths = frames.map((frame) => frame.frame.breakpoint?.width)
-            .filter((width): width is number => width !== undefined);
+        if (!sample?.frame.breakpoint) return false;
+        const base = branchBaseWidth(this.editorEngine.frames.getAll(), selected.branchId);
         const context = {
             id: breakpointId,
             name: sample.frame.breakpoint.name ?? breakpointId,
-            minWidth: breakpointMinWidth(sample.frame.breakpoint.width, widths.length > 0 ? Math.min(...widths) : null),
+            minWidth: breakpointMinWidth(sample.frame.breakpoint.width, base),
         };
         const change = {
             original: { [key]: { value: previous.value, type: previous.type } },

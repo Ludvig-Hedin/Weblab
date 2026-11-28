@@ -148,6 +148,7 @@ export class ActionManager {
     private textPreviewRuns = new Map<string, symbol>();
     private latestStyleEdit = new Map<string, UpdateStyleAction>();
     private optimisticStyleRuns = new Set<Promise<boolean>>();
+    private lastStylePreflight: Promise<void> = Promise.resolve();
     private stylePreflights = new Set<Promise<void>>();
 
     get hasPendingStylePreflights(): boolean {
@@ -207,8 +208,26 @@ export class ActionManager {
             ? this.editorEngine.branches.getBranchDataById(action.targets[0]?.branchId ?? '')?.history
             : this.editorEngine.history;
         if (!sourceHistory) return false;
+        if (action.type === 'update-style' && sourceHistory.isInTransaction && sourceHistory.runStyleInGesture) {
+            return sourceHistory.runStyleInGesture(queue => this.runAdmitted(action, sourceHistory, onApplied, queue));
+        }
+        return this.runAdmitted(action, sourceHistory, onApplied);
+    }
+
+    private async runAdmitted(
+        action: Action,
+        sourceHistory: HistoryManager,
+        onApplied?: () => void,
+        queue?: (action: UpdateStyleAction) => boolean,
+    ): Promise<boolean> {
+        const queuedStyle = action.type === 'update-style' && (queue !== undefined || sourceHistory.isInTransaction);
         if (action.type === 'update-style' && this.editorEngine.code?.preflightStyleAction) {
-            const preflight = this.editorEngine.code.preflightStyleAction(action);
+            // Start validation immediately, but admit drag samples in input order.
+            const validation = this.editorEngine.code.preflightStyleAction(action);
+            const preflight = Promise.allSettled([this.lastStylePreflight, validation]).then(([, result]) => {
+                if (result.status === 'rejected') throw result.reason;
+            });
+            this.lastStylePreflight = preflight.catch(() => undefined);
             this.stylePreflights.add(preflight);
             try {
                 await preflight;
@@ -224,17 +243,6 @@ export class ActionManager {
         if (action.type === 'update-style' && this.editorEngine.code?.prepareStyleAction) {
             action = this.editorEngine.code.prepareStyleAction(action);
         }
-        // A released slider or drag may still be committing. A new transaction
-        // queues into its own commit; a direct edit waits so undo order and
-        // source writes stay in sequence instead of being dropped.
-        if (
-            action.type === 'update-style' &&
-            !sourceHistory.isInTransaction &&
-            sourceHistory.isCommitPending
-        ) {
-            await sourceHistory.waitForCommit();
-        }
-        const queuedStyle = action.type === 'update-style' && sourceHistory.isInTransaction;
         let finishQueued: (() => void) | undefined;
         const queuedCompletion = queuedStyle ? new Promise<void>((resolve) => {
             finishQueued = () => resolve(undefined);
@@ -249,7 +257,7 @@ export class ActionManager {
                 ? this.editorEngine.branches.getBranchDataById(action.parent.branchId)?.history
                 : sourceHistory;
             if (!actionHistory) return false;
-            const pushed = structural
+            const pushed = queue && action.type === 'update-style' ? queue(action) : structural
                 ? await actionHistory.pushImmediate(action)
                 : await actionHistory.push(action);
             if (!pushed) {
@@ -292,7 +300,7 @@ export class ActionManager {
     ): Promise<boolean> {
         const keys = styleKeys(action);
         for (const key of keys) this.latestStyleEdit.set(key, action);
-        const pushed = history.push(action);
+        const pushed = history.push(action, { direct: true });
         const preview = this.dispatch(action, { scheduleRebase: false, skipWriteGuard: true });
         const [saved] = await Promise.all([pushed, preview.catch((error: unknown) => {
             console.error('Style preview failed', error);
@@ -310,11 +318,6 @@ export class ActionManager {
             return false;
         }
         onApplied?.();
-        // Same debounced responsive rebase the old write-then-dispatch path
-        // scheduled once the write had landed.
-        if (!history.isInTransaction) {
-            this.scheduleRebasesForTargets(action.targets);
-        }
         return true;
     }
 
@@ -342,7 +345,7 @@ export class ActionManager {
             const generated = replaceContentImageTarget(original, pin.binding.target, previous, { ...previous, [edit.field]: edit.value });
             if (generated === original) return true;
             const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }], cloudImage: { pin, field: edit.field } };
-            return await history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry, { branchId: pin.branchId, codeEditor, current: edit.current }) : Promise.resolve(false),
+            return await history.pushImmediate(action, (entry, reportResult) => current() ? this.editorEngine.code.write(entry, { branchId: pin.branchId, codeEditor, current: edit.current }, undefined, reportResult) : Promise.resolve(false),
                 async entry => current() && await this.prepareImportedImageHistory(entry, history) !== null && current());
         } catch { return false; }
     }
@@ -424,8 +427,8 @@ export class ActionManager {
             const generated = replaceContentPropertyTarget(original, pin.binding.target, edit.previousValue, choice.value);
             const action: WriteCodeAction = { type: 'write-code', branchId: pin.branchId, diffs: [{ path: pin.path, original, generated }],
                 cloudProperty: { pin, previousValue: edit.previousValue, value: choice.value } };
-            return await history.pushImmediate(action, entry => current() ? this.editorEngine.code.write(entry,
-                { branchId: pin.branchId, codeEditor, current, validate: edit.validate }) : Promise.resolve(false),
+            return await history.pushImmediate(action, (entry, reportResult) => current() ? this.editorEngine.code.write(entry,
+                { branchId: pin.branchId, codeEditor, current, validate: edit.validate }, undefined, reportResult) : Promise.resolve(false),
                 async entry => current() && await this.preparePropertyHistory(entry, history) && current());
         } catch { return false; }
     }
@@ -749,10 +752,8 @@ export class ActionManager {
     }
 
     async finishQueuedStyleAction(action: UpdateStyleAction, saved: boolean): Promise<void> {
-        if (saved) {
-            this.scheduleRebasesForTargets(action.targets);
-            return;
-        }
+        // The history write already includes the final breakpoint and token.
+        if (saved) return;
         for (const target of action.targets) {
             if (!target.oid) continue;
             for (const property of Object.keys(target.change.updated)) {

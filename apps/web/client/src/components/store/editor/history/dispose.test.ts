@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { observable } from 'mobx';
 
-import type { Action } from '@weblab/models/actions';
+import { StyleChangeType } from '@weblab/models/style';
+import type { Action, UpdateStyleAction } from '@weblab/models/actions';
 
 import { HistoryManager } from './index';
 
@@ -90,4 +91,128 @@ describe('HistoryManager new gesture source baseline', () => {
             history.cancelDisposalPreparation(lease);
         }
     });
+});
+
+describe('released gesture during close', () => {
+    it.each(['retry close', 'resume editing'])('retries released resizes in order on %s', async recovery => {
+        const attempts: string[] = [];
+        const valueOf = (action: Action) => {
+            if (action.type !== 'update-style') throw new Error('Expected resize');
+            return action.targets[0]!.change.updated.width!.value;
+        };
+        const resize = (value: string): UpdateStyleAction => ({
+            type: 'update-style',
+            targets: [{ oid: 'box', frameId: 'frame', domId: 'box', branchId: 'released',
+                change: { original: {}, updated: { width: { type: StyleChangeType.Value, value } } } }],
+        });
+        let release!: () => void;
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const engine = {
+            code: { write: async (action: Action) => {
+                attempts.push(valueOf(action));
+                return attempts.length > 1;
+            }, waitForPendingWrites: async () => undefined },
+            posthog: { capture: () => undefined },
+            action: { waitForQueuedStyleDispatches: async () => undefined, finishQueuedStyleAction: async () => undefined },
+        } as unknown as ConstructorParameters<typeof HistoryManager>[0];
+        const history = new HistoryManager(engine, 'released');
+        const released = ['13px', '27px'].map(value => {
+            void history.startTransaction();
+            const sample = history.runStyleInGesture(async queue => {
+                if (value === '13px') await gate;
+                return queue(resize(value));
+            });
+            return Promise.all([sample, history.commitTransaction()]);
+        });
+        void history.startTransaction();
+        let releaseLast!: () => void;
+        const lastGate = new Promise<void>(resolve => { releaseLast = resolve; });
+        const lastSample = history.runStyleInGesture(async queue => {
+            await lastGate;
+            return queue(resize('39px'));
+        });
+        const close = history.dispose();
+        release();
+        await Promise.all(released);
+        await expect(close).rejects.toThrow('could not be saved');
+        const values = ['13px', '27px', '39px'];
+        if (recovery === 'resume editing') {
+            void history.startTransaction();
+            await history.runStyleInGesture(async queue => queue(resize('51px')));
+            void history.commitTransaction();
+            values.push('51px');
+        }
+        const retry = history.dispose();
+        releaseLast();
+        expect(await lastSample).toBe(true);
+        await retry;
+        expect(attempts).toEqual(['13px', ...values]);
+        expect(saveHistoryCalls.at(-1)?.undo.map(valueOf)).toEqual(values);
+    });
+
+    it.each(['refuse', 'throw'])('retains a released gesture through repeated %s on resume and close', async failure => {
+        const attempts: string[] = [];
+        const resize = (value: string): UpdateStyleAction => ({
+            type: 'update-style', targets: [{ oid: 'box', frameId: 'frame', domId: 'box', branchId: 'released',
+                change: { original: {}, updated: { width: { type: StyleChangeType.Value, value } } } }],
+        });
+        const engine = {
+            code: { write: async (action: UpdateStyleAction) => {
+                attempts.push(action.targets[0]!.change.updated.width!.value);
+                if (attempts.length >= 4) return true;
+                if (failure === 'throw') throw new Error('could not be saved');
+                return false;
+            }, waitForPendingWrites: async () => undefined },
+            action: { waitForQueuedStyleDispatches: async () => undefined, finishQueuedStyleAction: async () => undefined },
+            posthog: { capture: () => undefined },
+        } as unknown as ConstructorParameters<typeof HistoryManager>[0];
+        const history = new HistoryManager(engine, 'released');
+        await history.startTransaction();
+        await history.push(resize('13px'));
+        await expect(history.dispose()).rejects.toThrow('could not be saved');
+        await history.startTransaction();
+        expect(attempts).toEqual(['13px', '13px']);
+        await history.push(resize('27px'));
+        await expect(history.dispose()).rejects.toThrow('could not be saved');
+        expect(history.length).toBe(0);
+        await history.dispose();
+        expect(attempts).toEqual(['13px', '13px', '13px', '13px', '27px']);
+        expect(saveHistoryCalls.at(-1)?.undo).toHaveLength(2);
+    });
+
+    for (const saved of [true, false]) {
+        it(`drains the admitted sample and ${saved ? 'closes after save' : 'refuses close after failure'}`, async () => {
+            const writes: Action[] = [];
+            let writable = saved;
+            const engine = {
+                code: { write: async (entry: Action) => { writes.push(entry); return writable; },
+                    waitForPendingWrites: async () => undefined },
+                posthog: { capture: () => undefined },
+                action: { waitForQueuedStyleDispatches: async () => undefined, finishQueuedStyleAction: async () => undefined },
+            } as unknown as ConstructorParameters<typeof HistoryManager>[0];
+            const history = new HistoryManager(engine, 'released');
+            let release!: () => void;
+            const gate = new Promise<void>(done => { release = done; });
+            await history.startTransaction();
+            const sample = history.runStyleInGesture(async queue => {
+                await gate;
+                return queue({ type: 'update-style', targets: [] });
+            });
+            const committed = history.commitTransaction();
+            const close = history.dispose();
+            release();
+            expect(await sample).toBe(true);
+            await committed;
+            if (saved) await close;
+            else await expect(close).rejects.toThrow('could not be saved');
+            expect(writes).toHaveLength(1);
+            if (!saved) {
+                expect(history.isInTransaction).toBe(false);
+                expect(history.hasRetainedActions).toBe(true);
+                writable = true;
+                await history.dispose();
+                expect(writes).toHaveLength(2);
+            }
+        });
+    }
 });

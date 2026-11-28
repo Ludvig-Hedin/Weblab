@@ -17,17 +17,36 @@ import {
     type ActionLocation,
     type ActionTarget,
     type InsertElementAction,
-    type RemoveElementAction,
     type UpdateStyleAction,
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
+import { toast } from '@weblab/ui/sonner';
 import { colors } from '@weblab/ui/tokens';
 import { canHaveBackgroundImage, createDomId, createOid, urlToRelativePath } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
+import { SharedImageError } from '../code/requests';
 import type { FrameData } from '../frames';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { getRelativeMousePositionToFrameView } from '../overlay/utils';
+
+// Source validation matches each marked ancestor against an enclosing JSX call.
+async function imageInstanceAncestors(view: IFrameView, image: DomElement): Promise<string[] | null> {
+    if (image.instanceId) return null;
+    const instances: string[] = [];
+    let node = image;
+    const visited = new Set<string>();
+    while (node.tagName.toLowerCase() !== 'html' || node.parent !== null) {
+        if (!node.domId || !node.parent || visited.has(node.domId)) return null;
+        visited.add(node.domId);
+        const parent = await view.getParentElement(node.domId);
+        if (!parent || parent.domId !== node.parent.domId ||
+            (parent.instanceId ?? null) !== (node.parent.instanceId ?? null)) return null;
+        if (parent.instanceId) instances.push(parent.instanceId);
+        node = parent;
+    }
+    return instances;
+}
 
 export class InsertManager {
     isDrawing = false;
@@ -379,82 +398,28 @@ export class InsertManager {
         targetElement: DomElement,
         imageData: ImageContentData,
     ) {
-        if (!frame.view) {
-            console.error('No frame view found');
+        if (!this.editorEngine.canUseDesign || !targetElement.oid || !frame.view) return;
+        const instances = await imageInstanceAncestors(frame.view, targetElement);
+        if (!instances) {
+            toast.error('Replace this component image through its instance properties.');
             return;
         }
-
-        const actionElement = await frame.view.getActionElement(targetElement.domId);
-        if (!actionElement) {
-            console.error('Failed to get action element for target');
-            return;
-        }
-
         const url = imageData.originPath.replace(
-            new RegExp(`^${DefaultSettings.IMAGE_FOLDER}\/`),
+            new RegExp(`^${DefaultSettings.IMAGE_FOLDER}/`),
             '',
         );
-
-        const currentLocation = await frame.view.getActionLocation(targetElement.domId);
-        if (!currentLocation) {
-            console.error('Failed to get current element location');
-            return;
-        }
-
-        const removeAction: RemoveElementAction = {
-            type: 'remove-element',
-            targets: [
-                {
-                    frameId: frame.frame.id,
-                    branchId: frame.frame.branchId,
-                    domId: actionElement.domId,
-                    oid: actionElement.oid,
-                },
-            ],
-            location: currentLocation,
-            element: actionElement,
-            editText: false,
-            pasteParams: null,
-            codeBlock: null,
-        };
-
-        // Create new image element with updated src
-        const updatedImageElement: ActionElement = {
-            ...actionElement,
-            attributes: {
-                ...actionElement.attributes,
-                src: `/${url}`,
-                alt: imageData.fileName,
-            },
-        };
-
-        const insertAction: InsertElementAction = {
-            type: 'insert-element',
-            targets: [
-                {
-                    frameId: frame.frame.id,
-                    branchId: frame.frame.branchId,
-                    domId: actionElement.domId,
-                    oid: actionElement.oid,
-                },
-            ],
-            element: updatedImageElement,
-            location: currentLocation,
-            editText: false,
-            pasteParams: null,
-            codeBlock: null,
-        };
-
-        // Run remove + insert inside one history transaction so the swap is
-        // batched through a single commit instead of landing as two
-        // independent pushes — a remove that saved while the insert failed
-        // would otherwise silently delete the image.
-        this.editorEngine.history.startTransaction();
+        // A replacement changes two attributes on the existing node. Store the
+        // single source diff so a failed save cannot leave the old image deleted.
         try {
-            await this.editorEngine.action.run(removeAction);
-            await this.editorEngine.action.run(insertAction);
-        } finally {
-            await this.editorEngine.history.commitTransaction();
+            await this.editorEngine.code.updateElementMetadata({
+                oid: targetElement.oid,
+                branchId: frame.frame.branchId,
+                attributes: { src: `/${url}`, alt: imageData.fileName },
+                imageInstanceAncestors: instances,
+            });
+        } catch (error) {
+            if (!(error instanceof SharedImageError)) throw error;
+            toast.error('Replace this component image through its instance properties.');
         }
     }
 

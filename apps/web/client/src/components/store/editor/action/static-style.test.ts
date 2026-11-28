@@ -79,7 +79,7 @@ describe('unsupported local style safety', () => {
 });
 
 describe('queued style dispatch', () => {
-    it('waits for an earlier transaction commit before pushing a direct style edit', async () => {
+    it('admits the direct style edit to history while an earlier commit is pending', async () => {
         const events: string[] = [];
         const manager = new ActionManager({
             framework: 'nextjs',
@@ -94,7 +94,7 @@ describe('queued style dispatch', () => {
         } as unknown as EditorEngine);
 
         expect(await manager.run({ type: 'update-style', targets: [] })).toBe(false);
-        expect(events).toEqual(['commit', 'push']);
+        expect(events).toEqual(['push']);
     });
 
     it('waits for preview and mirror completion before a transaction can commit', async () => {

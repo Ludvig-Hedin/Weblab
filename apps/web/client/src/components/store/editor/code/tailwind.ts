@@ -1,4 +1,5 @@
 import { twMerge } from 'tailwind-merge';
+import { RejectedSourceEdit } from './write-result';
 
 import type { CodeDiffRequest } from '@weblab/models/code';
 import type { StyleChange } from '@weblab/models/style';
@@ -16,8 +17,22 @@ export function addTailwindToRequest(
     request: CodeDiffRequest,
     styles: Record<string, StyleChange>,
     prefix = '',
+    original: Record<string, StyleChange> = {},
 ): void {
-    const newClasses = getTailwindClasses(request.oid, styles).map((cls) => `${prefix}${cls}`);
+    const newClasses: string[] = [];
+    for (const [property, style] of Object.entries(styles)) {
+        const clear = style.type === StyleChangeType.Remove || !style.value.trim();
+        const previous = original[property];
+        const probe = previous?.value.trim() ? previous : { value: '0px', type: StyleChangeType.Value };
+        const classes = getTailwindClasses(request.oid, { [property]: clear ? probe : style }).filter(Boolean);
+        if (!classes.length) throw new RejectedSourceEdit(`No writable Tailwind class for ${property}.`);
+        if (clear) {
+            request.classRemovals ??= [];
+            request.classRemovals.push(...classes.map(probeClass => ({ prefix, probeClass })));
+        } else {
+            newClasses.push(...classes.map(cls => `${prefix}${cls}`));
+        }
+    }
     request.attributes.className = twMerge(request.attributes.className || '', newClasses);
 }
 
@@ -43,7 +58,7 @@ export function getTailwindClasses(oid: string, styles: Record<string, StyleChan
 
     const css = createCSSRuleString(oid, normalColors);
     const tw = CssToTailwindTranslator(css);
-    const twClasses = tw.data.map((res) => res.resultVal);
+    const twClasses = tw.data.flatMap((res) => res.resultVal.split(/\s+/)).filter(Boolean);
 
     const customClasses = Object.entries(customColors)
         .map(([key, style]) => {
