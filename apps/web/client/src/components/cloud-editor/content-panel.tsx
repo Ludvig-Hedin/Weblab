@@ -1,5 +1,6 @@
-import { ImportedPropertyApproval } from './imported-property-approval';
 'use client';
+
+import { ImportedPropertyApproval } from './imported-property-approval';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
