@@ -1,3 +1,4 @@
+export * from './classes';
 export * from './code-edit';
 export * from './component';
 export * from './helpers';

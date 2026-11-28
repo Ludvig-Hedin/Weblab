@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@layer components {
+    h1 { color: black; }
+    @media (min-width: 768px) {
+        .title:focus-visible { opacity: .5; }
+    }
+}

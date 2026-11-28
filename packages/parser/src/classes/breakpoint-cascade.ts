@@ -1,0 +1,610 @@
+import type { AtRule, ChildNode, Declaration, Root } from 'postcss';
+import properties from 'mdn-data/css/properties.json';
+import selectorParser from 'postcss-selector-parser';
+
+import type { ContextState, ElementQuery } from './element-context';
+import type { ClassTarget } from './stylesheet';
+import {
+    decodeIdent,
+    defaultNamespace,
+    keyword,
+    layerNames,
+    mediaMatch,
+    modeledValue,
+    parseSheet,
+    selectorAst,
+} from './css-syntax';
+
+const metadata: Readonly<Record<string, { initial: string | string[] }>> = properties;
+const normalize = (p: string) => (p.startsWith('--') ? p : p.toLowerCase());
+
+function longhands(property: string): string[] {
+    const initial = Object.hasOwn(metadata, property) ? metadata[property]?.initial : undefined;
+    return Array.isArray(initial) ? initial.flatMap(longhands) : [property];
+}
+
+function compare(a: number[], b: number[]) {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        const difference = (a[i] ?? 0) - (b[i] ?? 0);
+        if (difference) return difference;
+    }
+    return 0;
+}
+
+function specificity(nodes: readonly selectorParser.Node[]): number[] {
+    const score = [0, 0, 0];
+    for (const n of nodes) {
+        if (n.type === 'id') score[0]!++;
+        else if (n.type === 'tag' || (n.type === 'pseudo' && n.value.startsWith('::'))) score[2]!++;
+        else if (n.type === 'class' || n.type === 'attribute') score[1]!++;
+        else if (n.type === 'pseudo' && keyword(n.value) !== ':where') {
+            if ([':is', ':has', ':not'].includes(keyword(n.value))) {
+                const max = n.nodes
+                    .map((s) => specificity(s.nodes))
+                    .sort(compare)
+                    .at(-1);
+                if (max) max.forEach((part, i) => (score[i]! += part));
+            } else score[1]!++;
+        }
+    }
+    return score;
+}
+
+type Match = boolean | undefined;
+const all = (terms: Match[]): Match =>
+    terms.includes(false) ? false : terms.includes(undefined) ? undefined : true;
+const some = (terms: Match[]): Match =>
+    terms.includes(true) ? true : terms.includes(undefined) ? undefined : false;
+const states = new Set([':hover', ':active', ':focus-visible']);
+
+function isElementPseudo(n: selectorParser.Node): boolean {
+    return selectorParser.isPseudoElement(n);
+}
+
+function stateMarker(n: selectorParser.Node) {
+    return (
+        (n.type === 'class' && n.value === 'w--current') ||
+        (n.type === 'attribute' && keyword(n.attribute) === 'aria-current') ||
+        (n.type === 'pseudo' && states.has(keyword(n.value)))
+    );
+}
+
+// Evaluate each subject compound once. Keep structural constraints in the AST
+// for the preview, and substitute only state predicates proved by the request.
+function stateKey(target: ClassTarget): ContextState {
+    return target.state === 'current'
+        ? (('current:' + (target.currentConvention ?? 'aria')) as ContextState)
+        : (target.state ?? 'base');
+}
+function selectorMatch(ast: selectorParser.Selector, target: ClassTarget): Match {
+    const evidence = target.elementContext?.matches[stateKey(target)];
+    if (evidence && Object.hasOwn(evidence, ast.toString())) return evidence[ast.toString()];
+    const test = selectorTest(ast, target);
+    return typeof test === 'string' ? target.matchesSelector?.(test) : test;
+}
+
+// A definite result needs no DOM lookup. Otherwise the returned selector
+// describes the structure that must match after substituting the target state.
+function selectorTest(
+    ast: selectorParser.Selector,
+    target: ClassTarget,
+    inspectAriaValue = false,
+): Match | string {
+    const shape = selectorAst(target.selector).first;
+    const classes = new Set(shape.nodes.flatMap((n) => (n.type === 'class' ? [n.value] : [])));
+    const tag = shape.first?.type === 'tag' ? keyword(shape.first.value) : undefined;
+    function atom(n: selectorParser.Node): Match {
+        if ('namespace' in n && n.namespace !== undefined) return undefined;
+        switch (n.type) {
+            case 'comment':
+            case 'universal':
+                return true;
+            case 'class':
+                if (n.value === 'w--current')
+                    return target.state === 'current' && target.currentConvention !== 'webflow'
+                        ? undefined
+                        : target.state === 'current';
+                return classes.has(n.value) ? true : undefined;
+            case 'tag':
+                return tag === undefined ? undefined : keyword(n.value) === tag;
+            case 'attribute':
+                if (keyword(n.attribute) === 'aria-current' && !n.operator)
+                    return target.state === 'current' && target.currentConvention === 'webflow'
+                        ? undefined
+                        : target.state === 'current';
+                return undefined;
+            case 'pseudo':
+                if (isElementPseudo(n)) return false;
+                return states.has(keyword(n.value))
+                    ? keyword(n.value) === ':' + target.state
+                    : undefined;
+            default:
+                return undefined;
+        }
+    }
+    function reduce(selector: selectorParser.Selector): Match {
+        const start = selector.nodes.findLastIndex((n) => n.type === 'combinator') + 1;
+        const terms: Match[] = start ? [undefined] : [];
+        for (const node of selector.nodes.slice(start)) {
+            if (node.type === 'pseudo' && [':is', ':where', ':not'].includes(keyword(node.value))) {
+                const negative = keyword(node.value) === ':not';
+                const branches = node.nodes.slice().map((branch) => {
+                    const result = reduce(branch);
+                    if (result === false) branch.remove();
+                    return result;
+                });
+                const result = some(branches);
+                terms.push(result === undefined ? undefined : negative ? !result : result);
+                if (result !== undefined) node.remove();
+            } else {
+                const result = atom(node);
+                terms.push(result);
+                if (result === true && stateMarker(node)) node.remove();
+            }
+        }
+        if (selector.last?.type === 'combinator')
+            selector.append(selectorParser.universal({ value: '*' }));
+        return all(terms);
+    }
+    const structural = ast.clone();
+    const known = reduce(structural);
+    if (known !== undefined) return known;
+    let unresolved = false;
+    structural.walk((n) => {
+        const exactAria =
+            inspectAriaValue &&
+            target.state === 'current' &&
+            target.currentConvention === 'aria' &&
+            n.type === 'attribute' &&
+            !!n.operator &&
+            keyword(n.attribute) === 'aria-current' &&
+            n.parent === structural;
+        if ((!exactAria && stateMarker(n)) || ('namespace' in n && n.namespace !== undefined))
+            unresolved = true;
+    });
+    return unresolved ? undefined : structural.toString();
+}
+
+export type CompetingRule = {
+    selector: string;
+    property: string;
+    value: string;
+    path?: string;
+    start?: number;
+};
+export type DeclarationEffect =
+    | { effect: 'applies'; competingRule?: never }
+    | { effect: 'loses'; competingRule: CompetingRule }
+    | { effect: 'unknown'; competingRule?: CompetingRule; reason: string };
+function nestedSelectors(parents: selectorParser.Selector[], children: selectorParser.Selector[]) {
+    if (!parents.length) return children;
+    const parent = selectorParser.pseudo({ value: ':is', nodes: parents.map((p) => p.clone()) });
+    return children.map((child) => {
+        const expanded = child.clone();
+        let explicit = false;
+        expanded.walkNesting((node) => {
+            node.replaceWith(parent.clone());
+            explicit = true;
+        });
+        if (!explicit) {
+            if (expanded.first?.type !== 'combinator')
+                expanded.prepend(selectorParser.combinator({ value: ' ' }));
+            expanded.prepend(parent.clone());
+        }
+        return expanded;
+    });
+}
+
+/** Prepare state-specific structural queries once for an ordered set of CSS sources. */
+export function prepareElementContext(
+    sources: readonly string[],
+    states: readonly ContextState[] = [
+        'base',
+        'hover',
+        'focus-visible',
+        'active',
+        'current:aria',
+        'current:webflow',
+    ],
+): ElementQuery[] {
+    const queries = new Map<string, ElementQuery>();
+    function visit(nodes: readonly ChildNode[], parents: selectorParser.Selector[]) {
+        for (const node of nodes) {
+            if (node.type === 'atrule' && node.nodes) {
+                visit(node.nodes, parents);
+                continue;
+            }
+            if (node.type !== 'rule') continue;
+            let expanded: selectorParser.Selector[];
+            try {
+                expanded = nestedSelectors(parents, selectorAst(node.selector).nodes);
+            } catch {
+                continue;
+            }
+            for (const ast of expanded) {
+                const selector = ast.toString();
+                if (queries.has(selector)) continue;
+                const subject = ast.nodes
+                    .slice(ast.nodes.findLastIndex((n) => n.type === 'combinator') + 1)
+                    .filter(
+                        (n) =>
+                            ['tag', 'id', 'class', 'attribute'].includes(n.type) &&
+                            !stateMarker(n) &&
+                            !('namespace' in n && n.namespace !== undefined),
+                    )
+                    .map((n) => n.toString().trim())
+                    .join('');
+                const query: ElementQuery = { selector, subject: subject || undefined, states: {} };
+                for (const state of states) {
+                    const current = state === 'current:aria' || state === 'current:webflow';
+                    const test = selectorTest(
+                        ast,
+                        {
+                            selector: '*',
+                            state: current ? 'current' : state === 'base' ? undefined : state,
+                            currentConvention: state === 'current:webflow' ? 'webflow' : 'aria',
+                        },
+                        true,
+                    );
+                    query.states[state] = test ?? null;
+                    if (
+                        state === 'current:aria' &&
+                        typeof test === 'string' &&
+                        ast.nodes.some(
+                            (n) =>
+                                n.type === 'attribute' &&
+                                !!n.operator &&
+                                keyword(n.attribute) === 'aria-current',
+                        )
+                    )
+                        query.needsAriaValue = { [state]: true };
+                }
+                queries.set(selector, query);
+            }
+            visit(node.nodes, expanded);
+        }
+    }
+    for (const source of sources) visit(parseSheet(source).nodes, []);
+    return [...queries.values()];
+}
+
+/** Evaluate author declarations in this sheet for the target at its requested width. */
+export function declarationEffect(
+    root: Root,
+    target: ClassTarget,
+    written: Declaration,
+): DeclarationEffect {
+    const sheets = new Map<Root, string | undefined>();
+    if (target.stylesheets) {
+        if (target.stylesheets.filter((s) => 'edited' in s).length !== 1)
+            return {
+                effect: 'unknown',
+                reason: 'Expected one edited stylesheet in document order',
+            };
+        try {
+            for (const sheet of target.stylesheets)
+                sheets.set('edited' in sheet ? root : parseSheet(sheet.source), sheet.path);
+        } catch {
+            return { effect: 'unknown', reason: 'Could not parse a linked stylesheet' };
+        }
+    } else sheets.set(root, undefined);
+    const roots = [...sheets.keys()];
+    // Conditional group membership can affect the first occurrence of a layer
+    // even when the group has no declarations. Evaluate both registrations.
+    const groups = new Set<AtRule>();
+    for (const sheet of roots)
+        sheet.walkAtRules((at) => {
+            if (keyword(at.name) !== 'layer') return;
+            for (let parent = at.parent; parent && parent.type !== 'root'; parent = parent.parent) {
+                if (parent.type === 'atrule') groups.add(parent);
+            }
+        });
+    const conditions = new Map<AtRule, Match>();
+    const unresolved: AtRule[] = [];
+    for (const at of groups) {
+        const name = keyword(at.name);
+        if (name === 'layer') continue;
+        const match = conditionMatch(at, target);
+        conditions.set(at, match);
+        if (match === undefined) unresolved.push(at);
+    }
+    if (unresolved.length > 5)
+        return {
+            effect: 'unknown',
+            reason: 'Too many conditional layer orders to establish the winner',
+        };
+    function evaluate(i: number): DeclarationEffect {
+        const group = unresolved[i];
+        if (!group) return evaluateOrder(sheets, target, written, conditions);
+        conditions.set(group, false);
+        const skipped = evaluate(i + 1);
+        conditions.set(group, true);
+        const included = evaluate(i + 1);
+        if (skipped.effect === 'applies' && included.effect === 'applies') return skipped;
+        if (
+            skipped.effect === 'loses' &&
+            included.effect === 'loses' &&
+            skipped.competingRule.path === included.competingRule.path &&
+            skipped.competingRule.start === included.competingRule.start
+        )
+            return skipped;
+        return {
+            effect: 'unknown',
+            reason: 'Conditional layer registration may change the winning rule',
+        };
+    }
+    return evaluate(0);
+}
+function conditionMatch(at: AtRule, target: ClassTarget): Match {
+    const kind = keyword(at.name);
+    if (kind !== 'media' && kind !== 'supports' && kind !== 'scope' && kind !== 'container')
+        return undefined;
+    const width = target.width ?? target.viewportWidth ?? target.elementContext?.viewportWidth;
+    return (
+        (kind === 'media' ? mediaMatch(at, width) : undefined) ??
+        (width === undefined ? undefined : target.matchesCondition?.(kind, at.params, width))
+    );
+}
+function evaluateOrder(
+    sheets: ReadonlyMap<Root, string | undefined>,
+    target: ClassTarget,
+    written: Declaration,
+    conditions: ReadonlyMap<AtRule, Match>,
+): DeclarationEffect {
+    if (
+        [...sheets.keys()].some((root) =>
+            root.nodes.some((n) => n.type === 'atrule' && defaultNamespace(n)),
+        )
+    )
+        return { effect: 'unknown', reason: 'Default namespace needs element namespace evidence' };
+    if (target.documentMode === 'quirks')
+        return {
+            effect: 'unknown',
+            reason: 'Quirks-mode selector matching needs browser evidence',
+        };
+    if (target.state === 'current' && !target.currentConvention) {
+        let container = written.parent;
+        let webflow = false;
+        while (container && container.type !== 'root') {
+            if (
+                container.type === 'rule' &&
+                selectorAst(container.selector).nodes.some(
+                    (s) => s.last?.type === 'class' && s.last.value === 'w--current',
+                )
+            )
+                webflow = true;
+            container = container.parent;
+        }
+        target = { ...target, currentConvention: webflow ? 'webflow' : 'aria' };
+    }
+    const property = normalize(decodeIdent(written.prop));
+    const affected = longhands(property);
+    type Winner = {
+        decl: Declaration;
+        rank: number[];
+        selector: string;
+        scope?: AtRule;
+        ambiguous?: boolean;
+    };
+    const possible = new Map<string, Winner>();
+    const inspected = new Set(sheets.values());
+    let dependency = target.linkedStylesheets?.find((path) => !inspected.has(path));
+    let sheetIndex = 0;
+    let orderInSheet = 0;
+    const winners = new Map<string, Winner>();
+    const writtenMatches = new Set<string>();
+    const layers = new Map<string, number>();
+    function layerPath(parent: string[], name: string[]) {
+        const path = [...parent];
+        for (const part of name) {
+            path.push(part);
+            const key = JSON.stringify(path);
+            if (!layers.has(key)) layers.set(key, layers.size + 1);
+        }
+        return path;
+    }
+    function visit(
+        nodes: readonly ChildNode[],
+        selectors: selectorParser.Selector[],
+        layer: string[],
+        active: Match,
+        scope?: AtRule,
+    ) {
+        for (const node of nodes) {
+            if (node.type === 'atrule') {
+                const kind = keyword(node.name);
+                if (kind === 'import' && active !== false) dependency = node.params || '@import';
+                if (
+                    kind === 'media' ||
+                    kind === 'supports' ||
+                    kind === 'container' ||
+                    kind === 'scope'
+                ) {
+                    const condition = conditions.has(node)
+                        ? conditions.get(node)
+                        : conditionMatch(node, target);
+                    const branch = all([active, condition]);
+                    if (branch !== false)
+                        visit(
+                            node.nodes ?? [],
+                            selectors,
+                            layer,
+                            branch,
+                            kind === 'scope' ? node : scope,
+                        );
+                } else if (kind === 'layer') {
+                    if (node.nodes)
+                        visit(
+                            node.nodes,
+                            selectors,
+                            layerPath(
+                                layer,
+                                node.params
+                                    ? layerNames(node.params)[0]!
+                                    : ['@' + sheetIndex + '/' + node.source?.start?.offset],
+                            ),
+                            active,
+                            scope,
+                        );
+                    else for (const name of layerNames(node.params)) layerPath(layer, name);
+                } else if (
+                    node.nodes &&
+                    ![
+                        'keyframes',
+                        '-webkit-keyframes',
+                        'font-face',
+                        'page',
+                        'counter-style',
+                        'property',
+                    ].includes(kind)
+                ) {
+                    // An unmodeled conditional group can contain a competing style rule.
+                    if (conditions.get(node) !== false)
+                        visit(
+                            node.nodes,
+                            selectors,
+                            layer,
+                            all([active, conditions.get(node)]),
+                            scope,
+                        );
+                }
+                continue;
+            }
+            if (node.type === 'rule') {
+                visit(
+                    node.nodes,
+                    nestedSelectors(selectors, selectorAst(node.selector).nodes),
+                    layer,
+                    active,
+                    scope,
+                );
+                continue;
+            }
+            if (node.type !== 'decl') continue;
+            const prop = normalize(decodeIdent(node.prop));
+            const writes =
+                prop === 'all'
+                    ? affected.filter(
+                          (p) => !p.startsWith('--') && !['direction', 'unicode-bidi'].includes(p),
+                      )
+                    : longhands(prop).filter((p) => affected.includes(p));
+            if (!writes.length) continue;
+            for (const ast of selectors) {
+                const selector = ast.toString();
+                const matches = all([active, selectorMatch(ast, target)]);
+                if (matches === false) continue;
+                // A forgiving selector list discards invalid branches *before*
+                // taking maximum specificity. A structural matches() result
+                // alone cannot establish which branches the browser accepted.
+                let unverifiedSpecificity = false;
+                ast.walkPseudos((n) => {
+                    const name = keyword(n.value);
+                    if (
+                        ![':where', ':is', ':not', ':has'].includes(name) &&
+                        (!states.has(name) || n.nodes.length)
+                    )
+                        unverifiedSpecificity = true;
+                });
+                const order = layer.map(
+                    (_, i) => layers.get(JSON.stringify(layer.slice(0, i + 1)))!,
+                );
+                // Direct declarations follow sublayers. Importance reverses the layer comparison.
+                order.push(Number.MAX_SAFE_INTEGER);
+                const rank = [
+                    Number(!!node.important),
+                    ...order.map((n) => (node.important ? -n : n)),
+                    ...(unverifiedSpecificity
+                        ? [Number.MAX_SAFE_INTEGER, 0, 0]
+                        : specificity(ast.nodes)),
+                    Number(!!scope),
+                    orderInSheet++,
+                ];
+                for (const p of writes) {
+                    if (matches === true && !unverifiedSpecificity && node === written)
+                        writtenMatches.add(p);
+                    const candidates =
+                        matches === true && !unverifiedSpecificity ? winners : possible;
+                    const old = candidates.get(p);
+                    if (!old || compare(rank, old.rank) >= 0) {
+                        const tied =
+                            old &&
+                            scope &&
+                            old.scope &&
+                            compare(rank.slice(0, -1), old.rank.slice(0, -1)) === 0;
+                        const ambiguous = !!(
+                            tied &&
+                            (old.ambiguous === true || old.scope !== scope)
+                        );
+                        candidates.set(p, { decl: node, rank, selector, scope, ambiguous });
+                    }
+                }
+            }
+        }
+    }
+    try {
+        for (const sheet of sheets.keys()) {
+            visit(sheet.nodes, [], [], true);
+            sheetIndex++;
+        }
+    } catch (error) {
+        // Selector parsers and DOM matchers can reject future CSS syntax.
+        return {
+            effect: 'unknown',
+            reason:
+                'Could not evaluate the cascade: ' +
+                (error instanceof Error ? error.message : String(error)),
+        };
+    }
+    function describe(candidate: Winner): CompetingRule {
+        return {
+            selector: candidate.selector,
+            path: sheets.get(candidate.decl.root()),
+            property: candidate.decl.prop,
+            value: candidate.decl.value,
+            start:
+                candidate.decl.source?.start &&
+                candidate.decl.source.start.offset + Number(candidate.decl.source.input.hasBOM),
+        };
+    }
+    let uncertain: DeclarationEffect | undefined;
+    let overridden: CompetingRule | undefined;
+    for (const p of affected) {
+        const known = winners.get(p);
+        const maybe = possible.get(p);
+        if (
+            known?.ambiguous ||
+            (maybe?.ambiguous &&
+                (!known || compare(maybe.rank.slice(0, -1), known.rank.slice(0, -1)) >= 0)) ||
+            (maybe?.scope &&
+                known?.scope &&
+                maybe.scope !== known.scope &&
+                compare(maybe.rank.slice(0, -1), known.rank.slice(0, -1)) === 0)
+        )
+            return {
+                effect: 'unknown',
+                reason: 'Scope proximity is needed to identify the winning rule',
+            };
+        if (
+            !writtenMatches.has(p) ||
+            !known ||
+            (maybe && maybe.decl !== known.decl && compare(maybe.rank, known.rank) >= 0)
+        ) {
+            uncertain = {
+                effect: 'unknown',
+                reason: 'Selector or condition needs preview evidence',
+                competingRule: maybe && describe(maybe),
+            };
+        } else if (!modeledValue(normalize(decodeIdent(known.decl.prop)), known.decl.value)) {
+            uncertain = { effect: 'unknown', reason: 'Winning value needs browser evidence' };
+        } else if (known.decl !== written) overridden = describe(known);
+    }
+    if (uncertain) return uncertain;
+    if (dependency)
+        return {
+            effect: 'unknown',
+            reason: 'Uninspected stylesheet: ' + dependency,
+            competingRule: overridden,
+        };
+    if (overridden) return { effect: 'loses', competingRule: overridden };
+    return { effect: 'applies' };
+}
