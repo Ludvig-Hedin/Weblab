@@ -1,3 +1,4 @@
+import type { AtRule, Root } from 'postcss';
 import ts from 'typescript';
 
 import type { T } from '../packages';
@@ -29,6 +30,19 @@ function localPath(importer: string, specifier: string, publicLink: boolean) {
         else if (!parts.pop()) return;
     }
     return parts.join('/');
+}
+
+// Browsers only process imports in the stylesheet prelude.
+function browserImports(root: Root) {
+    const imports: AtRule[] = [];
+    for (const node of root.nodes) {
+        if (node.type === 'comment') continue;
+        if (node.type !== 'atrule' || node.nodes) break;
+        const name = keyword(node.name);
+        if (name === 'import') imports.push(node);
+        else if (name !== 'charset' && name !== 'layer') break;
+    }
+    return imports;
 }
 
 /** Effective compilerOptions.paths and baseUrl, relative to the supplied config file. */
@@ -123,31 +137,67 @@ function resolveGraph(
     const sources = new Map<string, string>();
     const unresolved: MissingImport[] = [];
     const modulePath = projectResolver(files, config, sources);
-    function resolve(importer: string, specifier: string, mode: 'module' | 'css' | 'link') {
+    // A single source can be compiled as a module and served at a URL. Its
+    // outgoing edges depend on that context, even when its bytes are identical.
+    const visited = new Set<string>();
+    const localOrigin = 'https://project.invalid';
+    function resolveURL(importer: string, specifier: string, base?: URL) {
+        let url: URL;
+        try {
+            // Relative document links require a document URL supplied by the caller.
+            if (!base && !specifier.startsWith('/') && !URL.canParse(specifier)) throw Error();
+            url = new URL(specifier, base ?? localOrigin);
+            const path =
+                url.origin === localOrigin
+                    ? 'public' + decodeURIComponent(url.pathname)
+                    : undefined;
+            if (path && Object.hasOwn(files, path)) {
+                visit(path, url);
+                return;
+            }
+            // Only an absolute URL can supply globally valid browser resolution
+            // evidence. An unqualified module alias cannot prove a browser edge.
+            const key = url.origin === localOrigin ? url.pathname + url.search : url.href;
+            const proof = Object.hasOwn(resolutions, key) ? resolutions[key] : undefined;
+            if (proof === 'class-free') return;
+            if (proof && Object.hasOwn(files, proof.path)) {
+                visit(proof.path, url);
+                return;
+            }
+        } catch {
+            /* Missing or invalid URL evidence is reported at the import site. */
+        }
+        unresolved.push({ importer, specifier });
+    }
+    function resolve(importer: string, specifier: string, mode: 'module' | 'css', direct = false) {
         const proof = Object.hasOwn(resolutions, specifier) ? resolutions[specifier] : undefined;
         if (proof === 'class-free') return;
         let path = proof?.path;
         if (!proof) {
-            if (mode === 'link' || specifier.startsWith('/'))
-                path = localPath(importer, specifier, true);
-            else {
-                path = modulePath(importer, specifier);
-                if (
-                    !path &&
-                    mode === 'css' &&
-                    !specifier.startsWith('@') &&
-                    !specifier.startsWith('~') &&
-                    !config
-                )
-                    path = localPath(importer, specifier, false);
+            if (specifier.startsWith('/')) {
+                resolveURL(importer, specifier);
+                return;
             }
+            const module = modulePath(importer, specifier);
+            const relative = mode === 'css' ? localPath(importer, specifier, false) : undefined;
+            if (direct && module && module !== relative) {
+                unresolved.push({ importer, specifier });
+                return;
+            }
+            path =
+                module ??
+                (relative && !specifier.startsWith('@') && !specifier.startsWith('~')
+                    ? relative
+                    : undefined);
         }
         if (path && Object.hasOwn(files, path) && (mode === 'module' || /\.css$/i.test(path)))
-            visit(path);
+            visit(path, undefined, direct);
         else unresolved.push({ importer, specifier });
     }
-    function visit(path: string) {
-        if (sources.has(path)) return;
+    function visit(path: string, url?: URL, direct = false) {
+        const key = JSON.stringify([path, url?.href, direct]);
+        if (visited.has(key)) return;
+        visited.add(key);
         const source = files[path];
         if (source === undefined) {
             unresolved.push({ importer: path, specifier: path });
@@ -169,12 +219,15 @@ function resolveGraph(
                 });
                 return;
             }
-            root.walkAtRules((at) => {
+            function followImport(at: AtRule) {
                 if (keyword(at.name) !== 'import') return;
                 const specifier = importPath(at);
-                if (specifier) resolve(path, specifier, 'css');
+                if (specifier && url) resolveURL(path, specifier, url);
+                else if (specifier) resolve(path, specifier, 'css', direct);
                 else unresolved.push({ importer: path, specifier: at.params });
-            });
+            }
+            if (url) browserImports(root).forEach(followImport);
+            else root.walkAtRules(followImport);
             return;
         }
         const ast = getAstFromContent(source);
@@ -220,7 +273,7 @@ function resolveGraph(
                 )
                     return;
                 const href = attribute(node, 'href');
-                if (href) resolve(path, href, 'link');
+                if (href) resolveURL(path, href);
                 else
                     unresolved.push({
                         importer: path,
@@ -229,7 +282,12 @@ function resolveGraph(
             },
         });
     }
-    for (const entry of entries) visit(entry);
+    for (const entry of entries) {
+        const url = entry.startsWith('public/')
+            ? new URL(entry.slice('public'.length), localOrigin)
+            : undefined;
+        visit(entry, url, true);
+    }
     const configPath = config?.configPath ?? 'tsconfig.json';
     if (config && Object.hasOwn(files, configPath)) sources.set(configPath, files[configPath]!);
     return { status: unresolved.length ? 'incomplete' : 'complete', paths, sources, unresolved };

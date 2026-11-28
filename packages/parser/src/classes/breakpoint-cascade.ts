@@ -161,6 +161,67 @@ export function declarationEffect(
     target: ClassTarget,
     written: Declaration,
 ): DeclarationEffect {
+    // Conditional group membership can affect the first occurrence of a layer
+    // even when the group has no declarations. Evaluate both registrations.
+    const groups = new Set<AtRule>();
+    root.walkAtRules((at) => {
+        if (keyword(at.name) !== 'layer') return;
+        for (let parent = at.parent; parent && parent.type !== 'root'; parent = parent.parent) {
+            if (parent.type === 'atrule') groups.add(parent);
+        }
+    });
+    const conditions = new Map<AtRule, Match>();
+    const unresolved: AtRule[] = [];
+    for (const at of groups) {
+        const name = keyword(at.name);
+        if (name === 'layer') continue;
+        const match = conditionMatch(at, target);
+        conditions.set(at, match);
+        if (match === undefined) unresolved.push(at);
+    }
+    if (unresolved.length > 5)
+        return {
+            effect: 'unknown',
+            reason: 'Too many conditional layer orders to establish the winner',
+        };
+    function evaluate(i: number): DeclarationEffect {
+        const group = unresolved[i];
+        if (!group) return evaluateOrder(root, target, written, conditions);
+        conditions.set(group, false);
+        const skipped = evaluate(i + 1);
+        conditions.set(group, true);
+        const included = evaluate(i + 1);
+        if (skipped.effect === 'applies' && included.effect === 'applies') return skipped;
+        if (
+            skipped.effect === 'loses' &&
+            included.effect === 'loses' &&
+            skipped.competingRule.start === included.competingRule.start
+        )
+            return skipped;
+        return {
+            effect: 'unknown',
+            reason: 'Conditional layer registration may change the winning rule',
+        };
+    }
+    return evaluate(0);
+}
+function conditionMatch(at: AtRule, target: ClassTarget): Match {
+    const kind = keyword(at.name);
+    if (kind !== 'media' && kind !== 'supports' && kind !== 'scope' && kind !== 'container')
+        return undefined;
+    return (
+        (kind === 'media' ? mediaMatch(at, target.width) : undefined) ??
+        (target.width === undefined
+            ? undefined
+            : target.matchesCondition?.(kind, at.params, target.width))
+    );
+}
+function evaluateOrder(
+    root: Root,
+    target: ClassTarget,
+    written: Declaration,
+    conditions: ReadonlyMap<AtRule, Match>,
+): DeclarationEffect {
     if (root.nodes.some((n) => n.type === 'atrule' && defaultNamespace(n)))
         return { effect: 'unknown', reason: 'Default namespace needs element namespace evidence' };
     if (target.documentMode === 'quirks')
@@ -183,7 +244,6 @@ export function declarationEffect(
         }
         target = { ...target, currentConvention: webflow ? 'webflow' : 'aria' };
     }
-    const width = target.width;
     const property = normalize(decodeIdent(written.prop));
     const affected = longhands(property);
     type Winner = {
@@ -226,11 +286,9 @@ export function declarationEffect(
                     kind === 'container' ||
                     kind === 'scope'
                 ) {
-                    const condition =
-                        (kind === 'media' ? mediaMatch(node, width) : undefined) ??
-                        (width === undefined
-                            ? undefined
-                            : target.matchesCondition?.(kind, node.params, width));
+                    const condition = conditions.has(node)
+                        ? conditions.get(node)
+                        : conditionMatch(node, target);
                     const branch = all([active, condition]);
                     if (branch !== false)
                         visit(
@@ -267,7 +325,14 @@ export function declarationEffect(
                     ].includes(kind)
                 ) {
                     // An unmodeled conditional group can contain a competing style rule.
-                    visit(node.nodes, selectors, layer, undefined, scope);
+                    if (conditions.get(node) !== false)
+                        visit(
+                            node.nodes,
+                            selectors,
+                            layer,
+                            all([active, conditions.get(node)]),
+                            scope,
+                        );
                 }
                 continue;
             }
@@ -292,17 +357,19 @@ export function declarationEffect(
             if (!writes.length) continue;
             for (const ast of selectors) {
                 const selector = ast.toString();
-                const matches = all([active, selectorMatch(ast, target)]);
-                if (matches === false) continue;
-                // Functional pseudo-classes with additional selector-dependent specificity
-                // (such as nth-child(... of S)) need a full model before proving a winner.
+                // A forgiving selector list discards invalid branches *before*
+                // taking maximum specificity. A structural matches() result
+                // alone cannot establish which branches the browser accepted.
                 ast.walkPseudos((n) => {
+                    const name = keyword(n.value);
                     if (
-                        n.nodes.length &&
-                        ![':where', ':is', ':has', ':not'].includes(keyword(n.value))
+                        ![':where', ':is', ':not', ':has'].includes(name) &&
+                        (!states.has(name) || n.nodes.length)
                     )
                         unmodeledSelector = selector;
                 });
+                const matches = all([active, selectorMatch(ast, target)]);
+                if (matches === false) continue;
                 const order = layer.map(
                     (_, i) => layers.get(JSON.stringify(layer.slice(0, i + 1)))!,
                 );

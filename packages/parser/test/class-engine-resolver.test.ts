@@ -197,3 +197,84 @@ test('default namespace and unverified winning values require more evidence', ()
         expect(editDeclaration(css, { selector: '.a' }, 'color', 'blue').effect).toBe('unknown');
     }
 });
+
+test('a browser-loaded Webflow sheet resolves imports relative to its own URL', () => {
+    const files = {
+        'layout.tsx': 'export default <link rel="stylesheet" href="/css/main.css"/>',
+        'public/css/main.css': '@import "other.css";.a{color:red}',
+        'public/css/other.css': '.a{color:green!important}',
+        'src/decoy.css': '.a{color:pink}',
+    };
+    const config = { paths: { 'other.css': ['src/decoy.css'] } };
+    const graph = resolveClassStylesheets(files, ['layout.tsx'], {}, config);
+    expect([...graph.paths]).toEqual(['public/css/main.css', 'public/css/other.css']);
+    const { files: changed } = renameClass(
+        files['public/css/main.css'],
+        files,
+        'a',
+        'z',
+        'public/css/main.css',
+        graph,
+    );
+    expect(changed['src/decoy.css']).toBe(files['src/decoy.css']);
+    expect(changed['public/css/other.css']).toBe('.z{color:green!important}');
+});
+test('conditional layer registration cannot pin the global layer order', () => {
+    const css =
+        '@supports(display:weblab-invalid){@layer theme;} @layer components{.a{color:red}} @layer theme{.a{color:green}}';
+    const target = { selector: '.a', width: 768, direction: 'min' as const };
+    expect(editDeclaration(css, target, 'color', 'blue').effect).toBe('unknown');
+    for (const enabled of [true, false])
+        expect(
+            editDeclaration(css, { ...target, matchesCondition: () => enabled }, 'color', 'blue')
+                .effect,
+        ).toBe(enabled ? 'applies' : 'loses');
+});
+test('an unverified branch cannot supply known specificity in a forgiving selector list', () => {
+    const css = '.a:is(#unused:weblab-review-unknown,.a){color:green}.a{color:red}';
+    for (const state of ['hover', 'current'] as const)
+        expect(
+            editDeclaration(
+                css,
+                {
+                    selector: '.a',
+                    width: 768,
+                    direction: 'min',
+                    state,
+                    currentConvention: 'webflow',
+                },
+                'color',
+                'blue',
+            ).effect,
+        ).toBe('unknown');
+});
+
+test('only browser-eligible imports extend a linked stylesheet graph', () => {
+    const files = {
+        'public/a.css':
+            '@layer first; @import "early.css"; .a{} @import "late.css"; @media all{@import "nested.css";}',
+        'public/early.css': '.a{}',
+        'public/late.css': '.a{}',
+        'public/nested.css': '.a{}',
+    };
+    expect([...resolveClassStylesheets(files, ['public/a.css']).paths]).toEqual([
+        'public/a.css',
+        'public/early.css',
+    ]);
+});
+test('relative document links and ambiguous bare CSS entries name their missing load context', () => {
+    const files = {
+        'page.tsx': 'export default <link rel="stylesheet" href="a.css"/>',
+        'a.css': '@import "./b.css";',
+        'b.css': '@import "other.css";',
+        'other.css': '.a{}',
+        'decoy.css': '.a{}',
+    };
+    expect(resolveClassStylesheets(files, ['page.tsx']).unresolved).toEqual([
+        { importer: 'page.tsx', specifier: 'a.css' },
+    ]);
+    expect(
+        resolveClassStylesheets(files, ['a.css'], {}, { paths: { 'other.css': ['./decoy.css'] } })
+            .unresolved,
+    ).toEqual([{ importer: 'b.css', specifier: 'other.css' }]);
+});
