@@ -1,6 +1,12 @@
 import { expect, test } from 'bun:test';
 
-import { editDeclaration, renameClass, resolveClassStylesheets } from '../src/classes';
+import {
+    buildElementContext,
+    editDeclaration,
+    prepareElementContext,
+    renameClass,
+    resolveClassStylesheets,
+} from '../src/classes';
 
 const target = { selector: '.a', width: 768, direction: 'min' } as const;
 test('reports an unresolved ancestor and preserves the proposed edit in every case', () => {
@@ -153,4 +159,101 @@ test('a nonliteral lazy dependency or ambiguous alias leaves the project invento
         { importer: 'app/layout.tsx', specifier: '@/shell' },
         { importer: 'app/layout.tsx', specifier: 'import(which)' },
     ]);
+});
+
+test('pseudo-elements and excluded subjects do not compete for element color', () => {
+    for (const selector of [
+        'input::placeholder',
+        'input:before',
+        '.form_input::placeholder',
+        '.other:weblab-unmodeled',
+    ]) {
+        const edit = editDeclaration(
+            '.button{color:red}' + selector + '{color:gray!important}',
+            { selector: '.button', width: 768, matchesSelector: () => false },
+            'color',
+            'blue',
+        );
+        expect(edit.effect).toBe('applies');
+    }
+});
+
+test('builds serializable per-state evidence from structural matches on the selected element', () => {
+    const css =
+        'input.field#different[required]::placeholder{color:gray!important} .wrap a.button#cta[href]:hover{color:green!important} .button{color:red}';
+    const queried: string[] = [];
+    const context = buildElementContext(
+        prepareElementContext([css]),
+        (selector) => {
+            queried.push(selector);
+            return ['a.button#cta[href]', '.wrap a.button#cta[href]', '.button'].includes(selector);
+        },
+        1440,
+    );
+    const elementContext = JSON.parse(JSON.stringify(context)) as typeof context;
+    expect(
+        editDeclaration(css, { selector: '.button', elementContext }, 'color', 'blue').effect,
+    ).toBe('applies');
+    expect(
+        editDeclaration(
+            css,
+            { selector: '.button', state: 'hover', elementContext },
+            'color',
+            'blue',
+        ).effect,
+    ).toBe('loses');
+    expect(queried).not.toContain('.wrap a.button#cta[href]:hover');
+    expect(queried).toContain('.wrap a.button#cta[href]');
+});
+test('respects document order and identifies the winning source', () => {
+    const css = '.a{color:red}';
+    const linked = { path: 'linked.css', source: '.a{color:green}' };
+    const edited = { path: 'authored.css', edited: true } as const;
+    const sheets = [edited, linked];
+    const apply = (stylesheets: typeof sheets) =>
+        editDeclaration(
+            css,
+            { selector: '.a', stylesheets, linkedStylesheets: ['linked.css'] },
+            'color',
+            'blue',
+        );
+    expect(apply(sheets)).toMatchObject({
+        effect: 'loses',
+        competingRule: { path: 'linked.css', start: 3 },
+    });
+    expect(apply([linked, edited]).effect).toBe('applies');
+    expect(
+        editDeclaration(
+            css,
+            { selector: '.a', stylesheets: [edited], linkedStylesheets: ['missing.css'] },
+            'color',
+            'blue',
+        ).effect,
+    ).toBe('unknown');
+});
+test('unverified selector specificity cannot beat higher importance', () => {
+    expect(
+        editDeclaration(
+            '.a:is(#x:unverified,.a){color:gray}.a{color:red!important}',
+            { selector: '.a' },
+            'color',
+            'blue',
+        ).effect,
+    ).toBe('applies');
+});
+
+test('element evidence excludes other tags, classes, IDs and attributes while retaining class combinations', () => {
+    const css = '.button{color:red}.other,h1,#other,[disabled]{color:gray!important}';
+    const plan = prepareElementContext([css], ['base']);
+    const target = { selector: '.button' };
+    expect(editDeclaration(css, target, 'color', 'blue').effect).toBe('unknown');
+    for (const extra of [false, true]) {
+        const elementContext = buildElementContext(
+            plan,
+            (s) => s === '.button' || (s === '.other' && extra),
+        );
+        expect(editDeclaration(css, { ...target, elementContext }, 'color', 'blue').effect).toBe(
+            extra ? 'loses' : 'applies',
+        );
+    }
 });

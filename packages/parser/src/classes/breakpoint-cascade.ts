@@ -2,6 +2,7 @@ import type { AtRule, ChildNode, Declaration, Root } from 'postcss';
 import properties from 'mdn-data/css/properties.json';
 import selectorParser from 'postcss-selector-parser';
 
+import type { ContextState, ElementQuery } from './element-context';
 import type { ClassTarget } from './stylesheet';
 import {
     decodeIdent,
@@ -10,6 +11,7 @@ import {
     layerNames,
     mediaMatch,
     modeledValue,
+    parseSheet,
     selectorAst,
 } from './css-syntax';
 
@@ -55,6 +57,10 @@ const some = (terms: Match[]): Match =>
     terms.includes(true) ? true : terms.includes(undefined) ? undefined : false;
 const states = new Set([':hover', ':active', ':focus-visible']);
 
+function isElementPseudo(n: selectorParser.Node): boolean {
+    return selectorParser.isPseudoElement(n);
+}
+
 function stateMarker(n: selectorParser.Node) {
     return (
         (n.type === 'class' && n.value === 'w--current') ||
@@ -65,7 +71,25 @@ function stateMarker(n: selectorParser.Node) {
 
 // Evaluate each subject compound once. Keep structural constraints in the AST
 // for the preview, and substitute only state predicates proved by the request.
+function stateKey(target: ClassTarget): ContextState {
+    return target.state === 'current'
+        ? (('current:' + (target.currentConvention ?? 'aria')) as ContextState)
+        : (target.state ?? 'base');
+}
 function selectorMatch(ast: selectorParser.Selector, target: ClassTarget): Match {
+    const evidence = target.elementContext?.matches[stateKey(target)];
+    if (evidence && Object.hasOwn(evidence, ast.toString())) return evidence[ast.toString()];
+    const test = selectorTest(ast, target);
+    return typeof test === 'string' ? target.matchesSelector?.(test) : test;
+}
+
+// A definite result needs no DOM lookup. Otherwise the returned selector
+// describes the structure that must match after substituting the target state.
+function selectorTest(
+    ast: selectorParser.Selector,
+    target: ClassTarget,
+    inspectAriaValue = false,
+): Match | string {
     const shape = selectorAst(target.selector).first;
     const classes = new Set(shape.nodes.flatMap((n) => (n.type === 'class' ? [n.value] : [])));
     const tag = shape.first?.type === 'tag' ? keyword(shape.first.value) : undefined;
@@ -90,6 +114,7 @@ function selectorMatch(ast: selectorParser.Selector, target: ClassTarget): Match
                         : target.state === 'current';
                 return undefined;
             case 'pseudo':
+                if (isElementPseudo(n)) return false;
                 return states.has(keyword(n.value))
                     ? keyword(n.value) === ':' + target.state
                     : undefined;
@@ -123,15 +148,30 @@ function selectorMatch(ast: selectorParser.Selector, target: ClassTarget): Match
     }
     const structural = ast.clone();
     const known = reduce(structural);
-    if (known !== undefined || !target.matchesSelector) return known;
+    if (known !== undefined) return known;
     let unresolved = false;
     structural.walk((n) => {
-        if (stateMarker(n) || ('namespace' in n && n.namespace !== undefined)) unresolved = true;
+        const exactAria =
+            inspectAriaValue &&
+            target.state === 'current' &&
+            target.currentConvention === 'aria' &&
+            n.type === 'attribute' &&
+            !!n.operator &&
+            keyword(n.attribute) === 'aria-current' &&
+            n.parent === structural;
+        if ((!exactAria && stateMarker(n)) || ('namespace' in n && n.namespace !== undefined))
+            unresolved = true;
     });
-    return unresolved ? undefined : target.matchesSelector(structural.toString());
+    return unresolved ? undefined : structural.toString();
 }
 
-export type CompetingRule = { selector: string; property: string; value: string; start?: number };
+export type CompetingRule = {
+    selector: string;
+    property: string;
+    value: string;
+    path?: string;
+    start?: number;
+};
 export type DeclarationEffect =
     | { effect: 'applies'; competingRule?: never }
     | { effect: 'loses'; competingRule: CompetingRule }
@@ -155,21 +195,110 @@ function nestedSelectors(parents: selectorParser.Selector[], children: selectorP
     });
 }
 
+/** Prepare state-specific structural queries once for an ordered set of CSS sources. */
+export function prepareElementContext(
+    sources: readonly string[],
+    states: readonly ContextState[] = [
+        'base',
+        'hover',
+        'focus-visible',
+        'active',
+        'current:aria',
+        'current:webflow',
+    ],
+): ElementQuery[] {
+    const queries = new Map<string, ElementQuery>();
+    function visit(nodes: readonly ChildNode[], parents: selectorParser.Selector[]) {
+        for (const node of nodes) {
+            if (node.type === 'atrule' && node.nodes) {
+                visit(node.nodes, parents);
+                continue;
+            }
+            if (node.type !== 'rule') continue;
+            let expanded: selectorParser.Selector[];
+            try {
+                expanded = nestedSelectors(parents, selectorAst(node.selector).nodes);
+            } catch {
+                continue;
+            }
+            for (const ast of expanded) {
+                const selector = ast.toString();
+                if (queries.has(selector)) continue;
+                const subject = ast.nodes
+                    .slice(ast.nodes.findLastIndex((n) => n.type === 'combinator') + 1)
+                    .filter(
+                        (n) =>
+                            ['tag', 'id', 'class', 'attribute'].includes(n.type) &&
+                            !stateMarker(n) &&
+                            !('namespace' in n && n.namespace !== undefined),
+                    )
+                    .map((n) => n.toString().trim())
+                    .join('');
+                const query: ElementQuery = { selector, subject: subject || undefined, states: {} };
+                for (const state of states) {
+                    const current = state === 'current:aria' || state === 'current:webflow';
+                    const test = selectorTest(
+                        ast,
+                        {
+                            selector: '*',
+                            state: current ? 'current' : state === 'base' ? undefined : state,
+                            currentConvention: state === 'current:webflow' ? 'webflow' : 'aria',
+                        },
+                        true,
+                    );
+                    query.states[state] = test ?? null;
+                    if (
+                        state === 'current:aria' &&
+                        typeof test === 'string' &&
+                        ast.nodes.some(
+                            (n) =>
+                                n.type === 'attribute' &&
+                                !!n.operator &&
+                                keyword(n.attribute) === 'aria-current',
+                        )
+                    )
+                        query.needsAriaValue = { [state]: true };
+                }
+                queries.set(selector, query);
+            }
+            visit(node.nodes, expanded);
+        }
+    }
+    for (const source of sources) visit(parseSheet(source).nodes, []);
+    return [...queries.values()];
+}
+
 /** Evaluate author declarations in this sheet for the target at its requested width. */
 export function declarationEffect(
     root: Root,
     target: ClassTarget,
     written: Declaration,
 ): DeclarationEffect {
+    const sheets = new Map<Root, string | undefined>();
+    if (target.stylesheets) {
+        if (target.stylesheets.filter((s) => 'edited' in s).length !== 1)
+            return {
+                effect: 'unknown',
+                reason: 'Expected one edited stylesheet in document order',
+            };
+        try {
+            for (const sheet of target.stylesheets)
+                sheets.set('edited' in sheet ? root : parseSheet(sheet.source), sheet.path);
+        } catch {
+            return { effect: 'unknown', reason: 'Could not parse a linked stylesheet' };
+        }
+    } else sheets.set(root, undefined);
+    const roots = [...sheets.keys()];
     // Conditional group membership can affect the first occurrence of a layer
     // even when the group has no declarations. Evaluate both registrations.
     const groups = new Set<AtRule>();
-    root.walkAtRules((at) => {
-        if (keyword(at.name) !== 'layer') return;
-        for (let parent = at.parent; parent && parent.type !== 'root'; parent = parent.parent) {
-            if (parent.type === 'atrule') groups.add(parent);
-        }
-    });
+    for (const sheet of roots)
+        sheet.walkAtRules((at) => {
+            if (keyword(at.name) !== 'layer') return;
+            for (let parent = at.parent; parent && parent.type !== 'root'; parent = parent.parent) {
+                if (parent.type === 'atrule') groups.add(parent);
+            }
+        });
     const conditions = new Map<AtRule, Match>();
     const unresolved: AtRule[] = [];
     for (const at of groups) {
@@ -186,7 +315,7 @@ export function declarationEffect(
         };
     function evaluate(i: number): DeclarationEffect {
         const group = unresolved[i];
-        if (!group) return evaluateOrder(root, target, written, conditions);
+        if (!group) return evaluateOrder(sheets, target, written, conditions);
         conditions.set(group, false);
         const skipped = evaluate(i + 1);
         conditions.set(group, true);
@@ -195,6 +324,7 @@ export function declarationEffect(
         if (
             skipped.effect === 'loses' &&
             included.effect === 'loses' &&
+            skipped.competingRule.path === included.competingRule.path &&
             skipped.competingRule.start === included.competingRule.start
         )
             return skipped;
@@ -209,20 +339,23 @@ function conditionMatch(at: AtRule, target: ClassTarget): Match {
     const kind = keyword(at.name);
     if (kind !== 'media' && kind !== 'supports' && kind !== 'scope' && kind !== 'container')
         return undefined;
+    const width = target.width ?? target.viewportWidth ?? target.elementContext?.viewportWidth;
     return (
-        (kind === 'media' ? mediaMatch(at, target.width) : undefined) ??
-        (target.width === undefined
-            ? undefined
-            : target.matchesCondition?.(kind, at.params, target.width))
+        (kind === 'media' ? mediaMatch(at, width) : undefined) ??
+        (width === undefined ? undefined : target.matchesCondition?.(kind, at.params, width))
     );
 }
 function evaluateOrder(
-    root: Root,
+    sheets: ReadonlyMap<Root, string | undefined>,
     target: ClassTarget,
     written: Declaration,
     conditions: ReadonlyMap<AtRule, Match>,
 ): DeclarationEffect {
-    if (root.nodes.some((n) => n.type === 'atrule' && defaultNamespace(n)))
+    if (
+        [...sheets.keys()].some((root) =>
+            root.nodes.some((n) => n.type === 'atrule' && defaultNamespace(n)),
+        )
+    )
         return { effect: 'unknown', reason: 'Default namespace needs element namespace evidence' };
     if (target.documentMode === 'quirks')
         return {
@@ -254,9 +387,10 @@ function evaluateOrder(
         ambiguous?: boolean;
     };
     const possible = new Map<string, Winner>();
-    let dependency = target.linkedStylesheets?.[0];
+    const inspected = new Set(sheets.values());
+    let dependency = target.linkedStylesheets?.find((path) => !inspected.has(path));
+    let sheetIndex = 0;
     let orderInSheet = 0;
-    let unmodeledSelector: string | undefined;
     const winners = new Map<string, Winner>();
     const writtenMatches = new Set<string>();
     const layers = new Map<string, number>();
@@ -307,7 +441,7 @@ function evaluateOrder(
                                 layer,
                                 node.params
                                     ? layerNames(node.params)[0]!
-                                    : ['@' + node.source?.start?.offset],
+                                    : ['@' + sheetIndex + '/' + node.source?.start?.offset],
                             ),
                             active,
                             scope,
@@ -357,19 +491,20 @@ function evaluateOrder(
             if (!writes.length) continue;
             for (const ast of selectors) {
                 const selector = ast.toString();
+                const matches = all([active, selectorMatch(ast, target)]);
+                if (matches === false) continue;
                 // A forgiving selector list discards invalid branches *before*
                 // taking maximum specificity. A structural matches() result
                 // alone cannot establish which branches the browser accepted.
+                let unverifiedSpecificity = false;
                 ast.walkPseudos((n) => {
                     const name = keyword(n.value);
                     if (
                         ![':where', ':is', ':not', ':has'].includes(name) &&
                         (!states.has(name) || n.nodes.length)
                     )
-                        unmodeledSelector = selector;
+                        unverifiedSpecificity = true;
                 });
-                const matches = all([active, selectorMatch(ast, target)]);
-                if (matches === false) continue;
                 const order = layer.map(
                     (_, i) => layers.get(JSON.stringify(layer.slice(0, i + 1)))!,
                 );
@@ -378,13 +513,17 @@ function evaluateOrder(
                 const rank = [
                     Number(!!node.important),
                     ...order.map((n) => (node.important ? -n : n)),
-                    ...specificity(ast.nodes),
+                    ...(unverifiedSpecificity
+                        ? [Number.MAX_SAFE_INTEGER, 0, 0]
+                        : specificity(ast.nodes)),
                     Number(!!scope),
                     orderInSheet++,
                 ];
                 for (const p of writes) {
-                    if (matches === true && node === written) writtenMatches.add(p);
-                    const candidates = matches === true ? winners : possible;
+                    if (matches === true && !unverifiedSpecificity && node === written)
+                        writtenMatches.add(p);
+                    const candidates =
+                        matches === true && !unverifiedSpecificity ? winners : possible;
                     const old = candidates.get(p);
                     if (!old || compare(rank, old.rank) >= 0) {
                         const tied =
@@ -403,7 +542,10 @@ function evaluateOrder(
         }
     }
     try {
-        visit(root.nodes, [], [], true);
+        for (const sheet of sheets.keys()) {
+            visit(sheet.nodes, [], [], true);
+            sheetIndex++;
+        }
     } catch (error) {
         // Selector parsers and DOM matchers can reject future CSS syntax.
         return {
@@ -413,11 +555,10 @@ function evaluateOrder(
                 (error instanceof Error ? error.message : String(error)),
         };
     }
-    if (unmodeledSelector)
-        return { effect: 'unknown', reason: 'Unmodeled selector: ' + unmodeledSelector };
     function describe(candidate: Winner): CompetingRule {
         return {
             selector: candidate.selector,
+            path: sheets.get(candidate.decl.root()),
             property: candidate.decl.prop,
             value: candidate.decl.value,
             start:

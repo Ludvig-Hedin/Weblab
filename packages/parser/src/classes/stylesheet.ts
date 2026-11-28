@@ -3,6 +3,7 @@ import { ident, tokenTypes } from 'css-tree';
 import postcss from 'postcss';
 
 import type { DeclarationEffect } from './breakpoint-cascade';
+import type { ElementContext } from './element-context';
 import { declarationEffect } from './breakpoint-cascade';
 import {
     decodeIdent,
@@ -16,6 +17,7 @@ import {
 } from './css-syntax';
 import { selectorInventory } from './selector-inventory';
 
+export type CascadeSheet = { path: string; source: string } | { path: string; edited: true };
 export type ClassState = 'hover' | 'focus-visible' | 'active' | 'current';
 export interface ClassTarget {
     selector: string;
@@ -28,6 +30,11 @@ export interface ClassTarget {
     matchesSelector?: (selector: string) => boolean | undefined;
     /** Other linked sheets whose declarations are outside the supplied source. */
     linkedStylesheets?: readonly string[];
+    /** Document order, with exactly one marker for the sheet receiving the patch. */
+    stylesheets?: readonly CascadeSheet[];
+    elementContext?: ElementContext;
+    /** Viewport for base edits. width continues to select the authored breakpoint. */
+    viewportWidth?: number;
     /** Resolve additional preview conditions, e.g. supports() or non-width media features. */
     matchesCondition?: (
         name: 'supports' | 'media' | 'container' | 'scope',
