@@ -4,7 +4,9 @@ import { chromium } from 'playwright';
 
 import type { ClassState, ClassTarget } from '../src/classes/stylesheet';
 import type { AliasShape } from './class-rename-browser';
+import { prepareElementContext } from '../src/classes/breakpoint-cascade';
 import { applyPatch, editDeclaration } from '../src/classes/stylesheet';
+import { installElementContext } from './class-element-preview';
 import { checkRename } from './class-rename-browser';
 
 const count = Number(process.argv[2] ?? 2000);
@@ -193,6 +195,7 @@ let applies = 0,
 try {
     const page = await browser.newPage();
     await page.setContent('<!doctype html><section><button id="target"></button></section>');
+    await installElementContext(page);
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('DOM.enable');
     await cdp.send('CSS.enable');
@@ -212,28 +215,22 @@ try {
         const supports =
             f.supports && (await page.evaluate((condition) => CSS.supports(condition), f.supports));
         if (typeof supports === 'boolean') f.target.matchesCondition = () => supports;
-        const queries = new Set<string>();
-        const edit = (matchesSelector: ClassTarget['matchesSelector']) =>
-            editDeclaration(f.css, { ...f.target, matchesSelector }, 'color', 'blue');
-        edit((s) => {
-            queries.add(s);
-            return undefined;
-        });
-        const evidence = await page.evaluate(
-            ({ wrapped, classes, selectors, aria }) => {
+        await page.setViewportSize({ width: f.target.width!, height: 600 });
+        const queries = prepareElementContext([f.css]);
+        const elementContext = await page.evaluate(
+            ({ wrapped, classes, queries, aria }) => {
                 const el = document.querySelector('button')!;
                 el.className = classes;
                 if (aria === null) el.removeAttribute('aria-current');
                 else el.setAttribute('aria-current', aria);
                 el.parentElement!.className = wrapped ? 'wrap' : '';
                 el.parentElement!.id = wrapped ? 'outer' : '';
-                return Object.fromEntries(selectors.map((s) => [s, el.matches(s)]));
+                return window.classElementContext(queries, (s) => el.matches(s), window.innerWidth);
             },
-            { wrapped: f.wrapped, classes: f.classes, aria: f.aria, selectors: [...queries] },
+            { wrapped: f.wrapped, classes: f.classes, aria: f.aria, queries },
         );
-        const result = edit((s) => evidence[s]);
+        const result = editDeclaration(f.css, { ...f.target, elementContext }, 'color', 'blue');
         const css = applyPatch(f.css, result.patch);
-        await page.setViewportSize({ width: f.target.width!, height: 600 });
         const state = f.target.state;
         await cdp.send('CSS.forcePseudoState', {
             nodeId,

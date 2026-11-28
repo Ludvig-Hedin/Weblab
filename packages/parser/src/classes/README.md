@@ -37,3 +37,25 @@ A stylesheet reached through a document link carries its browser URL through its
 Conditional first declarations of layers can change cascade order. When condition evidence is missing, the evaluator compares possible orders, up to 32 combinations. Disagreement gives an unknown effect. A selector with an unverified pseudo-class also gives an unknown effect because the browser may discard a branch before calculating specificity.
 
 The Chrome script includes fixed controls for conditional layer registration and rejected selector branches. It reports definite, unknown and mismatched outcomes per generated shape. Overlapping shapes can include the same case. The ownership comparison bundles temporary JSX projects with Bun, renders them in Chrome, and reads linked and imported stylesheets through the CSSOM before and after rename. Each fixture checks the patched CSS paths, new selectors and computed color. Browser requests are served from the fixture snapshot.
+
+## Selected-element evidence
+
+Pass all active author sheets in document order as `target.stylesheets`. Use `{path, edited: true}` for the sheet receiving the patch and `{path, source}` for each other sheet, including embedded style blocks. The evaluator shares layer and declaration order across those sheets. A known competing rule includes its path and sheet-local source offset. Keep missing dependencies in `linkedStylesheets`. An uninspected import still yields uncertainty.
+
+```ts
+const queries = prepareElementContext([normalizeCss, webflowCss, authoredCss]);
+// In the preview, run this for the current element and viewport.
+const elementContext = buildElementContext(queries, s => element.matches(s), window.innerWidth);
+const result = editDeclaration(authoredCss, {
+    selector: '.button', state: 'hover', elementContext,
+    stylesheets: [
+        { path: 'normalize.css', source: normalizeCss },
+        { path: 'webflow.css', source: webflowCss },
+        { path: 'authored.css', edited: true },
+    ],
+}, 'color', 'blue');
+```
+
+The query plan and returned context are serializable. Prepare the plan again after selector changes. Refresh element evidence when selection, DOM structure, relevant attributes or the preview viewport change. Each state has its own structural matches. The helper filters the selector's subject by tag, classes, ID and attributes and evaluates the remaining ancestor or descendant relationship using the supplied callback. Target Hover works while the pointer is elsewhere. Pseudo-elements have separate styles. Missing evidence for a state on another element, an invalid selector branch, or an unspecified ARIA Current value can still yield unknown. For source-only calls, a class name alone cannot establish the selected element's tag or complete class list. For base edits, supply the current viewport width through the context or `target.viewportWidth`.
+
+Run `bun scripts/class-client-first.ts` from the parser package to replay the 20 reviewer edits in the checked-in Client-First style guide. It reports warnings with and without context and compares definite full-document verdicts to computed styles. The generated Chrome comparison also builds its element context in the browser.
