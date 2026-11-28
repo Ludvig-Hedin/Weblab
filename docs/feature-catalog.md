@@ -962,6 +962,7 @@ This file is owned by **whoever ships the feature**. There is no central reviewe
 
 | Date | IDs added / changed | Note |
 |---|---|---|
+| 2026-11-28 | F-689 | Resolve stylesheet ownership through TypeScript bundler lookup and evaluate nested selectors, escaped CSS and simulated states from syntax trees. |
 | 2026-11-28 | F-689 | Expose the cascade effect separately from each proposed edit and restrict project rename to owned source files. |
 | 2026-11-27 | F-689 | Add the stylesheet class engine and JSX usage and rename operations. |
 | 2026-11-27 | F-707 | Add the Webflow code-export converter and import report. |
