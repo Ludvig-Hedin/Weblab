@@ -1,9 +1,9 @@
-import postcss from 'postcss';
-import valueParser from 'postcss-value-parser';
+import ts from 'typescript';
 
 import type { T } from '../packages';
 import { t, traverse } from '../packages';
 import { getAstFromContent } from '../parse';
+import { importPath, keyword, parseSheet } from './css-syntax';
 import { selectorInventory } from './selector-inventory';
 
 type Files = Readonly<Record<string, string>>;
@@ -37,53 +37,52 @@ export interface ClassPathConfig {
     baseUrl?: string;
     configPath?: string;
 }
-function aliasTargets(specifier: string, config?: ClassPathConfig): string[] | undefined {
-    if (!config) return;
-    const patterns = Object.keys(config.paths);
-    const key = patterns.includes(specifier)
-        ? specifier
-        : patterns
-              .filter((pattern) => {
-                  const [prefix, suffix, ...rest] = pattern.split('*');
-                  return (
-                      suffix !== undefined &&
-                      rest.length === 0 &&
-                      specifier.startsWith(prefix!) &&
-                      specifier.endsWith(suffix) &&
-                      specifier.length >= prefix!.length + suffix.length
-                  );
-              })
-              .sort((a, b) => b.indexOf('*') - a.indexOf('*'))[0];
-    if (key === undefined) return;
-    const star = key.indexOf('*');
-    const capture =
-        star < 0 ? '' : specifier.slice(star, specifier.length - (key.length - star - 1));
-    const configPath = config.configPath ?? 'tsconfig.json';
-    return config.paths[key]!.flatMap((template) => {
-        const target = template.replace('*', () => capture);
-        if (target.startsWith('/') || config.baseUrl?.startsWith('/')) return [];
-        const path = localPath(configPath, (config.baseUrl ?? '.') + '/' + target, false);
-        return path ? [path] : [];
-    });
-}
-function moduleCandidates(base: string) {
-    return [
-        base,
-        ...[
-            '.ts',
-            '.tsx',
-            '.mts',
-            '.cts',
-            '.js',
-            '.jsx',
-            '.mjs',
-            '.cjs',
-            '/index.ts',
-            '/index.tsx',
-            '/index.js',
-            '/index.jsx',
-        ].map((ext) => base + ext),
-    ];
+// Use the compiler's bundler resolver against the project snapshot. Virtual CSS
+// declarations let paths, package entry points and extension substitution use
+// the same lookup for both script and asset imports.
+function projectResolver(
+    files: Files,
+    config: ClassPathConfig | undefined,
+    sources: Map<string, string>,
+) {
+    const configPath = config?.configPath ?? 'tsconfig.json';
+    const base = localPath(configPath, config?.baseUrl ?? '.', false);
+    const options: ts.CompilerOptions & { pathsBasePath: string } = {
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        allowJs: true,
+        allowArbitraryExtensions: true,
+        ...(config?.baseUrl !== undefined ? { baseUrl: '/' + base } : {}),
+        paths:
+            config && Object.fromEntries(Object.entries(config.paths).map(([k, v]) => [k, [...v]])),
+        pathsBasePath: '/' + configPath.split('/').slice(0, -1).join('/'),
+    };
+    const virtual = new Map<string, string>();
+    for (const path of Object.keys(files)) {
+        if (path.endsWith('.css')) virtual.set('/' + path.slice(0, -4) + '.d.css.ts', path);
+    }
+    const host: ts.ModuleResolutionHost = {
+        fileExists: (p) => Object.hasOwn(files, p.slice(1)) || virtual.has(p),
+        readFile(p) {
+            const path = p.slice(1);
+            const text = files[path];
+            if (text !== undefined && p.endsWith('/package.json')) sources.set(path, text);
+            return text;
+        },
+    };
+    return (importer: string, specifier: string) => {
+        const result = ts.resolveModuleName(
+            specifier,
+            '/' + importer,
+            options,
+            host,
+        ).resolvedModule;
+        if (!result) return;
+        const path = result.resolvedFileName.slice(1);
+        const asset = virtual.get(result.resolvedFileName);
+        if (asset && !Object.hasOwn(files, path)) return asset;
+        if (/\.d\.(?:[cm]?ts|css\.ts)$/.test(path)) return;
+        return path;
+    };
 }
 function attribute(element: T.JSXOpeningElement, name: string) {
     for (const attr of element.attributes) {
@@ -123,29 +122,29 @@ function resolveGraph(
     const paths = new Set<string>();
     const sources = new Map<string, string>();
     const unresolved: MissingImport[] = [];
-    function resolve(importer: string, specifier: string, publicLink = false) {
+    const modulePath = projectResolver(files, config, sources);
+    function resolve(importer: string, specifier: string, mode: 'module' | 'css' | 'link') {
         const proof = Object.hasOwn(resolutions, specifier) ? resolutions[specifier] : undefined;
         if (proof === 'class-free') return;
-        if (!proof && !publicLink && !specifier.startsWith('.') && !specifier.startsWith('/')) {
-            const targets = aliasTargets(specifier, config);
-            if (targets !== undefined || /^(?:@|~)\//.test(specifier)) {
-                for (const base of targets ?? []) {
-                    const candidates = moduleCandidates(base).filter((path) =>
-                        Object.hasOwn(files, path),
-                    );
-                    if (candidates.length === 1) {
-                        visit(candidates[0]!);
-                        return;
-                    }
-                    if (candidates.length > 1) break;
-                }
-                unresolved.push({ importer, specifier });
-                return;
+        let path = proof?.path;
+        if (!proof) {
+            if (mode === 'link' || specifier.startsWith('/'))
+                path = localPath(importer, specifier, true);
+            else {
+                path = modulePath(importer, specifier);
+                if (
+                    !path &&
+                    mode === 'css' &&
+                    !specifier.startsWith('@') &&
+                    !specifier.startsWith('~') &&
+                    !config
+                )
+                    path = localPath(importer, specifier, false);
             }
         }
-        const path = proof?.path ?? localPath(importer, specifier, publicLink);
-        if (!path || !Object.hasOwn(files, path)) unresolved.push({ importer, specifier });
-        else visit(path);
+        if (path && Object.hasOwn(files, path) && (mode === 'module' || /\.css$/i.test(path)))
+            visit(path);
+        else unresolved.push({ importer, specifier });
     }
     function visit(path: string) {
         if (sources.has(path)) return;
@@ -159,7 +158,7 @@ function resolveGraph(
             if (!/\.module\.css$/i.test(path)) paths.add(path);
             let root;
             try {
-                root = postcss.parse(source);
+                root = parseSheet(source);
                 selectorInventory(source, root);
             } catch (error) {
                 unresolved.push({
@@ -170,22 +169,11 @@ function resolveGraph(
                 });
                 return;
             }
-            root.walkAtRules(/^import$/i, (at) => {
-                const first = valueParser(at.params.replace(/^url\(/i, 'url(')).nodes.find(
-                    (n) => n.type !== 'space' && n.type !== 'comment',
-                );
-                if (first?.type === 'string') resolve(path, first.value);
-                else if (first?.type === 'function' && first.value.toLowerCase() === 'url') {
-                    const inner = first.nodes.filter(
-                        (n) => n.type !== 'space' && n.type !== 'comment',
-                    );
-                    if (
-                        inner.length === 1 &&
-                        (inner[0]?.type === 'string' || inner[0]?.type === 'word')
-                    )
-                        resolve(path, inner[0].value);
-                    else unresolved.push({ importer: path, specifier: at.params });
-                } else unresolved.push({ importer: path, specifier: at.params });
+            root.walkAtRules((at) => {
+                if (keyword(at.name) !== 'import') return;
+                const specifier = importPath(at);
+                if (specifier) resolve(path, specifier, 'css');
+                else unresolved.push({ importer: path, specifier: at.params });
             });
             return;
         }
@@ -193,34 +181,11 @@ function resolveGraph(
         if (!ast) throw Error('Unable to parse stylesheet entry ' + path);
         function moduleImport(specifier: string) {
             if (
-                Object.hasOwn(resolutions, specifier) ||
-                aliasTargets(specifier, config) !== undefined ||
-                /^(?:@|~)\//.test(specifier)
-            ) {
-                resolve(path, specifier);
-                return;
-            }
-            if (/\.css(?:[?#]|$)/i.test(specifier)) {
-                if (!specifier.startsWith('.') && !Object.hasOwn(resolutions, specifier))
-                    unresolved.push({ importer: path, specifier });
-                else resolve(path, specifier);
-                return;
-            }
-            if (followModules && !specifier.startsWith('.')) {
-                unresolved.push({ importer: path, specifier });
-                return;
-            }
-            if (
-                !followModules ||
-                !specifier.startsWith('.') ||
-                (/\.[^/.]+$/.test(specifier) && !/\.[cm]?[jt]sx?$/.test(specifier))
+                followModules ||
+                /\.css(?:[?#]|$)/i.test(specifier) ||
+                Object.hasOwn(resolutions, specifier)
             )
-                return;
-            const base = localPath(path, specifier, false);
-            const candidates = base && moduleCandidates(base);
-            const next = candidates && candidates.find((p) => Object.hasOwn(files, p));
-            if (next) visit(next);
-            else unresolved.push({ importer: path, specifier });
+                resolve(path, specifier, 'module');
         }
         traverse(ast, {
             CallExpression({ node }) {
@@ -255,7 +220,7 @@ function resolveGraph(
                 )
                     return;
                 const href = attribute(node, 'href');
-                if (href) resolve(path, href, true);
+                if (href) resolve(path, href, 'link');
                 else
                     unresolved.push({
                         importer: path,

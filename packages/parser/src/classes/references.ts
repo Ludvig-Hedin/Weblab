@@ -3,6 +3,7 @@ import type { TextPatch } from './stylesheet';
 import type { ClassStylesheetSet } from './stylesheet-graph';
 import { t, traverse } from '../packages';
 import { getAstFromContent } from '../parse';
+import { tokens as cssTokens } from './css-syntax';
 import { selectorInventory } from './selector-inventory';
 import { applyPatch, assertClassName } from './stylesheet';
 import { singleSheetInventory } from './stylesheet-graph';
@@ -208,6 +209,25 @@ export function classUsage(css: string, files: Files) {
     return { counts, unused: [...names].filter((n) => !counts[n]), dynamic };
 }
 
+// Textual references can occur inside comments and quoted prose as well as
+// identifiers. Scan word boundaries only after the language parser has assigned
+// ranges. These sites can only produce warnings.
+function* referenceWords(text: string) {
+    let start = 0;
+    for (let i = 0; i <= text.length; i++) {
+        const c = text.charCodeAt(i);
+        if (
+            (c >= 65 && c <= 90) ||
+            (c >= 97 && c <= 122) ||
+            (c >= 48 && c <= 57) ||
+            c === 95 ||
+            c === 45
+        )
+            continue;
+        if (i > start) yield { name: text.slice(start, i), start };
+        start = i + 1;
+    }
+}
 // Audit every literal token in original coordinates, including unsupported syntax and file types.
 function residualSites(
     path: string,
@@ -215,20 +235,27 @@ function residualSites(
     name: string,
     patches: TextPatch[],
     unsafe: Site[],
+    stylesheet = false,
 ) {
     const covered = [...patches, ...unsafe.filter((site) => site.path === path)].sort(
         (a, b) => a.start - b.start,
     );
     let index = 0;
     let coveredUntil = -1;
-    for (const match of source.matchAll(new RegExp('(?<![\\w-])' + name + '(?![\\w-])', 'g'))) {
-        const start = match.index;
-        const end = start + name.length;
-        while (index < covered.length && covered[index]!.start <= start) {
-            coveredUntil = Math.max(coveredUntil, covered[index++]!.end);
+    // Free text in strings/comments must also be reported. CSS token boundaries
+    // come from the stylesheet tokenizer; this audit never authorizes a patch.
+    const chunks = stylesheet ? cssTokens(source) : [{ raw: source, start: 0 }];
+    for (const chunk of chunks)
+        for (const word of referenceWords(chunk.raw)) {
+            if (word.name !== name) continue;
+            const start = chunk.start + word.start;
+            const end = start + name.length;
+            while (index < covered.length && covered[index]!.start <= start) {
+                coveredUntil = Math.max(coveredUntil, covered[index++]!.end);
+            }
+            if (coveredUntil < end)
+                unsafe.push({ path, start, end, reason: 'unverified reference' });
         }
-        if (coveredUntil < end) unsafe.push({ path, start, end, reason: 'unverified reference' });
-    }
 }
 function cssRenamePatches(css: string, from: string, to: string, path: string, unsafe: Site[]) {
     const { names, tokens, uncertain } = selectorInventory(css);
@@ -305,10 +332,10 @@ export function renameClass(
         else unsafe.push({ path, start, end, reason });
     }
     for (const [path, edits] of Object.entries(patches)) {
-        residualSites(path, next[path]!, from, edits, unsafe);
+        residualSites(path, next[path]!, from, edits, unsafe, graph.paths.has(path));
         for (const patch of edits.toReversed()) next[path] = applyPatch(next[path]!, patch);
     }
-    if (!(cssPath in files)) residualSites(cssPath, css, from, cssPatches, unsafe);
+    if (!(cssPath in files)) residualSites(cssPath, css, from, cssPatches, unsafe, true);
     for (const patch of cssPatches.toReversed()) css = applyPatch(css, patch);
     return { css, files: next, unsafe, patches, cssPatches };
 }

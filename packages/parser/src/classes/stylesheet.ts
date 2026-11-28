@@ -1,13 +1,26 @@
 import type { AtRule, ChildNode, Root, Rule } from 'postcss';
+import { ident, tokenTypes } from 'css-tree';
 import postcss from 'postcss';
 
 import type { DeclarationEffect } from './breakpoint-cascade';
 import { declarationEffect } from './breakpoint-cascade';
+import {
+    decodeIdent,
+    hasComment,
+    keyword,
+    layerNames,
+    breakpoint as media,
+    parseSheet,
+    selectorAst,
+    tokens,
+} from './css-syntax';
 import { selectorInventory } from './selector-inventory';
 
 export type ClassState = 'hover' | 'focus-visible' | 'active' | 'current';
 export interface ClassTarget {
     selector: string;
+    /** Next.js documents use standards mode. Set this from compatMode for legacy markup. */
+    documentMode?: 'standards' | 'quirks';
     state?: ClassState;
     width?: number;
     direction?: 'min' | 'max';
@@ -55,52 +68,57 @@ export function assertClassName(name: string) {
         throw Error('Unsupported class name');
 }
 function selectorParts(raw: string) {
-    const match =
-        /^((?:\.-?[a-zA-Z_][\w-]*)+|body|h[1-6]|a|p)(:hover|:active|:focus-visible|\[aria-current\])?$/i.exec(
-            raw,
-        );
-    if (!match) return;
-    let selector = match[1]!;
-    if (!selector.startsWith('.')) selector = selector.toLowerCase();
-    let state: ClassState | undefined;
-    if (selector.endsWith('.w--current') && !match[2]) {
-        selector = selector.slice(0, -'.w--current'.length);
-        state = 'current';
-    } else if (match[2]) {
-        const suffix = match[2].toLowerCase();
-        state = suffix === '[aria-current]' ? 'current' : (suffix.slice(1) as ClassState);
+    let list;
+    try {
+        list = selectorAst(raw);
+    } catch {
+        return;
     }
-    if (selector)
+    if (list.nodes.length !== 1) return;
+    const nodes = list.first.nodes.filter((n) => n.type !== 'comment');
+    const last = nodes.at(-1);
+    let state: ClassState | undefined;
+    let currentConvention: 'webflow' | 'aria' | undefined;
+    if (last?.type === 'class' && last.value === 'w--current') {
+        currentConvention = 'webflow';
+        state = 'current';
+    } else if (
+        last?.type === 'attribute' &&
+        last.namespace === undefined &&
+        keyword(last.attribute) === 'aria-current' &&
+        !last.operator
+    ) {
+        currentConvention = 'aria';
+        state = 'current';
+    } else if (last?.type === 'pseudo' && !last.nodes.length) {
+        const name = keyword(last.value).slice(1);
+        if (name !== 'hover' && name !== 'active' && name !== 'focus-visible') return;
+        state = name;
+    }
+    if (state) nodes.pop();
+    if (!nodes.length) return;
+    if (nodes.length === 1 && nodes[0]?.type === 'tag' && nodes[0].namespace === undefined) {
+        const selector = keyword(nodes[0].value);
+        if (['body', 'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(selector))
+            return { selector, classes: [] as string[], state, currentConvention };
+    }
+    const classes = nodes.flatMap((n) => (n.type === 'class' ? [n.value] : []));
+    if (classes.length === nodes.length)
         return {
-            selector,
+            selector: classes.map((name) => '.' + ident.encode(name)).join(''),
+            classes,
             state,
-            currentConvention:
-                state === 'current'
-                    ? raw.endsWith('.w--current')
-                        ? ('webflow' as const)
-                        : ('aria' as const)
-                    : undefined,
-            classes: selector.startsWith('.') ? selector.slice(1).split('.') : [],
+            currentConvention,
         };
-}
-function media(at: AtRule) {
-    if (at.name.toLowerCase() !== 'media') return;
-    const m = /^(?:screen\s+and\s+)?\(\s*(min|max)-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)$/i.exec(
-        at.params,
-    );
-    if (m) return { direction: m[1]!.toLowerCase() as 'min' | 'max', width: Number(m[2]) };
 }
 function range(node: ChildNode) {
     const bom = Number(node.source!.input.hasBOM);
     return { start: node.source!.start!.offset + bom, end: node.source!.end!.offset + bom };
 }
 function isComponents(node: ChildNode): node is AtRule {
-    return (
-        node.type === 'atrule' &&
-        node.name.toLowerCase() === 'layer' &&
-        node.params === 'components' &&
-        !!node.nodes
-    );
+    if (node.type !== 'atrule' || keyword(node.name) !== 'layer' || !node.nodes) return false;
+    const [name] = layerNames(node.params);
+    return name?.length === 1 && name[0] === 'components';
 }
 function rows(root: Root) {
     type Entry = NonNullable<ReturnType<typeof selectorParts>> &
@@ -119,8 +137,20 @@ function rows(root: Root) {
     ) {
         let effective = selector;
         if (node.type === 'rule') {
-            if (selector && !node.selector.startsWith('&')) return;
-            effective = selector ? selector + node.selector.slice(1) : node.selector;
+            effective = node.selector;
+            if (selector) {
+                let ast;
+                try {
+                    ast = selectorAst(node.selector);
+                } catch {
+                    return;
+                }
+                if (ast.nodes.length !== 1 || ast.first.first?.type !== 'nesting') return;
+                ast.first.first.replaceWith(
+                    ...selectorAst(selector).first.nodes.map((n) => n.clone()),
+                );
+                effective = ast.toString();
+            }
         } else if (node.type === 'atrule' && !bp) {
             bp = media(node);
             if (!bp) return;
@@ -138,7 +168,7 @@ function declarations(rule: Rule | AtRule) {
     return (rule.nodes ?? []).filter((node) => node.type === 'decl');
 }
 export function indexStylesheet(source: string) {
-    return rows(postcss.parse(source)).map(({ rule, scope, ...row }) => ({
+    return rows(parseSheet(source)).map(({ rule, scope, ...row }) => ({
         ...row,
         layer: scope.type === 'root' ? null : 'components',
         declarations: declarations(rule).map((d) => ({
@@ -160,6 +190,15 @@ function matches(row: ClassTarget, target: ClassTarget) {
         (row.width === undefined || row.direction === (target.direction ?? 'max'))
     );
 }
+function selectorPartsInList(raw: string, selector: string) {
+    try {
+        return selectorAst(raw).nodes.some(
+            (n) => selectorParts(n.toString())?.selector === selector,
+        );
+    } catch {
+        return false;
+    }
+}
 // An unlayered normal declaration wins over a component rule. Important declarations reverse layer order.
 function orderedDeclarations(matching: ReturnType<typeof rows>) {
     return matching
@@ -177,7 +216,7 @@ function orderedDeclarations(matching: ReturnType<typeof rows>) {
         .map((entry) => entry.decl);
 }
 export function detachStyles(source: string, target: ClassTarget): Record<string, string> {
-    const matching = rows(postcss.parse(source)).filter((r) => matches(r, target));
+    const matching = rows(parseSheet(source)).filter((r) => matches(r, target));
     return Object.fromEntries(
         orderedDeclarations(matching).map((d) => [
             propertyKey(d.prop),
@@ -187,14 +226,14 @@ export function detachStyles(source: string, target: ClassTarget): Record<string
 }
 function containerFor(root: Root, target: ClassTarget): Root | AtRule {
     const all = rows(root);
-    const base = target.selector.split('.')[1];
+    const base = selectorParts(target.selector)?.classes[0];
     const existing =
         all.findLast((r) => r.selector === target.selector) ??
         all.findLast((r) => r.selector === '.' + base);
     // A grouped imported rule owns its unlayered class too. Add a dedicated
     // rule for this selector so the other list members keep their styles.
     const unlayered = root.nodes.some(
-        (n) => n.type === 'rule' && n.selectors.includes(target.selector),
+        (n) => n.type === 'rule' && selectorPartsInList(n.selector, target.selector),
     );
     let scope = existing?.scope ?? (unlayered ? root : root.nodes.filter(isComponents).at(-1));
     if (!scope) {
@@ -222,18 +261,18 @@ function containerFor(root: Root, target: ClassTarget): Root | AtRule {
 }
 function prune(node: Rule | AtRule) {
     const parent = node.parent;
-    if (node.nodes?.length || node.toString().includes('/*')) return;
+    if (node.nodes?.length || hasComment(node.toString())) return;
     node.remove();
-    if (
-        parent?.type === 'rule' ||
-        (parent?.type === 'atrule' && parent.name.toLowerCase() === 'media')
-    )
+    if (parent?.type === 'rule' || (parent?.type === 'atrule' && keyword(parent.name) === 'media'))
         prune(parent);
 }
 function validateDeclaration(property: string, value: string) {
-    if (!/^(?:--[\w-]+|-?[a-zA-Z][\w-]*)$/.test(property) || !value.trim())
+    if (
+        !(tokens(property).length === 1 && tokens(property)[0]?.type === tokenTypes.Ident) ||
+        !value.trim()
+    )
         throw Error('Invalid declaration');
-    const probe = postcss.parse('x{' + property + ':' + value + '}');
+    const probe = parseSheet('x{' + property + ':' + value + '}');
     const rule = probe.first;
     if (
         probe.nodes.length !== 1 ||
@@ -247,7 +286,8 @@ function validateDeclaration(property: string, value: string) {
     return rule.first;
 }
 function propertyKey(property: string) {
-    return property.startsWith('--') ? property : property.toLowerCase();
+    const name = decodeIdent(property);
+    return name.startsWith('--') ? name : name.toLowerCase();
 }
 
 export type DeclarationEdit = { patch: TextPatch | null } & DeclarationEffect;
@@ -268,7 +308,8 @@ export function editDeclaration(
         (target.width !== undefined && (!Number.isFinite(target.width) || target.width < 0))
     )
         throw Error('Invalid target');
-    const root = postcss.parse(source);
+    target = { ...target, selector: parts.selector };
+    const root = parseSheet(source);
     const matching = rows(root).filter((r) => matches(r, target));
     const existing = orderedDeclarations(matching).filter(
         (d) => propertyKey(d.prop) === propertyKey(property),
@@ -281,8 +322,7 @@ export function editDeclaration(
         const removed = existing.at(-1);
         if (removed) outcome = declarationEffect(root, target, removed);
         for (const decl of existing) {
-            if (decl.toString().includes('/*'))
-                throw Error('Declaration contains embedded comments');
+            if (hasComment(decl.toString())) throw Error('Declaration contains embedded comments');
             const owner = decl.parent as Rule | AtRule;
             decl.remove();
             prune(owner);
@@ -300,9 +340,9 @@ export function editDeclaration(
             }
             const raw = decl.raws.value?.raw ?? decl.value;
             if (
-                raw.includes('/*') ||
+                hasComment(raw) ||
                 raw.trim() !== decl.value ||
-                (decl.important && !important && decl.raws.important?.includes('/*'))
+                (decl.important && !important && hasComment(decl.raws.important ?? ''))
             )
                 throw Error('Editing this declaration would remove embedded comments');
             decl.raws.value = {
@@ -347,7 +387,7 @@ export function createClass(source: string, name: string, styles: Record<string,
     assertClassName(name);
     if (selectorInventory(source).names.has(name)) throw Error('Class already exists');
     if (!Object.keys(styles).length) {
-        const root = postcss.parse(source);
+        const root = parseSheet(source);
         const selector = '.' + name;
         containerFor(root, { selector }).append(postcss.rule({ selector }));
         return difference(source, (root.source?.input.hasBOM ? source[0] : '') + root.toString());
