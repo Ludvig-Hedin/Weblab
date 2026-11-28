@@ -86,7 +86,14 @@ test('resolves local aliases and literal dynamic imports or identifies the missi
         const path = specifier.startsWith('@') ? 'src/components/shell.tsx' : 'app/lazy.tsx';
         const sheet = path.replace(/[^/]+$/, 'shell.css');
         const files = { 'app/layout.tsx': entry, [path]: 'import "./shell.css";', [sheet]: '.a{}' };
-        expect([...resolveClassStylesheets(files, ['app/layout.tsx']).paths]).toContain(sheet);
+        expect([
+            ...resolveClassStylesheets(
+                files,
+                ['app/layout.tsx'],
+                {},
+                { paths: { '@/*': ['src/*'] } },
+            ).paths,
+        ]).toContain(sheet);
         expect(
             resolveClassStylesheets({ 'app/layout.tsx': entry }, ['app/layout.tsx']).unresolved,
         ).toEqual([{ importer: 'app/layout.tsx', specifier }]);

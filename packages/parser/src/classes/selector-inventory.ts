@@ -1,11 +1,10 @@
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
 
-export function selectorInventory(css: string) {
+export function selectorInventory(css: string, root = postcss.parse(css)) {
     const tokens: { name: string; start: number; end: number }[] = [];
     const uncertain: { name: string; start: number; end: number }[] = [];
     const names = new Set<string>();
-    const root = postcss.parse(css);
     const defined = new Set<string>();
     function collectSubject(selector: selectorParser.Selector) {
         const last = selector.nodes.findLastIndex((n) => n.type === 'combinator');
@@ -72,7 +71,7 @@ export function selectorInventory(css: string) {
         ),
     );
     // Simple scope roots and limits can use the same selector-token offsets as normal rules.
-    root.walkAtRules('scope', (at) => {
+    root.walkAtRules(/^scope$/i, (at) => {
         const raw = at.raws.params?.raw ?? at.params;
         const start =
             at.source!.start!.offset +

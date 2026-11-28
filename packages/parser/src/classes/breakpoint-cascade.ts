@@ -26,8 +26,8 @@ function specificity(nodes: readonly selectorParser.Node[]): number[] {
         if (n.type === 'id') score[0]!++;
         else if (n.type === 'tag' || (n.type === 'pseudo' && n.value.startsWith('::'))) score[2]!++;
         else if (n.type === 'class' || n.type === 'attribute') score[1]!++;
-        else if (n.type === 'pseudo' && n.value !== ':where') {
-            if ([':is', ':has', ':not'].includes(n.value)) {
+        else if (n.type === 'pseudo' && n.value.toLowerCase() !== ':where') {
+            if ([':is', ':has', ':not'].includes(n.value.toLowerCase())) {
                 const max = n.nodes
                     .map((s) => specificity(s.nodes))
                     .sort(compare)
@@ -59,21 +59,28 @@ function matchesSubject(nodes: readonly selectorParser.Node[], target: ClassTarg
                 return true;
             case 'class':
                 if (n.value === 'w--current')
-                    return target.state === 'current' && target.currentConvention === 'webflow';
+                    return target.state === 'current' && target.currentConvention !== 'webflow'
+                        ? undefined
+                        : target.state === 'current';
                 return classes.includes(n.value) ? true : undefined;
             case 'tag':
                 return target.selector.startsWith('.')
                     ? undefined
                     : n.value.toLowerCase() === target.selector;
             case 'attribute':
-                return n.attribute === 'aria-current' && !n.operator
-                    ? target.state === 'current' && target.currentConvention !== 'webflow'
+                return n.attribute.toLowerCase() === 'aria-current' && !n.operator
+                    ? target.state === 'current' && target.currentConvention === 'webflow'
+                        ? undefined
+                        : target.state === 'current'
                     : undefined;
             case 'pseudo':
-                if (states.has(n.value)) return n.value === ':' + target.state;
-                if ([':is', ':where', ':not'].includes(n.value)) {
+                if (states.has(n.value.toLowerCase()))
+                    return n.value.toLowerCase() === ':' + target.state;
+                if ([':is', ':where', ':not'].includes(n.value.toLowerCase())) {
                     const result = some(n.nodes.map((s) => matchesSubject(s.nodes, target)));
-                    return n.value === ':not' && result !== undefined ? !result : result;
+                    return n.value.toLowerCase() === ':not' && result !== undefined
+                        ? !result
+                        : result;
                 }
                 return undefined;
             default:
@@ -84,31 +91,56 @@ function matchesSubject(nodes: readonly selectorParser.Node[], target: ClassTarg
     return all(terms);
 }
 
+function stateMarker(n: selectorParser.Node) {
+    return (
+        (n.type === 'class' && n.value === 'w--current') ||
+        (n.type === 'attribute' && n.attribute.toLowerCase() === 'aria-current') ||
+        (n.type === 'pseudo' && states.has(n.value.toLowerCase()))
+    );
+}
+
+// Only the rightmost compound describes the hypothetical subject.
+function substituteState(selector: selectorParser.Selector, target: ClassTarget): Match {
+    const start = selector.nodes.findLastIndex((n) => n.type === 'combinator') + 1;
+    for (const node of selector.nodes.slice(start)) {
+        if (stateMarker(node)) {
+            const match = matchesSubject([node], target);
+            if (match === false) return false;
+            if (match === true) node.remove();
+        } else if (
+            node.type === 'pseudo' &&
+            [':is', ':where', ':not'].includes(node.value.toLowerCase())
+        ) {
+            const negative = node.value.toLowerCase() === ':not';
+            const terms = node.nodes.slice().map((branch) => {
+                const match = substituteState(branch, target);
+                if (match === false) branch.remove();
+                return match;
+            });
+            const result = some(terms);
+            if (result !== undefined) {
+                if (result === negative) return false;
+                node.remove();
+            }
+        }
+    }
+    if (selector.nodes.every((n) => n.type === 'universal' || n.type === 'comment')) return true;
+    if (selector.last?.type === 'combinator')
+        selector.append(selectorParser.universal({ value: '*' }));
+    return undefined;
+}
+
 function selectorMatch(ast: selectorParser.Selector, target: ClassTarget): Match {
     const result = matchesSubject(ast.nodes, target);
     if (result !== undefined || !target.matchesSelector) return result;
-    // Only ask the live element about structure. The editing state is hypothetical.
     const structural = ast.clone();
-    const start = structural.nodes.findLastIndex((n) => n.type === 'combinator') + 1;
-    const subject = structural.nodes.slice(start);
-    for (const node of subject) {
-        if (
-            (node.type === 'pseudo' && states.has(node.value)) ||
-            (target.state === 'current' &&
-                ((node.type === 'class' && node.value === 'w--current') ||
-                    (node.type === 'attribute' &&
-                        node.attribute === 'aria-current' &&
-                        !node.operator)))
-        )
-            node.remove();
-    }
-    if (!structural.nodes.length || structural.last?.type === 'combinator')
-        structural.append(selectorParser.universal({ value: '*' }));
-    let dynamic = false;
-    structural.walkPseudos((n) => {
-        if (states.has(n.value)) dynamic = true;
+    const simplified = substituteState(structural, target);
+    if (simplified !== undefined) return simplified;
+    let unresolved = false;
+    structural.walk((n) => {
+        if (stateMarker(n)) unresolved = true;
     });
-    if (dynamic) return undefined;
+    if (unresolved) return undefined;
     return target.matchesSelector(structural.toString());
 }
 
@@ -175,10 +207,17 @@ export function declarationEffect(
     const width = target.width;
     const property = normalize(written.prop);
     const affected = longhands(property);
-    type Winner = { decl: Declaration; rank: number[]; selector: string };
+    type Winner = {
+        decl: Declaration;
+        rank: number[];
+        selector: string;
+        scope?: AtRule;
+        ambiguous?: boolean;
+    };
     const possible = new Map<string, Winner>();
     let dependency = target.linkedStylesheets?.[0];
     let orderInSheet = 0;
+    let unmodeledSelector: string | undefined;
     const winners = new Map<string, Winner>();
     const writtenMatches = new Set<string>();
     const layers = new Map<string, number>();
@@ -196,22 +235,23 @@ export function declarationEffect(
         selectors: string[],
         layer: string[],
         active: Match,
-        scoped: boolean,
+        scope?: AtRule,
     ) {
         for (const node of nodes) {
             if (node.type === 'atrule') {
-                if (node.name === 'import' && active !== false) dependency = node.params;
+                const keyword = node.name.toLowerCase();
+                if (keyword === 'import' && active !== false) dependency = node.params;
                 if (
-                    node.name === 'media' ||
-                    node.name === 'supports' ||
-                    node.name === 'container' ||
-                    node.name === 'scope'
+                    keyword === 'media' ||
+                    keyword === 'supports' ||
+                    keyword === 'container' ||
+                    keyword === 'scope'
                 ) {
                     const condition =
-                        (node.name === 'media' ? activeMedia(node, width) : undefined) ??
+                        (keyword === 'media' ? activeMedia(node, width) : undefined) ??
                         (width === undefined
                             ? undefined
-                            : target.matchesCondition?.(node.name, node.params, width));
+                            : target.matchesCondition?.(keyword, node.params, width));
                     const branch = all([active, condition]);
                     if (branch !== false)
                         visit(
@@ -219,16 +259,16 @@ export function declarationEffect(
                             selectors,
                             layer,
                             branch,
-                            scoped || node.name === 'scope',
+                            keyword === 'scope' ? node : scope,
                         );
-                } else if (node.name === 'layer') {
+                } else if (keyword === 'layer') {
                     if (node.nodes)
                         visit(
                             node.nodes,
                             selectors,
                             layerPath(layer, node.params || '@' + node.source?.start?.offset),
                             active,
-                            scoped,
+                            scope,
                         );
                     else for (const name of node.params.split(',')) layerPath(layer, name.trim());
                 } else if (
@@ -238,18 +278,12 @@ export function declarationEffect(
                     )
                 ) {
                     // An unmodeled conditional group can contain a competing style rule.
-                    visit(node.nodes, selectors, layer, undefined, scoped);
+                    visit(node.nodes, selectors, layer, undefined, scope);
                 }
                 continue;
             }
             if (node.type === 'rule') {
-                visit(
-                    node.nodes,
-                    nestedSelectors(selectors, node.selectors),
-                    layer,
-                    active,
-                    scoped,
-                );
+                visit(node.nodes, nestedSelectors(selectors, node.selectors), layer, active, scope);
                 continue;
             }
             if (node.type !== 'decl') continue;
@@ -266,6 +300,15 @@ export function declarationEffect(
                 if (!ast) continue;
                 const matches = all([active, selectorMatch(ast, target)]);
                 if (matches === false) continue;
+                // Functional pseudo-classes with additional selector-dependent specificity
+                // (such as nth-child(... of S)) need a full model before proving a winner.
+                ast.walkPseudos((n) => {
+                    if (
+                        n.nodes.length &&
+                        ![':where', ':is', ':has', ':not'].includes(n.value.toLowerCase())
+                    )
+                        unmodeledSelector = selector;
+                });
                 const order = layer.map((_, i) => layers.get(layer.slice(0, i + 1).join('.'))!);
                 // Direct declarations follow sublayers. Importance reverses the layer comparison.
                 order.push(Number.MAX_SAFE_INTEGER);
@@ -273,20 +316,42 @@ export function declarationEffect(
                     Number(!!node.important),
                     ...order.map((n) => (node.important ? -n : n)),
                     ...specificity(ast.nodes),
-                    Number(scoped),
+                    Number(!!scope),
                     orderInSheet++,
                 ];
                 for (const p of writes) {
                     if (matches === true && node === written) writtenMatches.add(p);
                     const candidates = matches === true ? winners : possible;
                     const old = candidates.get(p);
-                    if (!old || compare(rank, old.rank) >= 0)
-                        candidates.set(p, { decl: node, rank, selector });
+                    if (!old || compare(rank, old.rank) >= 0) {
+                        const tied =
+                            old &&
+                            scope &&
+                            old.scope &&
+                            compare(rank.slice(0, -1), old.rank.slice(0, -1)) === 0;
+                        const ambiguous = !!(
+                            tied &&
+                            (old.ambiguous === true || old.scope !== scope)
+                        );
+                        candidates.set(p, { decl: node, rank, selector, scope, ambiguous });
+                    }
                 }
             }
         }
     }
-    visit(root.nodes, [], [], true, false);
+    try {
+        visit(root.nodes, [], [], true);
+    } catch (error) {
+        // Selector parsers and DOM matchers can reject future CSS syntax.
+        return {
+            effect: 'unknown',
+            reason:
+                'Could not evaluate the cascade: ' +
+                (error instanceof Error ? error.message : String(error)),
+        };
+    }
+    if (unmodeledSelector)
+        return { effect: 'unknown', reason: 'Unmodeled selector: ' + unmodeledSelector };
     function describe(candidate: Winner): CompetingRule {
         return {
             selector: candidate.selector,
@@ -302,6 +367,19 @@ export function declarationEffect(
     for (const p of affected) {
         const known = winners.get(p);
         const maybe = possible.get(p);
+        if (
+            known?.ambiguous ||
+            (maybe?.ambiguous &&
+                (!known || compare(maybe.rank.slice(0, -1), known.rank.slice(0, -1)) >= 0)) ||
+            (maybe?.scope &&
+                known?.scope &&
+                maybe.scope !== known.scope &&
+                compare(maybe.rank.slice(0, -1), known.rank.slice(0, -1)) === 0)
+        )
+            return {
+                effect: 'unknown',
+                reason: 'Scope proximity is needed to identify the winning rule',
+            };
         if (
             !writtenMatches.has(p) ||
             !known ||

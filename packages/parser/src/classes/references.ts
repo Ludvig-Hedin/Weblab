@@ -277,7 +277,10 @@ export function renameClass(
     if (![...graph.paths].some((path) => selectorInventory(sources[path]!).defined.has(from)))
         throw Error('Class is not defined in the project stylesheets');
     const owned = Object.fromEntries(
-        Object.entries(files).filter(([path]) => graph.sources.has(path)),
+        Object.entries(files).filter(
+            ([path]) =>
+                graph.sources.has(path) && (/\.[cm]?[jt]sx?$/i.test(path) || graph.paths.has(path)),
+        ),
     );
     const unsafe: Site[] = [];
     const cssPatches = cssRenamePatches(css, from, to, cssPath, unsafe);

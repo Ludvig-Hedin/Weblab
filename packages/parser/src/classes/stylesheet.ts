@@ -56,17 +56,19 @@ export function assertClassName(name: string) {
 }
 function selectorParts(raw: string) {
     const match =
-        /^((?:\.-?[a-zA-Z_][\w-]*)+|body|h[1-6]|a|p)(:hover|:active|:focus-visible|\[aria-current\])?$/.exec(
+        /^((?:\.-?[a-zA-Z_][\w-]*)+|body|h[1-6]|a|p)(:hover|:active|:focus-visible|\[aria-current\])?$/i.exec(
             raw,
         );
     if (!match) return;
     let selector = match[1]!;
+    if (!selector.startsWith('.')) selector = selector.toLowerCase();
     let state: ClassState | undefined;
     if (selector.endsWith('.w--current') && !match[2]) {
         selector = selector.slice(0, -'.w--current'.length);
         state = 'current';
     } else if (match[2]) {
-        state = match[2] === '[aria-current]' ? 'current' : (match[2].slice(1) as ClassState);
+        const suffix = match[2].toLowerCase();
+        state = suffix === '[aria-current]' ? 'current' : (suffix.slice(1) as ClassState);
     }
     if (selector)
         return {
@@ -82,7 +84,7 @@ function selectorParts(raw: string) {
         };
 }
 function media(at: AtRule) {
-    if (at.name !== 'media') return;
+    if (at.name.toLowerCase() !== 'media') return;
     const m = /^(?:screen\s+and\s+)?\(\s*(min|max)-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)$/i.exec(
         at.params,
     );
@@ -95,7 +97,7 @@ function range(node: ChildNode) {
 function isComponents(node: ChildNode): node is AtRule {
     return (
         node.type === 'atrule' &&
-        node.name === 'layer' &&
+        node.name.toLowerCase() === 'layer' &&
         node.params === 'components' &&
         !!node.nodes
     );
@@ -222,7 +224,10 @@ function prune(node: Rule | AtRule) {
     const parent = node.parent;
     if (node.nodes?.length || node.toString().includes('/*')) return;
     node.remove();
-    if (parent?.type === 'rule' || (parent?.type === 'atrule' && parent.name === 'media'))
+    if (
+        parent?.type === 'rule' ||
+        (parent?.type === 'atrule' && parent.name.toLowerCase() === 'media')
+    )
         prune(parent);
 }
 function validateDeclaration(property: string, value: string) {
